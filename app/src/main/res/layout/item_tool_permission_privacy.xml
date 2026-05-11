@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_permission_privacy_desc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:lineSpacingExtra="4dp"
+        android:text="工具箱的网络诊断、局域网扫描、二维码识别、文件哈希和剪贴板功能均在本机执行。网络体检与 DNS 查询会访问公共检测接口；文件哈希只读取你选择的文件，不会上传文件内容。"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_permission_app_settings"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:text="应用权限"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_permission_copy_privacy"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:text="复制说明"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_permission_privacy_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="?attr/colorSurfaceVariant"
+        android:padding="8dp"
+        android:text="你可以在这里快速打开系统权限页，或复制说明给测试用户。"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="13sp" />
+
+</LinearLayout>

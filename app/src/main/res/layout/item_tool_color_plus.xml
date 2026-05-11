@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/v_color_plus_fg"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="#222222" />
+
+        <EditText
+            android:id="@+id/et_color_plus_fg"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:fontFamily="monospace"
+            android:hint="#222222"
+            android:inputType="textNoSuggestions"
+            android:text="#222222"
+            android:textSize="13sp" />
+
+        <View
+            android:id="@+id/v_color_plus_bg"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="#FFFFFF" />
+
+        <EditText
+            android:id="@+id/et_color_plus_bg"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:fontFamily="monospace"
+            android:hint="#FFFFFF"
+            android:inputType="textNoSuggestions"
+            android:text="#FFFFFF"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_plus_contrast"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:text="对比度"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_plus_pick_image"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:text="图片取色"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <View
+        android:id="@+id/v_color_plus_image"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginTop="8dp"
+        android:background="?attr/colorSurfaceVariant" />
+
+    <TextView
+        android:id="@+id/tv_color_plus_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="?attr/colorSurfaceVariant"
+        android:fontFamily="monospace"
+        android:lineSpacingExtra="4dp"
+        android:padding="8dp"
+        android:text="颜色分析结果会显示在这里"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textIsSelectable="true"
+        android:textSize="13sp" />
+
+</LinearLayout>

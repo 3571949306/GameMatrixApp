@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@id/navigation_games">
+
+    <fragment
+        android:id="@+id/navigation_browser"
+        android:name="com.gamecenter.app.fragments.BrowserFragment"
+        android:label="@string/nav_browser" />
+
+    <fragment
+        android:id="@+id/navigation_games"
+        android:name="com.gamecenter.app.fragments.GamesFragment"
+        android:label="@string/nav_games" />
+
+    <fragment
+        android:id="@+id/navigation_tools"
+        android:name="com.gamecenter.app.fragments.ToolsFragment"
+        android:label="@string/nav_tools" />
+
+</navigation>

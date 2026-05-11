@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 游戏次要按钮背景样式 (btn_game_secondary.xml) -->
+<!-- 用于"不叫"、"提示"、"不出"、"0分"、"1分"、"2分"等次要操作按钮 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按下状态：深灰色 -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#424242" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="#757575" />
+        </shape>
+    </item>
+    <!-- 选中状态：中灰色 -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#616161" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="#9E9E9E" />
+        </shape>
+    </item>
+    <!-- 默认状态：标准灰色 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#616161" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="#9E9E9E" />
+        </shape>
+    </item>
+</selector>

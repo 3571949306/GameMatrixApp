@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <com.gamecenter.app.views.ColorSVPanel
+        android:id="@+id/sv_panel"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp" />
+
+    <com.gamecenter.app.views.ColorHueBar
+        android:id="@+id/hue_bar"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_marginTop="8dp" />
+
+    <com.gamecenter.app.views.ColorAlphaBar
+        android:id="@+id/alpha_bar"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_marginTop="6dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <View
+            android:id="@+id/v_color_preview"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="#FF5722" />
+
+        <EditText
+            android:id="@+id/et_color_hex"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:hint="#AARRGGBB 或 #RRGGBB"
+            android:inputType="textNoSuggestions"
+            android:text="#FF5722"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="14sp"
+            android:fontFamily="monospace" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_apply_hex"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:text="应用"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_copy_color"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:text="复制"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="R"
+            android:textColor="#F44336"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <SeekBar
+            android:id="@+id/seek_r"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="255"
+            android:progress="255" />
+
+        <TextView
+            android:id="@+id/tv_r_val"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="255"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="13sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="G"
+            android:textColor="#4CAF50"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <SeekBar
+            android:id="@+id/seek_g"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="255"
+            android:progress="87" />
+
+        <TextView
+            android:id="@+id/tv_g_val"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="87"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="13sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="B"
+            android:textColor="#2196F3"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <SeekBar
+            android:id="@+id/seek_b"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="255"
+            android:progress="34" />
+
+        <TextView
+            android:id="@+id/tv_b_val"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="34"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="13sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="A"
+            android:textColor="#999999"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <SeekBar
+            android:id="@+id/seek_a"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="255"
+            android:progress="255" />
+
+        <TextView
+            android:id="@+id/tv_a_val"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="255"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="13sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_color_rgb"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="RGB: 255, 87, 34"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/tv_color_argb"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="ARGB: 255, 255, 87, 34"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/tv_color_hsl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="HSL: 14°, 100%, 57%"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/tv_color_hsv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="HSV: 14°, 87%, 100%"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/tv_color_int"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="INT: 0xFFFF5722"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/tv_color_css"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="4dp"
+        android:text="CSS: rgba(255,87,34,1.0)"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:fontFamily="monospace" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_red"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#F44336" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_orange"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#FF9800" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_yellow"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#FFEB3B" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_green"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetBottom="0dp"
+            android:insetTop="0dp"
+            app:backgroundTint="#4CAF50" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_blue"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#2196F3" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_purple"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#9C27B0" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_pink"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#E91E63" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_teal"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#009688" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_white"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#FFFFFF" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_color_black"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_margin="3dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:backgroundTint="#212121" />
+    </LinearLayout>
+</LinearLayout>

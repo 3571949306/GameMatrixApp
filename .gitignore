@@ -1,0 +1,48 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.vscode/
+
+# Local machine config
+local.properties
+local.properties.template.bak
+local_private/
+.codex-local/
+
+# VPS deployment configs (may contain real IPs/domains)
+vps/**/*.conf
+vps/**/*.service
+vps/**/*.key
+vps/**/*.pem
+
+# Generated APKs and bundles
+*.apk
+*.aab
+
+# Logs
+*.log
+
+# Python cache
+**/__pycache__/
+*.pyc
+
+# Local tool downloads
+tools/jadx/*.zip
+tools/jadx/lib/
+
+# Decompiled APK temporary files
+apk_temp/
+GameCenterApp/apk_temp/
+com.injoy.games.crazy.poker/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Other project data (not related to GameCenterApp)
+data/

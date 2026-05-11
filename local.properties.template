@@ -1,0 +1,38 @@
+## This file must *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the SDK. This is only used by Gradle.
+# For customization when using a Version Control System, please read
+# the header note.
+#
+# 使用说明：
+# 1. 复制此文件为 local.properties（不要提交到 Git）
+# 2. 将 <YOUR_*> 占位符替换为你的实际服务器地址
+# 3. SDK 路径由 Android Studio 自动维护
+#
+# sdk.dir=C\:\\Users\\<你的用户名>\\AppData\\Local\\Android\\Sdk
+
+# ============ 服务器地址配置 ============
+# 请将以下占位符替换为你的实际服务器地址
+
+# 主更新源（推荐使用 HTTPS）
+server.url=https://hk-update.<YOUR_DOMAIN>
+
+# 备用更新源（主更新源失败时自动切换）
+server.url.fallback=https://<YOUR_FALLBACK_DOMAIN>:1443
+
+# HTTP Relay 服务（斗地主云联机）
+relay.url=https://hk-relay.<YOUR_DOMAIN>/api/ddz-relay
+
+# WebSocket Relay 服务（斗地主 WebSocket 联机）
+ws.url=wss://hk-ws.<YOUR_DOMAIN>/ddz-ws
+
+# 用户反馈服务
+feedback.url=https://<YOUR_DOMAIN>/api/feedback
+
+# ============ GitHub Releases 配置 ============
+# 发布正式版时自动上传 APK 到 GitHub Releases
+# 获取方式：GitHub → Settings → Developer settings → Personal access tokens (classic)
+# 权限要求：repo (full control of private repositories)
+# 将 Token 内容保存到 local_private/github/token.txt（自动被 .gitignore 排除）
+# 路径：local_private/github/token.txt

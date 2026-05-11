@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    斗地主游戏主界面布局 (activity_doudizhu.xml)
+    混合架构：底层 TableView + 上层按钮覆盖
+
+    屏幕方向：横屏 (landscape)
+
+    Z层级说明（从底到顶）：
+    1. DouDiZhuTableView - 全屏桌面绘制（接收触摸）
+    2. topStatusBar - 顶部状态栏（透明）
+    3. buttonContainer - 按钮容器（wrap_content，不阻挡手牌）
+    4. handCardArea - 底部占位锚点（invisible）
+    5. gameOverDialog / progressLoading - 浮层
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- 底层：桌面视图（最先声明 = 最底层，触摸事件穿透到最后） -->
+    <!-- 点击穿透设置让触摸事件直达手牌区 -->
+    <com.gamecenter.app.games.doudizhu.DouDiZhuTableView
+        android:id="@+id/tableView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- 顶部状态栏：透明背景 -->
+    <LinearLayout
+        android:id="@+id/topStatusBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvLandlordIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="24dp"
+            android:text="地主："
+            android:textColor="#FF6B35"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvTurnIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="轮到："
+            android:textColor="#B0BEC5"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+    <!-- 手牌区域占位锚点（不可见，仅用于约束位置） -->
+    <!-- 底部 35% 区域，确保手牌完整可见 -->
+    <View
+        android:id="@+id/handCardArea"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.35"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- 操作按钮容器：紧贴手牌区上方，按钮缩小50% -->
+    <LinearLayout
+        android:id="@+id/buttonContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@android:color/transparent"
+        android:padding="2dp"
+        android:layout_marginBottom="0dp"
+        android:visibility="gone"
+        android:clickable="false"
+        android:focusable="false"
+        app:layout_constraintBottom_toTopOf="@+id/handCardArea"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible">
+
+        <!-- 叫地主按钮行 -->
+        <LinearLayout
+            android:id="@+id/bidButtonLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <Button
+                android:id="@+id/btnCallLandlord"
+                android:layout_width="60dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="4dp"
+                android:background="@drawable/btn_game_primary"
+                android:text="叫地主"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="none" />
+
+            <Button
+                android:id="@+id/btnNoCall"
+                android:layout_width="60dp"
+                android:layout_height="32dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="4dp"
+                android:background="@drawable/btn_game_secondary"
+                android:text="不叫"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="none" />
+
+        </LinearLayout>
+
+        <!-- 出牌/提示/不出按钮行 -->
+        <LinearLayout
+            android:id="@+id/playButtonLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <Button
+                android:id="@+id/btnPlayCard"
+                android:layout_width="60dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="4dp"
+                android:background="@drawable/btn_game_primary"
+                android:text="出牌"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="none" />
+
+            <Button
+                android:id="@+id/btnHint"
+                android:layout_width="60dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="4dp"
+                android:background="@drawable/btn_game_secondary"
+                android:text="提示"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="none" />
+
+            <Button
+                android:id="@+id/btnPass"
+                android:layout_width="60dp"
+                android:layout_height="32dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="4dp"
+                android:background="@drawable/btn_game_secondary"
+                android:text="不出"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="none" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 叫分按钮组 -->
+    <LinearLayout
+        android:id="@+id/scoreButtonLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/buttonContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topStatusBar"
+        app:layout_constraintVertical_bias="0.8">
+
+        <Button
+            android:id="@+id/btnScore0"
+            android:layout_width="70dp"
+            android:layout_height="45dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/btn_game_secondary"
+            android:text="0分"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnScore1"
+            android:layout_width="70dp"
+            android:layout_height="45dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/btn_game_secondary"
+            android:text="1分"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnScore2"
+            android:layout_width="70dp"
+            android:layout_height="45dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/btn_game_secondary"
+            android:text="2分"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnScore3"
+            android:layout_width="70dp"
+            android:layout_height="45dp"
+            android:background="@drawable/btn_game_primary"
+            android:text="3分"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- 游戏结束对话框 -->
+    <LinearLayout
+        android:id="@+id/gameOverDialog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/dialog_background"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvGameOverTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="游戏结束"
+            android:textColor="#FF6B35"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvGameOverResult"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="恭喜获胜！"
+            android:textColor="@color/white"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/tvScoreDetail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="本局得分：+50"
+            android:textColor="#E0E0E0"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPlayAgain"
+                android:layout_width="100dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/btn_game_primary"
+                android:text="再来一局"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnExit"
+                android:layout_width="100dp"
+                android:layout_height="44dp"
+                android:background="@drawable/btn_game_secondary"
+                android:text="退出"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 加载中 -->
+    <ProgressBar
+        android:id="@+id/progressLoading"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

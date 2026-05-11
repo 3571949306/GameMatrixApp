@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/gomoku_bg"
+    android:paddingTop="28dp">
+
+    <com.gamecenter.app.games.gomoku.GomokuView
+        android:id="@+id/gomoku_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/difficulty_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/select_difficulty"
+            android:textColor="@color/gomoku_line"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_difficulty_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="难度：入门学生 (3/6)"
+            android:textColor="@color/gomoku_line"
+            android:textSize="18sp" />
+
+        <SeekBar
+            android:id="@+id/seek_difficulty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="12dp"
+            android:max="5"
+            android:progress="2" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="入门"
+                android:textColor="@color/gomoku_line"
+                android:textSize="13sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="大师"
+                android:textColor="@color/gomoku_line"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_start_game"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="160dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:text="开始游戏" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_tutorial"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:text="📖 新手教程" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_online"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="160dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:text="🌐 联机对战" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/control_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_undo"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="120dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:text="@string/btn_undo" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_restart"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="120dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:text="@string/btn_restart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_tutorial_ingame"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="120dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:text="📖 教程" />
+
+    </LinearLayout>
+
+</LinearLayout>
