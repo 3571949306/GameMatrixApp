@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    斗地主菜单界面布局 (activity_doudizhu_menu.xml)
+    竖屏显示，提供单机模式和联机模式选择
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@color/launcher_bg"
+    android:padding="32dp">
+
+    <!-- 游戏标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="斗地主"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:layout_marginBottom="64dp" />
+
+    <!-- 单机模式按钮 -->
+    <Button
+        android:id="@+id/btnSinglePlayer"
+        android:layout_width="280dp"
+        android:layout_height="64dp"
+        android:text="单机模式"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_game_primary"
+        android:textColor="@color/white"
+        android:layout_marginBottom="24dp" />
+
+    <!-- 联机模式按钮 -->
+    <Button
+        android:id="@+id/btnOnline"
+        android:layout_width="280dp"
+        android:layout_height="64dp"
+        android:text="局域网联机"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_game_secondary"
+        android:textColor="@color/white"
+        android:layout_marginBottom="18dp" />
+
+    <Button
+        android:id="@+id/btnRemoteP2P"
+        android:layout_width="280dp"
+        android:layout_height="64dp"
+        android:text="云联机"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_game_primary"
+        android:textColor="@color/white"
+        android:layout_marginBottom="48dp" />
+
+    <!-- 返回按钮 -->
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="160dp"
+        android:layout_height="48dp"
+        android:text="返回"
+        android:textSize="18sp"
+        android:background="@drawable/btn_game_secondary"
+        android:textColor="@color/white" />
+
+</LinearLayout>

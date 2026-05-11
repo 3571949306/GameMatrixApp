@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 游戏主按钮背景样式 (btn_game_primary.xml) -->
+<!-- 用于"叫地主"、"出牌"、"3分"等主要操作按钮 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按下状态：深绿色 -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#1B5E20" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="#4CAF50" />
+        </shape>
+    </item>
+    <!-- 选中状态：亮绿色 -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#2E7D32" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="#66BB6A" />
+        </shape>
+    </item>
+    <!-- 默认状态：标准绿色 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#388E3C" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="#4CAF50" />
+        </shape>
+    </item>
+</selector>

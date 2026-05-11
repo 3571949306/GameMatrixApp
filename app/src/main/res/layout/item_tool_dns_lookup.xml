@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <EditText
+        android:id="@+id/et_dns_domain"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:hint="输入域名，例如 example.com"
+        android:inputType="textUri"
+        android:textColor="?android:attr/textColorPrimary" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_dns_lookup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="查询 A / AAAA / CNAME / MX / TXT" />
+
+    <TextView
+        android:id="@+id/tv_dns_lookup_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="?attr/colorSurfaceVariant"
+        android:fontFamily="monospace"
+        android:lineSpacingExtra="4dp"
+        android:padding="12dp"
+        android:text="等待查询"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textIsSelectable="true"
+        android:textSize="13sp" />
+</LinearLayout>

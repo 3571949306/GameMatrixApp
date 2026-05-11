@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_screen_resolution"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="分辨率: 获取中..."
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/tv_screen_dpi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="DPI / 密度: 获取中..."
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/tv_screen_refresh"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="刷新率: 获取中..."
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/tv_screen_size"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="屏幕尺寸: 获取中..."
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/tv_screen_aspect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="4dp"
+        android:text="宽高比: 获取中..."
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="15sp" />
+</LinearLayout>

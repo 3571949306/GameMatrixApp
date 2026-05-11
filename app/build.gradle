@@ -1,0 +1,336 @@
+plugins {
+    id 'com.android.application'
+}
+
+def versionPropsFile = file("${rootDir}/version.properties")
+def versionFileVersionCode = 1
+def versionFileVersionName = "1.0"
+def configuredLastStableVersionCode = 0
+def configuredLastStableVersionName = ""
+def configuredBetaNoticeVersionGap = 3
+
+def localPropsFile = file("${rootDir}/local.properties")
+def configuredServerUrl = ""
+def configuredServerUrlFallback = ""
+def configuredRelayUrl = ""
+def configuredWsUrl = ""
+def configuredFeedbackUrl = ""
+
+if (localPropsFile.exists()) {
+    localPropsFile.withReader("UTF-8") { reader ->
+        reader.eachLine { line ->
+            line = line.trim()
+            if (line.isEmpty() || line.startsWith("#")) return
+            def eq = line.indexOf('=')
+            if (eq > 0) {
+                def key = line.substring(0, eq).trim()
+                def val = line.substring(eq + 1).trim()
+                if (key == "server.url") configuredServerUrl = val
+                if (key == "server.url.fallback") configuredServerUrlFallback = val
+                if (key == "relay.url") configuredRelayUrl = val
+                if (key == "ws.url") configuredWsUrl = val
+                if (key == "feedback.url") configuredFeedbackUrl = val
+            }
+        }
+    }
+}
+
+if (versionPropsFile.exists()) {
+    versionPropsFile.withReader("UTF-8") { reader ->
+        reader.eachLine { line ->
+            line = line.trim()
+            if (line.isEmpty() || line.startsWith("#")) return
+            def eq = line.indexOf('=')
+            if (eq > 0) {
+                def key = line.substring(0, eq).trim()
+                def val = line.substring(eq + 1).trim()
+                if (key == "versionCode") versionFileVersionCode = val.toInteger()
+                if (key == "versionName") versionFileVersionName = val
+                if (key == "lastStableVersionCode") configuredLastStableVersionCode = val.toInteger()
+                if (key == "lastStableVersionName") configuredLastStableVersionName = val
+                if (key == "betaNoticeVersionGap") configuredBetaNoticeVersionGap = val.toInteger()
+            }
+        }
+    }
+}
+
+def currentVersionCode = versionFileVersionCode
+def currentVersionName = versionFileVersionName
+def requestedVersionChannel = (project.findProperty("updateChannel") ?: "beta").toString().trim().toLowerCase()
+def normalizeVersionChannel = { String raw, String versionName ->
+    if (["stable", "release", "formal", "prod", "production"].contains(raw)) return "stable"
+    if (["beta", "test", "debug", "internal"].contains(raw)) return "beta"
+    return "beta"
+}
+def currentVersionChannel = normalizeVersionChannel(requestedVersionChannel, currentVersionName)
+def shouldAutoUploadVps = (project.findProperty("autoUploadVps") ?: "false").toString().toBoolean()
+def shouldUploadDryRun = (project.findProperty("uploadDryRun") ?: "false").toString().toBoolean()
+def shouldSkipUploadVerify = (project.findProperty("skipUploadVerify") ?: "false").toString().toBoolean()
+def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
+def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean()
+def generatedVersionAssetDir = file("${buildDir}/generated/assets/version")
+def lastStableVersionCode = currentVersionChannel == "stable"
+        ? currentVersionCode
+        : (configuredLastStableVersionCode > 0 ? configuredLastStableVersionCode : currentVersionCode)
+def lastStableVersionName = currentVersionChannel == "stable"
+        ? currentVersionName
+        : (!configuredLastStableVersionName.isEmpty() ? configuredLastStableVersionName : currentVersionName)
+
+def changelogFile = file("${rootDir}/CHANGELOG.md")
+def legacyChangelogFile = file("${rootDir}/changelog.txt")
+
+def readChangelogText = {
+    def source = changelogFile.exists() ? changelogFile : legacyChangelogFile
+    return source.exists() ? source.getText("UTF-8").trim() : ""
+}
+
+def toJavaStringLiteral = { String value ->
+    return "\"" + value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "")
+            .replace("\n", "\\n") + "\""
+}
+
+def toJsonString = { String value ->
+    return value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "")
+            .replace("\n", "\\n")
+}
+
+def buildVersionJsonText = {
+    def vc = android.defaultConfig.versionCode
+    def vn = android.defaultConfig.versionName
+    def channel = currentVersionChannel
+    def beta = channel == "beta"
+    def cl = toJsonString(readChangelogText())
+    return "{\n" +
+            "  \"versionCode\": ${vc},\n" +
+            "  \"versionName\": \"${toJsonString(vn)}\",\n" +
+            "  \"channel\": \"${channel}\",\n" +
+            "  \"isBeta\": ${beta},\n" +
+            "  \"lastStableVersionCode\": ${lastStableVersionCode},\n" +
+            "  \"lastStableVersionName\": \"${toJsonString(lastStableVersionName)}\",\n" +
+            "  \"betaNoticeVersionGap\": ${configuredBetaNoticeVersionGap},\n" +
+            "  \"apkName\": \"app-debug.apk\",\n" +
+            "  \"changelog\": \"${cl}\"\n" +
+            "}\n"
+}
+
+android {
+    namespace "com.gamecenter.app"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.gamecenter.app"
+        minSdk 24
+        targetSdk 35
+        versionCode currentVersionCode
+        versionName currentVersionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readChangelogText())
+        buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
+        buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
+        buildConfigField "String", "SERVER_URL_FALLBACK", toJavaStringLiteral(configuredServerUrlFallback ?: "")
+        buildConfigField "String", "RELAY_URL", toJavaStringLiteral(configuredRelayUrl ?: "https://your-server.example.com/api/ddz-relay")
+        buildConfigField "String", "WS_URL", toJavaStringLiteral(configuredWsUrl ?: "")
+        buildConfigField "String", "FEEDBACK_URL", toJavaStringLiteral(configuredFeedbackUrl ?: "https://your-server.example.com/api/feedback")
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java']
+            res.srcDirs = ['src/main/res']
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+            assets.srcDirs = ['src/main/assets', generatedVersionAssetDir]
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+    implementation 'androidx.navigation:navigation-fragment:2.8.4'
+    implementation 'androidx.navigation:navigation-ui:2.8.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'com.google.zxing:core:3.5.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+task generateBundledVersionJson {
+    inputs.property("versionCode", currentVersionCode)
+    inputs.property("versionName", currentVersionName)
+    inputs.property("versionChannel", currentVersionChannel)
+    inputs.property("lastStableVersionCode", lastStableVersionCode)
+    inputs.property("lastStableVersionName", lastStableVersionName)
+    inputs.property("betaNoticeVersionGap", configuredBetaNoticeVersionGap)
+    inputs.property("changelogText", readChangelogText())
+    outputs.file(new File(generatedVersionAssetDir, "version.json"))
+    doLast {
+        generatedVersionAssetDir.mkdirs()
+        new File(generatedVersionAssetDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
+        println "Generated bundled version.json: vc=${android.defaultConfig.versionCode}, channel=${currentVersionChannel}"
+    }
+}
+
+task generateVersionJson {
+    dependsOn generateBundledVersionJson
+    doLast {
+        def apkDir = file("${buildDir}/outputs/apk/debug")
+        apkDir.mkdirs()
+        new File(apkDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
+        println "Generated version.json: vc=${android.defaultConfig.versionCode}"
+    }
+}
+
+task uploadDebugArtifactsToVps(type: Exec) {
+    group = "publishing"
+    description = "Upload existing debug APK and version.json to the configured update VPS"
+    dependsOn generateVersionJson
+    workingDir rootDir
+
+    def uploadChannel = currentVersionChannel == "stable" ? "release" : "beta"
+    def args = [
+            file("${rootDir}/tools/upload_to_vps.py").absolutePath,
+            "--apk", file("${buildDir}/outputs/apk/debug/app-debug.apk").absolutePath,
+            "--version", file("${buildDir}/outputs/apk/debug/version.json").absolutePath,
+            "--channel", uploadChannel
+    ]
+    if (shouldUploadDryRun) {
+        args.add("--dry-run")
+    }
+    if (shouldSkipUploadVerify) {
+        args.add("--skip-verify")
+    }
+    commandLine([uploadPythonExecutable] + args)
+}
+
+task uploadApkToGitHubRelease {
+    group = "publishing"
+    description = "Upload APK to GitHub Releases (only for stable channel)"
+    dependsOn generateVersionJson
+    doLast {
+        if (currentVersionChannel != "stable") {
+            println "Skipping GitHub Release upload: only stable channel triggers release"
+            return
+        }
+        if (!shouldPublishGitHubRelease) {
+            println "Skipping GitHub Release upload: publishGitHubRelease=false"
+            return
+        }
+
+        def apkFile = file("${buildDir}/outputs/apk/debug/app-debug.apk")
+        if (!apkFile.exists()) {
+            throw new GradleException("APK file not found: ${apkFile.absolutePath}")
+        }
+
+        def args = [
+                uploadPythonExecutable,
+                file("${rootDir}/tools/upload_to_github_release.py").absolutePath,
+                "--apk", apkFile.absolutePath,
+                "--version-name", currentVersionName,
+                "--changelog", readChangelogText()
+        ]
+        println "Uploading APK to GitHub Releases: v${currentVersionName}"
+        def process = args.execute()
+        process.waitFor()
+        if (process.exitValue() != 0) {
+            def err = process.err.text
+            if (err && err.trim()) {
+                println "GitHub Release upload error: ${err}"
+            }
+            throw new GradleException("Failed to upload APK to GitHub Releases")
+        }
+        println process.out.text
+    }
+}
+
+// AI / maintainer command guide:
+// - Normal local compile only: .\gradlew.bat :app:assembleDebug
+// - Build and publish beta to VPS only (internal build): .\gradlew.bat :app:buildAndUploadDebugToVps
+// - Publish official release (uploads to VPS + GitHub Releases):
+//   .\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
+// - Do not change versionName for routine beta uploads; versionCode bumps automatically.
+//
+// 双版本分发说明：
+// - Beta 通道（默认）：仅上传到 VPS，供开启"接受测试版"的用户下载
+// - Stable/Release 通道：同时上传到 VPS 和 GitHub Releases
+// - App 下载优先级：香港 VPS（主）→ GitHub Releases（备用1）→ 美国 VPS（备用2）
+task uploadDebugToVps {
+    group = "publishing"
+    description = "Build debug APK, generate version.json, and upload both files to the update VPS"
+    dependsOn 'assembleDebug'
+    finalizedBy uploadDebugArtifactsToVps
+}
+
+task buildAndUploadDebugToVps {
+    group = "publishing"
+    description = "Build debug APK, generate version.json, and upload both files to the update VPS"
+    dependsOn uploadDebugToVps
+}
+
+task buildAndUploadToVpsAndGitHub {
+    group = "publishing"
+    description = "Build, upload to VPS and GitHub Releases (stable channel only)"
+    dependsOn 'assembleDebug'
+    doLast {
+        if (currentVersionChannel != "stable") {
+            println "Warning: This task is intended for stable releases. Current channel: ${currentVersionChannel}"
+        }
+    }
+    finalizedBy uploadDebugArtifactsToVps, uploadApkToGitHubRelease
+}
+
+task bumpVersion {
+    doLast {
+        def propsFile = file("${rootDir}/version.properties")
+        def nextCode = android.defaultConfig.versionCode + 1
+        def curName = android.defaultConfig.versionName
+        propsFile.setText("# versionCode：内部测试版本号，用于区分每次测试包/云端推送包\n" +
+                "versionCode=${nextCode}\n" +
+                "# versionName：发布版本号，面向用户展示\n" +
+                "versionName=${curName}\n" +
+                "# lastStableVersionCode：上一个正式版内部版本号，用于 beta-only 提示判断\n" +
+                "lastStableVersionCode=${lastStableVersionCode}\n" +
+                "# lastStableVersionName：上一个正式版展示版本号\n" +
+                "lastStableVersionName=${lastStableVersionName}\n" +
+                "# betaNoticeVersionGap：用户本地版本落后上一个正式版多少个内部版本号时，提示只能接收 beta 或等待正式版\n" +
+                "betaNoticeVersionGap=${configuredBetaNoticeVersionGap}\n", "UTF-8")
+        println "Version bumped: ${android.defaultConfig.versionCode} -> ${nextCode}"
+    }
+}
+
+afterEvaluate {
+    tasks.named('preBuild').configure { it.dependsOn 'generateBundledVersionJson' }
+    tasks.named('assembleDebug').configure {
+        if (shouldAutoUploadVps) {
+            it.finalizedBy 'generateVersionJson', 'uploadDebugArtifactsToVps', 'bumpVersion'
+        } else {
+            it.finalizedBy 'generateVersionJson', 'bumpVersion'
+        }
+    }
+}

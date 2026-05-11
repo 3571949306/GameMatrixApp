@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/snake_bg"
+    android:paddingTop="28dp">
+
+    <LinearLayout
+        android:id="@+id/score_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="得分: 0"
+            android:textColor="@color/snake_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <com.gamecenter.app.games.snake.SnakeView
+        android:id="@+id/snake_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/difficulty_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/select_difficulty"
+            android:textColor="@color/snake_text"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_easy"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="100dp"
+                android:layout_height="48dp"
+                android:layout_margin="8dp"
+                android:text="@string/difficulty_easy" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_medium"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="100dp"
+                android:layout_height="48dp"
+                android:layout_margin="8dp"
+                android:text="@string/difficulty_medium" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hard"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="100dp"
+                android:layout_height="48dp"
+                android:layout_margin="8dp"
+                android:text="@string/difficulty_hard" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_tutorial"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_margin="8dp"
+                android:text="📖 新手教程" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/control_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_up"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="60dp"
+            android:layout_height="48dp"
+            android:text="↑" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_left"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="60dp"
+                android:layout_height="48dp"
+                android:text="←" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_restart"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="120dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:text="@string/btn_restart" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_right"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="60dp"
+                android:layout_height="48dp"
+                android:text="→" />
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_down"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="60dp"
+            android:layout_height="48dp"
+            android:text="↓" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_tutorial_ingame"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="120dp"
+                android:layout_height="48dp"
+                android:layout_margin="8dp"
+                android:text="📖 教程" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
