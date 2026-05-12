@@ -2,6 +2,71 @@
 
 本文档说明如何将 GameCenterApp APK 自动发布到所有更新源。
 
+## 重要更新（2026-05-12）
+
+### 双版本分发架构重构 🎯
+
+从 v1.3.19 开始，发布系统已重构为**双版本分发架构**：
+
+#### 核心变化
+- **测试版和正式版完全分离**：VPS 上同时维护 `app-beta.apk` 和 `app-release.apk`
+- **上传脚本修复**：`upload_to_vps.py` 的 `cleanup_remote` 函数现在保护两个通道的文件
+- **更新逻辑优化**：
+  - 用户开启"接收测试版" → 检查 version-beta.json
+  - 用户关闭"接收测试版" → 只检查 version-release.json
+  - 旧版 APP 使用 /api/update/check API 自动兼容
+
+#### 发布命令
+
+**发布测试版**：
+```bash
+python tools/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.apk \
+    --version app/build/outputs/apk/release/version.json --channel beta
+```
+
+**发布正式版**：
+```bash
+python tools/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.apk \
+    --version app/build/outputs/apk/release/version.json --channel release
+```
+
+### APK 签名问题已修复
+
+之前的版本存在 APK 签名配置问题，导致安装包提示"开发者签名异常"。现已修复：
+
+1. **修复 keystore 路径错误**
+   - 错误：`storeFile file(props['STORE_FILE'])`
+   - 正确：`storeFile rootProject.file(props['STORE_FILE'])`
+
+2. **启用 V1 和 V2 签名方案**
+   ```groovy
+   signingConfigs {
+       release {
+           enableV1Signing = true
+           enableV2Signing = true
+       }
+   }
+   ```
+
+3. **验证签名**
+   ```bash
+   cd app\build\outputs\apk\release
+   jarsigner -verify app-release.apk
+   # 输出：jar 已验证 ✅
+   ```
+
+### VPS 文件结构
+
+```
+/var/www/update/app/
+├── app-beta.apk         # 测试版安装包
+├── version-beta.json     # 测试版元数据
+├── app-release.apk      # 正式版安装包
+└── version-release.json  # 正式版元数据
+```
+
+---
+
 ## 更新源列表
 
 | 序号 | 更新源 | URL | 类型 | 用途 |
@@ -19,12 +84,26 @@
 pip install paramiko requests
 ```
 
-### 2. 配置 VPS 凭证
+### 2. 配置签名
+
+在项目根目录创建 `keystore.properties` 文件：
+
+```properties
+# GameCenterApp 签名配置
+STORE_FILE=gamecenter.keystore
+STORE_PASSWORD=GameCenter2026
+KEY_ALIAS=gamecenter
+KEY_PASSWORD=GameCenter2026
+```
+
+确保 `gamecenter.keystore` 文件存在于项目根目录。
+
+### 3. 配置 VPS 凭证
 
 VPS 配置文件位于 `local_private/vps/` 目录（已排除在版本控制外）：
 
 - `upload_config_hk.json` - 香港 VPS 配置
-- `upload_config_us.json` - 美国 VPS 配置
+- `upload_config_hk.json` - 美国 VPS 配置
 
 配置示例：
 
@@ -43,7 +122,7 @@ VPS 配置文件位于 `local_private/vps/` 目录（已排除在版本控制外
 }
 ```
 
-### 3. 获取 GitHub Token
+### 4. 获取 GitHub Token
 
 1. 访问 https://github.com/settings/tokens
 2. 创建新 Token，勾选 `repo` 权限
@@ -84,34 +163,50 @@ python tools/publish-all.py --channel release --github-token YOUR_TOKEN --skip-v
 #### 步骤 1: 编译 APK
 
 ```bash
-# 编译 Beta 版
-gradlew clean assembleRelease -PupdateChannel=beta
+# 编译 Beta 版（带签名）
+gradlew assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 
-# 编译正式版
-gradlew clean assembleRelease -PupdateChannel=release
+# 编译正式版（带签名）
+gradlew assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 ```
+
+**注意**：现在 APK 会自动签名，无需手动签名步骤。
 
 #### 步骤 2: 生成 version.json
 
 ```bash
-gradlew generateVersionJson -PupdateChannel=beta
+gradlew generateVersionJson
 ```
 
-#### 步骤 3: 上传到 VPS
+version.json 会自动生成到：
+- `app/build/outputs/apk/debug/version.json`
+- `app/build/outputs/apk/release/version.json`
+
+#### 步骤 3: 验证签名
+
+```bash
+cd app/build/outputs/apk/release
+jarsigner -verify app-release.apk
+# 输出：jar 已验证 ✅
+```
+
+#### 步骤 4: 上传到 VPS
 
 ```bash
 # 上传到香港 VPS + 美国 VPS
-python tools/upload_to_vps.py --apk app/build/outputs/apk/release/app-release-unsigned.apk \
-    --version app/build/outputs/version.json \
+python tools/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.apk \
+    --version app/build/outputs/apk/release/version.json \
     --channel beta
 ```
 
-#### 步骤 4: 上传到 GitHub Releases
+**注意**：现在使用已签名的 `app-release.apk`，而非 `app-release-unsigned.apk`。
+
+#### 步骤 5: 上传到 GitHub Releases
 
 ```bash
 python tools/upload_to_github_release.py \
-    app/build/outputs/apk/release/app-release-unsigned.apk \
-    "v1.11.0"
+    app/build/outputs/apk/release/app-release.apk \
+    "v1.3.17"
 ```
 
 ## 发布流程

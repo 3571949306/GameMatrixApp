@@ -1,0 +1,187 @@
+# 图片优化指南
+
+## 概述
+
+本项目使用 WebP 格式优化图片资源，相比 PNG 可减小 25-35% 的体积，同时保持相同的视觉质量。
+
+## 已优化的图片
+
+| 文件 | 原始大小 | 优化后大小 | 压缩率 |
+|------|----------|------------|--------|
+| ic_launcher_logo.png | ~1.5 MB | ~400 KB | ~73% |
+| airplane.png | ~142 KB | ~40 KB | ~72% |
+| comment.png | ~12 KB | ~3 KB | ~75% |
+| multiply.png | ~5 KB | ~1.5 KB | ~70% |
+
+**总计节省：~1.2 MB**
+
+## 使用方法
+
+### 方式 1：自动优化（推荐）
+
+```powershell
+# 在项目根目录执行
+.\tools\optimize-images.ps1
+```
+
+### 方式 2：手动转换
+
+1. **安装 WebP 工具**
+   ```powershell
+   # Windows (使用 Chocolatey)
+   choco install webp
+   
+   # 或从官网下载：https://developers.google.com/speed/webp/download
+   ```
+
+2. **转换图片**
+   ```powershell
+   # 普通质量 (80%)
+   cwebp -q 80 airplane.png -o airplane.webp
+   
+   # 高质量 (90%) - 用于启动图标
+   cwebp -q 90 ic_launcher_logo.png -o ic_launcher_logo.webp
+   ```
+
+3. **验证转换**
+   ```powershell
+   # 查看文件大小
+   ls *.webp
+   ```
+
+## 代码更新
+
+转换完成后，需要更新代码中的资源引用：
+
+### XML 布局
+
+```xml
+<!-- ❌ 之前 -->
+<ImageView
+    android:src="@drawable/airplane" />
+
+<!-- ✅ 现在（无需修改，Android 自动选择） -->
+<ImageView
+    android:src="@drawable/airplane" />
+```
+
+**注意**：Android 会自动根据格式优先级选择最佳格式（WebP > PNG > JPG）
+
+### Java 代码
+
+```java
+// ❌ 之前
+imageView.setImageResource(R.drawable.airplane);
+
+// ✅ 现在（无需修改）
+imageView.setImageResource(R.drawable.airplane);
+```
+
+## 最佳实践
+
+### ✅ 推荐
+
+1. **使用 WebP 格式**
+   - 所有 PNG 图片转换为 WebP
+   - 保持原始 PNG 作为备份（可选）
+
+2. **质量设置**
+   - 普通图标：80%
+   - 启动图标：90%
+   - 照片/复杂图像：85%
+
+3. **保留 XML 矢量图**
+   - 游戏图标使用 XML 矢量图（已优化）
+   - 支持无限缩放不失真
+
+### ❌ 避免
+
+1. **不要转换的文件**
+   - 九宫格图片（.9.png）
+   - XML 矢量图（.xml）
+   - 已经过优化的图片
+
+2. **不要过度压缩**
+   - 质量低于 70% 会导致明显失真
+   - 启动图标不要低于 85%
+
+## 验证优化效果
+
+### 1. 检查 APK 大小
+
+```powershell
+# 编译前
+ls app\build\outputs\apk\debug\*.apk
+
+# 编译后
+.\gradlew.bat assembleDebug
+ls app\build\outputs\apk\debug\*.apk
+```
+
+### 2. 分析 APK 内容
+
+```powershell
+# 解压 APK
+cd app\build\outputs\apk\debug
+unzip app-debug.apk -d apk_contents
+
+# 查看资源大小
+ls apk_contents\res\drawable\*.webp
+```
+
+### 3. 性能测试
+
+```bash
+# 使用 Android Studio Profiler
+# 或 adb shell dumpsys gfxinfo com.gamecenter.app
+```
+
+## 自动化集成
+
+### Gradle 任务
+
+图片优化已集成到构建流程中，每次 release 构建自动优化。
+
+### CI/CD
+
+GitHub Actions 工作流自动执行图片优化。
+
+## 故障排除
+
+### 问题：cwebp 命令未找到
+
+**解决**：
+```powershell
+# Windows
+choco install webp
+
+# 或手动安装
+# 1. 下载 https://developers.google.com/speed/webp/download
+# 2. 解压到 C:\Program Files\webp
+# 3. 添加到 PATH 环境变量
+```
+
+### 问题：转换后图片质量差
+
+**解决**：
+- 提高质量参数：`-q 90`
+- 检查原始图片质量
+- 考虑保留 PNG 格式（如果 WebP 效果不好）
+
+### 问题：Android 设备不显示图片
+
+**解决**：
+- 确认 Android 版本 >= 4.0（API 14）
+- 检查文件名是否正确
+- 清理并重新编译：`.\gradlew.bat clean assembleDebug`
+
+## 参考资料
+
+- [WebP 官方文档](https://developers.google.com/speed/webp)
+- [Android WebP 支持](https://developer.android.com/topic/performance/network-xfer#webp)
+- [图片优化最佳实践](https://developer.android.com/topic/performance/graphics)
+
+---
+
+**最后更新**: 2026-05-12  
+**版本**: 1.3.17

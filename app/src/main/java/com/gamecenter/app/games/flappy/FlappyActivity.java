@@ -94,7 +94,7 @@ public class FlappyActivity extends AppCompatActivity {
         super.onDestroy();
         isRunning = false;
         if (handler != null) {
-            handler.removeCallbacks(gameLoop);
+            handler.removeCallbacksAndMessages(null);
         }
         game = null;
         flappyView = null;

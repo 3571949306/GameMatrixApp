@@ -203,5 +203,7 @@ public class WhackActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         whackView.stopGame();
+        whackView.releaseResources();
+        whackView = null;
     }
 }

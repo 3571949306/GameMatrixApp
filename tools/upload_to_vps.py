@@ -32,8 +32,8 @@ except ImportError as exc:
     ) from exc
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_APK = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
-DEFAULT_VERSION_JSON = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "debug" / "version.json"
+DEFAULT_APK = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "release" / "app-release.apk"
+DEFAULT_VERSION_JSON = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "release" / "version.json"
 VPS_CONFIG_DIR = REPO_ROOT / "local_private" / "vps"
 
 summary = {}
@@ -132,10 +132,31 @@ def atomic_put(sftp, local_path: Path, remote_dir: str, remote_name: str) -> Non
 
 
 def cleanup_remote(sftp, remote_dir: str, keep_files: set[str]) -> None:
+    """
+    清理远程目录中的旧文件。
+    
+    **重要**：这个函数现在会保留两个通道的文件：
+    - beta 通道：app-beta.apk, version-beta.json
+    - release 通道：app-release.apk, version-release.json
+    
+    只删除：
+    - 旧的 app-debug.apk
+    - 旧的 version.json
+    - 正在上传的临时文件（.uploading 后缀）
+    """
+    protected_patterns = {
+        "app-beta.apk",
+        "version-beta.json",
+        "app-release.apk",
+        "version-release.json",
+    }
+    
     for item in sftp.listdir_attr(remote_dir):
         name = item.filename
-        if name in keep_files or name.endswith(".uploading"):
+        # 保留所有通道的文件和正在上传的临时文件
+        if name in protected_patterns or name.endswith(".uploading"):
             continue
+        # 只删除旧版本的文件（app-debug.apk, version.json 等）
         if stat.S_ISREG(item.st_mode) and (name.endswith(".apk") or name.endswith(".json")):
             sftp.remove(posixpath.join(remote_dir, name))
 
@@ -194,10 +215,17 @@ def upload_to_vps(server: dict[str, Any], apk_path: Path, version_path: Path, ch
     try:
         run_remote(client, f"mkdir -p {shlex.quote(remote_dir)}")
         with client.open_sftp() as sftp:
+            remote_apk = f"app-{channel}.apk"
+            remote_ver = f"version-{channel}.json"
             atomic_put(sftp, apk_path, remote_dir, remote_apk)
             atomic_put(sftp, version_path, remote_dir, remote_ver)
-            keep = {remote_apk, remote_ver, f"app-{'release' if channel == 'beta' else 'beta'}.apk",
-                    f"version-{'release' if channel == 'beta' else 'beta'}.json"}
+            # 保留两个通道的所有文件，防止误删
+            keep = {
+                "app-beta.apk",
+                "version-beta.json",
+                "app-release.apk",
+                "version-release.json",
+            }
             cleanup_remote(sftp, remote_dir, keep)
         print(f"Uploaded {remote_apk} + {remote_ver}")
 

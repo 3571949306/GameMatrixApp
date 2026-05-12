@@ -14,15 +14,16 @@
 - 5 个游戏支持云联机：斗地主、五子棋、中国象棋、围棋、石头剪刀布
 - 公共网络模块（`com.gamecenter.app.network`）：所有联机游戏共享
 - 其余 20+ 款游戏为单机模式
-- **APK 签名配置完成**：Release 构建自动签名，支持正式发布
+- **APK 签名配置已修复**：Release 构建自动签名，支持正式发布（v1.3.17）
+- **自动更新源选择已修复**：版本比较逻辑正确，可检测新版本
 - **自动化发布流程**：一键上传到 HK VPS、US VPS、GitHub Releases
 
 **重点模块**：
 1. **公共联机网络模块** — `com.gamecenter.app.network` 包，包含 GameSocketClient/Server/LANManager/RelayHttpClient/RemoteP2PUtil/OnlineChatHelper
-2. **应用更新模块** — 三级下载源（GitHub Releases → 香港 VPS → 美国 VPS）
+2. **应用更新模块** — 三级下载源（GitHub Releases → 香港 VPS → 美国 VPS），版本比较逻辑已修复
 3. **游戏大厅** — GamesFragment + GameRegistry 管理 25+ 游戏入口
 4. **工具箱** — ToolsFragment 包含 20+ 网络/设备工具，使用 ToolBinder 架构
-5. **APK 签名模块** — keystore.properties + gamecenter.keystore + signingConfigs
+5. **APK 签名模块** — keystore.properties + gamecenter.keystore + signingConfigs（已修复）
 6. **自动化发布** — upload_to_vps.py + upload_to_github_release.py + auto-publish.bat
 
 ---

@@ -40,32 +40,38 @@ public class SokobanView extends View {
 
     private void init() {
         wallPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        wallPaint.setColor(0xFF795548);
+        wallPaint.setColor(0xFF5D4037);
         wallPaint.setStyle(Paint.Style.FILL);
+        wallPaint.setShadowLayer(4, 2, 2, 0x40000000);
 
         floorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        floorPaint.setColor(0xFFEEEEEE);
+        floorPaint.setColor(0xFFF5F5F5);
         floorPaint.setStyle(Paint.Style.FILL);
 
         boxPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         boxPaint.setColor(0xFFFF9800);
         boxPaint.setStyle(Paint.Style.FILL);
+        boxPaint.setShadowLayer(3, 1, 1, 0x40000000);
 
         targetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         targetPaint.setColor(0xFF4CAF50);
         targetPaint.setStyle(Paint.Style.FILL);
+        targetPaint.setAlpha(180);
 
         boxOnTargetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         boxOnTargetPaint.setColor(0xFF8BC34A);
         boxOnTargetPaint.setStyle(Paint.Style.FILL);
+        boxOnTargetPaint.setShadowLayer(3, 1, 1, 0x40000000);
 
         playerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         playerPaint.setColor(0xFF2196F3);
         playerPaint.setStyle(Paint.Style.FILL);
+        playerPaint.setShadowLayer(3, 1, 1, 0x40000000);
 
         playerOnTargetPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         playerOnTargetPaint.setColor(0xFF64B5F6);
         playerOnTargetPaint.setStyle(Paint.Style.FILL);
+        playerOnTargetPaint.setShadowLayer(3, 1, 1, 0x40000000);
     }
 
     public void setGame(SokobanGame game) {
@@ -74,6 +80,10 @@ public class SokobanView extends View {
 
     public void setOnLevelCompleteListener(OnLevelCompleteListener listener) {
         this.listener = listener;
+    }
+
+    public OnLevelCompleteListener getOnLevelCompleteListener() {
+        return listener;
     }
 
     @Override
@@ -107,27 +117,50 @@ public class SokobanView extends View {
                 int tile = game.getTile(x, y);
 
                 if (tile == SokobanGame.WALL) {
+                    wallPaint.setShader(new android.graphics.LinearGradient(left, top, right, bottom, 
+                        0xFF8D6E63, 0xFF5D4037, android.graphics.Shader.TileMode.CLAMP));
                     canvas.drawRect(left, top, right, bottom, wallPaint);
+                    wallPaint.setShader(null);
                 } else {
                     canvas.drawRect(left, top, right, bottom, floorPaint);
 
                     if (tile == SokobanGame.TARGET || tile == SokobanGame.BOX_ON_TARGET || tile == SokobanGame.PLAYER_ON_TARGET) {
-                        float margin = cellSize * 0.15f;
+                        float margin = cellSize * 0.2f;
                         canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize / 2 - margin, targetPaint);
+                        canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize / 2 - margin * 0.6f, targetPaint);
                     }
 
                     if (tile == SokobanGame.BOX) {
-                        float margin = cellSize * 0.1f;
-                        canvas.drawRoundRect(new RectF(left + margin, top + margin, right - margin, bottom - margin), 8, 8, boxPaint);
+                        float margin = cellSize * 0.12f;
+                        android.graphics.RectF boxRect = new android.graphics.RectF(left + margin, top + margin, right - margin, bottom - margin);
+                        canvas.drawRoundRect(boxRect, 12, 12, boxPaint);
+                        canvas.drawLine(left + margin * 2, top + margin * 2, right - margin * 2, bottom - margin * 2, new Paint() {{
+                            setColor(0xB3FFFFFF);
+                            setStrokeWidth(3);
+                            setAntiAlias(true);
+                        }});
                     } else if (tile == SokobanGame.BOX_ON_TARGET) {
-                        float margin = cellSize * 0.1f;
-                        canvas.drawRoundRect(new RectF(left + margin, top + margin, right - margin, bottom - margin), 8, 8, boxOnTargetPaint);
+                        float margin = cellSize * 0.12f;
+                        android.graphics.RectF boxRect = new android.graphics.RectF(left + margin, top + margin, right - margin, bottom - margin);
+                        canvas.drawRoundRect(boxRect, 12, 12, boxOnTargetPaint);
+                        canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize * 0.15f, new Paint() {{
+                            setColor(0xFFFFFFFF);
+                            setAntiAlias(true);
+                        }});
                     } else if (tile == SokobanGame.PLAYER) {
-                        float margin = cellSize * 0.15f;
+                        float margin = cellSize * 0.18f;
                         canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize / 2 - margin, playerPaint);
+                        canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize * 0.12f, new Paint() {{
+                            setColor(0xFFFFFFFF);
+                            setAntiAlias(true);
+                        }});
                     } else if (tile == SokobanGame.PLAYER_ON_TARGET) {
-                        float margin = cellSize * 0.15f;
+                        float margin = cellSize * 0.18f;
                         canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize / 2 - margin, playerOnTargetPaint);
+                        canvas.drawCircle(left + cellSize / 2, top + cellSize / 2, cellSize * 0.12f, new Paint() {{
+                            setColor(0xFFFFFFFF);
+                            setAntiAlias(true);
+                        }});
                     }
                 }
             }

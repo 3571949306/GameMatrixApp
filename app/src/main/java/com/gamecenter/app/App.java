@@ -10,6 +10,9 @@ import androidx.appcompat.app.AppCompatDelegate;
 import com.gamecenter.app.network.OkHttpClientProvider;
 import com.gamecenter.app.update.UpdateManager;
 
+import dagger.hilt.android.HiltAndroidApp;
+
+@HiltAndroidApp
 public class App extends Application {
 
     private boolean isDarkMode = false;
@@ -18,8 +21,12 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // 主题设置立即应用（影响 UI）
         applyTheme();
-        OkHttpClientProvider.getInstance(this);
+        
+        // OkHttpClient 改为 App Startup 延迟初始化
+        // 不再在 onCreate 中同步初始化，避免阻塞启动
+        
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {

@@ -20,16 +20,16 @@ public class SokobanGame {
     private static final int[][][] LEVELS = {
         {
             {1,1,1,1,1,1,1},
-            {1,0,0,0,0,0,1},
+            {1,5,0,0,0,0,1},
             {1,0,2,0,2,0,1},
-            {1,0,0,3,0,0,1},
+            {1,0,0,3,0,3,1},
             {1,0,2,0,0,0,1},
             {1,0,0,0,3,0,1},
             {1,1,1,1,1,1,1}
         },
         {
             {1,1,1,1,1,1,1,1},
-            {1,0,0,0,0,0,0,1},
+            {1,5,0,0,0,0,0,1},
             {1,0,2,2,0,0,0,1},
             {1,0,0,0,0,3,0,1},
             {1,0,2,0,3,0,0,1},
@@ -39,7 +39,7 @@ public class SokobanGame {
         },
         {
             {0,1,1,1,1,1,0},
-            {1,1,0,0,0,1,1},
+            {1,1,5,0,0,1,1},
             {1,0,0,2,0,0,1},
             {1,0,3,0,3,0,1},
             {1,0,0,2,0,0,1},
@@ -115,17 +115,24 @@ public class SokobanGame {
             if (boxNewX < 0 || boxNewX >= cols || boxNewY < 0 || boxNewY >= rows) return false;
             if (map[boxNewY][boxNewX] == WALL || map[boxNewY][boxNewX] == BOX || map[boxNewY][boxNewX] == BOX_ON_TARGET) return false;
 
-            if (targetTile == BOX) {
-                map[newY][newX] = TARGET;
-            } else {
-                map[newY][newX] = TARGET;
-            }
-
             if (map[boxNewY][boxNewX] == TARGET) {
                 map[boxNewY][boxNewX] = BOX_ON_TARGET;
             } else {
                 map[boxNewY][boxNewX] = BOX;
             }
+
+            if (targetTile == BOX_ON_TARGET) {
+                map[newY][newX] = TARGET;
+            } else {
+                map[newY][newX] = FLOOR;
+            }
+        }
+
+        int oldTile = map[playerY][playerX];
+        if (oldTile == TARGET || oldTile == BOX_ON_TARGET) {
+            map[playerY][playerX] = TARGET;
+        } else {
+            map[playerY][playerX] = FLOOR;
         }
 
         playerX = newX;
