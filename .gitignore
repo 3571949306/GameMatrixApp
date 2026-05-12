@@ -44,5 +44,11 @@ com.injoy.games.crazy.poker/
 .DS_Store
 Thumbs.db
 
+# APK signing (sensitive - do not commit)
+keystore.properties
+app/gamecenter.keystore
+*.keystore
+*.jks
+
 # Other project data (not related to GameCenterApp)
 data/

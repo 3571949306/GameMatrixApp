@@ -5,7 +5,7 @@
 
 ---
 
-## 1. 项目概览
+## 2. 项目概览
 
 **项目用途**：一个集成 25+ 款经典小游戏的 Android 游戏中心 App。
 
@@ -14,12 +14,16 @@
 - 5 个游戏支持云联机：斗地主、五子棋、中国象棋、围棋、石头剪刀布
 - 公共网络模块（`com.gamecenter.app.network`）：所有联机游戏共享
 - 其余 20+ 款游戏为单机模式
+- **APK 签名配置完成**：Release 构建自动签名，支持正式发布
+- **自动化发布流程**：一键上传到 HK VPS、US VPS、GitHub Releases
 
 **重点模块**：
 1. **公共联机网络模块** — `com.gamecenter.app.network` 包，包含 GameSocketClient/Server/LANManager/RelayHttpClient/RemoteP2PUtil/OnlineChatHelper
 2. **应用更新模块** — 三级下载源（GitHub Releases → 香港 VPS → 美国 VPS）
 3. **游戏大厅** — GamesFragment + GameRegistry 管理 25+ 游戏入口
 4. **工具箱** — ToolsFragment 包含 20+ 网络/设备工具，使用 ToolBinder 架构
+5. **APK 签名模块** — keystore.properties + gamecenter.keystore + signingConfigs
+6. **自动化发布** — upload_to_vps.py + upload_to_github_release.py + auto-publish.bat
 
 ---
 
@@ -160,6 +164,7 @@
 | 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
 |---------|--------|----------|----------|
 | SystemInfoCollector.java | 设备硬件/软件信息收集 | ToolsFragment | 无 |
+| PermissionHelper.java | 权限管理辅助，处理首次启动权限说明和运行时权限请求 | MainActivity | ActivityResultLauncher, Build.VERSION |
 
 ### 2.11 设置 / com.gamecenter.app.settings
 
@@ -169,7 +174,81 @@
 
 ---
 
-## 3. 模块依赖关系图
+## 3. 依赖清单
+
+### 3.1 主要依赖
+
+| 依赖 | 用途 | 说明 |
+|------|------|------|
+| androidx.activity:activity | ActivityResultLauncher 权限请求 | 必须包含，用于 `PermissionHelper` 的运行时权限处理 |
+| androidx.appcompat | AppCompatActivity 兼容 | 核心支持库 |
+| androidx.recyclerview | RecyclerView | 游戏列表/工具箱列表展示 |
+| androidx.navigation:navigation-fragment | 导航组件 | 可能未使用（详见 7.6） |
+| androidx.webkit:webkit | WebView 增强 | 可能未使用（详见 7.6） |
+| com.google.zxing:core | 二维码生成/识别 | QrToolBinder 使用 |
+
+### 3.2 Debug 依赖
+
+| 依赖 | 用途 | 说明 |
+|------|------|------|
+| com.squareup.leakcanary:leakcanary-android:2.14 | 内存泄漏检测 | `debugImplementation`，自动检测 Activity/Fragment 泄漏 |
+
+---
+
+## 4. 核心架构与约定
+
+### 4.1 权限管理约定
+
+- **首次启动权限说明**：App 首次启动时弹出权限说明对话框，向用户解释所需权限的用途
+- **用户选择权**：用户可选择立即授权或暂不授权，暂不授权不影响 App 基础功能使用
+- **实现方式**：通过 `PermissionHelper` + `ActivityResultLauncher` 处理运行时权限请求
+- **权限状态持久化**：已授权状态通过 SharedPreferences 记录，避免重复弹窗
+
+### 4.2 构建与混淆约定
+
+- **Release 构建已启用 R8/ProGuard 混淆**：所有发布版本 APK 均经过代码混淆
+- **Keep 规则**：`com.gamecenter.app.**` 包下的所有类已配置 keep 规则，防止被混淆
+- **原因**：游戏注册、反射调用、JNI 交互等场景需要保持类名/方法名不变
+
+### 4.3 模块调用约定
+
+- **GameRegistry 仅引用不实例化**：游戏 Activity 类仅作为 Class 引用传入 GameRegistry，由系统负责实例化
+- **联机游戏共享网络模块**：所有联机游戏使用 `com.gamecenter.app.network` 包中的公共网络组件
+- **工具 Binder 架构**：每个 ToolBinder 独立实现，通过 ToolBinder 接口与 ToolsFragment 解耦
+
+### 4.4 网络错误处理约定
+
+- **统一使用 NetworkErrorHandler**：所有网络请求的错误处理必须通过 NetworkErrorHandler 统一处理
+- **禁止混用 Toast/日志**：不要在不同位置随意使用 Toast 弹出或 Log 打印，统一交给 NetworkErrorHandler 处理
+- **错误分类**：网络超时、连接失败、HTTP 错误码等需分类处理，给出明确的用户提示
+
+### 4.5 国际化约定
+
+- **用户可见文本提取到 strings.xml**：所有面向用户的界面文本必须提取到 `res/values/strings.xml`
+- **支持中英文双语**：同时提供 `res/values-zh/strings.xml`（中文）和 `res/values/strings.xml`（英文默认）
+- **禁止硬编码文本**：不要在布局文件或 Java 代码中直接写死用户可见的文本内容
+
+### 4.6 内存泄漏约定
+
+- **Debug 版集成 LeakCanary**：Debug 构建自动集成 LeakCanary 2.14，使用 `debugImplementation` 依赖
+- **自动检测**：LeakCanary 自动检测 Activity/Fragment/View 泄漏，无需手动配置
+- **修复原则**：发现泄漏后优先检查未取消的监听器、未关闭的 Handler、静态引用等问题
+
+### 4.7 CI/CD 约定
+
+- **GitHub Actions 工作流**：CI/CD 配置定义在 `.github/workflows/ci.yml`
+- **自动化流程**：Push/PR 触发构建、Lint 检查、单元测试（如有）
+- **本地与 CI 一致性**：确保本地构建与 CI 环境使用相同的 Gradle 参数和检查规则
+
+### 4.8 Lint 规则约定
+
+- **Release 构建强制检查**：Lint 配置为 `abortOnError = true`，`warningsAsErrors = true`
+- **禁止忽略警告**：所有 Lint 警告必须修复，不得通过 `tools:ignore` 粗暴屏蔽
+- **CI 集成**：CI 工作流包含 Lint 检查步骤，失败则阻断合并
+
+---
+
+## 5. 模块依赖关系图
 
 ```mermaid
 graph TD
@@ -319,9 +398,9 @@ graph TD
 
 ---
 
-## 4. 网络层调用链
+## 6. 网络层调用链
 
-### 4.1 房主建房流程
+### 6.1 房主建房流程
 
 ```mermaid
 sequenceDiagram
@@ -346,7 +425,7 @@ sequenceDiagram
     Online->>Online: 显示房间码，等待客户端加入
 ```
 
-### 4.2 客户端加入流程
+### 6.2 客户端加入流程
 
 ```mermaid
 sequenceDiagram
@@ -379,7 +458,7 @@ sequenceDiagram
     Online->>Online: 更新 UI，显示玩家加入
 ```
 
-### 4.3 消息收发流程
+### 6.3 消息收发流程
 
 ```mermaid
 sequenceDiagram
@@ -405,7 +484,7 @@ sequenceDiagram
     ClientB->>ClientB: onMessage() 回调更新 UI
 ```
 
-### 4.4 断线重连流程
+### 6.4 断线重连流程
 
 ```mermaid
 sequenceDiagram
@@ -436,9 +515,9 @@ sequenceDiagram
 
 ---
 
-## 5. 配置项完整说明
+## 7. 配置项完整说明
 
-### 5.1 local.properties（用户本地配置，不提交 Git）
+### 7.1 local.properties（用户本地配置，不提交 Git）
 
 | key名 | 所在文件 | 作用 | 缺失时默认值 | 缺失后果 |
 |-------|---------|------|-------------|---------|
@@ -447,7 +526,7 @@ sequenceDiagram
 | `relay.url` | local.properties → BuildConfig.RELAY_URL | 云联机 Relay 服务器地址 | `"https://your-server.example.com/api/ddz-relay"` | 云联机功能不可用，只能局域网对战 |
 | `feedback.url` | local.properties → BuildConfig.FEEDBACK_URL | 用户反馈提交地址 | `"https://your-server.example.com/api/feedback"` | 反馈功能不可用 |
 
-### 5.2 version.properties（版本控制，提交 Git）
+### 7.2 version.properties（版本控制，提交 Git）
 
 | key名 | 所在文件 | 作用 | 说明 |
 |-------|---------|------|------|
@@ -455,7 +534,7 @@ sequenceDiagram
 | `version.name` | version.properties | 展示版本号（如 1.3.8） | 正式版发布时手动提升 |
 | `version.channel` | version.properties | 版本通道（beta/stable） | beta 为测试版，stable 为正式版 |
 
-### 5.3 app/build.gradle 中的构建配置
+### 6.3 app/build.gradle 中的构建配置
 
 | 配置项 | 作用 | 来源 |
 |--------|------|------|
@@ -466,7 +545,15 @@ sequenceDiagram
 | `RELAY_URL` | BuildConfig 中的 Relay 地址 | local.properties |
 | `FEEDBACK_URL` | BuildConfig 中的反馈地址 | local.properties |
 | `CHANGELOG` | BuildConfig 中的更新日志 | CHANGELOG.md |
+| `release.minifyEnabled` | Release 构建代码混淆 | 已设为 `true`，启用 R8/ProGuard |
+| `release.shrinkResources` | Release 构建资源压缩 | 已设为 `true`，移除未使用资源 |
+| `lint.abortOnError` | Lint 检查失败时中止构建 | 已设为 `true`，Lint 错误将阻断 Release 打包 |
+| `lint.checkReleaseBuilds` | Release 构建时执行 Lint 检查 | 已设为 `true`，Release 构建强制检查 |
+| `lint.warningsAsErrors` | Lint 警告视为错误 | 已设为 `true`，所有警告必须修复 |
 
+> **构建参数**：
+> - `-PautoBumpVersion`：构建时自动递增 `version.properties` 中的 `version.code`，CI 打包时推荐使用
+> 
 > **重要**：修改 `local.properties` 或 `version.properties` 后，必须执行 **Build → Clean Project → Rebuild Project**，否则 `BuildConfig` 不会更新。
 
 ---
@@ -498,30 +585,32 @@ sequenceDiagram
 - **不要修改双版本分发逻辑** — UpdateManager 中的 `acceptBeta` 开关、`version-beta.json` / `version-release.json` 双通道机制是经过设计的，修改可能导致更新系统失效。
 - **不要修改 `upload_to_vps.py` 中的 channel 逻辑** — `--channel beta` / `--channel release` 控制上传哪个版本的 APK，修改可能导致版本混乱。
 
-### 6.5 构建约束
+### 6.3 构建约束
 
 - **不要修改 `version.properties` 中的版本号格式** — `version.code` 必须是整数，`version.name` 必须是 `x.y.z` 格式。
 - **不要删除 `version.properties` 或 `local.properties`** — 这两个文件是构建系统的必要输入。
+- **不要提交签名文件到 Git** — `gamecenter.keystore` 和 `keystore.properties` 包含敏感信息，已添加到 `.gitignore`
+- **不要修改签名配置** — `signingConfigs.release` 已配置完成，除非明确需要更换密钥
 
 ---
 
-## 7. 已知问题与技术债务
+## 8. 已知问题与技术债务
 
-### 7.1 WebSocket 临时 clientId 机制
+### 8.1 WebSocket 临时 clientId 机制
 
 | 位置 | 内容 | 影响 |
 |------|------|------|
 | `GameSocketServer.java:99-101` | `generateTempClientId()` — 为尚未分配 ID 的 WebSocket 客户端生成临时 ID | 临时 ID 可能与后续正式 ID 冲突，需要房主端确认机制 |
 | `GameSocketServer.java:483-486` | JOIN 消息处理中，clientId=-1 时生成临时 ID | 客户端重连后可能获得不同 ID，导致状态不一致 |
 
-### 7.2 联机状态同步
+### 8.2 联机状态同步
 
 | 位置 | 内容 | 影响 |
 |------|------|------|
 | 各 OnlineActivity | SYNC_STATE 同步逻辑 | 已修复：胜利状态双向同步 |
 | GameSocketClient.java | 消息缓冲队列 `MAX_PENDING_MESSAGES = 32` | 极端弱网下可能丢消息 |
 
-### 7.3 更新系统
+### 8.3 更新系统
 
 | 位置 | 内容 | 影响 |
 |------|------|------|
@@ -529,19 +618,19 @@ sequenceDiagram
 | `local.properties` | `server.url=http://<YOUR_DOMAIN>` | 使用明文 HTTP；SSLHelper 只对更新服务器域名绕过证书验证，不影响其他 HTTPS 连接 |
 | `SSLHelper.java` | 信任特定更新服务器域名 | 改为 `trustUpdateServer(baseUrl)`，只对指定域名禁用证书验证，不再全局禁用所有证书 |
 
-### 7.4 资源重复
+### 8.4 资源重复
 
 | 位置 | 内容 | 影响 |
 |------|------|------|
 | `res/raw/` vs `res/raw/doudizhu_archive/` | 约 70 个 mp3 文件完全重复 | APK 体积增大，但代码只引用根目录的文件 |
 
-### 7.5 布局文件缺失
+### 8.5 布局文件缺失
 
 | 位置 | 内容 | 影响 |
 |------|------|------|
 | `ToolsFragment.java:670` | 引用 `R.layout.item_tool_section` | 该布局文件不存在，可能导致运行时崩溃（需确认） |
 
-### 7.6 可能的未使用依赖
+### 8.6 可能的未使用依赖
 
 | 依赖 | 状态 | 说明 |
 |------|------|------|
@@ -550,9 +639,9 @@ sequenceDiagram
 
 ---
 
-## 8. 修改某功能时必须同步修改的文件清单
+## 9. 修改某功能时必须同步修改的文件清单
 
-### 8.1 修改联机协议/消息格式
+### 9.1 修改联机协议/消息格式
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|
@@ -561,7 +650,7 @@ sequenceDiagram
 | `DouDiZhuOnlineActivity.java` | UI 层消息处理逻辑 |
 | `Node.js Relay (server.js)` | 服务端消息转发逻辑 |
 
-### 8.2 修改房间码格式/长度
+### 9.2 修改房间码格式/长度
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|
@@ -569,7 +658,7 @@ sequenceDiagram
 | `DouDiZhuOnlineActivity.java` | `generateRoomCode()` 生成逻辑 |
 | `Node.js Relay (server.js)` | 房间码验证逻辑 |
 
-### 8.3 修改 WebSocket 路径/端口
+### 9.3 修改 WebSocket 路径/端口
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|
@@ -578,7 +667,7 @@ sequenceDiagram
 | `Node.js Relay (server.js)` | WebSocket 服务器监听路径 |
 | `local.properties` | `relay.url` 配置 |
 
-### 8.4 修改更新检查 URL/协议
+### 9.4 修改更新检查 URL/协议
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|
@@ -587,7 +676,7 @@ sequenceDiagram
 | `upload_to_vps.py` | `publicBaseUrl` 配置 |
 | `update_server.py` | 服务端接口路径 |
 
-### 8.5 修改版本号规则
+### 9.5 修改版本号规则
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|
@@ -596,7 +685,7 @@ sequenceDiagram
 | `UpdateManager.java` | 版本比较逻辑 |
 | `upload_to_vps.py` | 版本验证逻辑 |
 
-### 8.6 添加新游戏
+### 9.6 添加新游戏
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|

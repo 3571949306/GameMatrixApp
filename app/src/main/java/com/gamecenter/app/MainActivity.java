@@ -1,6 +1,7 @@
 package com.gamecenter.app;
 
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -9,6 +10,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -36,10 +39,30 @@ public class MainActivity extends AppCompatActivity {
     private boolean isCheckingUpdate = false;
     private boolean isAutoDownloadingUpdate = false;
 
+    private PermissionHelper permissionHelper;
+    private ActivityResultLauncher<String[]> permissionLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        permissionHelper = new PermissionHelper(this);
+        permissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    boolean[] grantResults = new boolean[result.size()];
+                    int i = 0;
+                    for (Boolean granted : result.values()) {
+                        grantResults[i++] = granted != null && granted;
+                    }
+                    permissionHelper.onPermissionsResult(grantResults);
+                }
+        );
+
+        if (permissionHelper.isFirstLaunch()) {
+            permissionHelper.showPermissionDialog(permissionLauncher);
+        }
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);

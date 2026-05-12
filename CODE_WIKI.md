@@ -1,6 +1,6 @@
 # GameCenterApp Code Wiki
 
-> 最后更新：2026-05-10  
+> 最后更新：2026-05-12  
 > 项目版本：由 `version.properties` 动态管理  
 > 最低 SDK：24 (Android 7.0) | 目标 SDK：35
 
@@ -21,6 +21,14 @@
    - 4.7 [更新与分发模块（update 包）](#47-更新与分发模块update-包)
    - 4.8 [设置与主题模块](#48-设置与主题模块)
    - 4.9 [存档管理模块（SaveManager）](#49-存档管理模块savemanager)
+   - 4.10 [权限管理模块（PermissionHelper）](#410-权限管理模块permissionhelper)
+   - 4.11 [网络错误处理（NetworkErrorHandler）](#411-网络错误处理networkerrorhandler)
+   - 4.12 [国际化支持（I18nHelper）](#412-国际化支持i18nhelper)
+   - 4.13 [内存泄漏检测](#413-内存泄漏检测)
+   - 4.14 [Lint 配置](#414-lint-配置)
+   - 4.15 [CI/CD 工作流](#415-cicd-工作流)
+   - 4.16 [APK 签名配置](#416-apk-签名配置)
+   - 4.17 [自动化发布流程](#417-自动化发布流程)
 5. [VPS 服务端](#5-vps-服务端)
 6. [依赖关系图](#6-依赖关系图)
 7. [构建与运行](#7-构建与运行)
@@ -178,8 +186,9 @@ GameCenterApp/
 │       │   │   ├── ClipboardToolBinder.java    # 剪贴板
 │       │   │   ├── ColorPickerToolBinder.java  # 取色器
 │       │   │   └── AdvancedToolBinders.java    # 高级工具绑定（DNS查询/LAN扫描/编解码等）
-│       │   └── utils/
-│       │       └── SystemInfoCollector.java # 系统信息采集
+│       │   ├── utils/
+│       │   │   ├── SystemInfoCollector.java     # 系统信息采集
+│       │   │   └── PermissionHelper.java        # 权限管理辅助类
 │       └── res/                           # 布局、图标、字符串等资源
 ├── vps/
 │   ├── ddz_ws_relay/
@@ -740,6 +749,53 @@ SSL 信任配置工具，为自签名证书的更新服务器建立信任。
 
 ---
 
+### 4.10 权限管理模块（PermissionHelper）
+
+#### [PermissionHelper.java](file:///d:/kaifa/GameCenterApp/app/src/main/java/com/gamecenter/app/utils/PermissionHelper.java)
+
+权限管理辅助类，负责首次启动权限说明对话框、运行时权限请求、权限状态记录。
+
+**功能概述：**
+
+| 功能 | 说明 |
+|------|------|
+| 首次启动检测 | 判断应用是否首次启动，仅首次展示权限说明 |
+| 权限说明对话框 | 使用 Material Design 风格弹窗说明所需权限及用途 |
+| 运行时权限请求 | 批量请求 Android 6.0+ 运行时权限 |
+| 权限状态记录 | 记录用户是否已完成权限授权流程 |
+
+**请求的权限：**
+
+| 权限 | 用途 |
+|------|------|
+| `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` | 位置相关工具（WiFi 信息、LAN 扫描等） |
+| `CAMERA` | 二维码扫描功能 |
+| `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` | 文件读写（存档、下载等） |
+
+**存储位置：** SharedPreferences `"permission_prefs"`
+
+**关键方法：**
+
+| 方法 | 说明 |
+|------|------|
+| `isFirstLaunch()` | 判断是否首次启动（读取 `permission_prefs` 中的标记） |
+| `showPermissionDialog()` | 弹出权限说明对话框，展示权限用途并引导用户授权 |
+| `requestRuntimePermissions()` | 批量请求运行时权限（位置/相机/存储） |
+| `onPermissionsResult(int, String[], int[])` | 处理权限请求结果，更新授权状态 |
+| `hasPermissions()` | 检查是否已获得所有必要权限 |
+| `markPermissionsRequested()` | 标记权限请求流程已完成 |
+
+**使用流程：**
+
+```
+Activity.onCreate()
+  → PermissionHelper.isFirstLaunch()
+    → true → showPermissionDialog() → requestRuntimePermissions()
+    → false → hasPermissions() → 权限不足时再次请求
+```
+
+---
+
 ## 5. VPS 服务端
 
 ### 5.1 WebSocket 中继服务
@@ -900,6 +956,37 @@ lastStableVersionName=
 betaNoticeVersionGap=3
 ```
 
+**`keystore.properties`**（不纳入版本控制）：
+
+```properties
+STORE_FILE=gamecenter.keystore
+STORE_PASSWORD=你的密钥库密码
+KEY_ALIAS=gamecenter
+KEY_PASSWORD=你的密钥密码
+```
+
+> **注意**：`keystore.properties` 和 `app/gamecenter.keystore` 包含敏感签名信息，已添加到 `.gitignore`，切勿提交到版本控制。
+
+### 构建配置
+
+本项目使用 Gradle 进行构建，核心配置位于 `app/build.gradle`：
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| R8/ProGuard | `minifyEnabled true` | Release 构建时启用代码混淆与压缩 |
+| 资源压缩 | `shrinkResources true` | 自动移除未使用的资源文件 |
+| Release APK 大小 | 约 16.36MB | 混淆压缩并签名后的 Release 版本大小 |
+| ProGuard 规则文件 | `app/proguard-rules.pro` | 自定义保持规则，防止关键类/方法被混淆 |
+| 签名配置 | `release` 签名块 | 密钥信息通过 `keystore.properties` 注入 |
+| 构建特性 | `viewBinding = true` | 替代 `findViewById`，提高类型安全 |
+
+**关键构建类型：**
+
+| 类型 | 混淆 | 资源压缩 | 可调试 | 用途 |
+|------|------|---------|--------|------|
+| `debug` | 关闭 | 关闭 | 开启 | 本地开发调试 |
+| `release` | 开启 | 开启 | 关闭 | 生产发布 |
+
 ### 构建命令
 
 ```bash
@@ -1006,6 +1093,13 @@ MainActivity.scheduleAutoUpdateCheck()
 
 ## 9. 扩展指南
 
+### 权限管理约定
+
+- **统一入口**：所有运行时权限请求必须通过 `PermissionHelper` 统一处理，禁止在 Activity/Fragment 中直接调用系统权限 API
+- **权限声明**：新增需要权限的功能时，必须在 `PermissionHelper` 的权限映射表中注册，并在说明对话框中清晰告知用户用途
+- **优雅降级**：权限被拒绝后，相关工具或游戏入口应隐藏或禁用，并引导用户在系统设置中手动开启，禁止直接崩溃
+- **流程调度**：权限说明与首次请求流程由 `PermissionHelper.isFirstLaunch()` 统一调度，扩展模块无需重复实现授权逻辑
+
 ### 添加新游戏
 
 1. 在 `app/src/main/java/com/gamecenter/app/games/` 下创建游戏子包
@@ -1038,4 +1132,250 @@ MainActivity.scheduleAutoUpdateCheck()
 
 ---
 
-> 本文档基于项目源码自动分析生成，如需更新请重新运行分析。
+### 4.16 APK 签名配置
+
+#### 签名配置文件
+
+**`keystore.properties`**（不纳入版本控制）：
+
+```properties
+STORE_FILE=gamecenter.keystore
+STORE_PASSWORD=你的密钥库密码
+KEY_ALIAS=gamecenter
+KEY_PASSWORD=你的密钥密码
+```
+
+**`app/gamecenter.keystore`**（不纳入版本控制）：
+- 类型：Java Keystore (JKS)
+- 算法：RSA 2048 位
+- 有效期：10000 天
+- 别名：gamecenter
+
+#### Gradle 签名配置
+
+`app/build.gradle` 中的签名配置：
+
+```gradle
+android {
+    signingConfigs {
+        release {
+            def keystorePropsFile = rootProject.file("keystore.properties")
+            if (keystorePropsFile.exists()) {
+                def props = new Properties()
+                props.load(new FileInputStream(keystorePropsFile))
+                storeFile file(props['STORE_FILE'])
+                storePassword props['STORE_PASSWORD']
+                keyAlias props['KEY_ALIAS']
+                keyPassword props['KEY_PASSWORD']
+            }
+        }
+    }
+    
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.release
+        }
+    }
+}
+```
+
+#### 安全注意事项
+
+- **切勿提交到 Git**：签名文件已添加到 `.gitignore`
+- **备份密钥库**：丢失后将无法更新已发布的 APK
+- **密码管理**：不要将明文密码提交到版本控制
+- **发布验证**：Release APK 必须通过签名验证才能安装
+
+---
+
+### 4.17 自动化发布流程
+
+#### 发布脚本
+
+| 脚本 | 用途 | 平台 |
+|------|------|------|
+| `auto-publish.bat` | 一键发布（编译 + 上传到三处） | Windows |
+| `publish-all.ps1` | PowerShell 跨平台发布脚本 | Windows/Linux/Mac |
+| `tools/publish-all.py` | Python 高级发布工具 | 跨平台 |
+
+#### 发布流程
+
+1. **编译签名 APK**：`.\gradlew.bat assembleRelease`
+2. **上传到 VPS**：自动上传到 HK VPS 和 US VPS
+3. **上传到 GitHub**：调用 GitHub API 创建 Release
+4. **版本验证**：检查所有源是否上传成功
+
+#### 发布配置
+
+**VPS 上传配置**（`local_private/vps/upload_config_hk.json`）：
+```json
+{
+  "host": "hk.vps.example.com",
+  "port": 22,
+  "username": "root",
+  "password": "你的密码",
+  "remote_dir": "/var/www/update/app"
+}
+```
+
+**GitHub Token**（`local_private/github/token.txt`）：
+- 权限：`repo`（完整仓库控制）
+- 用途：创建 Release、上传 APK
+
+#### 发布状态检查
+
+- ✅ 香港 VPS 版本验证：访问 `https://hk-update.<DOMAIN>/version.json`
+- ✅ 美国 VPS 版本验证：访问 `https://<DOMAIN>/version.json`
+- ✅ GitHub Release 验证：访问 GitHub Releases 页面
+
+---
+
+### 4.11 网络错误处理（NetworkErrorHandler）
+
+#### [NetworkErrorHandler.java](file:///d:/kaifa/GameCenterApp/app/src/main/java/com/gamecenter/app/utils/NetworkErrorHandler.java)
+
+统一网络异常处理工具类，提供错误码分类、智能重试策略和网络状态检查功能。
+
+**错误码分类：**
+
+| 错误码 | 说明 |
+|--------|------|
+| `ERROR_NETWORK_DISCONNECTED` | 网络未连接 |
+| `ERROR_TIMEOUT` | 请求超时 |
+| `ERROR_DNS_RESOLUTION` | DNS 解析失败 |
+| `ERROR_SSL_HANDSHAKE` | SSL 握手失败 |
+| `ERROR_SERVER_UNREACHABLE` | 服务器不可达 |
+| `ERROR_HTTP_ERROR` | HTTP 错误响应 |
+
+**关键方法：**
+
+| 方法 | 说明 |
+|------|------|
+| `handleNetworkException(Context, Exception)` | 处理异常并显示对应 Toast 提示 |
+| `retryWithBackoff(Runnable, int, long)` | 指数退避重试机制（初始延迟 × 2^n） |
+| `isNetworkAvailable(Context)` | 检查网络连通性 |
+| `getErrorMessage(Context, Exception)` | 获取用户友好的错误描述 |
+
+**重试策略：**
+- 默认最大重试次数：3 次
+- 初始延迟：1000ms
+- 退避因子：2（1s → 2s → 4s）
+- 仅对超时和服务器错误进行重试
+
+---
+
+### 4.12 国际化支持（I18nHelper）
+
+#### [I18nHelper.java](file:///d:/kaifa/GameCenterApp/app/src/main/java/com/gamecenter/app/utils/I18nHelper.java)
+
+国际化支持辅助类，根据系统语言自动切换提示文本。
+
+**资源文件：**
+
+| 文件 | 语言 |
+|------|------|
+| `values/strings.xml` | 中文（默认） |
+| `values-en/strings.xml` | 英文 |
+
+**关键方法：**
+
+| 方法 | 说明 |
+|------|------|
+| `getCurrentLanguage()` | 获取当前系统语言 |
+| `getString(Context, String key)` | 根据当前语言获取对应字符串 |
+| `isChinese()` | 判断当前是否为中文环境 |
+
+**使用场景：**
+- Toast 提示信息
+- 对话框文本
+- 网络错误提示
+- 工具类输出信息
+
+---
+
+### 4.13 内存泄漏检测
+
+项目集成 **LeakCanary 2.14** 进行内存泄漏自动检测。
+
+**配置说明：**
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| 依赖版本 | `2.14` | LeakCanary 最新稳定版 |
+| 生效范围 | 仅 Debug 构建变体 | Release 版本不包含 |
+| 检测目标 | Activity / Fragment / ViewModel | 自动追踪生命周期对象 |
+
+**工作原理：**
+- 自动监控 Activity 和 Fragment 的生命周期
+- 检测对象是否在销毁后仍被引用
+- 发现泄漏时自动 Dump HPROF 并生成分析报告
+- 在通知栏显示泄漏报告，点击可查看引用链
+
+**注意事项：**
+- LeakCanary 仅用于开发调试阶段
+- Release 版本通过 `debugImplementation` 自动排除
+- 检测到泄漏时应检查是否存在未取消的回调、未关闭的资源或静态引用
+
+---
+
+### 4.14 Lint 配置
+
+项目使用 Android Lint 进行代码质量检查，配置位于 `app/build.gradle`。
+
+**关键配置：**
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| `abortOnError` | `true` | 发现错误时终止构建 |
+| `warningsAsErrors` | `true` | 将警告视为错误 |
+| `checkReleaseBuilds` | `true` | Release 构建时执行 Lint 检查 |
+
+**禁用规则：**
+
+| 规则 | 原因 |
+|------|------|
+| `Deprecation` | 允许使用已弃用 API（兼容旧版本） |
+| `UnusedResources` | 动态引用的资源无法静态分析 |
+
+**建议：**
+- 定期运行 `./gradlew lint` 检查代码问题
+- 新增代码应遵循 Lint 规则，避免引入新的警告
+- 如需临时忽略特定问题，可使用 `@SuppressLint` 注解
+
+---
+
+### 4.15 CI/CD 工作流
+
+项目使用 **GitHub Actions** 实现自动化持续集成和部署。
+
+**工作流文件：** [`.github/workflows/ci.yml`](file:///d:/kaifa/GameCenterApp/.github/workflows/ci.yml)
+
+**触发条件：**
+
+| 事件 | 分支 |
+|------|------|
+| `push` | `main`, `master` |
+| `pull_request` | `main`, `master` |
+
+**任务流程：**
+
+| 步骤 | 说明 |
+|------|------|
+| 环境设置 | 配置 Ubuntu 运行器 + JDK 17 |
+| 依赖缓存 | 缓存 Gradle 依赖加速构建 |
+| 代码编译 | `./gradlew assembleDebug` 编译 Debug APK |
+| 单元测试 | `./gradlew test` 执行单元测试 |
+| Lint 检查 | `./gradlew lint` 代码质量检查 |
+| APK 上传 | 将生成的 APK 作为 Artifact 上传 |
+
+**构建产物：**
+- Debug APK（用于测试）
+- Lint 报告（代码质量问题）
+- 测试报告（单元测试结果）
+
+---
+
+> 本文档基于项目源码分析整理，包含核心架构与模块说明。
+

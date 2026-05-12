@@ -2,6 +2,28 @@
 
 > 给 AI 开发助手和维护者的快速入口。优先以仓库当前代码为准，本文档用于减少查找成本和避免常见误判。
 
+## 0. 最近更新
+
+| 版本 | 变更内容 |
+|------|----------|
+| v1.3.16 | APK 签名配置、敏感文件排除、自动化发布流程 |
+| v1.11.0 | Lint 严格模式、网络错误处理、国际化、LeakCanary、CI/CD |
+| v1.10.3 | 权限说明对话框、R8 混淆、斗地主重构、资源优化 |
+
+## 快速入口
+
+### 关键文件
+
+| 文件 | 用途 |
+|------|------|
+| `app/src/main/java/com/gamecenter/app/PermissionHelper.java` | 权限管理辅助 |
+| `app/src/main/java/com/gamecenter/app/utils/NetworkErrorHandler.java` | 网络错误统一处理 |
+| `app/src/main/java/com/gamecenter/app/utils/I18nHelper.java` | 国际化辅助 |
+| `.github/workflows/ci.yml` | GitHub Actions CI/CD 工作流 |
+| `keystore.properties` | APK 签名凭证配置（不提交 Git） |
+| `app/gamecenter.keystore` | APK 签名密钥库（不提交 Git） |
+| `auto-publish.bat` | 一键发布脚本（Windows） |
+
 ## 1. 项目概览
 
 | 项目 | 说明 |
@@ -184,6 +206,8 @@ tic, tiles, whack
 
 ## 5. 构建与版本
 
+当前版本：`versionCode=217`, `versionName=1.3.16`
+
 Windows 下推荐命令：
 
 ```powershell
@@ -196,11 +220,20 @@ Windows 下推荐命令：
 输出位置：
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
-- Release APK: `app/build/outputs/apk/release/app-release.apk`
-- Debug 版本信息: `app/build/outputs/apk/debug/version.json`
-- APK 内置版本信息: 构建时生成到 `build/generated/assets/version/version.json` 并打包为 `assets/version.json`
+- Release APK: `app/build/outputs/apk/release/app-release.apk`（已签名）
+- Debug 版本信息：`app/build/outputs/apk/debug/version.json`
+- APK 内置版本信息：构建时生成到 `build/generated/assets/version/version.json` 并打包为 `assets/version.json`
 
-构建副作用：
+### APK 签名配置
+
+Release APK 已配置自动签名：
+
+1. **密钥库**：`app/gamecenter.keystore`（RSA 2048 位，10000 天有效期）
+2. **配置文件**：`keystore.properties`（包含密码和别名）
+3. **Gradle 配置**：`signingConfigs.release` 自动读取配置
+4. **安全注意**：签名文件已添加到 `.gitignore`，切勿提交
+
+### 构建副作用：
 
 - `assembleDebug` 在 `afterEvaluate` 中被配置为完成后执行 `generateVersionJson` 和 `bumpVersion`；带 `-PautoUploadVps=true` 时还会执行 `uploadDebugArtifactsToVps`。
 - `generateBundledVersionJson` 会在构建前生成内置 `assets/version.json`；远端更新检查优先抓取 VPS 的 `/version.json`，并按 `channel`/`isBeta` 区分正式版和测试版。
@@ -213,7 +246,18 @@ Windows 下推荐命令：
 - beta-only 分发时，`version.json` 带 `lastStableVersionCode`、`lastStableVersionName`、`betaNoticeVersionGap`；用户关闭测试版且本地版本明显落后上一个正式版时，App 会提示开启测试版或等待正式版。
 - 设置页新增自动下载安装包能力，默认关闭；开启后自动检查到新版本会后台下载，下载完成后是否提示安装由独立子开关控制。
 
-## 5.1 BuildConfig 字段
+## 5.1 构建约定
+
+| 配置项 | 说明 |
+|--------|------|
+| lint | `abortOnError=true`, `warningsAsErrors=true` |
+| LeakCanary | `debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'` |
+| autoBumpVersion | 参数控制版本号递增（默认 `true`） |
+| CI/CD | `.github/workflows/ci.yml` 自动构建/测试/上传 |
+| APK 签名 | `signingConfigs.release` 自动签名 Release APK |
+| 敏感文件 | `keystore.properties` 和 `gamecenter.keystore` 已添加到 `.gitignore` |
+
+## 5.2 BuildConfig 字段
 
 `build.gradle` 中的 `local.properties` 解析会生成以下 `BuildConfig` 字段：
 
@@ -266,6 +310,8 @@ implementation 'androidx.webkit:webkit:1.12.1'
 - VPS 更新服务改动后至少验证公网 `/version.json`、`/app-debug.apk`、旧 `/api/update/check` 和 `/downloads/...` 兼容路径。
 - 反馈模块涉及 VPS 接口、诊断信息和邮箱兜底，改动后至少验证 `/api/feedback/health`、POST JSON、`feedback.log` 写入。
 - 推送到 GitHub 前必须确认 `local_private/` 被忽略，并扫描密码、token、SSH 私钥、主机指纹和个人服务地址，避免把本机隐私配置提交到公开仓库。
+- **签名文件安全**：`gamecenter.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交
+- **发布流程**：使用 `auto-publish.bat` 或 `publish-all.ps1` 一键发布到三个更新源
 
 ### 8.1 服务器修改限制
 
@@ -287,6 +333,13 @@ implementation 'androidx.webkit:webkit:1.12.1'
 - `sendSyncStateNow()` 遍历座位时跳过 `cid < 0` 的座位（未分配客户端 ID）
 - Client 端收到 `SYNC_STATE` 后回复 `STATE_ACK`，Host 收到 ACK 后确认客户端已同步
 - Host 在没有 REMOTE 座位时点击开始游戏会提示"请等待远程玩家加入后再开始游戏"
+
+### 8.3 扩展指南
+
+- 网络错误：使用 `NetworkErrorHandler` 统一处理，避免硬编码 Toast
+- 国际化：新增文本请同时更新 `values/strings.xml` 和 `values-en/strings.xml`
+- 内存泄漏：Debug 版自动检测（LeakCanary），无需额外配置
+- CI/CD：推送代码自动触发构建，产物保留30天
 
 ## 9. AI 协作提示
 

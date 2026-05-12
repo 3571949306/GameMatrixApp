@@ -352,7 +352,20 @@ public class WhackView extends View {
     /** 停止游戏 */
     public void stopGame() {
         gameRunning = false;
-        handler.removeCallbacks(moleRunnable);
-        handler.removeCallbacks(timerRunnable);
+        if (handler != null) {
+            handler.removeCallbacks(moleRunnable);
+            handler.removeCallbacks(timerRunnable);
+        }
+        moleRunnable = null;
+        timerRunnable = null;
+    }
+
+    public void releaseResources() {
+        stopGame();
+        handler = null;
+        random = null;
+        holes = null;
+        moleUp = null;
+        moleHit = null;
     }
 }

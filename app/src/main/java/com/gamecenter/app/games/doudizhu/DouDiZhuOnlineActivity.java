@@ -29,7 +29,6 @@ import com.gamecenter.app.R;
 import com.gamecenter.app.games.doudizhu.model.Card;
 import com.gamecenter.app.games.doudizhu.model.CardType;
 import com.gamecenter.app.games.doudizhu.model.Rank;
-import com.gamecenter.app.games.doudizhu.model.Suit;
 import com.gamecenter.app.games.doudizhu.network.GameSocketClient;
 import com.gamecenter.app.games.doudizhu.network.GameSocketServer;
 import com.gamecenter.app.games.doudizhu.network.LANManager;
@@ -48,8 +47,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 public class DouDiZhuOnlineActivity extends AppCompatActivity {
@@ -62,17 +61,14 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     private static final int STATE_PLAYING = 2;
     private static final int STATE_GAME_OVER = 3;
 
-    private static final int SEAT_TYPE_HOST = 0;
-    private static final int SEAT_TYPE_REMOTE = 1;
-    private static final int SEAT_TYPE_AI = 2;
-
     private static final int TOTAL_SEATS = 3;
     private static final int DEFAULT_SERVER_PORT = 8765;
     private static final int[] HOST_PORT_CANDIDATES = {8765, 8766, 8767, 8768, 8769};
     private static final long AI_THINKING_DELAY = 1500L;
-    private static final String P2P_PREFS = "doudizhu_p2p";
-    private static final String KEY_PEER_TOKEN = "peer_token";
     private static final int P2P_PROTOCOL_VERSION = 2;
+    private static final int SEAT_TYPE_HOST = DouDiZhuSeatManager.SEAT_TYPE_HOST;
+    private static final int SEAT_TYPE_REMOTE = DouDiZhuSeatManager.SEAT_TYPE_REMOTE;
+    private static final int SEAT_TYPE_AI = DouDiZhuSeatManager.SEAT_TYPE_AI;
     private static final int REMOTE_RECONNECT_ATTEMPTS = 120;
     private static final long REMOTE_RECONNECT_INTERVAL_MS = 2500L;
     private static final long REMOTE_RECONNECT_MAX_INTERVAL_MS = 15000L;
@@ -147,18 +143,29 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     private GameSocketServer server;
     private GameSocketClient client;
 
+    // ============ 新管理器 ============
+    private DouDiZhuSeatManager seatManager;
+    private DouDiZhuSyncManager syncManager;
+
     private int mode = -1;
     private boolean remoteP2PMode = false;
-    private int[] seatTypes = new int[]{SEAT_TYPE_HOST, SEAT_TYPE_AI, SEAT_TYPE_AI};
+    private String localPeerToken = "";
+
+    private static final String P2P_PREFS = "doudizhu_p2p";
+    private static final String KEY_PEER_TOKEN = "peer_token";
+
+    // ============ 兼容旧代码的变量（已委托给管理器，保留为向后兼容） ============
+    private int[] seatTypes = new int[]{DouDiZhuSeatManager.SEAT_TYPE_HOST, DouDiZhuSeatManager.SEAT_TYPE_AI, DouDiZhuSeatManager.SEAT_TYPE_AI};
     private int[] seatClientIds = new int[]{-1, -1, -1};
     private String[] seatClientIps = new String[]{"", "", ""};
     private String[] seatPeerTokens = new String[]{"", "", ""};
-    private String localPeerToken = "";
+    private Map<Integer, String> pendingClientIps = new HashMap<>();
     private String remoteHostInfoText = "";
     private String remoteInviteAddress = "";
     private String remoteRoomCode = "";
-    private final Map<Integer, String> pendingClientIps = new HashMap<>();
+    private long[] lastProcessedActionIds = new long[]{0L, 0L, 0L};
 
+    // ============ 游戏状态 ============
     private int gameState = STATE_LOBBY;
     private int currentTurn = 0;
     private int landlordIndex = -1;
@@ -192,16 +199,15 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     private StringBuilder chatLog = new StringBuilder();
     private final List<JSONObject> hostChatHistory = new ArrayList<>();
     private JSONObject pendingClientIntent;
-    private long hostStateVersion = 0L;
-    private long clientLastStateVersion = -1L;
-    private long nextClientActionId = 1L;
-    private long[] lastProcessedActionIds = new long[]{0L, 0L, 0L};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         remoteP2PMode = getIntent() != null && getIntent().getBooleanExtra(EXTRA_REMOTE_P2P, false);
-        localPeerToken = getOrCreatePeerToken();
+        seatManager = new DouDiZhuSeatManager();
+        seatManager.setContext(this);
+        localPeerToken = seatManager.getLocalPeerToken();
+        syncManager = new DouDiZhuSyncManager(seatManager, null);
         setContentView(R.layout.activity_doudizhu_online);
         soundManager = new DouDiZhuSoundManager(this);
 
@@ -327,15 +333,9 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     private void startAsHost() {
         mode = 0;
         mySeatIndex = 0;
-        seatTypes = new int[]{SEAT_TYPE_HOST, SEAT_TYPE_AI, SEAT_TYPE_AI};
-        seatClientIds = new int[]{-1, -1, -1};
-        seatClientIps = new String[]{"", "", ""};
-        seatPeerTokens = new String[]{"", "", ""};
-        pendingClientIps.clear();
-        remoteHostInfoText = "";
-        remoteInviteAddress = "";
-        remoteRoomCode = "";
-        resetProtocolState();
+        seatManager.resetAllSeats();
+        seatManager.updateSeat(0, -1, "", "", DouDiZhuSeatManager.SEAT_TYPE_HOST);
+        syncManager.resetHostStateVersion();
 
         if (btnCreateRoom != null) btnCreateRoom.setVisibility(View.GONE);
         if (btnCopyRoomAddress != null) btnCopyRoomAddress.setVisibility(View.GONE);
@@ -349,6 +349,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
 
         new Thread(() -> {
             server = new GameSocketServer(this);
+            syncManager.setServer(server);
             server.setOnClientConnectedListener(this::onClientConnected);
             server.setOnClientDisconnectedListener(this::onClientDisconnected);
             server.setOnMessageReceivedListener(this::onServerMessageReceived);
@@ -572,7 +573,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         }
         mode = 1;
         mySeatIndex = -1;
-        resetClientProtocolState();
+        syncManager.resetClientState();
         lanManager.startDiscovery();
 
         if (btnCreateRoom != null) btnCreateRoom.setVisibility(View.GONE);
@@ -819,7 +820,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         mode = 1;
         mySeatIndex = -1;
         pendingClientIntent = null;
-        resetClientProtocolState();
+        syncManager.resetClientState();
         client = GameSocketClient.getInstance(this);
         client.setPlayerName(android.os.Build.MODEL);
         client.setPeerToken(localPeerToken);
@@ -1152,77 +1153,35 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     }
 
     private JSONArray seatTypesToJson() {
-        JSONArray array = new JSONArray();
-        for (int type : seatTypes) {
-            array.put(type);
-        }
-        return array;
+        return DouDiZhuProtocol.seatTypesToJson(seatTypes);
     }
 
     private JSONArray booleanArrayToJson(boolean[] values) {
-        JSONArray array = new JSONArray();
-        if (values != null) {
-            for (boolean value : values) {
-                array.put(value);
-            }
-        }
-        return array;
+        return DouDiZhuProtocol.booleanArrayToJson(values);
     }
 
     private JSONArray handCountsToJson() {
-        JSONArray array = new JSONArray();
-        array.put(playerHandCards.size());
-        array.put(seat1Cards.size());
-        array.put(seat2Cards.size());
-        return array;
+        return DouDiZhuProtocol.handCountsToJson(playerHandCards, seat1Cards, seat2Cards);
     }
 
     private JSONArray intArrayToJson(int[] values) {
-        JSONArray array = new JSONArray();
-        if (values != null) {
-            for (int value : values) {
-                array.put(value);
-            }
-        }
-        return array;
+        return DouDiZhuProtocol.intArrayToJson(values);
     }
 
     private int[] jsonToCounterArray(JSONArray array) {
-        int[] counts = createFullDeckCounter();
-        if (array == null) return counts;
-        for (int i = 0; i < counts.length && i < array.length(); i++) {
-            counts[i] = Math.max(0, array.optInt(i, counts[i]));
-        }
-        return counts;
+        return DouDiZhuProtocol.jsonToCounterArray(array);
     }
 
     private int[] createFullDeckCounter() {
-        int[] counts = new int[15];
-        for (int i = 0; i < 13; i++) {
-            counts[i] = 4;
-        }
-        counts[13] = 1;
-        counts[14] = 1;
-        return counts;
+        return DouDiZhuProtocol.createFullDeckCounter();
     }
 
     private int rankCounterIndex(Card card) {
-        if (card == null) return -1;
-        int weight = card.getWeight();
-        if (weight >= Rank.THREE.getWeight() && weight <= Rank.BIG_JOKER.getWeight()) {
-            return weight - Rank.THREE.getWeight();
-        }
-        return -1;
+        return DouDiZhuProtocol.rankCounterIndex(card);
     }
 
     private void subtractCardsFromCounter(int[] counts, List<Card> cards) {
-        if (counts == null || cards == null) return;
-        for (Card card : cards) {
-            int index = rankCounterIndex(card);
-            if (index >= 0 && index < counts.length) {
-                counts[index] = Math.max(0, counts[index] - 1);
-            }
-        }
+        DouDiZhuProtocol.subtractCardsFromCounter(counts, cards);
     }
 
     private int[] createCardCounterForSeat(int seatIndex) {
@@ -1510,9 +1469,9 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         if (msg == null) return;
         try {
             if (!msg.has("actionId")) {
-                msg.put("actionId", nextClientActionId++);
+                msg.put("actionId", syncManager.getNextClientActionId());
             }
-            msg.put("clientStateVersion", clientLastStateVersion);
+            msg.put("clientStateVersion", syncManager.getClientLastStateVersion());
             msg.put("sentAt", System.currentTimeMillis());
         } catch (JSONException e) {
             Log.e(TAG, "decorateClientIntent error", e);
@@ -1639,15 +1598,9 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
 
     private void sendBidRequestToRemote(int seatIndex) {
         if (server == null) return;
-        int clientId = seatClientIds[seatIndex];
+        int clientId = seatManager.getClientId(seatIndex);
         if (clientId < 0) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "BID_REQUEST");
-            msg.put("stateVersion", getCurrentStateVersion());
-            msg.put("seatIndex", seatIndex);
-            msg.put("currentTurn", currentTurn);
-        } catch (JSONException e) {}
+        JSONObject msg = DouDiZhuProtocol.createBidRequestMsg(getCurrentStateVersion(), seatIndex, currentTurn);
         server.sendTo(clientId, msg);
     }
 
@@ -1971,38 +1924,15 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     // ============ Card Serialization ============
 
     private String cardsToJson(List<Card> cards) {
-        JSONArray array = new JSONArray();
-        if (cards == null) return array.toString();
-        for (Card card : cards) {
-            JSONObject obj = new JSONObject();
-            try {
-                obj.put("suit", card.getSuit().name());
-                obj.put("rank", card.getRank().name());
-                array.put(obj);
-            } catch (JSONException e) {}
-        }
-        return array.toString();
+        return DouDiZhuProtocol.cardsToJson(cards);
     }
 
     private List<Card> parseCardsFromJson(String json) {
-        List<Card> cards = new ArrayList<>();
-        if (json == null || json.isEmpty() || json.equals("[]")) return cards;
-        try {
-            JSONArray array = new JSONArray(json);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject obj = array.getJSONObject(i);
-                Suit suit = Suit.valueOf(obj.getString("suit"));
-                Rank rank = Rank.valueOf(obj.getString("rank"));
-                cards.add(Card.create(suit, rank));
-            }
-        } catch (JSONException e) {
-            Log.e(TAG, "parseCardsFromJson error: " + e.getMessage());
-        }
-        return cards;
+        return DouDiZhuProtocol.parseCardsFromJson(json);
     }
 
     private String cardsListToJsonArray(List<Card> cards) {
-        return cardsToJson(cards);
+        return DouDiZhuProtocol.cardsToJson(cards);
     }
 
     // ============ Helper Methods ============
@@ -2230,21 +2160,10 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     }
 
     private boolean shouldProcessClientAction(int seatIndex, int clientId, JSONObject msg, String type) {
-        if (seatIndex <= 0 || seatIndex >= TOTAL_SEATS) {
-            sendAck(clientId, type, msg, false, "invalid seat", getCurrentStateVersion());
-            return false;
-        }
-        long actionId = msg.optLong("actionId", -1L);
-        if (actionId <= 0L) {
-            return true;
-        }
-        if (actionId <= lastProcessedActionIds[seatIndex]) {
-            sendAck(clientId, type, msg, false, "duplicate", getCurrentStateVersion());
-            sendSyncStateToSeat(seatIndex);
-            return false;
-        }
-        lastProcessedActionIds[seatIndex] = actionId;
-        return true;
+        syncLocalToManager();
+        boolean result = syncManager.shouldProcessClientAction(seatIndex, clientId, msg, type);
+        syncManagerToLocal();
+        return result;
     }
 
     private void handleStateAck(int seatIndex, JSONObject msg) {
@@ -2460,7 +2379,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
 
     private void handleBidRequest(JSONObject msg) {
         long version = msg.optLong("stateVersion", -1L);
-        if (version >= 0L && version < clientLastStateVersion) {
+        if (version >= 0L && version < syncManager.getClientLastStateVersion()) {
             return;
         }
         int seatIndex = msg.optInt("seatIndex", -1);
@@ -2585,14 +2504,14 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         try {
             long incomingVersion = msg.optLong("stateVersion", -1L);
             logGame("SYNC_STATE", mySeatIndex, "incoming version=" + incomingVersion);
-            Log.d(TAG, LOG_PREFIX + " [HANDLE_SYNC_STATE] incomingVersion=" + incomingVersion + " clientLastStateVersion=" + clientLastStateVersion);
-            if (incomingVersion >= 0L && incomingVersion <= clientLastStateVersion) {
+            Log.d(TAG, LOG_PREFIX + " [HANDLE_SYNC_STATE] incomingVersion=" + incomingVersion + " clientLastStateVersion=" + syncManager.getClientLastStateVersion());
+            if (incomingVersion >= 0L && incomingVersion <= syncManager.getClientLastStateVersion()) {
                 Log.d(TAG, LOG_PREFIX + " [HANDLE_SYNC_STATE] stale version, sending ACK and skipping");
                 sendStateAck(incomingVersion);
                 return;
             }
             if (incomingVersion >= 0L) {
-                clientLastStateVersion = incomingVersion;
+                syncManager.setClientLastStateVersion(incomingVersion);
             }
             mySeatIndex = msg.optInt("seatIndex", mySeatIndex);
             gameState = msg.optInt("gameState", STATE_LOBBY);
@@ -2735,195 +2654,112 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     private void broadcastHandCards() {
         if (server == null) return;
         logGame("DEAL_CARDS", -1, "broadcasting to remote seats");
-
-        for (int i = 0; i < TOTAL_SEATS; i++) {
-            if (seatTypes[i] == SEAT_TYPE_REMOTE && seatClientIds[i] >= 0) {
+        syncLocalToManager();
+        for (int i = 0; i < DouDiZhuSeatManager.TOTAL_SEATS; i++) {
+            if (seatManager.getSeatType(i) == DouDiZhuSeatManager.SEAT_TYPE_REMOTE && seatManager.getClientId(i) >= 0) {
                 List<Card> handCards = getSeatHandCards(i);
-                JSONObject msg = new JSONObject();
-                try {
-                    msg.put("type", "HAND_CARDS");
-                    msg.put("cards", cardsListToJsonArray(handCards));
-                    msg.put("bottomCards", cardsListToJsonArray(bottomCards));
-                    msg.put("seatIndex", i);
-                } catch (JSONException e) {}
-                server.sendTo(seatClientIds[i], msg);
+                String cardsJson = DouDiZhuProtocol.cardsToJson(handCards);
+                String bottomJson = DouDiZhuProtocol.cardsToJson(bottomCards);
+                JSONObject msg = DouDiZhuProtocol.createHandCardsMsg(cardsJson, bottomJson, i);
+                server.sendTo(seatManager.getClientId(i), msg);
             }
         }
     }
 
     private void broadcastSeatUpdate() {
         if (mode != 0 || server == null) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "SEAT_UPDATE");
-            msg.put("seatTypes", seatTypesToJson());
-            msg.put("landlordIndex", landlordIndex);
-        } catch (JSONException e) {
-            Log.e(TAG, "broadcastSeatUpdate error: " + e.getMessage());
-        }
-        try {
-            server.broadcast(msg);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to broadcast SEAT_UPDATE: " + e.getMessage());
-        }
+        syncLocalToManager();
+        syncManager.broadcastSeatUpdate(landlordIndex);
     }
 
     private long broadcastSyncState() {
         if (mode != 0 || server == null) {
             Log.w(TAG, LOG_PREFIX + " [BROADCAST_SYNC] EARLY RETURN: mode=" + mode + " server=" + (server != null ? "not-null" : "NULL"));
-            return getCurrentStateVersion();
+            return syncManager.getCurrentStateVersion();
         }
-        long version = nextStateVersion();
-        logGame("SYNC_STATE", -1, "version=" + version);
-        Log.d(TAG, LOG_PREFIX + " [BROADCAST_SYNC] version=" + version + " | sending SYNC_STATE to remote seats");
-        logSeatState("broadcastSyncState");
-        sendSyncStateNow(version);
-        handler.postDelayed(() -> sendSyncStateNow(version), 180);
-        handler.postDelayed(() -> sendSyncStateNow(version), 600);
+        syncLocalToManager();
+        long version = syncManager.broadcastSyncState(gameStateProvider);
+        syncManagerToLocal();
         return version;
     }
 
     private void sendSyncStateNow(long version) {
-        if (mode != 0 || server == null) {
-            Log.w(TAG, LOG_PREFIX + " [SEND_SYNC_NOW] EARLY RETURN: mode=" + mode + " server=" + (server != null ? "not-null" : "NULL"));
-            return;
-        }
-        int sentCount = 0;
-        for (int i = 0; i < TOTAL_SEATS; i++) {
-            if (seatTypes[i] != SEAT_TYPE_REMOTE || seatClientIds[i] < 0) {
-                Log.d(TAG, LOG_PREFIX + " [SEND_SYNC_NOW] seat " + i + " SKIPPED: type=" + seatTypes[i] + " cid=" + seatClientIds[i]);
-                continue;
+        syncLocalToManager();
+        for (int i = 0; i < DouDiZhuSeatManager.TOTAL_SEATS; i++) {
+            if (seatManager.getSeatType(i) == DouDiZhuSeatManager.SEAT_TYPE_REMOTE && seatManager.getClientId(i) >= 0) {
+                syncManager.sendSyncStateToSeat(i, gameStateProvider);
             }
-            Log.d(TAG, LOG_PREFIX + " [SEND_SYNC_NOW] seat " + i + " SENDING SYNC_STATE to clientId=" + seatClientIds[i] + " version=" + version);
-            server.sendTo(seatClientIds[i], createSyncStateMessage(i, version));
-            sentCount++;
         }
-        Log.d(TAG, LOG_PREFIX + " [SEND_SYNC_NOW] total sent=" + sentCount + " version=" + version);
     }
 
     private void sendSyncStateToSeat(int seatIndex) {
-        if (mode != 0 || server == null) return;
-        if (seatIndex < 0 || seatIndex >= TOTAL_SEATS) return;
-        if (seatClientIds[seatIndex] < 0) return;
-        server.sendTo(seatClientIds[seatIndex], createSyncStateMessage(seatIndex, getCurrentStateVersion()));
+        syncLocalToManager();
+        syncManager.sendSyncStateToSeat(seatIndex, gameStateProvider);
+        syncManagerToLocal();
     }
 
     private long nextStateVersion() {
-        return ++hostStateVersion;
+        return syncManager.nextStateVersion();
     }
 
     private long getCurrentStateVersion() {
-        if (hostStateVersion <= 0L) {
-            hostStateVersion = 1L;
-        }
-        return hostStateVersion;
+        return syncManager.getCurrentStateVersion();
     }
 
     private JSONObject createSyncStateMessage(int seatIndex, long version) {
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "SYNC_STATE");
-            msg.put("stateVersion", version);
-            msg.put("seatIndex", seatIndex);
-            msg.put("gameState", gameState);
-            msg.put("currentTurn", currentTurn);
-            msg.put("landlordIndex", landlordIndex);
-            msg.put("winnerIndex", winnerIndex);
-            msg.put("lastPlayerWhoPlayed", lastPlayerWhoPlayed);
-            msg.put("seatTypes", seatTypesToJson());
-            msg.put("playerPassed", booleanArrayToJson(playerPassed));
-            msg.put("handCounts", handCountsToJson());
-            msg.put("cardCounter", intArrayToJson(createCardCounterForSeat(seatIndex)));
-            msg.put("myCards", cardsListToJsonArray(getSeatHandCards(seatIndex)));
-            msg.put("bottomCards", cardsListToJsonArray(bottomCards));
-            msg.put("played0", cardsListToJsonArray(playerPlayedCards));
-            msg.put("played1", cardsListToJsonArray(seat1PlayedCards));
-            msg.put("played2", cardsListToJsonArray(seat2PlayedCards));
-        } catch (JSONException e) {
-            Log.e(TAG, "createSyncStateMessage error: " + e.getMessage());
-        }
-        return msg;
+        String bottomCardsJson = DouDiZhuProtocol.cardsToJson(bottomCards);
+        String played0Json = DouDiZhuProtocol.cardsToJson(playerPlayedCards);
+        String played1Json = DouDiZhuProtocol.cardsToJson(seat1PlayedCards);
+        String played2Json = DouDiZhuProtocol.cardsToJson(seat2PlayedCards);
+
+        JSONArray handCounts = DouDiZhuProtocol.handCountsToJson(playerHandCards, seat1Cards, seat2Cards);
+        int[] cardCounter = createCardCounterForSeat(seatIndex);
+
+        List<Card> myCards = getSeatHandCards(seatIndex);
+        String myCardsJson = DouDiZhuProtocol.cardsToJson(myCards);
+
+        return DouDiZhuProtocol.createSyncStateMsg(
+                seatIndex, version,
+                gameState, currentTurn, landlordIndex,
+                winnerIndex, lastPlayerWhoPlayed,
+                seatTypes, playerPassed, handCounts,
+                cardCounter, myCardsJson, bottomCardsJson,
+                played0Json, played1Json, played2Json
+        );
     }
 
     private void sendAck(int clientId, String ackType, JSONObject source, boolean accepted, String reason, long stateVersion) {
-        if (server == null) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "ACK");
-            msg.put("ackType", ackType);
-            msg.put("actionId", source != null ? source.optLong("actionId", -1L) : -1L);
-            msg.put("stateVersion", stateVersion);
-            msg.put("accepted", accepted);
-            if (reason != null && !reason.isEmpty()) {
-                msg.put("reason", reason);
-            }
-            msg.put("time", System.currentTimeMillis());
-        } catch (JSONException e) {}
-        server.sendTo(clientId, msg);
+        syncManager.sendAck(clientId, ackType, source, accepted, reason, stateVersion);
     }
 
     private JSONObject createGameStartMessage(int seatIndex) {
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "GAME_START");
-            msg.put("seatIndex", seatIndex);
-            msg.put("currentTurn", currentTurn);
-            msg.put("landlordIndex", landlordIndex);
-            msg.put("seatTypes", seatTypesToJson());
-            msg.put("bottomCards", cardsListToJsonArray(bottomCards));
-        } catch (JSONException e) {}
-        return msg;
+        return DouDiZhuProtocol.createGameStartMsg(seatIndex, currentTurn, landlordIndex, seatTypes, DouDiZhuProtocol.cardsToJson(bottomCards));
     }
 
     private void broadcastGameStart() {
         if (server == null) return;
-        for (int i = 0; i < TOTAL_SEATS; i++) {
-            if (seatTypes[i] == SEAT_TYPE_REMOTE && seatClientIds[i] >= 0) {
-                server.sendTo(seatClientIds[i], createGameStartMessage(i));
+        syncLocalToManager();
+        String bottomCardsJson = DouDiZhuProtocol.cardsToJson(bottomCards);
+        for (int i = 0; i < DouDiZhuSeatManager.TOTAL_SEATS; i++) {
+            if (seatManager.getSeatType(i) == DouDiZhuSeatManager.SEAT_TYPE_REMOTE && seatManager.getClientId(i) >= 0) {
+                server.sendTo(seatManager.getClientId(i), DouDiZhuProtocol.createGameStartMsg(i, currentTurn, landlordIndex, seatTypes, bottomCardsJson));
             }
         }
     }
 
     private void broadcastPlayAction(int seatIndex, List<Card> cards) {
         if (server == null) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "BROADCAST_ACTION");
-            msg.put("playerIndex", seatIndex);
-            msg.put("cards", cardsToJson(cards));
-            msg.put("cardType", GameRuleUtil.getCardType(cards).name());
-            msg.put("currentTurn", currentTurn);
-            msg.put("landlordIndex", landlordIndex);
-            msg.put("seatTypes", seatTypesToJson());
-        } catch (JSONException e) {}
-        server.broadcast(msg);
+        syncManager.broadcastPlayAction(seatIndex, cards, currentTurn, landlordIndex);
     }
 
     private void broadcastPassAction(int seatIndex) {
         if (server == null) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "PASS_ACTION");
-            msg.put("playerIndex", seatIndex);
-            msg.put("currentTurn", currentTurn);
-            msg.put("landlordIndex", landlordIndex);
-            msg.put("seatTypes", seatTypesToJson());
-        } catch (JSONException e) {}
-        server.broadcast(msg);
+        syncManager.broadcastPassAction(seatIndex, currentTurn, landlordIndex);
     }
 
     private void broadcastBidResult(int seatIndex, boolean call) {
         if (server == null) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "BID_RESULT");
-            msg.put("seatIndex", seatIndex);
-            msg.put("call", call);
-            msg.put("currentTurn", currentTurn);
-            msg.put("landlordIndex", landlordIndex);
-            msg.put("seatTypes", seatTypesToJson());
-        } catch (JSONException e) {}
-        server.broadcast(msg);
+        syncManager.broadcastBidResult(seatIndex, call, currentTurn, landlordIndex);
 
         String name = getFixedSeatName(seatIndex);
         String action = call ? "叫地主" : "不叫";
@@ -2932,12 +2768,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
 
     private void broadcastGameOver(int winnerIndex) {
         if (server == null) return;
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "GAME_OVER");
-            msg.put("winnerIndex", winnerIndex);
-        } catch (JSONException e) {}
-        server.broadcast(msg);
+        syncManager.broadcastGameOver(winnerIndex);
     }
 
     private void broadcastChat(int seatIndex, String message) {
@@ -2997,12 +2828,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
     }
 
     private JSONObject createErrorMsg(String error) {
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", "ERROR");
-            msg.put("message", error);
-        } catch (JSONException e) {}
-        return msg;
+        return DouDiZhuProtocol.createErrorMsg(error);
     }
 
     // ============ Chat ============
@@ -3077,7 +2903,58 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         return isLocalSeat(seatIndex) ? "你" : getShortSeatName(seatIndex);
     }
 
+    // ============ GameStateProvider ============
+
+    private final DouDiZhuSyncManager.GameStateProvider gameStateProvider = new DouDiZhuSyncManager.GameStateProvider() {
+        @Override public int getGameState() { return gameState; }
+        @Override public int getCurrentTurn() { return currentTurn; }
+        @Override public int getLandlordIndex() { return landlordIndex; }
+        @Override public int getWinnerIndex() { return winnerIndex; }
+        @Override public int getLastPlayerWhoPlayed() { return lastPlayerWhoPlayed; }
+        @Override public List<Card> getPlayerHandCards() { return playerHandCards; }
+        @Override public List<Card> getSeat1Cards() { return seat1Cards; }
+        @Override public List<Card> getSeat2Cards() { return seat2Cards; }
+        @Override public List<Card> getBottomCards() { return bottomCards; }
+        @Override public List<Card> getPlayerPlayedCards() { return playerPlayedCards; }
+        @Override public List<Card> getSeat1PlayedCards() { return seat1PlayedCards; }
+        @Override public List<Card> getSeat2PlayedCards() { return seat2PlayedCards; }
+        @Override public boolean[] getPlayerPassed() { return playerPassed; }
+        @Override public int[] getSeatTypes() { return seatTypes; }
+        @Override public int getPlayerDisplaySeat() { return mode == 1 && mySeatIndex >= 0 ? mySeatIndex : 0; }
+        @Override public int getSeatCardCount(int seatIndex) {
+            if (mode == 0) {
+                if (seatIndex == 0) return playerHandCards.size();
+                if (seatIndex == 1) return seat1Cards.size();
+                if (seatIndex == 2) return seat2Cards.size();
+            }
+            int[] handCounts = new int[]{playerHandCards.size(), seat1Cards.size(), seat2Cards.size()};
+            if (seatIndex >= 0 && seatIndex < DouDiZhuSeatManager.TOTAL_SEATS) return handCounts[seatIndex];
+            return 0;
+        }
+    };
+
     // ============ Cleanup ============
+
+    private void syncLocalToManager() {
+        for (int i = 0; i < DouDiZhuSeatManager.TOTAL_SEATS; i++) {
+            seatManager.updateSeat(i, seatClientIds[i], seatClientIps[i], seatPeerTokens[i], seatTypes[i]);
+            seatManager.setLastProcessedActionId(i, lastProcessedActionIds[i]);
+        }
+    }
+
+    private void syncManagerToLocal() {
+        int[] mgrTypes = seatManager.getSeatTypes();
+        System.arraycopy(mgrTypes, 0, seatTypes, 0, mgrTypes.length);
+        for (int i = 0; i < DouDiZhuSeatManager.TOTAL_SEATS; i++) {
+            seatClientIds[i] = seatManager.getClientId(i);
+            seatClientIps[i] = seatManager.getClientIp(i);
+            seatPeerTokens[i] = seatManager.getPeerToken(i);
+            lastProcessedActionIds[i] = seatManager.getLastProcessedActionId(i);
+        }
+        remoteHostInfoText = seatManager.getRemoteHostInfoText();
+        remoteInviteAddress = seatManager.getRemoteInviteAddress();
+        remoteRoomCode = seatManager.getRemoteRoomCode();
+    }
 
     private void releaseSoundManager() {
         if (soundManager != null) {
@@ -3118,7 +2995,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         isCleaningUp = false;
         mode = -1;
         mySeatIndex = -1;
-        seatTypes = new int[]{SEAT_TYPE_HOST, SEAT_TYPE_AI, SEAT_TYPE_AI};
+        seatTypes = new int[]{DouDiZhuSeatManager.SEAT_TYPE_HOST, DouDiZhuSeatManager.SEAT_TYPE_AI, DouDiZhuSeatManager.SEAT_TYPE_AI};
         seatClientIds = new int[]{-1, -1, -1};
         seatClientIps = new String[]{"", "", ""};
         seatPeerTokens = new String[]{"", "", ""};
@@ -3126,21 +3003,10 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity {
         remoteHostInfoText = "";
         remoteInviteAddress = "";
         remoteRoomCode = "";
-        cardCounterCounts = createFullDeckCounter();
+        cardCounterCounts = DouDiZhuProtocol.createFullDeckCounter();
         resetTurnSoundMarker();
-        resetProtocolState();
-    }
-
-    private void resetProtocolState() {
-        hostStateVersion = 0L;
-        lastProcessedActionIds = new long[]{0L, 0L, 0L};
-        resetClientProtocolState();
-    }
-
-    private void resetClientProtocolState() {
-        clientLastStateVersion = -1L;
-        nextClientActionId = 1L;
-        pendingClientIntent = null;
+        syncManager.resetHostStateVersion();
+        seatManager.resetAllSeats();
     }
 
     private String getOrCreatePeerToken() {

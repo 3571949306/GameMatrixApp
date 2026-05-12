@@ -22,6 +22,7 @@ import androidx.core.content.FileProvider;
 
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.SettingsManager;
+import com.gamecenter.app.utils.NetworkErrorHandler;
 
 import org.json.JSONObject;
 
@@ -559,8 +560,10 @@ public class UpdateManager {
                         }
                     } catch (Exception e) {
                         Log.w(TAG, "Source " + (sourceIndex + 1) + " failed: " + e.getMessage());
+                        int errorCode = NetworkErrorHandler.getErrorCodeFromException(e);
+                        String userMessage = NetworkErrorHandler.getErrorMessage(context, errorCode);
                         if (sourceIndex >= downloadUrls.size() - 1) {
-                            errorMsg = stringFormat("下载失败: {0}", e.getMessage());
+                            errorMsg = userMessage;
                         } else {
                             Log.d(TAG, "Switching to next download source...");
                         }
