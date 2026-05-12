@@ -1,5 +1,6 @@
 package com.gamecenter.app.update;
 
+import android.app.Activity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -7,17 +8,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
-import android.util.Log;
-import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Environment;
 import android.provider.Settings;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
-
 import androidx.core.content.FileProvider;
 
 import com.gamecenter.app.BuildConfig;
@@ -194,49 +190,20 @@ public class UpdateManager {
                                 + ": " + baseUrl + " (primary=" + isPrimary + ")");
                         LocalVersion localVersion = readBundledVersion(context);
                         boolean acceptBeta = SettingsManager.getInstance(context).isAcceptBetaUpdate();
-                        String versionJsonUrl = buildVersionJsonUrl(baseUrl, acceptBeta);
-                        result = checkVersionFile(context, versionJsonUrl, baseUrl,
-                                localVersion, acceptBeta, connectTimeout, readTimeout);
-                        usedUrl = baseUrl;
-                        Log.d(TAG, "Update check succeeded on source " + (i + 1) + ": " + baseUrl);
-                        break;
+                        
+                        result = checkUpdateFromSource(context, baseUrl, localVersion, acceptBeta,
+                                connectTimeout, readTimeout);
+                        
+                        if (result != null) {
+                            usedUrl = baseUrl;
+                            Log.d(TAG, "Update check succeeded on source " + (i + 1) + ": " + baseUrl);
+                            break;
+                        }
                     } catch (Exception e) {
                         Log.w(TAG, "Source " + (i + 1) + " (" + baseUrl + ") failed: " + e.getMessage());
                         if (i == urls.size() - 1) {
                             errorMsg = stringFormat("检查更新失败：{0}", e.getMessage());
                         }
-                    }
-                }
-
-                if (result == null && errorMsg == null) {
-                    try {
-                        LocalVersion localVersion = readBundledVersion(context);
-                        boolean acceptBeta = SettingsManager.getInstance(context).isAcceptBetaUpdate();
-                        for (int i = 0; i < urls.size(); i++) {
-                            if (isCancelled) {
-                                safeCallback(callback, null, null, "已取消");
-                                return;
-                            }
-                            String baseUrl = urls.get(i);
-                            boolean isPrimary = (i == 0);
-                            int connectTimeout = isPrimary ? PRIMARY_CONNECT_TIMEOUT : FALLBACK_CONNECT_TIMEOUT;
-                            int readTimeout = isPrimary ? PRIMARY_READ_TIMEOUT : FALLBACK_READ_TIMEOUT;
-                            try {
-                                Log.d(TAG, "Fallback legacy API on source " + (i + 1) + ": " + baseUrl);
-                                result = checkLegacyApi(context, baseUrl, localVersion, acceptBeta,
-                                        connectTimeout, readTimeout);
-                                usedUrl = baseUrl;
-                                break;
-                            } catch (Exception e) {
-                                Log.w(TAG, "Legacy API source " + (i + 1) + " failed: " + e.getMessage());
-                                if (i == urls.size() - 1) {
-                                    errorMsg = stringFormat("检查更新失败：{0}", e.getMessage());
-                                }
-                            }
-                        }
-                    } catch (Exception fallbackError) {
-                        Log.e(TAG, "All update sources failed: " + fallbackError.getMessage(), fallbackError);
-                        errorMsg = stringFormat("检查更新失败：{0}", fallbackError.getMessage());
                     }
                 }
 
@@ -246,127 +213,154 @@ public class UpdateManager {
             }
         });
     }
+    
+    /**
+     * 从单个更新源检查更新
+     * 策略：
+     * 1. 如果用户接受测试版，优先检查测试版，没有则检查正式版
+     * 2. 如果用户不接受测试版，只检查正式版
+     */
+    private UpdateInfo checkUpdateFromSource(Context context, String baseUrl, LocalVersion localVersion,
+                                           boolean acceptBeta, int connectTimeout, int readTimeout) {
+        Log.d(TAG, "Checking update from: " + baseUrl + ", acceptBeta=" + acceptBeta);
+        
+        if (baseUrl.equals(GITHUB_RELEASES_BASE_URL)) {
+            return checkGitHubRelease(context, baseUrl, localVersion, acceptBeta, connectTimeout, readTimeout);
+        }
+        
+        if (acceptBeta) {
+            Log.d(TAG, "Checking beta version first...");
+            UpdateInfo betaInfo = checkSpecificVersion(context, baseUrl, localVersion, true, connectTimeout, readTimeout);
+            if (betaInfo != null && betaInfo.hasUpdate()) {
+                Log.d(TAG, "Beta update found: " + betaInfo.getVersionName());
+                return betaInfo;
+            }
+            Log.d(TAG, "No beta update, checking stable version...");
+            UpdateInfo stableInfo = checkSpecificVersion(context, baseUrl, localVersion, false, connectTimeout, readTimeout);
+            if (stableInfo != null && stableInfo.hasUpdate()) {
+                Log.d(TAG, "Stable update found: " + stableInfo.getVersionName());
+                return stableInfo;
+            }
+            return betaInfo != null ? betaInfo : stableInfo;
+        } else {
+            Log.d(TAG, "Only checking stable version...");
+            UpdateInfo stableInfo = checkSpecificVersion(context, baseUrl, localVersion, false, connectTimeout, readTimeout);
+            if (stableInfo != null) {
+                if (!stableInfo.hasUpdate()) {
+                    Log.d(TAG, "No stable update, checking if there's beta update to notify...");
+                    try {
+                        UpdateInfo betaInfo = checkSpecificVersion(context, baseUrl, localVersion, true, connectTimeout, readTimeout);
+                        if (betaInfo != null && betaInfo.hasUpdate()) {
+                            Log.d(TAG, "Beta update available but blocked by user setting");
+                            betaInfo.setBetaUpdateBlocked(true);
+                            betaInfo.setBetaUpdateOutdated(isOutdatedAgainstLastStable(betaInfo, localVersion));
+                            betaInfo.setHasUpdate(false);
+                            return betaInfo;
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "Failed to check beta version for notification: " + e.getMessage());
+                    }
+                }
+                return stableInfo;
+            }
+            return null;
+        }
+    }
+    
+    private UpdateInfo checkSpecificVersion(Context context, String baseUrl, LocalVersion localVersion,
+                                           boolean checkBeta, int connectTimeout, int readTimeout) {
+        try {
+            String versionJsonUrl = buildVersionJsonUrl(baseUrl, checkBeta);
+            Log.d(TAG, "Checking " + (checkBeta ? "beta" : "stable") + " version: " + versionJsonUrl);
+            
+            JSONObject json = fetchJson(versionJsonUrl, connectTimeout, readTimeout);
+            UpdateInfo info = UpdateInfo.fromJson(json);
+            info.setSourceVersionUrl(versionJsonUrl);
+            info.setLocalVersion(localVersion.versionCode, localVersion.versionName);
+            resolveDownloadUrl(info, json, versionJsonUrl, baseUrl);
+            applyUpdatePolicy(info, localVersion, checkBeta);
+            saveLastCheck(context);
+            return info;
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to check " + (checkBeta ? "beta" : "stable") + " version: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    private UpdateInfo checkGitHubRelease(Context context, String baseUrl, LocalVersion localVersion,
+                                          boolean acceptBeta, int connectTimeout, int readTimeout) {
+        try {
+            Log.d(TAG, "Checking GitHub release (stable only)...");
+            UpdateInfo info = checkLegacyApi(context, baseUrl, localVersion, false, connectTimeout, readTimeout);
+            if (info != null) {
+                return info;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "GitHub release check failed: " + e.getMessage());
+        }
+        return null;
+    }
 
     private List<String> buildUpdateUrls(Context context) {
         List<String> urls = new ArrayList<>();
+        
+        // 1. 首先检查是否有自定义 URL（用户设置的自定义更新源）
         String customUrl = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BASE_URL, null);
-        if (customUrl != null && !customUrl.equals(HK_BASE_URL)
-                && !customUrl.equals(US_BASE_URL)) {
-            urls.add(customUrl);
-        }
-
-        int source = SettingsManager.getInstance(context).getUpdateSource();
-        if (source == SettingsManager.UPDATE_SOURCE_VPS_HK) {
-            urls.add(HK_BASE_URL);
-            if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
-                urls.add(US_BASE_URL);
-            }
-            urls.add(GITHUB_RELEASES_BASE_URL);
-        } else if (source == SettingsManager.UPDATE_SOURCE_VPS_US) {
-            urls.add(US_BASE_URL);
-            if (!HK_BASE_URL.isEmpty() && !HK_BASE_URL.equals(US_BASE_URL)) {
+        if (customUrl != null && !customUrl.trim().isEmpty()) {
+            // 如果用户设置了自定义 URL，优先使用，并添加备用源
+            urls.add(customUrl.trim());
+            Log.d(TAG, "Custom update URL configured: " + customUrl);
+            
+            // 添加默认源作为备用（避免自定义 URL 不可用时无法更新）
+            if (!HK_BASE_URL.equals(customUrl)) {
                 urls.add(HK_BASE_URL);
             }
-            urls.add(GITHUB_RELEASES_BASE_URL);
-        } else if (source == SettingsManager.UPDATE_SOURCE_GITHUB) {
-            urls.add(GITHUB_RELEASES_BASE_URL);
-            urls.add(HK_BASE_URL);
-            if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
+            if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(customUrl) && !US_BASE_URL.equals(HK_BASE_URL)) {
                 urls.add(US_BASE_URL);
             }
+            urls.add(GITHUB_RELEASES_BASE_URL);
         } else {
-            urls.add(HK_BASE_URL);
-            if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
-                urls.add(US_BASE_URL);
+            // 2. 没有自定义 URL，根据用户选择的更新源构建列表
+            int source = SettingsManager.getInstance(context).getUpdateSource();
+            switch (source) {
+                case SettingsManager.UPDATE_SOURCE_VPS_HK:
+                    urls.add(HK_BASE_URL);
+                    if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
+                        urls.add(US_BASE_URL);
+                    }
+                    urls.add(GITHUB_RELEASES_BASE_URL);
+                    break;
+                case SettingsManager.UPDATE_SOURCE_VPS_US:
+                    urls.add(US_BASE_URL);
+                    if (!HK_BASE_URL.equals(US_BASE_URL)) {
+                        urls.add(HK_BASE_URL);
+                    }
+                    urls.add(GITHUB_RELEASES_BASE_URL);
+                    break;
+                case SettingsManager.UPDATE_SOURCE_GITHUB:
+                    urls.add(GITHUB_RELEASES_BASE_URL);
+                    urls.add(HK_BASE_URL);
+                    if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
+                        urls.add(US_BASE_URL);
+                    }
+                    break;
+                default:
+                    // 默认：香港 VPS → 美国 VPS → GitHub
+                    urls.add(HK_BASE_URL);
+                    if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
+                        urls.add(US_BASE_URL);
+                    }
+                    urls.add(GITHUB_RELEASES_BASE_URL);
+                    break;
             }
-            urls.add(GITHUB_RELEASES_BASE_URL);
         }
+        
+        Log.d(TAG, "Build update URLs: " + urls);
         return urls;
     }
 
-    private UpdateInfo checkVersionFile(Context context, String versionJsonUrl, String baseUrl,
-                                        LocalVersion localVersion, boolean acceptBeta,
-                                        int connectTimeout, int readTimeout) throws Exception {
-        JSONObject json;
-        boolean fetchedRequestedVersion = true;
-        try {
-            json = fetchJson(versionJsonUrl, connectTimeout, readTimeout);
-        } catch (Exception e) {
-            // 请求的版本不存在时：如果本地是beta版本，尝试检查beta版本
-            String requestedSuffix = versionJsonUrl.contains("version-release.json") ? "release"
-                    : versionJsonUrl.contains("version-beta.json") ? "beta" : "";
-            if ("release".equals(requestedSuffix) && isBeta(localVersion.channel, localVersion.versionName)) {
-                Log.d(TAG, "Release version not found on " + baseUrl + ", checking beta for local beta user...");
-                try {
-                    String betaJsonUrl = trimTrailingSlash(baseUrl) + "/version-beta.json";
-                    json = fetchJson(betaJsonUrl, connectTimeout, readTimeout);
-                    versionJsonUrl = betaJsonUrl;
-                    fetchedRequestedVersion = false;
-                } catch (Exception betaEx) {
-                    Log.w(TAG, "Beta version also not found: " + betaEx.getMessage());
-                    throw e;
-                }
-            } else {
-                throw e;
-            }
-        }
 
-        UpdateInfo info = UpdateInfo.fromJson(json);
-        info.setSourceVersionUrl(versionJsonUrl);
-        info.setLocalVersion(localVersion.versionCode, localVersion.versionName);
-        resolveDownloadUrl(info, json, versionJsonUrl, baseUrl);
-        applyUpdatePolicy(info, localVersion, acceptBeta);
-
-        // 如果本地是beta用户但acceptBeta=false，且release没有更新，检查beta版本
-        if (!acceptBeta && isBeta(localVersion.channel, localVersion.versionName) && !info.hasUpdate()) {
-            Log.d(TAG, "Beta user with acceptBeta=false and no stable update, checking beta version...");
-            try {
-                String betaJsonUrl = trimTrailingSlash(baseUrl) + "/version-beta.json";
-                JSONObject betaJson = fetchJson(betaJsonUrl, connectTimeout, readTimeout);
-                UpdateInfo betaInfo = UpdateInfo.fromJson(betaJson);
-                betaInfo.setSourceVersionUrl(betaJsonUrl);
-                betaInfo.setLocalVersion(localVersion.versionCode, localVersion.versionName);
-                resolveDownloadUrl(betaInfo, betaJson, betaJsonUrl, baseUrl);
-                applyUpdatePolicy(betaInfo, localVersion, false);
-
-                if (betaInfo.hasUpdate()) {
-                    betaInfo.setBetaUpdateBlocked(true);
-                    betaInfo.setBetaUpdateOutdated(isOutdatedAgainstLastStable(betaInfo, localVersion));
-                    Log.d(TAG, "Beta update available but blocked by user setting");
-                    saveLastCheck(context);
-                    return betaInfo;
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to check beta version for beta user: " + e.getMessage());
-            }
-        }
-
-        if (acceptBeta && info.isBetaRelease() && !info.hasUpdate()) {
-            Log.d(TAG, "No beta update found for beta user, checking stable release...");
-            try {
-                String releaseJsonUrl = trimTrailingSlash(baseUrl) + "/version-release.json";
-                JSONObject releaseJson = fetchJson(releaseJsonUrl, connectTimeout, readTimeout);
-                UpdateInfo releaseInfo = UpdateInfo.fromJson(releaseJson);
-                releaseInfo.setSourceVersionUrl(releaseJsonUrl);
-                releaseInfo.setLocalVersion(localVersion.versionCode, localVersion.versionName);
-                resolveDownloadUrl(releaseInfo, releaseJson, releaseJsonUrl, baseUrl);
-                
-                if (releaseInfo.getVersionCode() > localVersion.versionCode) {
-                    Log.d(TAG, "Stable release available for beta user: " + releaseInfo.getVersionName());
-                    releaseInfo.setHasUpdate(true);
-                    releaseInfo.setBetaUpdateBlocked(false);
-                    releaseInfo.setBetaUpdateOutdated(false);
-                    return releaseInfo;
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to check stable release for beta user: " + e.getMessage());
-            }
-        }
-
-        saveLastCheck(context);
-        return info;
-    }
 
     private UpdateInfo checkLegacyApi(Context context, String baseUrl, LocalVersion localVersion,
                                       boolean acceptBeta, int connectTimeout, int readTimeout) throws Exception {
@@ -437,37 +431,49 @@ public class UpdateManager {
 
     private boolean shouldOfferUpdate(UpdateInfo remote, LocalVersion local, boolean acceptBeta) {
         if (remote == null) return false;
+        
+        // 首先检查版本号，只有当远程版本号大于本地版本号时才考虑
+        if (remote.getVersionCode() <= local.versionCode) {
+            Log.d(TAG, "No update: remote versionCode " + remote.getVersionCode() 
+                    + " <= local versionCode " + local.versionCode);
+            return false;
+        }
+        
+        // 版本号更大，检查是否是 beta 且用户不接受 beta
         if (remote.isBetaRelease() && !acceptBeta) {
             Log.d(TAG, "Beta update ignored by user setting: " + remote.getVersionName());
             return false;
         }
-        if (remote.getVersionCode() > local.versionCode) {
-            return true;
-        }
-        if (remote.getVersionCode() == local.versionCode) {
-            boolean localBeta = isBeta(local.channel, local.versionName);
-            boolean releaseChanged = !remote.getVersionName().equals(local.versionName);
-            if (!remote.isBetaRelease() && localBeta && releaseChanged) {
-                return true;
-            }
-            return remote.isBetaRelease() && acceptBeta && releaseChanged;
-        }
-        return false;
+        
+        // 满足条件，应该提供更新
+        Log.d(TAG, "Should offer update: local=" + local.versionCode 
+                + ", remote=" + remote.getVersionCode());
+        return true;
     }
 
     private void applyUpdatePolicy(UpdateInfo remote, LocalVersion local, boolean acceptBeta) {
         if (remote == null) return;
-        boolean hasVersionUpdate = shouldOfferUpdate(remote, local, true);
-        if (remote.isBetaRelease() && !acceptBeta) {
-            remote.setHasUpdate(false);
-            if (hasVersionUpdate) {
+        
+        // 首先检查：只要远程版本号大于本地版本号，就应该有更新（不考虑其他条件）
+        boolean hasVersionUpdate = remote.getVersionCode() > local.versionCode;
+        
+        if (hasVersionUpdate) {
+            // 如果有版本更新，检查是否是 beta 且用户不接受 beta
+            if (remote.isBetaRelease() && !acceptBeta) {
+                remote.setHasUpdate(false);
                 remote.setBetaUpdateBlocked(true);
                 remote.setBetaUpdateOutdated(isOutdatedAgainstLastStable(remote, local));
                 Log.d(TAG, "Beta update blocked by user setting: " + remote.getVersionName());
+            } else {
+                // 用户接受该版本类型，标记为有更新
+                remote.setHasUpdate(true);
+                Log.d(TAG, "Update available: local=" + local.versionCode + ", remote=" + remote.getVersionCode());
             }
-            return;
+        } else {
+            // 版本号相同或更小，没有更新
+            remote.setHasUpdate(false);
+            Log.d(TAG, "No update: local=" + local.versionCode + ", remote=" + remote.getVersionCode());
         }
-        remote.setHasUpdate(shouldOfferUpdate(remote, local, acceptBeta));
     }
 
     private boolean isOutdatedAgainstLastStable(UpdateInfo remote, LocalVersion local) {

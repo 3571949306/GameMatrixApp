@@ -160,8 +160,8 @@ public class TetrisActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         isRunning = false;
-        if (gameHandler != null && gameRunnable != null) {
-            gameHandler.removeCallbacks(gameRunnable);
+        if (gameHandler != null) {
+            gameHandler.removeCallbacksAndMessages(null);
         }
         gameRunnable = null;
         game = null;

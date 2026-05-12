@@ -30,10 +30,14 @@ public final class OkHttpClientProvider {
     private static volatile OkHttpClientProvider instance;
     private final OkHttpClient httpClient;
     private final OkHttpClient webSocketClient;
+    private final RequestDeduplicationInterceptor deduplicationInterceptor;
 
     private OkHttpClientProvider(Context context) {
         File cacheDir = new File(context.getCacheDir(), "http_cache");
         Cache cache = new Cache(cacheDir, CACHE_SIZE);
+        
+        // 创建请求去重拦截器
+        deduplicationInterceptor = new RequestDeduplicationInterceptor();
 
         httpClient = new OkHttpClient.Builder()
                 .cache(cache)
@@ -42,6 +46,7 @@ public final class OkHttpClientProvider {
                 .writeTimeout(HTTP_WRITE_TIMEOUT, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
                 .addInterceptor(new RetryInterceptor(MAX_RETRIES, RETRY_DELAY_MS))
+                .addInterceptor(deduplicationInterceptor)
                 .build();
 
         webSocketClient = new OkHttpClient.Builder()
@@ -62,12 +67,35 @@ public final class OkHttpClientProvider {
         return instance;
     }
 
+    /**
+     * 预加载方法（用于 App Startup）
+     * 仅在应用启动时预加载，实际连接在首次使用时创建
+     */
+    public static void preload(Context context) {
+        // 延迟初始化，不阻塞启动
+        new Thread(() -> {
+            try {
+                Thread.sleep(500); // 延迟 500ms，让 UI 先完成加载
+                getInstance(context);
+            } catch (Exception e) {
+                // 忽略预加载错误，会在实际使用时重新初始化
+            }
+        }).start();
+    }
+
     public OkHttpClient getHttpClient() {
         return httpClient;
     }
 
     public OkHttpClient getWebSocketClient() {
         return webSocketClient;
+    }
+
+    /**
+     * 获取请求去重拦截器（用于动态控制）
+     */
+    public RequestDeduplicationInterceptor getDeduplicationInterceptor() {
+        return deduplicationInterceptor;
     }
 
     /**

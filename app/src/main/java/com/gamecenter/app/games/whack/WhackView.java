@@ -353,8 +353,7 @@ public class WhackView extends View {
     public void stopGame() {
         gameRunning = false;
         if (handler != null) {
-            handler.removeCallbacks(moleRunnable);
-            handler.removeCallbacks(timerRunnable);
+            handler.removeCallbacksAndMessages(null);
         }
         moleRunnable = null;
         timerRunnable = null;

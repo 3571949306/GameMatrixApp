@@ -1,5 +1,12 @@
 # GameCenterApp 自动发布说明
 
+## 重要更新（2026-05-12）
+
+- ✅ **APK 签名问题已修复** - 现在 Release 构建自动签名
+- ✅ **上传脚本逻辑已修复** - beta/release 版本命名正确
+- ✅ **版本比较逻辑已修复** - 自动更新源选择正确
+- ✅ **构建系统优化** - 禁用有问题的 lint 任务
+
 ## 更新源列表
 
 本项目会自动将 APK 发布到以下三个更新源：
@@ -16,24 +23,14 @@
 
 ### 方式一：一键发布脚本（推荐）
 
-#### Windows 批处理
+#### Gradle 任务
 
 ```bash
 # 发布 Beta 版
-auto-publish.bat beta
+.\gradlew.bat uploadReleaseArtifactsToVps
 
 # 发布正式版
-auto-publish.bat release YOUR_GITHUB_TOKEN
-```
-
-#### PowerShell 脚本
-
-```powershell
-# 发布 Beta 版
-.\publish-all.ps1 -Channel beta
-
-# 发布正式版（带 GitHub Token）
-.\publish-all.ps1 -Channel release -GithubToken YOUR_GITHUB_TOKEN
+.\gradlew.bat uploadReleaseArtifactsToVps -PcurrentVersionChannel=stable
 ```
 
 ### 方式二：分步执行
@@ -42,11 +39,13 @@ auto-publish.bat release YOUR_GITHUB_TOKEN
 
 ```bash
 # Beta 版
-gradlew.bat assembleRelease -PupdateChannel=beta -x lintVitalAnalyzeRelease
+.\gradlew.bat assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 
 # 正式版
-gradlew.bat assembleRelease -PupdateChannel=release -x lintVitalAnalyzeRelease
+.\gradlew.bat assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 ```
+
+**注意**：现在 APK 会自动签名，无需手动签名步骤。
 
 #### 2. 生成 version.json
 

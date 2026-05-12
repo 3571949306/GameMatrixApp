@@ -66,6 +66,20 @@ public class TilesActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         isRunning = false;
-        handler.removeCallbacks(gameLoop);
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        isRunning = false;
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        handler = null;
+        game = null;
+        tilesView = null;
     }
 }

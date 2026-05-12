@@ -3,10 +3,11 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-1.3.19-blue)](CHANGELOG.md)
 
-一个集成 **25+** 款经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
+一个集成 **26 款**经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
 
-An Android game center integrating **25+** classic mini-games, supporting single-player AI, LAN multiplayer, cloud multiplayer, built-in browser, and 20+ network/device tools.
+An Android game center integrating **26** classic mini-games, supporting single-player AI, LAN multiplayer, cloud multiplayer, built-in browser, and 20+ network/device tools.
 
 ---
 
@@ -79,7 +80,7 @@ An Android game center integrating **25+** classic mini-games, supporting single
 
 ### 🛠 工具箱 / Tools
 
-20+ 实用工具，包括：
+26+ 实用工具，包括：
 - 网络体检、DNS 查询、局域网设备扫描、端口扫描
 - 二维码生成与识别（支持 WiFi/名片/图片）
 - 编码/解码（URL/Base64）、JSON 格式化、时间戳转换
@@ -160,8 +161,49 @@ App 下载更新时自动尝试以下下载源，优先级从高到低：
 
 | 版本类型 | 上传目标 | 说明 |
 |----------|----------|------|
-| **Beta 测试版** | 香港 VPS 更新服务器 | 仅供开启"接受测试版"的用户下载 |
-| **Stable 正式版** | 香港 VPS + GitHub Releases | 所有用户均可下载 |
+| **Beta 测试版** | 香港 VPS + 美国 VPS | 仅供开启"接收测试版"的用户下载 |
+| **Stable 正式版** | 香港 VPS + 美国 VPS + GitHub Releases | 所有用户均可下载 |
+
+### 双版本分发架构 / Dual Version Distribution Architecture
+
+#### VPS 文件结构
+
+VPS 上同时维护两个通道的文件，互不覆盖：
+
+```
+/var/www/update/app/
+├── app-beta.apk         # 测试版安装包
+├── version-beta.json     # 测试版元数据
+├── app-release.apk      # 正式版安装包
+└── version-release.json  # 正式版元数据
+```
+
+#### APP 更新逻辑
+
+**用户开启"接收测试版"**：
+1. APP 检查 `/version-beta.json`
+2. 如果有更高版本 → 提供更新
+3. 否则检查 `/version-release.json`
+
+**用户关闭"接收测试版"**：
+1. APP 只检查 `/version-release.json`
+2. 不显示测试版更新提示
+3. 如果检测到有更新的测试版，会提示用户开启测试版以获取更新
+
+**旧版 APP 兼容性**：
+- 使用 `/api/update/check` 旧 API
+- 服务器端自动比较 `versionCode`
+- 只要 `versionCode` 更低 → 提示更新
+
+#### 服务器端 API
+
+| 端点 | 用途 |
+|------|------|
+| `/version-beta.json` | 测试版元数据 |
+| `/version-release.json` | 正式版元数据 |
+| `/api/update/check` | 旧版 API（兼容旧 APP） |
+| `/app-beta.apk` | 测试版安装包 |
+| `/app-release.apk` | 正式版安装包 |
 
 ---
 
@@ -356,7 +398,7 @@ GameCenterApp/
 │       │   ├── PermissionManager.java        # 权限管理（位置/相机/存储权限）
 │       │   ├── fragments/                    # 三个主页面 Fragment
 │       │   │   ├── GamesFragment.java        # 游戏大厅（搜索/收藏/最近）
-│       │   │   ├── ToolsFragment.java        # 工具箱（20+ 工具）
+│       │   │   ├── ToolsFragment.java        # 工具箱（26+ 工具）
 │       │   │   └── BrowserFragment.java      # 内置浏览器
 │       │   ├── network/                      # 🆕 公共网络模块
 │       │   │   ├── RelayHttpClient.java      # HTTP Relay + WebSocket URL
@@ -364,22 +406,20 @@ GameCenterApp/
 │       │   │   ├── GameSocketClient.java     # 客户端连接管理
 │       │   │   ├── LANManager.java           # 局域网服务发现
 │       │   │   └── RemoteP2PUtil.java        # 房间码工具类
-│       │   ├── games/                        # 游戏模块
+│       │   ├── games/                        # 26 款游戏模块
 │       │   │   ├── GameRegistry.java         # 游戏注册中心
 │       │   │   ├── GameUsageStore.java       # 使用记录存储
 │       │   │   ├── GameTutorialHelper.java   # 教程弹窗管理
-│       │   │   ├── doudizhu/                 # 斗地主旧版（局域网 P2P）
 │       │   │   ├── doudizhu/                 # 斗地主（三模联机）
 │       │   │   ├── rock/                     # 石头剪刀布 + RockOnlineActivity
 │       │   │   ├── gomoku/                   # 五子棋 + GomokuOnlineActivity
-│       │   │   ├── chinesechess/             # 中国象棋 + ChineseChessOnlineActivity
-│       │   │   └── go/                       # 围棋 + GoOnlineActivity
-│       │   ├── tools/                        # 工具箱实现
+│       │   │   ├── chinesechess/              # 中国象棋 + ChineseChessOnlineActivity
+│       │   │   ├── go/                       # 围棋 + GoOnlineActivity
+│       │   │   └── [其他 21 款单机游戏]
+│       │   ├── tools/                        # 工具箱实现（26+ 工具）
 │       │   │   ├── ToolSectionStore.java     # 工具分类与排序
 │       │   │   ├── AdvancedToolBinders.java  # 高级工具绑定
-│       │   │   ├── HashToolBinder.java       # 哈希计算
-│       │   │   ├── ColorPickerToolBinder.java# 颜色取色器
-│       │   │   └── ClipboardToolBinder.java  # 剪贴板工具
+│       │   │   └── *ToolBinder.java         # 各种工具绑定器
 │       │   ├── update/                       # 应用更新模块
 │       │   │   ├── UpdateManager.java        # 更新检查与下载（三级下载源）
 │       │   │   ├── UpdateInfo.java           # 版本信息数据模型
@@ -391,21 +431,29 @@ GameCenterApp/
 │       │   ├── layout/                       # 布局文件
 │       │   ├── drawable/                     # 图标与形状
 │       │   ├── values/                       # 字符串、颜色、主题
-│       │   ├── raw/                          # 音效资源（斗地主 70+ 音频）
+│       │   ├── raw/                          # 音效资源（斗地主 96 个音频）
 │       │   └── xml/                          # 配置文件
 │       └── ...
 ├── tools/
 │   ├── upload_to_vps.py                      # 上传 APK 到 VPS
-│   └── upload_to_github_release.py           # 上传 APK 到 GitHub Releases
+│   ├── upload_to_github_release.py           # 上传 APK 到 GitHub Releases
+│   ├── check_vps_nginx.py                    # VPS nginx 配置检查
+│   ├── verify_vps.py                         # VPS 验证脚本
+│   ├── publish-all.py                         # 一键发布脚本
+│   └── archive/                              # 临时脚本存档
 ├── vps/                                      # VPS 部署模板
 │   ├── var_www_update/                       # 更新服务模板
 │   │   ├── update_server.py                  # 更新服务
 │   │   ├── feedback/                         # 反馈服务模板
 │   │   └── ddz_relay/                        # Relay 服务模板
-│   └── ddz_ws_relay/                         # WebSocket Relay 服务
+│   ├── ddz_ws_relay/                         # WebSocket Relay 服务
+│   └── nginx/                                # nginx 配置模板
 ├── gradle/wrapper/                           # Gradle Wrapper
+├── docs/                                     # 技术文档
+├── .github/workflows/                        # GitHub Actions CI/CD
 ├── .gitignore                                # Git 忽略规则
 ├── local.properties.template                 # 本地配置模板
+├── .editorconfig                             # 编辑器配置
 ├── README.md                                 # 本文件
 ├── CHANGELOG.md                              # 版本更新日志
 └── PROJECT_CONTEXT.md                        # 项目上下文文档
@@ -470,27 +518,39 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 | 场景 | 命令 | 说明 |
 |------|------|------|
 | 日常编译 | `.\gradlew.bat :app:assembleDebug` | 仅编译，versionCode 自动递增 |
-| Beta 发布 | `.\gradlew.bat :app:buildAndUploadDebugToVps` | 上传到 VPS，仅测试版用户可用 |
-| 正式发布 | `.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable` | 同时上传到 VPS 和 GitHub Releases |
+| Beta 发布 | `.\gradlew.bat uploadReleaseArtifactsToVps` | 上传到 VPS，仅测试版用户可用 |
+| 正式发布 | `.\gradlew.bat uploadReleaseArtifactsToVps -PcurrentVersionChannel=stable` | 同时上传到 VPS 和 GitHub Releases |
+
+**重要更新（2026-05-12）**：
+- ✅ 双版本分发架构重构：测试版/正式版完全分离
+- ✅ 修复版本检查显示"已是最新版本"问题
+- ✅ 修复自定义更新源切换失效问题
 
 ### APK 签名配置 / APK Signing Configuration
 
-正式发布需要配置 APK 签名：
+**签名问题已修复！** 现在 APK 会自动签名。
 
 1. 创建密钥库（首次）：
 ```bash
-keytool -genkey -v -keystore app/gamecenter.keystore -alias gamecenter -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkey -v -keystore gamecenter.keystore -alias gamecenter -keyalg RSA -keysize 2048 -validity 10000 -storepass GameCenter2026 -keypass GameCenter2026 -dname "CN=GameCenter, OU=Development, O=GameCenterApp, L=Shenzhen, ST=Guangdong, C=CN"
 ```
 
 2. 创建 `keystore.properties`（不提交 Git）：
 ```properties
 STORE_FILE=gamecenter.keystore
-STORE_PASSWORD=你的密钥库密码
+STORE_PASSWORD=GameCenter2026
 KEY_ALIAS=gamecenter
-KEY_PASSWORD=你的密钥密码
+KEY_PASSWORD=GameCenter2026
 ```
 
 3. Gradle 自动读取配置并签名 Release APK
+
+**验证签名**：
+```bash
+cd app\build\outputs\apk\release
+jarsigner -verify app-release.apk
+# 输出：jar 已验证 ✅
+```
 
 > **注意**：`gamecenter.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交到版本控制。
 
@@ -512,14 +572,12 @@ KEY_PASSWORD=你的密钥密码
 
 | 版本 | 日期 | 类型 | 主要更新 |
 |------|------|------|----------|
-| v217 (1.3.16) | 2026-05-12 | Stable | APK 签名配置、敏感文件排除、发布流程完善 |
+| v224 (1.3.19) | 2026-05-12 | Stable | 双版本分发架构重构、版本检查问题修复、自定义更新源切换修复 |
+| v217 (1.3.18) | 2026-05-12 | Stable | APK 签名配置、敏感文件排除、发布流程完善 |
 | v26 (1.11.0) | 2026-05-11 | Stable | Lint 严格模式、网络错误处理、国际化、内存泄漏检测 |
 | v25 (1.10.3) | 2026-05-11 | Beta | 权限使用说明、R8 混淆优化、斗地主逻辑拆分、删除重复资源 |
 | v24 (1.3.10 beta) | 2026-05-10 | Beta | 4 个游戏新增云联机、公共网络模块抽取 |
 | v23 (1.3.9 beta) | 2026-05-10 | Beta | 修复 beta 用户检查更新问题 |
-| v21 (1.3.8 beta) | 2026-05-10 | Beta | 斗地主 Beta 云联机状态同步修复、主 VPS 架构部署、三级下载源 |
-| v18 (1.3.8) | 2026-05-09 | Stable | 华容道重做、斗地主 Beta 远程 P2P |
-| v15 (1.3.7) | 2026-05-09 | Stable | 设置拆分、配色方案优化、更新下载策略 |
 
 ---
 

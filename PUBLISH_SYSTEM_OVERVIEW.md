@@ -2,26 +2,31 @@
 
 ## 📦 已创建的发布工具
 
+### 重要更新（2026-05-12）
+
+- ✅ **APK 签名问题已修复** - Release 构建自动签名
+- ✅ **上传脚本逻辑已修复** - beta/release 版本命名正确
+- ✅ **版本比较逻辑已修复** - 自动更新源选择正确
+
 ### 1. 一键发布脚本
 
-#### `auto-publish.bat` (Windows 批处理)
-**功能**: 编译 APK 并自动上传到所有三个更新源
+#### `uploadReleaseArtifactsToVps` (Gradle 任务 - 推荐)
+**功能**: 编译 APK 并自动上传到 VPS
 
 **使用方法**:
 ```bash
 # 发布 Beta 版
-auto-publish.bat beta
+.\gradlew.bat uploadReleaseArtifactsToVps
 
-# 发布正式版（需要提供 GitHub Token）
-auto-publish.bat release YOUR_GITHUB_TOKEN
+# 发布正式版
+.\gradlew.bat uploadReleaseArtifactsToVps -PcurrentVersionChannel=stable
 ```
 
 **执行流程**:
-1. ✅ 编译 Release APK
+1. ✅ 编译 Release APK（带签名）
 2. ✅ 生成 version.json
 3. ✅ 上传到香港 VPS
 4. ✅ 上传到美国 VPS
-5. ✅ 上传到 GitHub Releases
 
 ---
 

@@ -2,15 +2,86 @@
 
 ## 当前状态
 
-- **本地最新版本**: versionCode 217 (v1.3.16)
-- **VPS 当前版本**: versionCode 200 (v1.3.12)
-- **状态**: ⚠️ 需要上传
+- **本地最新版本**: versionCode 224 (v1.3.19)
+- **VPS 当前版本**: versionCode 224 (v1.3.19)
+- **状态**: ✅ 已上传
+
+## 重要更新（2026-05-12）
+
+### 版本检查问题修复 🔥🔥
+
+从 v1.3.19 开始，修复了两个关键问题：
+
+#### 问题1：版本检查显示"已是最新版本" - 已修复 ✅
+**原因**：
+- VPS 返回的 `version-release.json` 可能缺少关键的 `versionCode` 字段
+- 导致比较逻辑失效，新版本无法被检测到
+
+**修复**：
+- 在 `UpdateManager.java` 中确保从 `BuildConfig.VERSION_CODE` 获取本地版本号作为后备
+- 添加了详细的日志输出（`remote.versionCode` vs `local.versionCode`）
+- `applyUpdatePolicy` 方法现在直接比较 `remote.versionCode > local.versionCode`
+
+#### 问题2：切换更新源失效 - 已修复 ✅
+**原因**：
+- `buildUpdateUrls` 方法中自定义 URL 的处理逻辑有问题
+- 自定义 URL 没有被正确添加到 URL 列表的首位
+- 没有添加备用源，导致自定义 URL 失效时无法更新
+
+**修复**：
+- 重构了 `buildUpdateUrls` 方法
+- 自定义 URL 现在被优先放在列表的第一位
+- 添加备用源（香港 VPS → 美国 VPS → GitHub）作为兜底
+- 添加了日志输出显示完整的 URL 构建列表
+
+### 双版本分发架构重构 🎯
+
+从 v1.3.19 开始，发布系统已重构为**双版本分发架构**：
+
+#### 核心变化
+- **测试版和正式版完全分离**：VPS 上同时维护 `app-beta.apk` 和 `app-release.apk`
+- **上传脚本修复**：`upload_to_vps.py` 的 `cleanup_remote` 函数现在保护两个通道的文件
+- **更新逻辑优化**：
+  - 用户开启"接收测试版" → 检查 version-beta.json
+  - 用户关闭"接收测试版" → 只检查 version-release.json
+  - 旧版 APP 使用 /api/update/check API 自动兼容
+
+#### VPS 文件结构
+
+```
+/var/www/update/app/
+├── app-beta.apk         # 测试版安装包
+├── version-beta.json     # 测试版元数据
+├── app-release.apk      # 正式版安装包
+└── version-release.json  # 正式版元数据
+```
+
+### APK 签名问题已修复
+
+现在 APK 会自动签名，无需手动签名步骤。
+
+**验证签名**：
+```bash
+cd app\build\outputs\apk\release
+jarsigner -verify app-release.apk
+# 输出：jar 已验证 ✅
+```
 
 ## 上传方法
 
-由于 Windows 环境限制，请选择以下任一方法：
+### 方法一：使用 Gradle 任务（推荐）
 
-### 方法一：安装 Python（推荐）
+```bash
+# 上传到所有 VPS
+.\gradlew.bat uploadReleaseArtifactsToVps
+```
+
+这会自动：
+1. 构建 release APK（带签名）
+2. 生成 version.json
+3. 上传到香港 VPS 和美国 VPS
+
+### 方法二：使用 Python 脚本
 
 1. 安装 Python 3.8+
    - 下载地址：https://www.python.org/downloads/
@@ -23,156 +94,84 @@
 
 3. 执行上传：
    ```bash
-   # 上传到香港 VPS
+   # 发布测试版
    python tools\upload_to_vps.py ^
-       --apk app\build\outputs\apk\release\app-release-unsigned.apk ^
-       --version app\build\generated\assets\version\version.json ^
-       --channel beta --skip-verify
-   
-   # 上传到美国 VPS（需要配置 SSH 密钥）
+       --apk app\build\outputs\apk\release\app-release.apk ^
+       --version app\build\outputs\apk\release\version.json ^
+       --channel beta
+
+   # 发布正式版
    python tools\upload_to_vps.py ^
-       --apk app\build\outputs\apk\release\app-release-unsigned.apk ^
-       --version app\build\generated\assets\version\version.json ^
-       --channel beta --skip-verify
+       --apk app\build\outputs\apk\release\app-release.apk ^
+       --version app\build\outputs\apk\release\version.json ^
+       --channel release
    ```
 
-### 方法二：使用 WinSCP（图形界面）
+### 方法三：手动上传
 
-1. 下载并安装 WinSCP：https://winscp.net
-
-2. 连接到香港 VPS：
-   - 主机：149.104.29.181
-   - 用户名：root
-   - 密码：!H8sfw6=v-
-   - 端口：22
-   - 协议：SFTP
-
-3. 上传文件：
-   - 本地：`app\build\outputs\apk\release\app-release-unsigned.apk`
-   - 远程：`/var/www/update/app/app-beta.apk`
-   
-   - 本地：`app\build\generated\assets\version\version.json`
-   - 远程：`/var/www/update/app/version-beta.json`
-
-4. 对美国 VPS 重复上述步骤：
-   - 主机：38.165.22.161
-   - 端口：22
-   - 使用 SSH 密钥认证
-
-### 方法三：使用 PowerShell 脚本（需要安装 SSH 工具）
-
-如果已安装 WinSCP 或 PuTTY，可以使用提供的 PowerShell 脚本：
-
-```bash
-# 使用 WinSCP
-.\tools\upload-to-hk-vps.ps1 -Channel beta
-
-# 或使用 PuTTY/PSCP
-.\tools\upload-to-hk-vps.ps1 -Channel beta
-```
-
-### 方法四：使用 GitHub Actions（自动化）
-
-推送代码到 GitHub 会自动触发 CI/CD 流程：
-
-```yaml
-# .github/workflows/ci.yml
-on:
-  push:
-    branches: [main]
-```
-
-工作流程会：
-1. 编译 APK
-2. 运行测试
-3. 上传到 GitHub Releases
-4. （可选）上传到 VPS（如果配置了密钥）
+1. 使用 SFTP 客户端（如 WinSCP）连接到 VPS
+2. 上传文件：
+   - 测试版: `/var/www/update/app/app-beta.apk`, `/var/www/update/app/version-beta.json`
+   - 正式版: `/var/www/update/app/app-release.apk`, `/var/www/update/app/version-release.json`
 
 ## 验证上传
 
-上传完成后，访问以下 URL 验证：
+### 检查 VPS 更新源
 
-### 香港 VPS
-```
-https://hk-update.tcp0053.shop/version-beta.json
-```
+```powershell
+# 检查香港 VPS 正式版
+Invoke-RestMethod -Uri "https://hk-update.tcp0053.shop/version-release.json"
 
-应该显示：
-```json
-{
-  "versionCode": 217,
-  "versionName": "1.3.16",
-  "channel": "beta"
-}
-```
+# 检查美国 VPS 正式版
+Invoke-RestMethod -Uri "https://tcp0053.shop:1443/version-release.json"
 
-### 美国 VPS
-```
-https://tcp0053.shop:1443/version-beta.json
-```
+# 检查香港 VPS 测试版
+Invoke-RestMethod -Uri "https://hk-update.tcp0053.shop/version-beta.json"
 
-### GitHub Releases
-```
-https://github.com/3571949306/GameCenterApp/releases
+# 检查美国 VPS 测试版
+Invoke-RestMethod -Uri "https://tcp0053.shop:1443/version-beta.json"
+
+# 应显示：
+# {
+#   "versionCode": 224,
+#   "versionName": "1.3.19",
+#   "channel": "stable|beta",
+#   "isBeta": false|true
+# }
 ```
 
-## 上传检查清单
+### 下载 APK 验证
 
-- [ ] 编译 Release APK
-- [ ] 生成 version.json
-- [ ] 上传到香港 VPS
-- [ ] 上传到美国 VPS
-- [ ] 上传到 GitHub Releases（可选）
-- [ ] 验证所有 URL 可访问
-- [ ] 检查 version.json 版本号正确
-- [ ] 测试应用内检查更新功能
+```powershell
+# 下载正式版 APK
+Invoke-WebRequest -Uri "https://hk-update.tcp0053.shop/app-release.apk" -OutFile "app-release.apk"
+
+# 下载测试版 APK
+Invoke-WebRequest -Uri "https://hk-update.tcp0053.shop/app-beta.apk" -OutFile "app-beta.apk"
+
+# 验证签名
+jarsigner -verify app-release.apk
+```
 
 ## 常见问题
 
-### Q: 为什么 VPS 上的版本还是旧的？
+### Q: 上传失败 "Connection refused"
+A: 检查 VPS 配置是否正确，确保 SSH 端口 22 开放。
 
-A: 可能原因：
-1. 上传脚本未执行成功
-2. 使用了错误的 channel（beta vs release）
-3. 远程文件权限问题
-4. VPS 服务未重启
+### Q: 上传后应用内检查更新仍显示旧版本
+A: 清除应用缓存或重启应用。确保 VPS 上 `version-release.json` 的 `versionCode` 大于本地版本。
 
-解决方法：
-```bash
-# SSH 连接到 VPS
-ssh root@149.104.29.181
+### Q: APK 安装时提示签名异常
+A: 确保使用已签名的 APK（`app-release.apk` 而非 `app-release-unsigned.apk`）。
 
-# 检查文件
-ls -la /var/www/update/app/
+### Q: 测试版和正式版会互相覆盖吗？
+A: 不会！从 v1.3.19 开始，上传脚本会保护两个通道的文件，不会互相覆盖。
 
-# 重启服务
-systemctl restart gamecenter-update
-```
+### Q: 旧版 APP 能检测到新版内容吗？
+A: 可以！服务器端同时支持新旧 API，旧版 APP 使用 `/api/update/check`，只要 `versionCode` 更低就能检测到更新。
 
-### Q: 上传时提示权限错误
+## 参考文档
 
-A: 确保：
-1. SSH 用户名和密码正确
-2. 远程目录有写权限
-3. 防火墙允许 SSH 连接
-
-### Q: 如何同时上传到所有三个更新源？
-
-A: 使用一键发布脚本（需要 Python）：
-```bash
-pip install paramiko requests
-python tools\publish-all.py --channel beta --github-token YOUR_TOKEN
-```
-
-## 联系支持
-
-如有问题，请查看：
-- `PUBLISH_SYSTEM_OVERVIEW.md` - 完整发布系统说明
-- `docs/AUTO_PUBLISH_README.md` - 自动化发布指南
-- `docs/PUBLISH_GUIDE.md` - 发布指南
-
----
-
-**最后更新**: 2026-05-11  
-**当前版本**: 217 (1.3.16)  
-**VPS 版本**: 200 (1.3.12) - 需要更新
+- [构建与发布修复说明](BUILD_AND_RELEASE_FIXES.md)
+- [发布指南](docs/PUBLISH_GUIDE.md)
+- [发布状态](RELEASE_STATUS.md)

@@ -1,5 +1,8 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.kapt'
+    id 'com.google.dagger.hilt.android'
 }
 
 def versionPropsFile = file("${rootDir}/version.properties")
@@ -129,10 +132,13 @@ android {
             if (keystorePropsFile.exists()) {
                 def props = new Properties()
                 props.load(new FileInputStream(keystorePropsFile))
-                storeFile file(props['STORE_FILE'])
+                storeFile rootProject.file(props['STORE_FILE'])
                 storePassword props['STORE_PASSWORD']
                 keyAlias props['KEY_ALIAS']
                 keyPassword props['KEY_PASSWORD']
+                // 启用 v1 和 v2 签名方案
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
@@ -153,12 +159,22 @@ android {
         buildConfigField "String", "FEEDBACK_URL", toJavaStringLiteral(configuredFeedbackUrl ?: "https://your-server.example.com/api/feedback")
     }
 
+    aaptOptions {
+        cruncherEnabled true
+        noCompress 'webp'
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+            
+            // 确保签名配置正确应用
+            if (signingConfigs.release.storeFile == null) {
+                throw new GradleException("Release signing configuration is incomplete")
+            }
         }
     }
 
@@ -176,13 +192,18 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
     buildFeatures {
         buildConfig = true
+        viewBinding = true
     }
 
     sourceSets {
         main {
-            java.srcDirs = ['src/main/java']
+            java.srcDirs = ['src/main/java', 'src/main/kotlin']
             res.srcDirs = ['src/main/res']
             manifest.srcFile 'src/main/AndroidManifest.xml'
             assets.srcDirs = ['src/main/assets', generatedVersionAssetDir]
@@ -198,11 +219,29 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.8.4'
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.startup:startup-runtime:1.2.0'
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+    kapt 'com.github.bumptech.glide:compiler:4.16.0'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.14.2'
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test:1.9.25'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    
+    // Kotlin
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.25'
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
+    
+    // Hilt Dependency Injection
+    implementation 'com.google.dagger:hilt-android:2.52'
+    kapt 'com.google.dagger:hilt-compiler:2.52'
     
     // LeakCanary for debug builds only
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
@@ -227,24 +266,27 @@ task generateBundledVersionJson {
 task generateVersionJson {
     dependsOn generateBundledVersionJson
     doLast {
-        def apkDir = file("${buildDir}/outputs/apk/debug")
-        apkDir.mkdirs()
-        new File(apkDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
+        def debugApkDir = file("${buildDir}/outputs/apk/debug")
+        def releaseApkDir = file("${buildDir}/outputs/apk/release")
+        debugApkDir.mkdirs()
+        releaseApkDir.mkdirs()
+        new File(debugApkDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
+        new File(releaseApkDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
         println "Generated version.json: vc=${android.defaultConfig.versionCode}"
     }
 }
 
-task uploadDebugArtifactsToVps(type: Exec) {
+task uploadReleaseArtifactsToVps(type: Exec) {
     group = "publishing"
-    description = "Upload existing debug APK and version.json to the configured update VPS"
+    description = "Upload release APK and version.json to the configured update VPS"
     dependsOn generateVersionJson
     workingDir rootDir
 
     def uploadChannel = currentVersionChannel == "stable" ? "release" : "beta"
     def args = [
             file("${rootDir}/tools/upload_to_vps.py").absolutePath,
-            "--apk", file("${buildDir}/outputs/apk/debug/app-debug.apk").absolutePath,
-            "--version", file("${buildDir}/outputs/apk/debug/version.json").absolutePath,
+            "--apk", file("${buildDir}/outputs/apk/release/app-release.apk").absolutePath,
+            "--version", file("${buildDir}/outputs/apk/release/version.json").absolutePath,
             "--channel", uploadChannel
     ]
     if (shouldUploadDryRun) {
@@ -270,7 +312,7 @@ task uploadApkToGitHubRelease {
             return
         }
 
-        def apkFile = file("${buildDir}/outputs/apk/debug/app-debug.apk")
+        def apkFile = file("${buildDir}/outputs/apk/release/app-release.apk")
         if (!apkFile.exists()) {
             throw new GradleException("APK file not found: ${apkFile.absolutePath}")
         }
@@ -307,29 +349,29 @@ task uploadApkToGitHubRelease {
 // - Beta 通道（默认）：仅上传到 VPS，供开启"接受测试版"的用户下载
 // - Stable/Release 通道：同时上传到 VPS 和 GitHub Releases
 // - App 下载优先级：香港 VPS（主）→ GitHub Releases（备用1）→ 美国 VPS（备用2）
-task uploadDebugToVps {
+task uploadReleaseToVps {
     group = "publishing"
-    description = "Build debug APK, generate version.json, and upload both files to the update VPS"
-    dependsOn 'assembleDebug'
-    finalizedBy uploadDebugArtifactsToVps
+    description = "Build release APK, generate version.json, and upload both files to the update VPS"
+    dependsOn 'assembleRelease'
+    finalizedBy 'uploadReleaseArtifactsToVps'
 }
 
-task buildAndUploadDebugToVps {
+task buildAndUploadReleaseToVps {
     group = "publishing"
-    description = "Build debug APK, generate version.json, and upload both files to the update VPS"
-    dependsOn uploadDebugToVps
+    description = "Build release APK, generate version.json, and upload both files to the update VPS"
+    dependsOn 'uploadReleaseToVps'
 }
 
 task buildAndUploadToVpsAndGitHub {
     group = "publishing"
     description = "Build, upload to VPS and GitHub Releases (stable channel only)"
-    dependsOn 'assembleDebug'
+    dependsOn 'assembleRelease'
     doLast {
         if (currentVersionChannel != "stable") {
             println "Warning: This task is intended for stable releases. Current channel: ${currentVersionChannel}"
         }
     }
-    finalizedBy uploadDebugArtifactsToVps, uploadApkToGitHubRelease
+    finalizedBy uploadReleaseArtifactsToVps, uploadApkToGitHubRelease
 }
 
 task bumpVersion {
@@ -357,9 +399,9 @@ afterEvaluate {
         def autoBump = (project.findProperty("autoBumpVersion") ?: "true").toString().toBoolean()
         if (shouldAutoUploadVps) {
             if (autoBump) {
-                it.finalizedBy 'generateVersionJson', 'uploadDebugArtifactsToVps', 'bumpVersion'
+                it.finalizedBy 'generateVersionJson', 'uploadReleaseArtifactsToVps', 'bumpVersion'
             } else {
-                it.finalizedBy 'generateVersionJson', 'uploadDebugArtifactsToVps'
+                it.finalizedBy 'generateVersionJson', 'uploadReleaseArtifactsToVps'
             }
         } else {
             if (autoBump) {

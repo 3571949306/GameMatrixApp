@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.gamecenter.app.R;
 import com.gamecenter.app.SaveManager;
+import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
 import com.google.android.material.button.MaterialButton;
 import org.json.JSONObject;
@@ -115,6 +116,47 @@ public class SokobanActivity extends AppCompatActivity {
             startTimer();
         });
 
+        MaterialButton btnUp = findViewById(R.id.btn_up);
+        btnUp.setOnClickListener(v -> {
+            game.move(0, -1);
+            if (game.isLevelComplete()) {
+                sokobanView.getOnLevelCompleteListener().onComplete();
+            }
+            sokobanView.invalidate();
+        });
+
+        MaterialButton btnDown = findViewById(R.id.btn_down);
+        btnDown.setOnClickListener(v -> {
+            game.move(0, 1);
+            if (game.isLevelComplete()) {
+                sokobanView.getOnLevelCompleteListener().onComplete();
+            }
+            sokobanView.invalidate();
+        });
+
+        MaterialButton btnLeft = findViewById(R.id.btn_left);
+        btnLeft.setOnClickListener(v -> {
+            game.move(-1, 0);
+            if (game.isLevelComplete()) {
+                sokobanView.getOnLevelCompleteListener().onComplete();
+            }
+            sokobanView.invalidate();
+        });
+
+        MaterialButton btnRight = findViewById(R.id.btn_right);
+        btnRight.setOnClickListener(v -> {
+            game.move(1, 0);
+            if (game.isLevelComplete()) {
+                sokobanView.getOnLevelCompleteListener().onComplete();
+            }
+            sokobanView.invalidate();
+        });
+
+        MaterialButton btnTutorial = findViewById(R.id.btn_game_tutorial);
+        btnTutorial.setOnClickListener(v -> {
+            GameTutorialHelper.showSokobanTutorial(this);
+        });
+
         sokobanView.invalidate();
     }
 
@@ -199,5 +241,15 @@ public class SokobanActivity extends AppCompatActivity {
             saveManager.saveProgress(GAME_ID, progress.toString());
         } catch (Exception e) {
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopTimer();
+        timerRunnable = null;
+        timerHandler = null;
+        sokobanView = null;
+        game = null;
     }
 }
