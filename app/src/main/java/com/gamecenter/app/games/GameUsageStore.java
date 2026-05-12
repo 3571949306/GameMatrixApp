@@ -2,6 +2,7 @@ package com.gamecenter.app.games;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -19,9 +20,11 @@ public final class GameUsageStore {
     private static final int MAX_RECENT_COUNT = 12;
 
     private final SharedPreferences prefs;
+    private final Gson gson;
 
     public GameUsageStore(Context context) {
         prefs = context.getApplicationContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        gson = new Gson();
     }
 
     public void recordLaunch(String gameId) {
@@ -173,48 +176,15 @@ public final class GameUsageStore {
     }
 
     private void saveStats(String gameId, GameStats stats) {
-        prefs.edit().putString(KEY_STATS_PREFIX + gameId, statsToJson(stats)).apply();
-    }
-
-    private String statsToJson(GameStats stats) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-        sb.append("\"highScore\":").append(stats.highScore).append(",");
-        sb.append("\"totalWins\":").append(stats.totalWins).append(",");
-        sb.append("\"totalLosses\":").append(stats.totalLosses).append(",");
-        sb.append("\"totalPlays\":").append(stats.totalPlays).append(",");
-        sb.append("\"bestTimeMs\":").append(stats.bestTimeMs).append(",");
-        sb.append("\"totalPlayTimeMs\":").append(stats.totalPlayTimeMs).append(",");
-        sb.append("\"lastPlayedAt\":").append(stats.lastPlayedAt);
-        sb.append("}");
-        return sb.toString();
+        prefs.edit().putString(KEY_STATS_PREFIX + gameId, gson.toJson(stats)).apply();
     }
 
     private GameStats parseStatsJson(String gameId, String json) {
-        GameStats stats = new GameStats(gameId);
-        json = json.trim();
-        if (json.startsWith("{") && json.endsWith("}")) {
-            json = json.substring(1, json.length() - 1);
-            String[] pairs = json.split(",");
-            for (String pair : pairs) {
-                String[] kv = pair.split(":", 2);
-                if (kv.length == 2) {
-                    String key = kv[0].trim().replace("\"", "");
-                    String value = kv[1].trim();
-                    try {
-                        switch (key) {
-                            case "highScore": stats.highScore = Integer.parseInt(value); break;
-                            case "totalWins": stats.totalWins = Integer.parseInt(value); break;
-                            case "totalLosses": stats.totalLosses = Integer.parseInt(value); break;
-                            case "totalPlays": stats.totalPlays = Integer.parseInt(value); break;
-                            case "bestTimeMs": stats.bestTimeMs = Long.parseLong(value); break;
-                            case "totalPlayTimeMs": stats.totalPlayTimeMs = Long.parseLong(value); break;
-                            case "lastPlayedAt": stats.lastPlayedAt = Long.parseLong(value); break;
-                        }
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
+        GameStats stats = gson.fromJson(json, GameStats.class);
+        if (stats == null) {
+            return new GameStats(gameId);
         }
+        stats.gameId = gameId;
         return stats;
     }
 
