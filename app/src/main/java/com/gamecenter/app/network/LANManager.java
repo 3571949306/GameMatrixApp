@@ -33,6 +33,7 @@ public class LANManager {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private final List<DiscoveredHost> discoveredHosts = Collections.synchronizedList(new ArrayList<>());
+    private OnHostDiscoveredListener listener;
 
     private final String gameName;
     private final String playerName;
@@ -170,8 +171,13 @@ public class LANManager {
     }
 
     private void postHostDiscovered(DiscoveredHost host) {
-        mainHandler.post(() -> {
-        });
+        if (listener != null) {
+            mainHandler.post(() -> listener.onHostDiscovered(host));
+        }
+    }
+
+    public void setOnHostDiscoveredListener(OnHostDiscoveredListener listener) {
+        this.listener = listener;
     }
 
     public interface OnHostDiscoveredListener {
