@@ -123,6 +123,20 @@ android {
     namespace "com.gamecenter.app"
     compileSdk 35
 
+    signingConfigs {
+        release {
+            def keystorePropsFile = rootProject.file("keystore.properties")
+            if (keystorePropsFile.exists()) {
+                def props = new Properties()
+                props.load(new FileInputStream(keystorePropsFile))
+                storeFile file(props['STORE_FILE'])
+                storePassword props['STORE_PASSWORD']
+                keyAlias props['KEY_ALIAS']
+                keyPassword props['KEY_PASSWORD']
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.gamecenter.app"
         minSdk 24
@@ -141,9 +155,20 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds true
+        warningsAsErrors true
+        disable 'Deprecation', 'UnusedResources'
+        xmlReport true
+        htmlReport true
     }
 
     compileOptions {
@@ -173,12 +198,14 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.8.4'
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.cardview:cardview:1.0.0'
-    implementation 'androidx.webkit:webkit:1.12.1'
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
     testImplementation 'junit:junit:4.13.2'
+    
+    // LeakCanary for debug builds only
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
 }
 
 task generateBundledVersionJson {
@@ -327,10 +354,17 @@ task bumpVersion {
 afterEvaluate {
     tasks.named('preBuild').configure { it.dependsOn 'generateBundledVersionJson' }
     tasks.named('assembleDebug').configure {
+        def autoBump = (project.findProperty("autoBumpVersion") ?: "true").toString().toBoolean()
         if (shouldAutoUploadVps) {
-            it.finalizedBy 'generateVersionJson', 'uploadDebugArtifactsToVps', 'bumpVersion'
+            if (autoBump) {
+                it.finalizedBy 'generateVersionJson', 'uploadDebugArtifactsToVps', 'bumpVersion'
+            } else {
+                it.finalizedBy 'generateVersionJson', 'uploadDebugArtifactsToVps'
+            }
         } else {
-            it.finalizedBy 'generateVersionJson', 'bumpVersion'
+            if (autoBump) {
+                it.finalizedBy 'generateVersionJson', 'bumpVersion'
+            }
         }
     }
 }

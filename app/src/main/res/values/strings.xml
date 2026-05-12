@@ -136,4 +136,28 @@
     <string name="update_beta_only_enable">开启测试版并重新检查</string>
     <string name="update_beta_only_wait">等待正式版</string>
     <string name="update_beta_only_toast">服务器当前最新版是测试版，打开“接受测试版安装包”后才能更新。</string>
+    <string name="permission_dialog_title">权限使用说明</string>
+    <string name="permission_dialog_message">欢迎使用夹层游戏中心！为了提供完整功能，我们需要以下权限：
+
+• 位置权限：用于局域网联机游戏发现和WiFi地址检测
+• 相机权限：用于工具箱中的二维码扫描功能
+• 存储权限：用于下载和保存游戏更新安装包
+• 安装未知应用：用于安装已下载的游戏更新包
+
+您可以选择授权全部权限以获得最佳体验，或稍后在系统设置中单独开启。</string>
+    <string name="permission_grant_all">全部授权</string>
+    <string name="permission_decline">暂不授权</string>
+    <string name="permission_granted_toast">权限已授权，您可以正常使用所有功能</string>
+    <string name="permission_declined_toast">部分功能可能受限，您随时可在设置中授权</string>
+
+    <!-- 网络错误提示 -->
+    <string name="error_network_disconnected">网络连接已断开，请检查网络设置</string>
+    <string name="error_timeout">请求超时，请稍后重试</string>
+    <string name="error_dns_resolution">无法解析服务器地址，请检查网络</string>
+    <string name="error_server_5xx">服务器内部错误，请稍后重试</string>
+    <string name="error_server_4xx">请求被服务器拒绝，请检查输入</string>
+    <string name="error_io">网络读写错误，请重试</string>
+    <string name="error_ssl">SSL证书验证失败，请检查网络安全性</string>
+    <string name="error_cancelled">请求已取消</string>
+    <string name="error_unknown">未知网络错误，请稍后重试</string>
 </resources>

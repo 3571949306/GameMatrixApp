@@ -84,6 +84,20 @@ public class FlappyActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         isRunning = false;
-        handler.removeCallbacks(gameLoop);
+        if (handler != null) {
+            handler.removeCallbacks(gameLoop);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        isRunning = false;
+        if (handler != null) {
+            handler.removeCallbacks(gameLoop);
+        }
+        game = null;
+        flappyView = null;
+        handler = null;
     }
 }

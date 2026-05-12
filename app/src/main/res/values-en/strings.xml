@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GameCenter</string>
+    <string name="nav_browser">Browser</string>
+    <string name="nav_games">Games</string>
+    <string name="nav_tools">Tools</string>
+    <string name="gomoku">Gomoku</string>
+    <string name="chinese_chess">Chinese Chess</string>
+    <string name="gomoku_desc">Classic Gomoku vs AI</string>
+    <string name="chinese_chess_desc">Chinese Chess vs AI</string>
+    <string name="browser_loading">Loading…</string>
+    <string name="btn_undo">Undo</string>
+    <string name="btn_restart">Restart</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_hell">Hell</string>
+    <string name="select_difficulty">Select difficulty</string>
+    <string name="game_entrance">Start Game</string>
+    <string name="snake">Snake</string>
+    <string name="snake_desc">Classic Snake Game</string>
+    <string name="tetris">Tetris</string>
+    <string name="tetris_desc">Classic Tetris</string>
+    <string name="game_doudizhu">DouDiZhu</string>
+    <string name="game_doudizhu_desc">Classic Card Game</string>
+    <string name="brotato">Brotato</string>
+    <string name="brotato_desc">Survival Shooter</string>
+    <string name="tools_title">Tools</string>
+    <string name="refresh">Refresh</string>
+    <string name="update_check">Check for Updates</string>
+    <string name="update_new_version">New Version Available</string>
+    <string name="update_download">Download Now</string>
+    <string name="update_later">Later</string>
+    <string name="update_no_update">Up to Date</string>
+    <string name="update_network_error">Network connection failed</string>
+    <string name="permission_dialog_title">Permission Information</string>
+    <string name="permission_grant_all">Grant All</string>
+    <string name="permission_decline">Decline</string>
+    <string name="permission_granted_toast">Permissions granted</string>
+    <string name="permission_declined_toast">Some features may be limited</string>
+    <string name="error_network_disconnected">Network disconnected</string>
+    <string name="error_timeout">Request timeout</string>
+    <string name="error_unknown">Unknown network error</string>
+</resources>

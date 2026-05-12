@@ -1,5 +1,94 @@
 # 夹层 - 版本更新日志
 
+## [1.3.17] - 2026-05-12
+
+### 内存泄漏修复
+- 修复 TetrisActivity、SnakeActivity、FlappyActivity 的 Handler 和 Runnable 清理问题
+- 修复 WhackView 的资源释放，添加 releaseResources() 方法
+- 优化 DouDiZhuOnlineActivity 的 cleanup 方法，确保所有回调都正确移除
+- 所有游戏 Activity 在 onDestroy 中正确释放资源
+
+### 错误处理优化
+- UpdateManager 集成 NetworkErrorHandler，统一错误提示
+- 下载失败时使用友好的用户消息替代技术错误信息
+- 优化网络异常分类和错误码映射
+
+### 性能优化
+- 优化 Handler 和 Runnable 的生命周期管理
+- 移除不必要的对象引用，防止内存泄漏
+- 改进游戏循环的资源释放逻辑
+
+### 技术
+- 修复多个游戏 Activity 的 onDestroy 方法
+- 添加统一的资源清理模式
+- 编译测试通过，无警告
+
+---
+
+## [1.3.16] - 2026-05-12
+
+### 新增
+- APK 签名配置（release 构建自动签名）
+- 敏感文件排除（keystore.properties、gamecenter.keystore 不提交 Git）
+- 自动化发布流程（一键上传到 HK VPS、US VPS、GitHub Releases）
+
+### 优化
+- 完善发布流程文档和说明
+- 更新所有 MD 文档与最新版本同步
+
+### 技术
+- 新增 `keystore.properties` 配置签名凭证
+- 新增 `app/gamecenter.keystore` 签名密钥库（RSA 2048 位，10000 天有效期）
+- `build.gradle` 添加 `signingConfigs.release` 配置
+- `.gitignore` 添加签名文件排除规则
+
+### 发布状态
+- ✅ 香港 VPS 上传成功（version 217）
+- ✅ 美国 VPS 上传成功（version 217）
+- ✅ APK 签名验证通过（可正常安装）
+
+---
+
+## [1.11.0] - 2026-05-11
+
+### 新增
+- Lint 严格模式（abortOnError true, warningsAsErrors true）
+- 统一网络错误处理器（NetworkErrorHandler），支持错误码分类、智能重试、网络状态检查
+- 国际化支持（中英文），添加 values-en/strings.xml 英文资源
+- LeakCanary 内存泄漏检测（Debug 版集成 2.14）
+- autoBumpVersion 开关控制版本号自动递增
+- GitHub Actions CI/CD 工作流（自动构建、测试、上传）
+
+### 优化
+- 网络错误提示统一为友好的中文/英文 Toast 消息
+- 版本号递增可通过 `-PautoBumpVersion=false` 关闭
+- 资源文件按语言分离，支持多语言扩展
+
+### 技术
+- 新增 `utils.NetworkErrorHandler` - 网络错误统一处理
+- 新增 `utils.I18nHelper` - 国际化辅助工具
+- `debugImplementation leakcanary-android:2.14`
+
+---
+
+## v31 1.10.3 - 2026-05-11
+
+### 新增
+- 首次启动权限使用说明对话框，支持一键授权或暂不授权
+- R8/ProGuard 代码混淆，Release APK 体积从 22MB 减小至 15.58MB（约30%）
+- Lint 规则配置，支持 release 构建时严格检查
+
+### 优化
+- 斗地主联机核心逻辑拆分为 3 个独立管理类（DouDiZhuProtocol、DouDiZhuSeatManager、DouDiZhuSyncManager）
+- 删除 res/raw/doudizhu_archive/ 目录下 96 个重复音频文件
+- 移除未使用的 androidx.webkit 依赖
+- ProGuard 规则完善，确保所有游戏类和第三方库不被混淆
+
+### 修复
+- 修复工具箱布局引用确认问题
+
+---
+
 ## v30 1.3.16 - 2026-05-11（正式版）
 
 ### 测试覆盖完善

@@ -87,6 +87,12 @@ An Android game center integrating **25+** classic mini-games, supporting single
 - 颜色取色器（支持 WCAG 对比度检测）
 - 诊断报告导出、电池信息、设备信息
 
+### ⚙️ 通用设置 / General Settings
+
+- **音效与震动**：设置中可开关音效和震动反馈
+- **测试版更新**：可选择是否接收 Beta 版本更新通知
+- **权限管理**：首次启动时展示权限使用说明对话框（位置、相机、存储权限），支持在设置中随时查看和管理权限
+
 ---
 
 ## 技术架构 / Tech Stack
@@ -110,7 +116,6 @@ An Android game center integrating **25+** classic mini-games, supporting single
 | androidx.constraintlayout | 2.2.0 | ConstraintLayout 布局 |
 | androidx.recyclerview | 1.3.2 | 游戏列表 RecyclerView |
 | androidx.cardview | 1.0.0 | 游戏卡片 CardView |
-| androidx.webkit | 1.12.1 | WebView 增强 |
 | com.google.zxing:core | 3.5.3 | 二维码生成与识别 |
 | com.squareup.okhttp3:okhttp | 4.12.0 | WebSocket 客户端 |
 | com.github.bumptech.glide:glide | 4.16.0 | 图片懒加载与缓存 |
@@ -162,6 +167,24 @@ App 下载更新时自动尝试以下下载源，优先级从高到低：
 
 ## 性能优化 / Performance Optimization
 
+### R8/ProGuard 代码混淆 / Code Obfuscation
+
+- **代码混淆优化**：启用 R8 代码混淆，APK 体积减小约 30%
+- **资源压缩**：自动移除未使用的代码和资源
+- **规则配置**：针对游戏模块和网络库定制混淆规则
+
+### 资源优化 / Resource Optimization
+
+- **删除重复音频资源**：移除 `res/raw/doudizhu_archive/` 目录下 96 个重复文件
+- **依赖清理**：移除未使用的 `androidx.webkit` 依赖
+
+### 代码重构 / Code Refactoring
+
+- **斗地主联机核心逻辑拆分**：将斗地主联机代码拆分为 3 个独立管理器类
+  - `DouDiZhuGameManager`：游戏逻辑管理
+  - `DouDiZhuNetworkManager`：网络通信管理
+  - `DouDiZhuStateManager`：游戏状态管理
+
 ### 图片加载优化 / Image Loading
 
 - **Glide 图片缓存**：游戏列表图标使用 Glide 库进行懒加载，支持内存和磁盘缓存
@@ -179,6 +202,27 @@ App 下载更新时自动尝试以下下载源，优先级从高到低：
 - **资源及时释放**：所有游戏 Activity 在 `onDestroy` 中正确释放 Handler、ExecutorService 等资源
 - **Handler 回调清理**：游戏暂停/销毁时移除所有待执行的回调，防止内存泄漏
 - **线程池管理**：AI 计算使用独立的 ExecutorService，销毁时调用 `shutdownNow()`
+- **内存泄漏检测**：Debug 版集成 LeakCanary 2.14，自动检测并报告内存泄漏问题
+
+### Lint 严格模式 / Strict Lint Mode
+
+- **Release 构建严格检查**：启用 `abortOnError` 和 `warningsAsErrors`，确保代码质量
+- **问题早发现**：编译时强制检查潜在问题，减少运行时错误
+
+### 国际化支持 / Internationalization
+
+- **中英文双语**：`values-en/strings.xml` 提供完整英文资源
+- **自动语言切换**：根据系统语言自动选择对应语言
+
+### 网络错误统一处理 / Unified Network Error Handling
+
+- **NetworkErrorHandler 集中管理**：统一处理所有网络异常
+- **用户体验优化**：提供友好的错误提示和重试机制
+
+### CI/CD 自动化 / CI/CD Automation
+
+- **GitHub Actions**：实现自动构建、测试、上传产物
+- **持续集成**：每次提交自动运行测试和代码检查
 
 ---
 
@@ -309,6 +353,7 @@ GameCenterApp/
 │       │   ├── MainActivity.java             # 主界面（底部导航 + 更新检查）
 │       │   ├── SettingsManager.java          # 设置管理（SharedPreferences）
 │       │   ├── ColorSchemeManager.java       # 主题配色管理
+│       │   ├── PermissionManager.java        # 权限管理（位置/相机/存储权限）
 │       │   ├── fragments/                    # 三个主页面 Fragment
 │       │   │   ├── GamesFragment.java        # 游戏大厅（搜索/收藏/最近）
 │       │   │   ├── ToolsFragment.java        # 工具箱（20+ 工具）
@@ -428,6 +473,27 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 | Beta 发布 | `.\gradlew.bat :app:buildAndUploadDebugToVps` | 上传到 VPS，仅测试版用户可用 |
 | 正式发布 | `.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable` | 同时上传到 VPS 和 GitHub Releases |
 
+### APK 签名配置 / APK Signing Configuration
+
+正式发布需要配置 APK 签名：
+
+1. 创建密钥库（首次）：
+```bash
+keytool -genkey -v -keystore app/gamecenter.keystore -alias gamecenter -keyalg RSA -keysize 2048 -validity 10000
+```
+
+2. 创建 `keystore.properties`（不提交 Git）：
+```properties
+STORE_FILE=gamecenter.keystore
+STORE_PASSWORD=你的密钥库密码
+KEY_ALIAS=gamecenter
+KEY_PASSWORD=你的密钥密码
+```
+
+3. Gradle 自动读取配置并签名 Release APK
+
+> **注意**：`gamecenter.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交到版本控制。
+
 ### GitHub Token 配置 / GitHub Token Setup
 
 正式发布需要配置 GitHub Token：
@@ -446,7 +512,10 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 
 | 版本 | 日期 | 类型 | 主要更新 |
 |------|------|------|----------|
-| v24 (1.3.10 beta) | 2026-05-10 | Beta | 4个游戏新增云联机、公共网络模块抽取 |
+| v217 (1.3.16) | 2026-05-12 | Stable | APK 签名配置、敏感文件排除、发布流程完善 |
+| v26 (1.11.0) | 2026-05-11 | Stable | Lint 严格模式、网络错误处理、国际化、内存泄漏检测 |
+| v25 (1.10.3) | 2026-05-11 | Beta | 权限使用说明、R8 混淆优化、斗地主逻辑拆分、删除重复资源 |
+| v24 (1.3.10 beta) | 2026-05-10 | Beta | 4 个游戏新增云联机、公共网络模块抽取 |
 | v23 (1.3.9 beta) | 2026-05-10 | Beta | 修复 beta 用户检查更新问题 |
 | v21 (1.3.8 beta) | 2026-05-10 | Beta | 斗地主 Beta 云联机状态同步修复、主 VPS 架构部署、三级下载源 |
 | v18 (1.3.8) | 2026-05-09 | Stable | 华容道重做、斗地主 Beta 远程 P2P |
