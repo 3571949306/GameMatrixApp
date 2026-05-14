@@ -18,6 +18,7 @@ public class SettingsManager {
     private static final String KEY_UPDATE_SOURCE = "update_source";
     private static final String KEY_SOUND_ENABLED = "sound_enabled";
     private static final String KEY_VIBRATION_ENABLED = "vibration_enabled";
+    private static final String KEY_APP_LANGUAGE = "app_language";
 
     public static final int THEME_SYSTEM = 0;
     public static final int THEME_LIGHT = 1;
@@ -27,6 +28,10 @@ public class SettingsManager {
     public static final int UPDATE_SOURCE_VPS_HK = 1;
     public static final int UPDATE_SOURCE_VPS_US = 2;
     public static final int UPDATE_SOURCE_GITHUB = 3;
+
+    public static final String LANGUAGE_SYSTEM = "";
+    public static final String LANGUAGE_ZH = "zh";
+    public static final String LANGUAGE_EN = "en";
 
     private static SettingsManager instance;
     private final SharedPreferences prefs;
@@ -113,6 +118,17 @@ public class SettingsManager {
 
     public void setVibrationEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_VIBRATION_ENABLED, enabled).apply();
+    }
+
+    public String getAppLanguage() {
+        return prefs.getString(KEY_APP_LANGUAGE, LANGUAGE_SYSTEM);
+    }
+
+    public void setAppLanguage(String languageTag) {
+        if (languageTag == null) {
+            languageTag = LANGUAGE_SYSTEM;
+        }
+        prefs.edit().putString(KEY_APP_LANGUAGE, languageTag).apply();
     }
 
     public static boolean isDarkMode(Context context) {

@@ -12,6 +12,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
 import com.gamecenter.app.App;
 import com.gamecenter.app.BuildConfig;
@@ -67,6 +69,10 @@ public class AppSettingsDialog {
         RadioButton rbSystem = dialogView.findViewById(R.id.rb_system);
         RadioButton rbLight = dialogView.findViewById(R.id.rb_light);
         RadioButton rbDark = dialogView.findViewById(R.id.rb_dark);
+        RadioGroup rgLanguageMode = dialogView.findViewById(R.id.rg_language_mode);
+        RadioButton rbLanguageSystem = dialogView.findViewById(R.id.rb_language_system);
+        RadioButton rbLanguageZh = dialogView.findViewById(R.id.rb_language_zh);
+        RadioButton rbLanguageEn = dialogView.findViewById(R.id.rb_language_en);
         int currentTheme = settings.getThemeMode();
         if (currentTheme == SettingsManager.THEME_LIGHT) {
             rbLight.setChecked(true);
@@ -74,6 +80,14 @@ public class AppSettingsDialog {
             rbDark.setChecked(true);
         } else {
             rbSystem.setChecked(true);
+        }
+        String currentLanguage = settings.getAppLanguage();
+        if (SettingsManager.LANGUAGE_ZH.equals(currentLanguage)) {
+            rbLanguageZh.setChecked(true);
+        } else if (SettingsManager.LANGUAGE_EN.equals(currentLanguage)) {
+            rbLanguageEn.setChecked(true);
+        } else {
+            rbLanguageSystem.setChecked(true);
         }
 
         List<ColorSchemeManager.Scheme> schemes = ColorSchemeManager.getSchemes();
@@ -141,11 +155,28 @@ public class AppSettingsDialog {
                             settings.getColorSchemeIndex());
                     boolean themeChanged = newThemeMode != settings.getThemeMode();
                     boolean schemeChanged = currentSchemeIndex[0] != originalScheme;
+                    String originalLanguage = settings.getAppLanguage();
+                    String newLanguage;
+                    int checkedLanguageId = rgLanguageMode.getCheckedRadioButtonId();
+                    if (checkedLanguageId == R.id.rb_language_zh) {
+                        newLanguage = SettingsManager.LANGUAGE_ZH;
+                    } else if (checkedLanguageId == R.id.rb_language_en) {
+                        newLanguage = SettingsManager.LANGUAGE_EN;
+                    } else {
+                        newLanguage = SettingsManager.LANGUAGE_SYSTEM;
+                    }
+                    boolean languageChanged = !newLanguage.equals(originalLanguage);
 
                     settings.setThemeMode(newThemeMode);
                     settings.setColorSchemeIndex(currentSchemeIndex[0]);
+                    settings.setAppLanguage(newLanguage);
 
-                    if (themeChanged || schemeChanged) {
+                    if (languageChanged) {
+                        AppCompatDelegate.setApplicationLocales(
+                                LocaleListCompat.forLanguageTags(newLanguage));
+                    }
+
+                    if (themeChanged || schemeChanged || languageChanged) {
                         if (activity.getApplication() instanceof App) {
                             ((App) activity.getApplication()).applyTheme();
                         }

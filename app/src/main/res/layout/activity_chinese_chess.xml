@@ -89,7 +89,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_start_game"
-            style="@style/Widget.Material3.Button"
+            style="@style/Widget.GameCenter.Button"
             android:layout_width="160dp"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
@@ -103,7 +103,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_tutorial"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.GameCenter.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
@@ -111,7 +111,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_online"
-                style="@style/Widget.Material3.Button.TonalButton"
+                style="@style/Widget.GameCenter.Button.Tonal"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
@@ -132,7 +132,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_undo"
-            style="@style/Widget.Material3.Button"
+            style="@style/Widget.GameCenter.Button"
             android:layout_width="120dp"
             android:layout_height="48dp"
             android:layout_margin="8dp"
@@ -140,7 +140,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_restart"
-            style="@style/Widget.Material3.Button"
+            style="@style/Widget.GameCenter.Button"
             android:layout_width="120dp"
             android:layout_height="48dp"
             android:layout_margin="8dp"
@@ -148,7 +148,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_tutorial_ingame"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.GameCenter.Button.Outlined"
             android:layout_width="120dp"
             android:layout_height="48dp"
             android:layout_margin="8dp"

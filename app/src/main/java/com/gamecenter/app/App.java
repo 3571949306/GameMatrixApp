@@ -6,6 +6,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
 
 import com.gamecenter.app.network.OkHttpClientProvider;
 import com.gamecenter.app.update.UpdateManager;
@@ -21,6 +22,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        applyLanguage();
         // 主题设置立即应用（影响 UI）
         applyTheme();
         
@@ -79,6 +81,12 @@ public class App extends Application {
                         == android.content.res.Configuration.UI_MODE_NIGHT_YES;
                 break;
         }
+    }
+
+    public void applyLanguage() {
+        SettingsManager settings = SettingsManager.getInstance(this);
+        AppCompatDelegate.setApplicationLocales(
+                LocaleListCompat.forLanguageTags(settings.getAppLanguage()));
     }
 
     private void applyColorScheme(Activity activity) {

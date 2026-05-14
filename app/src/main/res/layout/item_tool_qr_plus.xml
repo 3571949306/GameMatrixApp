@@ -30,7 +30,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_qr_plus_generate"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:text="生成"
@@ -38,9 +38,9 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_qr_plus_decode_image"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:text="识别图片"
@@ -48,9 +48,9 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_qr_plus_clipboard"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:text="剪贴板"
@@ -65,9 +65,9 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_qr_plus_wifi"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:text="WiFi码"
@@ -75,9 +75,9 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_qr_plus_vcard"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:text="名片码"
