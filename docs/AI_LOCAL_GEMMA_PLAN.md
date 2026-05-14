@@ -12,6 +12,7 @@
 - App downloads the model into app-private storage: `Android/data/<package>/files/Documents/ai_models`.
 - App integrates MediaPipe LLM Inference through `MediaPipeLocalLlmEngine`.
 - `AiTaskRouter` now routes supported local-first tasks to Gemma when the model is downloaded and enabled.
+- The default AI task is now chat mode, so local Gemma can be used as a direct on-device assistant.
 
 ## Runtime Direction
 
@@ -73,10 +74,11 @@ Implemented code:
 3. Done: add Gemma notice and accepted-version tracking.
 4. Done: add MediaPipe LLM runtime wrapper.
 5. Done: route summary, translate, rewrite, Q&A, keywords, classify, and chat tasks to Gemma when enabled.
-6. Next: add delete-model and re-download UI.
-7. Next: add streaming output if the UX needs token-by-token rendering.
-8. Next: test on a physical 3 GB, 4 GB, and 6 GB Android device.
-9. Next: evaluate LiteRT-LM migration once the first MediaPipe build is stable.
+6. Done: add a visible chat task mode and make it the default AI mode.
+7. Next: add delete-model and re-download UI.
+8. Next: add streaming output if the UX needs token-by-token rendering.
+9. Next: test on a physical 3 GB, 4 GB, and 6 GB Android device.
+10. Next: evaluate LiteRT-LM migration once the first MediaPipe build is stable.
 
 ## Acceptance Checks
 

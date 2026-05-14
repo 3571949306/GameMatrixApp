@@ -56,4 +56,14 @@
     <color name="dark_gray">#666666</color>
     <color name="gray_light">#E0E0E0</color>
     <color name="purple_500">#6750A4</color>
+    <color name="ai_message_user_bg">#D6EAF8</color>
+    <color name="ai_message_user_text">#102A43</color>
+    <color name="ai_message_user_role">#0B5CAD</color>
+    <color name="ai_message_assistant_bg">#E9E2F5</color>
+    <color name="ai_message_assistant_text">#241536</color>
+    <color name="ai_message_assistant_role">#5E2A84</color>
+    <color name="ai_message_system_bg">#DDEFE3</color>
+    <color name="ai_message_system_text">#16351F</color>
+    <color name="ai_message_system_role">#1B6B3A</color>
+    <color name="ai_message_star">#8A5A00</color>
 </resources>
