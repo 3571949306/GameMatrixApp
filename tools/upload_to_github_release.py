@@ -91,6 +91,23 @@ def github_request(
         raise SystemExit(f"GitHub API {method} {path} failed: {e.reason}") from e
 
 
+def update_release_metadata(token: str, release_id: str, version_name: str, changelog: str) -> None:
+    """Keep stable releases marked as official releases when rerunning publish."""
+    repo_path = f"/repos/{REPO_OWNER}/{REPO_NAME}"
+    payload = {
+        "name": f"GameCenterApp {version_name}",
+        "body": changelog,
+        "draft": False,
+        "prerelease": False,
+    }
+    github_request(
+        "PATCH",
+        f"{repo_path}/releases/{release_id}",
+        token,
+        data=json.dumps(payload).encode("utf-8"),
+    )
+
+
 def find_or_create_release(token: str, tag: str, version_name: str, changelog: str) -> tuple[str, str]:
     """Find existing release by tag name, or create a new one. Returns (upload_url, release_id)."""
     repo_path = f"/repos/{REPO_OWNER}/{REPO_NAME}"
@@ -99,6 +116,7 @@ def find_or_create_release(token: str, tag: str, version_name: str, changelog: s
     release = github_request("GET", f"{repo_path}/releases/tags/{tag}", token, allow_404=True)
     if release:
         print(f"Found existing release for tag {tag}")
+        update_release_metadata(token, release["id"], version_name, changelog)
         # GitHub returns upload_url with {?name,label} template, clean it
         upload_url = release["upload_url"].split("{")[0]
         return upload_url, release["id"]
@@ -110,12 +128,27 @@ def find_or_create_release(token: str, tag: str, version_name: str, changelog: s
         "name": f"GameCenterApp {version_name}",
         "body": changelog,
         "draft": False,
-        "prerelease": True,
+        "prerelease": False,
     }).encode("utf-8")
 
     release = github_request("POST", f"{repo_path}/releases", token, data=release_data)
     upload_url = release["upload_url"].split("{")[0]
     return upload_url, release["id"]
+
+
+def delete_existing_asset(token: str, release_id: str, asset_name: str) -> None:
+    """Delete a same-name release asset so rerunning publish replaces the APK."""
+    repo_path = f"/repos/{REPO_OWNER}/{REPO_NAME}"
+    assets = github_request("GET", f"{repo_path}/releases/{release_id}/assets", token)
+    if not assets:
+        return
+    for asset in assets:
+        if asset.get("name") != asset_name:
+            continue
+        asset_id = asset["id"]
+        github_request("DELETE", f"{repo_path}/releases/assets/{asset_id}", token)
+        print(f"Deleted existing asset {asset_name}")
+        return
 
 
 def upload_asset(token: str, upload_url: str, file_path: Path) -> None:
@@ -156,6 +189,7 @@ def main() -> None:
     parser.add_argument("--apk", required=True, help="Path to APK file")
     parser.add_argument("--version-name", required=True, help="Version name (e.g. 1.3.8)")
     parser.add_argument("--changelog", default="", help="Release notes")
+    parser.add_argument("--changelog-file", default=None, help="Path to release notes file")
     parser.add_argument("--token", default=None, help="GitHub personal access token")
     args = parser.parse_args()
 
@@ -165,9 +199,13 @@ def main() -> None:
 
     token = load_token(args.token)
     tag = args.version_name
+    changelog = args.changelog
+    if args.changelog_file:
+        changelog = Path(args.changelog_file).read_text(encoding="utf-8")
 
     print(f"Preparing release v{tag}...")
-    upload_url, release_id = find_or_create_release(token, tag, args.version_name, args.changelog)
+    upload_url, release_id = find_or_create_release(token, tag, args.version_name, changelog)
+    delete_existing_asset(token, release_id, apk_path.name)
     upload_asset(token, upload_url, apk_path)
     print(f"Release v{tag} uploaded successfully!")
 

@@ -35,8 +35,8 @@ except ImportError:
     print("警告：requests 未安装，GitHub Releases 上传功能不可用。安装：pip install requests")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_APK = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "release" / "app-release-unsigned.apk"
-DEFAULT_VERSION_JSON = REPO_ROOT / "app" / "build" / "outputs" / "version.json"
+DEFAULT_APK = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "release" / "app-release.apk"
+DEFAULT_VERSION_JSON = REPO_ROOT / "app" / "build" / "outputs" / "apk" / "release" / "version.json"
 
 # ============ 配置 ============
 

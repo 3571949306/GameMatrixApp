@@ -11,14 +11,14 @@
 ### APK 文件
 | 文件路径 | 说明 |
 |---------|------|
-| `app/build/outputs/apk/release/app-release-unsigned.apk` | 正式版 APK（已混淆，约 15.6 MB） |
+| `app/build/outputs/apk/release/app-release.apk` | 正式版 APK（已签名、已混淆，约 15.6 MB） |
 | `app/build/outputs/apk/debug/app-debug.apk` | 调试版 APK（未混淆，带 LeakCanary） |
 
 ### 版本元数据
 | 文件路径 | 说明 |
 |---------|------|
 | `app/src/main/assets/version.json` | 版本信息（应用内置检查更新使用） |
-| `app/build/outputs/version.json` | 生成的版本文件（VPS 上传使用） |
+| `app/build/outputs/apk/release/version.json` | 生成的版本文件（VPS 上传使用） |
 
 ### 发布脚本
 | 文件路径 | 说明 |
@@ -44,10 +44,10 @@
 .\gradlew generateVersionJson
 
 # 3. 上传到 VPS（需要配置 VPS 信息）
-python tools/upload_to_vps.py --apk app\build\outputs\apk\release\app-release-unsigned.apk --version-json app\build\outputs\version.json
+python tools/upload_to_vps.py --apk app\build\outputs\apk\release\app-release.apk --version app\build\outputs\apk\release\version.json
 
 # 4. 上传到 GitHub Releases
-python tools/upload_to_github_release.py app\build\outputs\apk\release\app-release-unsigned.apk "v1.11.0"
+python tools/upload_to_github_release.py --apk app\build\outputs\apk\release\app-release.apk --version-name 1.11.0
 ```
 
 ## ✨ 本次更新

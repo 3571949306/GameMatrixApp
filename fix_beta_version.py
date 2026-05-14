@@ -7,6 +7,7 @@ This ensures beta users (v222) can see the stable update (v223).
 import json
 import sys
 import io
+import os
 
 try:
     import paramiko
@@ -17,8 +18,12 @@ except ImportError:
 # VPS configuration
 VPS_HOST = "149.104.29.181"
 VPS_USER = "root"
-VPS_PASSWORD = "!H8sfw6=v-"
+VPS_PASSWORD = os.environ.get("GAMECENTER_VPS_PASSWORD", "")
 REMOTE_DIR = "/var/www/update/app"
+
+if not VPS_PASSWORD:
+    print("Set GAMECENTER_VPS_PASSWORD before running this legacy helper.")
+    sys.exit(1)
 
 # Connect to VPS and download version-release.json
 try:

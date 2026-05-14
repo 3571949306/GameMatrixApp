@@ -4,6 +4,7 @@
     <string name="nav_browser">Browser</string>
     <string name="nav_games">Games</string>
     <string name="nav_tools">Tools</string>
+    <string name="nav_ai">AI</string>
     <string name="gomoku">Gomoku</string>
     <string name="chinese_chess">Chinese Chess</string>
     <string name="gomoku_desc">Classic Gomoku vs AI</string>

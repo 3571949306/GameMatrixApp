@@ -16,8 +16,8 @@ Write-Host ""
 
 # 配置
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ApkPath = "$RepoRoot\app\build\outputs\apk\release\app-release-unsigned.apk"
-$VersionJsonPath = "$RepoRoot\app\build\outputs\version.json"
+$ApkPath = "$RepoRoot\app\build\outputs\apk\release\app-release.apk"
+$VersionJsonPath = "$RepoRoot\app\build\outputs\apk\release\version.json"
 $VpsConfigDir = "$RepoRoot\local_private\vps"
 
 # 更新源配置

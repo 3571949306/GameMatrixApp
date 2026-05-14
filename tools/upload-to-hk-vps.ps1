@@ -1,8 +1,8 @@
 # 上传 GameCenterApp 到香港 VPS
 param(
     [string]$Channel = "beta",
-    [string]$ApkPath = "app\build\outputs\apk\release\app-release-unsigned.apk",
-    [string]$VersionJsonPath = "app\build\generated\assets\version\version.json"
+    [string]$ApkPath = "app\build\outputs\apk\release\app-release.apk",
+    [string]$VersionJsonPath = "app\build\outputs\apk\release\version.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,9 +10,13 @@ $ErrorActionPreference = "Stop"
 # VPS 配置
 $VpsHost = "149.104.29.181"
 $VpsUser = "root"
-$VpsPassword = "!H8sfw6=v-"
+$VpsPassword = $env:GAMECENTER_VPS_PASSWORD
 $VpsPort = 22
 $RemoteDir = "/var/www/update/app"
+
+if ([string]::IsNullOrWhiteSpace($VpsPassword)) {
+    throw "Set GAMECENTER_VPS_PASSWORD before running this legacy helper."
+}
 
 $RemoteApk = "app-$Channel.apk"
 $RemoteVersion = "version-$Channel.json"

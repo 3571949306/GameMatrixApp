@@ -3,6 +3,7 @@ package com.gamecenter.app.fragments;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -63,6 +64,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ToolsFragment extends Fragment {
+
+    private static final String TAG = "ToolsFragment";
 
     private RecyclerView recyclerView;
     private ToolsAdapter adapter;
@@ -288,9 +291,14 @@ public class ToolsFragment extends Fragment {
                 if (existing != null) {
                     contentRoot.removeAllViews();
                 }
-                View contentView = LayoutInflater.from(itemView.getContext()).inflate(section.contentLayoutId, contentRoot, false);
-                contentRoot.addView(contentView);
-                bindContent(section, contentView);
+                try {
+                    View contentView = LayoutInflater.from(itemView.getContext()).inflate(section.contentLayoutId, contentRoot, false);
+                    contentRoot.addView(contentView);
+                    bindContent(section, contentView);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to bind tool section: " + section.id, e);
+                    contentRoot.addView(createToolErrorView(itemView.getContext(), section));
+                }
             }
             View btnFavorite = itemView.findViewById(R.id.btn_tool_favorite);
             if (btnFavorite != null) {
@@ -312,6 +320,16 @@ public class ToolsFragment extends Fragment {
             if (binder != null) {
                 binder.bind(requireContext(), contentView, executor);
             }
+        }
+
+        private View createToolErrorView(Context context, ToolSection section) {
+            TextView errorView = new TextView(context);
+            int padding = (int) (12 * context.getResources().getDisplayMetrics().density);
+            errorView.setPadding(padding, padding, padding, padding);
+            errorView.setText("该工具暂时无法加载：" + section.title);
+            errorView.setTextColor(0xFFB00020);
+            errorView.setTextSize(14);
+            return errorView;
         }
 
         void drag() {

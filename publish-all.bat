@@ -47,11 +47,15 @@ if errorlevel 1 (
 )
 echo.
 
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Get-Content 'app\build\outputs\apk\release\version.json' -Raw | ConvertFrom-Json).versionName"`) do set VERSION_NAME=%%v
+set GITHUB_VERSION=%VERSION_NAME%
+if /I "%CHANNEL%"=="beta" set GITHUB_VERSION=%VERSION_NAME%-beta
+
 REM 步骤 4: 上传到 VPS（HK + US）
 echo [4/5] 上传到 VPS 服务器...
 python tools\upload_to_vps.py ^
-    --apk app\build\outputs\apk\release\app-release-unsigned.apk ^
-    --version app\build\outputs\version.json ^
+    --apk app\build\outputs\apk\release\app-release.apk ^
+    --version app\build\outputs\apk\release\version.json ^
     --channel %CHANNEL% %SKIP_VERIFY%
 if errorlevel 1 (
     echo [警告] VPS 上传失败，继续尝试 GitHub Releases...
@@ -61,8 +65,8 @@ echo.
 REM 步骤 5: 上传到 GitHub Releases
 echo [5/5] 上传到 GitHub Releases...
 python tools\upload_to_github_release.py ^
-    app\build\outputs\apk\release\app-release-unsigned.apk ^
-    "v1.11.0"
+    --apk app\build\outputs\apk\release\app-release.apk ^
+    --version-name "%GITHUB_VERSION%"
 if errorlevel 1 (
     echo [警告] GitHub Releases 上传失败
 )

@@ -1,4 +1,4 @@
-# GameCenterApp 项目上下文
+﻿# GameCenterApp 项目上下文
 
 > 给 AI 开发助手和维护者的快速入口。优先以仓库当前代码为准，本文档用于减少查找成本和避免常见误判。
 
@@ -6,6 +6,10 @@
 
 | 版本 | 变更内容 |
 |------|----------|
+| **当前工作区** | **Gemma 本地推理接入：MediaPipe LLM Inference、下载前 Gemma Notice、启用后本地优先路由** |
+| **当前工作区** | **AI 阶段 4 完成：模板、历史搜索、收藏、导出；发布脚本统一签名 R8 release 包** |
+| **v1.3.21-beta** | **AI 智能助手接入：新增 AiFragment、AiTaskRouter、LocalAiProcessor，7 种 AI 任务，独立底部导航接入** |
+| **v1.3.20** | **依赖升级（Kotlin 2.1.10、Hilt 2.55、AndroidX 等）、Gson 替换手工 JSON、代码清理** 🔧 |
 | **v1.3.19** | **双版本分发架构重构：测试版/正式版分离、更新逻辑优化、上传脚本修复** 🚀 |
 | **v1.3.17** | **修复 APK 签名配置、自动更新源选择逻辑、构建系统问题** 🔥 |
 | v1.3.16 | APK 签名配置、敏感文件排除、自动化发布流程 |
@@ -20,6 +24,11 @@
 | `app/src/main/java/com/gamecenter/app/PermissionHelper.java` | 权限管理辅助 |
 | `app/src/main/java/com/gamecenter/app/utils/NetworkErrorHandler.java` | 网络错误统一处理 |
 | `app/src/main/java/com/gamecenter/app/utils/I18nHelper.java` | 国际化辅助 |
+| `app/src/main/java/com/gamecenter/app/ai/AiTaskRouter.java` | AI 任务调度（本地优先 → 云端 fallback） |
+| `app/src/main/java/com/gamecenter/app/ai/ui/AiFragment.java` | AI 助手聊天页面 |
+| `app/src/main/java/com/gamecenter/app/ai/local/MediaPipeLocalLlmEngine.java` | Gemma `.task` 本地推理封装 |
+| `app/src/main/java/com/gamecenter/app/ai/legal/AiLegalNotices.java` | Gemma 条款、本地 AI 风险提示与下载前确认文本 |
+| `app/src/main/java/com/gamecenter/app/ai/template/AiTemplateManager.java` | AI 常用模板管理 |
 | `.github/workflows/ci.yml` | GitHub Actions CI/CD 工作流 |
 | `keystore.properties` | APK 签名凭证配置（不提交 Git） |
 | `app/gamecenter.keystore` | APK 签名密钥库（不提交 Git） |
@@ -108,8 +117,8 @@
 当前 `version.properties` 示例：
 
 ```properties
-versionCode=206
-versionName=1.3.13
+versionCode=236
+versionName=1.3.20
 ```
 
 ## 2. 代码结构
@@ -127,15 +136,30 @@ GameCenterApp/
 │       │   ├── MainActivity.java
 │       │   ├── SettingsManager.java
 │       │   ├── ColorSchemeManager.java
+│       │   ├── ai/                          # ← 新增：AI 功能模块
+│       │   │   ├── AiTaskRouter.java        #     任务路由（本地优先 + 云端 fallback）
+│       │   │   ├── AiPreferences.java       #     AI 偏好设置
+│       │   │   ├── data/                    #     数据模型
+│       │   │   │   ├── AiMessage.java
+│       │   │   │   ├── AiTask.java
+│       │   │   │   ├── AiResult.java
+│       │   │   │   └── AiProviderConfig.java
+│       │   │   ├── cloud/                   #     云端 API
+│       │   │   │   └── AiApiClient.java
+│       │   │   ├── local/                   #     本地处理
+│       │   │   │   └── LocalAiProcessor.java
+│       │   │   └── ui/                      #     页面
+│       │   │       └── AiFragment.java
 │       │   ├── fragments/
 │       │   ├── games/
 │       │   ├── settings/
+│       │   ├── tools/
 │       │   ├── update/
 │       │   ├── utils/
 │       │   └── views/
 │       └── res/
-│           ├── drawable/
-│           ├── layout/
+│           ├── drawable/                    # ← 新增：AI 消息气泡背景
+│           ├── layout/                      # ← 新增：fragment_ai.xml, item_ai_message.xml
 │           ├── menu/
 │           ├── raw/
 │           ├── values/
@@ -153,10 +177,11 @@ GameCenterApp/
 
 目录说明：
 
-- `app/src/main/java/com/gamecenter/app/fragments`: 三个主页面，游戏大厅、工具箱、内置浏览器。
+- `app/src/main/java/com/gamecenter/app/fragments`: 三个主页面，游戏大厅、工具箱、内置浏览器。`AiFragment` 在 ai/ui 包中。
+- `app/src/main/java/com/gamecenter/app/ai`: AI 助手模块。包含路由调度 (`AiTaskRouter`)、云端客户端 (`AiApiClient`)、本地处理器 (`LocalAiProcessor`)、历史与收藏 (`AiHistoryStore`)、模板 (`AiTemplateManager`)、偏好设置 (`AiPreferences`) 和数据模型。默认 DeepSeek API，可切换阿里云通义、硅基流动、智谱 AI、零一万物、OpenAI 等多家 API。
 - `app/src/main/java/com/gamecenter/app/games`: 各小游戏模块。多数模块采用 `Activity + View + Game` 的简单分层。
 - `app/src/main/java/com/gamecenter/app/settings`: 设置弹窗与设置项交互。`AppSettingsDialog` 已从 `GamesFragment` 拆出，负责主题、配色、版本更新和反馈入口。
-- `app/src/main/java/com/gamecenter/app/tools`: 工具箱拆分后的共享结构和独立 binder。当前包含功能区模型/配置存储、剪贴板/哈希/颜色取色器 binder，以及 `AdvancedToolBinders` 中的网络体检、诊断报告、DNS 查询、局域网扫描、编码/时间戳/JSON、文件哈希、二维码增强、颜色增强、权限隐私说明。
+- `app/src/main/java/com/gamecenter/app/tools`: 工具箱拆分后的共享结构和独立 binder。当前包含功能区模型/配置存储、剪贴板/哈希/颜色取色器 binder，以及 `AdvancedToolBinders` 中的网络体检、诊断报告、DNS 查询、局域网扫描、编码/时间戳/JSON、文件哈希、二维码增强、颜色增强、权限隐私说明。AI 不再嵌入工具箱，入口在底部导航。
 - `app/src/main/java/com/gamecenter/app/update`: 自更新模块，包含 `version.json` 检查、正式/测试版策略、下载、MD5 校验、FileProvider 安装。
 - `vps/var_www_update`: VPS 更新和反馈模板；更新服务部署为 `/var/www/update/server.py`，App 上传目录为 `/var/www/update/app/`，反馈目录为 `/var/www/update/feedback/`。
 - `vps/var_www_update/feedback`: VPS 反馈接收模板，部署目标为 `/var/www/update/feedback/`，通过 nginx `/api/feedback` 转发到本机 `127.0.0.1:9011`；反馈会按类型保存到 `Bug反馈/` 和 `功能建议/`，文件名包含编号、类型、时间和反馈摘要。
@@ -169,7 +194,7 @@ GameCenterApp/
 `MainActivity` 是底部导航容器，负责挂载三个 Fragment：
 
 - `GamesFragment`: 游戏大厅，使用 `TabLayout + RecyclerView` 展示游戏卡片，支持搜索、最近游玩、收藏。右上角设置入口委托给 `settings/AppSettingsDialog`；反馈入口优先 POST 到 VPS，公开仓库不保存个人邮箱兜底收件人。
-- `ToolsFragment`: 工具箱，包含网络、设备、颜色、二维码、剪贴板等实用工具入口，支持工具搜索、收藏、最近使用、排序、显隐和单双列布局。功能区模型和配置存储已拆到 `tools/ToolSection` 与 `tools/ToolSectionStore`；剪贴板、哈希、颜色取色器和增强工具已拆成独立 binder。
+- `ToolsFragment`: 工具箱，包含网络、设备、颜色、二维码、剪贴板等实用工具入口。支持工具搜索、收藏、最近使用、排序、显隐和单双列布局。功能区模型和配置存储已拆到 `tools/ToolSection` 与 `tools/ToolSectionStore`；剪贴板、哈希、颜色取色器和增强工具已拆成独立 binder。`r`n- `AiFragment`: AI 独立底部导航页，支持 7 种任务、模板快捷填充、历史搜索、收藏筛选和导出。
 - `BrowserFragment`: 内置 WebView 浏览器。
 
 全局状态和主题：
@@ -207,7 +232,7 @@ tic, tiles, whack
 
 ## 5. 构建与版本
 
-当前版本：`versionCode=217`, `versionName=1.3.16`
+当前版本：`versionCode=236`, `versionName=1.3.20`。当前工作区在该版本基础上完成 AI 阶段 4 和发布链路修复。
 
 Windows 下推荐命令：
 
@@ -221,8 +246,8 @@ Windows 下推荐命令：
 输出位置：
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
-- Release APK: `app/build/outputs/apk/release/app-release.apk`（已签名）
-- Debug 版本信息：`app/build/outputs/apk/debug/version.json`
+- Release APK: `app/build/outputs/apk/release/app-release.apk`（已签名、已 R8 混淆）
+- Release 版本信息：`app/build/outputs/apk/release/version.json`
 - APK 内置版本信息：构建时生成到 `build/generated/assets/version/version.json` 并打包为 `assets/version.json`
 
 ### APK 签名配置
@@ -237,13 +262,13 @@ Release APK 已配置自动签名：
 ### 构建副作用：
 
 - `assembleDebug` 在 `afterEvaluate` 中被配置为完成后执行 `generateVersionJson` 和 `bumpVersion`；带 `-PautoUploadVps=true` 时还会执行 `uploadDebugArtifactsToVps`。
-- `generateBundledVersionJson` 会在构建前生成内置 `assets/version.json`；远端更新检查优先抓取 VPS 的 `/version.json`，并按 `channel`/`isBeta` 区分正式版和测试版。
+- `generateBundledVersionJson` 会在构建前生成内置 `assets/version.json`；远端更新检查优先抓取 VPS 的 `/version-beta.json` 或 `/version-release.json`，并按 `channel`/`isBeta` 区分正式版和测试版。
 - `bumpVersion` 会把 `version.properties` 的 `versionCode` 自动加 1。
-- `uploadDebugToVps` / `buildAndUploadDebugToVps` 会先构建再上传；内部 `uploadDebugArtifactsToVps` 调用 `tools/upload_to_vps.py`，把 `app-debug.apk` 和 `version.json` 上传到 `/var/www/update/app/`，并验证公网 `/version.json` 与 `/app-debug.apk`。
+- 发布脚本调用 `tools/upload_to_vps.py` 上传签名混淆后的 `app-release.apk`，远端按通道保存为 `app-beta.apk` 或 `app-release.apk`，并同步 `version-beta.json` / `version-release.json`。
 - 上传配置位于 `local_private/vps/upload_config_hk.json`（香港 VPS）和 `upload_config_us.json`（美国 VPS），该目录被 `.gitignore` 排除。
 - 如果只是验证代码能否编译，运行 Debug 构建后要留意 `version.properties` 会变更。
 - 只有明确发布正式版时才修改 `versionName`；其他打包只允许递增内部 `versionCode`，不要把测试包伪装成正式版本。
-- VPS 可以分发 beta，且永远只保留一个最新版 APK 与对应 `version.json`；旧 `/downloads/...` 路径只做兼容转发，不保存第二份包。
+- VPS 同时维护 beta/release 双通道文件：`app-beta.apk`、`version-beta.json`、`app-release.apk`、`version-release.json`；旧 `/downloads/...` 路径只做兼容转发。
 - beta-only 分发时，`version.json` 带 `lastStableVersionCode`、`lastStableVersionName`、`betaNoticeVersionGap`；用户关闭测试版且本地版本明显落后上一个正式版时，App 会提示开启测试版或等待正式版。
 - 设置页新增自动下载安装包能力，默认关闭；开启后自动检查到新版本会后台下载，下载完成后是否提示安装由独立子开关控制。
 
@@ -277,12 +302,12 @@ Release APK 已配置自动签名：
 依赖集中在 `app/build.gradle`：
 
 ```gradle
-implementation 'androidx.appcompat:appcompat:1.7.0'
+implementation 'androidx.appcompat:appcompat:1.7.1'
 implementation 'com.google.android.material:material:1.12.0'
-implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
-implementation 'androidx.navigation:navigation-fragment:2.8.4'
-implementation 'androidx.navigation:navigation-ui:2.8.4'
-implementation 'androidx.recyclerview:recyclerview:1.3.2'
+implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+implementation 'androidx.navigation:navigation-fragment:2.8.9'
+implementation 'androidx.navigation:navigation-ui:2.8.9'
+implementation 'androidx.recyclerview:recyclerview:1.4.0'
 implementation 'androidx.cardview:cardview:1.0.0'
 implementation 'androidx.webkit:webkit:1.12.1'
 ```
@@ -308,7 +333,7 @@ implementation 'androidx.webkit:webkit:1.12.1'
 - 避免把构建产物、反编译输出、参考 APK 目录混入主源码修改。
 - 修改 `GamesFragment`、`AndroidManifest.xml`、`strings.xml` 时要一起检查入口、注册、文案是否一致。
 - 更新模块涉及 `version.json`、测试版接收策略、下载、安装和证书策略，改动后至少验证远端文件解析、Android 7.0+ FileProvider 路径和 MD5 校验流程。
-- VPS 更新服务改动后至少验证公网 `/version.json`、`/app-debug.apk`、旧 `/api/update/check` 和 `/downloads/...` 兼容路径。
+- VPS 更新服务改动后至少验证公网 `/version-beta.json`、`/app-beta.apk`、`version-release.json`、`app-release.apk`、旧 `/api/update/check` 和 `/downloads/...` 兼容路径。
 - 反馈模块涉及 VPS 接口、诊断信息和邮箱兜底，改动后至少验证 `/api/feedback/health`、POST JSON、`feedback.log` 写入。
 - 推送到 GitHub 前必须确认 `local_private/` 被忽略，并扫描密码、token、SSH 私钥、主机指纹和个人服务地址，避免把本机隐私配置提交到公开仓库。
 - **签名文件安全**：`gamecenter.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交
@@ -367,26 +392,36 @@ strings.xml -> 名称和描述
 res/layout, res/drawable, res/raw -> 资源
 ```
 
-新增工具：
+新增 AI 功能模块：
 
 ```text
-ToolSectionStore.java -> 添加工具入口、默认排序和收藏/最近使用状态
-ToolsFragment.java -> 添加少量绑定分发和文件选择回调
-tools/*ToolBinder.java -> 放置具体工具逻辑
-fragment_tools.xml 或 item_tool_*.xml -> UI
-strings.xml -> 文案
-AndroidManifest.xml -> 权限和 queries 如需要
+ai/
+├── AiTaskRouter.java        # 任务路由：本地优先 → 云端 fallback
+├── AiPreferences.java       # AI 偏好设置（API Key、模式选择、配额管理）
+├── data/
+│   ├── AiMessage.java       # 对话消息模型
+│   ├── AiTask.java          # 任务模型
+│   ├── AiResult.java        # 统一返回结果
+│   └── AiProviderConfig.java # AI 提供商配置
+├── cloud/
+│   └── AiApiClient.java     # OpenAI 兼容 API 客户端
+├── local/
+│   └── LocalAiProcessor.java # 本地 AI 处理（规则摘要、关键词提取等）
+└── ui/
+    └── AiFragment.java      # AI 助手聊天页面
 ```
 
-发版检查：
+新增资源：
 
 ```text
-version.properties -> versionName 是否正确
-changelog.txt / CHANGELOG.md -> 更新说明
-.\gradlew.bat assembleRelease -> 生成 Release APK
-安装测试 -> 首页、游戏入口、工具箱、更新流程
+res/layout/fragment_ai.xml            # AI 助手全页面布局
+res/layout/item_tool_ai.xml           # 工具箱中 AI 入口布局
+res/layout/item_ai_message.xml        # AI 消息列表项布局
+res/drawable/bg_ai_message_user.xml   # 用户消息气泡背景
+res/drawable/bg_ai_message_assistant.xml # AI 消息气泡背景
+res/drawable/bg_ai_message_system.xml   # 系统消息气泡背景
 ```
 
 ---
 
-最后更新：2026-05-10
+最后更新：2026-05-14（AI 阶段 4 + 发布链路修复）

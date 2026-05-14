@@ -91,9 +91,9 @@ pip install paramiko requests
 ```properties
 # GameCenterApp 签名配置
 STORE_FILE=gamecenter.keystore
-STORE_PASSWORD=GameCenter2026
+STORE_PASSWORD=<your-store-password>
 KEY_ALIAS=gamecenter
-KEY_PASSWORD=GameCenter2026
+KEY_PASSWORD=<your-key-password>
 ```
 
 确保 `gamecenter.keystore` 文件存在于项目根目录。

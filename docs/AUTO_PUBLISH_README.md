@@ -57,8 +57,8 @@ gradlew.bat generateVersionJson -PupdateChannel=beta
 
 ```bash
 python tools\upload_to_vps.py ^
-    --apk app\build\outputs\apk\release\app-release-unsigned.apk ^
-    --version app\build\outputs\version.json ^
+    --apk app\build\outputs\apk\release\app-release.apk ^
+    --version app\build\outputs\apk\release\version.json ^
     --channel beta --skip-verify
 ```
 
@@ -66,8 +66,8 @@ python tools\upload_to_vps.py ^
 
 ```bash
 python tools\upload_to_github_release.py ^
-    app\build\outputs\apk\release\app-release-unsigned.apk ^
-    "v1.11.0"
+    --apk app\build\outputs\apk\release\app-release.apk ^
+    --version-name 1.3.20-beta
 ```
 
 ## 前置要求

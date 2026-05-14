@@ -34,9 +34,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class UpdateManager {
 
@@ -123,7 +126,8 @@ public class UpdateManager {
         installIntent.setDataAndType(uri, "application/vnd.android.package-archive");
         installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, installIntent,
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,
+                (int) System.currentTimeMillis(), installIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
@@ -414,16 +418,16 @@ public class UpdateManager {
         if (downloadUrl == null || downloadUrl.trim().isEmpty()) {
             String apkName = json.optString("apkName", "").trim();
             if (apkName.isEmpty()) apkName = json.optString("apkFile", "").trim();
-            if (apkName.isEmpty()) apkName = "app-debug.apk";
+            if (apkName.isEmpty()) apkName = info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
             downloadUrl = resolveRelativeUrl(versionJsonUrl, apkName);
         } else if (!downloadUrl.startsWith("http://") && !downloadUrl.startsWith("https://")) {
             downloadUrl = resolveRelativeUrl(versionJsonUrl, downloadUrl);
         }
         if (downloadUrl == null || downloadUrl.trim().isEmpty()) {
             if (baseUrl.equals(GITHUB_RELEASES_BASE_URL)) {
-                downloadUrl = GITHUB_RELEASES_BASE_URL + "/download/" + info.getVersionName() + "/GameCenterApp.apk";
+                downloadUrl = buildGitHubAssetUrl(info);
             } else {
-                downloadUrl = trimTrailingSlash(baseUrl) + "/app-debug.apk";
+                downloadUrl = trimTrailingSlash(baseUrl) + "/" + (info.isBetaRelease() ? "app-beta.apk" : "app-release.apk");
             }
         }
         info.setDownloadUrl(downloadUrl);
@@ -592,9 +596,10 @@ public class UpdateManager {
         if (primaryUrl != null && !primaryUrl.isEmpty()) {
             urls.add(primaryUrl);
         }
-        String githubUrl = GITHUB_RELEASES_BASE_URL + "/download/" + info.getVersionName() + "/GameCenterApp.apk";
-        String hkUrl = trimTrailingSlash(HK_BASE_URL) + "/" + extractApkName(primaryUrl);
-        String usUrl = US_BASE_URL.isEmpty() ? "" : trimTrailingSlash(US_BASE_URL) + "/" + extractApkName(primaryUrl);
+        String apkName = extractApkName(primaryUrl, info);
+        String githubUrl = buildGitHubAssetUrl(info);
+        String hkUrl = trimTrailingSlash(HK_BASE_URL) + "/" + apkName;
+        String usUrl = US_BASE_URL.isEmpty() ? "" : trimTrailingSlash(US_BASE_URL) + "/" + apkName;
         
         if (!urls.contains(githubUrl)) urls.add(githubUrl);
         if (!urls.contains(hkUrl)) urls.add(hkUrl);
@@ -602,13 +607,29 @@ public class UpdateManager {
         return urls;
     }
 
-    private String extractApkName(String url) {
-        if (url == null || url.isEmpty()) return "app-debug.apk";
+    private String extractApkName(String url, UpdateInfo info) {
+        String fallback = info != null && info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
+        if (url == null || url.isEmpty()) return fallback;
         int idx = url.lastIndexOf('/');
-        return idx >= 0 ? url.substring(idx + 1) : "app-debug.apk";
+        String name = idx >= 0 ? url.substring(idx + 1) : url;
+        int query = name.indexOf('?');
+        if (query >= 0) {
+            name = name.substring(0, query);
+        }
+        return name.isEmpty() || name.endsWith(".json") ? fallback : name;
+    }
+
+    private String buildGitHubAssetUrl(UpdateInfo info) {
+        String tag = info != null ? info.getVersionName() : "";
+        String apkName = info != null && info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
+        if (tag == null || tag.isEmpty()) {
+            return "https://github.com/3571949306/GameCenterApp/releases/latest/download/" + apkName;
+        }
+        return "https://github.com/3571949306/GameCenterApp/releases/download/" + tag + "/" + apkName;
     }
 
     private File downloadFromUrl(Context context, UpdateInfo info, String downloadUrl, DownloadCallback callback) throws Exception {
+        cleanOldApksBeforeDownload(context);
         File downloadDir = getDownloadDir(context);
         if (!downloadDir.exists()) {
             downloadDir.mkdirs();
@@ -711,7 +732,24 @@ public class UpdateManager {
         return new File(baseDir, "update");
     }
 
+    private void cleanOldApksBeforeDownload(Context context) {
+        File downloadDir = getDownloadDir(context);
+        if (!downloadDir.exists() || !downloadDir.isDirectory()) {
+            return;
+        }
+        File[] apkFiles = downloadDir.listFiles((dir, name) ->
+                name.startsWith("GameCenter_v") && name.endsWith(".apk"));
+        if (apkFiles == null || apkFiles.length == 0) {
+            return;
+        }
+        for (File apk : apkFiles) {
+            apk.delete();
+        }
+        Log.d(TAG, "Cleaned all old APKs before downloading new update");
+    }
+
     public boolean openDownloadDirectory(Context context) {
+        cleanOldApks(context);
         File downloadDir = getDownloadDir(context);
         if (!downloadDir.exists() && !downloadDir.mkdirs()) {
             Toast.makeText(context, "无法创建下载目录", Toast.LENGTH_SHORT).show();
@@ -742,6 +780,48 @@ public class UpdateManager {
                 return false;
             }
         }
+    }
+
+    /**
+     * 清理旧版本 APK，仅保留最新版本。
+     * 避免下载目录中存在多个 APK 导致安装错误版本。
+     */
+    public int cleanOldApks(Context context) {
+        File downloadDir = getDownloadDir(context);
+        if (!downloadDir.exists() || !downloadDir.isDirectory()) {
+            return 0;
+        }
+        File[] apkFiles = downloadDir.listFiles((dir, name) ->
+                name.startsWith("GameCenter_v") && name.endsWith(".apk"));
+        if (apkFiles == null || apkFiles.length <= 1) {
+            return 0;
+        }
+        Pattern pattern = Pattern.compile("GameCenter_v(\\d+)_");
+        File latestApk = null;
+        int latestVersionCode = -1;
+        int deletedCount = 0;
+        for (File apk : apkFiles) {
+            Matcher matcher = pattern.matcher(apk.getName());
+            if (matcher.find()) {
+                int versionCode = Integer.parseInt(matcher.group(1));
+                if (versionCode > latestVersionCode) {
+                    if (latestApk != null && !latestApk.equals(apk)) {
+                        latestApk.delete();
+                        deletedCount++;
+                    }
+                    latestApk = apk;
+                    latestVersionCode = versionCode;
+                } else {
+                    apk.delete();
+                    deletedCount++;
+                }
+            }
+        }
+        if (deletedCount > 0) {
+            Log.d(TAG, "Cleaned " + deletedCount + " old APK(s), keeping: "
+                    + (latestApk != null ? latestApk.getName() : "none"));
+        }
+        return deletedCount;
     }
 
     private void callbackApkReady(DownloadCallback callback, File apkFile) {

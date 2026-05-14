@@ -1,5 +1,114 @@
 # 夹层 - 版本更新日志
 
+## [当前工作区] - 2026-05-14（Gemma 本地推理接入 + 用户协议补强）
+
+### Gemma 本地推理
+- 新增 `MediaPipeLocalLlmEngine`，通过 `com.google.mediapipe:tasks-genai` 加载 `.task` 模型并执行本地文本生成。
+- `AiTaskRouter` 支持在本地模型下载并启用后，优先将总结、翻译、润色、问答、关键词、分类和聊天任务路由到本地 Gemma。
+- 本地推理加入设备内存检查和异常兜底，避免低内存或模型加载失败导致崩溃。
+- 下载完成后自动启用 `gemma3-1b-it-q4` 并保持本地优先策略。
+
+### AI 协议与合规
+- 新增 `AiLegalNotices`，在首次下载 Gemma 前展示 Google Gemma Terms、本地推理说明、风险提示和用户责任。
+- `AiPreferences` 记录 Gemma notice 版本和确认时间，避免条款变化后无法重新触达用户。
+- 新增 `docs/AI_USER_AGREEMENT_LOCAL_AI.md`，记录 App 内 AI 用户协议、下载前确认项、发布检查清单。
+
+---
+
+## [当前工作区] - 2026-05-14（Gemma 本地模型分发 + 更新下载修复）
+
+### AI 本地模型准备
+- 新增 AI 页面“本地模型”入口，可从 HK VPS 读取 `ai-models/models.json`。
+- 新增 `AiModelDownloadManager`，模型下载位置固定为 App 私有目录 `Android/data/<package>/files/Documents/ai_models`，不写入公共下载目录，适配新 Android 版本的存储限制。
+- HK VPS 模型清单加入 `Gemma3-1B-IT q4` 条目；由于上游 Gemma 权重需要许可确认，当前清单默认禁用直下，避免无授权下载失败。
+
+### 更新下载修复
+- 修复 APK 下载地址回退逻辑，不再错误回退到 `app-debug.apk`。
+- GitHub 备用下载地址改为 `releases/download/<tag>/app-release.apk`。
+
+---
+## [当前工作区] - 2026-05-14（AI 阶段 4 + 发布链路修复）
+
+### AI 阶段 4 ✅
+- **AI 独立底部导航页**：AI 不再嵌入工具箱，入口位于底部导航。
+- **模板能力**：新增 `AiTemplateManager`，提供会议纪要、代码报错、文案润色、中英翻译、复习问答模板。
+- **历史增强**：AI 页面支持历史搜索、收藏筛选、消息收藏/取消收藏。
+- **导出能力**：支持按当前筛选结果通过系统分享导出 AI 记录。
+
+### 发布链路修复 🔐
+- 发布脚本统一上传已签名、已 R8 混淆的 `app-release.apk`。
+- `version.json` 中的 `apkName` 按渠道生成：beta 使用 `app-beta.apk`，release 使用 `app-release.apk`。
+- 已替换 VPS beta 通道 APK，HK/US 节点均为签名混淆包（vc=236）。
+
+---
+
+## [1.3.20] - 2026-05-12（依赖升级 + 代码清理）🔧
+
+### 依赖版本升级 📦
+- **Kotlin**: 1.9.25 → 2.1.10
+- **Hilt**: 2.52 → 2.55
+- **AppCompat**: 1.7.0 → 1.7.1
+- **ConstraintLayout**: 2.2.0 → 2.2.1
+- **Navigation**: 2.8.4 → 2.8.9
+- **RecyclerView**: 1.3.2 → 1.4.0
+- **Mockito Core**: 5.14.2 → 5.15.2
+
+### 新增依赖 ➕
+- `com.google.code.gson:gson:2.11.0` - JSON 序列化/反序列化
+- `org.json:json:20250107` - 单元测试 JSONObject 支持
+
+### 代码清理 🧹
+- **GameUsageStore**: 替换手工 JSON 拼接/解析为 Gson，消除潜在的格式错误隐患
+- **LANManager.postHostDiscovered()**: 修复为空方法的问题，现在正确回调 OnHostDiscoveredListener
+- **util/Log.java**: 删除未使用的自定义日志类（项目统一使用 AppLog/Timber 风格）
+- 删除空目录 `app/src/main/java/com/gamecenter/app/startup/`
+- 修复 `upload_config_hk.json` publicBaseUrl（移除:2083端口，使用Cloudflare HTTPS代理）
+- 新增 `dependencies {} constraints` 块，锁定 Guava/Okio/Kotlin 等传递依赖版本
+
+### 编译验证 ✅
+- 所有单元测试通过（124/124 PASS）
+- Debug & Release 编译通过
+
+---
+
+## [1.3.21-beta] - 2026-05-12（AI 智能助手接入）🤖
+
+### 新增功能 ✨
+- **AI 智能助手**：在底部导航中新增 AI 独立入口，支持 7 种 AI 任务：
+  - 文本总结（summary）
+  - 翻译（translate）
+  - 润色改写（rewrite）
+  - OCR 处理（ocr）
+  - 问答对生成（qa_pairs）
+  - 关键词提取（keywords）
+  - 文本分类（classify）
+- **AI 全页面**：新增 `AiFragment`，提供聊天式交互界面，支持任务类型选择和历史消息列表
+- **本地 AI 处理**：新增 `LocalAiProcessor`，支持 OCR 后处理、规则摘要、关键词提取等本地优先处理
+- **任务路由**：新增 `AiTaskRouter`，实现本地优先 → 云端 fallback 的智能调度
+- **AI 数据模型**：新增 `AiMessage`, `AiTask`, `AiResult`, `AiProviderConfig` 四个核心模型
+- **API 客户端**：新增 `AiApiClient`，支持 OpenAI 兼容接口（默认 DeepSeek API，可切换阿里云通义、硅基流动、智谱 AI、零一万物、OpenAI）
+
+### 架构变更 🏗️
+- 新增 `com.gamecenter.app.ai` 包及子包：`ai.data`, `ai.cloud`, `ai.local`, `ai.ui`
+- 底部导航新增 AI 独立入口注册
+- `MainActivity` 底部导航集成 `AiFragment`
+- 资源文件新增：`fragment_ai.xml`, `item_ai_message.xml`
+- Drawable 新增：AI 消息气泡背景（user/assistant/system 三种样式）
+
+### 本地优先策略 🎯
+- 默认启用本地优先模式（`localFirst=true`）
+- 低复杂度任务（OCR 清洗、关键词提取、分类）自动走本地处理
+- 云端仅在需要时启用，依赖 API Key 配置
+- 内置每日免费额度（默认 20 次），无需付费即可基础使用
+
+### 编译验证 ✅
+- `assembleDebug` 编译通过
+- 无回归错误
+
+---
+
+---
+
 ## [1.3.19] - 2026-05-12（双版本分发架构重构 + 关键修复）🚀
 
 ### 关键问题修复 🔥🔥

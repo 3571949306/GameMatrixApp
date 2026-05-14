@@ -91,7 +91,7 @@ python tools\upload_to_vps.py --apk app\build\outputs\apk\release\app-release.ap
 ### 快速发布（推荐）
 ```bash
 # 一键发布到所有 VPS
-py tools\upload_to_vps.py --apk app\build\outputs\apk\release\app-release-unsigned.apk ^
+py tools\upload_to_vps.py --apk app\build\outputs\apk\release\app-release.apk ^
     --version app\build\generated\assets\version\version.json ^
     --channel beta --skip-verify
 ```

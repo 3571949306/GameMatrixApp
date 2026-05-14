@@ -5,10 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -36,10 +33,6 @@ public class AppSettingsDialog {
     private final Fragment fragment;
     private final Runnable onCheckUpdate;
     private final Runnable onFeedback;
-    private static final int UPDATE_SOURCE_AUTO = 0;
-    private static final int UPDATE_SOURCE_VPS_HK = 1;
-    private static final int UPDATE_SOURCE_VPS_US = 2;
-    private static final int UPDATE_SOURCE_GITHUB = 3;
 
     private String[] getUpdateSourceNames() {
         return new String[]{"自动", "香港 VPS", "美国 VPS", "GitHub Releases"};
@@ -101,58 +94,15 @@ public class AppSettingsDialog {
 
         TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);
         String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? " beta" : " 正式版";
-        tvVersion.setText("当前版本: " + BuildConfig.VERSION_NAME + channelLabel
-                + "\n内部版本号: " + BuildConfig.VERSION_CODE);
+        if (tvVersion != null) {
+            tvVersion.setText("当前版本: " + BuildConfig.VERSION_NAME + channelLabel
+                    + "\n内部版本号: " + BuildConfig.VERSION_CODE);
+        }
 
-        LinearLayout llUpdateSource = dialogView.findViewById(R.id.ll_update_source);
-        TextView tvUpdateSource = dialogView.findViewById(R.id.tv_update_source);
-        final int[] currentUpdateSource = {settings.getUpdateSource()};
-        tvUpdateSource.setText(getUpdateSourceName(currentUpdateSource[0]));
-
-        llUpdateSource.setOnClickListener(v -> showUpdateSourcePicker(
-                context, currentUpdateSource[0], new OnUpdateSourceSelectedListener() {
-                    @Override
-                    public void onSelected(int source) {
-                        tvUpdateSource.setText(getUpdateSourceName(source));
-                        currentUpdateSource[0] = source;
-                    }
-                }));
-
-        MaterialSwitch switchAutoCheck = dialogView.findViewById(R.id.switch_auto_check);
-        switchAutoCheck.setChecked(settings.isAutoCheckUpdate());
-
-        MaterialSwitch switchAcceptBeta = dialogView.findViewById(R.id.switch_accept_beta);
-        switchAcceptBeta.setChecked(settings.isAcceptBetaUpdate());
-
-        MaterialSwitch switchAutoDownload = dialogView.findViewById(R.id.switch_auto_download_update);
-        MaterialSwitch switchPromptInstall = dialogView.findViewById(
-                R.id.switch_prompt_install_after_download);
-        LinearLayout llPromptInstall = dialogView.findViewById(
-                R.id.ll_prompt_install_after_download);
-        TextView tvPromptInstall = dialogView.findViewById(
-                R.id.tv_prompt_install_after_download);
-
-        switchAutoDownload.setChecked(settings.isAutoDownloadUpdate());
-        switchPromptInstall.setChecked(settings.isAutoDownloadUpdate()
-                && settings.isPromptInstallAfterAutoDownload());
-        updatePromptInstallControls(llPromptInstall, tvPromptInstall, switchPromptInstall,
-                switchAutoDownload.isChecked());
-
-        switchAutoDownload.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updatePromptInstallControls(llPromptInstall, tvPromptInstall, switchPromptInstall, isChecked);
-            if (!isChecked) {
-                switchPromptInstall.setChecked(false);
-            }
-        });
-        llPromptInstall.setOnClickListener(v -> {
-            if (switchPromptInstall.isEnabled()) {
-                switchPromptInstall.setChecked(!switchPromptInstall.isChecked());
-            }
-        });
-
-        MaterialButton btnOpenDownloadDir = dialogView.findViewById(R.id.btn_open_download_dir);
-        btnOpenDownloadDir.setOnClickListener(v ->
-                UpdateManager.getInstance().openDownloadDirectory(activity));
+        LinearLayout llUpdateSettings = dialogView.findViewById(R.id.ll_update_settings);
+        if (llUpdateSettings != null) {
+            llUpdateSettings.setOnClickListener(v -> showUpdateSettingsDialog(context, settings));
+        }
 
         MaterialButton btnCheckUpdate = dialogView.findViewById(R.id.btn_check_update);
         btnCheckUpdate.setOnClickListener(v -> {
@@ -194,12 +144,6 @@ public class AppSettingsDialog {
 
                     settings.setThemeMode(newThemeMode);
                     settings.setColorSchemeIndex(currentSchemeIndex[0]);
-                    settings.setAutoCheckUpdate(switchAutoCheck.isChecked());
-                    settings.setAcceptBetaUpdate(switchAcceptBeta.isChecked());
-                    settings.setAutoDownloadUpdate(switchAutoDownload.isChecked());
-                    settings.setPromptInstallAfterAutoDownload(
-                            switchAutoDownload.isChecked() && switchPromptInstall.isChecked());
-                    settings.setUpdateSource(currentUpdateSource[0]);
 
                     if (themeChanged || schemeChanged) {
                         if (activity.getApplication() instanceof App) {
@@ -207,6 +151,83 @@ public class AppSettingsDialog {
                         }
                         activity.recreate();
                     }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showUpdateSettingsDialog(Context context, SettingsManager settings) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_update_settings, null);
+
+        TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);
+        String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? " beta" : " 正式版";
+        tvVersion.setText("当前版本: " + BuildConfig.VERSION_NAME + channelLabel
+                + "\n内部版本号: " + BuildConfig.VERSION_CODE);
+
+        LinearLayout llUpdateSource = dialogView.findViewById(R.id.ll_update_source);
+        TextView tvUpdateSource = dialogView.findViewById(R.id.tv_update_source);
+        final int[] currentUpdateSource = {settings.getUpdateSource()};
+        tvUpdateSource.setText(getUpdateSourceName(currentUpdateSource[0]));
+
+        llUpdateSource.setOnClickListener(v -> showUpdateSourcePicker(
+                context, currentUpdateSource[0], source -> {
+                    tvUpdateSource.setText(getUpdateSourceName(source));
+                    currentUpdateSource[0] = source;
+                }));
+
+        MaterialSwitch switchAutoCheck = dialogView.findViewById(R.id.switch_auto_check);
+        switchAutoCheck.setChecked(settings.isAutoCheckUpdate());
+
+        MaterialSwitch switchAcceptBeta = dialogView.findViewById(R.id.switch_accept_beta);
+        switchAcceptBeta.setChecked(settings.isAcceptBetaUpdate());
+
+        MaterialSwitch switchAutoDownload = dialogView.findViewById(R.id.switch_auto_download_update);
+        MaterialSwitch switchPromptInstall = dialogView.findViewById(
+                R.id.switch_prompt_install_after_download);
+        LinearLayout llPromptInstall = dialogView.findViewById(
+                R.id.ll_prompt_install_after_download);
+        TextView tvPromptInstall = dialogView.findViewById(
+                R.id.tv_prompt_install_after_download);
+
+        switchAutoDownload.setChecked(settings.isAutoDownloadUpdate());
+        switchPromptInstall.setChecked(settings.isAutoDownloadUpdate()
+                && settings.isPromptInstallAfterAutoDownload());
+        updatePromptInstallControls(llPromptInstall, tvPromptInstall, switchPromptInstall,
+                switchAutoDownload.isChecked());
+
+        switchAutoDownload.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            updatePromptInstallControls(llPromptInstall, tvPromptInstall, switchPromptInstall, isChecked);
+            if (!isChecked) {
+                switchPromptInstall.setChecked(false);
+            }
+        });
+        llPromptInstall.setOnClickListener(v -> {
+            if (switchPromptInstall.isEnabled()) {
+                switchPromptInstall.setChecked(!switchPromptInstall.isChecked());
+            }
+        });
+
+        MaterialButton btnOpenDownloadDir = dialogView.findViewById(R.id.btn_open_download_dir);
+        btnOpenDownloadDir.setOnClickListener(v ->
+                UpdateManager.getInstance().openDownloadDirectory(fragment.requireActivity()));
+
+        MaterialButton btnCheckUpdate = dialogView.findViewById(R.id.btn_check_update);
+        btnCheckUpdate.setOnClickListener(v -> {
+            if (onCheckUpdate != null) {
+                onCheckUpdate.run();
+            }
+        });
+
+        new AlertDialog.Builder(context)
+                .setTitle("版本更新")
+                .setView(dialogView)
+                .setPositiveButton("保存", (dialog, which) -> {
+                    settings.setAutoCheckUpdate(switchAutoCheck.isChecked());
+                    settings.setAcceptBetaUpdate(switchAcceptBeta.isChecked());
+                    settings.setAutoDownloadUpdate(switchAutoDownload.isChecked());
+                    settings.setPromptInstallAfterAutoDownload(
+                            switchAutoDownload.isChecked() && switchPromptInstall.isChecked());
+                    settings.setUpdateSource(currentUpdateSource[0]);
                 })
                 .setNegativeButton("取消", null)
                 .show();
@@ -241,9 +262,9 @@ public class AppSettingsDialog {
                 })
                 .create();
         dialog.setOnShowListener(d -> {
-            ListView listView = dialog.getListView();
+            android.widget.ListView listView = dialog.getListView();
             if (listView != null) {
-                listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+                listView.setChoiceMode(android.widget.ListView.CHOICE_MODE_SINGLE);
                 listView.setItemChecked(currentSchemeIndex[0], true);
             }
         });
@@ -284,7 +305,7 @@ public class AppSettingsDialog {
                 .show();
     }
 
-    private static class ColorSchemeAdapter extends BaseAdapter {
+    private static class ColorSchemeAdapter extends android.widget.BaseAdapter {
         private final LayoutInflater inflater;
         private final List<ColorSchemeManager.Scheme> schemes;
         private final int selectedIndex;
@@ -311,7 +332,7 @@ public class AppSettingsDialog {
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(int position, View convertView, android.view.ViewGroup parent) {
             View view = convertView;
             if (view == null) {
                 view = inflater.inflate(R.layout.item_color_scheme, parent, false);

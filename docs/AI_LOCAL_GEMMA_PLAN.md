@@ -1,0 +1,90 @@
+# AI Local Gemma Plan
+
+> Scope: downloadable on-device Gemma for Android. Model packages are hosted on the HK update VPS, while prompts run on the phone after the user downloads and enables the model.
+
+## Current State
+
+- HK VPS serves `https://hk-update.tcp0053.shop/ai-models/models.json`.
+- The enabled model is `gemma3-1b-it-q4`.
+- Model file: `Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task`.
+- File size: `554661246` bytes.
+- SHA-256: `ddfaf1210d8b4d1b812b5fadb6652999e852c8be6dd9abe353b9213a25262c10`.
+- App downloads the model into app-private storage: `Android/data/<package>/files/Documents/ai_models`.
+- App integrates MediaPipe LLM Inference through `MediaPipeLocalLlmEngine`.
+- `AiTaskRouter` now routes supported local-first tasks to Gemma when the model is downloaded and enabled.
+
+## Runtime Direction
+
+Use MediaPipe LLM Inference as the first runtime because the hosted package is a `.task` file. Google now recommends LiteRT-LM for long-term work, so keep the runtime behind a small wrapper and avoid spreading MediaPipe APIs across UI code.
+
+Runtime wrapper:
+
+```text
+com.gamecenter.app.ai.local.MediaPipeLocalLlmEngine
+```
+
+Routing:
+
+```text
+AiFragment
+  -> AiModelDownloadManager
+  -> AiPreferences localModel=gemma3-1b-it-q4
+  -> AiTaskRouter
+  -> MediaPipeLocalLlmEngine
+  -> LocalAiProcessor/cloud fallback only when Gemma is not selected or not ready
+```
+
+## User Agreement And License Flow
+
+Before the first model download, the app must show a Gemma notice and store the accepted notice version.
+
+Required points:
+
+- User must confirm they have read and agree to Google Gemma Terms.
+- App must link to `https://ai.google.dev/gemma/terms`.
+- App must identify the upstream model source.
+- App must disclose that model outputs can be inaccurate, incomplete, biased, or unsuitable for high-risk decisions.
+- App must disclose that local inference runs on device and that model download contacts the update server.
+- App must disclose the model storage path and that app uninstall/data clearing can remove the model.
+- App must forbid unlawful, harmful, infringing, fraudulent, or policy-violating use.
+
+Implemented code:
+
+- `AiLegalNotices.GEMMA_NOTICE_VERSION`
+- `AiLegalNotices.buildGemmaDownloadNotice(...)`
+- `AiPreferences.acceptGemmaNotice(...)`
+- `AiPreferences.hasAcceptedGemmaNotice(...)`
+
+## Device Guardrails
+
+- Minimum SDK remains 24.
+- Manifest metadata requires at least 3072 MB RAM.
+- Router checks device total RAM before loading Gemma.
+- Prompt runs on the existing AI executor, not on the main thread.
+- Model is not bundled into the APK.
+- SHA-256 is verified after download before finalizing the file.
+- If Gemma is missing, disabled, or not selected, existing local-rule/cloud paths remain available.
+- If Gemma load fails, the user receives a local inference error instead of a crash.
+
+## Execution Plan
+
+1. Done: host model manifest and `.task` package on HK VPS.
+2. Done: add app-private model download and SHA-256 verification.
+3. Done: add Gemma notice and accepted-version tracking.
+4. Done: add MediaPipe LLM runtime wrapper.
+5. Done: route summary, translate, rewrite, Q&A, keywords, classify, and chat tasks to Gemma when enabled.
+6. Next: add delete-model and re-download UI.
+7. Next: add streaming output if the UX needs token-by-token rendering.
+8. Next: test on a physical 3 GB, 4 GB, and 6 GB Android device.
+9. Next: evaluate LiteRT-LM migration once the first MediaPipe build is stable.
+
+## Acceptance Checks
+
+- AI page opens without a model installed.
+- User can fetch `models.json`.
+- Download is blocked until the Gemma notice is accepted.
+- Downloaded file size and SHA-256 match the VPS manifest.
+- Download completion sets `localModel=gemma3-1b-it-q4` and keeps local-first enabled.
+- Airplane-mode prompt works after download and enablement.
+- Low-memory devices show a clear message instead of crashing.
+- Release APK remains signed and R8/minify remains enabled.

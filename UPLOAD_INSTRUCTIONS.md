@@ -1,10 +1,10 @@
-# GameCenterApp 上传指南
+﻿# GameCenterApp 上传指南
 
 ## 当前状态
 
-- **本地最新版本**: versionCode 224 (v1.3.19)
-- **VPS 当前版本**: versionCode 224 (v1.3.19)
-- **状态**: ✅ 已上传
+- **本地最新版本**: versionCode 236 (v1.3.20)
+- **VPS Beta 当前版本**: versionCode 236 (v1.3.20)
+- **状态**: ✅ Beta 通道已上传签名 R8 release 包
 
 ## 重要更新（2026-05-12）
 

@@ -19,4 +19,9 @@
         android:name="com.gamecenter.app.fragments.ToolsFragment"
         android:label="@string/nav_tools" />
 
+    <fragment
+        android:id="@+id/navigation_ai"
+        android:name="com.gamecenter.app.ai.ui.AiFragment"
+        android:label="@string/nav_ai" />
+
 </navigation>
