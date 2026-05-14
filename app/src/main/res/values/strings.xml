@@ -5,6 +5,8 @@
     <string name="nav_tools">工具箱</string>
     <string name="nav_ai">AI 助手</string>
     <string name="ai_assistant">AI 智能助手</string>
+    <string name="ai_task_chat">聊天</string>
+    <string name="ai_task_ocr_clean">OCR 清洗</string>
     <string name="ai_task_summary">文本总结</string>
     <string name="ai_task_translate">翻译</string>
     <string name="ai_task_rewrite">润色改写</string>

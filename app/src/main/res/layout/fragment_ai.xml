@@ -61,9 +61,9 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_ai_model_download"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:text="本地模型"
             android:textSize="12sp" />
@@ -111,7 +111,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_ai_favorites"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
@@ -120,7 +120,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_ai_export"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
@@ -204,7 +204,7 @@
                 android:text="发送"
                 android:textSize="12sp"
                 app:cornerRadius="28dp"
-                style="@style/Widget.Material3.Button" />
+                style="@style/Widget.GameCenter.Button" />
         </LinearLayout>
 
         <LinearLayout
@@ -216,9 +216,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_ai_open_full"
-                style="@style/Widget.Material3.Button.TonalButton"
+                style="@style/Widget.GameCenter.Button.Tonal"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="48dp"
                 android:text="清空历史"
                 android:textSize="12sp" />
         </LinearLayout>

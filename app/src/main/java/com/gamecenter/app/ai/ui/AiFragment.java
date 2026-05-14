@@ -50,12 +50,10 @@ import java.util.Set;
  */
 public class AiFragment extends Fragment {
 
-    private static final String[] TASK_LABELS = {
-            "聊天", "OCR 清洗", "总结", "翻译", "润色", "简单问答", "关键词", "分类"
-    };
     private static final String[] TASK_TYPES = {
             "chat", "ocr", "summary", "translate", "rewrite", "qa", "keywords", "classify"
     };
+    private String[] taskLabels;
 
     private AiTaskRouter router;
     private AiHistoryStore historyStore;
@@ -118,10 +116,11 @@ public class AiFragment extends Fragment {
         favoriteIds.clear();
         favoriteIds.addAll(historyStore.getFavoriteIds());
 
+        taskLabels = buildTaskLabels();
         ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(requireContext(),
-                android.R.layout.simple_dropdown_item_1line, TASK_LABELS);
+                android.R.layout.simple_dropdown_item_1line, taskLabels);
         actTaskType.setAdapter(typeAdapter);
-        actTaskType.setText("聊天", false);
+        actTaskType.setText(taskLabels[0], false);
 
         // 消息列表
         adapter = new MessageAdapter(visibleMessages, favoriteIds, this::toggleFavorite);
@@ -378,12 +377,26 @@ public class AiFragment extends Fragment {
         if (labelOrType == null || labelOrType.isEmpty()) {
             return "summary";
         }
-        for (int i = 0; i < TASK_LABELS.length; i++) {
-            if (TASK_LABELS[i].equals(labelOrType) || TASK_TYPES[i].equals(labelOrType)) {
+        String[] labels = taskLabels != null ? taskLabels : buildTaskLabels();
+        for (int i = 0; i < labels.length; i++) {
+            if (labels[i].equals(labelOrType) || TASK_TYPES[i].equals(labelOrType)) {
                 return TASK_TYPES[i];
             }
         }
         return "summary";
+    }
+
+    private String[] buildTaskLabels() {
+        return new String[]{
+                getString(R.string.ai_task_chat),
+                getString(R.string.ai_task_ocr_clean),
+                getString(R.string.ai_task_summary),
+                getString(R.string.ai_task_translate),
+                getString(R.string.ai_task_rewrite),
+                getString(R.string.ai_task_qa_pairs),
+                getString(R.string.ai_task_keywords),
+                getString(R.string.ai_task_classify)
+        };
     }
 
     private void saveHistory() {
@@ -437,9 +450,10 @@ public class AiFragment extends Fragment {
     }
 
     private String labelForTask(String taskType) {
+        String[] labels = taskLabels != null ? taskLabels : buildTaskLabels();
         for (int i = 0; i < TASK_TYPES.length; i++) {
             if (TASK_TYPES[i].equals(taskType)) {
-                return TASK_LABELS[i];
+                return labels[i];
             }
         }
         return "总结";

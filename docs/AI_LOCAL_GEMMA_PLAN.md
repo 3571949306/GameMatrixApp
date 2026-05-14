@@ -90,3 +90,11 @@ Implemented code:
 - Airplane-mode prompt works after download and enablement.
 - Low-memory devices show a clear message instead of crashing.
 - Release APK remains signed and R8/minify remains enabled.
+---
+
+## 2026-05-14 文档同步：文字适配与应用语言
+
+- 新增全局按钮文字适配样式，统一提升 MaterialButton 与平台 Button 的最小高度、内边距和两行显示能力，减少“进入游戏”“发送”等按钮文字被裁切的问题。
+- 设置弹窗新增应用语言选项：跟随系统、中文、English；应用启动时会恢复已选择语言。
+- AI 任务下拉改为资源字符串，切换 English 后可显示 Chat、Summary、Translate 等英文选项。
+- 发布前检查需覆盖中文/英文两种语言、深色/浅色主题、游戏大厅卡片按钮、AI 发送按钮、工具箱小按钮和斗地主操作按钮。

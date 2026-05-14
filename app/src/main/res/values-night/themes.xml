@@ -16,5 +16,7 @@
         <item name="android:statusBarColor">@color/md_theme_surface</item>
         <item name="android:navigationBarColor">@color/md_theme_surface</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="materialButtonStyle">@style/Widget.GameCenter.Button</item>
+        <item name="android:buttonStyle">@style/Widget.GameCenter.PlatformButton</item>
     </style>
 </resources>

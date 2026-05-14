@@ -20,7 +20,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_copy_report"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
@@ -30,7 +30,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_share_report"
-        style="@style/Widget.Material3.Button.TonalButton"
+        style="@style/Widget.GameCenter.Button.Tonal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="分享报告" />

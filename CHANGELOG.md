@@ -1,5 +1,19 @@
 # 夹层 - 版本更新日志
 
+## [当前工作区] - 2026-05-14（全局文字适配 + 应用内英文切换）
+
+### 文字适配
+- 新增 `Widget.GameCenter.Button`、`Widget.GameCenter.Button.Tonal`、`Widget.GameCenter.Button.Outlined` 和平台按钮默认样式。
+- 全局替换 MaterialButton 使用项目样式，统一按钮最小高度、内边距、两行显示和省略策略。
+- 修正斗地主、工具箱、游戏卡片、AI 页面等低高度按钮，减少“进入游戏”“发送”等文字被按钮裁切的问题。
+
+### 应用语言
+- 设置弹窗新增“应用语言”：跟随系统、中文、English。
+- App 启动时会恢复语言偏好，并通过 AppCompat application locales 应用。
+- AI 任务类型下拉改为资源字符串，英文模式下显示 Chat、Summary、Translate 等选项。
+
+---
+
 ## [当前工作区] - 2026-05-14（AI 可读性修复 + 本地聊天模式）
 
 ### AI 页面可读性
@@ -606,3 +620,11 @@ jarsigner -verify app-release.apk
 - beta 用户在没有 beta 更新时，现在会自动检查稳定版（version-release.json）是否有可用更新
 - 当稳定版 versionCode 高于本地时，正确展示稳定版更新信息
 - 向后兼容：不影响旧版用户、稳定版用户和未开启 beta 更新的用户
+---
+
+## 2026-05-14 文档同步：文字适配与应用语言
+
+- 新增全局按钮文字适配样式，统一提升 MaterialButton 与平台 Button 的最小高度、内边距和两行显示能力，减少“进入游戏”“发送”等按钮文字被裁切的问题。
+- 设置弹窗新增应用语言选项：跟随系统、中文、English；应用启动时会恢复已选择语言。
+- AI 任务下拉改为资源字符串，切换 English 后可显示 Chat、Summary、Translate 等英文选项。
+- 发布前检查需覆盖中文/英文两种语言、深色/浅色主题、游戏大厅卡片按钮、AI 发送按钮、工具箱小按钮和斗地主操作按钮。

@@ -22,6 +22,47 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="应用语言"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <RadioGroup
+            android:id="@+id/rg_language_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp">
+
+            <RadioButton
+                android:id="@+id/rb_language_system"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="8dp"
+                android:text="跟随系统"
+                android:textSize="14sp" />
+
+            <RadioButton
+                android:id="@+id/rb_language_zh"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="8dp"
+                android:text="中文"
+                android:textSize="14sp" />
+
+            <RadioButton
+                android:id="@+id/rb_language_en"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="8dp"
+                android:text="English"
+                android:textSize="14sp" />
+
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="主题模式"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -138,7 +179,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_feedback"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="16dp"
@@ -147,7 +188,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_view_stats"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
@@ -196,7 +237,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_check_update"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.GameCenter.Button.Tonal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="4dp"
