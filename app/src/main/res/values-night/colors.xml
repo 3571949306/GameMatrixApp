@@ -14,4 +14,14 @@
     <color name="md_theme_on_surface_variant">#CAC4D0</color>
     <color name="md_theme_background">#1D1B20</color>
     <color name="md_theme_on_background">#E6E0E9</color>
+    <color name="ai_message_user_bg">#123A5A</color>
+    <color name="ai_message_user_text">#EAF6FF</color>
+    <color name="ai_message_user_role">#9AD1FF</color>
+    <color name="ai_message_assistant_bg">#3A294C</color>
+    <color name="ai_message_assistant_text">#F8F0FF</color>
+    <color name="ai_message_assistant_role">#E2C7FF</color>
+    <color name="ai_message_system_bg">#183B24</color>
+    <color name="ai_message_system_text">#E8F7EC</color>
+    <color name="ai_message_system_role">#A7E8B8</color>
+    <color name="ai_message_star">#FFD166</color>
 </resources>

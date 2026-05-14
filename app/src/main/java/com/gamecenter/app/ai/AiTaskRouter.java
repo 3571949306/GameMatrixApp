@@ -314,6 +314,9 @@ public class AiTaskRouter {
             case "qa_pairs":
             case "qa":
                 return "请根据以下文本，生成5个问答对（问题和答案），用于复习和测试：\n\n" + input;
+            case "chat":
+                return "你是一个运行在手机本地的中文 AI 助手。请直接回答用户问题，保持简洁、清楚、可执行；如果不确定，请说明不确定并给出可验证的建议。\n\n用户："
+                        + input;
             default:
                 return input;
         }

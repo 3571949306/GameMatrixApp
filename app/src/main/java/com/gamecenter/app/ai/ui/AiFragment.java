@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -50,10 +51,10 @@ import java.util.Set;
 public class AiFragment extends Fragment {
 
     private static final String[] TASK_LABELS = {
-            "OCR 清洗", "总结", "翻译", "润色", "简单问答", "关键词", "分类"
+            "聊天", "OCR 清洗", "总结", "翻译", "润色", "简单问答", "关键词", "分类"
     };
     private static final String[] TASK_TYPES = {
-            "ocr", "summary", "translate", "rewrite", "qa", "keywords", "classify"
+            "chat", "ocr", "summary", "translate", "rewrite", "qa", "keywords", "classify"
     };
 
     private AiTaskRouter router;
@@ -120,7 +121,7 @@ public class AiFragment extends Fragment {
         ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_dropdown_item_1line, TASK_LABELS);
         actTaskType.setAdapter(typeAdapter);
-        actTaskType.setText("总结", false);
+        actTaskType.setText("聊天", false);
 
         // 消息列表
         adapter = new MessageAdapter(visibleMessages, favoriteIds, this::toggleFavorite);
@@ -600,14 +601,21 @@ public class AiFragment extends Fragment {
             if (msg.role.equals("user")) {
                 tvRole.setText("你");
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_user);
+                tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_user_role));
+                tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_user_text));
             } else if (msg.role.equals("assistant")) {
                 tvRole.setText("AI助手");
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_assistant);
+                tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_assistant_role));
+                tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_assistant_text));
             } else {
                 tvRole.setText("系统");
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_system);
+                tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_system_role));
+                tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_system_text));
             }
             tvContent.setText(msg.content);
+            btnFavorite.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_star));
             if ("system".equals(msg.role)) {
                 btnFavorite.setVisibility(View.GONE);
             } else {
