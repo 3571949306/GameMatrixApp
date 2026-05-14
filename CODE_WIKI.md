@@ -1,788 +1,763 @@
-# GameCenterApp Code Wiki
+﻿# GameCenterApp Code Wiki
 
-> 本文档为 GameCenterApp 项目的完整代码百科，涵盖项目架构、模块职责、关键类与函数说明、依赖关系及运行方式等核心信息。
+> Android 游戏中心应用完整技术文档
 
 ---
 
 ## 目录
 
 1. [项目概述](#1-项目概述)
-2. [项目架构](#2-项目架构)
-3. [核心模块详解](#3-核心模块详解)
-4. [关键类与函数说明](#4-关键类与函数说明)
-5. [依赖关系](#5-依赖关系)
-6. [项目运行方式](#6-项目运行方式)
-7. [联机架构说明](#7-联机架构说明)
-8. [测试说明](#8-测试说明)
+2. [技术栈与依赖](#2-技术栈与依赖)
+3. [项目架构](#3-项目架构)
+4. [模块职责](#4-模块职责)
+5. [关键类与函数说明](#5-关键类与函数说明)
+6. [游戏模块架构](#6-游戏模块架构)
+7. [网络与联机架构](#7-网络与联机架构)
+8. [工具模块架构](#8-工具模块架构)
+9. [AI 模块架构](#9-ai-模块架构)
+10. [更新系统](#10-更新系统)
+11. [构建与发布流程](#11-构建与发布流程)
+12. [项目运行方式](#12-项目运行方式)
 
 ---
 
 ## 1. 项目概述
 
-### 1.1 项目简介
-
-**GameCenterApp** 是一款 Android 游戏中心应用，集成了 30+ 款经典小游戏和实用工具箱。支持单机游戏、局域网联机、云端联机等多种游戏模式。
-
-### 1.2 版本信息
+GameCenterApp 是一款 Android 平台的游戏中心应用，包名 `com.gamecenter.app`，包含 **26 个独立小游戏**、**30+ 个网络/系统工具**、**AI 辅助功能**，支持**局域网联机**和**在线多人对战**。
 
 | 属性 | 值 |
 |------|-----|
-| 应用包名 | `com.gamecenter.app` |
-| 当前版本 | v1.3.18 (versionCode: 224) |
-| 最低 SDK | Android 7.0 (API 24) |
-| 目标 SDK | Android 15 (API 35) |
-| 编译 SDK | Android 15 (API 35) |
-| 开发语言 | Java 17 |
-
-### 1.3 主要功能
-
-- **游戏大厅**: 30+ 款经典小游戏，分类展示、搜索、收藏
-- **工具箱**: 25+ 款实用工具（网络诊断、二维码、颜色取色器等）
-- **联机对战**: 支持局域网和云端 WebSocket 联机
-- **自动更新**: 多源更新（香港VPS → 美国VPS → GitHub Releases）
-- **主题定制**: 明暗主题切换、多种配色方案
+| 包名 | com.gamecenter.app |
+| 最低 SDK | 24 (Android 7.0) |
+| 目标 SDK | 35 (Android 15) |
+| 编译 SDK | 35 |
+| 当前版本 | v1.3.20 (versionCode: 236) |
+| 语言 | Java + Kotlin |
+| 架构 | MVC + DI (Hilt) |
 
 ---
 
-## 2. 项目架构
+## 2. 技术栈与依赖
 
-### 2.1 目录结构
+### 核心框架
 
-```
-GameCenterApp/
-├── app/                          # 主应用模块
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/gamecenter/app/
-│   │   │   │   ├── App.java                 # Application 入口
-│   │   │   │   ├── MainActivity.java        # 主 Activity
-│   │   │   │   ├── fragments/               # Fragment 页面
-│   │   │   │   │   ├── GamesFragment.java   # 游戏大厅
-│   │   │   │   │   ├── ToolsFragment.java   # 工具箱
-│   │   │   │   │   └── BrowserFragment.java # 浏览器
-│   │   │   │   ├── games/                   # 游戏模块
-│   │   │   │   │   ├── BaseGameActivity.java
-│   │   │   │   │   ├── GameRegistry.java
-│   │   │   │   │   ├── gomoku/              # 五子棋
-│   │   │   │   │   ├── go/                  # 围棋
-│   │   │   │   │   ├── chinesechess/        # 中国象棋
-│   │   │   │   │   ├── doudizhu/            # 斗地主
-│   │   │   │   │   ├── snake/               # 贪吃蛇
-│   │   │   │   │   ├── tetris/              # 俄罗斯方块
-│   │   │   │   │   └── ...                  # 其他游戏
-│   │   │   │   ├── network/                 # 网络通信
-│   │   │   │   │   ├── BaseOnlineActivity.java
-│   │   │   │   │   ├── GameSocketClient.java
-│   │   │   │   │   ├── GameSocketServer.java
-│   │   │   │   │   ├── LANManager.java
-│   │   │   │   │   └── RelayHttpClient.java
-│   │   │   │   ├── tools/                   # 工具模块
-│   │   │   │   │   ├── ToolBinder.java
-│   │   │   │   │   ├── ToolSectionStore.java
-│   │   │   │   │   └── *ToolBinder.java     # 各工具实现
-│   │   │   │   ├── update/                  # 更新模块
-│   │   │   │   │   ├── UpdateManager.java
-│   │   │   │   │   └── UpdateInfo.java
-│   │   │   │   ├── utils/                   # 工具类
-│   │   │   │   ├── settings/                # 设置模块
-│   │   │   │   └── views/                   # 自定义视图
-│   │   │   ├── res/                         # 资源文件
-│   │   │   └── AndroidManifest.xml
-│   │   └── test/                            # 单元测试
-│   └── build.gradle
-├── docs/                         # 文档目录
-├── tools/                        # 发布脚本
-├── vps/                          # VPS 服务端代码
-├── build.gradle                  # 根构建配置
-├── settings.gradle               # 项目设置
-└── version.properties            # 版本配置
-```
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| androidx.appcompat:appcompat | 1.7.1 | 兼容性支持库 |
+| com.google.android.material:material | 1.12.0 | Material Design 3 组件 |
+| androidx.constraintlayout:constraintlayout | 2.2.1 | 约束布局 |
+| androidx.recyclerview:recyclerview | 1.4.0 | 列表控件 |
+| androidx.cardview:cardview | 1.0.0 | 卡片视图 |
+| androidx.startup:startup-runtime | 1.2.0 | 应用启动初始化 |
 
-### 2.2 架构图
+### Kotlin 生态
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        GameCenterApp                            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │   App.java  │  │MainActivity │  │   Fragment Navigation   │  │
-│  │  (入口)     │→ │  (主导航)   │→ │                         │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│                         核心模块层                              │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────────┐   │
-│  │  Games    │ │  Tools    │ │  Network  │ │    Update     │   │
-│  │  Module   │ │  Module   │ │  Module   │ │    Module     │   │
-│  └───────────┘ └───────────┘ └───────────┘ └───────────────┘   │
-├─────────────────────────────────────────────────────────────────┤
-│                         基础设施层                              │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────────┐   │
-│  │Settings   │ │SaveManager│ │SoundManager│ │ColorScheme   │   │
-│  │Manager    │ │           │ │           │ │Manager       │   │
-│  └───────────┘ └───────────┘ └───────────┘ └───────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-```
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| org.jetbrains.kotlin:kotlin-stdlib | 2.1.10 | Kotlin 标准库 |
+| androidx.core:core-ktx | 1.15.0 | Kotlin 扩展函数 |
+| kotlinx-coroutines-android | 1.10.1 | 协程支持 |
 
----
+### 依赖注入
 
-## 3. 核心模块详解
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| com.google.dagger:hilt-android | 2.55 | 依赖注入框架 |
 
-### 3.1 应用入口模块
+### 网络与工具
 
-#### App.java
-应用入口类，继承自 `Application`。
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| com.squareup.okhttp3:okhttp | 4.12.0 | HTTP 客户端 |
+| com.google.code.gson:gson | 2.11.0 | JSON 序列化 |
+| com.google.zxing:core | 3.5.3 | 二维码生成与识别 |
+| com.github.bumptech.glide:glide | 4.16.0 | 图片加载缓存 |
 
-**职责**:
-- 初始化应用主题（明/暗模式）
-- 注册 Activity 生命周期回调
-- 应用配色方案
-- 管理自动更新检查状态
+### 构建工具
 
-**关键方法**:
-| 方法 | 说明 |
+| 插件 | 版本 |
 |------|------|
-| `onCreate()` | 应用启动初始化 |
-| `applyTheme()` | 根据设置应用主题 |
-| `applyColorScheme(Activity)` | 为 Activity 应用配色方案 |
-| `shouldAutoCheckUpdate()` | 判断是否应自动检查更新 |
+| com.android.application | 8.7.3 |
+| org.jetbrains.kotlin.android | 2.1.10 |
+| org.jetbrains.kotlin.kapt | 2.1.10 |
+| com.google.dagger.hilt.android | 2.55 |
 
-#### MainActivity.java
-主 Activity，作为应用入口界面。
+### Debug 工具
 
-**职责**:
-- 初始化底部导航栏
-- 管理 Fragment 导航
-- 处理应用更新检查和下载
-- 管理权限请求
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| com.squareup.leakcanary:leakcanary-android | 2.14 | 内存泄漏检测 |
 
-**关键方法**:
-| 方法 | 说明 |
-|------|------|
-| `onCreate(Bundle)` | 初始化导航和权限 |
-| `checkUpdate(boolean)` | 检查应用更新 |
-| `startDownload(UpdateInfo)` | 开始下载更新包 |
-| `installApk(File)` | 安装 APK |
+### 测试框架
+
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| junit:junit | 4.13.2 | 单元测试 |
+| org.mockito:mockito-core | 5.15.2 | Mock 框架 |
+| mockito-kotlin | 5.4.0 | Kotlin Mock 扩展 |
+| okhttp3:mockwebserver | 4.12.0 | 网络模拟服务器 |
 
 ---
 
-### 3.2 游戏模块 (games/)
+## 3. 项目架构
 
-#### BaseGameActivity.java
-所有游戏 Activity 的基类。
-
-**职责**:
-- 提供音效播放功能
-- 提供震动反馈功能
-- 提供动画播放功能
-- 管理游戏设置（音效、震动开关）
-
-**关键方法**:
-```java
-protected void playClickSound()           // 播放点击音效
-protected void vibrateShort()             // 短震动
-protected void vibrateLong()              // 长震动
-protected void animateView(View, int)     // 播放动画
-protected void playWinAnimation(View)     // 播放胜利动画
-```
-
-#### GameRegistry.java
-游戏注册中心，管理所有游戏的元数据。
-
-**职责**:
-- 定义游戏分类（经典、益智、休闲、反应、其他）
-- 注册所有游戏及其 Activity 映射
-- 提供游戏列表查询接口
-
-**数据结构**:
-```java
-public static final class Category {
-    public final String name;           // 分类名称
-    public final List<Entry> games;     // 游戏列表
-}
-
-public static final class Entry {
-    public final String id;             // 游戏 ID
-    public final int iconRes;           // 图标资源
-    public final String name;           // 游戏名称
-    public final String desc;           // 游戏描述
-    public final Class<?> activityClass; // Activity 类
-    public final String category;       // 所属分类
-}
-```
-
-**游戏列表**:
-| 分类 | 游戏 |
-|------|------|
-| 经典 | 五子棋、围棋、中国象棋、贪吃蛇、俄罗斯方块、斗地主、Brotato |
-| 益智 | 2048、数独、推箱子、接水管、华容道 |
-| 休闲 | 打砖块、打地鼠、消消乐、21点、跳棋 |
-| 反应 | Flappy Bird、Tiles、飞机大战、石头剪刀布、反应测试 |
-| 其他 | 井字棋、记忆翻牌、猜数字、骰子 |
-
-#### GamesFragment.java
-游戏大厅 Fragment。
-
-**职责**:
-- 展示游戏分类 Tab
-- 游戏卡片列表展示
-- 搜索过滤功能
-- 最近游玩和收藏管理
-- 设置对话框入口
-
-**关键功能**:
-- Tab 切换：全部、最近、收藏、各分类
-- 搜索：按名称、描述、分类过滤
-- 卡片点击：启动对应游戏 Activity
-
----
-
-### 3.3 工具模块 (tools/)
-
-#### ToolBinder.java
-工具绑定器接口。
-
-```java
-public interface ToolBinder {
-    void bind(Context context, View contentView, ExecutorService executor);
-}
-```
-
-**设计模式**: 每个工具实现此接口，将 UI 和业务逻辑绑定到视图。
-
-#### ToolSectionStore.java
-工具配置存储。
-
-**职责**:
-- 加载工具列表配置
-- 保存工具排序
-- 保存工具可见性
-- 管理收藏和最近使用
-
-**工具列表**:
-| 工具 ID | 名称 |
-|---------|------|
-| network_diagnosis | 一键网络体检 |
-| diagnostic_report | 诊断报告导出 |
-| dns_lookup | DNS 查询 |
-| lan_scan | 局域网设备扫描 |
-| text_codec | 编码/时间戳/JSON |
-| file_hash | 文件哈希 |
-| qr_plus | 二维码增强 |
-| color_plus | 颜色增强 |
-| permission_privacy | 权限与隐私说明 |
-| ip | IP 地址信息 |
-| dns | DNS 服务器 |
-| wifi | WiFi 信号 |
-| speedtest | 网络测速 |
-| portscan | 端口扫描 |
-| qr | 二维码工具 |
-| battery | 电池信息 |
-| device | 设备信息 |
-| ping | Ping 工具 |
-| traceroute | 路由追踪 |
-| subnet | 子网计算器 |
-| screen | 屏幕信息 |
-| sensor | 传感器信息 |
-| hash | 哈希计算器 |
-| clipboard | 剪贴板工具 |
-| color | 颜色取色器 |
-| sysinfo | 手机系统详细信息 |
-
-#### ToolsFragment.java
-工具箱 Fragment。
-
-**职责**:
-- 展示工具卡片列表
-- 支持拖拽排序
-- 支持单列/双列布局切换
-- 工具收藏功能
-
----
-
-### 3.4 网络模块 (network/)
-
-#### BaseOnlineActivity.java
-联机游戏基类。
-
-**职责**:
-- 封装房间管理逻辑
-- 封装聊天功能
-- 封装连接状态管理
-- 提供游戏消息收发接口
-
-**抽象方法** (子类必须实现):
-```java
-protected abstract String getP2pPrefsName();
-protected abstract String getGameName();
-protected abstract void initGameViews(LinearLayout gameContent);
-protected abstract void onGameStarted();
-protected abstract void onGameMessageReceived(JSONObject message);
-protected abstract void onGameReset();
-```
-
-**房间管理流程**:
-1. 创建房间 → 生成房间码 → 启动 WebSocket 服务器 → 等待对手
-2. 加入房间 → 输入房间码 → 连接 WebSocket → 开始游戏
-
-#### GameSocketClient.java
-游戏 Socket 客户端。
-
-**职责**:
-- 支持 TCP Socket 连接
-- 支持 WebSocket 连接
-- 支持 HTTP Relay 轮询
-- 心跳保活
-- 断线重连
-
-**连接状态**:
-```java
-public enum ConnectionState {
-    DISCONNECTED,   // 已断开
-    CONNECTING,     // 连接中
-    CONNECTED,      // 已连接
-    AUTHENTICATED,  // 已认证
-    RECONNECTING    // 重连中
-}
-```
-
-**关键方法**:
-| 方法 | 说明 |
-|------|------|
-| `connectWebSocket(String)` | 连接 WebSocket |
-| `connectRelay(String, String)` | 连接 HTTP Relay |
-| `send(JSONObject)` | 发送消息 |
-| `disconnect()` | 断开连接 |
-| `reconnectNow()` | 立即重连 |
-
-#### LANManager.java
-局域网发现管理器。
-
-**职责**:
-- UDP 广播发现局域网内主机
-- 维护已发现主机列表
-- 超时检测
-
-**协议**:
-- 端口: 9877
-- 广播间隔: 3000ms
-- 超时时间: 8000ms
-
-#### RelayHttpClient.java
-HTTP Relay 通信工具类。
-
-**职责**:
-- 生成 WebSocket URL
-- HTTP POST 请求封装
-- URL 编码
-
----
-
-### 3.5 更新模块 (update/)
-
-#### UpdateManager.java
-应用更新管理器。
-
-**职责**:
-- 多源更新检查（香港VPS → 美国VPS → GitHub Releases）
-- APK 下载（支持断点续传、速度检测、自动换源）
-- MD5 校验
-- 安装 APK
-
-**更新源优先级**:
-1. 香港 VPS (主)
-2. 美国 VPS (备用1)
-3. GitHub Releases (备用2)
-
-**关键方法**:
-| 方法 | 说明 |
-|------|------|
-| `checkUpdate(Context, Callback)` | 检查更新 |
-| `downloadApk(Context, UpdateInfo, Callback)` | 下载 APK |
-| `installApk(Context, File)` | 安装 APK |
-| `cancel()` | 取消操作 |
-
-**版本策略**:
-- Beta 通道：仅上传到 VPS
-- Stable 通道：上传到 VPS + GitHub Releases
-- 用户可设置是否接受测试版
-
-#### UpdateInfo.java
-更新信息数据类。
-
-**字段**:
-| 字段 | 说明 |
-|------|------|
-| versionCode | 版本号 |
-| versionName | 版本名 |
-| channel | 发布通道 (beta/stable) |
-| downloadUrl | 下载地址 |
-| fileSize | 文件大小 |
-| md5 | MD5 校验值 |
-| changelog | 更新日志 |
-
----
-
-### 3.6 设置模块 (settings/)
-
-#### SettingsManager.java
-设置管理器（单例）。
-
-**职责**:
-- 持久化用户偏好设置
-- 提供设置读写接口
-
-**设置项**:
-| 设置 | 说明 | 默认值 |
-|------|------|--------|
-| themeMode | 主题模式 | THEME_SYSTEM |
-| colorSchemeIndex | 配色方案索引 | 0 |
-| autoCheckUpdate | 自动检查更新 | true |
-| acceptBetaUpdate | 接受测试版 | false |
-| autoDownloadUpdate | 自动下载更新 | false |
-| soundEnabled | 音效开关 | true |
-| vibrationEnabled | 震动开关 | true |
-| updateSource | 更新源 | UPDATE_SOURCE_AUTO |
-
----
-
-## 4. 关键类与函数说明
-
-### 4.1 游戏逻辑示例 - 五子棋
-
-#### GomokuGame.java
-五子棋游戏逻辑类。
-
-**常量**:
-```java
-public static final int BOARD_SIZE = 15;  // 棋盘大小
-public static final int EMPTY = 0;        // 空位
-public static final int BLACK = 1;        // 黑棋
-public static final int WHITE = 2;        // 白棋
-```
-
-**关键方法**:
-| 方法 | 说明 |
-|------|------|
-| `makeMove(int x, int y, int player)` | 落子 |
-| `checkWinAt(int x, int y, int player)` | 检查获胜 |
-| `undoLastMoves(int count)` | 悔棋 |
-| `reset()` | 重置游戏 |
-
-#### GomokuAI.java
-五子棋 AI（Minimax + Alpha-Beta 剪枝）。
-
-**AI 难度等级**:
-| 等级 | 思考时间 |
-|------|----------|
-| 1 | 500ms |
-| 2 | 1500ms |
-| 3 | 3000ms |
-| 4 | 5000ms |
-| 5 | 7000ms |
-| 6 | 10000ms |
-
-**关键方法**:
-| 方法 | 说明 |
-|------|------|
-| `getBestMove(GomokuGame, int)` | 获取最佳落子 |
-| `minimax(...)` | Minimax 搜索 |
-| `evaluateMoveThreat(...)` | 威胁评估 |
-| `findImmediateWin(...)` | 寻找必胜点 |
-
----
-
-### 4.2 配色方案管理
-
-#### ColorSchemeManager.java
-配色方案管理器。
-
-**配色方案**:
-- 默认蓝
-- 森林绿
-- 海洋青
-- 玫瑰红
-- 紫罗兰
-- 橙色阳光
-- 深空灰
-
-**应用方式**:
-```java
-ColorSchemeManager.Scheme scheme = ColorSchemeManager.getScheme(index);
-ColorSchemeManager.applyScheme(activity, scheme, isDarkMode);
-```
-
----
-
-### 4.3 音效管理
-
-#### SoundManager.java
-音效管理器。
-
-**职责**:
-- 加载和播放音效
-- 播放背景音乐
-- 音效开关控制
-
----
-
-## 5. 依赖关系
-
-### 5.1 Gradle 依赖
-
-```groovy
-dependencies {
-    // AndroidX 核心库
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
-    
-    // 导航组件
-    implementation 'androidx.navigation:navigation-fragment:2.8.4'
-    implementation 'androidx.navigation:navigation-ui:2.8.4'
-    
-    // 列表组件
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
-    implementation 'androidx.cardview:cardview:1.0.0'
-    
-    // App Startup
-    implementation 'androidx.startup:startup-runtime:1.2.0'
-    
-    // 二维码
-    implementation 'com.google.zxing:core:3.5.3'
-    
-    // HTTP 客户端
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    
-    // 图片加载
-    implementation 'com.github.bumptech.glide:glide:4.16.0'
-    
-    // 测试
-    testImplementation 'junit:junit:4.13.2'
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
-}
-```
-
-### 5.2 模块依赖图
+### 整体架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        app 模块                             │
+│                    GameCenterApp (Android)                  │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────────┐  │
-│  │ games/  │   │ tools/  │   │network/ │   │   update/   │  │
-│  └────┬────┘   └────┬────┘   └────┬────┘   └──────┬──────┘  │
-│       │             │             │               │         │
-│       └─────────────┴─────────────┴───────────────┘         │
-│                           │                                  │
-│                    ┌──────┴──────┐                          │
-│                    │  utils/     │                          │
-│                    │ settings/   │                          │
-│                    │  views/     │                          │
-│                    └─────────────┘                          │
+│  App.java ── 入口 + 生命周期管理 + Crash 防护                │
+│  MainActivity.java ── 主容器 + Fragment 切换                 │
+├─────────────────────────────────────────────────────────────┤
+│  Fragments (UI 层)                                          │
+│  ├── GamesFragment    ── 游戏大厅 (TabLayout + RecyclerView)│
+│  ├── ToolsFragment    ── 工具中心                           │
+│  ├── AiFragment       ── AI 对话界面 (独立底部导航Tab)       │
+│  └── BrowserFragment  ── 内置浏览器                         │
+├─────────────────────────────────────────────────────────────┤
+│  核心业务层                                                  │
+│  ├── games/        ── 26 个游戏 (各自 Activity + Game/View) │
+│  ├── tools/        ── 30+ 工具 Binder (功能入口)             │
+│  ├── ai/           ── AI 模块 (本地 + 云端)                  │
+│  ├── network/      ── 联机网络 (WebSocket + HTTP Relay)      │
+│  ├── update/       ── 版本更新系统                           │
+│  └── settings/     ── 设置管理                               │
+├─────────────────────────────────────────────────────────────┤
+│  基础设施层                                                  │
+│  ├── utils/        ── 工具类 (国际化、错误处理、音效、系统信息)│
+│  ├── views/        ── 自定义 View (颜色选择器)               │
+│  ├── di/AppModule   ── Hilt 依赖注入模块                     │
+│  └── util/ (Kotlin)─ 崩溃处理、内存工具、懒加载管理等         │
+├─────────────────────────────────────────────────────────────┤
+│  外部服务                                                     │
+│  ├── 香港 VPS  ── 更新服务器、斗地主 WebSocket 中继            │
+│  ├── 美国 VPS  ── 备用更新服务器                              │
+│  ├── GitHub ── Release 分发 + 源代码                          │
+│  └── AI API ── OpenAI 兼容云端接口                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 5.3 外部服务依赖
+### 数据流架构
 
-| 服务 | 用途 | 配置 |
-|------|------|------|
-| 香港 VPS | 主更新源、联机中继 | `SERVER_URL` |
-| 美国 VPS | 备用更新源 | `SERVER_URL_FALLBACK` |
-| GitHub Releases | 备用更新源 | - |
-| WebSocket 服务 | 云端联机 | `WS_URL` |
-| 反馈服务 | 用户反馈收集 | `FEEDBACK_URL` |
+```
+用户操作 → MainActivity → Fragment → GameActivity/ToolBinder
+                                     ↓
+                              GameLogic/Network
+                                     ↓
+                           SharedPreferences / File / Assets
+                                     ↓
+                              UI 更新 (LiveData / Handler)
+```
 
 ---
 
-## 6. 项目运行方式
+## 4. 模块职责
 
-### 6.1 环境要求
+### 4.1 应用入口模块
 
-- JDK 17+
-- Android SDK 35
-- Android Gradle Plugin 8.7.3
-- Android Studio (推荐)
+| 类 | 职责 |
+|-----|------|
+| `App.java` | Application 入口，初始化全局 CrashHandler、启动日志系统、管理 Activity 生命周期、主题/配色应用 |
+| `MainActivity.java` | 主容器 Activity，管理底部导航切换(Games/Tools/AI)、自动检查更新、权限请求 |
 
-### 6.2 本地开发
+### 4.2 UI 层 (Fragments)
+
+| 类 | 职责 |
+|-----|------|
+| `GamesFragment` | 游戏大厅：分类 Tab、游戏卡片网格展示、搜索过滤、最近游戏/收藏、启动游戏 |
+| `ToolsFragment` | 工具中心：分区块展示网络诊断、系统信息、二维码等工具，点击启动工具 |
+| `BrowserFragment` | 内置 WebView 浏览器，支持常用网站快捷入口 |
+| `AiFragment` | AI 交互界面：聊天式对话，支持多种 AI 任务(翻译、OCR、摘要等) |
+
+### 4.3 游戏模块
+
+| 类/目录 | 职责 |
+|---------|------|
+| `GameRegistry` | 游戏注册表：注册所有游戏元数据(id、名称、图标、分类、Activity) |
+| `BaseGameActivity` | 游戏基类：封装音效播放、统计记录、返回键处理、教程辅助 |
+| `GameUsageStore` | 游戏使用统计：收藏、最近、游玩次数、胜负记录，使用 SharedPreferences 持久化 |
+| `GameStats` | 游戏统计数据模型(高分、胜率、总游玩时间等) |
+| `GameTutorialHelper` | 教程提示辅助类 |
+| `InteractiveTutorialDialog` | 交互式教程对话框 |
+| `StatsActivity` | 全局游戏统计查看页面 |
+
+#### 各游戏子模块结构
+
+每个游戏遵循统一的 `Activity + Game + View` 三层架构：
+- **Activity**: 处理 UI 交互、菜单、生命周期
+- **Game**: 纯游戏逻辑(状态机、规则判断、AI 对手)
+- **View**: 自定义 SurfaceView/View 负责渲染
+
+部分游戏有联机版本（`OnlineActivity`），继承 `BaseOnlineActivity`。
+
+### 4.4 网络与联机模块
+
+| 类 | 职责 |
+|-----|------|
+| `RelayHttpClient` | HTTP 中继客户端：通过香港 VPS 中继 API 请求，支持多源回退和请求去重 |
+| `GameSocketServer` | WebSocket 服务器端：作为房间主机接收客户端连接、转发消息 |
+| `GameSocketClient` | WebSocket 客户端：作为加入者连接主机，支持自动重连 |
+| `BaseOnlineActivity` | 联机游戏基类：封装房间管理、聊天、连接状态等通用逻辑 |
+| `OnlineChatHelper` | 联机聊天助手：消息格式化和显示 |
+| `OkHttpClientProvider` | OkHttpClient 单例提供者：配置超时、拦截器 |
+| `RequestDeduplicationInterceptor` | 请求去重拦截器：防止重复请求 |
+| `RemoteP2PUtil` | P2P 连接工具类 |
+
+### 4.5 工具模块
+
+| 类 | 职责 |
+|-----|------|
+| `ToolBinder` | 工具抽象基类：定义 `getName()`、`run()`、`getIcon()` 接口 |
+| `ToolSection` | 工具分组模型(网络诊断、系统信息、开发工具等) |
+| `ToolSectionStore` | 工具分组仓库：管理所有工具及其分类 |
+| `AdvancedToolBinders` | 高级工具注册器：动态注册所有具体工具 |
+| `AiToolBinder` | AI 工具：跳转 AI Fragment |
+| `*ToolBinder` | 30+ 具体工具实现：Ping、Traceroute、DNS、端口扫描、WiFi、电池、二维码等 |
+
+### 4.6 AI 模块
+
+| 类 | 职责 |
+|-----|------|
+| `AiTaskRouter` | AI 任务调度中心：决定本地/云端路由、管理任务生命周期、本地优先策略 |
+| `AiPreferences` | AI 偏好设置：本地化存储 API Key、提供商、模型选择 |
+| `AiApiClient` | 云端 API 客户端：OpenAI 兼容接口，同步聊天请求 |
+| `LocalAiProcessor` | 本地 AI 处理：OCR 后处理、摘要、关键词提取、分类、指令识别 |
+| `AiHistoryStore` | AI 历史记录与收藏持久化 |
+| `AiTemplateManager` | AI 常用模板管理 |
+| `AiFragment` | AI 对话界面 UI，支持模板、搜索、收藏和导出 |
+
+### 4.7 更新系统
+
+| 类 | 职责 |
+|-----|------|
+| `UpdateManager` | 版本更新管理器：检查更新、下载 APK、校验 MD5、触发安装、通知管理 |
+| `UpdateInfo` | 更新信息模型：版本号、下载链接、MD5、更新日志等 |
+| `SSLHelper` | SSL 证书处理：信任自定义更新服务器证书 |
+| `NetworkInitializer` | 网络组件初始化器：App Startup 自动预加载 OkHttpClient |
+
+### 4.8 设置模块
+
+| 类 | 职责 |
+|-----|------|
+| `SettingsManager` | 单例设置管理器：主题模式、配色方案、更新策略等，SharedPreferences 持久化 |
+| `ColorSchemeManager` | 配色方案管理器：定义多套预设配色 |
+| `AppSettingsDialog` | 设置弹窗 UI：主设置弹窗 + 版本更新子弹窗 |
+
+### 4.9 工具类
+
+| 类 | 职责 |
+|-----|------|
+| `NetworkErrorHandler` | 网络错误码与用户友好消息映射 |
+| `SoundManager` | 音效管理器：播放/暂停/静音控制 |
+| `I18nHelper` | 国际化辅助：中英文切换 |
+| `SystemInfoCollector` | 系统信息收集器：设备信息、内存、CPU 等 |
+
+### 4.10 Kotlin 工具模块
+
+| 类 | 职责 |
+|-----|------|
+| `AppModule.kt` | Hilt 依赖注入模块：提供 ExecutorService、SettingsManager、OkHttpClient、UpdateManager |
+| `CrashHandler.kt` | 全局崩溃处理器：捕获未捕获异常，记录日志 |
+| `LazyInitManager.kt` | 延迟初始化管理器：空闲时初始化组件 |
+| `MemoryUtils.kt` | 内存工具：内存监控和优化辅助 |
+| `Extensions.kt` | Kotlin 扩展函数 |
+| `Result.kt` | Result 类型封装 |
+
+---
+
+## 5. 关键类与函数说明
+
+### 5.1 App.java
+
+```java
+// 核心入口，配置全局异常捕获
+public class App extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // 初始化全局崩溃处理器
+        // 配置主题和配色方案
+        // 注册 Activity 生命周期回调
+    }
+
+    // 应用当前主题设置
+    public void applyTheme() { ... }
+
+    // 应用当前配色方案
+    public void applyColorScheme() { ... }
+}
+```
+
+### 5.2 MainActivity.java
+
+```java
+// 主容器，Fragment 切换
+public class MainActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        // 1. 设置底部导航栏
+        // 2. 加载默认 Fragment (GamesFragment)
+        // 3. 自动检查更新
+        // 4. 权限检查
+    }
+
+    // 导航切换
+    private void navigateTo(int itemId) { ... }
+
+    // 检查更新
+    private void checkUpdate() { ... }
+}
+```
+
+### 5.3 GameRegistry.java
+
+```java
+// 游戏注册中心，集中管理所有游戏元数据
+public class GameRegistry {
+    // 注册所有游戏
+    public static List<Entry> getGames() {
+        return Arrays.asList(
+            entry("gomoku", "五子棋", ...),
+            entry("chinesechess", "中国象棋", ...),
+            entry("doudizhu", "斗地主", ...),
+            // ... 共 26 个游戏
+        );
+    }
+
+    // 按分类获取游戏
+    public static List<Entry> getGamesByCategory(Category category) { ... }
+}
+```
+
+### 5.4 UpdateManager.java
+
+```java
+// 版本更新管理核心类
+public class UpdateManager {
+    // 检查更新(多源回退)
+    public void checkUpdate(Context context, UpdateCheckCallback callback);
+
+    // 下载 APK(多下载源、速度检测、MD5 校验)
+    public void downloadApk(Context context, UpdateInfo info, DownloadCallback callback);
+
+    // 安装 APK(通过 Intent 触发系统安装器)
+    public boolean installApk(Context context, File apkFile);
+
+    // 清理旧版本 APK(仅保留最新)
+    public int cleanOldApks(Context context);
+
+    // 打开下载目录
+    public boolean openDownloadDirectory(Context context);
+}
+```
+
+**更新检查流程**:
+```
+checkUpdate()
+  → buildUpdateUrls() (香港VPS → 美国VPS → GitHub)
+  → 依次尝试每个源
+    → fetchJson(version-beta.json / version-release.json)
+    → parse UpdateInfo
+    → compare versionCode
+    → return 第一个成功的结果
+```
+
+**下载流程**:
+```
+downloadApk()
+  → cleanOldApksBeforeDownload()  // 清理旧版本
+  → downloadFromUrl()
+    → 创建临时文件 GameCenter_v{code}_{name}.apk
+    → 64KB buffer 流式下载
+    → 3秒后检测速度，低于50KB/s切换源
+    → MD5 校验
+  → showDownloadCompleteNotification()
+  → callback.onComplete(apkFile)
+```
+
+### 5.5 AiTaskRouter.java
+
+```java
+// AI 任务调度中心，本地优先策略
+public class AiTaskRouter {
+    // 提交任务，自动路由到本地或云端
+    public AiTask submitTask(String taskType, String input, AiCallback callback);
+
+    // 本地优先：先尝试本地处理，失败再走云端
+    private void executeTask(AiTask task, AiCallback callback) {
+        // 1. 尝试本地处理 (OCR、摘要、关键词、分类)
+        // 2. 本地无法处理，检查云端配额
+        // 3. 走云端 API 调用
+    }
+}
+```
+
+---
+
+## 6. 游戏模块架构
+
+### 6.1 游戏分类
+
+| 分类 | 游戏 |
+|------|------|
+| 经典 | 五子棋、围棋、中国象棋、21点、跳棋 |
+| 益智 | 2048、数独、华容道、接水管、推箱子、消消乐、连连看、记忆翻牌、猜数字 |
+| 休闲 | 斗地主、蛇、俄罗斯方块、打砖块、Flappy Bird、Brotato、飞机大战 |
+| 反应 | 反应速度、打地鼠、石头剪刀布 |
+| 其他 | 骰子 |
+
+### 6.2 游戏三层架构示例（以五子棋为例）
+
+```
+GomokuActivity          ← UI 层：按钮、菜单、屏幕方向控制
+    ↓
+GomokuGame              ← 逻辑层：棋盘状态、落子判断、胜负判定、AI 对手
+    ↓
+GomokuView              ← 渲染层：Canvas 绘制棋盘、棋子、动画
+```
+
+### 6.3 联机游戏架构
+
+支持联机的游戏：斗地主、围棋、五子棋、中国象棋、石头剪刀布
+
+```
+BaseOnlineActivity
+    ├── GameSocketServer   (房主端 WebSocket 服务)
+    ├── GameSocketClient   (加入端 WebSocket 客户端)
+    ├── OnlineChatHelper   (联机聊天)
+    └── 游戏特有逻辑       (子类实现)
+```
+
+联机流程：
+```
+1. 房主创建房间 → 生成房间码 → 启动 GameSocketServer
+2. 加入者输入房间码 → GameSocketClient 连接房主
+3. 连接建立 → 开始游戏 → 消息通过 WebSocket 同步
+4. 中继服务器（香港 VPS）用于 NAT 穿透和信令交换
+```
+
+---
+
+## 7. 网络与联机架构
+
+### 7.1 服务器架构
+
+```
+客户端 (App)
+    │
+    ├── HTTP 请求 ──→ 香港 VPS (hk-update.tcp0053.shop)
+    │                      ├── /version-release.json
+    │                      ├── /version-beta.json
+    │                      ├── /app-release.apk
+    │                      └── /api/ddz-relay (斗地主中继)
+    │
+    ├── HTTP 请求 ──→ 美国 VPS (tcp0053.shop:1443) [备用]
+    │
+    ├── WebSocket ──→ 香港 VPS (hk-ws.tcp0053.shop/ddz-ws)
+    │
+    └── GitHub Releases [备用3]
+```
+
+### 7.2 VPS 服务端组件
+
+| 服务 | 路径 | 语言 | 说明 |
+|------|------|------|------|
+| 更新服务器 | `vps/var_www_update/update_server.py` | Python | APK 下载 + version.json 分发 |
+| 斗地主中继 | `vps/var_www_update/ddz_relay/ddz_relay_server.py` | Python | WebSocket 消息转发 |
+| 反馈服务器 | `vps/var_www_update/feedback/feedback_server.py` | Python | 用户反馈收集 |
+| Node.js 中继 | `vps/ddz_ws_relay/server.js` | Node.js | WebSocket 中继(备用) |
+
+---
+
+## 8. 工具模块架构
+
+### 8.1 工具分类
+
+| 分类 | 工具 |
+|------|------|
+| 网络诊断 | Ping、Traceroute、DNS 查询、端口扫描、子网扫描、WiFi 信息、局域网扫描、网速测试 |
+| 系统信息 | 系统信息、电池信息、传感器信息、设备信息 |
+| 开发工具 | IP 查询、DNS 工具、文件哈希 |
+| 实用工具 | 二维码生成/识别、剪贴板、取色器、颜色+、文本编码、屏幕信息 |
+| AI | AI 助手 |
+| 其他 | 权限与隐私、诊断报告 |
+
+### 8.2 ToolBinder 接口
+
+```java
+public abstract class ToolBinder {
+    public abstract String getName();          // 工具名称
+    public abstract String getIconResName();   // 图标资源名
+    public abstract void run(Context context); // 执行工具
+}
+```
+
+每个具体工具实现 `run()` 方法，启动相应的 Activity 或执行逻辑。
+
+---
+
+## 9. AI 模块架构
+
+### 9.1 本地优先策略
+
+```
+用户输入 → AiTaskRouter
+              │
+              ├── 本地处理 (免费、快速)
+              │     ├── OCR 清洗
+              │     ├── 摘要提取
+              │     ├── 关键词提取
+              │     ├── 文本分类
+              │     └── 指令识别
+              │
+              └── 云端处理 (需 API Key)
+                    └── AiApiClient → OpenAI 兼容接口
+```
+
+### 9.2 云端提供商
+
+支持所有 OpenAI 兼容接口的提供商：
+- OpenAI
+- 智谱 AI
+- 阿里通义
+- 自定义 API Key + Base URL
+
+---
+
+## 10. 更新系统
+
+### 10.1 更新流程
+
+```
+App 启动 → NetworkInitializer 预加载
+    ↓
+自动检查更新 → UpdateManager.checkUpdate()
+    ↓
+多源检查 (HK VPS → US VPS → GitHub)
+    ↓
+发现新版本 → 弹窗提示
+    ↓
+用户确认 → downloadApk()
+    ↓
+多下载源 → 速度检测 → MD5 校验
+    ↓
+cleanOldApksBeforeDownload() → 下载最新 APK
+    ↓
+通知栏提示 → installApk() → 系统安装器
+```
+
+### 10.2 APK 存储位置
+
+```
+外部存储: /storage/emulated/0/Android/data/com.gamecenter.app/files/Download/update/
+内部存储: /data/data/com.gamecenter.app/files/update/
+```
+
+文件名格式：`GameCenter_v{versionCode}_{versionName}.apk`
+
+### 10.3 防错机制
+
+- **下载前清理**: 每次下载前清理旧 APK，避免多版本共存
+- **打开目录清理**: 打开下载目录时清理旧 APK
+- **MD5 校验**: 下载完成后校验文件完整性
+- **速度检测**: 下载 3 秒后检测速度，低于 50KB/s 自动切换下载源
+- **唯一 PendingIntent**: 使用时间戳作为请求码，避免 PendingIntent 指向旧文件
+
+---
+
+## 11. 构建与发布流程
+
+### 11.1 Gradle 任务
+
+| 任务 | 说明 |
+|------|------|
+| `:app:assembleDebug` | 编译 Debug APK |
+| `:app:assembleRelease` | 编译 Release APK (需签名) |
+| `:app:buildAndUploadReleaseToVps` | 编译并上传到 VPS |
+| `:app:uploadReleaseToVps` | 上传 Release APK 到 VPS |
+| `:app:uploadApkToGitHubRelease` | 上传 APK 到 GitHub Releases |
+| `:app:generateVersionJson` | 生成 version.json |
+| `:app:bumpVersion` | 自动递增 versionCode |
+
+### 11.2 签名配置
+
+Release 版本需要 `keystore.properties` 文件：
+
+```properties
+STORE_FILE=path/to/keystore.jks
+STORE_PASSWORD=...
+KEY_ALIAS=...
+KEY_PASSWORD=...
+```
+
+签名方案：v1 + v2
+
+### 11.3 版本管理
+
+版本信息由 `version.properties` 控制：
+```properties
+versionCode=236
+versionName=1.3.20
+lastStableVersionCode=224
+lastStableVersionName=1.3.18
+betaNoticeVersionGap=3
+```
+
+### 11.4 双版本分发
+
+| 通道 | 说明 |
+|------|------|
+| Beta | 上传到 VPS，供开启"接受测试版"的用户下载 |
+| Stable | 同时上传到 VPS 和 GitHub Releases |
+
+### 11.5 服务器配置
+
+`local.properties` 配置服务器地址：
+```properties
+server.url=https://hk-update.tcp0053.shop
+server.url.fallback=https://tcp0053.shop:1443
+relay.url=https://hk-relay.tcp0053.shop/api/ddz-relay
+ws.url=wss://hk-ws.tcp0053.shop/ddz-ws
+```
+
+---
+
+## 12. 项目运行方式
+
+### 12.1 环境要求
+
+| 项目 | 要求 |
+|------|------|
+| JDK | 17+ |
+| Android SDK | 35 |
+| Android Gradle Plugin | 8.7.3 |
+| Gradle | 8.x |
+| Python | 3.x (用于发布脚本) |
+| Node.js | (VPS 服务端) |
+
+### 12.2 首次设置
 
 ```bash
-# 克隆项目
-git clone <repository-url>
+# 1. 克隆仓库
+git clone https://github.com/3571949306/GameCenterApp.git
 cd GameCenterApp
 
-# 配置 local.properties
-cp local.properties.template local.properties
-# 编辑 local.properties，填入服务器 URL
+# 2. 创建 local.properties
+# 复制 local.properties.template 并填写服务器地址
 
-# 编译 Debug 版本
-./gradlew :app:assembleDebug
+# 3. (可选) 配置签名用于 Release 构建
+# 创建 keystore.jks 和 keystore.properties
 
-# 安装到设备
-./gradlew :app:installDebug
-
-# 运行单元测试
-./gradlew :app:test
+# 4. 用 Android Studio 打开项目
+# 或命令行构建
 ```
 
-### 6.3 发布构建
+### 12.3 构建命令
 
-```bash
-# 编译 Release 版本
-./gradlew :app:assembleRelease
+```powershell
+# Debug 构建 (无需签名)
+.\gradlew.bat :app:assembleDebug
 
-# 发布 Beta 版本（仅上传 VPS）
-./gradlew :app:buildAndUploadDebugToVps
+# Release 构建 (需要签名配置)
+.\gradlew.bat :app:assembleRelease
 
-# 发布 Stable 版本（上传 VPS + GitHub Releases）
-./gradlew :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
+# 构建并发布到 VPS (Beta 通道)
+.\gradlew.bat :app:buildAndUploadReleaseToVps
+
+# 构建并发布 (Stable 通道 + GitHub Releases)
+.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
+
+# 运行测试
+.\gradlew.bat :app:test
 ```
 
-### 6.4 版本管理
+### 12.4 输出位置
 
-版本信息存储在 `version.properties`:
+| 类型 | 路径 |
+|------|------|
+| Debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
+| Release APK | `app/build/outputs/apk/release/app-release.apk` |
+| version.json | `app/build/outputs/apk/{debug,release}/version.json` |
 
-```properties
-versionCode=224           # 内部版本号
-versionName=1.3.18        # 显示版本号
-lastStableVersionCode=224 # 上一个正式版版本号
-lastStableVersionName=1.3.18
-betaNoticeVersionGap=3    # Beta 提示阈值
-```
+### 12.5 测试
 
-**版本号规则**:
-- `versionCode`: 每次构建自动递增
-- `versionName`: 手动更新，用于正式发布
+项目包含 10+ 个游戏逻辑单元测试：
+- ChineseChessGameTest
+- DiceGameTest
+- Game2048GameTest
+- GuessGameTest
+- KlotskiGameTest
+- MemoryGameTest
+- SnakeGameTest
+- TicGameTest
+- GoGameTest
+- GomokuGameTest
+- ResultTest (Kotlin)
 
-### 6.5 签名配置
-
-Release 签名配置在 `keystore.properties`:
-
-```properties
-STORE_FILE=keystore.jks
-STORE_PASSWORD=***
-KEY_ALIAS=***
-KEY_PASSWORD=***
-```
-
----
-
-## 7. 联机架构说明
-
-### 7.1 联机模式
-
-| 模式 | 说明 | 适用场景 |
-|------|------|----------|
-| 局域网 (LAN) | UDP 广播发现 + TCP 直连 | 同一 WiFi 下 |
-| 云端 WebSocket | WebSocket 中继服务器 | 跨网络联机 |
-| HTTP Relay | HTTP 轮询中继 | 网络受限环境 |
-
-### 7.2 WebSocket 联机流程
-
-```
-┌─────────────┐                    ┌─────────────┐
-│   主机端    │                    │   客户端    │
-└──────┬──────┘                    └──────┬──────┘
-       │                                  │
-       │ 1. 创建房间                      │
-       │    生成房间码                    │
-       │                                  │
-       │                                  │ 2. 输入房间码
-       │                                  │    加入房间
-       │                                  │
-       │ ◄──────── WebSocket 连接 ────────┤
-       │                                  │
-       │ 3. 发送 JOIN                     │
-       │ ────────────────────────────────►│
-       │                                  │
-       │ ◄────── WELCOME (clientId) ──────│
-       │                                  │
-       │ 4. 游戏开始                       │
-       │ ◄─────── 游戏消息交换 ───────────►│
-       │                                  │
-```
-
-### 7.3 服务端
-
-WebSocket 中继服务端位于 `vps/ddz_ws_relay/`:
-
-```
-vps/ddz_ws_relay/
-├── package.json
-└── server.js          # Node.js WebSocket 服务器
-```
-
----
-
-## 8. 测试说明
-
-### 8.1 单元测试
-
-测试位于 `app/src/test/java/`:
-
-| 测试类 | 测试内容 |
-|--------|----------|
-| ChineseChessGameTest | 中国象棋逻辑 |
-| DiceGameTest | 骰子游戏逻辑 |
-| Game2048GameTest | 2048 游戏逻辑 |
-| GuessGameTest | 猜数字游戏逻辑 |
-| KlotskiGameTest | 华容道逻辑 |
-| MemoryGameTest | 记忆翻牌逻辑 |
-| SnakeGameTest | 贪吃蛇逻辑 |
-| TicGameTest | 井字棋逻辑 |
-| GoGameTest | 围棋逻辑 |
-| GomokuGameTest | 五子棋逻辑 |
-
-### 8.2 运行测试
-
-```bash
-# 运行所有测试
-./gradlew :app:test
-
-# 运行单个测试类
-./gradlew :app:test --tests "com.gamecenter.app.games.gomoku.GomokuGameTest"
+```powershell
+.\gradlew.bat :app:test
 ```
 
 ---
 
 ## 附录
 
-### A. 权限说明
+### A. 项目文件结构
+
+```
+GameCenterApp/
+├── app/
+│   ├── build.gradle              # 模块构建配置
+│   ├── proguard-rules.pro        # 代码混淆规则
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── assets/
+│       │   │   └── pkgInfo.txt
+│       │   ├── java/com/gamecenter/app/
+│       │   │   ├── App.java              # 入口
+│       │   │   ├── MainActivity.java     # 主容器
+│       │   │   ├── SettingsManager.java  # 设置管理
+│       │   │   ├── ai/                   # AI 模块
+│       │   │   ├── fragments/            # UI Fragment
+│       │   │   ├── games/                # 游戏模块 (26个)
+│       │   │   ├── initializers/         # 启动初始化
+│       │   │   ├── network/              # 网络联机
+│       │   │   ├── settings/             # 设置弹窗
+│       │   │   ├── tools/                # 工具模块 (30+)
+│       │   │   ├── update/               # 更新系统
+│       │   │   ├── utils/                # 工具类
+│       │   │   └── views/                # 自定义 View
+│       │   ├── kotlin/com/gamecenter/app/
+│       │   │   ├── di/AppModule.kt       # Hilt DI
+│       │   │   └── util/                 # Kotlin 工具
+│       │   └── res/                      # 资源文件
+│       └── test/                         # 测试代码
+├── vps/                          # VPS 服务端代码
+├── tools/                        # 发布工具脚本
+├── docs/                         # 文档
+├── build.gradle                  # 根构建配置
+├── settings.gradle
+├── version.properties
+├── local.properties.template
+└── README.md
+```
+
+### B. 权限说明
 
 | 权限 | 用途 |
 |------|------|
-| INTERNET | 网络访问 |
+| INTERNET | 网络请求、联机游戏 |
 | ACCESS_NETWORK_STATE | 网络状态检测 |
-| ACCESS_WIFI_STATE | WiFi 状态 |
-| CHANGE_WIFI_MULTICAST_STATE | 局域网发现 |
-| ACCESS_FINE_LOCATION | WiFi 扫描（Android 要求） |
-| ACCESS_COARSE_LOCATION | 网络定位 |
+| ACCESS_WIFI_STATE | WiFi 信息获取 |
+| CHANGE_WIFI_MULTICAST_STATE | 局域网扫描 |
+| ACCESS_FINE_LOCATION / COARSE_LOCATION | 局域网扫描需要位置权限 |
 | CAMERA | 二维码扫描 |
-| READ_EXTERNAL_STORAGE | 读取文件 |
-| WRITE_EXTERNAL_STORAGE | 保存文件 |
-| REQUEST_INSTALL_PACKAGES | 安装 APK |
-
-### B. 资源文件
-
-| 目录 | 内容 |
-|------|------|
-| res/anim/ | 动画定义 |
-| res/drawable/ | 图标和图形 |
-| res/layout/ | 布局文件 |
-| res/menu/ | 菜单定义 |
-| res/navigation/ | 导航图 |
-| res/raw/ | 音效文件 |
-| res/values/ | 字符串、颜色、主题 |
-| res/xml/ | 配置文件 |
-
-### C. 相关文档
-
-- [README.md](README.md) - 项目说明
-- [CHANGELOG.md](CHANGELOG.md) - 更新日志
-- [联机架构说明.md](联机架构说明.md) - 联机架构详细说明
-- [PUBLISH_SYSTEM_OVERVIEW.md](PUBLISH_SYSTEM_OVERVIEW.md) - 发布系统说明
-- [docs/](docs/) - 详细文档目录
+| READ/WRITE_EXTERNAL_STORAGE | APK 下载存储 |
+| REQUEST_INSTALL_PACKAGES | 安装更新 APK |
 
 ---
 
-*文档生成时间: 2026-05-12*
-*项目版本: v1.3.18*
+*文档生成时间: 2026-05-13*
+*基于版本: v1.3.20 (versionCode: 236)*

@@ -1,7 +1,7 @@
 # 上传到 GitHub Releases
 param(
     [string]$GithubToken,
-    [string]$ApkPath = "app\build\outputs\apk\release\app-release-unsigned.apk",
+    [string]$ApkPath = "app\build\outputs\apk\release\app-release.apk",
     [string]$VersionName = "1.3.16"
 )
 

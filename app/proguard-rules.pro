@@ -84,3 +84,17 @@
 -keepclasseswithmembernames class * {
     native <methods>;
 }
+-keep class com.google.mediapipe.** { *; }
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.auto.value.AutoValue$Builder
+-dontwarn com.google.auto.value.AutoValue
+-dontwarn com.google.mediapipe.framework.image.BitmapExtractor
+-dontwarn com.google.mediapipe.framework.image.ByteBufferExtractor
+-dontwarn com.google.mediapipe.framework.image.MPImage
+-dontwarn com.google.mediapipe.framework.image.MPImageProperties
+-dontwarn com.google.mediapipe.framework.image.MediaImageExtractor
+-dontwarn com.google.protobuf.Internal$ProtoMethodMayReturnNull
+-dontwarn com.google.protobuf.Internal$ProtoNonnullApi
+-dontwarn com.google.protobuf.ProtoField
+-dontwarn com.google.protobuf.ProtoPresenceBits
+-dontwarn com.google.protobuf.ProtoPresenceCheckedField

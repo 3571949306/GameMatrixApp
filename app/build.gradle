@@ -108,6 +108,7 @@ def buildVersionJsonText = {
     def vn = android.defaultConfig.versionName
     def channel = currentVersionChannel
     def beta = channel == "beta"
+    def apkName = beta ? "app-beta.apk" : "app-release.apk"
     def cl = toJsonString(readChangelogText())
     return "{\n" +
             "  \"versionCode\": ${vc},\n" +
@@ -117,7 +118,7 @@ def buildVersionJsonText = {
             "  \"lastStableVersionCode\": ${lastStableVersionCode},\n" +
             "  \"lastStableVersionName\": \"${toJsonString(lastStableVersionName)}\",\n" +
             "  \"betaNoticeVersionGap\": ${configuredBetaNoticeVersionGap},\n" +
-            "  \"apkName\": \"app-debug.apk\",\n" +
+            "  \"apkName\": \"${apkName}\",\n" +
             "  \"changelog\": \"${cl}\"\n" +
             "}\n"
 }
@@ -224,6 +225,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'com.google.mediapipe:tasks-genai:0.10.27'
     kapt 'com.github.bumptech.glide:compiler:4.16.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20250107'
@@ -343,25 +345,26 @@ task uploadApkToGitHubRelease {
         if (!apkFile.exists()) {
             throw new GradleException("APK file not found: ${apkFile.absolutePath}")
         }
+        def changelogSource = changelogFile.exists() ? changelogFile : legacyChangelogFile
 
         def args = [
                 uploadPythonExecutable,
                 file("${rootDir}/tools/upload_to_github_release.py").absolutePath,
                 "--apk", apkFile.absolutePath,
                 "--version-name", currentVersionName,
-                "--changelog", readChangelogText()
+                "--changelog-file", changelogSource.absolutePath
         ]
         println "Uploading APK to GitHub Releases: v${currentVersionName}"
         def process = args.execute()
         process.waitFor()
         if (process.exitValue() != 0) {
-            def err = process.err.text
+            def err = process.errorStream.getText("UTF-8")
             if (err && err.trim()) {
                 println "GitHub Release upload error: ${err}"
             }
             throw new GradleException("Failed to upload APK to GitHub Releases")
         }
-        println process.out.text
+        println process.inputStream.getText("UTF-8")
     }
 }
 

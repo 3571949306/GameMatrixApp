@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.3.19-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.3.20-blue)](CHANGELOG.md)
 
 一个集成 **26 款**经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
 
@@ -87,6 +87,7 @@ An Android game center integrating **26** classic mini-games, supporting single-
 - 文件哈希计算（MD5/SHA-1/SHA-256）
 - 颜色取色器（支持 WCAG 对比度检测）
 - 诊断报告导出、电池信息、设备信息
+- **AI 智能助手**（文本总结、翻译、润色、问答、代码解释，支持 DeepSeek/阿里云通义/硅基流动/智谱 AI 等多家 API）
 
 ### ⚙️ 通用设置 / General Settings
 
@@ -112,11 +113,12 @@ An Android game center integrating **26** classic mini-games, supporting single-
 
 | 库 | 版本 | 用途 |
 |----|------|------|
-| androidx.appcompat | 1.7.0 | AppCompat 基础支持 |
+| androidx.appcompat | 1.7.1 | AppCompat 基础支持 |
 | com.google.android.material | 1.12.0 | Material Design 组件 |
-| androidx.constraintlayout | 2.2.0 | ConstraintLayout 布局 |
-| androidx.recyclerview | 1.3.2 | 游戏列表 RecyclerView |
+| androidx.constraintlayout | 2.2.1 | ConstraintLayout 布局 |
+| androidx.recyclerview | 1.4.0 | 游戏列表 RecyclerView |
 | androidx.cardview | 1.0.0 | 游戏卡片 CardView |
+| com.google.code.gson | 2.11.0 | JSON 序列化/反序列化 |
 | com.google.zxing:core | 3.5.3 | 二维码生成与识别 |
 | com.squareup.okhttp3:okhttp | 4.12.0 | WebSocket 客户端 |
 | com.github.bumptech.glide:glide | 4.16.0 | 图片懒加载与缓存 |
@@ -532,15 +534,15 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 
 1. 创建密钥库（首次）：
 ```bash
-keytool -genkey -v -keystore gamecenter.keystore -alias gamecenter -keyalg RSA -keysize 2048 -validity 10000 -storepass GameCenter2026 -keypass GameCenter2026 -dname "CN=GameCenter, OU=Development, O=GameCenterApp, L=Shenzhen, ST=Guangdong, C=CN"
+keytool -genkey -v -keystore gamecenter.keystore -alias gamecenter -keyalg RSA -keysize 2048 -validity 10000 -storepass "<your-store-password>" -keypass "<your-key-password>" -dname "CN=GameCenter, OU=Development, O=GameCenterApp, L=Shenzhen, ST=Guangdong, C=CN"
 ```
 
 2. 创建 `keystore.properties`（不提交 Git）：
 ```properties
 STORE_FILE=gamecenter.keystore
-STORE_PASSWORD=GameCenter2026
+STORE_PASSWORD=<your-store-password>
 KEY_ALIAS=gamecenter
-KEY_PASSWORD=GameCenter2026
+KEY_PASSWORD=<your-key-password>
 ```
 
 3. Gradle 自动读取配置并签名 Release APK

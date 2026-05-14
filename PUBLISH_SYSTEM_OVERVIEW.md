@@ -143,7 +143,7 @@ auto-publish.bat beta
   "port": 22,
   "user": "root",
   "authMethod": "password",
-  "password": "!H8sfw6=v-",
+  "password": "<your-vps-password>",
   "remoteDir": "/var/www/update/app",
   "publicBaseUrl": "https://update.tcp0053.shop",
   "postUploadCommands": [

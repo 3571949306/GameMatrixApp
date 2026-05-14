@@ -1,4 +1,4 @@
-# AI_CONTEXT.md — GameCenter App 项目上下文
+﻿# AI_CONTEXT.md — GameCenter App 项目上下文
 
 > 本文档供后续 AI 编程助手（Trae / Codex / Claude 等）阅读。
 > 目标：让 AI 读完后能安全上手，不会因为不了解项目背景而乱改代码。
@@ -17,6 +17,15 @@
 - **APK 签名配置已修复**：Release 构建自动签名，支持正式发布（v1.3.17）
 - **自动更新源选择已修复**：版本比较逻辑正确，可检测新版本
 - **自动化发布流程**：一键上传到 HK VPS、US VPS、GitHub Releases
+- **Kotlin 升级**：1.9.25 → 2.1.10
+- **Hilt 升级**：2.52 → 2.55
+- **JSON 序列化替换**：GameUsageStore 手工 JSON 改为 Gson 2.11.0
+- **日志工具统一**：删除 util/Log.java，统一使用 AppLog (Extensions.kt)
+- **Play Store 描述更新**：README 首部版本徽标同步至 1.3.20
+- **AI 助手入口**：独立底部导航 AI 页面，支持 7 种任务、历史搜索、收藏、导出和常用模板
+- **多 AI 提供商支持**：默认 DeepSeek API，可选阿里云通义、硅基流动、智谱 AI、零一万物、OpenAI（全部 OpenAI 兼容接口）
+
+**当前版本**：v1.3.20 (versionCode=236)
 
 **重点模块**：
 1. **公共联机网络模块** — `com.gamecenter.app.network` 包，包含 GameSocketClient/Server/LANManager/RelayHttpClient/RemoteP2PUtil/OnlineChatHelper
