@@ -71,6 +71,10 @@ def shouldUploadDryRun = (project.findProperty("uploadDryRun") ?: "false").toStr
 def shouldSkipUploadVerify = (project.findProperty("skipUploadVerify") ?: "false").toString().toBoolean()
 def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
 def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean()
+def releaseSigningRequired = gradle.startParameter.taskNames.any { taskName ->
+    def normalized = taskName.toLowerCase()
+    normalized.contains("release") || normalized.contains("upload")
+}
 def generatedVersionAssetDir = file("${buildDir}/generated/assets/version")
 def lastStableVersionCode = currentVersionChannel == "stable"
         ? currentVersionCode
@@ -137,7 +141,7 @@ android {
                 storePassword props['STORE_PASSWORD']
                 keyAlias props['KEY_ALIAS']
                 keyPassword props['KEY_PASSWORD']
-                // ?? v1 ? v2 ????
+                // 启用 v1 和 v2 签名方案
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -172,8 +176,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
             
-            // ??????????
-            if (signingConfigs.release.storeFile == null) {
+            // 确保签名配置正确应用
+            if (releaseSigningRequired && signingConfigs.release.storeFile == null) {
                 throw new GradleException("Release signing configuration is incomplete")
             }
         }
@@ -375,10 +379,10 @@ task uploadApkToGitHubRelease {
 //   .\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
 // - Do not change versionName for routine beta uploads; versionCode bumps automatically.
 //
-// ???????:
-// - Beta ??(??):???? VPS,???"?????"?????
-// - Stable/Release ??:????? VPS ? GitHub Releases
-// - App ?????:?? VPS(?)? GitHub Releases(??1)? ?? VPS(??2)
+// 双版本分发说明：
+// - Beta 通道（默认）：仅上传到 VPS，供开启"接受测试版"的用户下载
+// - Stable/Release 通道：同时上传到 VPS 和 GitHub Releases
+// - App 下载优先级：香港 VPS（主）→ GitHub Releases（备用1）→ 美国 VPS（备用2）
 task uploadReleaseToVps {
     group = "publishing"
     description = "Build release APK, generate version.json, and upload both files to the update VPS"
@@ -409,15 +413,15 @@ task bumpVersion {
         def propsFile = file("${rootDir}/version.properties")
         def nextCode = android.defaultConfig.versionCode + 1
         def curName = android.defaultConfig.versionName
-        propsFile.setText("# versionCode:???????,?????????/?????\n" +
+        propsFile.setText("# versionCode：内部测试版本号，用于区分每次测试包/云端推送包\n" +
                 "versionCode=${nextCode}\n" +
-                "# versionName:?????,??????\n" +
+                "# versionName：发布版本号，面向用户展示\n" +
                 "versionName=${curName}\n" +
-                "# lastStableVersionCode:???????????,?? beta-only ????\n" +
+                "# lastStableVersionCode：上一个正式版内部版本号，用于 beta-only 提示判断\n" +
                 "lastStableVersionCode=${lastStableVersionCode}\n" +
-                "# lastStableVersionName:???????????\n" +
+                "# lastStableVersionName：上一个正式版展示版本号\n" +
                 "lastStableVersionName=${lastStableVersionName}\n" +
-                "# betaNoticeVersionGap:???????????????????????,?????? beta ??????\n" +
+                "# betaNoticeVersionGap：用户本地版本落后上一个正式版多少个内部版本号时，提示只能接收 beta 或等待正式版\n" +
                 "betaNoticeVersionGap=${configuredBetaNoticeVersionGap}\n", "UTF-8")
         println "Version bumped: ${android.defaultConfig.versionCode} -> ${nextCode}"
     }
