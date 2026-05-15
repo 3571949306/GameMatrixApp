@@ -1,6 +1,20 @@
 # 夹层 - 版本更新日志
 
-## [当前工作区] - 2026-05-14（全局文字适配 + 应用内英文切换）
+
+## [当前工作区] - 2026-05-15（Dependabot 安全告警 + CI 修复）
+
+### 构建依赖安全
+- Android Gradle Plugin 升级到 8.13.2，Gradle Wrapper 升级到 8.13。
+- Kotlin 调整为 2.2.21，Hilt 升级到 2.57.2，保持与当前 kapt/Hilt 处理链兼容。
+- 对构建 classpath 强制安全版本，覆盖 Netty、BouncyCastle、commons-compress、jose4j、jdom2 等 Dependabot 告警来源。
+
+### GitHub Actions
+- CI 改为验证型流程：JDK 21 + `assembleDebug` + 单元测试。
+- CI 不再云端执行 release 构建，避免缺少 `keystore.properties` / release keystore 时失败，也避免把签名材料放入 GitHub Secrets。
+- CI 命令添加 `-PautoBumpVersion=false`，防止自动递增版本号。
+- 修复 `.gitignore` 的 `data/` 规则误忽略 AI data 源码的问题。
+
+---## [当前工作区] - 2026-05-14（全局文字适配 + 应用内英文切换）
 
 ### 文字适配
 - 新增 `Widget.GameCenter.Button`、`Widget.GameCenter.Button.Tonal`、`Widget.GameCenter.Button.Outlined` 和平台按钮默认样式。
@@ -628,3 +642,11 @@ jarsigner -verify app-release.apk
 - 设置弹窗新增应用语言选项：跟随系统、中文、English；应用启动时会恢复已选择语言。
 - AI 任务下拉改为资源字符串，切换 English 后可显示 Chat、Summary、Translate 等英文选项。
 - 发布前检查需覆盖中文/英文两种语言、深色/浅色主题、游戏大厅卡片按钮、AI 发送按钮、工具箱小按钮和斗地主操作按钮。
+## 2026-05-15 文档同步：Dependabot 与 CI 修复
+
+- Dependabot 安全告警已处理：升级 Android Gradle Plugin 到 8.13.2、Gradle Wrapper 到 8.13、Kotlin 到 2.2.21、Hilt 到 2.57.2。
+- 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
+- GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
+- CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
