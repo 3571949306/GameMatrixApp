@@ -71,6 +71,10 @@ def shouldUploadDryRun = (project.findProperty("uploadDryRun") ?: "false").toStr
 def shouldSkipUploadVerify = (project.findProperty("skipUploadVerify") ?: "false").toString().toBoolean()
 def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
 def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean()
+def releaseSigningRequired = gradle.startParameter.taskNames.any { taskName ->
+    def normalized = taskName.toLowerCase()
+    normalized.contains("release") || normalized.contains("upload")
+}
 def generatedVersionAssetDir = file("${buildDir}/generated/assets/version")
 def lastStableVersionCode = currentVersionChannel == "stable"
         ? currentVersionCode
@@ -173,7 +177,7 @@ android {
             signingConfig signingConfigs.release
             
             // 确保签名配置正确应用
-            if (signingConfigs.release.storeFile == null) {
+            if (releaseSigningRequired && signingConfigs.release.storeFile == null) {
                 throw new GradleException("Release signing configuration is incomplete")
             }
         }
