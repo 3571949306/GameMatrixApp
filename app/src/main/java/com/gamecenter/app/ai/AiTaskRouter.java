@@ -11,6 +11,7 @@ import com.gamecenter.app.ai.data.AiResult;
 import com.gamecenter.app.ai.data.AiTask;
 import com.gamecenter.app.ai.local.LocalAiProcessor;
 import com.gamecenter.app.ai.local.LocalAiProcessor.AiCommand;
+import com.gamecenter.app.ai.local.LocalLlmOutputGuard;
 import com.gamecenter.app.ai.local.MediaPipeLocalLlmEngine;
 import com.gamecenter.app.ai.model.AiModelDownloadManager;
 import com.gamecenter.app.ai.model.AiModelInfo;
@@ -213,6 +214,13 @@ public class AiTaskRouter {
         try {
             localLlmEngine.load(appContext, modelDownloadManager.getModelFile(appContext, model));
             String output = localLlmEngine.generate(buildPrompt(task.taskType, task.input));
+            String guardMessage = LocalLlmOutputGuard.validate(output);
+            if (guardMessage != null) {
+                return AiResult.fail(guardMessage)
+                        .source("local-gemma")
+                        .errorCode("LOCAL_LLM_DEGENERATED_OUTPUT")
+                        .build();
+            }
             return AiResult.success(output).source("local-gemma").build();
         } catch (Throwable t) {
             Log.e(TAG, "Local Gemma task failed", t);
@@ -315,7 +323,13 @@ public class AiTaskRouter {
             case "qa":
                 return "请根据以下文本，生成5个问答对（问题和答案），用于复习和测试：\n\n" + input;
             case "chat":
-                return "你是一个运行在手机本地的中文 AI 助手。请直接回答用户问题，保持简洁、清楚、可执行；如果不确定，请说明不确定并给出可验证的建议。\n\n用户："
+                return "你是一个运行在手机本地的中文 AI 助手。请用简体中文直接回答。\n"
+                        + "规则：\n"
+                        + "1. 不要复述用户输入。\n"
+                        + "2. 不要输出无意义数字、乱码、重复字符或循环片段。\n"
+                        + "3. 回答控制在300字以内，保持简洁、清楚、可执行。\n"
+                        + "4. 如果无法可靠回答，请直接说明不确定，并给出可验证的建议。\n\n"
+                        + "用户问题："
                         + input;
             default:
                 return input;
