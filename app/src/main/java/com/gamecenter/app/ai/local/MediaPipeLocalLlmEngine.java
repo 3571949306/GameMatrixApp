@@ -22,8 +22,8 @@ public final class MediaPipeLocalLlmEngine implements AutoCloseable {
         close();
         LlmInferenceOptions options = LlmInferenceOptions.builder()
                 .setModelPath(modelPath)
-                .setMaxTokens(1024)
-                .setMaxTopK(40)
+                .setMaxTokens(384)
+                .setMaxTopK(20)
                 .build();
         llmInference = LlmInference.createFromOptions(context.getApplicationContext(), options);
         loadedModelPath = modelPath;
