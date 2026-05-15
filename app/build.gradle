@@ -231,12 +231,12 @@ dependencies {
     testImplementation 'org.json:json:20250107'
     testImplementation 'org.mockito:mockito-core:5.15.2'
     testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.1.10'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.2.21'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     
     // Kotlin
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.1.10'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
     implementation 'androidx.core:core-ktx:1.15.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
@@ -244,8 +244,8 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1'
     
     // Hilt Dependency Injection
-    implementation 'com.google.dagger:hilt-android:2.55'
-    kapt 'com.google.dagger:hilt-compiler:2.55'
+    implementation 'com.google.dagger:hilt-android:2.57.2'
+    kapt 'com.google.dagger:hilt-compiler:2.57.2'
     
     // LeakCanary for debug builds only
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
@@ -258,14 +258,14 @@ dependencies {
         implementation('com.squareup.okio:okio:3.10.2') {
             because 'CVE-2023-3635 - force latest Okio'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.1.10') {
+        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.2.21') {
             because 'CVE-2020-29582 - force Kotlin stdlib >= 2.1.0'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.10') {
-            because 'align with kotlin-stdlib 2.1.10'
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.21') {
+            because 'align with kotlin-stdlib 2.2.21'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.10') {
-            because 'align with kotlin-stdlib 2.1.10'
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.21') {
+            because 'align with kotlin-stdlib 2.2.21'
         }
         implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1') {
             because 'fix known coroutines vulnerabilities'
