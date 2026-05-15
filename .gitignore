@@ -51,4 +51,4 @@ app/gamecenter.keystore
 *.jks
 
 # Other project data (not related to GameCenterApp)
-data/
+/data/
