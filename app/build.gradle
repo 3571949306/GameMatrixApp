@@ -137,7 +137,7 @@ android {
                 storePassword props['STORE_PASSWORD']
                 keyAlias props['KEY_ALIAS']
                 keyPassword props['KEY_PASSWORD']
-                // 启用 v1 和 v2 签名方案
+                // ?? v1 ? v2 ????
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -172,7 +172,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
             
-            // 确保签名配置正确应用
+            // ??????????
             if (signingConfigs.release.storeFile == null) {
                 throw new GradleException("Release signing configuration is incomplete")
             }
@@ -231,12 +231,12 @@ dependencies {
     testImplementation 'org.json:json:20250107'
     testImplementation 'org.mockito:mockito-core:5.15.2'
     testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.1.10'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.2.21'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     
     // Kotlin
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.1.10'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
     implementation 'androidx.core:core-ktx:1.15.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
@@ -244,8 +244,8 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1'
     
     // Hilt Dependency Injection
-    implementation 'com.google.dagger:hilt-android:2.55'
-    kapt 'com.google.dagger:hilt-compiler:2.55'
+    implementation 'com.google.dagger:hilt-android:2.57.2'
+    kapt 'com.google.dagger:hilt-compiler:2.57.2'
     
     // LeakCanary for debug builds only
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
@@ -258,14 +258,14 @@ dependencies {
         implementation('com.squareup.okio:okio:3.10.2') {
             because 'CVE-2023-3635 - force latest Okio'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.1.10') {
+        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.2.21') {
             because 'CVE-2020-29582 - force Kotlin stdlib >= 2.1.0'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.10') {
-            because 'align with kotlin-stdlib 2.1.10'
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.21') {
+            because 'align with kotlin-stdlib 2.2.21'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.10') {
-            because 'align with kotlin-stdlib 2.1.10'
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.21') {
+            because 'align with kotlin-stdlib 2.2.21'
         }
         implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1') {
             because 'fix known coroutines vulnerabilities'
@@ -375,10 +375,10 @@ task uploadApkToGitHubRelease {
 //   .\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
 // - Do not change versionName for routine beta uploads; versionCode bumps automatically.
 //
-// 双版本分发说明：
-// - Beta 通道（默认）：仅上传到 VPS，供开启"接受测试版"的用户下载
-// - Stable/Release 通道：同时上传到 VPS 和 GitHub Releases
-// - App 下载优先级：香港 VPS（主）→ GitHub Releases（备用1）→ 美国 VPS（备用2）
+// ???????:
+// - Beta ??(??):???? VPS,???"?????"?????
+// - Stable/Release ??:????? VPS ? GitHub Releases
+// - App ?????:?? VPS(?)? GitHub Releases(??1)? ?? VPS(??2)
 task uploadReleaseToVps {
     group = "publishing"
     description = "Build release APK, generate version.json, and upload both files to the update VPS"
@@ -409,15 +409,15 @@ task bumpVersion {
         def propsFile = file("${rootDir}/version.properties")
         def nextCode = android.defaultConfig.versionCode + 1
         def curName = android.defaultConfig.versionName
-        propsFile.setText("# versionCode：内部测试版本号，用于区分每次测试包/云端推送包\n" +
+        propsFile.setText("# versionCode:???????,?????????/?????\n" +
                 "versionCode=${nextCode}\n" +
-                "# versionName：发布版本号，面向用户展示\n" +
+                "# versionName:?????,??????\n" +
                 "versionName=${curName}\n" +
-                "# lastStableVersionCode：上一个正式版内部版本号，用于 beta-only 提示判断\n" +
+                "# lastStableVersionCode:???????????,?? beta-only ????\n" +
                 "lastStableVersionCode=${lastStableVersionCode}\n" +
-                "# lastStableVersionName：上一个正式版展示版本号\n" +
+                "# lastStableVersionName:???????????\n" +
                 "lastStableVersionName=${lastStableVersionName}\n" +
-                "# betaNoticeVersionGap：用户本地版本落后上一个正式版多少个内部版本号时，提示只能接收 beta 或等待正式版\n" +
+                "# betaNoticeVersionGap:???????????????????????,?????? beta ??????\n" +
                 "betaNoticeVersionGap=${configuredBetaNoticeVersionGap}\n", "UTF-8")
         println "Version bumped: ${android.defaultConfig.versionCode} -> ${nextCode}"
     }
