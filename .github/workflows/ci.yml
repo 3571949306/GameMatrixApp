@@ -23,18 +23,18 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     
-    - name: Build with Gradle
-      run: ./gradlew clean assembleRelease
+    - name: Build debug APK
+      run: ./gradlew clean assembleDebug -PautoBumpVersion=false
     
-    - name: Upload Release APK
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: release-apk
-        path: app/build/outputs/apk/release/*.apk
+        name: debug-apk
+        path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
     
     - name: Run Unit Tests
-      run: ./gradlew test
+      run: ./gradlew test -PautoBumpVersion=false
     
     - name: Upload Test Results
       if: always()
