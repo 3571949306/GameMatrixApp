@@ -9,13 +9,37 @@ import java.util.List;
 
 /**
  * 新手教程工具类
- *
- * 用于显示游戏的新手教程对话框，支持交互式多页教程和传统文本教程
+ * <p>
+ * 用于显示游戏的新手教程对话框，支持两种教程模式：
+ * <ul>
+ *   <li>交互式多页教程：通过InteractiveTutorialDialog实现，支持滑动翻页、
+ *       页面指示器和上一步/下一步导航，适用于规则较复杂的游戏</li>
+ *   <li>传统文本教程：通过MaterialAlertDialogBuilder实现，以简单的文本对话框
+ *       展示游戏规则，适用于规则简单的游戏</li>
+ * </ul>
+ * </p>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>所有方法均为static，该类作为纯工具类使用，无需实例化</li>
+ *   <li>交互式教程用于五子棋、中国象棋、贪吃蛇、俄罗斯方块、2048、数独、围棋等
+ *       规则较复杂的游戏，需要分步骤讲解</li>
+ *   <li>简单文本教程用于推箱子、打砖块、打地鼠等规则简单的游戏，一页即可说明清楚</li>
+ *   <li>所有教程底部统一附加"如何反馈"引导，方便用户提交意见</li>
+ * </ul>
+ * </p>
  */
 public class GameTutorialHelper {
 
     /**
-     * 显示交互式教程
+     * 显示交互式多页教程
+     * <p>
+     * 创建并显示InteractiveTutorialDialog，支持滑动翻页浏览教程内容。
+     * </p>
+     *
+     * @param context   上下文对象
+     * @param gameName  游戏名称，显示在对话框标题中
+     * @param pages     教程页面列表，每页包含标题和描述
      */
     private static void showInteractiveTutorial(Context context, String gameName, List<InteractiveTutorialDialog.TutorialPage> pages) {
         InteractiveTutorialDialog dialog = new InteractiveTutorialDialog(context, gameName, pages);
@@ -24,6 +48,11 @@ public class GameTutorialHelper {
 
     /**
      * 显示五子棋新手教程（交互式）
+     * <p>
+     * 包含欢迎、基本规则、游戏技巧和难度选择四个页面。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showGomokuTutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -36,6 +65,11 @@ public class GameTutorialHelper {
 
     /**
      * 显示中国象棋新手教程（交互式）
+     * <p>
+     * 包含欢迎、基本规则和棋子走法三个页面，重点讲解各棋子的移动规则。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showChineseChessTutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -46,7 +80,12 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示贪吃蛇新手教程
+     * 显示贪吃蛇新手教程（交互式）
+     * <p>
+     * 包含欢迎、操作方式和游戏规则三个页面。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showSnakeTutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -57,7 +96,12 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示俄罗斯方块新手教程
+     * 显示俄罗斯方块新手教程（交互式）
+     * <p>
+     * 包含欢迎、操作方式和游戏规则三个页面。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showTetrisTutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -68,7 +112,12 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示2048新手教程
+     * 显示2048新手教程（交互式）
+     * <p>
+     * 包含欢迎、操作方式和游戏规则三个页面，重点说明数字合并机制。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showGame2048Tutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -79,7 +128,12 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示数独新手教程
+     * 显示数独新手教程（交互式）
+     * <p>
+     * 包含欢迎、基本规则和游戏技巧三个页面。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showSudokuTutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -90,7 +144,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示推箱子新手教程
+     * 显示推箱子新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showSokobanTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -102,7 +158,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示打砖块新手教程
+     * 显示打砖块新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showBreakoutTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -114,7 +172,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示打地鼠新手教程
+     * 显示打地鼠新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showWhackTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -126,7 +186,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示消消乐新手教程
+     * 显示消消乐新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showMatchTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -138,7 +200,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示21点新手教程
+     * 显示21点新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showBlackjackTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -151,7 +215,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示国际跳棋新手教程
+     * 显示国际跳棋新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showCheckersTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -164,7 +230,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示Flappy Bird新手教程
+     * 显示Flappy Bird新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showFlappyTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -176,7 +244,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示别踩白块新手教程
+     * 显示别踩白块新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showTilesTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -188,7 +258,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示飞机大战新手教程
+     * 显示飞机大战新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showPlaneTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -200,7 +272,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示石头剪刀布新手教程
+     * 显示石头剪刀布新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showRockTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -212,7 +286,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示井字棋新手教程
+     * 显示井字棋新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showTicTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -224,7 +300,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示翻牌子新手教程
+     * 显示翻牌子新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showMemoryTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -236,7 +314,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示猜数字新手教程
+     * 显示猜数字新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showGuessTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -248,7 +328,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示掷骰子新手教程
+     * 显示掷骰子新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showDiceTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -259,6 +341,11 @@ public class GameTutorialHelper {
         showSimpleGameTutorial(context, "掷骰子", rules);
     }
 
+    /**
+     * 显示反应力挑战新手教程（简单文本）
+     *
+     * @param context 上下文对象
+     */
     public static void showReactionTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
                 + "• 快速点击出现的彩色方块\n"
@@ -270,6 +357,11 @@ public class GameTutorialHelper {
 
     /**
      * 显示围棋新手教程（交互式）
+     * <p>
+     * 包含欢迎、基本规则和胜负判定三个页面。
+     * </p>
+     *
+     * @param context 上下文对象
      */
     public static void showGoTutorial(Context context) {
         List<InteractiveTutorialDialog.TutorialPage> pages = new ArrayList<>();
@@ -279,6 +371,11 @@ public class GameTutorialHelper {
         showInteractiveTutorial(context, "围棋", pages);
     }
 
+    /**
+     * 显示水管工新手教程（简单文本）
+     *
+     * @param context 上下文对象
+     */
     public static void showPipelineTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
                 + "• 旋转水管碎片\n"
@@ -289,7 +386,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示华容道新手教程
+     * 显示华容道新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showKlotskiTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -303,7 +402,9 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示Brotato新手教程
+     * 显示Brotato新手教程（简单文本）
+     *
+     * @param context 上下文对象
      */
     public static void showBrotatoTutorial(Context context) {
         String rules = "📖 怎么玩：\n"
@@ -316,7 +417,15 @@ public class GameTutorialHelper {
     }
 
     /**
-     * 显示通用小游戏教程
+     * 显示通用简单游戏教程
+     * <p>
+     * 使用MaterialAlertDialogBuilder构建标准对话框，展示游戏规则文本。
+     * 对话框底部统一附加"如何反馈"引导，方便用户通过设置页面提交意见。
+     * </p>
+     *
+     * @param context   上下文对象
+     * @param gameName  游戏名称，用于对话框标题和教程标题
+     * @param rules     游戏规则文本，支持换行符
      */
     public static void showSimpleGameTutorial(Context context, String gameName, String rules) {
         String tutorial = "🎮 【" + gameName + " 新手教程】\n\n"

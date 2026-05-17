@@ -1,7 +1,50 @@
 # 夹层 - 版本更新日志
 
 
-## [当前工作区] - 2026-05-15（Dependabot 安全告警 + CI 修复）
+## [当前工作区] - 2026-05-16（测试补充 + 网络去重 + DI迁移 + 安全加固 + 构建优化 + 离线体验）
+
+### 测试补充
+- 新增 `DouDiZhuRuleEngineTest`：覆盖出牌验证、叫地主决策、清台判定、手牌评分（40+ 用例）。
+- 新增 `GameRuleUtilTest`：覆盖牌型识别（单/对/三条/顺子/炸弹/火箭等）、出牌比较、主权重计算、洗牌发牌、CardType 属性（60+ 用例）。
+- 新增 `UpdateManagerLogicTest`：覆盖 URL 处理、版本比较、更新策略、Beta 通知逻辑、MD5 计算、文件大小格式化、渠道归一化（40+ 用例）。
+- 单元测试总数从 96 增至 411+，核心模块测试覆盖显著提升。
+
+### 网络模块去重
+- 删除 `com.gamecenter.app.games.doudizhu.network.RelayHttpClient`（与共享版 95% 重复）。
+- 斗地主模块（DouDiZhuOnlineActivity、GameSocketServer、GameSocketClient）统一使用 `com.gamecenter.app.network.RelayHttpClient`。
+- 共享版 `RelayHttpClient.post()` 方法从包私有改为 `public`，支持跨包调用。
+
+### DI 迁移统一
+- `SettingsManager`、`SaveManager`、`ErrorReporter`、`OkHttpClientProvider` 添加 `@Singleton` + `@Inject` 构造函数，支持 Hilt 自动注入。
+- 保留 `getInstance()` 静态方法，确保向后兼容（未注入的调用方不受影响）。
+- `AppModule` 简化：`SettingsManager`/`ErrorReporter`/`OkHttpClientProvider` 改为 Hilt 自动管理实例，移除手动 `@Provides` 方法。
+- `AppModule` 新增 `SaveManager` 提供。
+
+### 游戏逻辑与 UI 分离
+- 新增 `GameLogic<S>` 接口（`games/common/GameLogic.java`）：定义 `getState()`/`applyAction()`/`isGameOver()`/`getWinner()`/`reset()` 统一契约。
+- 新增 `OnlineGameLogic<S>` 接口（`games/common/OnlineGameLogic.java`）：扩展 `GameLogic`，增加联机动作序列化/反序列化和协议前缀。
+- 现有游戏暂不强制迁移，新游戏应遵循此接口。
+
+### 安全性加固
+- `SSLHelper` 区分 Debug/Release 模式：Debug 构建信任所有证书（开发便利），Release 构建仅设置 HostnameVerifier（不覆盖 SSLSocketFactory）。
+- `RemoteP2PUtil` 房间码验证修复：从纯数字 `^[0-9]{6}$` 改为字母数字混合 `^[A-HJ-NP-Z2-9]{6}$`，与服务端 `ROOM_CODE_ALPHABET` 一致。
+- `RemoteP2PUtil.normalizeRoomCode()` 增强：自动去除 `DDZ://` 前缀、转大写、过滤非法字符，与服务端 `normalize_room_code()` 对齐。
+
+### 构建脚本优化
+- `app/build.gradle` 添加 7 个分区注释（Version Configuration / Helper Functions / Android Configuration / Dependencies / Version JSON Generation / Publish & Upload / Version Bump & Build Lifecycle），提升可读性。
+
+### 包结构优化
+- 新增 `games/common/package-info.java`：文档化推荐的游戏模块架构（Activity → GameController → GameLogic）。
+- 新增 `GameLogic<S>` 和 `OnlineGameLogic<S>` 接口（上一轮已完成）。
+
+### 离线体验
+- `GamesFragment` 新增 `isNetworkAvailable()` 网络检测，离线时调整空状态提示透明度。
+- `AiTaskRouter` 新增离线检测：本地无法处理的任务在无网络时直接返回友好提示"当前无网络连接，仅支持本地规则处理"，避免无意义的云端请求超时。
+
+### Code Wiki
+- 生成完整的项目技术文档 `CODE_WIKI.md`，覆盖架构、模块、依赖、构建、CI/CD、测试体系等 13 个章节。
+
+---## [当前工作区] - 2026-05-15（Dependabot 安全告警 + CI 修复）
 
 ### 构建依赖安全
 - Android Gradle Plugin 升级到 8.13.2，Gradle Wrapper 升级到 8.13。

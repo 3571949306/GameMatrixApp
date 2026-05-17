@@ -30,54 +30,112 @@ import org.json.JSONObject;
 
 import java.util.Random;
 
+/**
+ * 石头剪刀布联机对战 Activity
+ * <p>
+ * 通过 WebSocket 中继服务器实现双人实时对战，支持房间创建/加入、
+ * 实时出拳、回合结果判定、在线聊天等功能。
+ * <p>
+ * 职责：
+ * - 管理房间的创建（主机模式）和加入（客户端模式）
+ * - 处理网络消息的收发和游戏状态同步
+ * - 渲染游戏界面（纯代码构建，无 XML 布局）
+ * - 管理在线聊天功能
+ * <p>
+ * 关键设计决策：
+ * - 主机（Host）同时运行 GameSocketServer 和作为玩家参与游戏
+ * - 客户端通过 GameSocketClient 连接到中继服务器
+ * - 使用 currentStateVersion 实现乐观并发控制，防止乱序消息覆盖最新状态
+ * - 双方出拳后由主机统一判定结果并广播，避免双方判定不一致
+ * - 所有 UI 更新通过 mainHandler.post() 切换到主线程执行
+ */
 public class RockOnlineActivity extends AppCompatActivity {
 
+    /** SharedPreferences 文件名，用于存储 P2P 令牌 */
     private static final String P2P_PREFS = "rock_p2p";
+    /** 网络协议标识 */
     private static final String PROTOCOL = "ROCK";
+    /** 中继服务器基础 URL */
     private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
 
     private SharedPreferences prefs;
+    /** 主机模式下的 WebSocket 服务器 */
     private GameSocketServer server;
+    /** 客户端模式下的 WebSocket 客户端 */
     private GameSocketClient client;
 
+    /** 是否为主机模式 */
     private volatile boolean isHost = false;
+    /** 是否正在游戏中 */
     private volatile boolean isPlaying = false;
+    /** 是否轮到我出拳 */
     private volatile boolean isMyTurn = false;
+    /** 我的玩家编号（1=主机，2=客户端） */
     private int myPlayerId = -1;
+    /** 对手的玩家编号 */
     private int opponentPlayerId = -1;
+    /** 房间码 */
     private String roomCode = "";
 
+    /** 客户端模式下的出拳选择 */
     private int clientChoice = -1;
+    /** 主机模式下自己的出拳选择 */
     private int hostPlayerChoice = -1;
+    /** 主机模式下对手的出拳选择（从网络接收） */
     private int hostOpponentChoice = -1;
 
+    /** 状态版本号，用于防止旧消息覆盖新状态（乐观并发控制） */
     private volatile long currentStateVersion = 0;
+    /** 是否已收到对手的出拳（主机模式） */
     private volatile int remoteChoiceReceived = -1;
+    /** 在线聊天辅助类 */
     private OnlineChatHelper chatHelper;
 
+    /** 主线程 Handler，用于从网络线程切换到 UI 线程 */
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private Random random = new Random();
 
+    /** 大厅布局（创建/加入房间界面） */
     private LinearLayout lobbyLayout;
+    /** 游戏布局（出拳/结果界面） */
     private FrameLayout gameLayout;
+    /** 房间码显示文字 */
     private TextView roomCodeText;
+    /** 连接状态文字 */
     private TextView connectionStatusText;
+    /** 回合结果文字 */
     private TextView statusText;
+    /** 回合结果文字 */
     private TextView resultText;
+    /** 加载进度条 */
     private ProgressBar loadingBar;
 
+    /** 玩家得分文字 */
     private TextView scorePlayerText;
+    /** 对手得分文字 */
     private TextView scoreOpponentText;
+    /** 回合状态文字 */
     private TextView turnStatusText;
 
+    /** 石头按钮 */
     private Button buttonRock;
+    /** 布按钮 */
     private Button buttonPaper;
+    /** 剪刀按钮 */
     private Button buttonScissors;
 
+    /** 聊天消息显示区域 */
     private TextView chatDisplay;
+    /** 聊天消息滚动容器 */
     private ScrollView chatScroll;
+    /** 聊天输入框 */
     private EditText chatInput;
 
+    /**
+     * Activity 创建时初始化网络组件、聊天辅助和界面
+     *
+     * @param savedInstanceState 保存的实例状态（未使用）
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,12 +143,14 @@ public class RockOnlineActivity extends AppCompatActivity {
         prefs = getSharedPreferences(P2P_PREFS, MODE_PRIVATE);
         String savedToken = prefs.getString("last_peer_token", null);
 
+        // 初始化主机端服务器及回调
         server = new GameSocketServer(this);
         server.setOnClientConnectedListener(this::onClientConnected);
         server.setOnClientDisconnectedListener(this::onClientDisconnected);
         server.setOnMessageReceivedListener(this::onHostMessageReceived);
         server.setOnErrorListener(this::onServerError);
 
+        // 初始化客户端及回调
         client = GameSocketClient.getInstance(this);
         client.setPlayerName("Player");
         client.setOnConnectedListener(this::onClientConnectedToHost);
@@ -98,6 +158,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         client.setOnMessageReceivedListener(this::onClientMessageReceived);
         client.setOnErrorListener(this::onClientError);
 
+        // 初始化聊天辅助类，设置消息发送回调
         chatHelper = new OnlineChatHelper(this);
         chatHelper.setOnChatMessageSendListener(text -> {
             JSONObject msg = chatHelper.createChatMessage(text);
@@ -115,6 +176,13 @@ public class RockOnlineActivity extends AppCompatActivity {
         chatHelper.setInlineDisplay(chatDisplay, chatScroll);
     }
 
+    /**
+     * 初始化所有 UI 组件（纯代码构建，无 XML 布局）
+     * <p>
+     * 界面分为两层：
+     * - lobbyLayout：大厅界面，包含创建/加入房间按钮
+     * - gameLayout：游戏界面，包含得分、出拳按钮、聊天区域
+     */
     private void initViews() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -122,6 +190,7 @@ public class RockOnlineActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
+        // === 大厅布局 ===
         lobbyLayout = new LinearLayout(this);
         lobbyLayout.setOrientation(LinearLayout.VERTICAL);
         lobbyLayout.setPadding(48, 48, 48, 48);
@@ -171,6 +240,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         lobbyLayout.addView(roomCodeText);
         lobbyLayout.addView(connectionStatusText);
 
+        // === 游戏布局 ===
         gameLayout = new FrameLayout(this);
         gameLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -180,6 +250,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         LinearLayout gameContent = new LinearLayout(this);
         gameContent.setOrientation(LinearLayout.VERTICAL);
 
+        // 得分栏：玩家 | 回合状态 | 对手
         LinearLayout scoreLayout = new LinearLayout(this);
         scoreLayout.setOrientation(LinearLayout.HORIZONTAL);
         scoreLayout.setPadding(16, 8, 16, 8);
@@ -214,6 +285,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         resultText.setPadding(16, 24, 16, 24);
         resultText.setTextColor(0xFFFFD700);
 
+        // 出拳按钮栏
         LinearLayout buttonLayout = new LinearLayout(this);
         buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonLayout.setGravity(View.TEXT_ALIGNMENT_CENTER);
@@ -227,6 +299,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         buttonLayout.addView(buttonPaper);
         buttonLayout.addView(buttonScissors);
 
+        // 聊天显示区域
         chatDisplay = new TextView(this);
         chatDisplay.setTextSize(12);
         chatDisplay.setBackgroundColor(0xFFF5F5F5);
@@ -246,6 +319,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         chatScroll.addView(chatDisplay);
         chatScroll.setSmoothScrollingEnabled(true);
 
+        // 聊天输入栏
         LinearLayout chatInputRow = new LinearLayout(this);
         chatInputRow.setOrientation(LinearLayout.HORIZONTAL);
         chatInputRow.setPadding(8, 0, 8, 4);
@@ -264,6 +338,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         chatSendBtn.setPadding(16, 8, 16, 8);
         chatSendBtn.setOnClickListener(v -> sendChatMessage());
 
+        // 键盘回车键发送消息
         chatInput.setOnEditorActionListener((v, actionId, event) -> {
             sendChatMessage();
             return true;
@@ -272,6 +347,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         chatInputRow.addView(chatInput);
         chatInputRow.addView(chatSendBtn);
 
+        // 离开房间按钮
         Button leaveBtn = new Button(this);
         leaveBtn.setText("离开房间");
         leaveBtn.setTextSize(14);
@@ -300,6 +376,9 @@ public class RockOnlineActivity extends AppCompatActivity {
         setContentView(root);
     }
 
+    /**
+     * 发送聊天消息
+     */
     private void sendChatMessage() {
         String text = chatInput.getText().toString().trim();
         if (!text.isEmpty()) {
@@ -308,6 +387,15 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 创建出拳按钮（包含 Emoji 和名称）
+     *
+     * @param name     按钮名称（如"石头"）
+     * @param emoji    Emoji 表情
+     * @param color    按钮背景色
+     * @param listener 点击监听器
+     * @return 构建好的 Button
+     */
     private Button createChoiceButton(String name, String emoji, int color, View.OnClickListener listener) {
         LinearLayout btnContainer = new LinearLayout(this);
         btnContainer.setOrientation(LinearLayout.VERTICAL);
@@ -326,6 +414,12 @@ public class RockOnlineActivity extends AppCompatActivity {
         return btn;
     }
 
+    /**
+     * 创建房间（主机模式）
+     * <p>
+     * 生成 6 位房间码，启动 WebSocket 服务器连接到中继服务器，
+     * 成功后显示等待对话框。
+     */
     private void createRoom() {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("正在创建云房间...");
@@ -350,6 +444,13 @@ public class RockOnlineActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     * 生成 6 位随机房间码
+     * <p>
+     * 字符集排除容易混淆的字符（I/O/0/1），使用大写字母和数字组合。
+     *
+     * @return 6 位房间码字符串
+     */
     private String generateRoomCode() {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder sb = new StringBuilder();
@@ -360,6 +461,11 @@ public class RockOnlineActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    /**
+     * 显示等待对手加入的对话框
+     * <p>
+     * 包含房间码显示、复制按钮和操作提示。
+     */
     private void showWaitingDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("等待对手加入");
@@ -383,6 +489,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         copyBtn.setTextColor(0xFFFFFFFF);
         copyBtn.setPadding(24, 8, 24, 8);
         copyBtn.setOnClickListener(v -> {
+            // 复制房间码到剪贴板
             android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             android.content.ClipData clip = android.content.ClipData.newPlainText("room_code", roomCode);
             cm.setPrimaryClip(clip);
@@ -405,6 +512,11 @@ public class RockOnlineActivity extends AppCompatActivity {
         builder.create().show();
     }
 
+    /**
+     * 显示加入房间的对话框
+     * <p>
+     * 弹出输入框让用户输入 6 位房间码。
+     */
     private void showJoinDialog() {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("准备加入...");
@@ -428,6 +540,13 @@ public class RockOnlineActivity extends AppCompatActivity {
         builder.show();
     }
 
+    /**
+     * 加入指定房间（客户端模式）
+     * <p>
+     * 使用保存的 P2P 令牌（如有）建立 WebSocket 连接。
+     *
+     * @param roomCode 目标房间码
+     */
     private void joinRoom(String roomCode) {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("正在加入房间: " + roomCode);
@@ -442,6 +561,14 @@ public class RockOnlineActivity extends AppCompatActivity {
         client.connectWebSocket(wsUrl);
     }
 
+    /**
+     * 主机模式回调：客户端连接成功
+     * <p>
+     * 记录对手 ID，切换到游戏界面并开始第一轮。
+     *
+     * @param clientId 客户端 ID
+     * @param ip       客户端 IP 地址
+     */
     private void onClientConnected(int clientId, String ip) {
         opponentPlayerId = clientId;
         mainHandler.post(() -> {
@@ -453,6 +580,12 @@ public class RockOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机模式回调：客户端断开连接
+     *
+     * @param clientId 断开的客户端 ID
+     * @param reason   断开原因
+     */
     private void onClientDisconnected(int clientId, String reason) {
         if (clientId == opponentPlayerId) {
             mainHandler.post(() -> {
@@ -463,10 +596,18 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 客户端模式回调：成功连接到主机
+     * <p>
+     * 保存 P2P 令牌用于后续重连，切换到游戏界面。
+     *
+     * @param clientId 分配的客户端 ID
+     */
     private void onClientConnectedToHost(int clientId) {
         myPlayerId = 2;
         isPlaying = true;
 
+        // 保存令牌以便重连时使用
         String token = client.getPeerToken();
         if (token != null && !token.isEmpty()) {
             prefs.edit().putString("last_peer_token", token).apply();
@@ -478,6 +619,11 @@ public class RockOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 客户端模式回调：与主机断开连接
+     *
+     * @param reason 断开原因
+     */
     private void onClientDisconnectedFromHost(String reason) {
         mainHandler.post(() -> {
             Toast.makeText(this, "连接断开: " + reason, Toast.LENGTH_SHORT).show();
@@ -486,14 +632,36 @@ public class RockOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机模式错误回调
+     *
+     * @param message 错误信息
+     */
     private void onServerError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "服务器错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
+    /**
+     * 客户端模式错误回调
+     *
+     * @param message 错误信息
+     */
     private void onClientError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "客户端错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
+    /**
+     * 主机模式回调：收到客户端消息
+     * <p>
+     * 处理消息类型：
+     * - THROW：客户端出拳
+     * - SYNC_STATE：状态同步
+     * - RECONNECT_STATE：重连状态恢复
+     * - GAME_OVER：游戏结束
+     *
+     * @param clientId 发送者 ID
+     * @param message  JSON 消息
+     */
     private void onHostMessageReceived(int clientId, JSONObject message) {
         try {
             String type = message.optString("type", "");
@@ -520,6 +688,17 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 客户端模式回调：收到主机消息
+     * <p>
+     * 处理消息类型：
+     * - SYNC_STATE：状态同步（包含双方出拳和结果）
+     * - RECONNECT_STATE：重连状态恢复
+     * - GAME_OVER：回合结果
+     * - START_ROUND：新回合开始
+     *
+     * @param message JSON 消息
+     */
     private void onClientMessageReceived(JSONObject message) {
         try {
             String type = message.optString("type", "");
@@ -550,24 +729,47 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 主机模式处理出拳消息
+     * <p>
+     * 当双方都已出拳时，由主机统一判定结果。
+     * 如果主机先出拳，等待客户端出拳；反之亦然。
+     *
+     * @param clientId 出拳者的客户端 ID
+     * @param message  包含 choice 字段的 JSON 消息
+     */
     private void handleHostThrow(int clientId, JSONObject message) throws JSONException {
         int choice = message.getInt("choice");
 
         if (clientId == opponentPlayerId) {
+            // 对手出拳
             remoteChoiceReceived = choice;
 
+            // 如果主机也已出拳，判定结果
             if (hostPlayerChoice >= 0) {
                 resolveRound();
             }
         } else {
+            // 主机自己出拳
             hostPlayerChoice = choice;
 
+            // 如果对手已出拳，判定结果
             if (remoteChoiceReceived >= 0) {
                 resolveRound();
             }
         }
     }
 
+    /**
+     * 由主机执行回合结果判定
+     * <p>
+     * 判定规则（与单机模式一致）：
+     * - 石头(0) 胜 剪刀(1)
+     * - 剪刀(1) 胜 布(2)
+     * - 布(2) 胜 石头(0)
+     * <p>
+     * result: 0=平局, 1=玩家1(主机)赢, 2=玩家2(客户端)赢
+     */
     private void resolveRound() {
         int player1Choice = hostPlayerChoice;
         int player2Choice = remoteChoiceReceived;
@@ -583,6 +785,7 @@ public class RockOnlineActivity extends AppCompatActivity {
             result = 2;
         }
 
+        // 广播同步状态和结果给所有客户端
         sendSyncState(player1Choice, player2Choice, result);
         broadcastResult(player1Choice, player2Choice, result);
 
@@ -591,9 +794,19 @@ public class RockOnlineActivity extends AppCompatActivity {
         final int finalResult = result;
         mainHandler.post(() -> showRoundResult(myChoice, opponentChoice, finalResult));
 
+        // 2 秒后开始下一轮
         scheduleNextRound();
     }
 
+    /**
+     * 发送状态同步消息给所有客户端
+     * <p>
+     * 包含双方出拳、结果和状态版本号，用于确保所有客户端状态一致。
+     *
+     * @param p1Choice 玩家1出拳
+     * @param p2Choice 玩家2出拳
+     * @param result   对局结果
+     */
     private void sendSyncState(int p1Choice, int p2Choice, int result) {
         try {
             currentStateVersion++;
@@ -611,6 +824,13 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 广播回合结果消息
+     *
+     * @param p1Choice 玩家1出拳
+     * @param p2Choice 玩家2出拳
+     * @param result   对局结果
+     */
     private void broadcastResult(int p1Choice, int p2Choice, int result) {
         try {
             JSONObject resultMsg = new JSONObject();
@@ -625,6 +845,9 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 调度下一轮，2 秒延迟后重置出拳状态并开始新回合
+     */
     private void scheduleNextRound() {
         mainHandler.postDelayed(() -> {
             hostPlayerChoice = -1;
@@ -634,8 +857,17 @@ public class RockOnlineActivity extends AppCompatActivity {
         }, 2000);
     }
 
+    /**
+     * 处理状态同步消息（主机和客户端共用）
+     * <p>
+     * 使用 currentStateVersion 实现乐观并发控制：
+     * 如果收到的消息版本号不大于当前版本号，则忽略该消息（防止乱序）。
+     *
+     * @param message SYNC_STATE 消息
+     */
     private void handleClientSyncState(JSONObject message) throws JSONException {
         long version = message.optLong("stateVersion", 0);
+        // 忽略旧版本消息，防止乱序覆盖
         if (version <= currentStateVersion) return;
         currentStateVersion = version;
 
@@ -643,6 +875,7 @@ public class RockOnlineActivity extends AppCompatActivity {
         int p2Choice = message.optInt("p2Choice", -1);
         int result = message.optInt("result", -1);
 
+        // 根据自己的玩家编号确定"我"和"对手"的出拳
         final int myChoice, opponentChoice;
         if (myPlayerId == 1) {
             myChoice = p1Choice;
@@ -658,6 +891,11 @@ public class RockOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 处理重连状态恢复消息
+     *
+     * @param message RECONNECT_STATE 消息
+     */
     private void handleReconnectState(JSONObject message) throws JSONException {
         currentStateVersion = message.optLong("stateVersion", 0);
 
@@ -667,6 +905,13 @@ public class RockOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 处理游戏结束/回合结果消息
+     * <p>
+     * 根据自己的玩家编号映射"我"和"对手"的出拳。
+     *
+     * @param message GAME_OVER 消息
+     */
     private void handleGameOver(JSONObject message) throws JSONException {
         int result = message.optInt("result", -1);
         int p1Choice = message.optInt("p1Choice", -1);
@@ -684,6 +929,16 @@ public class RockOnlineActivity extends AppCompatActivity {
         mainHandler.post(() -> showRoundResult(myChoice, opponentChoice, result));
     }
 
+    /**
+     * 显示回合结果
+     * <p>
+     * 根据结果和玩家编号判断胜负，更新结果文字和颜色。
+     * result: 0=平局, 1=玩家1赢, 2=玩家2赢
+     *
+     * @param myChoice       我的出拳
+     * @param opponentChoice 对手的出拳
+     * @param result         对局结果
+     */
     private void showRoundResult(int myChoice, int opponentChoice, int result) {
         String[] names = {"石头", "剪刀", "布"};
         String[] emojis = {"✊", "✌️", "✋"};
@@ -695,6 +950,7 @@ public class RockOnlineActivity extends AppCompatActivity {
             resultText = "平局!";
             resultColor = 0xFFFF9800;
         } else if (myPlayerId == 1) {
+            // 玩家1：result=1 表示我赢
             if (result == 1) {
                 resultText = "你赢了!";
                 resultColor = 0xFF4CAF50;
@@ -703,6 +959,7 @@ public class RockOnlineActivity extends AppCompatActivity {
                 resultColor = 0xFFE53935;
             }
         } else {
+            // 玩家2：result=2 表示我赢
             if (result == 2) {
                 resultText = "你赢了!";
                 resultColor = 0xFF4CAF50;
@@ -718,6 +975,12 @@ public class RockOnlineActivity extends AppCompatActivity {
         setChoiceButtonsEnabled(false);
     }
 
+    /**
+     * 开始新一轮
+     * <p>
+     * 重置出拳状态，启用出拳按钮。
+     * 主机额外广播 START_ROUND 消息通知客户端。
+     */
     private void startNewRound() {
         clientChoice = -1;
         mainHandler.post(() -> {
@@ -727,6 +990,7 @@ public class RockOnlineActivity extends AppCompatActivity {
             setChoiceButtonsEnabled(true);
         });
 
+        // 主机广播新回合开始消息
         if (isHost) {
             try {
                 JSONObject startMsg = new JSONObject();
@@ -738,6 +1002,14 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 玩家做出出拳选择
+     * <p>
+     * 主机模式：直接调用 onHostMessageReceived 模拟收到自己的出拳消息
+     * 客户端模式：通过网络发送 THROW 消息给主机
+     *
+     * @param choice 出拳选择（0=石头, 1=剪刀, 2=布）
+     */
     private void makeChoice(int choice) {
         if (!isPlaying || !isMyTurn) return;
 
@@ -751,9 +1023,11 @@ public class RockOnlineActivity extends AppCompatActivity {
             msg.put("choice", choice);
 
             if (isHost) {
+                // 主机直接在本地处理自己的出拳
                 hostPlayerChoice = choice;
                 onHostMessageReceived(myPlayerId, msg);
             } else {
+                // 客户端发送出拳消息给主机
                 client.send(msg);
             }
         } catch (JSONException e) {
@@ -761,33 +1035,55 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 广播消息给所有连接的客户端（仅主机模式有效）
+     *
+     * @param json 要广播的 JSON 消息
+     */
     private void broadcast(JSONObject json) {
         if (isHost && server != null) {
             server.broadcast(json);
         }
     }
 
+    /**
+     * 设置出拳按钮的启用/禁用状态
+     * <p>
+     * 禁用时按钮半透明，防止重复点击。
+     *
+     * @param enabled true 启用，false 禁用
+     */
     private void setChoiceButtonsEnabled(boolean enabled) {
         buttonRock.setEnabled(enabled);
         buttonPaper.setEnabled(enabled);
         buttonScissors.setEnabled(enabled);
         buttonRock.setAlpha(enabled ? 1.0f : 0.5f);
         buttonPaper.setAlpha(enabled ? 1.0f : 0.5f);
+        buttonScissors.setEnabled(enabled);
         buttonScissors.setAlpha(enabled ? 1.0f : 0.5f);
     }
 
+    /**
+     * 切换到游戏界面，隐藏大厅
+     */
     private void showGameScreen() {
         lobbyLayout.setVisibility(View.GONE);
         gameLayout.setVisibility(View.VISIBLE);
         isPlaying = true;
     }
 
+    /**
+     * 切换到大厅界面，隐藏游戏
+     */
     private void showLobby() {
         gameLayout.setVisibility(View.GONE);
         lobbyLayout.setVisibility(View.VISIBLE);
         isPlaying = false;
     }
 
+    /**
+     * 离开房间，停止服务器/断开客户端连接，并关闭 Activity
+     */
     private void leaveRoom() {
         if (isHost && server != null) {
             server.stop();
@@ -800,6 +1096,9 @@ public class RockOnlineActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Activity 销毁时清理网络资源和聊天辅助类
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -808,6 +1107,12 @@ public class RockOnlineActivity extends AppCompatActivity {
         if (client != null) client.release();
     }
 
+    /**
+     * 获取出拳选择的中文名称
+     *
+     * @param choice 选择值（0/1/2）
+     * @return 中文名称
+     */
     private String getChoiceName(int choice) {
         switch (choice) {
             case 0: return "石头";
@@ -817,6 +1122,12 @@ public class RockOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 获取出拳选择的 Emoji 表情
+     *
+     * @param choice 选择值（0/1/2）
+     * @return Emoji 字符串
+     */
     private String getChoiceEmoji(int choice) {
         switch (choice) {
             case 0: return "✊";

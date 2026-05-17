@@ -50,27 +50,23 @@
 }
 
 # ============ 游戏中心主包 ============
--keep class com.gamecenter.app.** { *; }
+-keep class com.gamecenter.app.model.** { *; }
 -keep class com.gamecenter.app.games.doudizhu.model.** { *; }
 -keep class com.gamecenter.app.games.doudizhu.network.** { *; }
 -keep class com.gamecenter.app.games.doudizhu.utils.** { *; }
+-keepclassmembers class com.gamecenter.app.** {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keepclassmembers class com.gamecenter.app.R$* {
+    public static <fields>;
+}
 
 # ============ 第三方库保持 ============
 
-# OkHttp
--dontwarn okhttp3.**
--dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
--keep class okio.** { *; }
+# OkHttp 自带 ProGuard 规则，无需手动 keep
 
-# Glide
+# Glide 自带 ProGuard 规则，仅需保留自定义模块
 -keep public class * implements com.bumptech.glide.module.GlideModule
--keep class com.bumptech.glide.** { *; }
--keepclassmembers class * {
-    @com.bumptech.glide.annotation.GlideModule <fields>;
-}
--keep class com.bumptech.glide.load.resource.bitmap.Downsampler { *; }
 
 # ZXing
 -keep class com.google.zxing.** { *; }

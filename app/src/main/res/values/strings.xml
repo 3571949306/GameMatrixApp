@@ -81,6 +81,7 @@
     <string name="scan_qr">扫描二维码</string>
     <string name="qrcode_text">输入文本</string>
     <string name="generate">生成</string>
+    <string name="category_classics">经典</string>
     <string name="category_puzzle">益智类</string>
     <string name="category_casual">休闲类</string>
     <string name="category_reaction">反应类</string>
@@ -159,6 +160,23 @@
     <string name="update_beta_only_enable">开启测试版并重新检查</string>
     <string name="update_beta_only_wait">等待正式版</string>
     <string name="update_beta_only_toast">服务器当前最新版是测试版，打开“接受测试版安装包”后才能更新。</string>
+    <string name="update_channel_label">类型: %s</string>
+    <string name="update_version_code">内部版本号: %d</string>
+    <string name="update_last_stable_default">上一个正式版</string>
+    <string name="update_beta_only_msg">服务器当前最新版是测试版 %1$s（内部版本号 %2$d）。
+
+你当前安装的是内部版本号 %3$d，距离上一个正式版 %4$s</string>
+    <string name="update_beta_only_stable_code">（内部版本号 %d）</string>
+    <string name="update_beta_only_hint"> 已经相差较大。
+
+现在只能开启“接受测试版安装包”后更新到当前内容，或者等待下一次正式版发布。</string>
+    <string name="update_auto_downloading">更新安装包正在后台下载</string>
+    <string name="update_auto_download_started">发现新版本，正在后台下载安装包</string>
+    <string name="update_auto_download_complete">更新安装包已下载，可在设置中打开下载目录</string>
+    <string name="update_install_prompt">下载完成，是否立即安装？</string>
+    <string name="update_open_directory">打开目录</string>
+    <string name="update_apk_lost">安装包已丢失，请重新下载</string>
+    <string name="update_install_permission_needed">需要安装权限才能安装更新，请在设置中授予</string>
     <string name="permission_dialog_title">权限使用说明</string>
     <string name="permission_dialog_message">欢迎使用夹层游戏中心！为了提供完整功能，我们需要以下权限：
 

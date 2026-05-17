@@ -64,4 +64,10 @@
     <string name="error_network_disconnected">Network disconnected</string>
     <string name="error_timeout">Request timeout</string>
     <string name="error_unknown">Unknown network error</string>
+
+    <string name="category_classics">Classics</string>
+    <string name="category_puzzle">Puzzle</string>
+    <string name="category_casual">Casual</string>
+    <string name="category_reaction">Reaction</string>
+    <string name="category_other">Other</string>
 </resources>

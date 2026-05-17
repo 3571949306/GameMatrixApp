@@ -1,0 +1,103 @@
+[versions]
+agp = "8.13.2"
+kotlin = "2.2.21"
+ksp = "2.2.21-2.0.5"
+androidxAppcompat = "1.7.1"
+material = "1.12.0"
+constraintlayout = "2.2.1"
+navigation = "2.8.9"
+recyclerview = "1.4.0"
+cardview = "1.0.0"
+startup = "1.2.0"
+zxingCore = "3.5.3"
+gson = "2.11.0"
+okhttp = "4.12.0"
+glide = "4.16.0"
+mediapipe = "0.10.27"
+hilt = "2.57.2"
+room = "2.6.1"
+junit = "4.13.2"
+json = "20250107"
+mockitoCore = "5.15.2"
+mockitoKotlin = "5.4.0"
+kotlinTest = "2.2.21"
+kotlinxCoroutines = "1.10.1"
+androidxCoreKtx = "1.15.0"
+androidxLifecycle = "2.8.7"
+leakcanary = "2.14"
+guava = "33.4.0-jre"
+okio = "3.10.2"
+netty = "4.1.133.Final"
+commonsCompress = "1.26.0"
+jose4j = "0.9.6"
+bouncycastle = "1.84"
+jdom2 = "2.0.6.1"
+versionCode = "243"
+versionName = "1.3.26"
+lastStableVersionCode = "241"
+lastStableVersionName = "1.3.25"
+betaNoticeVersionGap = "3"
+
+[libraries]
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-navigation-fragment = { group = "androidx.navigation", name = "navigation-fragment", version.ref = "navigation" }
+androidx-navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version.ref = "navigation" }
+androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
+androidx-cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+androidx-startup = { group = "androidx.startup", name = "startup-runtime", version.ref = "startup" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxingCore" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
+glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", version.ref = "glide" }
+mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipe" }
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
+kotlin-stdlib-jdk7 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk7", version.ref = "kotlin" }
+kotlin-stdlib-jdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCoreKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+leakcanary-android = { group = "com.squareup.leakcanary", name = "leakcanary-android", version.ref = "leakcanary" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+json = { group = "org.json", name = "json", version.ref = "json" }
+mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockitoCore" }
+mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockitoKotlin" }
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlinTest" }
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+netty-common = { group = "io.netty", name = "netty-common", version.ref = "netty" }
+netty-buffer = { group = "io.netty", name = "netty-buffer", version.ref = "netty" }
+netty-transport = { group = "io.netty", name = "netty-transport", version.ref = "netty" }
+netty-resolver = { group = "io.netty", name = "netty-resolver", version.ref = "netty" }
+netty-codec = { group = "io.netty", name = "netty-codec", version.ref = "netty" }
+netty-codec-http = { group = "io.netty", name = "netty-codec-http", version.ref = "netty" }
+netty-codec-http2 = { group = "io.netty", name = "netty-codec-http2", version.ref = "netty" }
+netty-handler = { group = "io.netty", name = "netty-handler", version.ref = "netty" }
+netty-handler-proxy = { group = "io.netty", name = "netty-handler-proxy", version.ref = "netty" }
+netty-codec-socks = { group = "io.netty", name = "netty-codec-socks", version.ref = "netty" }
+netty-transport-native-unix-common = { group = "io.netty", name = "netty-transport-native-unix-common", version.ref = "netty" }
+commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
+jose4j = { group = "org.bitbucket.b_c", name = "jose4j", version.ref = "jose4j" }
+bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcutil = { group = "org.bouncycastle", name = "bcutil-jdk18on", version.ref = "bouncycastle" }
+jdom2 = { group = "org.jdom", name = "jdom2", version.ref = "jdom2" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

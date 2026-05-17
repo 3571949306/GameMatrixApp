@@ -6,6 +6,7 @@
 
 | 版本 | 变更内容 |
 |------|----------|
+| **当前工作区** | **架构优化：DouDiZhuOnlineActivity 拆分（UIController + RuleEngine + AIHelper + NetworkHandler）、Room 数据库恢复（KSP1）、ErrorReporter 统一错误上报、262 个单元测试 + 4 个集成测试类** |
 | **当前工作区** | **Gemma 本地推理接入：MediaPipe LLM Inference、下载前 Gemma Notice、启用后本地优先路由** |
 | **当前工作区** | **AI 阶段 4 完成：模板、历史搜索、收藏、导出；发布脚本统一签名 R8 release 包** |
 | **v1.3.21-beta** | **AI 智能助手接入：新增 AiFragment、AiTaskRouter、LocalAiProcessor，7 种 AI 任务，独立底部导航接入** |
@@ -29,6 +30,12 @@
 | `app/src/main/java/com/gamecenter/app/ai/local/MediaPipeLocalLlmEngine.java` | Gemma `.task` 本地推理封装 |
 | `app/src/main/java/com/gamecenter/app/ai/legal/AiLegalNotices.java` | Gemma 条款、本地 AI 风险提示与下载前确认文本 |
 | `app/src/main/java/com/gamecenter/app/ai/template/AiTemplateManager.java` | AI 常用模板管理 |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuUIController.java` | 斗地主 UI 控制器（视图引用、UI 更新、对话框） |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuRuleEngine.java` | 斗地主规则引擎（出牌验证、叫地主评估、清台判断） |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuAIHelper.java` | 斗地主 AI 辅助（AI 决策调度、出牌/叫地主逻辑） |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuNetworkHandler.java` | 斗地主网络处理（消息路由、客户端意图管理、重连补发） |
+| `app/src/main/kotlin/com/gamecenter/app/database/AppDatabase.kt` | Room 数据库入口（单例、提供 DAO） |
+| `app/src/main/java/com/gamecenter/app/utils/ErrorReporter.java` | 统一错误上报（VPS + 本地回退、限流） |
 | `.github/workflows/ci.yml` | GitHub Actions CI/CD 工作流 |
 | `keystore.properties` | APK 签名凭证配置（不提交 Git） |
 | `app/gamecenter.keystore` | APK 签名密钥库（不提交 Git） |

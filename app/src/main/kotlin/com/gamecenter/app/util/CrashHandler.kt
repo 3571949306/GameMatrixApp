@@ -26,6 +26,12 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         AppLog.e("Uncaught exception in thread: ${thread.name}", throwable)
         
+        try {
+            context?.let { ctx ->
+                com.gamecenter.app.utils.ErrorReporter.getInstance(ctx).report(throwable, "thread=${thread.name}")
+            }
+        } catch (_: Exception) {}
+        
         crashListener?.invoke(thread, throwable)
         
         defaultHandler?.uncaughtException(thread, throwable) ?: run {

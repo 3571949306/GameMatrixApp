@@ -9,25 +9,55 @@ import com.gamecenter.app.network.OkHttpClientProvider;
 import com.gamecenter.app.utils.NetworkErrorHandler;
 
 /**
- * 网络组件初始化器
- * 使用 App Startup 在应用启动时自动初始化网络相关组件
+ * 网络组件初始化器。
+ * <p>
+ * 基于 Jetpack App Startup 机制，在应用启动阶段自动完成网络相关组件的初始化工作，
+ * 避免在 ContentProvider 中进行耗时操作导致启动延迟。
+ * <p>
+ * 职责：
+ * <ul>
+ *   <li>预加载 {@link OkHttpClientProvider} 中的 OkHttpClient 单例，使首次网络请求时无需再等待客户端初始化</li>
+ *   <li>通过声明无依赖（{@link #dependencies()} 返回空列表），确保网络组件可在其他初始化器之前尽早就绪</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>泛型参数为 {@code Void}，因为本初始化器不需要向下游初始化器暴露任何产出数据</li>
+ *   <li>采用 App Startup 而非手动在 Application.onCreate() 中初始化，
+ *       可实现懒加载和依赖排序，同时避免各库各自声明 ContentProvider 带来的启动开销</li>
+ * </ul>
  */
 public class NetworkInitializer implements Initializer<Void> {
 
+    /**
+     * 在应用启动时由 App Startup 框架调用，执行网络组件的初始化。
+     * <p>
+     * 调用 {@link OkHttpClientProvider#preload(Context)} 预加载 OkHttpClient 单例。
+     * 此处仅为预加载阶段，OkHttpClient 的实际网络连接会在首次请求时才建立，
+     * 不会在此方法中发起任何网络 I/O。
+     *
+     * @param context 应用上下文，由 App Startup 框架自动注入
+     * @return 固定返回 null，因为本初始化器无需产出数据供下游使用
+     */
     @NonNull
     @Override
     public Void create(@NonNull Context context) {
-        // 初始化 OkHttpClient（单例模式，按需加载）
-        // 注意：这里只是预加载，实际连接在首次使用时创建
         OkHttpClientProvider.preload(context);
-        
+
         return null;
     }
 
+    /**
+     * 声明本初始化器所依赖的其他初始化器。
+     * <p>
+     * 返回空列表表示无前置依赖，网络组件可在 App Startup 调度中尽早执行。
+     * 如果未来需要依赖其他初始化器（如日志初始化器），可在此处添加。
+     *
+     * @return 空列表，表示无依赖
+     */
     @NonNull
     @Override
     public java.util.List<Class<? extends Initializer<?>>> dependencies() {
-        // 不依赖其他初始化器
         return java.util.Collections.emptyList();
     }
 }

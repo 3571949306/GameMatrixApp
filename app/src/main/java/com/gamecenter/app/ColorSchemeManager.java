@@ -9,35 +9,127 @@ import com.google.android.material.tabs.TabLayout;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 配色方案管理器。
+ * <p>
+ * 定义并管理应用的所有配色方案，每套方案包含完整的 Material Design 色彩体系，
+ * 涵盖浅色模式和深色模式下的主色、表面色、文字色等角色色值，
+ * 以及导航栏、Tab 指示器、卡片边框等组件专用色值。
+ * </p>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>所有方法均为 {@code static}，无需实例化，作为全局工具类使用</li>
+ *   <li>配色方案在静态初始化块中一次性创建，运行时不可修改（只读列表）</li>
+ *   <li>每套方案同时包含浅色和深色两套色值，通过 {@code isDark} 参数切换，
+ *       避免运行时动态计算颜色</li>
+ *   <li>提供 {@link #applyScheme} 和 {@link #applySchemeToView} 两种应用方式，
+ *       分别支持 Activity 级别整体应用和单个 View 级别局部应用</li>
+ * </ul>
+ * </p>
+ */
 public class ColorSchemeManager {
 
+    /**
+     * 配色方案数据类。
+     * <p>
+     * 封装一套完整的配色方案，包含浅色模式和深色模式下的所有角色色值。
+     * 字段命名遵循 Material Design 3 色彩角色命名规范：
+     * <ul>
+     *   <li>{@code primary} / {@code onPrimary}：主色 / 主色上的文字色</li>
+     *   <li>{@code primaryContainer} / {@code onPrimaryContainer}：主色容器 / 主色容器上的文字色</li>
+     *   <li>{@code secondary} / {@code onSecondary}：次色 / 次色上的文字色</li>
+     *   <li>{@code surface} / {@code onSurface}：表面色 / 表面上的文字色</li>
+     *   <li>{@code background} / {@code onBackground}：背景色 / 背景上的文字色</li>
+     * </ul>
+     * 以 {@code dark} 前缀开头的字段为深色模式专用色值。
+     * </p>
+     */
     public static class Scheme {
+        /** 方案名称（中文），用于设置界面展示 */
         public final String name;
+        /** 浅色模式-主色 */
         public final int primary;
+        /** 浅色模式-主色上的文字色 */
         public final int onPrimary;
+        /** 浅色模式-主色容器色 */
         public final int primaryContainer;
+        /** 浅色模式-主色容器上的文字色 */
         public final int onPrimaryContainer;
+        /** 浅色模式-次色 */
         public final int secondary;
+        /** 浅色模式-次色上的文字色 */
         public final int onSecondary;
+        /** 浅色模式-次色容器色 */
         public final int secondaryContainer;
+        /** 浅色模式-次色容器上的文字色 */
         public final int onSecondaryContainer;
+        /** 浅色模式-表面色 */
         public final int surface;
+        /** 浅色模式-表面上的文字色 */
         public final int onSurface;
+        /** 浅色模式-表面变体色 */
         public final int surfaceVariant;
+        /** 浅色模式-表面变体上的文字色 */
         public final int onSurfaceVariant;
+        /** 浅色模式-背景色 */
         public final int background;
+        /** 浅色模式-背景上的文字色 */
         public final int onBackground;
+        /** Tab 指示器颜色 */
         public final int tabIndicator;
+        /** 导航栏选中项颜色 */
         public final int navBarActive;
+        /** 卡片边框颜色 */
         public final int cardBorder;
+        /** 深色模式-表面色 */
         public final int darkSurface;
+        /** 深色模式-背景色 */
         public final int darkBackground;
+        /** 深色模式-表面变体色 */
         public final int darkSurfaceVariant;
+        /** 深色模式-表面上的文字色 */
         public final int darkOnSurface;
+        /** 深色模式-背景上的文字色 */
         public final int darkOnBackground;
+        /** 深色模式-表面变体上的文字色 */
         public final int darkOnSurfaceVariant;
+        /** 深色模式-导航栏未选中项颜色 */
         public final int darkNavBarInactive;
 
+        /**
+         * 构造一套完整的配色方案。
+         * <p>
+         * 所有颜色值使用 ARGB 格式的 32 位整数（如 {@code 0xFF5B4E9A}），
+         * 高 8 位为 Alpha 通道（0xFF 表示完全不透明）。
+         * </p>
+         *
+         * @param name                 方案名称
+         * @param primary              浅色-主色
+         * @param onPrimary            浅色-主色上的文字色
+         * @param primaryContainer     浅色-主色容器色
+         * @param onPrimaryContainer   浅色-主色容器上的文字色
+         * @param secondary            浅色-次色
+         * @param onSecondary          浅色-次色上的文字色
+         * @param secondaryContainer   浅色-次色容器色
+         * @param onSecondaryContainer 浅色-次色容器上的文字色
+         * @param surface              浅色-表面色
+         * @param onSurface            浅色-表面上的文字色
+         * @param surfaceVariant       浅色-表面变体色
+         * @param onSurfaceVariant     浅色-表面变体上的文字色
+         * @param background           浅色-背景色
+         * @param onBackground         浅色-背景上的文字色
+         * @param tabIndicator         Tab 指示器颜色
+         * @param navBarActive         导航栏选中项颜色
+         * @param cardBorder           卡片边框颜色
+         * @param darkSurface          深色-表面色
+         * @param darkBackground       深色-背景色
+         * @param darkSurfaceVariant   深色-表面变体色
+         * @param darkOnSurface        深色-表面上的文字色
+         * @param darkOnBackground     深色-背景上的文字色
+         * @param darkOnSurfaceVariant 深色-表面变体上的文字色
+         * @param darkNavBarInactive   深色-导航栏未选中项颜色
+         */
         Scheme(String name,
                int primary, int onPrimary, int primaryContainer, int onPrimaryContainer,
                int secondary, int onSecondary, int secondaryContainer, int onSecondaryContainer,
@@ -75,17 +167,33 @@ public class ColorSchemeManager {
         }
     }
 
+    /** 配色方案索引：清朗紫（默认方案） */
     public static final int SCHEME_INDEX_PURPLE = 0;
+    /** 配色方案索引：深海蓝 */
     public static final int SCHEME_INDEX_BLUE = 1;
+    /** 配色方案索引：竹影绿 */
     public static final int SCHEME_INDEX_GREEN = 2;
+    /** 配色方案索引：晨曦橙 */
     public static final int SCHEME_INDEX_ORANGE = 3;
+    /** 配色方案索引：蔷薇莓 */
     public static final int SCHEME_INDEX_PINK = 4;
+    /** 配色方案索引：极光青 */
     public static final int SCHEME_INDEX_CYAN = 5;
+    /** 配色方案索引：墨金 */
     public static final int SCHEME_INDEX_GOLD = 6;
+    /** 配色方案索引：朱砂红 */
     public static final int SCHEME_INDEX_RED = 7;
 
+    /** 所有配色方案的只读列表，在静态初始化块中填充 */
     private static final List<Scheme> SCHEMES = new ArrayList<>();
 
+    /**
+     * 静态初始化块，创建所有预定义配色方案。
+     * <p>
+     * 每套方案的色值按照 Material Design 3 色彩角色体系设计，
+     * 确保浅色/深色模式下均有足够的对比度以满足无障碍可读性要求。
+     * </p>
+     */
     static {
         SCHEMES.add(new Scheme("清朗紫",
                 0xFF5B4E9A, 0xFFFFFFFF, 0xFFE7DEFF, 0xFF1E124F,
@@ -168,37 +276,93 @@ public class ColorSchemeManager {
                 0xFF9E8585));
     }
 
+    /**
+     * 获取所有配色方案列表。
+     *
+     * @return 不可修改的配色方案列表
+     */
     public static List<Scheme> getSchemes() { return SCHEMES; }
+
+    /**
+     * 规范化配色方案索引，防止越界。
+     * <p>
+     * 当索引为负数或超出方案数量范围时，回退到默认方案（索引 0），
+     * 确保应用不会因无效索引而崩溃。
+     * </p>
+     *
+     * @param index 原始索引值
+     * @return 有效的索引值，越界时返回 0
+     */
     public static int normalizeSchemeIndex(int index) {
         if (index < 0 || index >= SCHEMES.size()) return 0;
         return index;
     }
+
+    /**
+     * 根据索引获取配色方案。
+     * <p>
+     * 内部调用 {@link #normalizeSchemeIndex(int)} 确保索引有效，
+     * 因此传入任何整数均不会抛出异常。
+     * </p>
+     *
+     * @param index 配色方案索引，越界时自动回退到索引 0
+     * @return 对应的配色方案实例
+     */
     public static Scheme getScheme(int index) {
         return SCHEMES.get(normalizeSchemeIndex(index));
     }
+
+    /**
+     * 获取配色方案总数。
+     *
+     * @return 当前已定义的配色方案数量
+     */
     public static int getSchemeCount() { return SCHEMES.size(); }
 
+    /**
+     * 将配色方案应用到整个 Activity。
+     * <p>
+     * 依次设置以下 UI 元素的颜色：
+     * <ol>
+     *   <li>状态栏和导航栏背景色</li>
+     *   <li>根视图（{@code android.R.id.content}）背景色</li>
+     *   <li>底部导航栏（{@code R.id.nav_view}）背景色和图标/文字的选中/未选中色</li>
+     *   <li>Tab 布局（{@code R.id.tab_layout}）的指示器色、文字色和背景色</li>
+     * </ol>
+     * 所有颜色根据 {@code isDark} 参数从方案中选取浅色或深色变体。
+     * </p>
+     *
+     * @param activity 目标 Activity
+     * @param scheme   要应用的配色方案
+     * @param isDark   是否为深色模式，{@code true} 使用深色变体色值
+     */
     public static void applyScheme(Activity activity, Scheme scheme, boolean isDark) {
         Window window = activity.getWindow();
 
+        // 根据浅色/深色模式选取对应的角色色值
         int surfaceColor = isDark ? scheme.darkSurface : scheme.surface;
         int bgColor = isDark ? scheme.darkBackground : scheme.background;
         int surfaceVarColor = isDark ? scheme.darkSurfaceVariant : scheme.surfaceVariant;
         int onSurfaceColor = isDark ? scheme.darkOnSurface : scheme.onSurface;
         int onSurfaceVarColor = isDark ? scheme.darkOnSurfaceVariant : scheme.onSurfaceVariant;
+        // 深色模式下导航栏未选中项使用专用暗色，浅色模式下复用 onSurfaceVariant
         int navBarInactive = isDark ? scheme.darkNavBarInactive : scheme.onSurfaceVariant;
 
+        // 设置状态栏和导航栏背景色
         window.setStatusBarColor(surfaceColor);
         window.setNavigationBarColor(surfaceColor);
 
+        // 设置根视图背景色
         View rootView = activity.findViewById(android.R.id.content);
         if (rootView != null) {
             rootView.setBackgroundColor(bgColor);
         }
 
+        // 设置底部导航栏的颜色
         BottomNavigationView navView = activity.findViewById(R.id.nav_view);
         if (navView != null) {
             navView.setBackgroundColor(surfaceColor);
+            // 构建选中/未选中两种状态的 ColorStateList
             int[][] states = new int[][] {
                     new int[] {android.R.attr.state_checked},
                     new int[] {-android.R.attr.state_checked}
@@ -208,15 +372,29 @@ public class ColorSchemeManager {
             navView.setItemTextColor(new android.content.res.ColorStateList(states, colors));
         }
 
+        // 设置 TabLayout 的指示器、文字和背景颜色
         TabLayout tabLayout = activity.findViewById(R.id.tab_layout);
         if (tabLayout != null) {
             tabLayout.setSelectedTabIndicatorColor(scheme.tabIndicator);
+            // 未选中文字使用 onSurfaceVariant，选中文字使用 primary
             tabLayout.setTabTextColors(onSurfaceVarColor, scheme.primary);
             tabLayout.setBackgroundColor(surfaceVarColor);
         }
     }
 
+    /**
+     * 将配色方案应用到单个 View。
+     * <p>
+     * 根据 View 的实际类型（{@link BottomNavigationView} 或 {@link TabLayout}）
+     * 应用对应的颜色配置。适用于 Fragment 或动态创建的视图中局部应用配色。
+     * </p>
+     *
+     * @param view   目标 View，必须是 BottomNavigationView 或 TabLayout 实例
+     * @param scheme 要应用的配色方案
+     * @param isDark 是否为深色模式
+     */
     public static void applySchemeToView(View view, Scheme scheme, boolean isDark) {
+        // 根据浅色/深色模式选取对应的角色色值
         int surfaceColor = isDark ? scheme.darkSurface : scheme.surface;
         int surfaceVarColor = isDark ? scheme.darkSurfaceVariant : scheme.surfaceVariant;
         int onSurfaceVarColor = isDark ? scheme.darkOnSurfaceVariant : scheme.onSurfaceVariant;
@@ -225,6 +403,7 @@ public class ColorSchemeManager {
         if (view instanceof BottomNavigationView) {
             BottomNavigationView navView = (BottomNavigationView) view;
             navView.setBackgroundColor(surfaceColor);
+            // 构建选中/未选中两种状态的 ColorStateList
             int[][] states = new int[][] {
                     new int[] {android.R.attr.state_checked},
                     new int[] {-android.R.attr.state_checked}
@@ -235,6 +414,7 @@ public class ColorSchemeManager {
         } else if (view instanceof TabLayout) {
             TabLayout tabLayout = (TabLayout) view;
             tabLayout.setSelectedTabIndicatorColor(scheme.tabIndicator);
+            // 未选中文字使用 onSurfaceVariant，选中文字使用 primary
             tabLayout.setTabTextColors(onSurfaceVarColor, scheme.primary);
             tabLayout.setBackgroundColor(surfaceVarColor);
         }

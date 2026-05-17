@@ -27,51 +27,133 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * 围棋联机对战Activity。
+ * <p>
+ * 实现基于WebSocket中继服务器的双人在线围棋对局，支持：
+ * <ul>
+ *   <li>创建/加入房间（6位房间码）</li>
+ *   <li>主机-客户端架构：主机负责权威状态同步，客户端发送操作请求</li>
+ *   <li>实时聊天功能</li>
+ *   <li>虚手（Pass）操作与双方连续虚手终局</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>采用"主机权威"模型：主机维护游戏状态的唯一权威副本，每次落子后向客户端广播完整状态同步</li>
+ *   <li>状态版本号（{@link #currentStateVersion}）用于防止旧消息覆盖新状态</li>
+ *   <li>提子数由Activity层独立维护，因为GoGame的提子计数与联机同步逻辑存在差异</li>
+ * </ul>
+ */
 public class GoOnlineActivity extends AppCompatActivity {
 
+    /** SharedPreferences文件名，存储P2P令牌等持久化数据 */
     private static final String P2P_PREFS = "go_p2p";
+
+    /** 协议标识 */
     private static final String PROTOCOL = "GO";
+
+    /** 中继服务器基础URL */
     private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
 
+    /** 偏好设置，用于持久化对等端令牌 */
     private SharedPreferences prefs;
+
+    /** WebSocket服务器实例（主机模式使用） */
     private GameSocketServer server;
+
+    /** WebSocket客户端实例（加入模式使用） */
     private GameSocketClient client;
 
+    /** 是否为主机（创建房间者） */
     private volatile boolean isHost = false;
+
+    /** 对局是否正在进行 */
     private volatile boolean isPlaying = false;
+
+    /** 对手是否已加入房间 */
     private volatile boolean opponentHasJoined = false;
+
+    /** 本机玩家ID（主机=1，客户端=2） */
     private int myPlayerId = -1;
+
+    /** 对手玩家ID */
     private int opponentPlayerId = -1;
+
+    /** 当前房间码 */
     private String roomCode = "";
 
+    /** 围棋游戏逻辑对象 */
     private GoGame game;
+
+    /** 状态版本号，用于防止旧同步消息覆盖新状态 */
     private volatile long currentStateVersion = 0;
+
+    /** 在线聊天辅助类 */
     private OnlineChatHelper chatHelper;
 
+    /** 本机执子颜色（黑=1，白=2） */
     private int myColor;
 
+    /** 黑方提子数（Activity层独立维护，与GoGame内部计数分离） */
     private int blackCaptures;
+
+    /** 白方提子数 */
     private int whiteCaptures;
+
+    /** 最后一手坐标 */
     private int[] lastMovePos;
+
+    /** 对局是否结束标志 */
     private volatile boolean isGameOver = false;
 
+    /** 主线程Handler，用于跨线程UI更新 */
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    /** 大厅布局（创建/加入房间界面） */
     private LinearLayout lobbyLayout;
+
+    /** 游戏布局（棋盘+控制界面） */
     private FrameLayout gameLayout;
+
+    /** 房间码显示文本 */
     private TextView roomCodeText;
+
+    /** 连接状态文本 */
     private TextView connectionStatusText;
+
+    /** 回合状态文本 */
     private TextView turnStatusText;
+
+    /** 胜负结果文本 */
     private TextView winnerText;
+
+    /** 提子数显示文本 */
     private TextView captureText;
+
+    /** 加载进度条 */
     private ProgressBar loadingBar;
 
+    /** 棋盘视图 */
     private GoView boardView;
 
+    /** 聊天消息显示区域 */
     private TextView chatDisplay;
+
+    /** 聊天消息滚动容器 */
     private ScrollView chatScroll;
+
+    /** 聊天输入框 */
     private EditText chatInput;
 
+    /**
+     * Activity创建时的初始化入口。
+     * <p>
+     * 初始化网络组件（服务器/客户端）、聊天辅助类、视图，
+     * 并设置各类网络事件监听器。
+     *
+     * @param savedInstanceState 保存的实例状态
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,12 +163,14 @@ public class GoOnlineActivity extends AppCompatActivity {
 
         initViews();
 
+        // 初始化服务器（主机模式）
         server = new GameSocketServer(this);
         server.setOnClientConnectedListener(this::onClientConnected);
         server.setOnClientDisconnectedListener(this::onClientDisconnected);
         server.setOnMessageReceivedListener(this::onHostMessageReceived);
         server.setOnErrorListener(this::onServerError);
 
+        // 初始化客户端（加入模式）
         client = GameSocketClient.getInstance(this);
         client.setPlayerName("Player");
         client.setOnConnectedListener(this::onClientConnectedToHost);
@@ -94,6 +178,7 @@ public class GoOnlineActivity extends AppCompatActivity {
         client.setOnMessageReceivedListener(this::onClientMessageReceived);
         client.setOnErrorListener(this::onClientError);
 
+        // 初始化聊天辅助类
         chatHelper = new OnlineChatHelper(this);
         chatHelper.setOnChatMessageSendListener(text -> {
             JSONObject msg = chatHelper.createChatMessage(text);
@@ -109,6 +194,12 @@ public class GoOnlineActivity extends AppCompatActivity {
         chatHelper.setInlineDisplay(chatDisplay, chatScroll);
     }
 
+    /**
+     * 初始化所有视图组件，采用纯代码构建布局（无XML布局文件）。
+     * <p>
+     * 界面分为两层：大厅层（创建/加入房间）和游戏层（棋盘+聊天+控制），
+     * 通过切换可见性实现界面切换。
+     */
     private void initViews() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -283,6 +374,11 @@ public class GoOnlineActivity extends AppCompatActivity {
         setContentView(root);
     }
 
+    /**
+     * 发送聊天消息。
+     * <p>
+     * 读取输入框内容，通过聊天辅助类发送并清空输入框。
+     */
     private void sendChatMessage() {
         String text = chatInput.getText().toString().trim();
         if (!text.isEmpty()) {
@@ -291,6 +387,12 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 创建联机房间。
+     * <p>
+     * 在后台线程生成房间码并启动WebSocket服务器，
+     * 成功后显示等待对话框。
+     */
     private void createRoom() {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("正在创建云房间...");
@@ -315,6 +417,13 @@ public class GoOnlineActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     * 生成6位随机房间码。
+     * <p>
+     * 使用去除易混淆字符（0/O/1/I）的字母数字字符集。
+     *
+     * @return 6位房间码字符串
+     */
     private String generateRoomCode() {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder sb = new StringBuilder();
@@ -325,6 +434,11 @@ public class GoOnlineActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    /**
+     * 显示等待对手加入的对话框。
+     * <p>
+     * 包含房间码显示、复制按钮和操作提示。
+     */
     private void showWaitingDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("等待对手加入");
@@ -370,6 +484,11 @@ public class GoOnlineActivity extends AppCompatActivity {
         builder.create().show();
     }
 
+    /**
+     * 显示加入房间的输入对话框。
+     * <p>
+     * 用户输入6位房间码后调用 {@link #joinRoom}。
+     */
     private void showJoinDialog() {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("准备加入...");
@@ -393,10 +512,18 @@ public class GoOnlineActivity extends AppCompatActivity {
         builder.show();
     }
 
+    /**
+     * 加入指定房间码的联机房间。
+     * <p>
+     * 使用WebSocket客户端连接到中继服务器，并恢复上次保存的对等端令牌。
+     *
+     * @param roomCode 目标房间码
+     */
     private void joinRoom(String roomCode) {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("正在加入房间: " + roomCode);
 
+        // 恢复上次保存的P2P令牌，用于NAT穿透
         String savedToken = prefs.getString("last_peer_token", null);
         String wsUrl = RelayHttpClient.getWebSocketClientUrl(RELAY_BASE_URL, roomCode);
 
@@ -407,6 +534,14 @@ public class GoOnlineActivity extends AppCompatActivity {
         client.connectWebSocket(wsUrl);
     }
 
+    /**
+     * 主机端回调：客户端连接成功。
+     * <p>
+     * 记录对手ID，标记对手已加入，并启动游戏。
+     *
+     * @param clientId 客户端ID
+     * @param ip       客户端IP地址
+     */
     private void onClientConnected(int clientId, String ip) {
         opponentPlayerId = clientId;
         opponentHasJoined = true;
@@ -417,6 +552,12 @@ public class GoOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机端回调：客户端断开连接。
+     *
+     * @param clientId 断开的客户端ID
+     * @param reason   断开原因
+     */
     private void onClientDisconnected(int clientId, String reason) {
         if (clientId == opponentPlayerId) {
             mainHandler.post(() -> {
@@ -427,10 +568,18 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 客户端回调：成功连接到主机。
+     * <p>
+     * 设置本机ID为2，保存P2P令牌，并启动游戏。
+     *
+     * @param clientId 分配的客户端ID
+     */
     private void onClientConnectedToHost(int clientId) {
         myPlayerId = 2;
         isPlaying = true;
 
+        // 保存P2P令牌以便下次重连
         String token = client.getPeerToken();
         if (token != null && !token.isEmpty()) {
             prefs.edit().putString("last_peer_token", token).apply();
@@ -442,6 +591,11 @@ public class GoOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 客户端回调：与主机断开连接。
+     *
+     * @param reason 断开原因
+     */
     private void onClientDisconnectedFromHost(String reason) {
         mainHandler.post(() -> {
             Toast.makeText(this, "连接断开: " + reason, Toast.LENGTH_SHORT).show();
@@ -450,14 +604,29 @@ public class GoOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机端错误回调。
+     *
+     * @param message 错误信息
+     */
     private void onServerError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "服务器错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
+    /**
+     * 客户端错误回调。
+     *
+     * @param message 错误信息
+     */
     private void onClientError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "客户端错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
+    /**
+     * 启动游戏，初始化对局状态。
+     * <p>
+     * 主机执黑（先手），客户端执白。重置游戏并切换到游戏界面。
+     */
     private void startGame() {
         game.reset();
         currentStateVersion = 0;
@@ -470,6 +639,12 @@ public class GoOnlineActivity extends AppCompatActivity {
         updateTurnStatus();
     }
 
+    /**
+     * 更新回合状态显示。
+     * <p>
+     * 根据当前执子方和本机颜色，显示"轮到你落子"或"等待对手..."。
+     * 对局结束时显示结果和提子数。
+     */
     private void updateTurnStatus() {
         boolean isMyTurn = game.getCurrentPlayer() == myColor;
 
@@ -488,6 +663,15 @@ public class GoOnlineActivity extends AppCompatActivity {
         boardView.invalidate();
     }
 
+    /**
+     * 主机端消息处理回调。
+     * <p>
+     * 处理来自客户端的PLACE_STONE、PASS、SYNC_STATE、GAME_OVER消息，
+     * 以及聊天消息。主机收到客户端落子后，执行落子并广播状态同步。
+     *
+     * @param clientId 发送方客户端ID
+     * @param message  JSON消息对象
+     */
     private void onHostMessageReceived(int clientId, JSONObject message) {
         try {
             String type = message.optString("type", "");
@@ -514,6 +698,13 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 客户端消息处理回调。
+     * <p>
+     * 客户端仅接收主机广播的SYNC_STATE和GAME_OVER消息。
+     *
+     * @param message JSON消息对象
+     */
     private void onClientMessageReceived(JSONObject message) {
         try {
             String type = message.optString("type", "");
@@ -534,6 +725,15 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 处理对手落子消息（主机端）。
+     * <p>
+     * 验证发送方为对手后，执行落子并计算提子数，
+     * 然后广播状态同步给客户端。
+     *
+     * @param clientId 发送方客户端ID
+     * @param message  包含x、y坐标的JSON消息
+     */
     private void handlePlaceStone(int clientId, JSONObject message) throws JSONException {
         if (clientId != opponentPlayerId) return;
 
@@ -541,12 +741,14 @@ public class GoOnlineActivity extends AppCompatActivity {
         int y = message.getInt("y");
 
         if (game.isValidMove(x, y)) {
+            // 记录落子前的提子数，用于计算本手提子
             int prevBC = game.getBlackCaptures();
             int prevWC = game.getWhiteCaptures();
             game.makeMove(x, y);
             int newBC = game.getBlackCaptures();
             int newWC = game.getWhiteCaptures();
             int captured = (newBC - prevBC) + (newWC - prevWC);
+            // 提子归属：当前落子方的对方（因为makeMove后currentPlayer尚未切换）
             if (game.getCurrentPlayer() == GoGame.BLACK) {
                 whiteCaptures += captured;
             } else {
@@ -562,6 +764,14 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 处理对手虚手消息（主机端）。
+     * <p>
+     * 对手虚手后检查是否双方连续虚手（终局），
+     * 若终局则广播GAME_OVER消息。
+     *
+     * @param clientId 发送方客户端ID
+     */
     private void handlePass(int clientId) {
         if (clientId != opponentPlayerId) return;
 
@@ -579,6 +789,14 @@ public class GoOnlineActivity extends AppCompatActivity {
         mainHandler.post(this::updateTurnStatus);
     }
 
+    /**
+     * 构建并发送状态同步消息（主机端）。
+     * <p>
+     * 包含完整棋盘数据、当前回合、提子数、最后一手坐标和游戏结束标志。
+     * 每次同步递增版本号，客户端仅接受版本号更大的同步消息。
+     *
+     * @param gameOver 对局是否已结束
+     */
     private void sendSyncState(boolean gameOver) {
         try {
             currentStateVersion++;
@@ -587,6 +805,7 @@ public class GoOnlineActivity extends AppCompatActivity {
             state.put("stateVersion", currentStateVersion);
             state.put("gameOver", gameOver);
 
+            // 序列化棋盘数据为二维JSON数组
             int[][] board = game.getBoard();
             JSONArray boardArray = new JSONArray();
             for (int i = 0; i < GoGame.BOARD_SIZE; i++) {
@@ -614,6 +833,9 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 广播游戏结束消息。
+     */
     private void broadcastGameOver() {
         try {
             JSONObject gameOverMsg = new JSONObject();
@@ -624,11 +846,21 @@ public class GoOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 处理状态同步消息（客户端/主机端）。
+     * <p>
+     * 通过版本号过滤旧消息，反序列化棋盘数据并更新本地游戏状态，
+     * 包括棋盘、提子数、当前回合、最后一手和游戏结束标志。
+     *
+     * @param message SYNC_STATE类型的JSON消息
+     */
     private void handleClientSyncState(JSONObject message) throws JSONException {
         long version = message.optLong("stateVersion", 0);
+        // 忽略旧版本的状态同步消息
         if (version <= currentStateVersion) return;
         currentStateVersion = version;
 
+        // 反序列化棋盘数据
         JSONArray boardArray = message.optJSONArray("board");
         if (boardArray != null) {
             int[][] board = new int[GoGame.BOARD_SIZE][GoGame.BOARD_SIZE];
@@ -640,6 +872,7 @@ public class GoOnlineActivity extends AppCompatActivity {
                     }
                 }
             }
+            // 将反序列化的棋盘数据复制到游戏对象中
             for (int i = 0; i < GoGame.BOARD_SIZE; i++) {
                 System.arraycopy(board[i], 0, game.getBoard()[i], 0, GoGame.BOARD_SIZE);
             }
@@ -648,11 +881,13 @@ public class GoOnlineActivity extends AppCompatActivity {
         blackCaptures = message.optInt("blackCaptures", 0);
         whiteCaptures = message.optInt("whiteCaptures", 0);
 
+        // 同步当前回合，通过switchPlayer对齐
         int currentTurn = message.optInt("currentTurn", GoGame.BLACK);
         while (game.getCurrentPlayer() != currentTurn) {
             game.switchPlayer();
         }
 
+        // 同步最后一手标记
         int lastX = message.optInt("lastX", -1);
         int lastY = message.optInt("lastY", -1);
         if (lastX >= 0 && lastY >= 0) {
@@ -671,12 +906,26 @@ public class GoOnlineActivity extends AppCompatActivity {
         mainHandler.post(this::updateTurnStatus);
     }
 
+    /**
+     * 处理游戏结束消息。
+     *
+     * @param message GAME_OVER类型的JSON消息
+     */
     private void handleGameOver(JSONObject message) {
         isGameOver = true;
         game.setGameOver(true);
         mainHandler.post(this::updateTurnStatus);
     }
 
+    /**
+     * 处理本机玩家落子操作。
+     * <p>
+     * 验证是否为己方回合后执行落子，计算提子数，
+     * 主机直接广播状态同步，客户端发送PLACE_STONE消息给主机。
+     *
+     * @param x 横坐标
+     * @param y 纵坐标
+     */
     private void placeStone(int x, int y) {
         if (!isPlaying || isGameOver) return;
 
@@ -685,6 +934,7 @@ public class GoOnlineActivity extends AppCompatActivity {
 
         if (!game.isValidMove(x, y)) return;
 
+        // 计算本手提子数
         int prevBC = game.getBlackCaptures();
         int prevWC = game.getWhiteCaptures();
         game.makeMove(x, y);
@@ -701,8 +951,10 @@ public class GoOnlineActivity extends AppCompatActivity {
         game.switchPlayer();
 
         if (isHost) {
+            // 主机直接广播状态同步
             sendSyncState(false);
         } else {
+            // 客户端发送落子请求给主机
             try {
                 JSONObject msg = new JSONObject();
                 msg.put("type", "PLACE_STONE");
@@ -717,6 +969,11 @@ public class GoOnlineActivity extends AppCompatActivity {
         mainHandler.post(this::updateTurnStatus);
     }
 
+    /**
+     * 处理本机玩家虚手操作。
+     * <p>
+     * 主机执行虚手后检查终局并广播状态，客户端发送PASS消息给主机。
+     */
     private void passMove() {
         if (!isPlaying || isGameOver) return;
 
@@ -748,24 +1005,38 @@ public class GoOnlineActivity extends AppCompatActivity {
         mainHandler.post(this::updateTurnStatus);
     }
 
+    /**
+     * 广播JSON消息（仅主机可用）。
+     *
+     * @param json 要广播的JSON消息
+     */
     private void broadcast(JSONObject json) {
         if (isHost && server != null) {
             server.broadcast(json);
         }
     }
 
+    /**
+     * 切换到游戏界面。
+     */
     private void showGameScreen() {
         lobbyLayout.setVisibility(View.GONE);
         gameLayout.setVisibility(View.VISIBLE);
         isPlaying = true;
     }
 
+    /**
+     * 切换回大厅界面。
+     */
     private void showLobby() {
         gameLayout.setVisibility(View.GONE);
         lobbyLayout.setVisibility(View.VISIBLE);
         isPlaying = false;
     }
 
+    /**
+     * 离开房间，停止服务器/断开客户端连接，并关闭Activity。
+     */
     private void leaveRoom() {
         if (isHost && server != null) {
             server.stop();
@@ -778,6 +1049,9 @@ public class GoOnlineActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Activity销毁时清理网络资源和聊天辅助类。
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
