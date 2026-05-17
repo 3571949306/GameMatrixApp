@@ -3,127 +3,302 @@ package com.gamecenter.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import javax.inject.Singleton;
+
 /**
- * 单例设置管理器 — SharedPreferences 持久化用户偏好（主题模式、配色方案）。
+ * 应用设置管理器。
+ * <p>
+ * 负责持久化存储和读取用户的所有偏好设置，包括主题模式、配色方案、
+ * 更新策略（自动检查/下载/安装/来源/测试版）、音效与振动开关、应用语言等。
+ * </p>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>使用 {@link SharedPreferences} 作为底层存储，轻量且适合键值对型配置</li>
+ *   <li>标注 {@code @Singleton} 以配合 Dagger 依赖注入，确保全局唯一实例</li>
+ *   <li>同时提供构造函数注入和 {@link #getInstance(Context)} 静态工厂方法，
+ *       兼容 DI 容器与非 DI 场景的获取需求</li>
+ *   <li>所有写操作使用 {@code apply()} 异步提交，避免阻塞主线程</li>
+ * </ul>
+ * </p>
  */
+@Singleton
 public class SettingsManager {
 
+    /** SharedPreferences 文件名 */
     private static final String PREF_NAME = "app_settings";
+    /** 主题模式键名 */
     private static final String KEY_THEME_MODE = "theme_mode";
+    /** 配色方案索引键名 */
     private static final String KEY_COLOR_SCHEME = "color_scheme";
+    /** 是否自动检查更新键名 */
     private static final String KEY_AUTO_CHECK_UPDATE = "auto_check_update";
+    /** 是否接受测试版更新键名 */
     private static final String KEY_ACCEPT_BETA_UPDATE = "accept_beta_update";
+    /** 是否自动下载更新键名 */
     private static final String KEY_AUTO_DOWNLOAD_UPDATE = "auto_download_update";
+    /** 自动下载后是否提示安装键名 */
     private static final String KEY_PROMPT_INSTALL_AFTER_AUTO_DOWNLOAD = "prompt_install_after_auto_download";
+    /** 更新来源键名 */
     private static final String KEY_UPDATE_SOURCE = "update_source";
+    /** 音效开关键名 */
     private static final String KEY_SOUND_ENABLED = "sound_enabled";
+    /** 振动开关键名 */
     private static final String KEY_VIBRATION_ENABLED = "vibration_enabled";
+    /** 应用语言键名 */
     private static final String KEY_APP_LANGUAGE = "app_language";
 
+    /** 跟随系统主题 */
     public static final int THEME_SYSTEM = 0;
+    /** 浅色主题 */
     public static final int THEME_LIGHT = 1;
+    /** 深色主题 */
     public static final int THEME_DARK = 2;
 
+    /** 自动选择更新源 */
     public static final int UPDATE_SOURCE_AUTO = 0;
+    /** 香港VPS更新源 */
     public static final int UPDATE_SOURCE_VPS_HK = 1;
+    /** 美国VPS更新源 */
     public static final int UPDATE_SOURCE_VPS_US = 2;
+    /** GitHub更新源 */
     public static final int UPDATE_SOURCE_GITHUB = 3;
 
+    /** 跟随系统语言 */
     public static final String LANGUAGE_SYSTEM = "";
+    /** 中文 */
     public static final String LANGUAGE_ZH = "zh";
+    /** 英文 */
     public static final String LANGUAGE_EN = "en";
 
-    private static SettingsManager instance;
+    /**
+     * 单例引用，使用 {@code volatile} 保证多线程可见性，
+     * 配合 {@link #getInstance(Context)} 中的 synchronized 实现双重检查锁定。
+     */
+    private static volatile SettingsManager instance;
+
+    /** 底层 SharedPreferences 实例 */
     private final SharedPreferences prefs;
 
-    private SettingsManager(Context context) {
+    /**
+     * 构造函数，由 Dagger 或 {@link #getInstance(Context)} 调用。
+     * <p>
+     * 使用 {@code context.getApplicationContext()} 避免 Activity 级别 Context 导致内存泄漏。
+     * </p>
+     *
+     * @param context 任意上下文，内部会转换为 Application Context
+     */
+    public SettingsManager(Context context) {
         prefs = context.getApplicationContext()
                 .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        instance = this;
     }
 
+    /**
+     * 获取单例实例（双重检查锁定模式）。
+     * <p>
+     * 当未通过 Dagger 注入时，可使用此方法获取实例。
+     * 首次调用时会创建新实例，后续调用直接返回缓存实例。
+     * </p>
+     *
+     * @param context 上下文，仅首次调用时使用
+     * @return 全局唯一的 SettingsManager 实例
+     */
     public static synchronized SettingsManager getInstance(Context context) {
         if (instance == null) {
-            instance = new SettingsManager(context);
+            instance = new SettingsManager(context.getApplicationContext());
         }
         return instance;
     }
 
+    /**
+     * 获取当前主题模式。
+     *
+     * @return 主题模式常量：{@link #THEME_SYSTEM}、{@link #THEME_LIGHT} 或 {@link #THEME_DARK}，
+     *         默认为 {@link #THEME_SYSTEM}
+     */
     public int getThemeMode() {
         return prefs.getInt(KEY_THEME_MODE, THEME_SYSTEM);
     }
 
+    /**
+     * 设置主题模式。
+     *
+     * @param mode 主题模式常量：{@link #THEME_SYSTEM}、{@link #THEME_LIGHT} 或 {@link #THEME_DARK}
+     */
     public void setThemeMode(int mode) {
         prefs.edit().putInt(KEY_THEME_MODE, mode).apply();
     }
 
+    /**
+     * 获取当前配色方案索引。
+     *
+     * @return 配色方案索引，默认为 0（清朗紫）
+     */
     public int getColorSchemeIndex() {
         return prefs.getInt(KEY_COLOR_SCHEME, 0);
     }
 
+    /**
+     * 设置配色方案索引。
+     *
+     * @param index 配色方案索引，对应 {@link ColorSchemeManager} 中定义的方案序号
+     */
     public void setColorSchemeIndex(int index) {
         prefs.edit().putInt(KEY_COLOR_SCHEME, index).apply();
     }
 
+    /**
+     * 获取是否自动检查更新。
+     *
+     * @return {@code true} 表示自动检查，默认开启
+     */
     public boolean isAutoCheckUpdate() {
         return prefs.getBoolean(KEY_AUTO_CHECK_UPDATE, true);
     }
 
+    /**
+     * 设置是否自动检查更新。
+     *
+     * @param enabled {@code true} 开启自动检查，{@code false} 关闭
+     */
     public void setAutoCheckUpdate(boolean enabled) {
         prefs.edit().putBoolean(KEY_AUTO_CHECK_UPDATE, enabled).apply();
     }
 
+    /**
+     * 获取是否接受测试版更新。
+     *
+     * @return {@code true} 表示接受测试版，默认关闭（仅接收正式版）
+     */
     public boolean isAcceptBetaUpdate() {
         return prefs.getBoolean(KEY_ACCEPT_BETA_UPDATE, false);
     }
 
+    /**
+     * 设置是否接受测试版更新。
+     *
+     * @param enabled {@code true} 接受测试版，{@code false} 仅接收正式版
+     */
     public void setAcceptBetaUpdate(boolean enabled) {
         prefs.edit().putBoolean(KEY_ACCEPT_BETA_UPDATE, enabled).apply();
     }
 
+    /**
+     * 获取是否自动下载更新包。
+     *
+     * @return {@code true} 表示自动下载，默认关闭
+     */
     public boolean isAutoDownloadUpdate() {
         return prefs.getBoolean(KEY_AUTO_DOWNLOAD_UPDATE, false);
     }
 
+    /**
+     * 设置是否自动下载更新包。
+     *
+     * @param enabled {@code true} 开启自动下载，{@code false} 仅提示不自动下载
+     */
     public void setAutoDownloadUpdate(boolean enabled) {
         prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD_UPDATE, enabled).apply();
     }
 
+    /**
+     * 获取自动下载完成后是否弹出安装提示。
+     * <p>
+     * 仅在 {@link #isAutoDownloadUpdate()} 为 {@code true} 时有意义，
+     * 用于控制下载完成后是直接静默安装还是提示用户确认。
+     * </p>
+     *
+     * @return {@code true} 表示弹出安装提示，默认关闭
+     */
     public boolean isPromptInstallAfterAutoDownload() {
         return prefs.getBoolean(KEY_PROMPT_INSTALL_AFTER_AUTO_DOWNLOAD, false);
     }
 
+    /**
+     * 设置自动下载完成后是否弹出安装提示。
+     *
+     * @param enabled {@code true} 下载后提示安装，{@code false} 不提示
+     */
     public void setPromptInstallAfterAutoDownload(boolean enabled) {
         prefs.edit().putBoolean(KEY_PROMPT_INSTALL_AFTER_AUTO_DOWNLOAD, enabled).apply();
     }
 
+    /**
+     * 获取更新来源。
+     *
+     * @return 更新来源常量：{@link #UPDATE_SOURCE_AUTO}、{@link #UPDATE_SOURCE_VPS_HK}、
+     *         {@link #UPDATE_SOURCE_VPS_US} 或 {@link #UPDATE_SOURCE_GITHUB}，
+     *         默认为 {@link #UPDATE_SOURCE_AUTO}
+     */
     public int getUpdateSource() {
         return prefs.getInt(KEY_UPDATE_SOURCE, UPDATE_SOURCE_AUTO);
     }
 
+    /**
+     * 设置更新来源。
+     *
+     * @param source 更新来源常量
+     */
     public void setUpdateSource(int source) {
         prefs.edit().putInt(KEY_UPDATE_SOURCE, source).apply();
     }
 
+    /**
+     * 获取音效是否开启。
+     *
+     * @return {@code true} 表示音效开启，默认开启
+     */
     public boolean isSoundEnabled() {
         return prefs.getBoolean(KEY_SOUND_ENABLED, true);
     }
 
+    /**
+     * 设置音效开关。
+     *
+     * @param enabled {@code true} 开启音效，{@code false} 关闭
+     */
     public void setSoundEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply();
     }
 
+    /**
+     * 获取振动是否开启。
+     *
+     * @return {@code true} 表示振动开启，默认开启
+     */
     public boolean isVibrationEnabled() {
         return prefs.getBoolean(KEY_VIBRATION_ENABLED, true);
     }
 
+    /**
+     * 设置振动开关。
+     *
+     * @param enabled {@code true} 开启振动，{@code false} 关闭
+     */
     public void setVibrationEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_VIBRATION_ENABLED, enabled).apply();
     }
 
+    /**
+     * 获取应用语言标签。
+     *
+     * @return 语言标签字符串，如 {@link #LANGUAGE_ZH}、{@link #LANGUAGE_EN}，
+     *         或 {@link #LANGUAGE_SYSTEM}（空字符串）表示跟随系统，默认跟随系统
+     */
     public String getAppLanguage() {
         return prefs.getString(KEY_APP_LANGUAGE, LANGUAGE_SYSTEM);
     }
 
+    /**
+     * 设置应用语言。
+     * <p>
+     * 传入 {@code null} 时自动降级为 {@link #LANGUAGE_SYSTEM}（跟随系统），
+     * 防止空值导致 SharedPreferences 或后续语言切换逻辑异常。
+     * </p>
+     *
+     * @param languageTag 语言标签，如 "zh"、"en"，传 {@code null} 等同于 {@link #LANGUAGE_SYSTEM}
+     */
     public void setAppLanguage(String languageTag) {
         if (languageTag == null) {
             languageTag = LANGUAGE_SYSTEM;
@@ -131,6 +306,16 @@ public class SettingsManager {
         prefs.edit().putString(KEY_APP_LANGUAGE, languageTag).apply();
     }
 
+    /**
+     * 判断当前系统是否处于深色模式。
+     * <p>
+     * 通过读取系统 {@code uiMode} 配置中 {@code UI_MODE_NIGHT_MASK} 位来判断，
+     * 不依赖本应用的设置项，反映的是系统级别的深色模式状态。
+     * </p>
+     *
+     * @param context 用于获取系统资源配置的上下文
+     * @return {@code true} 表示系统当前为深色模式
+     */
     public static boolean isDarkMode(Context context) {
         int mode = context.getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK;

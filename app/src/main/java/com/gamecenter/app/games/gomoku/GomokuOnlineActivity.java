@@ -28,44 +28,124 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * 五子棋联机对战Activity。
+ * <p>
+ * 实现基于WebSocket中继服务器的双人在线五子棋对局，支持：
+ * <ul>
+ *   <li>创建/加入房间（6位房间码）</li>
+ *   <li>主机-客户端架构：主机负责权威状态同步，客户端发送操作请求</li>
+ *   <li>实时聊天功能</li>
+ *   <li>五连胜负自动检测</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>采用"主机权威"模型：主机维护游戏状态的唯一权威副本，每次落子后向客户端广播完整状态同步</li>
+ *   <li>状态版本号（{@link #currentStateVersion}）用于防止旧消息覆盖新状态</li>
+ *   <li>主机执黑（先手），客户端执白</li>
+ * </ul>
+ */
 public class GomokuOnlineActivity extends AppCompatActivity {
 
+    /** SharedPreferences文件名，存储P2P令牌等持久化数据 */
     private static final String P2P_PREFS = "gomoku_p2p";
+
+    /** 协议标识 */
     private static final String PROTOCOL = "GMK";
+
+    /** 中继服务器基础URL */
     private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
 
+    /** 偏好设置，用于持久化对等端令牌 */
     private SharedPreferences prefs;
+
+    /** WebSocket服务器实例（主机模式使用） */
     private GameSocketServer server;
+
+    /** WebSocket客户端实例（加入模式使用） */
     private GameSocketClient client;
 
+    /** 是否为主机（创建房间者） */
     private volatile boolean isHost = false;
+
+    /** 对局是否已开始 */
     private volatile boolean gameStarted = false;
+
+    /** 对手是否已加入房间 */
     private volatile boolean opponentHasJoined = false;
+
+    /** 本机玩家ID（主机=1，客户端=2） */
     private int myPlayerId = -1;
+
+    /** 当前房间码 */
     private String roomCode = "";
 
+    /** 五子棋游戏逻辑对象 */
     private GomokuGame game;
+
+    /** 状态版本号，用于防止旧同步消息覆盖新状态 */
     private volatile long currentStateVersion = 0;
+
+    /** 在线聊天辅助类 */
     private OnlineChatHelper chatHelper;
 
+    /** 主线程Handler，用于跨线程UI更新 */
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    /** 大厅布局（创建/加入房间界面） */
     private LinearLayout lobbyLayout;
+
+    /** 游戏布局（棋盘+控制界面） */
     private LinearLayout gameLayout;
+
+    /** 房间码显示文本 */
     private TextView roomCodeText;
+
+    /** 连接状态文本 */
     private TextView statusText;
+
+    /** 回合状态文本 */
     private TextView turnText;
+
+    /** 胜负结果文本 */
     private TextView winnerText;
+
+    /** 棋盘视图 */
     private GomokuView gomokuView;
+
+    /** 加载进度条 */
     private ProgressBar loadingBar;
+
+    /** 创建房间按钮 */
     private Button createRoomBtn;
+
+    /** 加入房间按钮 */
     private Button joinRoomBtn;
+
+    /** 离开房间按钮 */
     private Button leaveBtn;
+
+    /** 等待对手对话框 */
     private AlertDialog waitingDialog;
+
+    /** 聊天消息显示区域 */
     private TextView chatDisplay;
+
+    /** 聊天消息滚动容器 */
     private ScrollView chatScroll;
+
+    /** 聊天输入框 */
     private EditText chatInput;
 
+    /**
+     * Activity创建时的初始化入口。
+     * <p>
+     * 初始化网络组件（服务器/客户端）、聊天辅助类、视图，
+     * 并设置各类网络事件监听器。
+     *
+     * @param savedInstanceState 保存的实例状态
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,12 +153,14 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         prefs = getSharedPreferences(P2P_PREFS, MODE_PRIVATE);
         game = new GomokuGame();
 
+        // 初始化服务器（主机模式）
         server = new GameSocketServer(this);
         server.setOnClientConnectedListener(this::onClientConnected);
         server.setOnClientDisconnectedListener(this::onClientDisconnected);
         server.setOnMessageReceivedListener(this::onHostMessageReceived);
         server.setOnErrorListener(this::onServerError);
 
+        // 初始化客户端（加入模式）
         client = GameSocketClient.getInstance(this);
         client.setPlayerName("Player");
         client.setOnConnectedListener(this::onClientConnectedToHost);
@@ -86,6 +168,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         client.setOnMessageReceivedListener(this::onClientMessageReceived);
         client.setOnErrorListener(this::onClientError);
 
+        // 初始化聊天辅助类
         chatHelper = new OnlineChatHelper(this);
         chatHelper.setOnChatMessageSendListener(text -> {
             JSONObject msg = chatHelper.createChatMessage(text);
@@ -103,6 +186,12 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         chatHelper.setInlineDisplay(chatDisplay, chatScroll);
     }
 
+    /**
+     * 初始化所有视图组件，采用纯代码构建布局。
+     * <p>
+     * 界面分为两层：大厅层（创建/加入房间）和游戏层（棋盘+聊天+控制），
+     * 通过切换可见性实现界面切换。棋盘使用CardView包裹以增加视觉层次。
+     */
     private void initViews() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -180,6 +269,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         winnerText.setGravity(View.TEXT_ALIGNMENT_CENTER);
         winnerText.setPadding(0, 2, 0, 4);
 
+        // 使用CardView包裹棋盘，增加圆角和阴影效果
         CardView boardCard = new CardView(this);
         boardCard.setRadius(8);
         boardCard.setPadding(4, 4, 4, 4);
@@ -269,6 +359,9 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         setContentView(root);
     }
 
+    /**
+     * 发送聊天消息。
+     */
     private void sendChatMessage() {
         String text = chatInput.getText().toString().trim();
         if (!text.isEmpty()) {
@@ -277,6 +370,12 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 创建联机房间。
+     * <p>
+     * 在后台线程生成房间码并启动WebSocket服务器，
+     * 成功后显示等待对话框。
+     */
     private void createRoom() {
         loadingBar.setVisibility(View.VISIBLE);
         createRoomBtn.setEnabled(false);
@@ -308,6 +407,13 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     * 生成6位随机房间码。
+     * <p>
+     * 使用去除易混淆字符（0/O/1/I）的字母数字字符集。
+     *
+     * @return 6位房间码字符串
+     */
     private String generateRoomCode() {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder sb = new StringBuilder();
@@ -318,6 +424,11 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    /**
+     * 显示加入房间的输入对话框。
+     * <p>
+     * 用户输入6位房间码后调用 {@link #joinRoom}。
+     */
     private void showJoinDialog() {
         EditText input = new EditText(this);
         input.setHint("请输入6位房间码");
@@ -338,6 +449,13 @@ public class GomokuOnlineActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * 加入指定房间码的联机房间。
+     * <p>
+     * 使用WebSocket客户端连接到中继服务器，并恢复上次保存的对等端令牌。
+     *
+     * @param code 目标房间码
+     */
     private void joinRoom(String code) {
         loadingBar.setVisibility(View.VISIBLE);
         createRoomBtn.setEnabled(false);
@@ -355,6 +473,14 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         client.connectWebSocket(wsUrl);
     }
 
+    /**
+     * 主机端回调：客户端连接成功。
+     * <p>
+     * 关闭等待对话框，标记对手已加入，并启动游戏。
+     *
+     * @param clientId 客户端ID
+     * @param ip       客户端IP地址
+     */
     private void onClientConnected(int clientId, String ip) {
         mainHandler.post(() -> {
             if (waitingDialog != null && waitingDialog.isShowing()) {
@@ -369,6 +495,12 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机端回调：客户端断开连接。
+     *
+     * @param clientId 断开的客户端ID
+     * @param reason   断开原因
+     */
     private void onClientDisconnected(int clientId, String reason) {
         mainHandler.post(() -> {
             Toast.makeText(this, "对手已断开: " + reason, Toast.LENGTH_LONG).show();
@@ -377,10 +509,18 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 客户端回调：成功连接到主机。
+     * <p>
+     * 设置本机ID为2，保存P2P令牌，并启动游戏。
+     *
+     * @param clientId 分配的客户端ID
+     */
     private void onClientConnectedToHost(int clientId) {
         myPlayerId = 2;
         gameStarted = true;
 
+        // 保存P2P令牌以便下次重连
         String token = client.getPeerToken();
         if (token != null && !token.isEmpty()) {
             prefs.edit().putString("last_peer_token", token).apply();
@@ -394,6 +534,11 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 客户端回调：与主机断开连接。
+     *
+     * @param reason 断开原因
+     */
     private void onClientDisconnectedFromHost(String reason) {
         mainHandler.post(() -> {
             Toast.makeText(this, "连接已断开: " + reason, Toast.LENGTH_LONG).show();
@@ -402,6 +547,11 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机端错误回调。
+     *
+     * @param message 错误信息
+     */
     private void onServerError(String message) {
         mainHandler.post(() -> {
             Toast.makeText(this, "服务器错误: " + message, Toast.LENGTH_SHORT).show();
@@ -410,10 +560,24 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 客户端错误回调。
+     *
+     * @param message 错误信息
+     */
     private void onClientError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
+    /**
+     * 主机端消息处理回调。
+     * <p>
+     * 处理来自客户端的PLACE_STONE消息和聊天消息。
+     * 主机收到客户端落子后，执行落子并广播状态同步。
+     *
+     * @param clientId 发送方客户端ID
+     * @param message  JSON消息对象
+     */
     private void onHostMessageReceived(int clientId, JSONObject message) {
         try {
             String type = message.optString("type", "");
@@ -446,6 +610,14 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 客户端消息处理回调。
+     * <p>
+     * 客户端接收主机广播的SYNC_STATE和GAME_OVER消息。
+     * 通过版本号过滤旧消息，反序列化棋盘数据并更新本地状态。
+     *
+     * @param message JSON消息对象
+     */
     private void onClientMessageReceived(JSONObject message) {
         try {
             String type = message.optString("type", "");
@@ -455,9 +627,11 @@ public class GomokuOnlineActivity extends AppCompatActivity {
             }
             if ("SYNC_STATE".equals(type)) {
                 long version = message.optLong("stateVersion", 0);
+                // 忽略旧版本的状态同步消息
                 if (version <= currentStateVersion) return;
                 currentStateVersion = version;
 
+                // 反序列化棋盘数据
                 JSONArray boardArray = message.getJSONArray("board");
                 for (int i = 0; i < GomokuGame.BOARD_SIZE; i++) {
                     JSONArray row = boardArray.getJSONArray(i);
@@ -485,6 +659,12 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 构建并发送状态同步消息（主机端）。
+     * <p>
+     * 包含完整棋盘数据、当前回合、游戏结束标志和获胜方。
+     * 每次同步递增版本号。
+     */
     private void sendSyncState() {
         try {
             currentStateVersion++;
@@ -493,6 +673,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
             state.put("stateVersion", currentStateVersion);
             state.put("gameOver", game.isGameOver());
 
+            // 序列化棋盘数据为二维JSON数组
             int[][] board = game.getBoard();
             JSONArray boardArray = new JSONArray();
             for (int i = 0; i < GomokuGame.BOARD_SIZE; i++) {
@@ -514,6 +695,9 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 广播游戏结束消息。
+     */
     private void broadcastGameOver() {
         try {
             JSONObject gameOverMsg = new JSONObject();
@@ -525,10 +709,20 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 处理本机玩家落子操作。
+     * <p>
+     * 验证是否为己方回合后执行落子，
+     * 主机直接广播状态同步，客户端发送PLACE_STONE消息给主机。
+     *
+     * @param x 横坐标
+     * @param y 纵坐标
+     */
     private void onPlayerMove(int x, int y) {
         if (!gameStarted || game.isGameOver()) return;
 
         int currentColor = game.getCurrentPlayer();
+        // 主机执黑，客户端执白
         boolean isMyTurn = (myPlayerId == 1 && currentColor == GomokuGame.BLACK)
                 || (myPlayerId == 2 && currentColor == GomokuGame.WHITE);
 
@@ -543,11 +737,13 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         game.switchPlayer();
 
         if (isHost) {
+            // 主机直接广播状态同步
             sendSyncState();
             if (game.isGameOver()) {
                 broadcastGameOver();
             }
         } else {
+            // 客户端发送落子请求给主机
             try {
                 JSONObject msg = new JSONObject();
                 msg.put("type", "PLACE_STONE");
@@ -562,12 +758,23 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         mainHandler.post(this::updateGameUI);
     }
 
+    /**
+     * 广播JSON消息（仅主机可用）。
+     *
+     * @param json 要广播的JSON消息
+     */
     private void broadcast(JSONObject json) {
         if (isHost && server != null) {
             server.broadcast(json);
         }
     }
 
+    /**
+     * 更新游戏界面状态显示。
+     * <p>
+     * 根据当前执子方和本机颜色显示回合提示，
+     * 对局结束时显示胜负结果。
+     */
     private void updateGameUI() {
         if (!gameStarted) return;
 
@@ -593,11 +800,21 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         gomokuView.invalidate();
     }
 
+    /**
+     * 切换到游戏界面。
+     */
     private void showGameScreen() {
         lobbyLayout.setVisibility(View.GONE);
         gameLayout.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * 显示等待对手加入的对话框。
+     * <p>
+     * 包含房间码显示、复制按钮和等待指示器。
+     *
+     * @param roomCode 房间码
+     */
     private void showWaitingDialog(String roomCode) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("等待对手加入");
@@ -656,6 +873,9 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         waitingDialog.show();
     }
 
+    /**
+     * 切换回大厅界面。
+     */
     private void showLobby() {
         gameLayout.setVisibility(View.GONE);
         lobbyLayout.setVisibility(View.VISIBLE);
@@ -663,6 +883,9 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         joinRoomBtn.setEnabled(true);
     }
 
+    /**
+     * 离开房间，停止服务器/断开客户端连接，并关闭Activity。
+     */
     private void leaveRoom() {
         if (isHost && server != null) {
             server.stop();
@@ -675,6 +898,9 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Activity销毁时清理网络资源和聊天辅助类。
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();

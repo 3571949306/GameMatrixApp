@@ -63,19 +63,46 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * 工具箱 Fragment — 以可拖拽排序的卡片列表展示所有工具。
+ * <p>
+ * 核心职责：
+ * <ul>
+ *   <li>加载并展示所有工具分区（ToolSection），每个分区对应一个可展开的卡片</li>
+ *   <li>通过 ToolBinder 机制将各工具的功能逻辑绑定到对应的 UI 布局</li>
+ *   <li>支持拖拽排序（ItemTouchHelper）和收藏功能</li>
+ *   <li>支持单列/双列布局切换</li>
+ * </ul>
+ * </p>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>所有 ToolBinder 实例在 initBinders 中统一注册到 Map，以工具 ID 为键</li>
+ *   <li>工具排序和收藏状态持久化到 ToolSectionStore</li>
+ *   <li>BatteryToolBinder 需要在视图销毁时调用 unbind() 注销广播接收器</li>
+ *   <li>使用 CachedThreadPool 以支持多个工具并发执行网络操作</li>
+ * </ul>
+ * </p>
+ */
 public class ToolsFragment extends Fragment {
 
     private static final String TAG = "ToolsFragment";
 
     private RecyclerView recyclerView;
     private ToolsAdapter adapter;
+    /** 工具分区持久化存储，管理排序和收藏状态 */
     private ToolSectionStore store;
+    /** 当前加载的工具分区列表 */
     private List<ToolSection> sections;
+    /** 布局模式：0=单列，1=双列 */
     private int layoutMode;
 
+    /** 电池工具绑定器，需在视图销毁时显式 unbind */
     private BatteryToolBinder batteryToolBinder;
+    /** 工具 ID 到 ToolBinder 实例的映射表 */
     private final Map<String, ToolBinder> binders = new HashMap<>();
 
+    /** 用于执行工具中耗时操作的线程池 */
     private ExecutorService executor;
 
     @Override
@@ -92,6 +119,13 @@ public class ToolsFragment extends Fragment {
         }
     }
 
+    /**
+     * 初始化所有工具绑定器，将工具 ID 映射到对应的 Binder 实例。
+     * <p>
+     * 新增工具时需要在此方法中注册对应的 Binder。
+     * BatteryToolBinder 额外保存引用，因为需要在 onDestroyView 中调用 unbind()。
+     * </p>
+     */
     private void initBinders() {
         binders.put("network_diagnosis", new NetworkDiagnosisToolBinder());
         binders.put("diagnostic_report", new DiagnosticReportToolBinder());
@@ -128,6 +162,12 @@ public class ToolsFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_tools, container, false);
     }
 
+    /**
+     * 视图创建完成后的初始化入口。
+     * <p>
+     * 依次初始化绑定器、布局模式、RecyclerView、拖拽排序和配色方案。
+     * </p>
+     */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -154,9 +194,15 @@ public class ToolsFragment extends Fragment {
         applyColorScheme();
     }
 
+    /**
+     * 显示布局模式切换菜单（单列/双列）。
+     *
+     * @param anchor 菜单锚点视图
+     */
     private void showLayoutModeMenu(View anchor) {
         PopupMenu popup = new PopupMenu(requireContext(), anchor);
         popup.getMenuInflater().inflate(R.menu.menu_tools_layout, popup.getMenu());
+        // 根据当前布局模式设置选中状态
         if (layoutMode == 0) {
             popup.getMenu().findItem(R.id.action_single_column).setChecked(true);
         } else {
@@ -182,6 +228,12 @@ public class ToolsFragment extends Fragment {
         popup.show();
     }
 
+    /**
+     * 根据当前布局模式设置 RecyclerView 的 LayoutManager。
+     * <p>
+     * 单列模式使用 LinearLayoutManager，双列模式使用 GridLayoutManager(2)。
+     * </p>
+     */
     private void applyLayoutManager() {
         if (layoutMode == 1) {
             recyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
@@ -190,8 +242,16 @@ public class ToolsFragment extends Fragment {
         }
     }
 
+    /**
+     * 为 RecyclerView 附加拖拽排序的 ItemTouchHelper。
+     * <p>
+     * 单列模式仅支持上下拖拽，双列模式支持上下左右拖拽。
+     * 拖拽开始时降低透明度并震动反馈，拖拽结束后恢复透明度并持久化排序。
+     * </p>
+     */
     private void attachTouchHelper() {
         ItemTouchHelper touchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+                // 双列模式额外支持左右拖拽方向
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN | (layoutMode == 1 ? ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT : 0),
                 0) {
             @Override
@@ -199,6 +259,7 @@ public class ToolsFragment extends Fragment {
                 int from = viewHolder.getBindingAdapterPosition();
                 int to = target.getBindingAdapterPosition();
                 if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false;
+                // 交换列表中的位置并通知适配器
                 Collections.swap(sections, from, to);
                 adapter.notifyItemMoved(from, to);
                 return true;
@@ -211,6 +272,7 @@ public class ToolsFragment extends Fragment {
             @Override
             public void onSelectedChanged(@Nullable RecyclerView.ViewHolder viewHolder, int actionState) {
                 super.onSelectedChanged(viewHolder, actionState);
+                // 拖拽开始时提供视觉和触觉反馈
                 if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder instanceof SectionViewHolder) {
                     ((SectionViewHolder) viewHolder).drag();
                 }
@@ -219,6 +281,7 @@ public class ToolsFragment extends Fragment {
             @Override
             public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
                 super.clearView(recyclerView, viewHolder);
+                // 拖拽结束后恢复视觉状态并持久化排序
                 if (viewHolder instanceof SectionViewHolder) {
                     ((SectionViewHolder) viewHolder).drop();
                 }
@@ -228,6 +291,9 @@ public class ToolsFragment extends Fragment {
         touchHelper.attachToRecyclerView(this.recyclerView);
     }
 
+    /**
+     * 根据当前设置应用配色方案到根视图。
+     */
     private void applyColorScheme() {
         if (getActivity() == null) return;
         boolean isDark = SettingsManager.isDarkMode(requireContext());
@@ -239,6 +305,9 @@ public class ToolsFragment extends Fragment {
         }
     }
 
+    /**
+     * 视图销毁时注销 BatteryToolBinder 的广播接收器，防止内存泄漏。
+     */
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -247,6 +316,12 @@ public class ToolsFragment extends Fragment {
         }
     }
 
+    /**
+     * 工具分区列表适配器。
+     * <p>
+     * 每个列表项对应一个工具分区卡片，包含标题、内容和收藏按钮。
+     * </p>
+     */
     private class ToolsAdapter extends RecyclerView.Adapter<SectionViewHolder> {
         @NonNull
         @Override
@@ -272,6 +347,13 @@ public class ToolsFragment extends Fragment {
         }
     }
 
+    /**
+     * 工具分区卡片 ViewHolder。
+     * <p>
+     * 负责渲染工具分区标题、动态加载内容布局、绑定 ToolBinder，
+     * 以及处理收藏按钮交互。拖拽时提供视觉反馈（透明度变化和震动）。
+     * </p>
+     */
     class SectionViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvToolTitle;
         private final FrameLayout contentRoot;
@@ -282,21 +364,33 @@ public class ToolsFragment extends Fragment {
             contentRoot = itemView.findViewById(R.id.tool_content_container);
         }
 
+        /**
+         * 绑定工具分区数据到视图。
+         * <p>
+         * 每次绑定时重新加载内容布局并调用对应的 ToolBinder.bind()，
+         * 确保内容与分区数据一致。
+         * </p>
+         *
+         * @param section 工具分区数据
+         */
         void bind(ToolSection section) {
             if (tvToolTitle != null) {
                 tvToolTitle.setText(section.title);
             }
             if (contentRoot != null) {
+                // 清除旧的内容视图，避免重复添加
                 View existing = contentRoot.getChildAt(0);
                 if (existing != null) {
                     contentRoot.removeAllViews();
                 }
                 try {
+                    // 动态加载工具的内容布局并绑定功能
                     View contentView = LayoutInflater.from(itemView.getContext()).inflate(section.contentLayoutId, contentRoot, false);
                     contentRoot.addView(contentView);
                     bindContent(section, contentView);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to bind tool section: " + section.id, e);
+                    // 布局加载失败时显示错误提示
                     contentRoot.addView(createToolErrorView(itemView.getContext(), section));
                 }
             }
@@ -304,9 +398,6 @@ public class ToolsFragment extends Fragment {
             if (btnFavorite != null) {
                 btnFavorite.setOnClickListener(v -> {
                     boolean favorite = store.toggleFavorite(section.id);
-                    android.graphics.drawable.Drawable star = favorite
-                            ? android.graphics.drawable.Drawable.createFromPath("@android:drawable/btn_star_big_on")
-                            : android.graphics.drawable.Drawable.createFromPath("@android:drawable/btn_star_big_off");
                     ((android.widget.ImageView) btnFavorite).setImageResource(favorite
                             ? android.R.drawable.btn_star_big_on
                             : android.R.drawable.btn_star_big_off);
@@ -315,6 +406,12 @@ public class ToolsFragment extends Fragment {
             }
         }
 
+        /**
+         * 查找并调用对应工具的 ToolBinder 进行功能绑定。
+         *
+         * @param section     工具分区数据
+         * @param contentView 已加载的内容视图
+         */
         void bindContent(ToolSection section, View contentView) {
             ToolBinder binder = binders.get(section.id);
             if (binder != null) {
@@ -322,6 +419,13 @@ public class ToolsFragment extends Fragment {
             }
         }
 
+        /**
+         * 创建工具加载失败时的错误提示视图。
+         *
+         * @param context 上下文
+         * @param section 加载失败的分区
+         * @return 显示错误信息的 TextView
+         */
         private View createToolErrorView(Context context, ToolSection section) {
             TextView errorView = new TextView(context);
             int padding = (int) (12 * context.getResources().getDisplayMetrics().density);
@@ -332,6 +436,9 @@ public class ToolsFragment extends Fragment {
             return errorView;
         }
 
+        /**
+         * 拖拽开始时的视觉反馈：降低透明度并触发短震动。
+         */
         void drag() {
             itemView.setAlpha(0.5f);
             if (getActivity() != null) {
@@ -342,11 +449,17 @@ public class ToolsFragment extends Fragment {
             }
         }
 
+        /**
+         * 拖拽结束时的视觉恢复：还原透明度。
+         */
         void drop() {
             itemView.setAlpha(1.0f);
         }
     }
 
+    /**
+     * 简单的 RecyclerView 间距装饰，为每个列表项添加统一的四周间距。
+     */
     private static class SimpleDividerItemDecoration extends RecyclerView.ItemDecoration {
         private final int space;
 

@@ -13,22 +13,79 @@ import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
 import com.google.android.material.button.MaterialButton;
 
+/**
+ * 数独游戏 Activity
+ *
+ * <p>职责：作为数独游戏的入口界面，负责初始化游戏视图、管理数字输入、
+ * 计时器、存档恢复/保存以及完成判定。</p>
+ *
+ * <p>关键设计决策：</p>
+ * <ul>
+ *   <li>使用 SaveManager 实现自动存档（onPause 保存）和恢复（onCreate 检测）</li>
+ *   <li>通过 Handler + Runnable 实现每秒更新的计时器</li>
+ *   <li>数字输入通过9个按钮 + 清除按钮实现，选中格子后点击数字填入</li>
+ *   <li>完成时通过 OnSolvedListener 回调记录用时并显示祝贺</li>
+ * </ul>
+ *
+ * <p>布局：res/layout/activity_sudoku.xml</p>
+ */
 public class SudokuActivity extends AppCompatActivity {
 
+    /** 游戏唯一标识，用于 SaveManager 和 GameUsageStore */
     private static final String GAME_ID = "sudoku";
+
+    /** 自动存档槽位名称 */
     private static final String SLOT_AUTO = "auto";
+
+    /** 自定义数独视图，负责绘制棋盘和处理格子选择 */
     private SudokuView sudokuView;
+
+    /** 游戏逻辑核心，管理棋盘数据、冲突检测和序列化 */
     private SudokuGame game;
+
+    /** 状态提示文本 */
     private TextView tvStatus;
+
+    /** 计时器显示文本 */
     private TextView tvTimer;
+
+    /** 存档管理器，用于保存/恢复游戏进度 */
     private SaveManager saveManager;
+
+    /** 游戏使用统计存储，记录完成用时 */
     private GameUsageStore usageStore;
+
+    /** 本局游戏开始时间戳（毫秒） */
     private long gameStartTime;
+
+    /** 计时器调度 Handler */
     private Handler timerHandler;
+
+    /** 计时器周期性任务 */
     private Runnable timerRunnable;
+
+    /** 已经过时间（毫秒） */
     private long elapsedMs = 0;
+
+    /** 游戏是否活跃（计时器是否运行） */
     private boolean gameActive = true;
 
+    /**
+     * Activity 创建回调
+     *
+     * <p>初始化流程：</p>
+     * <ol>
+     *   <li>设置布局、绑定标题和状态栏</li>
+     *   <li>创建 SudokuGame 并关联到视图</li>
+     *   <li>初始化计时器（每秒更新一次）</li>
+     *   <li>检测是否有存档，弹出恢复对话框</li>
+     *   <li>绑定数字输入按钮（1-9 + 清除）</li>
+     *   <li>绑定重启和教程按钮</li>
+     *   <li>注册完成监听器</li>
+     * </ol>
+     *
+     * @param savedInstanceState 保存的实例状态（未使用）
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -126,6 +183,12 @@ public class SudokuActivity extends AppCompatActivity {
         sudokuView.invalidate();
     }
 
+    /**
+     * 启动计时器
+     *
+     * <p>记录当前时间戳为起始时间，将 gameActive 设为 true，
+     * 并通过 Handler 投递计时器任务（每秒执行一次）。</p>
+     */
     private void startTimer() {
         gameStartTime = System.currentTimeMillis();
         elapsedMs = 0;
@@ -133,11 +196,21 @@ public class SudokuActivity extends AppCompatActivity {
         timerHandler.post(timerRunnable);
     }
 
+    /**
+     * 停止计时器
+     *
+     * <p>将 gameActive 设为 false 并移除 Handler 中的计时器回调。</p>
+     */
     private void stopTimer() {
         gameActive = false;
         timerHandler.removeCallbacks(timerRunnable);
     }
 
+    /**
+     * 重置计时器
+     *
+     * <p>停止计时器，将经过时间归零，更新显示为"0秒"。</p>
+     */
     private void resetTimer() {
         stopTimer();
         elapsedMs = 0;
@@ -146,12 +219,21 @@ public class SudokuActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 更新计时器显示文本
+     */
     private void updateTimerDisplay() {
         if (tvTimer != null) {
             tvTimer.setText("时间: " + formatTime(elapsedMs));
         }
     }
 
+    /**
+     * 将毫秒数格式化为可读时间字符串
+     *
+     * @param ms 经过的毫秒数
+     * @return 格式化后的时间字符串，如"2分30秒"或"45秒"
+     */
     private String formatTime(long ms) {
         long seconds = ms / 1000;
         long minutes = seconds / 60;
@@ -162,10 +244,32 @@ public class SudokuActivity extends AppCompatActivity {
         return seconds + "秒";
     }
 
+    /**
+     * 获取当前已用时间（毫秒）
+     *
+     * <p>供 SudokuView 的 OnSolvedListener 回调使用，
+     * 用于在完成时获取实际用时。</p>
+     *
+     * @return 已经过的毫秒数
+     */
     public long getElapsedMs() {
         return elapsedMs;
     }
 
+    /**
+     * 处理数字输入
+     *
+     * <p>输入逻辑：</p>
+     * <ol>
+     *   <li>检查是否已选中格子（selectedX/Y >= 0），未选中则提示</li>
+     *   <li>检查选中格子是否为固定格子（题目给定），不可修改则提示</li>
+     *   <li>调用 game.setNumber() 填入数字（0 表示清除）</li>
+     *   <li>刷新视图选中状态</li>
+     *   <li>若数独已解完，停止计时器、显示祝贺、删除存档、记录用时</li>
+     * </ol>
+     *
+     * @param num 要填入的数字（1-9），0 表示清除
+     */
     private void inputNumber(int num) {
         int x = sudokuView.getSelectedX();
         int y = sudokuView.getSelectedY();
@@ -195,6 +299,11 @@ public class SudokuActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Activity 暂停时保存游戏进度
+     *
+     * <p>停止计时器，若游戏未完成则将当前状态序列化保存到自动存档槽位。</p>
+     */
     @Override
     protected void onPause() {
         super.onPause();
@@ -204,6 +313,11 @@ public class SudokuActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Activity 恢复时重启计时器
+     *
+     * <p>若游戏未完成，重新启动计时器继续计时。</p>
+     */
     @Override
     protected void onResume() {
         super.onResume();

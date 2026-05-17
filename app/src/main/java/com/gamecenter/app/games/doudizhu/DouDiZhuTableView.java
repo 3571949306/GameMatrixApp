@@ -28,14 +28,27 @@ import java.util.Map;
 
 /**
  * 斗地主桌面视图 (DouDiZhu Table View)
- * 核心自定义视图，负责游戏桌面的所有绘制工作
- * 继承自 View，使用 Canvas 进行绘制
  *
- * 主要功能：
- * 1. DPI 自适应 - 所有尺寸基于 View 宽高动态计算
- * 2. 分区绘制 - 底牌区、AI手牌区、出牌区、玩家手牌区
- * 3. 精细化点击检测 - 支持层叠卡牌的点击区域判定
- * 4. 出牌动画 - 基于 ValueAnimator 的平滑动画效果
+ * <p>核心自定义视图，负责游戏桌面的所有绘制工作。
+ * 继承自 {@link View}，使用 {@link Canvas} 进行手动绘制，不依赖 XML 布局中的子 View。</p>
+ *
+ * <p><b>主要功能：</b></p>
+ * <ul>
+ *   <li>DPI 自适应 - 所有尺寸基于 View 宽高动态计算，适配不同屏幕</li>
+ *   <li>分区绘制 - 底牌区（左上角）、AI信息区（左右两侧）、出牌区（中心）、玩家手牌区（底部）</li>
+ *   <li>精细化点击检测 - 支持层叠卡牌的点击区域判定，从右向左遍历优先命中顶层牌</li>
+ *   <li>出牌动画 - 基于 {@link ValueAnimator} 的平滑动画效果</li>
+ *   <li>记牌器 - 顶部居中显示各牌面剩余数量</li>
+ *   <li>拖动选择 - 支持滑动手势批量选中多张手牌</li>
+ * </ul>
+ *
+ * <p><b>关键设计决策：</b></p>
+ * <ul>
+ *   <li>卡牌尺寸根据手牌数量反推，确保所有手牌在屏幕内完整显示</li>
+ *   <li>桌面出牌区使用固定尺寸（tableCardWidth），不随玩家手牌数量变化</li>
+ *   <li>卡牌绘制优先使用位图资源，找不到时回退到 Canvas 简易绘制</li>
+ *   <li>动画期间屏蔽触摸事件，防止动画未完成时操作导致状态错乱</li>
+ * </ul>
  */
 public class DouDiZhuTableView extends View {
 
@@ -167,23 +180,44 @@ public class DouDiZhuTableView extends View {
 
     // ============ 构造方法 ============
 
+    /**
+     * 代码创建视图时调用。
+     *
+     * @param context 上下文
+     */
     public DouDiZhuTableView(Context context) {
         super(context);
         init();
     }
 
+    /**
+     * XML 布局中引用时调用。
+     *
+     * @param context 上下文
+     * @param attrs   XML 属性集
+     */
     public DouDiZhuTableView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
+    /**
+     * 带默认样式属性的构造方法。
+     *
+     * @param context      上下文
+     * @param attrs        XML 属性集
+     * @param defStyleAttr 默认样式属性
+     */
     public DouDiZhuTableView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
 
     /**
-     * 初始化画笔和缓存
+     * 初始化画笔、位图缓存和数据列表。
+     *
+     * <p>创建所有绘制所需的 {@link Paint} 对象，初始化卡牌位图缓存，
+     * 以及各数据列表的空实例。</p>
      */
     private void init() {
         // 初始化卡牌位图缓存
@@ -249,6 +283,16 @@ public class DouDiZhuTableView extends View {
 
     // ============ 尺寸计算 ============
 
+    /**
+     * 视图尺寸变化时回调。
+     *
+     * <p>在视图首次布局或尺寸改变时触发，重新计算所有卡牌尺寸并加载卡牌图片。</p>
+     *
+     * @param w     新宽度
+     * @param h     新高度
+     * @param oldw  旧宽度
+     * @param oldh  旧高度
+     */
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -257,9 +301,13 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 根据视图尺寸 + 手牌数量，反推卡牌尺寸
-     * 核心公式：cardWidth * (1 + (N-1)*(1-overlap)) ≤ viewWidth * 90%
-     * 从 cardWidth 反推出刚好能放下的最大尺寸
+     * 根据视图尺寸和手牌数量，反推卡牌的最大可显示尺寸。
+     *
+     * <p>核心公式：cardWidth * (1 + (N-1)*(1-overlap)) ≤ viewWidth * 90%，
+     * 从中反推出刚好能放下所有手牌的最大卡牌宽度。
+     * 同时计算桌面出牌区卡牌尺寸（固定比例，不随手牌数量变化）。</p>
+     *
+     * <p>所有尺寸均基于 viewWidth/viewHeight 动态计算，确保 DPI 自适应。</p>
      */
     private void calculateDimensions() {
         int viewWidth = getWidth();
@@ -368,9 +416,14 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 加载指定卡牌的位图
-     * @param resName 卡牌资源名称
-     * @return 卡牌位图，如果加载失败返回 null
+     * 加载指定卡牌的位图，带缓存机制。
+     *
+     * <p>先从内存缓存 {@link #cardBitmapCache} 中查找，命中则直接返回。
+     * 未命中时从 drawable 资源加载，缩放到当前卡牌尺寸后缓存。
+     * 如果资源不存在，返回 null（调用方会回退到 Canvas 简易绘制）。</p>
+     *
+     * @param resName 卡牌资源名称（如 "card_heart_ace"）
+     * @return 卡牌位图，加载失败返回 null
      */
     private Bitmap loadCardBitmap(String resName) {
         if (cardBitmapCache.containsKey(resName)) {
@@ -506,6 +559,17 @@ public class DouDiZhuTableView extends View {
         }
     }
 
+    /**
+     * 绘制卡牌背面（蓝色底+交叉线花纹）。
+     *
+     * <p>用于 AI 手牌堆叠和未翻牌的显示。</p>
+     *
+     * @param canvas 画布
+     * @param x      左上角 X 坐标
+     * @param y      左上角 Y 坐标
+     * @param width  卡牌宽度
+     * @param height 卡牌高度
+     */
     private void drawCardBack(Canvas canvas, float x, float y, float width, float height) {
         RectF cardRect = new RectF(x, y, x + width, y + height);
         float radius = width * 0.08f;
@@ -524,10 +588,12 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 绘制左侧AI信息
-     * 蓝色牌堆紧贴地主牌下方（间距约2个字母A高度）
-     * AI出牌显示在牌堆内侧（面向中心），半张牌距离
-     * 若本轮不出则显示"不出"
+     * 绘制记牌器面板。
+     *
+     * <p>在桌面顶部居中位置显示一个半透明面板，列出 3~K、A、2、小王、大王
+     * 各牌面的剩余张数。已出完的牌显示为灰色，剩余 0-1 张时用黄色高亮提醒。</p>
+     *
+     * @param canvas 画布
      */
     private void drawCardCounter(Canvas canvas) {
         if (cardCounterCounts == null || cardCounterCounts.length < 15) return;
@@ -585,6 +651,14 @@ public class DouDiZhuTableView extends View {
         }
     }
 
+    /**
+     * 绘制 AI 手牌剩余数量徽章（蓝色圆角矩形 + "剩 N" 文字）。
+     *
+     * @param canvas  画布
+     * @param centerX 徽章中心 X 坐标
+     * @param y       徽章参考 Y 坐标
+     * @param count   剩余手牌数
+     */
     private void drawCardCountBadge(Canvas canvas, float centerX, float y, int count) {
         String text = "剩 " + Math.max(0, count);
         Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -609,6 +683,14 @@ public class DouDiZhuTableView extends View {
         canvas.drawText(text, centerX, y + tableCardWidth * 0.08f, textPaint);
     }
 
+    /**
+     * 绘制"不出"标签（带描边和阴影的金色文字）。
+     *
+     * @param canvas 画布
+     * @param text   显示文本（通常为"不出"）
+     * @param x      文字 X 坐标
+     * @param y      文字基线 Y 坐标
+     */
     private void drawPassLabel(Canvas canvas, String text, float x, float y) {
         Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
         stroke.setTextAlign(Paint.Align.CENTER);
@@ -628,6 +710,15 @@ public class DouDiZhuTableView extends View {
         canvas.drawText(text, x, y, fill);
     }
 
+    /**
+     * 绘制左侧 AI 信息区域。
+     *
+     * <p>包含：记牌器面板、蓝色手牌背面堆叠、剩余牌数徽章、
+     * 身份标签（地主/农民）、出牌区或"不出"标签。</p>
+     * <p>布局：蓝色牌堆紧贴地主牌下方，AI 出牌显示在牌堆内侧（面向中心）。</p>
+     *
+     * @param canvas 画布
+     */
     private void drawLeftAIInfo(Canvas canvas) {
         drawCardCounter(canvas);
         int viewHeight = getHeight();
@@ -991,6 +1082,20 @@ public class DouDiZhuTableView extends View {
 
     // ============ 触摸事件处理 ============
 
+    /**
+     * 处理触摸事件，支持单击选牌和拖动批量选牌。
+     *
+     * <p>触摸逻辑：</p>
+     * <ul>
+     *   <li>ACTION_DOWN：记录起始位置和触摸的卡牌索引</li>
+     *   <li>ACTION_MOVE：移动超过 15px 判定为拖动，拖动时批量选中经过的卡牌</li>
+     *   <li>ACTION_UP：非拖动时切换卡牌选中状态，通知监听器</li>
+     * </ul>
+     * <p>动画期间屏蔽所有触摸事件。</p>
+     *
+     * @param event 触摸事件
+     * @return true 表示事件已消费
+     */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (isAnimating) {
@@ -1043,10 +1148,14 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 获取触摸位置对应的卡牌索引
+     * 获取触摸位置对应的卡牌索引。
      *
-     * 每张牌可见部分 = cardX 到 cardX+cardSpacing（最末牌整张可见）
-     * 从右往左遍历，先命中顶层牌，二层不可见部分跳过
+     * <p>从右向左遍历手牌（右边的牌在上层），优先命中顶层牌。
+     * 每张牌的有效点击区域为：自身可见宽度 + 最右侧牌的完整宽度。</p>
+     *
+     * @param touchX 触摸 X 坐标
+     * @param touchY 触摸 Y 坐标
+     * @return 被点击的卡牌索引，-1 表示未命中
      */
     private int getTouchedCardIndex(float touchX, float touchY) {
         if (playerHandCards == null || playerHandCards.isEmpty()) {
@@ -1104,7 +1213,13 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 选择范围内所有卡牌（拖动选择）
+     * 选择范围内所有卡牌（拖动选择时使用）。
+     *
+     * <p>将 fromIndex 到 toIndex 之间的所有卡牌设为选中状态，
+     * 范围外的卡牌取消选中。</p>
+     *
+     * @param fromIndex 起始卡牌索引
+     * @param toIndex   结束卡牌索引
      */
     private void selectCardsInRange(int fromIndex, int toIndex) {
         int start = Math.min(fromIndex, toIndex);
@@ -1123,9 +1238,13 @@ public class DouDiZhuTableView extends View {
     // ============ 动画方法 ============
 
     /**
-     * 出牌动画
-     * 将选中的卡牌从手牌区平滑移动到桌面中心
-     * @param cards 要出牌的卡牌列表
+     * 出牌动画：将选中的卡牌从手牌区平滑移动到桌面中心。
+     *
+     * <p>使用 {@link ValueAnimator} 在 300ms 内将卡牌从手牌位置移动到出牌区，
+     * 动画期间屏蔽触摸事件，动画完成后回调 {@link OnAnimationCompleteListener}。</p>
+     *
+     * @param cards    要出的卡牌列表
+     * @param listener 动画完成回调
      */
     public void playCardAnim(List<Card> cards, OnAnimationCompleteListener listener) {
         if (cards == null || cards.isEmpty()) {
@@ -1237,12 +1356,23 @@ public class DouDiZhuTableView extends View {
         invalidate();
     }
 
+    /**
+     * 设置右 AI 出牌。
+     *
+     * @param cards 出的牌列表，null 表示不出
+     */
     public void setRightAIPlayedCards(List<Card> cards) {
         this.rightAIPlayedCards = cards != null ? new ArrayList<>(cards) : new ArrayList<>();
         this.rightAIPassed = (cards == null);
         invalidate();
     }
 
+    /**
+     * 设置 AI 是否选择"不出"的状态。
+     *
+     * @param leftPassed  左 AI 是否不出
+     * @param rightPassed 右 AI 是否不出
+     */
     public void setPassStates(boolean leftPassed, boolean rightPassed) {
         this.leftAIPassed = leftPassed;
         this.rightAIPassed = rightPassed;
@@ -1303,6 +1433,11 @@ public class DouDiZhuTableView extends View {
         invalidate();
     }
 
+    /**
+     * 设置三个玩家的身份标签。
+     *
+     * @param labels 标签数组 [玩家, 左AI, 右AI]，如 ["你(地主)", "左AI(农民)", "右AI(农民)"]
+     */
     public void setPlayerLabels(String[] labels) {
         if (labels != null && labels.length >= 3) {
             this.playerLabels = new String[]{labels[0], labels[1], labels[2]};
@@ -1320,6 +1455,13 @@ public class DouDiZhuTableView extends View {
         return counts;
     }
 
+    /**
+     * 设置记牌器的计数数组。
+     *
+     * <p>数组长度为 15，索引 0-12 对应 3~K，索引 13 对应小王，索引 14 对应大王。</p>
+     *
+     * @param counts 计数数组
+     */
     public void setCardCounterCounts(int[] counts) {
         if (counts == null || counts.length < 15) {
             this.cardCounterCounts = createFullDeckCounter();
@@ -1337,6 +1479,11 @@ public class DouDiZhuTableView extends View {
         return leftAICardCount;
     }
 
+    /**
+     * 获取右 AI 的手牌剩余数量。
+     *
+     * @return 右 AI 剩余手牌数
+     */
     public int getRightAICardCount() {
         return rightAICardCount;
     }
@@ -1364,6 +1511,11 @@ public class DouDiZhuTableView extends View {
         void onCardsSelected(List<Card> selectedCards);
     }
 
+    /**
+     * 设置卡牌触摸监听器，在玩家选中/取消选中卡牌时回调。
+     *
+     * @param listener 卡牌触摸监听器
+     */
     public void setOnCardTouchListener(OnCardTouchListener listener) {
         this.cardTouchListener = listener;
     }
@@ -1375,6 +1527,11 @@ public class DouDiZhuTableView extends View {
         void onTableClicked();
     }
 
+    /**
+     * 设置桌面点击监听器，在玩家点击桌面空白区域时回调。
+     *
+     * @param listener 桌面点击监听器
+     */
     public void setOnTableClickListener(OnTableClickListener listener) {
         this.tableClickListener = listener;
     }

@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.3.20-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.3.28-blue)](CHANGELOG.md)
 
 一个集成 **26 款**经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
 

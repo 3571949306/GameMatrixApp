@@ -19,44 +19,134 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONObject;
 
 /**
- * 联机游戏基类 — 封装房间管理、聊天、连接状态等通用逻辑。
- * 子类只需实现 initGameViews()、onGameStarted()、onGameMessageReceived() 等游戏特有逻辑。
+ * 联机游戏 Activity 基类 — 封装房间管理、聊天、连接状态等联机对战通用逻辑。
+ * <p>
+ * 职责：
+ * <ul>
+ *   <li>管理联机对战的生命周期：创建房间、加入房间、离开房间</li>
+ *   <li>维护主机端（{@link GameSocketServer}）和客户端（{@link GameSocketClient}）的连接与回调</li>
+ *   <li>集成 {@link OnlineChatHelper} 提供实时聊天功能</li>
+ *   <li>构建大厅 UI（创建/加入房间按钮、房间码显示、连接状态）和游戏 UI 的通用框架</li>
+ *   <li>处理连接断开场景，提供重连和离开选项</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>采用模板方法模式：子类实现 {@link #initGameViews}、{@link #onGameStarted}、
+ *       {@link #onGameMessageReceived}、{@link #onGameReset} 等抽象方法来定制游戏特有逻辑</li>
+ *   <li>UI 完全通过代码动态构建，不依赖 XML 布局，便于在不同游戏中复用</li>
+ *   <li>使用 volatile 修饰 {@link #isHost} 和 {@link #isPlaying}，确保多线程间的可见性</li>
+ *   <li>所有 UI 更新通过 {@link #mainHandler} 投递到主线程，保证线程安全</li>
+ * </ul>
  */
 public abstract class BaseOnlineActivity extends AppCompatActivity {
 
+    /** 中转服务器基础 URL，从 {@link RelayHttpClient} 获取默认值 */
     protected static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
 
+    /** 偏好设置，用于持久化存储对等端令牌等信息 */
     protected SharedPreferences prefs;
+    /** 主机端 WebSocket 服务器实例，仅在房主端使用 */
     protected GameSocketServer server;
+    /** 客户端 WebSocket 连接实例，仅在加入方使用 */
     protected GameSocketClient client;
+    /** 聊天辅助类，处理聊天消息的收发与显示 */
     protected OnlineChatHelper chatHelper;
 
+    /** 是否为主机端（房主），volatile 保证多线程可见性 */
     protected volatile boolean isHost = false;
+    /** 是否正在游戏中，volatile 保证多线程可见性 */
     protected volatile boolean isPlaying = false;
+    /** 本方玩家 ID（房主=1，加入方=2） */
     protected int myPlayerId = -1;
+    /** 对手玩家 ID，用于标识对手的客户端连接 */
     protected int opponentPlayerId = -1;
+    /** 当前房间码 */
     protected String roomCode = "";
 
+    /** 主线程 Handler，用于将回调投递到 UI 线程 */
     protected Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // UI 组件
+    // ========== UI 组件 ==========
+
+    /** 大厅布局容器（包含创建/加入房间按钮等） */
     protected LinearLayout lobbyLayout;
+    /** 游戏布局容器（包含游戏视图和聊天区域） */
     protected LinearLayout gameLayout;
+    /** 房间码显示文本 */
     protected TextView roomCodeText;
+    /** 连接状态显示文本 */
     protected TextView connectionStatusText;
+    /** 加载进度条 */
     protected ProgressBar loadingBar;
+    /** 聊天消息显示区域 */
     protected TextView chatDisplay;
+    /** 聊天区域滚动容器 */
     protected ScrollView chatScroll;
+    /** 聊天输入框 */
     protected EditText chatInput;
 
-    // 子类必须实现的方法
+    // ========== 子类必须实现的抽象方法 ==========
+
+    /**
+     * 获取 P2P 偏好设置文件名。
+     * <p>
+     * 不同游戏应使用不同的文件名，避免令牌等数据混淆。
+     *
+     * @return 偏好设置文件名
+     */
     protected abstract String getP2pPrefsName();
+
+    /**
+     * 获取游戏名称，用于大厅标题显示。
+     *
+     * @return 游戏名称字符串
+     */
     protected abstract String getGameName();
+
+    /**
+     * 初始化游戏特有的 UI 视图。
+     * <p>
+     * 子类在此方法中将游戏相关的 View 添加到 gameContent 容器中，
+     * 如棋盘、手牌区域、计分板等。
+     *
+     * @param gameContent 游戏内容容器，子类应将自定义 View 添加到此容器
+     */
     protected abstract void initGameViews(LinearLayout gameContent);
+
+    /**
+     * 游戏开始时的回调。
+     * <p>
+     * 当双方玩家都连接成功后调用，子类在此初始化游戏状态、
+     * 发牌、设置初始回合等游戏开始逻辑。
+     */
     protected abstract void onGameStarted();
+
+    /**
+     * 收到游戏消息时的回调。
+     * <p>
+     * 当收到非聊天类型的 JSON 消息时调用，子类在此处理游戏逻辑消息，
+     * 如出牌、操作同步等。
+     *
+     * @param message 收到的 JSON 游戏消息
+     */
     protected abstract void onGameMessageReceived(JSONObject message);
+
+    /**
+     * 游戏重置时的回调。
+     * <p>
+     * 当需要重新开始一局游戏时调用，子类在此清除游戏状态、
+     * 重置 UI 等恢复初始状态的逻辑。
+     */
     protected abstract void onGameReset();
 
+    /**
+     * Activity 创建时的初始化入口。
+     * <p>
+     * 初始化顺序：偏好设置 → 服务器 → 客户端 → 聊天辅助类 → UI 布局 → 后续回调。
+     *
+     * @param savedInstanceState 保存的实例状态
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +157,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         initClient();
         initChatHelper();
 
+        // 动态构建根布局（垂直线性布局）
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutParams(new LinearLayout.LayoutParams(
@@ -81,6 +172,12 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         afterViewsCreated();
     }
 
+    /**
+     * 初始化主机端 WebSocket 服务器。
+     * <p>
+     * 设置客户端连接、断开、消息接收和错误的监听器。
+     * 服务器在 {@link #createRoom()} 成功后才真正启动。
+     */
     protected void initServer() {
         server = new GameSocketServer(this);
         server.setOnClientConnectedListener(this::onClientConnected);
@@ -89,6 +186,12 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         server.setOnErrorListener(this::onServerError);
     }
 
+    /**
+     * 初始化客户端 WebSocket 连接。
+     * <p>
+     * 获取单例客户端实例并设置连接、断开、消息接收和错误的监听器。
+     * 客户端在 {@link #joinRoom(String)} 时发起连接。
+     */
     protected void initClient() {
         client = GameSocketClient.getInstance(this);
         client.setPlayerName("Player");
@@ -98,11 +201,19 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         client.setOnErrorListener(this::onClientError);
     }
 
+    /**
+     * 初始化聊天辅助类。
+     * <p>
+     * 设置聊天消息发送监听器，当用户发送聊天消息时，
+     * 根据当前角色（主机/客户端）选择不同的发送方式：
+     * 主机通过 server 广播，客户端通过 client 发送。
+     */
     protected void initChatHelper() {
         chatHelper = new OnlineChatHelper(this);
         chatHelper.setOnChatMessageSendListener(text -> {
             JSONObject msg = chatHelper.createChatMessage(text);
             if (msg != null) {
+                // 根据角色选择发送通道
                 if (isHost) {
                     server.broadcast(msg);
                 } else {
@@ -112,12 +223,25 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 视图创建后的回调，用于子类扩展。
+     * <p>
+     * 默认实现将聊天显示区域设置为内嵌模式。
+     * 子类可重写此方法添加额外的初始化逻辑。
+     */
     protected void afterViewsCreated() {
         chatHelper.setInlineDisplay(chatDisplay, chatScroll);
     }
 
     // ========== 大厅布局 ==========
 
+    /**
+     * 初始化大厅（房间管理）界面。
+     * <p>
+     * 包含：游戏标题、创建房间按钮、加入房间按钮、加载进度条、房间码显示、连接状态。
+     *
+     * @param root 根布局容器
+     */
     protected void initLobbyLayout(LinearLayout root) {
         lobbyLayout = new LinearLayout(this);
         lobbyLayout.setOrientation(LinearLayout.VERTICAL);
@@ -176,12 +300,21 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
 
     // ========== 游戏布局 ==========
 
+    /**
+     * 初始化游戏界面。
+     * <p>
+     * 默认隐藏（GONE），当双方连接成功后通过 {@link #showGameScreen()} 显示。
+     * 布局结构：游戏内容（子类自定义）→ 聊天区域 → 离开房间按钮。
+     *
+     * @param root 根布局容器
+     */
     protected void initGameLayout(LinearLayout root) {
         gameLayout = new LinearLayout(this);
         gameLayout.setOrientation(LinearLayout.VERTICAL);
         gameLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT));
+        // 初始隐藏，连接成功后才显示
         gameLayout.setVisibility(View.GONE);
 
         LinearLayout gameContent = new LinearLayout(this);
@@ -213,11 +346,20 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         root.addView(gameLayout);
     }
 
+    /**
+     * 初始化内嵌聊天视图。
+     * <p>
+     * 在游戏界面底部添加聊天区域，包含消息显示区（可滚动）和输入行（输入框+发送按钮）。
+     * 聊天显示区高度为 80dp，限制最大显示4行。
+     *
+     * @param gameContent 游戏内容容器
+     */
     protected void initChatViews(LinearLayout gameContent) {
         chatDisplay = new TextView(this);
         chatDisplay.setTextSize(12);
         chatDisplay.setBackgroundColor(0xFFF5F5F5);
         chatDisplay.setPadding(12, 8, 12, 8);
+        // 限制最大显示行数，避免聊天区域占用过多空间
         chatDisplay.setMaxLines(4);
         chatDisplay.setGravity(View.TEXT_ALIGNMENT_VIEW_START);
         LinearLayout.LayoutParams chatParams = new LinearLayout.LayoutParams(
@@ -241,6 +383,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         chatInput.setHint("输入消息...");
         chatInput.setSingleLine(true);
         chatInput.setTextSize(14);
+        // weight=1.0 使输入框占据剩余空间
         chatInput.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
 
         Button chatSendBtn = new Button(this);
@@ -251,6 +394,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         chatSendBtn.setPadding(16, 8, 16, 8);
         chatSendBtn.setOnClickListener(v -> sendChatMessage());
 
+        // 键盘回车键也可发送消息
         chatInput.setOnEditorActionListener((v, actionId, event) -> {
             sendChatMessage();
             return true;
@@ -265,6 +409,13 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
 
     // ========== 房间管理 ==========
 
+    /**
+     * 创建联机房间。
+     * <p>
+     * 在后台线程中生成房间码并启动 WebSocket 服务器连接中转服务器。
+     * 成功后设置房主标识（isHost=true, myPlayerId=1），显示房间码和等待对话框。
+     * 失败时显示 Toast 提示。
+     */
     protected void createRoom() {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("正在创建云房间...");
@@ -289,6 +440,14 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     * 生成6位随机房间码。
+     * <p>
+     * 使用与 {@link RemoteP2PUtil} 相同的字符集（排除易混淆字符），
+     * 确保生成的房间码能通过 {@link RemoteP2PUtil#isValidRoomCode(String)} 校验。
+     *
+     * @return 6位随机房间码
+     */
     protected String generateRoomCode() {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder sb = new StringBuilder();
@@ -299,6 +458,12 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    /**
+     * 显示等待对手加入的对话框。
+     * <p>
+     * 对话框中显示房间码（大号加粗）、复制房间码按钮和操作提示。
+     * 对话框不可取消（cancelable=false），用户只能通过"取消"按钮离开房间。
+     */
     protected void showWaitingDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("等待对手加入");
@@ -307,6 +472,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         content.setPadding(48, 48, 48, 48);
         content.setGravity(View.TEXT_ALIGNMENT_CENTER);
 
+        // 大号加粗显示房间码，便于用户查看和分享
         TextView roomCodeView = new TextView(this);
         roomCodeView.setTextSize(28);
         roomCodeView.setText(roomCode);
@@ -321,6 +487,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         copyBtn.setBackgroundColor(0xFF4CAF50);
         copyBtn.setTextColor(0xFFFFFFFF);
         copyBtn.setPadding(24, 8, 24, 8);
+        // 点击复制房间码到剪贴板
         copyBtn.setOnClickListener(v -> {
             android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             android.content.ClipData clip = android.content.ClipData.newPlainText("room_code", roomCode);
@@ -339,11 +506,19 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         content.addView(hintView);
 
         builder.setView(content);
+        // 不可通过点击外部取消，必须通过按钮操作
         builder.setCancelable(false);
+        // 取消按钮直接离开房间
         builder.setNegativeButton("取消", (d, w) -> leaveRoom());
         builder.create().show();
     }
 
+    /**
+     * 显示加入房间的输入对话框。
+     * <p>
+     * 弹出输入框让用户输入6位房间码，输入后调用 {@link #joinRoom(String)} 加入房间。
+     * 若输入长度不为6，显示错误提示。
+     */
     protected void showJoinDialog() {
         EditText input = new EditText(this);
         input.setHint("请输入6位房间码");
@@ -354,6 +529,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("加入", (d, w) -> {
                     String code = input.getText().toString().trim();
+                    // 简单校验长度，详细校验在 joinRoom 中进行
                     if (code.length() == 6) {
                         joinRoom(code);
                     } else {
@@ -364,11 +540,20 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * 加入指定房间。
+     * <p>
+     * 从偏好设置中读取上次保存的对等端令牌（用于身份识别），
+     * 然后通过 WebSocket 客户端连接到中转服务器。
+     *
+     * @param code 房间码
+     */
     protected void joinRoom(String code) {
         loadingBar.setVisibility(View.VISIBLE);
         connectionStatusText.setText("正在加入房间 " + code + "...");
         roomCode = code;
 
+        // 读取上次保存的令牌，用于服务器识别回连的客户端
         String token = prefs.getString("last_peer_token", null);
         String wsUrl = RelayHttpClient.getWebSocketClientUrl(RELAY_BASE_URL, code);
 
@@ -379,6 +564,12 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         client.connectWebSocket(wsUrl);
     }
 
+    /**
+     * 离开当前房间。
+     * <p>
+     * 根据角色停止服务器或断开客户端连接，重置游戏状态，
+     * 并关闭当前 Activity。
+     */
     protected void leaveRoom() {
         if (isHost && server != null) {
             server.stop();
@@ -393,6 +584,14 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
 
     // ========== 连接回调 ==========
 
+    /**
+     * 主机端回调：有客户端连接到本机。
+     * <p>
+     * 记录对手 ID，标记游戏开始，切换到游戏界面并通知子类游戏开始。
+     *
+     * @param clientId 客户端连接 ID
+     * @param ip       客户端 IP 地址
+     */
     protected void onClientConnected(int clientId, String ip) {
         opponentPlayerId = clientId;
         mainHandler.post(() -> {
@@ -403,17 +602,36 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 主机端回调：客户端断开连接。
+     * <p>
+     * 标记游戏停止，显示断开连接对话框（主机端提供"等待重连"选项）。
+     *
+     * @param clientId 客户端连接 ID
+     * @param reason   断开原因描述
+     */
     protected void onClientDisconnected(int clientId, String reason) {
         mainHandler.post(() -> {
             isPlaying = false;
+            // isHostSide=true 表示主机端，对话框提供"等待重连"选项
             showDisconnectDialog("对手已断开: " + reason, true);
         });
     }
 
+    /**
+     * 客户端回调：成功连接到主机。
+     * <p>
+     * 设置本方玩家 ID 为2，保存对等端令牌到偏好设置，
+     * 切换到游戏界面并通知子类游戏开始。
+     *
+     * @param clientId 分配的客户端 ID
+     */
     protected void onClientConnectedToHost(int clientId) {
+        // 加入方的玩家 ID 固定为2
         myPlayerId = 2;
         isPlaying = true;
 
+        // 保存服务器分配的令牌，用于断线重连时的身份识别
         String token = client.getPeerToken();
         if (token != null && !token.isEmpty()) {
             prefs.edit().putString("last_peer_token", token).apply();
@@ -426,14 +644,38 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 客户端回调：与主机的连接断开。
+     * <p>
+     * 标记游戏停止，显示断开连接对话框（客户端提供"重新连接"选项）。
+     *
+     * @param reason 断开原因描述
+     */
     protected void onClientDisconnectedFromHost(String reason) {
         mainHandler.post(() -> {
             isPlaying = false;
+            // isHostSide=false 表示客户端，对话框提供"重新连接"选项
             showDisconnectDialog("连接已断开: " + reason, false);
         });
     }
 
+    /**
+     * 显示连接断开对话框。
+     * <p>
+     * 根据当前角色（主机端/客户端）显示不同的操作选项：
+     * <ul>
+     *   <li>主机端（isHostSide=true）：显示"等待重连"按钮，保持房间开放</li>
+     *   <li>客户端（isHostSide=false）：显示"重新连接"按钮，尝试重新加入房间</li>
+     * </ul>
+     * 两侧都有"离开房间"选项。
+     * <p>
+     * 对话框不可取消，防止用户误触导致状态不一致。
+     *
+     * @param message     断开原因的描述信息
+     * @param isHostSide  是否为主机端
+     */
     protected void showDisconnectDialog(String message, boolean isHostSide) {
+        // 防止在 Activity 销毁后弹出对话框导致崩溃
         if (isFinishing() || isDestroyed()) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
@@ -442,17 +684,18 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
                 .setCancelable(false);
 
         if (isHostSide) {
-            // 主机端：等待对手重连或离开
+            // 主机端：等待对手重连
             builder.setPositiveButton("等待重连", (d, w) -> {
                 Toast.makeText(this, "等待对手重新连接...", Toast.LENGTH_SHORT).show();
             });
         } else {
-            // 客户端：尝试重连或离开
+            // 客户端：尝试重新连接
             builder.setPositiveButton("重新连接", (d, w) -> {
                 if (roomCode != null && !roomCode.isEmpty()) {
                     Toast.makeText(this, "正在重新连接...", Toast.LENGTH_SHORT).show();
                     joinRoom(roomCode);
                 } else {
+                    // 无房间码无法重连，返回大厅
                     Toast.makeText(this, "无法重连，请重新加入", Toast.LENGTH_SHORT).show();
                     showLobby();
                 }
@@ -463,16 +706,35 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         builder.show();
     }
 
+    /**
+     * 主机端服务器错误回调。
+     *
+     * @param message 错误信息
+     */
     protected void onServerError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "服务器错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
+    /**
+     * 客户端连接错误回调。
+     *
+     * @param message 错误信息
+     */
     protected void onClientError(String message) {
         mainHandler.post(() -> Toast.makeText(this, "客户端错误: " + message, Toast.LENGTH_SHORT).show());
     }
 
     // ========== 消息处理 ==========
 
+    /**
+     * 主机端消息接收回调。
+     * <p>
+     * 先判断是否为聊天消息，若是则交给 {@link OnlineChatHelper} 处理；
+     * 否则交给子类的 {@link #onGameMessageReceived(JSONObject)} 处理游戏逻辑。
+     *
+     * @param clientId 发送消息的客户端 ID
+     * @param message  收到的 JSON 消息
+     */
     protected void onHostMessageReceived(int clientId, JSONObject message) {
         String type = message.optString("type", "");
         if (chatHelper.isChatMessage(message)) {
@@ -482,6 +744,14 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         onGameMessageReceived(message);
     }
 
+    /**
+     * 客户端消息接收回调。
+     * <p>
+     * 先判断是否为聊天消息，若是则交给 {@link OnlineChatHelper} 处理；
+     * 否则交给子类的 {@link #onGameMessageReceived(JSONObject)} 处理游戏逻辑。
+     *
+     * @param message 收到的 JSON 消息
+     */
     protected void onClientMessageReceived(JSONObject message) {
         String type = message.optString("type", "");
         if (chatHelper.isChatMessage(message)) {
@@ -493,16 +763,31 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
 
     // ========== UI 辅助 ==========
 
+    /**
+     * 切换到游戏界面。
+     * <p>
+     * 隐藏大厅布局，显示游戏布局。
+     */
     protected void showGameScreen() {
         lobbyLayout.setVisibility(View.GONE);
         gameLayout.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * 切换回大厅界面。
+     * <p>
+     * 隐藏游戏布局，显示大厅布局。
+     */
     protected void showLobby() {
         gameLayout.setVisibility(View.GONE);
         lobbyLayout.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * 发送聊天消息。
+     * <p>
+     * 从输入框获取文本，若非空则通过 {@link OnlineChatHelper} 发送并清空输入框。
+     */
     protected void sendChatMessage() {
         String text = chatInput.getText().toString().trim();
         if (!text.isEmpty()) {
@@ -511,6 +796,13 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 以主机身份广播 JSON 消息给所有客户端。
+     * <p>
+     * 仅在主机端有效，客户端调用此方法不会执行任何操作。
+     *
+     * @param json 要广播的 JSON 消息
+     */
     protected void broadcast(JSONObject json) {
         if (isHost && server != null) {
             server.broadcast(json);
@@ -519,6 +811,12 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
 
     // ========== 生命周期 ==========
 
+    /**
+     * Activity 销毁时清理资源。
+     * <p>
+     * 依次清理聊天辅助类、停止服务器、释放客户端连接，
+     * 防止资源泄漏和后台线程持续运行。
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();

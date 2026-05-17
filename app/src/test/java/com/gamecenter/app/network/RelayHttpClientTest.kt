@@ -62,4 +62,28 @@ class RelayHttpClientTest {
         
         assertTrue(url.startsWith("wss://"))
     }
+
+    @Test
+    fun `host url includes token and role`() {
+        val url = RelayHttpClient.getWebSocketUrl(
+            "https://example.com/api/ddz-relay",
+            "ROOM42",
+            "host token"
+        )
+
+        assertTrue(url.contains("room=ROOM42"))
+        assertTrue(url.contains("role=host"))
+        assertTrue(url.contains("token=host+token") || url.contains("token=host%20token"))
+    }
+
+    @Test
+    fun `client url omits token parameter`() {
+        val url = RelayHttpClient.getWebSocketClientUrl(
+            "https://example.com/api/ddz-relay",
+            "ROOM42"
+        )
+
+        assertTrue(url.contains("role=client"))
+        assertFalse(url.contains("token="))
+    }
 }
