@@ -309,3 +309,16 @@ client.addInterceptor(logging);
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+
+## 2026-05-19 Module Location
+
+The reusable base networking layer now lives in `:core:network`:
+
+- `core/network/src/main/java/com/gamecenter/app/network/OkHttpClientProvider.java`
+- `core/network/src/main/java/com/gamecenter/app/network/RequestDeduplicationInterceptor.java`
+- `core/network/src/main/java/com/gamecenter/app/network/NetworkLogger.java`
+- `core/network/src/main/java/com/gamecenter/app/network/RelayHttpClient.java`
+- `core/network/src/main/java/com/gamecenter/app/network/RemoteP2PUtil.java`
+- `core/network/src/main/java/com/gamecenter/app/utils/NetworkErrorHandler.java`
+
+The app module still owns higher-level online game coordination classes such as `GameSocketClient`, `GameSocketServer`, `BaseOnlineActivity`, `OnlineRoomManager`, and WebSocket helpers.

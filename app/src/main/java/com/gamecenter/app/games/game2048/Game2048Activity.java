@@ -1,6 +1,7 @@
 package com.gamecenter.app.games.game2048;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -40,6 +41,8 @@ import org.json.JSONObject;
  * </ul>
  */
 public class Game2048Activity extends AppCompatActivity {
+
+    private static final String TAG = "Game2048Activity";
 
     /** 游戏唯一标识，用于存档和分数记录 */
     private static final String GAME_ID = "2048";
@@ -220,6 +223,7 @@ public class Game2048Activity extends AppCompatActivity {
             game.restoreState(board, score, gameOver);
         } catch (Exception e) {
             // 存档损坏，忽略
+            Log.w(TAG, "存档损坏", e);
         }
     }
 
@@ -246,6 +250,7 @@ public class Game2048Activity extends AppCompatActivity {
             saveManager.save(GAME_ID, SLOT_AUTO, obj.toString());
         } catch (Exception e) {
             // 忽略存档错误
+            Log.w(TAG, "存档错误", e);
         }
     }
 
@@ -282,6 +287,7 @@ public class Game2048Activity extends AppCompatActivity {
             saveManager.saveProgress(GAME_ID, obj.toString());
         } catch (Exception e) {
             // 忽略
+            Log.w(TAG, "存档操作失败", e);
         }
     }
 

@@ -6,9 +6,11 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.gamecenter.app.ai.cloud.AiApiClient;
+import com.gamecenter.app.ai.data.AiErrorCode;
 import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
 import com.gamecenter.app.ai.data.AiTask;
+import com.gamecenter.app.ai.data.TaskStatus;
 import com.gamecenter.app.ai.local.LocalAiProcessor;
 import com.gamecenter.app.ai.local.LocalAiProcessor.AiCommand;
 import com.gamecenter.app.ai.local.LocalLlmOutputGuard;
@@ -108,19 +110,19 @@ public class AiTaskRouter {
      */
     private void executeTask(AiTask task, AiCallback callback) {
         aiExecutor.execute(() -> {
-            task.status = "running";
+            task.status = TaskStatus.RUNNING;
 
             // 1. 尝试本地优先处理（本地 LLM 或规则引擎）
             AiResult localResult = tryLocalProcessing(task);
             if (localResult != null) {
                 if (localResult.success) {
                     task.output = localResult.content;
-                    task.status = "completed";
+                    task.status = TaskStatus.COMPLETED;
                     task.costLevel = 0; // 本地处理零成本
                     localTasks++;
                 } else {
                     task.output = localResult.message;
-                    task.status = "failed";
+                    task.status = TaskStatus.FAILED;
                 }
                 postResult(callback, task, localResult);
                 return;
@@ -128,35 +130,35 @@ public class AiTaskRouter {
 
             // 2. 本地无法处理，检查网络可用性
             if (!NetworkErrorHandler.isNetworkAvailable(appContext)) {
-                task.status = "failed";
+                task.status = TaskStatus.FAILED;
                 task.output = "当前无网络连接，仅支持本地规则处理（OCR/摘要/关键词/分类等）";
                 postResult(callback, task,
-                        AiResult.fail(task.output).errorCode("NETWORK_ERROR").build());
+                        AiResult.fail(task.output).errorCode(AiErrorCode.NETWORK_ERROR).build());
                 return;
             }
 
             // 3. 网络可用，检查每日免费额度是否耗尽
             if (!aiPrefs.hasFreeQuota()) {
-                task.status = "failed";
+                task.status = TaskStatus.FAILED;
                 task.output = "今日免费额度已用完，请明天再试或设置 API Key 解锁更多次数";
                 postResult(callback, task,
-                        AiResult.fail(task.output).errorCode("QUOTA_EXCEEDED").build());
+                        AiResult.fail(task.output).errorCode(AiErrorCode.QUOTA_EXCEEDED).build());
                 return;
             }
 
             // 4. 检查 API Key 是否已配置
             if (aiPrefs.getApiKey().isEmpty()) {
-                task.status = "failed";
+                task.status = TaskStatus.FAILED;
                 task.output = "未配置 API Key，无法使用云端 AI 功能";
                 postResult(callback, task,
-                        AiResult.fail(task.output).errorCode("NO_API_KEY").build());
+                        AiResult.fail(task.output).errorCode(AiErrorCode.NO_API_KEY).build());
                 return;
             }
 
             // 5. 走云端 API 调用
             try {
                 task.costLevel = estimateCost(task.taskType);
-                task.status = "running";
+                task.status = TaskStatus.RUNNING;
 
                 // 根据用户选择的供应商和模型构建配置
                 AiProviderConfig config = buildConfigForTask(task);
@@ -169,22 +171,22 @@ public class AiTaskRouter {
 
                 if (result.success) {
                     task.output = result.content;
-                    task.status = "completed";
+                    task.status = TaskStatus.COMPLETED;
                     cloudTasks++;
-                    aiPrefs.incrementUsage(); // 成功时消耗一次免费额度
+                    aiPrefs.incrementUsage();
                     postResult(callback, task, result);
                 } else {
-                    task.status = "failed";
+                    task.status = TaskStatus.FAILED;
                     task.output = result.message;
                     cloudTasks++;
                     postResult(callback, task, result);
                 }
             } catch (Exception e) {
-                task.status = "failed";
+                task.status = TaskStatus.FAILED;
                 task.output = "请求失败: " + e.getMessage();
                 Log.e(TAG, "Cloud AI task failed", e);
                 postResult(callback, task,
-                        AiResult.fail(task.output).errorCode("NETWORK_ERROR").build());
+                        AiResult.fail(task.output).errorCode(AiErrorCode.NETWORK_ERROR).build());
             }
         });
     }
@@ -303,7 +305,7 @@ public class AiTaskRouter {
         if (!hasEnoughMemory(model.minRamMb)) {
             return AiResult.fail("设备内存不足，无法安全加载本地 Gemma 模型")
                     .source("local-gemma")
-                    .errorCode("LOCAL_LLM_LOW_MEMORY")
+                    .errorCode(AiErrorCode.LOCAL_LLM_LOW_MEMORY)
                     .build();
         }
         try {
@@ -315,7 +317,7 @@ public class AiTaskRouter {
             if (guardMessage != null) {
                 return AiResult.fail(guardMessage)
                         .source("local-gemma")
-                        .errorCode("LOCAL_LLM_DEGENERATED_OUTPUT")
+                        .errorCode(AiErrorCode.LOCAL_LLM_DEGENERATED_OUTPUT)
                         .build();
             }
             return AiResult.success(output).source("local-gemma").build();
@@ -324,7 +326,7 @@ public class AiTaskRouter {
             Log.e(TAG, "Local Gemma task failed", t);
             return AiResult.fail("本地 Gemma 推理失败: " + t.getMessage())
                     .source("local-gemma")
-                    .errorCode("LOCAL_LLM_ERROR")
+                    .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
                     .build();
         }
     }

@@ -303,6 +303,7 @@ public class DouDiZhuSyncManager {
             ack.put("time", System.currentTimeMillis());
         } catch (JSONException e) {
             // 忽略 JSON 构建异常
+            Log.w(TAG, "JSON构建异常", e);
         }
         server.sendTo(clientId, ack);
     }

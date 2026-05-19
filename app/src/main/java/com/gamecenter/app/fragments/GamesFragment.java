@@ -26,7 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.cardview.widget.CardView;
+import com.google.android.material.card.MaterialCardView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 import com.gamecenter.app.BuildConfig;
@@ -841,7 +841,7 @@ public class GamesFragment extends Fragment {
             TextView tvMeta;
             ImageButton btnFavorite;
             com.google.android.material.button.MaterialButton btnEnter;
-            CardView cardView;
+            MaterialCardView cardView;
 
             GameViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -851,7 +851,7 @@ public class GamesFragment extends Fragment {
                 tvMeta = itemView.findViewById(R.id.tv_game_meta);
                 btnFavorite = itemView.findViewById(R.id.btn_favorite);
                 btnEnter = itemView.findViewById(R.id.btn_enter);
-                cardView = (CardView) itemView;
+                cardView = (MaterialCardView) itemView;
             }
         }
     }

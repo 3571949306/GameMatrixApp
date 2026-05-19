@@ -73,7 +73,7 @@ public class AppSettingsDialog {
      * @return 更新源名称数组，索引与 {@link SettingsManager#getUpdateSource()} 的值对应
      */
     private String[] getUpdateSourceNames() {
-        return new String[]{"自动", "香港 VPS", "美国 VPS", "GitHub Releases"};
+        return new String[]{fragment.requireContext().getString(R.string.settings_source_auto), fragment.requireContext().getString(R.string.settings_source_hk_vps), fragment.requireContext().getString(R.string.settings_source_us_vps), fragment.requireContext().getString(R.string.settings_source_github)};
     }
 
     /**
@@ -85,7 +85,7 @@ public class AppSettingsDialog {
     private String getUpdateSourceName(int source) {
         String[] names = getUpdateSourceNames();
         if (source >= 0 && source < names.length) return names[source];
-        return "自动";
+        return fragment.requireContext().getString(R.string.settings_source_auto);
     }
 
     /**
@@ -167,7 +167,7 @@ public class AppSettingsDialog {
         TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);
         String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? " beta" : " 正式版";
         if (tvVersion != null) {
-            tvVersion.setText("当前版本: " + BuildConfig.VERSION_NAME + channelLabel
+            tvVersion.setText(context.getString(R.string.settings_current_version) + BuildConfig.VERSION_NAME + channelLabel
                     + "\n内部版本号: " + BuildConfig.VERSION_CODE);
         }
 
@@ -196,9 +196,9 @@ public class AppSettingsDialog {
         });
 
         new AlertDialog.Builder(context)
-                .setTitle("设置")
+                .setTitle(context.getString(R.string.settings_title))
                 .setView(dialogView)
-                .setPositiveButton("确定", (dialog, which) -> {
+                .setPositiveButton(context.getString(R.string.settings_ok), (dialog, which) -> {
                     int checkedId = rgThemeMode.getCheckedRadioButtonId();
                     int newThemeMode;
                     if (checkedId == R.id.rb_light) {
@@ -242,7 +242,7 @@ public class AppSettingsDialog {
                         activity.recreate();
                     }
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
     }
 
@@ -261,7 +261,7 @@ public class AppSettingsDialog {
 
         TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);
         String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? " beta" : " 正式版";
-        tvVersion.setText("当前版本: " + BuildConfig.VERSION_NAME + channelLabel
+        tvVersion.setText(context.getString(R.string.settings_current_version) + BuildConfig.VERSION_NAME + channelLabel
                 + "\n内部版本号: " + BuildConfig.VERSION_CODE);
 
         LinearLayout llUpdateSource = dialogView.findViewById(R.id.ll_update_source);
@@ -319,9 +319,9 @@ public class AppSettingsDialog {
         });
 
         new AlertDialog.Builder(context)
-                .setTitle("版本更新")
+                .setTitle(context.getString(R.string.settings_version_update))
                 .setView(dialogView)
-                .setPositiveButton("保存", (dialog, which) -> {
+                .setPositiveButton(context.getString(R.string.settings_save), (dialog, which) -> {
                     settings.setAutoCheckUpdate(switchAutoCheck.isChecked());
                     settings.setAcceptBetaUpdate(switchAcceptBeta.isChecked());
                     settings.setAutoDownloadUpdate(switchAutoDownload.isChecked());
@@ -329,7 +329,7 @@ public class AppSettingsDialog {
                             switchAutoDownload.isChecked() && switchPromptInstall.isChecked());
                     settings.setUpdateSource(currentUpdateSource[0]);
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
     }
 
@@ -380,7 +380,7 @@ public class AppSettingsDialog {
             TextView tvSchemeName) {
         ColorSchemeAdapter adapter = new ColorSchemeAdapter(context, schemes, currentSchemeIndex[0]);
         AlertDialog dialog = new AlertDialog.Builder(context)
-                .setTitle("选择配色方案")
+                .setTitle(context.getString(R.string.settings_select_color_scheme))
                 .setAdapter(adapter, (d, which) -> {
                     currentSchemeIndex[0] = ColorSchemeManager.normalizeSchemeIndex(which);
                     updateColorSchemeRow(vPrimary, vSecondary, vAccent, tvSchemeName,
@@ -446,15 +446,15 @@ public class AppSettingsDialog {
             Context context,
             int currentSource,
             OnUpdateSourceSelectedListener listener) {
-        String[] items = {"自动（推荐）", "香港 VPS", "美国 VPS", "GitHub Releases"};
+        String[] items = {context.getString(R.string.settings_source_auto_recommended), context.getString(R.string.settings_source_hk_vps), context.getString(R.string.settings_source_us_vps), context.getString(R.string.settings_source_github)};
         int checkedItem = currentSource >= 0 && currentSource <= 3 ? currentSource : 0;
         new AlertDialog.Builder(context)
-                .setTitle("选择更新源")
+                .setTitle(context.getString(R.string.settings_select_update_source))
                 .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
                     listener.onSelected(which);
                     dialog.dismiss();
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
     }
 

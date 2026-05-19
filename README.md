@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.3.28-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.3.26-blue)](CHANGELOG.md)
 
 一个集成 **26 款**经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
 
@@ -103,7 +103,7 @@ An Android game center integrating **26** classic mini-games, supporting single-
 
 | 项目 | 版本 |
 |------|------|
-| 开发语言 | Java 17 |
+| 开发语言 | Java 17 + Kotlin |
 | 最低 Android 版本 | API 24 (Android 7.0) |
 | 目标 SDK | API 35 (Android 15) |
 | 编译 SDK | API 35 |
@@ -114,15 +114,16 @@ An Android game center integrating **26** classic mini-games, supporting single-
 | 库 | 版本 | 用途 |
 |----|------|------|
 | androidx.appcompat | 1.7.1 | AppCompat 基础支持 |
-| com.google.android.material | 1.12.0 | Material Design 组件 |
+| com.google.android.material | 1.12.0 | Material Design 组件（含 MaterialCardView） |
 | androidx.constraintlayout | 2.2.1 | ConstraintLayout 布局 |
 | androidx.recyclerview | 1.4.0 | 游戏列表 RecyclerView |
-| androidx.cardview | 1.0.0 | 游戏卡片 CardView |
 | com.google.code.gson | 2.11.0 | JSON 序列化/反序列化 |
 | com.google.zxing:core | 3.5.3 | 二维码生成与识别 |
 | com.squareup.okhttp3:okhttp | 4.12.0 | WebSocket 客户端 |
 | com.github.bumptech.glide:glide | 4.16.0 | 图片懒加载与缓存 |
 | junit:junit | 4.13.2 | 单元测试 |
+
+> **已移除依赖**：`androidx.cardview:cardview:1.0.0` — 已由 `MaterialCardView`（来自 Material Components）替代。
 
 ---
 
@@ -224,10 +225,25 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 
 ### 代码重构 / Code Refactoring
 
-- **斗地主联机核心逻辑拆分**：将斗地主联机代码拆分为 3 个独立管理器类
-  - `DouDiZhuGameManager`：游戏逻辑管理
-  - `DouDiZhuNetworkManager`：网络通信管理
-  - `DouDiZhuStateManager`：游戏状态管理
+- **斗地主联机核心逻辑拆分**：将斗地主联机代码拆分为 6 个独立管理器类
+  - `DouDiZhuUIController`：UI 控制器
+  - `DouDiZhuRuleEngine`：规则引擎
+  - `DouDiZhuAIHelper`：AI 辅助
+  - `DouDiZhuNetworkHandler`：网络处理
+  - `DouDiZhuSeatManager`：座位管理
+  - `DouDiZhuSyncManager`：状态同步
+- **UpdateViewModel 替代 UpdatePresenter**：@HiltViewModel + LiveData，生命周期安全；协程化（viewModelScope + suspendCancellableCoroutine），CheckResult/DownloadResult 密封类替代布尔标志
+- **第一阶段模块化落地**：新增 `:core:common`、`:core:network`、`:core:update`，先把通用设置/结果类型、基础网络、更新子系统从 `:app` 壳层拆出
+- **OnlineRoomManager 组合式复用**：替代 BaseOnlineActivity 继承，各游戏通过组合复用联机逻辑
+- **GameRegistry 双轨注册**：静态硬编码 + @GameEntry 注解 + register() 动态注册
+- **@Inject 构造函数迁移**：SettingsManager/OkHttpClientProvider/UpdateManager/SaveManager
+- **统一错误模型**：AppError（密封类）+ NetworkResult（类型安全结果封装）
+- **类型安全枚举**：TaskStatus 替代 AiTask.status 字符串，AiErrorCode 替代 AiResult.errorCode 裸字符串
+- **空 catch 块修复**：16 处空 catch 块已补日志记录
+- **国际化推进**：OnlineRoomManager + AppSettingsDialog 硬编码文案提取到 strings.xml（48 个资源）
+- **Java/Kotlin 混合边界规范**：CODE_WIKI.md 新增第 10 章
+- **安全加固**：`allowBackup=false`，新增 `backup_rules.xml` 和 `data_extraction_rules.xml`，存储权限迁移（`READ_MEDIA_IMAGES`、`maxSdkVersion` 限制）
+- **MaterialCardView 替代 CardView**：移除 `androidx.cardview:cardview:1.0.0` 依赖
 
 ### 图片加载优化 / Image Loading
 
@@ -267,6 +283,7 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 
 - **GitHub Actions**：实现自动构建、测试、上传产物
 - **持续集成**：每次提交自动运行测试和代码检查
+- **CI 质量门**：APK 大小报告、测试结果报告、Android Lint 执行和 Lint 问题报告
 
 ---
 
@@ -286,7 +303,12 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 | 中国象棋 | ChineseChessGameTest | 10 | 初始棋盘、棋子走法、悔棋、深拷贝 |
 | 猜数字 | GuessGameTest | 9 | 初始状态、猜测判定、难度切换 |
 | 掷骰子 | DiceGameTest | 10 | 初始状态、骰子类型判定、豹子顺子对子 |
-| **总计** | **10 个测试文件** | **96 个测试用例** | |
+| 斗地主规则 | DouDiZhuRuleEngineTest | 40+ | 出牌验证、叫地主决策、清台判定 |
+| 斗地主牌型 | GameRuleUtilTest | 60+ | 牌型识别、出牌比较、洗牌发牌 |
+| 更新逻辑 | UpdateManagerLogicTest | 40+ | URL处理、版本比较、Beta策略 |
+| AI API 客户端 | AiApiClientTest | 8 | MockWebServer：成功/HTTP错误/连接失败/畸形JSON |
+| 更新信息模型 | UpdateInfoTest | 17 | JSON解析：全部字段/Beta渠道/版本回退 |
+| **总计** | **15+ 个测试文件** | **436+ 个测试用例** | |
 
 ### 运行测试 / Run Tests
 
@@ -342,6 +364,7 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 | `RelayHttpClient` | HTTP Relay 通信 + WebSocket URL 生成 |
 | `GameSocketServer` | 房主权威服务器（WebSocket 模式） |
 | `GameSocketClient` | 客户端连接管理（WebSocket 模式） |
+| `OnlineRoomManager` | 联机房间管理器（组合式复用，替代 BaseOnlineActivity 继承） |
 | `LANManager` | 局域网 NSD 服务发现 |
 | `RemoteP2PUtil` | 房间码生成与解析工具 |
 
@@ -387,7 +410,7 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 ```
 GameCenterApp/
 ├── app/
-│   ├── build.gradle                          # 构建配置（版本管理、上传任务）
+│   ├── build.gradle                          # 壳应用构建配置（版本管理、上传任务、聚合模块依赖）
 │   └── src/main/
 │       ├── AndroidManifest.xml               # 应用清单
 │       ├── assets/
@@ -395,21 +418,21 @@ GameCenterApp/
 │       ├── java/com/gamecenter/app/
 │       │   ├── App.java                      # 应用入口，全局初始化
 │       │   ├── MainActivity.java             # 主界面（底部导航 + 更新检查）
-│       │   ├── SettingsManager.java          # 设置管理（SharedPreferences）
 │       │   ├── ColorSchemeManager.java       # 主题配色管理
 │       │   ├── PermissionManager.java        # 权限管理（位置/相机/存储权限）
 │       │   ├── fragments/                    # 三个主页面 Fragment
 │       │   │   ├── GamesFragment.java        # 游戏大厅（搜索/收藏/最近）
 │       │   │   ├── ToolsFragment.java        # 工具箱（26+ 工具）
 │       │   │   └── BrowserFragment.java      # 内置浏览器
-│       │   ├── network/                      # 🆕 公共网络模块
-│       │   │   ├── RelayHttpClient.java      # HTTP Relay + WebSocket URL
+│       │   ├── network/                      # 联机业务协调层
 │       │   │   ├── GameSocketServer.java     # 房主权威服务器
 │       │   │   ├── GameSocketClient.java     # 客户端连接管理
+│       │   │   ├── OnlineRoomManager.java    # 联机房间管理器（组合式复用）
 │       │   │   ├── LANManager.java           # 局域网服务发现
-│       │   │   └── RemoteP2PUtil.java        # 房间码工具类
+│       │   │   └── WebSocket*Helper.java     # WebSocket 联机辅助
 │       │   ├── games/                        # 26 款游戏模块
-│       │   │   ├── GameRegistry.java         # 游戏注册中心
+│       │   │   ├── GameRegistry.java         # 游戏注册中心（双轨制：静态+@GameEntry+动态注册）
+│       │   │   ├── GameEntry.java            # @GameEntry 注解（游戏自声明元数据）
 │       │   │   ├── GameUsageStore.java       # 使用记录存储
 │       │   │   ├── GameTutorialHelper.java   # 教程弹窗管理
 │       │   │   ├── doudizhu/                 # 斗地主（三模联机）
@@ -422,10 +445,6 @@ GameCenterApp/
 │       │   │   ├── ToolSectionStore.java     # 工具分类与排序
 │       │   │   ├── AdvancedToolBinders.java  # 高级工具绑定
 │       │   │   └── *ToolBinder.java         # 各种工具绑定器
-│       │   ├── update/                       # 应用更新模块
-│       │   │   ├── UpdateManager.java        # 更新检查与下载（三级下载源）
-│       │   │   ├── UpdateInfo.java           # 版本信息数据模型
-│       │   │   └── SSLHelper.java            # SSL 证书信任
 │       │   ├── utils/                        # 通用工具
 │       │   ├── views/                        # 自定义 View
 │       │   └── settings/                     # 设置弹窗
@@ -436,6 +455,34 @@ GameCenterApp/
 │       │   ├── raw/                          # 音效资源（斗地主 96 个音频）
 │       │   └── xml/                          # 配置文件
 │       └── ...
+├── core/
+│   ├── common/                               # 通用基础模块
+│   │   └── src/main/
+│   │       ├── java/com/gamecenter/app/
+│   │       │   └── SettingsManager.java      # 设置管理（SharedPreferences）
+│   │       └── kotlin/com/gamecenter/app/util/
+│   │           ├── AppResult.kt              # 通用结果模型
+│   │           ├── AppError.kt               # 错误模型
+│   │           ├── NetworkResult.kt          # 网络结果模型
+│   │           └── Extensions/Lazy/Memory/Accessibility helpers
+│   ├── network/                              # 基础网络模块
+│   │   └── src/main/java/com/gamecenter/app/
+│   │       ├── network/
+│   │       │   ├── OkHttpClientProvider.java # HTTP/WebSocket 客户端
+│   │       │   ├── RelayHttpClient.java      # Relay HTTP + WebSocket URL
+│   │       │   ├── RemoteP2PUtil.java        # 房间码工具类
+│   │       │   └── NetworkLogger.java        # 网络日志
+│   │       └── utils/NetworkErrorHandler.java
+│   └── update/                               # 更新子系统模块
+│       └── src/main/
+│           ├── java/com/gamecenter/app/update/
+│           │   ├── UpdateManager.java        # 更新检查、下载、安装入口
+│           │   ├── UpdateChecker.java        # 版本检查策略
+│           │   ├── UpdateDownloader.java     # APK 下载与校验
+│           │   ├── UpdateInstaller.java      # 安装与目录打开
+│           │   └── UpdateInfo.java           # 版本信息数据模型
+│           └── kotlin/com/gamecenter/app/update/
+│               └── UpdateViewModel.kt        # 生命周期安全的更新 ViewModel
 ├── tools/
 │   ├── upload_to_vps.py                      # 上传 APK 到 VPS
 │   ├── upload_to_github_release.py           # 上传 APK 到 GitHub Releases
@@ -610,3 +657,27 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+## 2026-05-18 文档同步：架构优化
+
+- UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter，密封类 UpdateCheckState/DownloadState 建模状态。
+- OnlineRoomManager 组合式复用联机房间逻辑，替代 BaseOnlineActivity 继承。
+- GameRegistry 双轨注册：静态硬编码 + @GameEntry 注解自动发现 + register() 动态注册。
+- SaveManager 从 Java 迁移到 Kotlin（@Singleton + @Inject constructor），旧 Java 文件已删除。
+- SettingsManager/OkHttpClientProvider/UpdateManager/SaveManager 添加 @Inject 构造函数，getInstance() 标记 @Deprecated。
+- 新增 AppError（密封类，10 种错误类型）+ NetworkResult（类型安全结果封装）。
+- 测试用例从 96 增至 411+，版本号更新至 1.3.26 (versionCode=260)。
+## 2026-05-18 文档同步：低优先级代码质量
+
+- Result.kt 重命名为 AppResult，消除与 kotlin.Result 标准库命名冲突。
+- AiTask.status 引入 TaskStatus 枚举替代字符串，AiResult.errorCode 新增 AiErrorCode 常量类。
+- 16 处空 catch 块已补日志记录（Log.w/Log.d），保留原有注释说明忽略原因。
+- OnlineRoomManager（35 个）+ AppSettingsDialog（13 个）共 48 个硬编码中文字符串提取到 strings.xml。
+- CODE_WIKI.md 新增第 10 章"Java/Kotlin 混合边界规范"，文档化文件放置、跨语言调用注意事项、迁移优先级和同名类冲突规则。
+## 2026-05-19 文档同步：战略优化
+
+- UpdateViewModel 协程化：`viewModelScope.launch` + `suspendCancellableCoroutine` 包装 Java 回调为 suspend 函数，`CheckResult`/`DownloadResult` 密封类替代布尔标志。
+- 网络层测试：新增 `AiApiClientTest`（MockWebServer，8 个方法）和 `UpdateInfoTest`（JSON 解析，17 个方法），测试用例总数从 411+ 增至 436+。
+- CI 质量门：APK 大小报告、测试结果报告、Android Lint 执行和 Lint 问题报告。
+- 安全加固：`allowBackup=false`，新增 `backup_rules.xml` 和 `data_extraction_rules.xml`，存储权限迁移（`READ_MEDIA_IMAGES`、`maxSdkVersion` 限制）。
+- 构建优化：`MaterialCardView` 替代 `androidx.cardview.widget.CardView`，移除 `cardview:1.0.0` 依赖。
+- 版本号更新：versionCode=262, versionName=1.3.26。
