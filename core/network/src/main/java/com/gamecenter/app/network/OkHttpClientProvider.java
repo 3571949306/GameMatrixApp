@@ -129,9 +129,12 @@ public final class OkHttpClientProvider {
     @Deprecated
     public static OkHttpClientProvider getInstance(Context context) {
         if (instance == null) {
+            if (context == null) {
+                return null;
+            }
             synchronized (OkHttpClientProvider.class) {
                 if (instance == null) {
-                    instance = new OkHttpClientProvider(context != null ? context.getApplicationContext() : null);
+                    instance = new OkHttpClientProvider(context.getApplicationContext());
                 }
             }
         }
