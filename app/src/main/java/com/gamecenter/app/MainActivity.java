@@ -3,110 +3,122 @@ package com.gamecenter.app;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
-import com.gamecenter.app.update.UpdatePresenter;
+import com.gamecenter.app.update.DownloadState;
+import com.gamecenter.app.update.UpdateCheckState;
+import com.gamecenter.app.update.UpdateInfo;
+import com.gamecenter.app.update.UpdateViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
-/**
- * 应用主界面 Activity，作为所有 Fragment 的宿主。
- * <p>
- * 核心职责：
- * <ul>
- *   <li>导航管理：使用 Navigation Component 管理底部导航栏与 Fragment 页面切换</li>
- *   <li>权限处理：首次启动时弹出权限申请对话框，后续启动不再重复申请</li>
- *   <li>更新检查：延迟 2 秒后自动检查应用更新，使用 WeakReference 防止内存泄漏</li>
- * </ul>
- * <p>
- * 关键设计决策：
- * <ul>
- *   <li>使用 Hilt（{@code @AndroidEntryPoint}）进行依赖注入</li>
- *   <li>更新检查采用延迟 + WeakReference 方案，避免 Activity 销毁后仍持有引用导致泄漏</li>
- *   <li>权限结果通过 ActivityResultLauncher（新 API）处理，替代已废弃的 onRequestPermissionsResult</li>
- * </ul>
- */
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity {
 
-    /** Navigation Component 的导航控制器，用于管理 Fragment 导航 */
     private NavController navController;
-
-    /** 权限申请辅助类，封装权限判断与对话框逻辑 */
     private PermissionHelper permissionHelper;
-
-    /** 权限申请启动器，基于 Activity Result API，替代传统的 onRequestPermissionsResult */
     private ActivityResultLauncher<String[]> permissionLauncher;
+    private UpdateViewModel updateViewModel;
+    private AlertDialog updateDialog;
+    private AlertDialog progressDialog;
 
-    /** 更新检查的 Presenter，负责与更新服务交互并展示更新提示 */
-    private UpdatePresenter updatePresenter;
-
-    /**
-     * Activity 创建时的初始化入口。
-     * <p>
-     * 初始化顺序：设置布局 → 注册权限回调 → 首次启动权限申请 →
-     * 初始化导航 → 初始化更新检查。
-     *
-     * @param savedInstanceState 保存的实例状态，非 null 时表示 Activity 正在恢复
-     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 初始化权限辅助类和权限申请启动器
         permissionHelper = new PermissionHelper(this);
         permissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
                 result -> {
-                    // 将 Map<String, Boolean> 转换为 boolean[]，与 PermissionHelper 的接口对齐
                     boolean[] grantResults = new boolean[result.size()];
                     int i = 0;
                     for (Boolean granted : result.values()) {
-                        // granted 可能为 null（理论上不会），做防御性判断
                         grantResults[i++] = granted != null && granted;
                     }
                     permissionHelper.onPermissionsResult(grantResults);
                 }
         );
 
-        // 仅在首次启动时弹出权限申请对话框，避免每次进入都打扰用户
         if (permissionHelper.isFirstLaunch()) {
             permissionHelper.showPermissionDialog(permissionLauncher);
         }
 
-        // 初始化 Navigation Component：从 NavHostFragment 获取 NavController
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
         if (navHostFragment != null) {
             navController = navHostFragment.getNavController();
         }
 
-        // 将底部导航栏与 NavController 绑定，实现点击导航栏自动切换 Fragment
         BottomNavigationView navView = findViewById(R.id.nav_view);
         NavigationUI.setupWithNavController(navView, navController);
 
-        // 初始化更新检查 Presenter 并调度延迟自动检查
-        updatePresenter = new UpdatePresenter(this);
+        updateViewModel = new ViewModelProvider(this).get(UpdateViewModel.class);
+        observeUpdateStates();
         scheduleAutoUpdateCheck();
     }
 
-    /**
-     * 调度延迟自动更新检查。
-     * <p>
-     * 延迟 2 秒执行，目的是让主界面先完成渲染，避免更新检查的网络请求
-     * 与启动阶段的资源竞争。使用 {@link SafeUpdateCheckRunnable} 包装，
-     * 通过 WeakReference 持有 Activity 引用，防止 Activity 已销毁时仍执行回调。
-     */
+    private void observeUpdateStates() {
+        updateViewModel.getUpdateCheckState().observe(this, state -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            if (state instanceof UpdateCheckState.Available) {
+                UpdateInfo info = ((UpdateCheckState.Available) state).getInfo();
+                showUpdateDialog(info);
+            } else if (state instanceof UpdateCheckState.NotAvailable) {
+                Toast.makeText(this, R.string.update_no_update, Toast.LENGTH_SHORT).show();
+            } else if (state instanceof UpdateCheckState.BetaOnly) {
+                UpdateInfo info = ((UpdateCheckState.BetaOnly) state).getInfo();
+                showBetaOnlyNoticeDialog(info);
+            } else if (state instanceof UpdateCheckState.BetaBlocked) {
+                Toast.makeText(this, R.string.update_beta_only_toast, Toast.LENGTH_LONG).show();
+            } else if (state instanceof UpdateCheckState.Error) {
+                String message = ((UpdateCheckState.Error) state).getMessage();
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        updateViewModel.getDownloadState().observe(this, state -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            if (state instanceof DownloadState.Downloading) {
+                DownloadState.Downloading dl = (DownloadState.Downloading) state;
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    updateProgressDialog(dl.getDownloaded(), dl.getTotal());
+                }
+            } else if (state instanceof DownloadState.Verifying) {
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    updateProgressVerifying();
+                }
+            } else if (state instanceof DownloadState.Completed) {
+                dismissProgressDialog();
+                File apkFile = ((DownloadState.Completed) state).getApkFile();
+                showInstallDialog(apkFile);
+            } else if (state instanceof DownloadState.Error) {
+                dismissProgressDialog();
+                String message = ((DownloadState.Error) state).getMessage();
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            } else if (state instanceof DownloadState.Cancelled) {
+                dismissProgressDialog();
+            }
+        });
+    }
+
     private void scheduleAutoUpdateCheck() {
         if (!(getApplication() instanceof App)) return;
         App app = (App) getApplication();
@@ -114,29 +126,10 @@ public class MainActivity extends AppCompatActivity {
                 new SafeUpdateCheckRunnable(this, app), 2000);
     }
 
-    /**
-     * 安全的更新检查 Runnable，使用 WeakReference 持有 Activity 引用。
-     * <p>
-     * 防止场景：Handler 的消息队列中仍持有 Runnable 引用，但 Activity 已被销毁，
-     * 此时若强引用 Activity 会导致内存泄漏或在已销毁的 Activity 上操作 UI。
-     * <p>
-     * 执行条件（全部满足才触发检查）：
-     * <ol>
-     *   <li>Activity 仍存活（未被回收、未 finishing、未 destroyed）</li>
-     *   <li>App 标记本次启动尚未执行过自动检查（{@link App#shouldAutoCheckUpdate()}）</li>
-     *   <li>用户设置中开启了自动更新检查</li>
-     * </ol>
-     */
     private static class SafeUpdateCheckRunnable implements Runnable {
-        /** WeakReference 持有 Activity，允许 GC 在 Activity 销毁后回收 */
         private final WeakReference<MainActivity> activityRef;
-        /** App 引用，用于调用 shouldAutoCheckUpdate() 门控方法 */
         private final App app;
 
-        /**
-         * @param activity 主界面 Activity，以弱引用方式持有
-         * @param app      Application 实例，用于判断是否应执行自动更新检查
-         */
         SafeUpdateCheckRunnable(MainActivity activity, App app) {
             this.activityRef = new WeakReference<>(activity);
             this.app = app;
@@ -145,66 +138,186 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             MainActivity activity = activityRef.get();
-            // 三重防御：引用已被 GC 回收 / Activity 正在结束 / Activity 已销毁
             if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
             SettingsManager sm = SettingsManager.getInstance(activity);
             if (app.shouldAutoCheckUpdate() && sm.isAutoCheckUpdate()) {
-                // false 表示不显示 Toast 提示（自动检查静默进行）
-                activity.updatePresenter.checkUpdate(false);
+                activity.updateViewModel.checkUpdate(activity, false);
             }
         }
     }
 
-    /**
-     * 手动触发更新检查。
-     * <p>
-     * 通常由用户在设置页面点击"检查更新"按钮时调用。
-     *
-     * @param showToast true 表示无更新时显示 Toast 提示；false 表示静默检查
-     */
     public void checkUpdate(boolean showToast) {
-        if (updatePresenter != null) {
-            updatePresenter.checkUpdate(showToast);
+        if (updateViewModel != null) {
+            updateViewModel.checkUpdate(this, showToast);
         }
     }
 
-    /**
-     * 处理 Activity 结果回调，转发给 UpdatePresenter 处理。
-     * <p>
-     * 主要用于更新下载安装流程中的返回结果处理（如安装确认）。
-     *
-     * @param requestCode 请求码
-     * @param resultCode  结果码
-     * @param data        返回的 Intent 数据
-     */
+    private void showUpdateDialog(final UpdateInfo info) {
+        if (isFinishing() || isDestroyed()) return;
+
+        String title = info.isForceUpdate()
+                ? getString(R.string.update_force) + " - " + getString(R.string.update_new_version)
+                : getString(R.string.update_new_version);
+
+        StringBuilder message = new StringBuilder();
+        message.append(String.format(getString(R.string.update_version), info.getVersionName()));
+        message.append("\n");
+        message.append(getString(R.string.update_channel_label, info.getChannelLabel()));
+        message.append("\n");
+        message.append(getString(R.string.update_version_code, info.getVersionCode()));
+        message.append("\n");
+        message.append(String.format(getString(R.string.update_size), info.getFileSizeFormatted()));
+        message.append("\n\n");
+        message.append(getString(R.string.update_changelog));
+        message.append("\n");
+        message.append(info.getChangelog());
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(title)
+                .setMessage(message.toString())
+                .setPositiveButton(R.string.update_download, (dialog, which) -> {
+                    startDownloadWithProgressDialog(info);
+                });
+
+        if (!info.isForceUpdate()) {
+            builder.setNegativeButton(R.string.update_later, (dialog, which) -> dialog.dismiss());
+        } else {
+            builder.setCancelable(false);
+        }
+
+        updateDialog = builder.create();
+        updateDialog.show();
+    }
+
+    private void startDownloadWithProgressDialog(UpdateInfo info) {
+        if (isFinishing() || isDestroyed()) return;
+
+        final android.view.View dialogView = android.view.LayoutInflater.from(this)
+                .inflate(R.layout.dialog_update_progress, null);
+        android.widget.ProgressBar progressBar = dialogView.findViewById(R.id.progress_bar);
+        android.widget.TextView tvProgressPercent = dialogView.findViewById(R.id.tv_progress_percent);
+        android.widget.TextView tvProgressSize = dialogView.findViewById(R.id.tv_progress_size);
+
+        progressBar.setMax(100);
+        progressBar.setProgress(0, true);
+
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.update_downloading)
+                .setView(dialogView)
+                .setCancelable(!info.isForceUpdate());
+
+        progressDialog = builder.create();
+        progressDialog.show();
+
+        updateViewModel.startDownload(this, info);
+    }
+
+    private void updateProgressDialog(long downloaded, long total) {
+        if (progressDialog == null || !progressDialog.isShowing()) return;
+        android.view.View decorView = progressDialog.getWindow() != null ? progressDialog.getWindow().getDecorView() : null;
+        if (decorView == null) return;
+
+        android.widget.ProgressBar progressBar = decorView.findViewById(R.id.progress_bar);
+        android.widget.TextView tvProgressPercent = decorView.findViewById(R.id.tv_progress_percent);
+        android.widget.TextView tvProgressSize = decorView.findViewById(R.id.tv_progress_size);
+
+        int percent = total > 0 ? (int) (downloaded * 100 / total) : 0;
+        if (progressBar != null) progressBar.setProgress(percent, true);
+        if (tvProgressPercent != null) tvProgressPercent.setText(percent + "%");
+        if (tvProgressSize != null)
+            tvProgressSize.setText(formatDownloadProgress(downloaded, total));
+    }
+
+    private void updateProgressVerifying() {
+        if (progressDialog == null || !progressDialog.isShowing()) return;
+        android.view.View decorView = progressDialog.getWindow() != null ? progressDialog.getWindow().getDecorView() : null;
+        if (decorView == null) return;
+
+        android.widget.TextView tvProgressPercent = decorView.findViewById(R.id.tv_progress_percent);
+        if (tvProgressPercent != null)
+            tvProgressPercent.setText(getString(R.string.update_verifying));
+    }
+
+    private void showBetaOnlyNoticeDialog(final UpdateInfo info) {
+        if (isFinishing() || isDestroyed()) return;
+
+        String lastStableName = info.getLastStableVersionName().isEmpty()
+                ? getString(R.string.update_last_stable_default)
+                : info.getLastStableVersionName();
+        StringBuilder message = new StringBuilder();
+        message.append(getString(R.string.update_beta_only_msg,
+                info.getVersionName(), info.getVersionCode(),
+                info.getLocalVersionCode(), lastStableName));
+        if (info.getLastStableVersionCode() > 0) {
+            message.append(getString(R.string.update_beta_only_stable_code,
+                    info.getLastStableVersionCode()));
+        }
+        message.append(getString(R.string.update_beta_only_hint));
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.update_beta_only_title)
+                .setMessage(message.toString())
+                .setPositiveButton(R.string.update_beta_only_enable, (dialog, which) -> {
+                    updateViewModel.enableBetaAndRecheck(this);
+                })
+                .setNegativeButton(R.string.update_beta_only_wait, null)
+                .show();
+    }
+
+    private void showInstallDialog(final File apkFile) {
+        if (isFinishing() || isDestroyed()) return;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.update_new_version)
+                .setMessage(R.string.update_install_prompt)
+                .setPositiveButton(R.string.update_install, (dialog, which) -> updateViewModel.installApk(this))
+                .setNeutralButton(R.string.update_open_directory, (dialog, which) ->
+                        updateViewModel.openDownloadDirectory(this))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (updatePresenter != null) {
-            updatePresenter.handleActivityResult(requestCode, resultCode);
+        if (requestCode == UpdateViewModel.REQUEST_INSTALL_PERMISSION) {
+            updateViewModel.onInstallPermissionResult(this, resultCode);
         }
     }
 
-    /**
-     * Activity 销毁时清理资源。
-     * <p>
-     * 释放 UpdatePresenter 的引用，防止 Activity 销毁后 Presenter 仍持有 Context 导致泄漏。
-     * 必须在 super.onDestroy() 之前执行清理，确保子类资源先于父类释放。
-     */
     @Override
     protected void onDestroy() {
-        if (updatePresenter != null) {
-            updatePresenter.onDestroy();
-            updatePresenter = null;
+        dismissProgressDialog();
+        if (updateDialog != null && updateDialog.isShowing()) {
+            try { updateDialog.dismiss(); } catch (Exception e) { Log.d("MainActivity", "Dialog dismiss failed", e); }
         }
+        updateDialog = null;
         super.onDestroy();
     }
 
-    /**
-     * 处理 Navigation UI 的向上导航（Toolbar 返回按钮）。
-     *
-     * @return true 表示导航已由 NavController 处理；false 表示交由父类默认处理
-     */
+    private void dismissProgressDialog() {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            try { progressDialog.dismiss(); } catch (Exception e) { Log.d("MainActivity", "Dialog dismiss failed", e); }
+        }
+        progressDialog = null;
+    }
+
+    private String formatDownloadProgress(long downloaded, long total) {
+        String downloadedStr = formatFileSize(downloaded);
+        int percent = total > 0 ? (int) (downloaded * 100 / total) : 0;
+        if (total > 0) {
+            String totalStr = formatFileSize(total);
+            return downloadedStr + " / " + totalStr + " (" + percent + "%)";
+        }
+        return downloadedStr + " (" + percent + "%)";
+    }
+
+    private static String formatFileSize(long size) {
+        if (size < 1024) return size + " B";
+        if (size < 1024 * 1024) return String.format("%.1f KB", size / 1024.0);
+        return String.format("%.1f MB", size / (1024.0 * 1024.0));
+    }
+
     @Override
     public boolean onSupportNavigateUp() {
         return navController.navigateUp() || super.onSupportNavigateUp();

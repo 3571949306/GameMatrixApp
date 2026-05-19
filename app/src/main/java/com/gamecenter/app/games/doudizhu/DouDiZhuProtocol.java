@@ -1,5 +1,7 @@
 package com.gamecenter.app.games.doudizhu;
 
+import android.util.Log;
+
 import com.gamecenter.app.games.doudizhu.model.Card;
 import com.gamecenter.app.games.doudizhu.model.Rank;
 
@@ -34,6 +36,8 @@ import java.util.List;
  * </ul>
  */
 public class DouDiZhuProtocol {
+
+    private static final String TAG = "DouDiZhuProtocol";
 
     // ============ 消息类型常量 ============
 
@@ -100,6 +104,7 @@ public class DouDiZhuProtocol {
                 array.put(obj);
             } catch (JSONException e) {
                 // 序列化失败时跳过该卡牌
+                Log.w(TAG, "卡牌序列化失败，跳过", e);
             }
         }
         return array.toString();
@@ -130,6 +135,7 @@ public class DouDiZhuProtocol {
             }
         } catch (JSONException e) {
             // 反序列化失败，返回已解析的部分
+            Log.w(TAG, "反序列化失败，返回已解析部分", e);
         }
         return cards;
     }
@@ -297,6 +303,7 @@ public class DouDiZhuProtocol {
             msg.put("reconnected", reconnected);
         } catch (JSONException e) {
             // JSON 构建失败，返回部分构建的消息
+            Log.w(TAG, "JSON构建失败，返回部分消息", e);
         }
         return msg;
     }
@@ -318,6 +325,7 @@ public class DouDiZhuProtocol {
             msg.put("landlordIndex", landlordIndex);
         } catch (JSONException e) {
             // JSON 构建失败
+            Log.w(TAG, "JSON构建失败", e);
         }
         return msg;
     }
@@ -341,6 +349,7 @@ public class DouDiZhuProtocol {
             msg.put("seatIndex", seatIndex);
         } catch (JSONException e) {
             // JSON 构建失败
+            Log.w(TAG, "JSON构建失败", e);
         }
         return msg;
     }
@@ -364,6 +373,7 @@ public class DouDiZhuProtocol {
             msg.put("currentTurn", currentTurn);
         } catch (JSONException e) {
             // JSON 构建失败
+            Log.w(TAG, "JSON构建失败", e);
         }
         return msg;
     }

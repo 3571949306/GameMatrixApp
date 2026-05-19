@@ -1,8 +1,10 @@
 package com.gamecenter.app.ai;
 
+import com.gamecenter.app.ai.data.AiErrorCode;
 import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
 import com.gamecenter.app.ai.data.AiTask;
+import com.gamecenter.app.ai.data.TaskStatus;
 import com.gamecenter.app.ai.local.LocalAiProcessor;
 import com.gamecenter.app.ai.local.LocalAiProcessor.AiCommand;
 
@@ -25,12 +27,12 @@ public class AiTaskRouterTest {
     public void aiTask_fullConstructor_assignsAllFields() {
         long now = System.currentTimeMillis();
 
-        AiTask task = new AiTask("id-1", "ocr", "raw text", "pending", now, 1);
+        AiTask task = new AiTask("id-1", "ocr", "raw text", TaskStatus.PENDING, now, 1);
 
         assertEquals("id-1", task.taskId);
         assertEquals("ocr", task.taskType);
         assertEquals("raw text", task.input);
-        assertEquals("pending", task.status);
+        assertEquals(TaskStatus.PENDING, task.status);
         assertEquals(now, task.createdAt);
         assertEquals(1, task.costLevel);
     }
@@ -42,7 +44,7 @@ public class AiTaskRouterTest {
         assertNotNull(task.taskId);
         assertEquals("summary", task.taskType);
         assertEquals("some input", task.input);
-        assertEquals("pending", task.status);
+        assertEquals(TaskStatus.PENDING, task.status);
         assertEquals(0, task.costLevel);
         assertTrue(task.createdAt > 0);
     }
@@ -58,7 +60,7 @@ public class AiTaskRouterTest {
     @Test
     public void aiTask_statusCompleted_isCompletedReturnsTrue() {
         AiTask task = new AiTask("ocr", "text");
-        task.status = "completed";
+        task.status = TaskStatus.COMPLETED;
 
         assertTrue(task.isCompleted());
         assertFalse(task.isFailed());
@@ -67,7 +69,7 @@ public class AiTaskRouterTest {
     @Test
     public void aiTask_statusFailed_isFailedReturnsTrue() {
         AiTask task = new AiTask("ocr", "text");
-        task.status = "failed";
+        task.status = TaskStatus.FAILED;
 
         assertFalse(task.isCompleted());
         assertTrue(task.isFailed());
@@ -76,7 +78,7 @@ public class AiTaskRouterTest {
     @Test
     public void aiTask_statusRunning_neitherCompletedNorFailed() {
         AiTask task = new AiTask("ocr", "text");
-        task.status = "running";
+        task.status = TaskStatus.RUNNING;
 
         assertFalse(task.isCompleted());
         assertFalse(task.isFailed());
@@ -86,15 +88,15 @@ public class AiTaskRouterTest {
     public void aiTask_statusTransitions_pendingToRunningToCompleted() {
         AiTask task = new AiTask("summary", "input");
 
-        assertEquals("pending", task.status);
+        assertEquals(TaskStatus.PENDING, task.status);
         assertFalse(task.isCompleted());
         assertFalse(task.isFailed());
 
-        task.status = "running";
+        task.status = TaskStatus.RUNNING;
         assertFalse(task.isCompleted());
         assertFalse(task.isFailed());
 
-        task.status = "completed";
+        task.status = TaskStatus.COMPLETED;
         assertTrue(task.isCompleted());
         assertFalse(task.isFailed());
     }
@@ -103,8 +105,8 @@ public class AiTaskRouterTest {
     public void aiTask_statusTransitions_pendingToRunningToFailed() {
         AiTask task = new AiTask("summary", "input");
 
-        task.status = "running";
-        task.status = "failed";
+        task.status = TaskStatus.RUNNING;
+        task.status = TaskStatus.FAILED;
 
         assertFalse(task.isCompleted());
         assertTrue(task.isFailed());
@@ -166,7 +168,7 @@ public class AiTaskRouterTest {
 
         assertFalse(result.success);
         assertEquals("quota exceeded", result.message);
-        assertEquals("QUOTA_EXCEEDED", result.errorCode);
+        assertEquals(AiErrorCode.QUOTA_EXCEEDED, result.errorCode);
     }
 
     @Test
@@ -188,7 +190,7 @@ public class AiTaskRouterTest {
         assertFalse(result.success);
         assertEquals("low memory", result.message);
         assertEquals("local-gemma", result.source);
-        assertEquals("LOCAL_LLM_LOW_MEMORY", result.errorCode);
+        assertEquals(AiErrorCode.LOCAL_LLM_LOW_MEMORY, result.errorCode);
     }
 
     @Test
@@ -199,7 +201,7 @@ public class AiTaskRouterTest {
 
         assertFalse(result.success);
         assertEquals("degenerated output", result.message);
-        assertEquals("LOCAL_LLM_DEGENERATED_OUTPUT", result.errorCode);
+        assertEquals(AiErrorCode.LOCAL_LLM_DEGENERATED_OUTPUT, result.errorCode);
     }
 
     @Test
@@ -208,7 +210,7 @@ public class AiTaskRouterTest {
                 .errorCode("NETWORK_ERROR").build();
 
         assertFalse(result.success);
-        assertEquals("NETWORK_ERROR", result.errorCode);
+        assertEquals(AiErrorCode.NETWORK_ERROR, result.errorCode);
     }
 
     @Test
@@ -217,7 +219,7 @@ public class AiTaskRouterTest {
                 .errorCode("NO_API_KEY").build();
 
         assertFalse(result.success);
-        assertEquals("NO_API_KEY", result.errorCode);
+        assertEquals(AiErrorCode.NO_API_KEY, result.errorCode);
     }
 
     @Test
@@ -747,7 +749,7 @@ public class AiTaskRouterTest {
         };
 
         AiTask task = new AiTask("summary", "input");
-        task.status = "completed";
+        task.status = TaskStatus.COMPLETED;
         task.output = "result text";
         AiResult result = AiResult.success("result text").source("local").build();
 
@@ -755,7 +757,7 @@ public class AiTaskRouterTest {
 
         assertNotNull(capturedTask[0]);
         assertNotNull(capturedResult[0]);
-        assertEquals("completed", capturedTask[0].status);
+        assertEquals(TaskStatus.COMPLETED, capturedTask[0].status);
         assertTrue(capturedResult[0].success);
         assertEquals("local", capturedResult[0].source);
     }
@@ -772,7 +774,7 @@ public class AiTaskRouterTest {
         };
 
         AiTask task = new AiTask("ocr", "");
-        task.status = "failed";
+        task.status = TaskStatus.FAILED;
         AiResult result = AiResult.fail("输入为空").source("local").build();
 
         callback.onResult(task, result);
@@ -798,7 +800,7 @@ public class AiTaskRouterTest {
         callback.onResult(new AiTask("chat", "hello"), result);
 
         assertFalse(capturedResult[0].success);
-        assertEquals("QUOTA_EXCEEDED", capturedResult[0].errorCode);
+        assertEquals(AiErrorCode.QUOTA_EXCEEDED, capturedResult[0].errorCode);
     }
 
     @Test
@@ -817,7 +819,7 @@ public class AiTaskRouterTest {
         callback.onResult(new AiTask("translate", "hello"), result);
 
         assertFalse(capturedResult[0].success);
-        assertEquals("NO_API_KEY", capturedResult[0].errorCode);
+        assertEquals(AiErrorCode.NO_API_KEY, capturedResult[0].errorCode);
     }
 
     // ========== Routing logic — task type to local processor mapping ==========
@@ -914,7 +916,7 @@ public class AiTaskRouterTest {
     @Test
     public void taskAfterLocalSuccess_costLevelIsZero() {
         AiTask task = new AiTask("ocr", "raw text");
-        task.status = "completed";
+        task.status = TaskStatus.COMPLETED;
         task.costLevel = 0;
 
         assertEquals(0, task.costLevel);
@@ -924,7 +926,7 @@ public class AiTaskRouterTest {
     @Test
     public void taskAfterCloudSuccess_costLevelIsEstimated() {
         AiTask task = new AiTask("chat", "hello");
-        task.status = "completed";
+        task.status = TaskStatus.COMPLETED;
         task.costLevel = estimateCost("chat");
 
         assertEquals(2, task.costLevel);
@@ -934,7 +936,7 @@ public class AiTaskRouterTest {
     @Test
     public void taskAfterCloudSummary_costLevelIsOne() {
         AiTask task = new AiTask("summary", "text");
-        task.status = "completed";
+        task.status = TaskStatus.COMPLETED;
         task.costLevel = estimateCost("summary");
 
         assertEquals(1, task.costLevel);

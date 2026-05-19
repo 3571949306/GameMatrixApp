@@ -639,6 +639,7 @@ public final class DouDiZhuUIController {
             }
         } catch (Exception e) {
             // 忽略剪贴板访问异常
+            Log.d(TAG, "剪贴板访问异常", e);
         }
         return "";
     }

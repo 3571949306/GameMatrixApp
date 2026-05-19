@@ -2,13 +2,11 @@ package com.gamecenter.app.di
 
 import android.content.Context
 import com.gamecenter.app.SaveManager
-import com.gamecenter.app.SettingsManager
 import com.gamecenter.app.ai.AiPreferences
 import com.gamecenter.app.database.AppDatabase
 import com.gamecenter.app.database.dao.AiMessageDao
 import com.gamecenter.app.database.dao.GameStatsDao
 import com.gamecenter.app.network.OkHttpClientProvider
-import com.gamecenter.app.update.UpdateManager
 import com.gamecenter.app.utils.ErrorReporter
 import dagger.Module
 import dagger.Provides
@@ -31,25 +29,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSettingsManager(
-        @ApplicationContext context: Context
-    ): SettingsManager = SettingsManager.getInstance(context)
-
-    @Provides
-    @Singleton
-    fun provideOkHttpClientProvider(
-        @ApplicationContext context: Context
-    ): OkHttpClientProvider = OkHttpClientProvider.getInstance(context)
-
-    @Provides
-    @Singleton
     fun provideOkHttpClient(
         okHttpClientProvider: OkHttpClientProvider
     ): OkHttpClient = okHttpClientProvider.httpClient
-
-    @Provides
-    @Singleton
-    fun provideUpdateManager(): UpdateManager = UpdateManager.getInstance()
 
     @Provides
     @Singleton
@@ -71,12 +53,6 @@ object AppModule {
     @Singleton
     fun provideGameStatsDao(database: AppDatabase): GameStatsDao =
         database.gameStatsDao()
-
-    @Provides
-    @Singleton
-    fun provideSaveManager(
-        @ApplicationContext context: Context
-    ): SaveManager = SaveManager.getInstance(context)
 
     @Provides
     @Singleton

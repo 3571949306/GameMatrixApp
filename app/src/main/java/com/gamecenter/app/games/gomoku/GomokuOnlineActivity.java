@@ -16,7 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+import com.google.android.material.card.MaterialCardView;
 
 import com.gamecenter.app.network.GameSocketClient;
 import com.gamecenter.app.network.GameSocketServer;
@@ -270,7 +270,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
         winnerText.setPadding(0, 2, 0, 4);
 
         // 使用CardView包裹棋盘，增加圆角和阴影效果
-        CardView boardCard = new CardView(this);
+        MaterialCardView boardCard = new MaterialCardView(this);
         boardCard.setRadius(8);
         boardCard.setPadding(4, 4, 4, 4);
         LinearLayout.LayoutParams boardParams = new LinearLayout.LayoutParams(

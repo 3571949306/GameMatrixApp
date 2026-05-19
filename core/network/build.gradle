@@ -1,0 +1,80 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def localPropsFile = file("${rootDir}/local.properties")
+def configuredRelayUrl = ""
+def configuredWsUrl = ""
+
+if (localPropsFile.exists()) {
+    localPropsFile.withReader("UTF-8") { reader ->
+        reader.eachLine { line ->
+            line = line.trim()
+            if (line.isEmpty() || line.startsWith("#")) return
+            def eq = line.indexOf('=')
+            if (eq > 0) {
+                def key = line.substring(0, eq).trim()
+                def val = line.substring(eq + 1).trim()
+                if (key == "relay.url") configuredRelayUrl = val
+                if (key == "ws.url") configuredWsUrl = val
+            }
+        }
+    }
+}
+
+def toJavaStringLiteral = { String value ->
+    return "\"" + value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "")
+            .replace("\n", "\\n") + "\""
+}
+
+android {
+    namespace "com.gamecenter.app.network"
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 24
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "String", "RELAY_URL", toJavaStringLiteral(configuredRelayUrl ?: "https://your-server.example.com/api/ddz-relay")
+        buildConfigField "String", "WS_URL", toJavaStringLiteral(configuredWsUrl ?: "")
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java', 'src/main/kotlin']
+            res.srcDirs = ['src/main/res']
+        }
+        test {
+            java.srcDirs = ['src/test/java', 'src/test/kotlin']
+        }
+    }
+}
+
+dependencies {
+    implementation project(':core:common')
+    implementation 'androidx.annotation:annotation:1.9.1'
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.google.dagger:hilt-android:2.57.2'
+    implementation 'org.json:json:20250107'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.2.21'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+}

@@ -1,7 +1,67 @@
 # 夹层 - 版本更新日志
 
 
-## [当前工作区] - 2026-05-16（测试补充 + 网络去重 + DI迁移 + 安全加固 + 构建优化 + 离线体验）
+## [当前工作区] - 2026-05-19（战略优化：协程 + 网络测试 + CI 质量门 + 安全加固 + 构建优化）
+
+### UpdateViewModel 协程化
+- **协程替代回调**：`UpdateViewModel.kt` 使用 `viewModelScope.launch` + `suspendCancellableCoroutine` 将 Java 回调（`UpdateManager.checkUpdate`/`downloadApk`）包装为 Kotlin suspend 函数。
+- **新增密封类**：`CheckResult`（Success/NoUpdate/BetaOnly/BetaBlocked/Error）和 `DownloadResult`（Success/Verifying/Error/Cancelled）替代原有布尔标志。
+- **Job 替代布尔标志**：`isCheckingUpdate`/`isAutoDownloading` 布尔标志替换为 `checkJob: Job?`/`downloadJob: Job?`，支持结构化并发取消。
+- **生命周期安全**：`onCleared()` 自动取消两个 Job，避免泄漏。
+- **弃用旧 API**：使用 `resumeWith(kotlin.Result.success(...))` 替代已废弃的 `resume(value){}`。
+
+### 网络层测试
+- **AiApiClientTest.java**：使用 MockWebServer 编写 8 个测试方法，覆盖成功响应、HTTP 错误（4xx/5xx）、连接失败、畸形 JSON、缺少字段、空 system prompt 等场景。
+- **UpdateInfoTest.java**：全面 JSON 解析测试，17 个测试方法覆盖所有字段、Beta 渠道、版本回退等场景。
+
+### CI 质量门
+- **APK 大小报告**：CI 流水线构建后计算 APK 大小并写入 `GITHUB_STEP_SUMMARY`。
+- **测试结果报告**：解析 XML 测试报告，输出通过/失败/跳过统计到 `GITHUB_STEP_SUMMARY`。
+- **Android Lint 执行**：CI 新增 `lintDebug` 步骤。
+- **Lint 问题报告**：解析 Lint 输出并上传结果 artifact。
+
+### 安全加固
+- **禁用备份**：`AndroidManifest.xml` 设置 `android:allowBackup="false"`。
+- **备份规则**：新增 `android:fullBackupContent="@xml/backup_rules"` 和 `android:dataExtractionRules="@xml/data_extraction_rules"`。
+- **backup_rules.xml**：排除 sharedpref、database、update/ 目录。
+- **data_extraction_rules.xml**：排除相同目录的云备份和设备传输。
+- **存储权限迁移**：新增 `READ_MEDIA_IMAGES` 权限（Android 13+）。`READ_EXTERNAL_STORAGE` 设置 `maxSdkVersion="32"`，`WRITE_EXTERNAL_STORAGE` 设置 `maxSdkVersion="29"`。
+
+### 构建优化
+- **MaterialCardView 替代 CardView**：`item_game_card.xml`、`GomokuOnlineActivity.java`、`GamesFragment.java` 中 `androidx.cardview.widget.CardView` 替换为 `com.google.android.material.card.MaterialCardView`。
+- **移除 CardView 依赖**：从 `build.gradle` 删除 `implementation 'androidx.cardview:cardview:1.0.0'`。
+
+---
+
+## [当前工作区] - 2026-05-18（架构优化：ViewModel + 组合复用 + 双轨注册 + DI 迁移 + 错误模型）
+
+### 低优先级代码质量改进
+
+- **Result.kt 重命名为 AppResult**：消除与 `kotlin.Result` 标准库的命名冲突。`CrashHandler.kt` 中的 `runCatchingResult` / `getOrElse` 扩展函数同步更新。
+- **TaskStatus 枚举替代 AiTask.status 字符串**：新增 `TaskStatus.java`（PENDING/RUNNING/COMPLETED/FAILED），`AiTask.status` 类型从 `String` 改为 `TaskStatus`，`AiTaskRouter` 和 `AiTaskRouterTest` 全部替换为枚举引用。
+- **AiErrorCode 常量类替代 AiResult.errorCode 裸字符串**：新增 `AiErrorCode.java`（NETWORK_ERROR/QUOTA_EXCEEDED/NO_API_KEY/LOCAL_LLM_*等 7 个常量），`AiTaskRouter`、`AiApiClient` 和 `AiTaskRouterTest` 全部替换为常量引用。
+- **修复全部空 catch 块**：16 处空 catch 块已补日志记录（`Log.w`/`Log.d`），保留原有注释说明忽略原因。涉及 MainActivity、CrashHandler、OkHttpClientProvider、UpdateChecker、Game2048Activity、DouDiZhuProtocol/SyncManager/UIController。
+- **提取硬编码文案到 strings.xml**：OnlineRoomManager（35 个）+ AppSettingsDialog（13 个）共 48 个中文字符串资源提取到 `strings.xml`，Java 代码改用 `context.getString(R.string.xxx)`。
+- **Java/Kotlin 混合边界规范**：在 CODE_WIKI.md 新增第 10 章，文档化文件放置、跨语言调用注意事项、迁移优先级和同名类冲突规则。
+
+### 高优先级架构改进
+
+- **UpdateViewModel 替代 UpdatePresenter**：新增 `UpdateViewModel.kt`（@HiltViewModel + LiveData），使用密封类 `UpdateCheckState` / `DownloadState` 建模状态，生命周期安全，消除 `isFinishing()/isDestroyed()` 防御代码。`UpdatePresenter` 标记 `@Deprecated`。
+- **@Inject 构造函数迁移**：`SettingsManager`、`OkHttpClientProvider`、`UpdateManager` 添加 `@Inject` 构造函数 + `@ApplicationContext`，`getInstance()` 标记 `@Deprecated`。`AppModule` 移除对应 `@Provides` 方法。
+- **统一错误模型**：新增 `AppError.kt`（密封类层次结构，10 种错误类型，支持 `fromException()`/`fromHttpCode()` 自动映射）和 `NetworkResult.kt`（类型安全结果封装，`onSuccess`/`onFailure` 链式调用）。
+
+### 中优先级架构改进
+
+- **GameRegistry 双轨注册**：新增 `@GameEntry` 注解（运行时保留，支持 id/iconRes/nameRes/descRes/category 属性），`GameRegistry` 新增 `register()`/`registerAll()`/`clearDynamicEntries()`/`scanAnnotatedGames()` API，分类键名与本地化名称解耦（`categoryKey` 字段）。
+- **OnlineRoomManager 组合式复用**：新增 `OnlineRoomManager.java`，从 `BaseOnlineActivity` 提取联机房间管理逻辑为独立组件，支持 `Listener` 接口（onGameStarted/onGameMessageReceived/onGameReset），各游戏通过组合方式复用联机逻辑，无需继承 BaseOnlineActivity。
+- **SaveManager Kotlin 迁移**：`SaveManager` 从 Java 迁移到 Kotlin（`@Singleton` + `@Inject constructor(@ApplicationContext)`），旧 Java 文件已删除。`AppModule` 移除 `@Provides` 方法。
+
+### DI 模块简化
+
+- `AppModule.kt` 当前仅保留 `@Provides`：`ExecutorService`、`OkHttpClient`、`AiPreferences`、`AppDatabase`、`AiMessageDao`、`GameStatsDao`、`ErrorReporter`。
+- `SettingsManager`、`OkHttpClientProvider`、`UpdateManager`、`SaveManager` 均通过 `@Inject` 构造函数由 Hilt 自动管理。
+
+---## [当前工作区] - 2026-05-16（测试补充 + 网络去重 + DI迁移 + 安全加固 + 构建优化 + 离线体验）
 
 ### 测试补充
 - 新增 `DouDiZhuRuleEngineTest`：覆盖出牌验证、叫地主决策、清台判定、手牌评分（40+ 用例）。
@@ -693,3 +753,16 @@ jarsigner -verify app-release.apk
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+
+## [Current Workspace] - 2026-05-19 Core Modularization Phase 1
+
+### Modularization
+- Added `:core:common`, `:core:network`, and `:core:update` Android Library modules; `:app` now acts as the shell application and feature aggregator.
+- Moved `SettingsManager`, `AppResult`, `AppError`, `NetworkResult`, `Extensions`, `LazyInitManager`, `MemoryUtils`, and `AccessibilityHelper` into `:core:common`.
+- Moved `OkHttpClientProvider`, `RequestDeduplicationInterceptor`, `NetworkLogger`, `RelayHttpClient`, `RemoteP2PUtil`, and `NetworkErrorHandler` into `:core:network`.
+- Moved the update subsystem (`UpdateManager`, checker/downloader/installer/notification helper, `UpdateInfo`, `SSLHelper`, `UpdatePresenter`, `UpdateViewModel`) into `:core:update`.
+- `:core:network` and `:core:update` now generate module-level `BuildConfig` values from root `local.properties` and `version.properties`.
+
+### Follow-up Note
+- `CrashHandler` remains in `:app` because it still directly calls app-owned `ErrorReporter`.
+- Local Gradle verification is currently blocked before compilation by a Windows socket/buffer resource error in Gradle file lock startup.

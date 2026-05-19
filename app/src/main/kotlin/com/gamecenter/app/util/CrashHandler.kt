@@ -2,6 +2,7 @@ package com.gamecenter.app.util
 
 import android.content.Context
 import android.os.Process
+import android.util.Log
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.concurrent.ThreadFactory
@@ -30,7 +31,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
             context?.let { ctx ->
                 com.gamecenter.app.utils.ErrorReporter.getInstance(ctx).report(throwable, "thread=${thread.name}")
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) { Log.w("CrashHandler", "Failed to write crash log", e) }
         
         crashListener?.invoke(thread, throwable)
         
@@ -85,15 +86,15 @@ object ThreadPools {
     }
 }
 
-inline fun <T> runCatchingResult(block: () -> T): Result<T> = try {
-    Result.Success(block())
+inline fun <T> runCatchingResult(block: () -> T): AppResult<T> = try {
+    AppResult.Success(block())
 } catch (e: Exception) {
     AppLog.e("Error executing block", e)
-    Result.Error(e.message ?: "Unknown error", e)
+    AppResult.Error(e.message ?: "Unknown error", e)
 }
 
-inline fun <T> Result<T>.getOrElse(default: () -> T): T = when (this) {
-    is Result.Success -> data
-    is Result.Error -> default()
-    is Result.Loading -> default()
+inline fun <T> AppResult<T>.getOrElse(default: () -> T): T = when (this) {
+    is AppResult.Success -> data
+    is AppResult.Error -> default()
+    is AppResult.Loading -> default()
 }

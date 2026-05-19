@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.ai.data.AiProviderConfig;
+import com.gamecenter.app.ai.data.AiErrorCode;
 import com.gamecenter.app.ai.data.AiResult;
 import com.gamecenter.app.network.OkHttpClientProvider;
 
@@ -91,7 +92,7 @@ public final class AiApiClient {
                 if (!response.isSuccessful()) {
                     // HTTP 状态码非 2xx，返回错误信息及状态码作为错误码
                     return AiResult.fail("API请求失败: HTTP " + response.code() + " " + response.message())
-                            .errorCode("HTTP_" + response.code()).build();
+                            .errorCode(AiErrorCode.HTTP_ERROR + "_" + response.code()).build();
                 }
                 String body = response.body().string();
                 JSONObject json = new JSONObject(body);
@@ -106,7 +107,7 @@ public final class AiApiClient {
             }
         } catch (Exception e) {
             Log.e(TAG, "chatSync failed", e);
-            return AiResult.fail("请求失败: " + e.getMessage()).errorCode("NETWORK_ERROR").build();
+            return AiResult.fail("请求失败: " + e.getMessage()).errorCode(AiErrorCode.NETWORK_ERROR).build();
         }
     }
 

@@ -30,8 +30,8 @@ public final class AiTask {
     /** 任务输出结果，任务完成后由执行器填充；初始为 null */
     public String output;
 
-    /** 任务当前状态："pending"（待处理）、"running"（执行中）、"completed"（已完成）、"failed"（失败） */
-    public String status;
+    /** 任务当前状态 */
+    public TaskStatus status;
 
     /** 任务创建时间戳（毫秒级 Unix 时间） */
     public final long createdAt;
@@ -49,7 +49,7 @@ public final class AiTask {
      * @param createdAt 任务创建时间戳
      * @param costLevel 成本等级
      */
-    public AiTask(String taskId, String taskType, String input, String status, long createdAt, int costLevel) {
+    public AiTask(String taskId, String taskType, String input, TaskStatus status, long createdAt, int costLevel) {
         this.taskId = taskId;
         this.taskType = taskType;
         this.input = input;
@@ -66,26 +66,14 @@ public final class AiTask {
      * @param input    任务输入内容
      */
     public AiTask(String taskType, String input) {
-        this(java.util.UUID.randomUUID().toString(), taskType, input, "pending", System.currentTimeMillis(), 0);
+        this(java.util.UUID.randomUUID().toString(), taskType, input, TaskStatus.PENDING, System.currentTimeMillis(), 0);
     }
 
-    /**
-     * 判断任务是否已完成。
-     * 使用 "completed".equals(status) 而非 status.equals("completed")，避免 status 为 null 时的 NPE。
-     *
-     * @return true 表示任务已完成
-     */
     public boolean isCompleted() {
-        return "completed".equals(status);
+        return status == TaskStatus.COMPLETED;
     }
 
-    /**
-     * 判断任务是否失败。
-     * 使用 "failed".equals(status) 而非 status.equals("failed")，避免 status 为 null 时的 NPE。
-     *
-     * @return true 表示任务执行失败
-     */
     public boolean isFailed() {
-        return "failed".equals(status);
+        return status == TaskStatus.FAILED;
     }
 }
