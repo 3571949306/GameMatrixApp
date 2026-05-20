@@ -188,8 +188,7 @@ public class UpdatePresenter {
                 : info.getLastStableVersionName();
         StringBuilder message = new StringBuilder();
         message.append(activity.getString(R.string.update_beta_only_msg,
-                info.getVersionName(), info.getVersionCode(),
-                info.getLocalVersionCode(), lastStableName));
+                info.getVersionName(), info.getVersionCode()));
         // 若有最新稳定版版本号，额外显示
         if (info.getLastStableVersionCode() > 0) {
             message.append(activity.getString(R.string.update_beta_only_stable_code,
