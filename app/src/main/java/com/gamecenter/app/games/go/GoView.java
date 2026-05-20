@@ -8,34 +8,99 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+/**
+ * 围棋棋盘自定义视图。
+ * <p>
+ * 负责9×9围棋棋盘的绘制和触摸交互，包括：
+ * <ul>
+ *   <li>棋盘网格线和星位绘制</li>
+ *   <li>黑白棋子绘制（含边框）</li>
+ *   <li>最后一手标记（红色圆点）</li>
+ *   <li>吃子数信息显示</li>
+ *   <li>对局结束遮罩层</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>棋盘尺寸自适应View大小，保持正方形</li>
+ *   <li>触摸坐标通过四舍五入映射到最近的交叉点</li>
+ *   <li>棋盘上方预留15%空间用于信息显示</li>
+ * </ul>
+ */
 public class GoView extends View {
 
+    /** 游戏逻辑对象 */
     private GoGame game;
+
+    /** 每格像素大小 */
     private int cellSize;
-    private float offsetX, offsetY;
+
+    /** 棋盘绘制偏移量（水平方向），用于居中 */
+    private float offsetX;
+
+    /** 棋盘绘制偏移量（垂直方向），用于居中 */
+    private float offsetY;
+
+    /** 交叉点点击监听器 */
     private OnCellClickListener onCellClickListener;
 
+    /** 背景画笔（木色） */
     private Paint bgPaint;
+
+    /** 棋盘底色画笔 */
     private Paint boardPaint;
+
+    /** 网格线画笔 */
     private Paint linePaint;
+
+    /** 黑子填充画笔 */
     private Paint blackPaint;
+
+    /** 白子填充画笔 */
     private Paint whitePaint;
+
+    /** 黑子边框画笔 */
     private Paint blackBorderPaint;
+
+    /** 白子边框画笔 */
     private Paint whiteBorderPaint;
+
+    /** 最后一手标记画笔（红色） */
     private Paint lastMovePaint;
+
+    /** 星位画笔 */
     private Paint starPaint;
+
+    /** 信息文本画笔 */
     private Paint infoPaint;
 
+    /**
+     * 构造函数（代码创建时调用）。
+     *
+     * @param context 上下文
+     */
     public GoView(Context context) {
         super(context);
         init();
     }
 
+    /**
+     * 构造函数（XML布局创建时调用）。
+     *
+     * @param context 上下文
+     * @param attrs   XML属性集
+     */
     public GoView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
+    /**
+     * 初始化所有画笔。
+     * <p>
+     * 所有画笔均启用抗锯齿（ANTI_ALIAS_FLAG），确保绘制平滑。
+     * 棋盘背景色为木色 rgb(220, 179, 92)。
+     */
     private void init() {
         bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         bgPaint.setColor(Color.rgb(220, 179, 92));
@@ -75,15 +140,36 @@ public class GoView extends View {
         infoPaint.setFakeBoldText(true);
     }
 
+    /**
+     * 设置游戏对象并刷新视图。
+     *
+     * @param game 围棋游戏逻辑对象
+     */
     public void setGame(GoGame game) {
         this.game = game;
         invalidate();
     }
 
+    /**
+     * 设置交叉点点击监听器。
+     *
+     * @param listener 点击监听器
+     */
     public void setOnCellClickListener(OnCellClickListener listener) {
         this.onCellClickListener = listener;
     }
 
+    /**
+     * View尺寸变化时重新计算棋盘布局参数。
+     * <p>
+     * 根据View宽高计算格子大小和偏移量，确保棋盘居中显示。
+     * 垂直方向仅使用85%高度，预留空间给底部信息区。
+     *
+     * @param w    新宽度
+     * @param h    新高度
+     * @param oldw 旧宽度
+     * @param oldh 旧高度
+     */
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -97,6 +183,13 @@ public class GoView extends View {
         offsetY = padding + (usableH - boardH) / 2f;
     }
 
+    /**
+     * 绘制视图内容。
+     * <p>
+     * 绘制顺序：背景色 → 棋盘网格 → 棋子 → 信息文本。
+     *
+     * @param canvas 画布
+     */
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -111,6 +204,13 @@ public class GoView extends View {
         }
     }
 
+    /**
+     * 绘制棋盘网格线和星位。
+     * <p>
+     * 9路棋盘的星位为：(2,2) (6,2) (2,6) (6,6) (4,4)（天元）。
+     *
+     * @param canvas 画布
+     */
     private void drawBoard(Canvas canvas) {
         for (int i = 0; i < GoGame.BOARD_SIZE; i++) {
             float x1 = offsetX;
@@ -126,6 +226,7 @@ public class GoView extends View {
             canvas.drawLine(x1, y1, x2, y2, linePaint);
         }
 
+        // 9路棋盘的5个星位
         int[][] starPoints = {{2,2},{6,2},{2,6},{6,6},{4,4}};
         for (int[] sp : starPoints) {
             float cx = offsetX + sp[0] * cellSize;
@@ -134,6 +235,11 @@ public class GoView extends View {
         }
     }
 
+    /**
+     * 绘制棋盘上的所有棋子和最后一手标记。
+     *
+     * @param canvas 画布
+     */
     private void drawStones(Canvas canvas) {
         int[][] board = game.getBoard();
         for (int y = 0; y < GoGame.BOARD_SIZE; y++) {
@@ -154,6 +260,7 @@ public class GoView extends View {
             }
         }
 
+        // 绘制最后一手标记（红色小圆点）
         int[] lastMove = game.getLastMove();
         if (lastMove != null) {
             float cx = offsetX + lastMove[0] * cellSize;
@@ -162,6 +269,13 @@ public class GoView extends View {
         }
     }
 
+    /**
+     * 绘制棋盘下方信息区（吃子数）和对局结束遮罩。
+     * <p>
+     * 对局结束时绘制半透明黑色遮罩，中央显示结果文字。
+     *
+     * @param canvas 画布
+     */
     private void drawInfo(Canvas canvas) {
         float y = offsetY + (GoGame.BOARD_SIZE - 1) * cellSize + 30;
         infoPaint.setTextAlign(Paint.Align.LEFT);
@@ -171,6 +285,7 @@ public class GoView extends View {
                 offsetX + (GoGame.BOARD_SIZE - 1) * cellSize, y, infoPaint);
 
         if (game.isGameOver()) {
+            // 绘制半透明遮罩
             Paint overPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             overPaint.setColor(Color.argb(180, 0, 0, 0));
             canvas.drawRect(0, 0, getWidth(), getHeight(), overPaint);
@@ -186,6 +301,14 @@ public class GoView extends View {
         }
     }
 
+    /**
+     * 处理触摸事件，将触摸坐标映射到棋盘交叉点。
+     * <p>
+     * 使用Math.round四舍五入到最近的交叉点，仅在ACTION_DOWN时触发回调。
+     *
+     * @param event 触摸事件
+     * @return 始终返回true表示消费事件
+     */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (game == null || game.isGameOver()) return true;
@@ -201,7 +324,16 @@ public class GoView extends View {
         return true;
     }
 
+    /**
+     * 交叉点点击监听器接口。
+     */
     public interface OnCellClickListener {
+        /**
+         * 交叉点被点击时回调。
+         *
+         * @param x 横坐标（列索引）
+         * @param y 纵坐标（行索引）
+         */
         void onCellClick(int x, int y);
     }
 }

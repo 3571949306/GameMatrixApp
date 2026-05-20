@@ -25,15 +25,19 @@
 - **AI 助手入口**：独立底部导航 AI 页面，支持 7 种任务、历史搜索、收藏、导出和常用模板
 - **多 AI 提供商支持**：默认 DeepSeek API，可选阿里云通义、硅基流动、智谱 AI、零一万物、OpenAI（全部 OpenAI 兼容接口）
 
-**当前版本**：v1.3.20 (versionCode=236)
+**当前版本**：v1.3.26 (versionCode=262)
 
 **重点模块**：
-1. **公共联机网络模块** — `com.gamecenter.app.network` 包，包含 GameSocketClient/Server/LANManager/RelayHttpClient/RemoteP2PUtil/OnlineChatHelper
-2. **应用更新模块** — 三级下载源（GitHub Releases → 香港 VPS → 美国 VPS），版本比较逻辑已修复
-3. **游戏大厅** — GamesFragment + GameRegistry 管理 25+ 游戏入口
+1. **公共联机网络模块** — `com.gamecenter.app.network` 包，包含 GameSocketClient/Server/LANManager/RelayHttpClient/RemoteP2PUtil/OnlineChatHelper/OnlineRoomManager
+2. **应用更新模块** — 三级下载源（GitHub Releases → 香港 VPS → 美国 VPS），UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter
+3. **游戏大厅** — GamesFragment + GameRegistry（双轨注册：静态 + @GameEntry 注解 + 动态注册）管理 25+ 游戏入口
 4. **工具箱** — ToolsFragment 包含 20+ 网络/设备工具，使用 ToolBinder 架构
 5. **APK 签名模块** — keystore.properties + gamecenter.keystore + signingConfigs（已修复）
 6. **自动化发布** — upload_to_vps.py + upload_to_github_release.py + auto-publish.bat
+7. **统一错误模型** — AppError（密封类）+ NetworkResult（类型安全结果封装）
+8. **DI 迁移** — SettingsManager/OkHttpClientProvider/UpdateManager/SaveManager 已加 @Inject 构造函数
+9. **类型安全枚举** — TaskStatus 替代 AiTask.status 字符串，AiErrorCode 替代 AiResult.errorCode 裸字符串
+10. **国际化推进** — OnlineRoomManager + AppSettingsDialog 硬编码文案已提取到 strings.xml（48 个资源）
 
 ---
 
@@ -44,8 +48,8 @@
 | 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
 |---------|--------|----------|----------|
 | App.java | Application 入口，全局初始化主题和配色 | Android 系统（Manifest 注册） | SettingsManager, ColorSchemeManager, UpdateManager |
-| MainActivity.java | 主界面，底部导航栏 + 更新检查 + 自动下载 | Android 系统（Launcher） | UpdateManager, SettingsManager, GamesFragment, ToolsFragment, BrowserFragment, AppSettingsDialog |
-| SettingsManager.java | SharedPreferences 封装，管理所有用户设置 | MainActivity, App, AppSettingsDialog, DouDiZhuOnlineActivity, UpdateManager | 无 |
+| MainActivity.java | 主界面，底部导航栏 + UpdateViewModel 更新检查 | Android 系统（Launcher） | UpdateViewModel, SettingsManager, GamesFragment, ToolsFragment, BrowserFragment, AppSettingsDialog |
+| SettingsManager.java | SharedPreferences 封装，管理所有用户设置（@Inject 构造函数） | MainActivity, App, AppSettingsDialog, DouDiZhuOnlineActivity, UpdateManager, UpdateViewModel | 无 |
 | ColorSchemeManager.java | 主题配色管理（亮色/暗色/跟随系统） | App, MainActivity | 无 |
 
 ### 2.2 Fragments / com.gamecenter.app.fragments
@@ -60,7 +64,8 @@
 
 | 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
 |---------|--------|----------|----------|
-| GameRegistry.java | 游戏元数据注册中心（名称、图标、描述、Activity 类） | GamesFragment | 各游戏 Activity 类（仅引用，不实例化） |
+| GameRegistry.java | 游戏元数据注册中心（双轨制：静态 + @GameEntry + 动态注册） | GamesFragment | 各游戏 Activity 类（仅引用，不实例化） |
+| GameEntry.java | @GameEntry 注解，游戏自声明元数据（id/iconRes/nameRes/descRes/category） | GameRegistry（扫描） | 无 |
 | GameUsageStore.java | 游戏使用次数/收藏状态存储 | GamesFragment | 无 |
 | GameTutorialHelper.java | 游戏教程弹窗管理 | 各游戏 Activity（showXxxTutorial） | 无 |
 
@@ -116,6 +121,7 @@
 | RelayHttpClient.java | HTTP Relay 通信 + WebSocket URL 生成 | GameSocketClient, GameSocketServer | BuildConfig |
 | RemoteP2PUtil.java | 房间码规范化、P2P 地址格式化与解析 | 各 OnlineActivity | 无 |
 | OnlineChatHelper.java | 可复用联机聊天组件（支持内联模式和弹窗模式） | 所有联机 OnlineActivity | 无 |
+| OnlineRoomManager.java | 联机房间管理器（组合式复用，替代 BaseOnlineActivity 继承） | 各联机 OnlineActivity | GameSocketClient, GameSocketServer, OnlineChatHelper |
 
 ### 2.8 工具箱 / com.gamecenter.app.tools
 
@@ -157,9 +163,22 @@
 
 | 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
 |---------|--------|----------|----------|
-| UpdateManager.java | 更新检查、下载、安装管理 | MainActivity, App | UpdateInfo, SSLHelper, SettingsManager, BuildConfig |
+| UpdateManager.java | 更新检查、下载、安装管理（@Inject 构造函数） | MainActivity, App, UpdateViewModel | UpdateInfo, SSLHelper, SettingsManager, BuildConfig |
+| UpdateViewModel.kt | 更新流程 ViewModel（@HiltViewModel + LiveData + 协程，viewModelScope.launch + suspendCancellableCoroutine 包装 Java 回调） | MainActivity | UpdateManager, SettingsManager |
 | UpdateInfo.java | 版本信息数据模型 | UpdateManager, MainActivity | 无 |
 | SSLHelper.java | SSL 证书信任（仅针对更新服务器域名启用） | UpdateManager | 无 |
+| UpdatePresenter.java | 更新展示器（已废弃，由 UpdateViewModel 替代） | 无 | 无 |
+| AiApiClientTest.java | AI API 客户端 MockWebServer 测试（8 个方法） | CI | AiApiClient |
+| UpdateInfoTest.java | 更新信息 JSON 解析测试（17 个方法） | CI | UpdateInfo |
+
+### 2.9 Kotlin 工具 / com.gamecenter.app.util (Kotlin)
+
+| 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
+|---------|--------|----------|----------|
+| AppError.kt | 统一错误模型（密封类，10 种错误类型） | NetworkResult, 网络层 | 无 |
+| NetworkResult.kt | 网络请求结果封装（基于 AppError） | 网络请求调用方 | AppError |
+| AppResult.kt | 通用结果封装（重命名自 Result.kt，避免与 kotlin.Result 冲突） | CrashHandler | 无 |
+| SaveManager.kt | 存档管理器（@Singleton + @Inject） | 各游戏 Activity | 无 |
 
 ### 2.9 自定义 View / com.gamecenter.app.views
 
@@ -181,6 +200,17 @@
 | 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
 |---------|--------|----------|----------|
 | AppSettingsDialog.java | 设置弹窗（主题/更新/反馈/关于） | MainActivity, GamesFragment | SettingsManager, ColorSchemeManager |
+
+### 2.12 AI 数据模型 / com.gamecenter.app.ai.model
+
+| 文件路径 | 类职责 | 被谁调用 | 调用了谁 |
+|---------|--------|----------|----------|
+| AiMessage.java | AI 聊天消息数据模型 | AiFragment, AiViewModel | 无 |
+| AiTask.java | AI 任务数据模型 | AiViewModel, AiFragment | TaskStatus |
+| TaskStatus.java | 任务状态枚举（替代 AiTask.status 字符串） | AiTask | 无 |
+| AiResult.java | AI 结果数据模型 | AiViewModel | AiErrorCode |
+| AiErrorCode.java | 错误码常量类（替代 AiResult.errorCode 裸字符串） | AiResult | 无 |
+| AiProviderConfig.java | AI 提供商配置数据模型 | AiViewModel, AiSettingsDialog | 无 |
 
 ---
 
@@ -222,8 +252,8 @@
 
 ### 4.3 模块调用约定
 
-- **GameRegistry 仅引用不实例化**：游戏 Activity 类仅作为 Class 引用传入 GameRegistry，由系统负责实例化
-- **联机游戏共享网络模块**：所有联机游戏使用 `com.gamecenter.app.network` 包中的公共网络组件
+- **GameRegistry 双轨注册**：游戏 Activity 类可通过 @GameEntry 注解自声明元数据，也可在 GameRegistry 中静态硬编码或动态注册
+- **联机游戏共享网络模块**：所有联机游戏使用 `com.gamecenter.app.network` 包中的公共网络组件；推荐使用 `OnlineRoomManager` 组合式复用，而非继承 `BaseOnlineActivity`
 - **工具 Binder 架构**：每个 ToolBinder 独立实现，通过 ToolBinder 接口与 ToolsFragment 解耦
 
 ### 4.4 网络错误处理约定
@@ -248,6 +278,7 @@
 
 - **GitHub Actions 工作流**：CI/CD 配置定义在 `.github/workflows/ci.yml`
 - **自动化流程**：Push/PR 触发构建、Lint 检查、单元测试（如有）
+- **CI 质量门**：APK 大小报告、测试结果报告、Android Lint 执行和 Lint 问题报告
 - **本地与 CI 一致性**：确保本地构建与 CI 环境使用相同的 Gradle 参数和检查规则
 
 ### 4.8 Lint 规则约定
@@ -329,7 +360,8 @@ graph TD
     end
 
     subgraph 更新模块
-        UpdateManager[UpdateManager]
+        UpdateManager[UpdateManager<br/>@Inject 构造函数]
+        UpdateViewModel[UpdateViewModel<br/>@HiltViewModel + LiveData]
         UpdateInfo[UpdateInfo]
         SSLHelper[SSLHelper]
     end
@@ -347,7 +379,9 @@ graph TD
     MainActivity --> GamesFragment
     MainActivity --> ToolsFragment
     MainActivity --> BrowserFragment
-    MainActivity --> UpdateManager
+    MainActivity --> UpdateViewModel
+    MainActivity --> SettingsManager
+    UpdateViewModel --> UpdateManager
     MainActivity --> SettingsManager
     MainActivity --> AppSettingsDialog
 
@@ -699,7 +733,8 @@ sequenceDiagram
 
 | 必须同步修改的文件 | 原因 |
 |-------------------|------|
-| `GameRegistry.java` | 注册游戏元数据 |
+| `GameRegistry.java` | 注册游戏元数据（或使用 @GameEntry 注解自动注册） |
+| `GameEntry.java` | 在 Activity 类上添加 @GameEntry 注解（推荐方式） |
 | `AndroidManifest.xml` | 注册 Activity |
 | `GamesFragment.java` | 如需要特殊分类处理 |
 | `res/layout/activity_xxx.xml` | 游戏布局 |
@@ -791,3 +826,37 @@ systemctl status gamecenter-ddz-ws-relay # WebSocket Relay
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+## 2026-05-18 文档同步：架构优化
+
+- UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter，密封类 UpdateCheckState/DownloadState 建模状态。
+- OnlineRoomManager 组合式复用联机房间逻辑，替代 BaseOnlineActivity 继承。
+- GameRegistry 双轨注册：静态硬编码 + @GameEntry 注解自动发现 + register() 动态注册。
+- SaveManager 从 Java 迁移到 Kotlin（@Singleton + @Inject constructor），旧 Java 文件已删除。
+- SettingsManager/OkHttpClientProvider/UpdateManager/SaveManager 添加 @Inject 构造函数，getInstance() 标记 @Deprecated。
+- 新增 AppError（密封类，10 种错误类型）+ NetworkResult（类型安全结果封装）。
+- AppModule 简化：仅保留 ExecutorService/OkHttpClient/AiPreferences/AppDatabase/DAO/ErrorReporter 的 @Provides。
+- 版本号更新：versionCode=260, versionName=1.3.26。
+## 2026-05-18 文档同步：低优先级代码质量
+
+- Result.kt 重命名为 AppResult，消除与 kotlin.Result 标准库命名冲突。
+- AiTask.status 从 String 改为 TaskStatus 枚举（PENDING/RUNNING/COMPLETED/FAILED）。
+- AiResult.errorCode 新增 AiErrorCode 常量类（7 个常量），消除魔法字符串。
+- 16 处空 catch 块已补日志记录。
+- OnlineRoomManager + AppSettingsDialog 硬编码文案提取到 strings.xml（48 个资源）。
+- CODE_WIKI.md 新增第 10 章"Java/Kotlin 混合边界规范"。
+## 2026-05-19 文档同步：战略优化
+
+- UpdateViewModel 协程化：`viewModelScope.launch` + `suspendCancellableCoroutine` 包装 Java 回调为 suspend 函数，`CheckResult`/`DownloadResult` 密封类替代布尔标志，`checkJob`/`downloadJob` 替代 `isCheckingUpdate`/`isAutoDownloading`。
+- 网络层测试：新增 `AiApiClientTest`（MockWebServer，8 个方法）和 `UpdateInfoTest`（JSON 解析，17 个方法）。
+- CI 质量门：APK 大小报告、测试结果报告、Android Lint 执行和 Lint 问题报告。
+- 安全加固：`allowBackup=false`，新增 `backup_rules.xml` 和 `data_extraction_rules.xml`，存储权限迁移（`READ_MEDIA_IMAGES`、`maxSdkVersion` 限制）。
+- 构建优化：`MaterialCardView` 替代 `androidx.cardview.widget.CardView`，移除 `cardview:1.0.0` 依赖。
+- 版本号更新：versionCode=262, versionName=1.3.26。
+
+## 2026-05-19 AI Handoff: Modularized Core
+
+- The app now includes `:core:common`, `:core:network`, and `:core:update`.
+- Do not assume `SettingsManager`, `OkHttpClientProvider`, `RelayHttpClient`, `NetworkErrorHandler`, or `UpdateManager` live under `app/src/main` anymore.
+- Package names were intentionally preserved (`com.gamecenter.app.*`) to minimize Java/Kotlin call-site churn, while Gradle module ownership changed.
+- Module config values are generated from root `local.properties` and `version.properties`; update both app and core module build config logic if new release fields are added.
+- `CrashHandler` remains app-owned due to `ErrorReporter` coupling.

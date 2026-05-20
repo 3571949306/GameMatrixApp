@@ -1,6 +1,11 @@
 package com.gamecenter.app.network;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -12,6 +17,7 @@ import org.json.JSONObject;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -21,34 +27,202 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * 局域网（LAN）设备发现与服务注册管理器。
+ *
+ * <p>负责在同一局域网内发现其他游戏设备，并注册本机提供的服务。
+ * 支持两种发现机制：</p>
+ * <ul>
+ *   <li><b>NSD（Network Service Discovery）</b>：基于 Android 原生 NSD API（mDNS/DNS-SD），
+ *       适用于 Android 设备间的服务发现，优先使用。</li>
+ *   <li><b>UDP 广播</b>：作为 NSD 不可用时的备选方案，通过 UDP 广播/接收
+ *       JSON 格式的发现报文来探测同局域网设备。</li>
+ * </ul>
+ *
+ * <p>关键设计决策：
+ * <ul>
+ *   <li>采用单例模式（{@link #getInstance(Context)}），确保全局只有一个 LAN 管理实例</li>
+ *   <li>所有回调通过主线程 Handler 投递，确保调用者在 UI 线程安全接收事件</li>
+ *   <li>发现的主机列表使用 synchronizedList 保证线程安全</li>
+ *   <li>NSD 服务列表使用 CopyOnWriteArrayList 保证并发读写安全</li>
+ *   <li>广播和接收线程设置为守护线程，不阻止 JVM 退出</li>
+ * </ul>
+ * </p>
+ */
 public class LANManager {
     private static final String TAG = "LANManager";
+
+    /** UDP 发现协议使用的端口号 */
     private static final int DISCOVERY_PORT = 9877;
+
+    /** UDP 广播间隔（毫秒） */
     private static final int BROADCAST_INTERVAL = 3000;
+
+    /** 主机过期超时时间（毫秒），超过此时间未收到广播则视为离线 */
     private static final int DISCOVERY_TIMEOUT = 8000;
+
+    /** NSD 服务类型标识，格式为 "_服务名._协议."，用于 mDNS 服务发现 */
+    private static final String SERVICE_TYPE = "_doudizhu._tcp.";
 
     private DatagramSocket socket;
     private volatile boolean running = false;
+    /** 主线程 Handler，用于将回调投递到 UI 线程执行 */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    /** 已发现的主机列表（UDP 广播模式），线程安全 */
     private final List<DiscoveredHost> discoveredHosts = Collections.synchronizedList(new ArrayList<>());
     private OnHostDiscoveredListener listener;
 
     private final String gameName;
     private final String playerName;
     private final int serverPort;
+    private final Context context;
+    private final NsdManager nsdManager;
+
+    private static LANManager instance;
+    private String serviceName;
+    private NsdManager.RegistrationListener registrationListener;
+    private NsdManager.DiscoveryListener discoveryListener;
+    /** 已发现的 NSD 服务列表，使用 CopyOnWriteArrayList 支持并发迭代和修改 */
+    private final List<NsdServiceInfo> discoveredServices = new CopyOnWriteArrayList<>();
+    private boolean isRegistering = false;
+    private boolean isDiscovering = false;
+    private OnServiceDiscoveredListener serviceDiscoveredListener;
+    private OnServiceLostListener serviceLostListener;
+    private OnServiceRegisteredListener serviceRegisteredListener;
+    private OnErrorListener errorListener;
 
     private Thread broadcastThread;
     private Thread receiveThread;
 
+    /**
+     * 构造 LANManager 实例（UDP 广播模式）。
+     *
+     * <p>此构造器不依赖 Android Context，因此无法使用 NSD 功能，
+     * 仅支持 UDP 广播方式进行设备发现。</p>
+     *
+     * @param gameName   游戏名称，用于过滤发现报文，只处理同游戏的广播
+     * @param playerName 本机玩家名称，随广播报文发送给其他设备
+     * @param serverPort 本机游戏服务端口，随广播报文发送
+     */
     public LANManager(String gameName, String playerName, int serverPort) {
         this.gameName = gameName;
         this.playerName = playerName;
         this.serverPort = serverPort;
+        this.context = null;
+        this.nsdManager = null;
     }
 
+    /**
+     * 私有构造器（NSD 模式），由 {@link #getInstance(Context)} 调用。
+     *
+     * <p>使用 Application Context 避免内存泄漏，并获取系统 NSD 服务。</p>
+     *
+     * @param context Android 上下文，用于获取 NsdManager 系统服务
+     */
+    private LANManager(Context context) {
+        this.gameName = "斗地主";
+        this.playerName = "";
+        this.serverPort = 0;
+        this.context = context != null ? context.getApplicationContext() : null;
+        this.nsdManager = this.context != null ? (NsdManager) this.context.getSystemService(Context.NSD_SERVICE) : null;
+    }
+
+    /**
+     * 获取 LANManager 单例实例（NSD 模式）。
+     *
+     * <p>使用 synchronized 保证线程安全的懒加载初始化。</p>
+     *
+     * @param context Android 上下文
+     * @return LANManager 单例
+     */
+    public static synchronized LANManager getInstance(Context context) {
+        if (instance == null) {
+            instance = new LANManager(context);
+        }
+        return instance;
+    }
+
+    /**
+     * 通过 NSD 注册本机服务，使局域网内其他设备可以发现本机。
+     *
+     * <p>注册的服务类型为 {@value #SERVICE_TYPE}，使用 DNS-SD 协议。
+     * 若当前正在注册中则直接返回，避免重复注册。</p>
+     *
+     * @param serviceName 服务名称，应具有唯一性以便识别
+     * @param port        服务监听端口
+     */
+    public void registerService(String serviceName, int port) {
+        if (nsdManager == null) {
+            postError("NsdManager 不可用");
+            return;
+        }
+        // 防止重复注册
+        if (isRegistering) return;
+        this.serviceName = serviceName;
+        NsdServiceInfo serviceInfo = new NsdServiceInfo();
+        serviceInfo.setServiceName(serviceName);
+        serviceInfo.setServiceType(SERVICE_TYPE);
+        serviceInfo.setPort(port);
+        registrationListener = new NsdManager.RegistrationListener() {
+            @Override public void onServiceRegistered(NsdServiceInfo info) {
+                isRegistering = false;
+                // Android 可能会修改服务名以解决冲突，因此更新为实际注册的名称
+                LANManager.this.serviceName = info.getServiceName();
+                postServiceRegistered(info.getServiceName(), port);
+            }
+            @Override public void onRegistrationFailed(NsdServiceInfo info, int errorCode) {
+                isRegistering = false;
+                postError("服务注册失败: " + errorCode);
+            }
+            @Override public void onServiceUnregistered(NsdServiceInfo info) {
+                isRegistering = false;
+            }
+            @Override public void onUnregistrationFailed(NsdServiceInfo info, int errorCode) {
+                Log.w(TAG, "Unregistration failed: " + errorCode);
+            }
+        };
+        isRegistering = true;
+        try {
+            nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener);
+        } catch (Exception e) {
+            isRegistering = false;
+            postError("注册服务异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 注销本机已注册的 NSD 服务。
+     *
+     * <p>注销后其他设备将无法通过 NSD 发现本机。调用此方法会重置注册状态。</p>
+     */
+    public void unregisterService() {
+        if (nsdManager != null && registrationListener != null) {
+            try {
+                nsdManager.unregisterService(registrationListener);
+            } catch (Exception e) {
+                Log.w(TAG, "Unregister error: " + e.getMessage());
+            }
+        }
+        isRegistering = false;
+        serviceName = null;
+    }
+
+    /**
+     * 启动局域网设备发现。
+     *
+     * <p>优先使用 NSD 发现；若 NsdManager 不可用，则回退到 UDP 广播模式。
+     * UDP 模式下会启动两个守护线程：广播线程（发送本机信息）和接收线程（监听其他设备）。</p>
+     */
     public void startDiscovery() {
+        // 优先使用 NSD 发现
+        if (nsdManager != null) {
+            startNsdDiscovery();
+            return;
+        }
+        // 回退到 UDP 广播模式
         stopDiscovery();
         discoveredHosts.clear();
         running = true;
@@ -58,6 +232,7 @@ public class LANManager {
             socket.setReuseAddress(true);
             socket.bind(new java.net.InetSocketAddress(DISCOVERY_PORT));
             socket.setBroadcast(true);
+            // 设置 1 秒超时，使 receive() 不会永久阻塞，便于检查 running 标志
             socket.setSoTimeout(1000);
         } catch (Exception e) {
             Log.e(TAG, "Failed to create socket: " + e.getMessage());
@@ -73,29 +248,269 @@ public class LANManager {
         receiveThread.start();
     }
 
+    /**
+     * 停止局域网设备发现。
+     *
+     * <p>同时处理 NSD 和 UDP 两种模式的清理：停止 NSD 发现、关闭 UDP Socket、
+     * 中断广播和接收线程。</p>
+     */
     public void stopDiscovery() {
+        // 停止 NSD 发现
+        if (nsdManager != null && discoveryListener != null) {
+            try {
+                nsdManager.stopServiceDiscovery(discoveryListener);
+            } catch (Exception e) {
+                Log.w(TAG, "Stop NSD discovery error: " + e.getMessage());
+            }
+            discoveryListener = null;
+        }
+        isDiscovering = false;
+        discoveredServices.clear();
         running = false;
 
+        // 关闭 UDP Socket
         if (socket != null && !socket.isClosed()) {
             socket.close();
             socket = null;
         }
 
+        // 中断广播线程
         if (broadcastThread != null && broadcastThread.isAlive()) {
             broadcastThread.interrupt();
             broadcastThread = null;
         }
 
+        // 中断接收线程
         if (receiveThread != null && receiveThread.isAlive()) {
             receiveThread.interrupt();
             receiveThread = null;
         }
     }
 
+    /**
+     * 获取已发现的主机列表（UDP 广播模式）。
+     *
+     * <p>返回不可修改的列表视图，防止外部修改内部数据。</p>
+     *
+     * @return 不可修改的已发现主机列表
+     */
     public List<DiscoveredHost> getDiscoveredHosts() {
         return Collections.unmodifiableList(discoveredHosts);
     }
 
+    /**
+     * 启动 NSD 服务发现。
+     *
+     * <p>发现的服务类型为 {@value #SERVICE_TYPE}。发现到服务后会自动解析其地址和端口。
+     * 过滤掉自身注册的服务，避免自我发现。</p>
+     */
+    private void startNsdDiscovery() {
+        if (isDiscovering) return;
+        discoveredServices.clear();
+        discoveryListener = new NsdManager.DiscoveryListener() {
+            @Override public void onStartDiscoveryFailed(String serviceType, int errorCode) {
+                isDiscovering = false;
+                postError("开始发现失败: " + errorCode);
+            }
+            @Override public void onStopDiscoveryFailed(String serviceType, int errorCode) {
+                Log.w(TAG, "Stop discovery failed: " + errorCode);
+            }
+            @Override public void onDiscoveryStarted(String serviceType) {
+                isDiscovering = true;
+            }
+            @Override public void onDiscoveryStopped(String serviceType) {
+                isDiscovering = false;
+            }
+            @Override public void onServiceFound(NsdServiceInfo serviceInfo) {
+                // 过滤掉自身注册的服务，避免自我发现
+                if (serviceName != null && serviceName.equals(serviceInfo.getServiceName())) return;
+                try {
+                    // 发现服务后需要解析才能获取其主机地址和端口
+                    nsdManager.resolveService(serviceInfo, new NsdManager.ResolveListener() {
+                        @Override public void onResolveFailed(NsdServiceInfo info, int errorCode) {
+                            postError("服务解析失败: " + errorCode);
+                        }
+                        @Override public void onServiceResolved(NsdServiceInfo info) {
+                            handleServiceResolved(info);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.w(TAG, "Resolve error: " + e.getMessage());
+                }
+            }
+            @Override public void onServiceLost(NsdServiceInfo serviceInfo) {
+                handleServiceLost(serviceInfo);
+            }
+        };
+        isDiscovering = true;
+        try {
+            nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+        } catch (Exception e) {
+            isDiscovering = false;
+            postError("发现服务异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理 NSD 服务解析成功事件。
+     *
+     * <p>去重检查：若已存在同名服务则忽略，否则添加到已发现列表并通知监听器。</p>
+     *
+     * @param serviceInfo 已解析的 NSD 服务信息
+     */
+    private void handleServiceResolved(NsdServiceInfo serviceInfo) {
+        // 去重：检查是否已存在同名服务
+        for (NsdServiceInfo existing : discoveredServices) {
+            if (existing.getServiceName().equals(serviceInfo.getServiceName())) return;
+        }
+        discoveredServices.add(serviceInfo);
+        postServiceDiscovered(serviceInfo);
+    }
+
+    /**
+     * 处理 NSD 服务丢失事件。
+     *
+     * <p>从已发现列表中移除对应服务并通知监听器。</p>
+     *
+     * @param serviceInfo 丢失的 NSD 服务信息
+     */
+    private void handleServiceLost(NsdServiceInfo serviceInfo) {
+        for (int i = 0; i < discoveredServices.size(); i++) {
+            if (discoveredServices.get(i).getServiceName().equals(serviceInfo.getServiceName())) {
+                discoveredServices.remove(i);
+                postServiceLost(serviceInfo);
+                return;
+            }
+        }
+    }
+
+    /**
+     * 获取本机第一个有效的 IPv4 地址。
+     *
+     * <p>遍历所有网络接口，返回第一个非回环、非虚拟的 IPv4 地址。</p>
+     *
+     * @return 本机 IPv4 地址字符串，若无可用地址则返回 null
+     */
+    public String getLocalIPv4Address() {
+        List<String> addresses = getAllLocalIPv4Addresses();
+        return addresses.isEmpty() ? null : addresses.get(0);
+    }
+
+    /**
+     * 获取本机所有有效的 IPv4 地址列表。
+     *
+     * <p>遍历所有网络接口，过滤掉以下类型的接口：</p>
+     * <ul>
+     *   <li>lo - 本地回环接口</li>
+     *   <li>p2p - Wi-Fi 直连接口</li>
+     *   <li>virt/docker/veth - 虚拟化和容器相关接口</li>
+     * </ul>
+     *
+     * @return 有效的 IPv4 地址列表，不会返回 null
+     */
+    public List<String> getAllLocalIPv4Addresses() {
+        List<String> addresses = new ArrayList<>();
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            if (interfaces == null) return addresses;
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                // 跳过未启用的接口
+                if (!networkInterface.isUp()) continue;
+                String interfaceName = networkInterface.getName().toLowerCase();
+                // 过滤掉回环、P2P、虚拟化和容器相关的网络接口
+                if (interfaceName.contains("lo") || interfaceName.contains("p2p")
+                        || interfaceName.contains("virt") || interfaceName.contains("docker")
+                        || interfaceName.contains("veth")) {
+                    continue;
+                }
+                Enumeration<InetAddress> addrEnum = networkInterface.getInetAddresses();
+                while (addrEnum.hasMoreElements()) {
+                    InetAddress addr = addrEnum.nextElement();
+                    // 仅保留 IPv4 且非回环地址
+                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                        String ip = addr.getHostAddress();
+                        // 二次校验确保是合法的点分十进制 IPv4 地址
+                        if (ip != null && ip.contains(".")) addresses.add(ip);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error getting local IPs: " + e.getMessage());
+        }
+        return addresses;
+    }
+
+    /**
+     * 校验 IP 地址字符串是否合法。
+     *
+     * <p>校验规则：四段点分十进制，每段 0-255，且不能以 "127." 开头（排除回环地址）。</p>
+     *
+     * @param ip 待校验的 IP 地址字符串
+     * @return 合法返回 true，否则返回 false
+     */
+    public static boolean isValidIPAddress(String ip) {
+        if (ip == null || ip.isEmpty()) return false;
+        String[] parts = ip.split("\\.");
+        if (parts.length != 4) return false;
+        try {
+            for (String part : parts) {
+                int value = Integer.parseInt(part);
+                if (value < 0 || value > 255) return false;
+            }
+            // 排除回环地址（127.x.x.x）
+            return !ip.startsWith("127.");
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /**
+     * 校验端口号是否合法。
+     *
+     * @param port 待校验的端口号
+     * @return 合法（1-65535）返回 true，否则返回 false
+     */
+    public static boolean isValidPort(int port) {
+        return port > 0 && port <= 65535;
+    }
+
+    /**
+     * 校验 "IP:端口" 格式字符串是否合法。
+     *
+     * @param ipPort 格式为 "IP:端口" 的字符串，如 "192.168.1.100:8080"
+     * @return IP 和端口均合法返回 true，否则返回 false
+     */
+    public static boolean isValidIPAndPort(String ipPort) {
+        if (ipPort == null || ipPort.isEmpty()) return false;
+        String[] parts = ipPort.split(":");
+        if (parts.length != 2 || !isValidIPAddress(parts[0])) return false;
+        try {
+            return isValidPort(Integer.parseInt(parts[1]));
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /**
+     * 获取已发现的 NSD 服务列表的副本。
+     *
+     * @return 新建的列表，包含所有已发现的 NSD 服务信息
+     */
+    public List<NsdServiceInfo> getDiscoveredServices() {
+        return new ArrayList<>(discoveredServices);
+    }
+
+    public boolean isRegistering() { return isRegistering; }
+    public boolean isDiscovering() { return isDiscovering; }
+    public String getServiceName() { return serviceName; }
+
+    /**
+     * UDP 广播循环：定期向局域网广播本机的游戏发现报文。
+     *
+     * <p>报文为 JSON 格式，包含游戏名称、玩家名称和服务端口。
+     * 每隔 {@value #BROADCAST_INTERVAL} 毫秒发送一次，直到 {@link #running} 被置为 false。</p>
+     */
     private void broadcastLoop() {
         while (running) {
             try {
@@ -112,11 +527,13 @@ public class LANManager {
                     try {
                         socket.send(packet);
                     } catch (Exception e) {
+                        Log.w(TAG, "send broadcast: " + e.getMessage());
                     }
                 }
 
                 Thread.sleep(BROADCAST_INTERVAL);
             } catch (InterruptedException e) {
+                // 线程被中断时退出循环
                 break;
             } catch (Exception e) {
                 Log.e(TAG, "Error broadcasting: " + e.getMessage());
@@ -124,6 +541,12 @@ public class LANManager {
         }
     }
 
+    /**
+     * UDP 接收循环：持续监听局域网内其他设备的发现广播报文。
+     *
+     * <p>收到报文后解析 JSON，仅处理 type 为 "DISCOVERY" 且游戏名称匹配的报文。
+     * 对于已知主机更新其 lastSeen 时间戳，新主机则添加到列表并通知监听器。</p>
+     */
     private void receiveLoop() {
         byte[] buffer = new byte[1024];
 
@@ -143,10 +566,12 @@ public class LANManager {
                     int port = json.optInt("port", 0);
                     String hostIp = packet.getAddress().getHostAddress();
 
+                    // 仅处理同游戏的发现报文，忽略其他游戏的广播
                     if (!game.equals(gameName)) continue;
 
                     DiscoveredHost host = new DiscoveredHost(hostIp, port, player);
 
+                    // 检查是否为已知主机，若是则更新其活跃时间
                     boolean exists = false;
                     for (DiscoveredHost h : discoveredHosts) {
                         if (h.getIp().equals(hostIp)) {
@@ -156,40 +581,204 @@ public class LANManager {
                         }
                     }
 
+                    // 新主机加入列表并通知监听器
                     if (!exists) {
                         discoveredHosts.add(host);
                         postHostDiscovered(host);
                     }
                 }
             } catch (Exception e) {
+                Log.w(TAG, "receive discovery: " + e.getMessage());
             }
         }
     }
 
+    /**
+     * 获取局域网广播地址。
+     *
+     * <p>使用 255.255.255.255 作为受限广播地址，
+     * 适用于所有网络接口的广播发送。</p>
+     *
+     * @return 广播地址
+     * @throws UnknownHostException 地址解析异常
+     */
     private InetAddress getBroadcastAddress() throws UnknownHostException {
         return InetAddress.getByName("255.255.255.255");
     }
 
+    /**
+     * 在主线程通知主机发现监听器。
+     *
+     * @param host 新发现的主机
+     */
     private void postHostDiscovered(DiscoveredHost host) {
         if (listener != null) {
             mainHandler.post(() -> listener.onHostDiscovered(host));
         }
     }
 
+    /**
+     * 在主线程通知服务注册完成监听器。
+     *
+     * @param name 注册成功的服务名称
+     * @param port 服务端口
+     */
+    private void postServiceRegistered(final String name, final int port) {
+        if (serviceRegisteredListener != null) {
+            mainHandler.post(() -> serviceRegisteredListener.onServiceRegistered(name, port));
+        }
+    }
+
+    /**
+     * 在主线程通知 NSD 服务发现监听器。
+     *
+     * @param serviceInfo 发现的 NSD 服务信息
+     */
+    private void postServiceDiscovered(final NsdServiceInfo serviceInfo) {
+        if (serviceDiscoveredListener != null) {
+            mainHandler.post(() -> serviceDiscoveredListener.onServiceDiscovered(serviceInfo));
+        }
+    }
+
+    /**
+     * 在主线程通知 NSD 服务丢失监听器。
+     *
+     * @param serviceInfo 丢失的 NSD 服务信息
+     */
+    private void postServiceLost(final NsdServiceInfo serviceInfo) {
+        if (serviceLostListener != null) {
+            mainHandler.post(() -> serviceLostListener.onServiceLost(serviceInfo));
+        }
+    }
+
+    /**
+     * 在主线程通知错误监听器。
+     *
+     * @param message 错误描述信息
+     */
+    private void postError(final String message) {
+        if (errorListener != null) {
+            mainHandler.post(() -> errorListener.onError(message));
+        }
+    }
+
+    /**
+     * 设置 UDP 广播模式下的主机发现监听器。
+     *
+     * @param listener 主机发现事件监听器
+     */
     public void setOnHostDiscoveredListener(OnHostDiscoveredListener listener) {
         this.listener = listener;
     }
 
+    /**
+     * UDP 广播模式下发现新主机时的回调接口。
+     */
     public interface OnHostDiscoveredListener {
+        /**
+         * 发现新主机时调用。
+         *
+         * @param host 新发现的主机信息
+         */
         void onHostDiscovered(DiscoveredHost host);
     }
 
+    /**
+     * NSD 模式下发现新服务时的回调接口。
+     */
+    public interface OnServiceDiscoveredListener {
+        /**
+         * 发现新的 NSD 服务时调用。
+         *
+         * @param serviceInfo 发现的服务信息
+         */
+        void onServiceDiscovered(NsdServiceInfo serviceInfo);
+    }
+
+    /**
+     * NSD 模式下服务丢失时的回调接口。
+     */
+    public interface OnServiceLostListener {
+        /**
+         * NSD 服务丢失时调用。
+         *
+         * @param serviceInfo 丢失的服务信息
+         */
+        void onServiceLost(NsdServiceInfo serviceInfo);
+    }
+
+    /**
+     * NSD 服务注册成功时的回调接口。
+     */
+    public interface OnServiceRegisteredListener {
+        /**
+         * 服务注册成功时调用。
+         *
+         * @param serviceName 实际注册的服务名称（可能与请求名称不同，因 Android 可能解决名称冲突）
+         * @param port        服务端口
+         */
+        void onServiceRegistered(String serviceName, int port);
+    }
+
+    /**
+     * 错误事件回调接口。
+     */
+    public interface OnErrorListener {
+        /**
+         * 发生错误时调用。
+         *
+         * @param message 错误描述信息
+         */
+        void onError(String message);
+    }
+
+    public void setOnServiceDiscoveredListener(OnServiceDiscoveredListener listener) {
+        this.serviceDiscoveredListener = listener;
+    }
+
+    public void setOnServiceLostListener(OnServiceLostListener listener) {
+        this.serviceLostListener = listener;
+    }
+
+    public void setOnServiceRegisteredListener(OnServiceRegisteredListener listener) {
+        this.serviceRegisteredListener = listener;
+    }
+
+    public void setOnErrorListener(OnErrorListener listener) {
+        this.errorListener = listener;
+    }
+
+    /**
+     * 释放所有资源，注销服务、停止发现、清除单例引用。
+     *
+     * <p>调用后此实例不再可用，如需重新使用需通过 {@link #getInstance(Context)} 获取新实例。</p>
+     */
+    public void release() {
+        unregisterService();
+        stopDiscovery();
+        instance = null;
+    }
+
+    /**
+     * 已发现主机的数据模型类。
+     *
+     * <p>封装了通过 UDP 广播发现的其他设备的信息，包括 IP 地址、端口号、
+     * 玩家名称以及最后一次收到该主机广播的时间戳。</p>
+     */
     public static class DiscoveredHost {
         private final String ip;
         private final int port;
         private final String playerName;
+        /** 最后一次收到该主机广播的时间戳（毫秒） */
         private long lastSeen;
 
+        /**
+         * 创建已发现主机实例。
+         *
+         * @param ip         主机 IP 地址
+         * @param port       主机服务端口
+         * @param playerName 主机上的玩家名称
+         */
         public DiscoveredHost(String ip, int port, String playerName) {
             this.ip = ip;
             this.port = port;
@@ -201,8 +790,15 @@ public class LANManager {
         public int getPort() { return port; }
         public String getPlayerName() { return playerName; }
         public long getLastSeen() { return lastSeen; }
+
+        /** 更新最后活跃时间戳为当前时间 */
         public void updateLastSeen() { this.lastSeen = System.currentTimeMillis(); }
 
+        /**
+         * 判断该主机是否已过期（超过 {@value #DISCOVERY_TIMEOUT} 毫秒未收到广播）。
+         *
+         * @return 过期返回 true，否则返回 false
+         */
         public boolean isExpired() {
             return System.currentTimeMillis() - lastSeen > DISCOVERY_TIMEOUT;
         }

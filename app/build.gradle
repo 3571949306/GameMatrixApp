@@ -2,8 +2,14 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.kapt'
+    id 'com.google.devtools.ksp'
     id 'com.google.dagger.hilt.android'
 }
+
+// ============================================================
+// Section 1: Version Configuration
+// Reads version info from version.properties and local.properties
+// ============================================================
 
 def versionPropsFile = file("${rootDir}/version.properties")
 def versionFileVersionCode = 1
@@ -86,6 +92,10 @@ def lastStableVersionName = currentVersionChannel == "stable"
 def changelogFile = file("${rootDir}/CHANGELOG.md")
 def legacyChangelogFile = file("${rootDir}/changelog.txt")
 
+// ============================================================
+// Section 2: Helper Functions
+// ============================================================
+
 def readChangelogText = {
     def source = changelogFile.exists() ? changelogFile : legacyChangelogFile
     return source.exists() ? source.getText("UTF-8").trim() : ""
@@ -126,6 +136,10 @@ def buildVersionJsonText = {
             "  \"changelog\": \"${cl}\"\n" +
             "}\n"
 }
+
+// ============================================================
+// Section 3: Android Configuration
+// ============================================================
 
 android {
     namespace "com.gamecenter.app"
@@ -216,15 +230,23 @@ android {
     }
 }
 
+// ============================================================
+// Section 4: Dependencies
+// ============================================================
+
 dependencies {
+    implementation project(':core:common')
+    implementation project(':core:network')
+    implementation project(':core:update')
+
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.navigation:navigation-fragment:2.8.9'
     implementation 'androidx.navigation:navigation-ui:2.8.9'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.startup:startup-runtime:1.2.0'
+    implementation 'androidx.security:security-crypto:1.0.0'
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
@@ -239,6 +261,15 @@ dependencies {
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     
+    // AndroidX Test and Espresso
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.6.1'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    androidTestImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
+    
     // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
     implementation 'androidx.core:core-ktx:1.15.0'
@@ -250,6 +281,11 @@ dependencies {
     // Hilt Dependency Injection
     implementation 'com.google.dagger:hilt-android:2.57.2'
     kapt 'com.google.dagger:hilt-compiler:2.57.2'
+    
+    // Room Database
+    implementation "androidx.room:room-runtime:2.6.1"
+    implementation "androidx.room:room-ktx:2.6.1"
+    ksp "androidx.room:room-compiler:2.6.1"
     
     // LeakCanary for debug builds only
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
@@ -263,7 +299,7 @@ dependencies {
             because 'CVE-2023-3635 - force latest Okio'
         }
         implementation('org.jetbrains.kotlin:kotlin-stdlib:2.2.21') {
-            because 'CVE-2020-29582 - force Kotlin stdlib >= 2.1.0'
+            because 'CVE-2020-29582 fixed since 1.4.30; align with project Kotlin version'
         }
         implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.21') {
             because 'align with kotlin-stdlib 2.2.21'
@@ -279,6 +315,10 @@ dependencies {
         }
     }
 }
+
+// ============================================================
+// Section 5: Version JSON Generation Tasks
+// ============================================================
 
 task generateBundledVersionJson {
     inputs.property("versionCode", currentVersionCode)
@@ -308,6 +348,10 @@ task generateVersionJson {
         println "Generated version.json: vc=${android.defaultConfig.versionCode}"
     }
 }
+
+// ============================================================
+// Section 6: Publish & Upload Tasks
+// ============================================================
 
 task uploadReleaseArtifactsToVps(type: Exec) {
     group = "publishing"
@@ -407,6 +451,10 @@ task buildAndUploadToVpsAndGitHub {
     }
     finalizedBy uploadReleaseArtifactsToVps, uploadApkToGitHubRelease
 }
+
+// ============================================================
+// Section 7: Version Bump & Build Lifecycle
+// ============================================================
 
 task bumpVersion {
     doLast {

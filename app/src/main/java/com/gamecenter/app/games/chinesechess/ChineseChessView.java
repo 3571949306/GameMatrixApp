@@ -4,515 +4,675 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
-import android.content.res.Resources;
-import android.graphics.BlurMaskFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import com.gamecenter.app.R;
+import android.view.animation.OvershootInterpolator;
+
 import java.util.List;
 
+/**
+ * 中国象棋棋盘自定义视图。
+ * <p>
+ * 职责：
+ * <ul>
+ *   <li>渲染棋盘网格线、九宫斜线、楚河汉界</li>
+ *   <li>渲染棋子（圆形底色 + 中文字符），区分红黑双方</li>
+ *   <li>处理触摸交互：点击选中棋子、显示合法走法高亮</li>
+ *   <li>播放走棋动画（棋子从起点滑动到终点的过渡动画）</li>
+ *   <li>显示上一步走棋标记和选中棋子高亮</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：
+ * <ul>
+ *   <li>棋盘尺寸自适应：根据View宽高计算格子大小，保持棋盘居中</li>
+ *   <li>棋子使用中文字符渲染（非图片），通过 {@link Paint} 设置字体和颜色</li>
+ *   <li>走棋动画使用 {@link ValueAnimator} + Overshoot插值器，产生弹性回弹效果</li>
+ *   <li>触摸事件通过 {@link GestureDetector} 处理，将像素坐标转换为棋盘逻辑坐标</li>
+ *   <li>锁定模式（locked）下忽略触摸事件，用于AI思考期间禁止玩家操作</li>
+ * </ul>
+ */
 public class ChineseChessView extends View {
 
-    // ============ 回调接口 ============
+    /** 棋盘左右边距（像素），用于棋盘居中 */
+    private float boardPadding = 24f;
 
+    /** 每个格子的像素大小，根据View尺寸动态计算 */
+    private float cellSize;
+
+    /** 棋盘左上角起点的X像素坐标 */
+    private float boardLeft;
+
+    /** 棋盘左上角起点的Y像素坐标 */
+    private float boardTop;
+
+    /** 绑定的游戏逻辑对象 */
+    private ChineseChessGame game;
+
+    /** 是否锁定棋盘（锁定后忽略触摸事件） */
+    private boolean locked = false;
+
+    /** 选中棋子的列坐标，-1 表示未选中 */
+    private int selectedX = -1;
+
+    /** 选中棋子的行坐标，-1 表示未选中 */
+    private int selectedY = -1;
+
+    /** 选中棋子的合法走法列表，每个元素为 [toX, toY] */
+    private List<int[]> validMoves;
+
+    /** 上一步走棋的起始列，-1 表示无标记 */
+    private int lastFromX = -1;
+
+    /** 上一步走棋的起始行 */
+    private int lastFromY = -1;
+
+    /** 上一步走棋的目标列 */
+    private int lastToX = -1;
+
+    /** 上一步走棋的目标行 */
+    private int lastToY = -1;
+
+    /** 格子点击事件监听器 */
     public interface OnCellClickListener {
+        /**
+         * 当棋盘格子被点击时回调。
+         *
+         * @param col 列坐标（0~8）
+         * @param row 行坐标（0~9）
+         */
         void onCellClick(int col, int row);
     }
 
-    // ============ 成员变量 ============
+    /** 当前注册的格子点击监听器 */
+    private OnCellClickListener cellClickListener;
 
-    private ChineseChessGame game;
-    private float cellSize;
-    private float offsetX, offsetY;
-    private int[] selectedPos;
-    private List<int[]> validMoves;
-    private OnCellClickListener onCellClickListener;
-    private boolean isLocked = false;
+    /** 手势检测器，用于识别点击事件 */
+    private GestureDetector gestureDetector;
 
-    private Paint bgPaint;
+    /** 棋盘线条画笔 */
     private Paint linePaint;
-    private Paint pieceFillPaint;
-    private Paint pieceStrokePaint;
-    private Paint redTextPaint;
-    private Paint blackTextPaint;
-    private Paint selectPaint;
-    private Paint glowPaint;
-    private Paint validDotPaint;
-    private Paint capturePaint;
-    private Paint riverPaint;
-    private Paint lastMovePaint;
-    private Paint highlightPaint;
 
-    private ValueAnimator moveAnimator;
-    private int animFromX, animFromY, animToX, animToY;
-    private float animCurrentX, animCurrentY;
-    private ChineseChessGame.Piece animPiece;
+    /** 棋盘粗线条画笔（边框） */
+    private Paint thickLinePaint;
+
+    /** 红方棋子文字画笔 */
+    private Paint redTextPaint;
+
+    /** 黑方棋子文字画笔 */
+    private Paint blackTextPaint;
+
+    /** 红方棋子底色画笔 */
+    private Paint redPiecePaint;
+
+    /** 黑方棋子底色画笔 */
+    private Paint blackPiecePaint;
+
+    /** 棋子边框画笔 */
+    private Paint pieceBorderPaint;
+
+    /** 选中高亮画笔 */
+    private Paint selectedPaint;
+
+    /** 合法走法高亮画笔 */
+    private Paint validMovePaint;
+
+    /** 上一步走棋标记画笔 */
+    private Paint lastMovePaint;
+
+    /** 楚河汉界文字画笔 */
+    private Paint riverTextPaint;
+
+    /** 走棋动画：当前动画中的棋子 */
+    private ChineseChessGame.Piece animatingPiece;
+
+    /** 走棋动画：当前动画X坐标（像素） */
+    private float animCurrentX;
+
+    /** 走棋动画：当前动画Y坐标（像素） */
+    private float animCurrentY;
+
+    /** 走棋动画：是否正在播放 */
     private boolean isAnimating = false;
 
-    private int lastFromX = -1, lastFromY = -1, lastToX = -1, lastToY = -1;
+    /** 走棋动画完成后的回调 */
+    private Runnable onAnimationEnd;
 
-    private float density;
-    private int viewWidth, viewHeight;
+    /** 当前走棋动画实例 */
+    private ValueAnimator currentAnimator;
 
-    public ChineseChessView(Context context) {
-        super(context);
-        init();
-    }
-
+    /**
+     * XML布局使用的构造函数。
+     *
+     * @param context 上下文
+     * @param attrs   XML属性集
+     */
     public ChineseChessView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
+    /**
+     * 仅上下文的构造函数。
+     *
+     * @param context 上下文
+     */
+    public ChineseChessView(Context context) {
+        super(context);
+        init();
+    }
+
+    /**
+     * 初始化画笔和手势检测器。
+     * <p>创建所有绘制所需的Paint对象，设置颜色、线宽、字体等属性。
+     */
     private void init() {
-        setWillNotDraw(false);
-        setLayerType(LAYER_TYPE_SOFTWARE, null);
+        linePaint = new Paint();
+        linePaint.setColor(Color.parseColor("#5D4037"));
+        linePaint.setStrokeWidth(1.5f);
+        linePaint.setAntiAlias(true);
 
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        density = metrics.density;
+        thickLinePaint = new Paint();
+        thickLinePaint.setColor(Color.parseColor("#3E2723"));
+        thickLinePaint.setStrokeWidth(3f);
+        thickLinePaint.setAntiAlias(true);
 
-        Resources res = getResources();
-        int boardBg = res.getColor(R.color.chess_bg, null);
-        int lineColor = res.getColor(R.color.chess_line, null);
-        int redColor = res.getColor(R.color.chess_red, null);
-        int blackColor = res.getColor(R.color.chess_black, null);
+        redPiecePaint = new Paint();
+        redPiecePaint.setColor(Color.parseColor("#FFEBEE"));
+        redPiecePaint.setAntiAlias(true);
 
-        bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        bgPaint.setColor(boardBg);
-        bgPaint.setStyle(Paint.Style.FILL);
+        blackPiecePaint = new Paint();
+        blackPiecePaint.setColor(Color.parseColor("#ECEFF1"));
+        blackPiecePaint.setAntiAlias(true);
 
-        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        linePaint.setColor(lineColor);
-        linePaint.setStyle(Paint.Style.STROKE);
-        linePaint.setStrokeWidth(dpToPx(1.5f));
+        pieceBorderPaint = new Paint();
+        pieceBorderPaint.setColor(Color.parseColor("#5D4037"));
+        pieceBorderPaint.setStyle(Paint.Style.STROKE);
+        pieceBorderPaint.setStrokeWidth(2f);
+        pieceBorderPaint.setAntiAlias(true);
 
-        pieceFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pieceFillPaint.setColor(Color.rgb(255, 250, 235));
-        pieceFillPaint.setStyle(Paint.Style.FILL);
-
-        pieceStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pieceStrokePaint.setColor(lineColor);
-        pieceStrokePaint.setStyle(Paint.Style.STROKE);
-        pieceStrokePaint.setStrokeWidth(dpToPx(2.0f));
-
-        redTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        redTextPaint.setColor(redColor);
+        redTextPaint = new Paint();
+        redTextPaint.setColor(Color.parseColor("#C62828"));
+        redTextPaint.setAntiAlias(true);
+        redTextPaint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         redTextPaint.setTextAlign(Paint.Align.CENTER);
-        redTextPaint.setTypeface(Typeface.DEFAULT_BOLD);
 
-        blackTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        blackTextPaint.setColor(blackColor);
+        blackTextPaint = new Paint();
+        blackTextPaint.setColor(Color.parseColor("#1A1A1A"));
+        blackTextPaint.setAntiAlias(true);
+        blackTextPaint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         blackTextPaint.setTextAlign(Paint.Align.CENTER);
-        blackTextPaint.setTypeface(Typeface.DEFAULT_BOLD);
 
-        selectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        selectPaint.setColor(Color.rgb(255, 215, 0));
-        selectPaint.setStyle(Paint.Style.FILL);
-        selectPaint.setAlpha(120);
+        selectedPaint = new Paint();
+        selectedPaint.setColor(Color.parseColor("#4CAF50"));
+        selectedPaint.setStyle(Paint.Style.STROKE);
+        selectedPaint.setStrokeWidth(4f);
+        selectedPaint.setAntiAlias(true);
 
-        glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        glowPaint.setColor(Color.rgb(255, 200, 0));
-        glowPaint.setStyle(Paint.Style.FILL);
-        glowPaint.setAlpha(80);
-        glowPaint.setMaskFilter(new BlurMaskFilter(dpToPx(8), BlurMaskFilter.Blur.NORMAL));
+        validMovePaint = new Paint();
+        validMovePaint.setColor(Color.parseColor("#4CAF50"));
+        validMovePaint.setAntiAlias(true);
 
-        highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        highlightPaint.setColor(Color.rgb(255, 180, 0));
-        highlightPaint.setStyle(Paint.Style.STROKE);
-        highlightPaint.setStrokeWidth(dpToPx(3.0f));
+        lastMovePaint = new Paint();
+        lastMovePaint.setColor(Color.parseColor("#FF9800"));
+        lastMovePaint.setStyle(Paint.Style.STROKE);
+        lastMovePaint.setStrokeWidth(3f);
+        lastMovePaint.setAntiAlias(true);
 
-        validDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        validDotPaint.setColor(Color.rgb(50, 200, 50));
-        validDotPaint.setStyle(Paint.Style.FILL);
-        validDotPaint.setAlpha(180);
+        riverTextPaint = new Paint();
+        riverTextPaint.setColor(Color.parseColor("#5D4037"));
+        riverTextPaint.setAntiAlias(true);
+        riverTextPaint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
+        riverTextPaint.setTextAlign(Paint.Align.CENTER);
 
-        capturePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        capturePaint.setColor(Color.rgb(220, 50, 50));
-        capturePaint.setStyle(Paint.Style.STROKE);
-        capturePaint.setStrokeWidth(dpToPx(3.0f));
-        capturePaint.setAlpha(220);
-
-        riverPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        riverPaint.setColor(lineColor);
-        riverPaint.setTextAlign(Paint.Align.CENTER);
-
-        lastMovePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        lastMovePaint.setColor(Color.rgb(100, 150, 255));
-        lastMovePaint.setStyle(Paint.Style.FILL);
-        lastMovePaint.setAlpha(60);
+        gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                if (locked || isAnimating) return false;
+                int[] pos = pixelToBoard(e.getX(), e.getY());
+                if (pos != null && cellClickListener != null) {
+                    cellClickListener.onCellClick(pos[0], pos[1]);
+                }
+                return true;
+            }
+        });
     }
 
-    private float dpToPx(float dp) {
-        return dp * density;
-    }
-
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        viewWidth = w;
-        viewHeight = h;
-        computeBoardMetrics(w, h);
-    }
-
-    private void computeBoardMetrics(int w, int h) {
-        cellSize = w / 9.0f;
-
-        float boardWidth = 8 * cellSize;
-        float boardHeight = 9 * cellSize;
-
-        offsetX = (w - boardWidth) / 2.0f;
-        offsetY = (h - boardHeight) / 2.0f;
-
-        float textScale = cellSize / dpToPx(45);
-        redTextPaint.setTextSize(cellSize * 0.50f * textScale);
-        blackTextPaint.setTextSize(cellSize * 0.50f * textScale);
-        riverPaint.setTextSize(cellSize * 0.35f * textScale);
-
-        linePaint.setStrokeWidth(cellSize * 0.02f);
-        pieceStrokePaint.setStrokeWidth(cellSize * 0.03f);
-        highlightPaint.setStrokeWidth(cellSize * 0.04f);
-        capturePaint.setStrokeWidth(cellSize * 0.04f);
-
-        if (glowPaint.getMaskFilter() != null) {
-            glowPaint.setMaskFilter(new BlurMaskFilter(cellSize * 0.15f, BlurMaskFilter.Blur.NORMAL));
-        }
-    }
-
+    /**
+     * 绑定游戏逻辑对象。
+     * <p>设置此视图关联的游戏状态，视图将根据该对象渲染棋盘。
+     *
+     * @param game 游戏逻辑对象
+     */
     public void bindGame(ChineseChessGame game) {
         this.game = game;
-        this.selectedPos = null;
-        this.validMoves = null;
-        this.isLocked = false;
-        this.lastFromX = -1;
-        this.lastFromY = -1;
-        this.lastToX = -1;
-        this.lastToY = -1;
+        invalidate();
     }
 
+    /**
+     * 设置格子点击监听器。
+     *
+     * @param listener 点击事件监听器
+     */
     public void setOnCellClickListener(OnCellClickListener listener) {
-        this.onCellClickListener = listener;
+        this.cellClickListener = listener;
     }
 
+    /**
+     * 设置锁定状态。
+     * <p>锁定后棋盘不响应触摸事件，用于AI思考期间。
+     *
+     * @param locked true 锁定，false 解锁
+     */
     public void setLocked(boolean locked) {
-        this.isLocked = locked;
-        dispatchDraw();
+        this.locked = locked;
     }
 
-    public void setSelected(int x, int y, List<int[]> moves) {
-        this.selectedPos = new int[]{x, y};
-        this.validMoves = moves;
-        dispatchDraw();
+    /**
+     * 设置选中棋子的高亮和合法走法显示。
+     *
+     * @param x          选中棋子的列坐标
+     * @param y          选中棋子的行坐标
+     * @param validMoves 合法走法列表，每个元素为 [toX, toY]
+     */
+    public void setSelected(int x, int y, List<int[]> validMoves) {
+        this.selectedX = x;
+        this.selectedY = y;
+        this.validMoves = validMoves;
+        invalidate();
     }
 
+    /**
+     * 清除选中状态和高亮。
+     */
     public void clearSelected() {
-        this.selectedPos = null;
+        this.selectedX = -1;
+        this.selectedY = -1;
         this.validMoves = null;
-        dispatchDraw();
+        invalidate();
     }
 
+    /**
+     * 设置上一步走棋的标记。
+     *
+     * @param fromX 起始列
+     * @param fromY 起始行
+     * @param toX   目标列
+     * @param toY   目标行
+     */
     public void setLastMove(int fromX, int fromY, int toX, int toY) {
         this.lastFromX = fromX;
         this.lastFromY = fromY;
         this.lastToX = toX;
         this.lastToY = toY;
-        dispatchDraw();
     }
 
+    /**
+     * 清除上一步走棋标记。
+     */
     public void clearLastMove() {
         this.lastFromX = -1;
         this.lastFromY = -1;
         this.lastToX = -1;
         this.lastToY = -1;
-        dispatchDraw();
     }
 
-    private void dispatchDraw() {
-        if (isAttachedToWindow()) {
-            postInvalidateOnAnimation();
+    /**
+     * 测量视图尺寸，计算棋盘布局参数。
+     * <p>根据View的可用宽高，计算格子大小（cellSize）和棋盘起点坐标（boardLeft, boardTop），
+     * 确保棋盘在View中居中显示。
+     *
+     * @param widthMeasureSpec  宽度测量规格
+     * @param heightMeasureSpec 高度测量规格
+     */
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int w = MeasureSpec.getSize(widthMeasureSpec);
+        int h = MeasureSpec.getSize(heightMeasureSpec);
+
+        // 棋盘宽度 = 8个格子（9个交叉点），高度 = 9个格子（10个交叉点）
+        float cellW = (w - 2 * boardPadding) / 8f;
+        float cellH = (h - 2 * boardPadding) / 9f;
+        cellSize = Math.min(cellW, cellH);
+
+        // 居中棋盘
+        float boardWidth = cellSize * 8;
+        float boardHeight = cellSize * 9;
+        boardLeft = (w - boardWidth) / 2f;
+        boardTop = (h - boardHeight) / 2f;
+
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    /**
+     * 绘制棋盘和棋子。
+     * <p>绘制顺序：
+     * <ol>
+     *   <li>棋盘背景</li>
+     *   <li>网格线和九宫斜线</li>
+     *   <li>楚河汉界文字</li>
+     *   <li>上一步走棋标记</li>
+     *   <li>选中棋子高亮和合法走法标记</li>
+     *   <li>所有棋子（动画中的棋子除外）</li>
+     *   <li>动画中的棋子（最上层）</li>
+     * </ol>
+     *
+     * @param canvas 画布
+     */
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if (game == null) return;
+
+        drawBoardBackground(canvas);
+        drawGridLines(canvas);
+        drawRiverText(canvas);
+        drawLastMove(canvas);
+        drawSelected(canvas);
+        drawPieces(canvas);
+        drawAnimatingPiece(canvas);
+    }
+
+    /**
+     * 绘制棋盘背景。
+     * <p>使用木纹色填充棋盘区域。
+     *
+     * @param canvas 画布
+     */
+    private void drawBoardBackground(Canvas canvas) {
+        Paint bgPaint = new Paint();
+        bgPaint.setColor(Color.parseColor("#F5DEB3"));
+        bgPaint.setAntiAlias(true);
+        RectF boardRect = new RectF(
+                boardLeft - boardPadding, boardTop - boardPadding,
+                boardLeft + cellSize * 8 + boardPadding, boardTop + cellSize * 9 + boardPadding);
+        canvas.drawRect(boardRect, bgPaint);
+    }
+
+    /**
+     * 绘制棋盘网格线。
+     * <p>包括：
+     * <ul>
+     *   <li>9条竖线（上半部和下半部分开，中间为楚河汉界）</li>
+     *   <li>10条横线</li>
+     *   <li>两个九宫斜线</li>
+     *   <li>外边框加粗</li>
+     * </ul>
+     *
+     * @param canvas 画布
+     */
+    private void drawGridLines(Canvas canvas) {
+        // 横线：10条
+        for (int row = 0; row < ChineseChessGame.ROWS; row++) {
+            float y = boardTop + row * cellSize;
+            canvas.drawLine(boardLeft, y, boardLeft + 8 * cellSize, y, linePaint);
+        }
+
+        // 竖线：上半部（行0~4）和下半部（行5~9）分别绘制，中间为楚河汉界
+        for (int col = 0; col < ChineseChessGame.COLS; col++) {
+            float x = boardLeft + col * cellSize;
+            // 上半部竖线
+            canvas.drawLine(x, boardTop, x, boardTop + 4 * cellSize, linePaint);
+            // 下半部竖线
+            canvas.drawLine(x, boardTop + 5 * cellSize, x, boardTop + 9 * cellSize, linePaint);
+        }
+        // 左右两条边线贯穿全棋盘（楚河汉界区域也需要边线）
+        canvas.drawLine(boardLeft, boardTop + 4 * cellSize, boardLeft, boardTop + 5 * cellSize, linePaint);
+        canvas.drawLine(boardLeft + 8 * cellSize, boardTop + 4 * cellSize,
+                boardLeft + 8 * cellSize, boardTop + 5 * cellSize, linePaint);
+
+        // 九宫斜线：红方九宫（行7~9，列3~5）
+        canvas.drawLine(boardLeft + 3 * cellSize, boardTop + 7 * cellSize,
+                boardLeft + 5 * cellSize, boardTop + 9 * cellSize, linePaint);
+        canvas.drawLine(boardLeft + 5 * cellSize, boardTop + 7 * cellSize,
+                boardLeft + 3 * cellSize, boardTop + 9 * cellSize, linePaint);
+        // 黑方九宫（行0~2，列3~5）
+        canvas.drawLine(boardLeft + 3 * cellSize, boardTop + 0 * cellSize,
+                boardLeft + 5 * cellSize, boardTop + 2 * cellSize, linePaint);
+        canvas.drawLine(boardLeft + 5 * cellSize, boardTop + 0 * cellSize,
+                boardLeft + 3 * cellSize, boardTop + 2 * cellSize, linePaint);
+
+        // 外边框加粗
+        canvas.drawRect(boardLeft, boardTop,
+                boardLeft + 8 * cellSize, boardTop + 9 * cellSize, thickLinePaint);
+    }
+
+    /**
+     * 绘制楚河汉界文字。
+     * <p>在棋盘中间空白区域（行4~5之间）绘制"楚河"和"汉界"。
+     *
+     * @param canvas 画布
+     */
+    private void drawRiverText(Canvas canvas) {
+        float riverY = boardTop + 4.5f * cellSize;
+        riverTextPaint.setTextSize(cellSize * 0.45f);
+        canvas.drawText("楚  河", boardLeft + 2 * cellSize, riverY + riverTextPaint.getTextSize() / 3, riverTextPaint);
+        canvas.drawText("汉  界", boardLeft + 6 * cellSize, riverY + riverTextPaint.getTextSize() / 3, riverTextPaint);
+    }
+
+    /**
+     * 绘制上一步走棋的标记。
+     * <p>在起始位置和目标位置绘制橙色圆环标记。
+     *
+     * @param canvas 画布
+     */
+    private void drawLastMove(Canvas canvas) {
+        if (lastFromX < 0 || lastToX < 0) return;
+        float radius = cellSize * 0.38f;
+
+        float fromPx = boardLeft + lastFromX * cellSize;
+        float fromPy = boardTop + lastFromY * cellSize;
+        canvas.drawCircle(fromPx, fromPy, radius, lastMovePaint);
+
+        float toPx = boardLeft + lastToX * cellSize;
+        float toPy = boardTop + lastToY * cellSize;
+        canvas.drawCircle(toPx, toPy, radius, lastMovePaint);
+    }
+
+    /**
+     * 绘制选中棋子的高亮和合法走法标记。
+     * <p>选中棋子绘制绿色圆环，合法走法目标位置绘制绿色小圆点。
+     *
+     * @param canvas 画布
+     */
+    private void drawSelected(Canvas canvas) {
+        if (selectedX < 0 || selectedY < 0) return;
+        float radius = cellSize * 0.38f;
+
+        float px = boardLeft + selectedX * cellSize;
+        float py = boardTop + selectedY * cellSize;
+        canvas.drawCircle(px, py, radius + 4, selectedPaint);
+
+        // 绘制合法走法标记
+        if (validMoves != null) {
+            for (int[] move : validMoves) {
+                float mx = boardLeft + move[0] * cellSize;
+                float my = boardTop + move[1] * cellSize;
+                ChineseChessGame.Piece target = game.getBoard()[move[1]][move[0]];
+                if (target != null) {
+                    // 目标位置有敌方棋子：绘制圆环（表示可吃）
+                    canvas.drawCircle(mx, my, radius, selectedPaint);
+                } else {
+                    // 目标位置为空：绘制小圆点
+                    canvas.drawCircle(mx, my, cellSize * 0.12f, validMovePaint);
+                }
+            }
         }
     }
 
-    public void animateMove(int fromX, int fromY, int toX, int toY, final Runnable onComplete) {
-        if (game == null) return;
+    /**
+     * 绘制所有棋子（动画中的棋子除外）。
+     * <p>遍历棋盘数组，为每个棋子绘制圆形底色、边框和中文名称。
+     * 正在动画中的棋子跳过，由 {@link #drawAnimatingPiece} 单独绘制。
+     *
+     * @param canvas 画布
+     */
+    private void drawPieces(Canvas canvas) {
+        ChineseChessGame.Piece[][] board = game.getBoard();
+        float radius = cellSize * 0.38f;
 
+        for (int y = 0; y < ChineseChessGame.ROWS; y++) {
+            for (int x = 0; x < ChineseChessGame.COLS; x++) {
+                ChineseChessGame.Piece piece = board[y][x];
+                if (piece == null) continue;
+                // 跳过正在动画中的棋子
+                if (isAnimating && animatingPiece == piece) continue;
+
+                float px = boardLeft + x * cellSize;
+                float py = boardTop + y * cellSize;
+                drawSinglePiece(canvas, piece, px, py, radius);
+            }
+        }
+    }
+
+    /**
+     * 绘制动画中的棋子。
+     * <p>使用动画计算出的当前位置（animCurrentX, animCurrentY）绘制棋子，
+     * 使棋子看起来从起点滑动到终点。
+     *
+     * @param canvas 画布
+     */
+    private void drawAnimatingPiece(Canvas canvas) {
+        if (!isAnimating || animatingPiece == null) return;
+        float radius = cellSize * 0.38f;
+        drawSinglePiece(canvas, animatingPiece, animCurrentX, animCurrentY, radius);
+    }
+
+    /**
+     * 绘制单个棋子。
+     * <p>绘制顺序：圆形底色 → 边框 → 中文名称文字。
+     * 红方棋子使用浅红底色+红色文字，黑方棋子使用浅灰底色+黑色文字。
+     *
+     * @param canvas 画布
+     * @param piece  要绘制的棋子
+     * @param cx     棋子中心X像素坐标
+     * @param cy     棋子中心Y像素坐标
+     * @param radius 棋子半径（像素）
+     */
+    private void drawSinglePiece(Canvas canvas, ChineseChessGame.Piece piece, float cx, float cy, float radius) {
+        // 底色
+        Paint bgPaint = piece.side == ChineseChessGame.Side.RED ? redPiecePaint : blackPiecePaint;
+        canvas.drawCircle(cx, cy, radius, bgPaint);
+
+        // 边框
+        canvas.drawCircle(cx, cy, radius, pieceBorderPaint);
+
+        // 内圈装饰线
+        canvas.drawCircle(cx, cy, radius * 0.85f, pieceBorderPaint);
+
+        // 文字
+        Paint textPaint = piece.side == ChineseChessGame.Side.RED ? redTextPaint : blackTextPaint;
+        textPaint.setTextSize(radius * 1.2f);
+        Rect textBounds = new Rect();
+        textPaint.getTextBounds(piece.getName(), 0, piece.getName().length(), textBounds);
+        float textY = cy + textBounds.height() / 2f;
+        canvas.drawText(piece.getName(), cx, textY, textPaint);
+    }
+
+    /**
+     * 播放走棋动画。
+     * <p>棋子从起始位置滑动到目标位置，使用Overshoot插值器产生弹性效果。
+     * 动画期间该棋子从正常绘制中排除，由动画层单独绘制。
+     * 动画完成后执行回调。
+     *
+     * @param fromX       起始列
+     * @param fromY       起始行
+     * @param toX         目标列
+     * @param toY         目标行
+     * @param onEnd       动画完成后的回调
+     */
+    public void animateMove(int fromX, int fromY, int toX, int toY, Runnable onEnd) {
         ChineseChessGame.Piece piece = game.getBoard()[fromY][fromX];
         if (piece == null) {
-            if (onComplete != null) onComplete.run();
+            if (onEnd != null) onEnd.run();
             return;
         }
 
+        animatingPiece = piece;
         isAnimating = true;
-        animFromX = fromX;
-        animFromY = fromY;
-        animToX = toX;
-        animToY = toY;
-        animPiece = piece;
+        onAnimationEnd = onEnd;
 
-        float startX = offsetX + fromX * cellSize;
-        float startY = offsetY + fromY * cellSize;
-        float endX = offsetX + toX * cellSize;
-        float endY = offsetY + toY * cellSize;
+        float startX = boardLeft + fromX * cellSize;
+        float startY = boardTop + fromY * cellSize;
+        float endX = boardLeft + toX * cellSize;
+        float endY = boardTop + toY * cellSize;
 
-        moveAnimator = ValueAnimator.ofFloat(0f, 1f);
-        moveAnimator.setDuration(300);
-        moveAnimator.addUpdateListener(animation -> {
-            float fraction = animation.getAnimatedFraction();
+        currentAnimator = ValueAnimator.ofFloat(0f, 1f);
+        currentAnimator.setDuration(280);
+        currentAnimator.setInterpolator(new OvershootInterpolator(1.1f));
+        currentAnimator.addUpdateListener(animation -> {
+            float fraction = (float) animation.getAnimatedValue();
             animCurrentX = startX + (endX - startX) * fraction;
             animCurrentY = startY + (endY - startY) * fraction;
             invalidate();
         });
-        moveAnimator.addListener(new AnimatorListenerAdapter() {
+        currentAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 isAnimating = false;
-                animPiece = null;
-                if (onComplete != null) {
-                    onComplete.run();
-                }
+                animatingPiece = null;
+                invalidate();
+                if (onAnimationEnd != null) onAnimationEnd.run();
             }
         });
-        moveAnimator.start();
+        currentAnimator.start();
     }
 
+    /**
+     * 取消当前正在播放的动画。
+     * <p>用于重新开始游戏时，立即终止未完成的走棋动画。
+     */
     public void cancelAnimation() {
-        if (moveAnimator != null && moveAnimator.isRunning()) {
-            moveAnimator.cancel();
+        if (currentAnimator != null && currentAnimator.isRunning()) {
+            currentAnimator.cancel();
         }
         isAnimating = false;
-        animPiece = null;
+        animatingPiece = null;
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-
-        canvas.drawRect(0, 0, getWidth(), getHeight(), bgPaint);
-        drawBoardLines(canvas);
-        drawStarPoints(canvas);
-        drawRiverText(canvas);
-        drawLastMoveOverlay(canvas);
-        drawPieces(canvas);
-        drawAnimatingPiece(canvas);
-        drawSelectionOverlay(canvas);
-    }
-
-    private void drawBoardLines(Canvas canvas) {
-        for (int i = 0; i < ChineseChessGame.ROWS; i++) {
-            float y = offsetY + i * cellSize;
-            canvas.drawLine(offsetX, y, offsetX + 8 * cellSize, y, linePaint);
-        }
-
-        for (int i = 0; i < ChineseChessGame.COLS; i++) {
-            float x = offsetX + i * cellSize;
-            if (i == 0 || i == 8) {
-                canvas.drawLine(x, offsetY, x, offsetY + 9 * cellSize, linePaint);
-            } else {
-                canvas.drawLine(x, offsetY, x, offsetY + 4 * cellSize, linePaint);
-                canvas.drawLine(x, offsetY + 5 * cellSize, x, offsetY + 9 * cellSize, linePaint);
+    /**
+     * 将像素坐标转换为棋盘逻辑坐标。
+     * <p>计算触摸点最近的交叉点，若距离在棋子半径内则返回该坐标，
+     * 否则返回null（触摸位置不在任何有效交叉点上）。
+     *
+     * @param px 像素X坐标
+     * @param py 像素Y坐标
+     * @return 棋盘坐标 [col, row]，若不在有效范围内返回null
+     */
+    private int[] pixelToBoard(float px, float py) {
+        int col = Math.round((px - boardLeft) / cellSize);
+        int row = Math.round((py - boardTop) / cellSize);
+        if (col >= 0 && col < ChineseChessGame.COLS && row >= 0 && row < ChineseChessGame.ROWS) {
+            // 检查触摸点与最近交叉点的距离是否在合理范围内
+            float cx = boardLeft + col * cellSize;
+            float cy = boardTop + row * cellSize;
+            float dist = (float) Math.sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy));
+            if (dist <= cellSize * 0.5f) {
+                return new int[]{col, row};
             }
         }
-
-        drawPalaceDiagonals(canvas);
+        return null;
     }
 
-    private void drawPalaceDiagonals(Canvas canvas) {
-        canvas.drawLine(offsetX + 3 * cellSize, offsetY, offsetX + 5 * cellSize, offsetY + 2 * cellSize, linePaint);
-        canvas.drawLine(offsetX + 5 * cellSize, offsetY, offsetX + 3 * cellSize, offsetY + 2 * cellSize, linePaint);
-        canvas.drawLine(offsetX + 3 * cellSize, offsetY + 7 * cellSize, offsetX + 5 * cellSize, offsetY + 9 * cellSize, linePaint);
-        canvas.drawLine(offsetX + 5 * cellSize, offsetY + 7 * cellSize, offsetX + 3 * cellSize, offsetY + 9 * cellSize, linePaint);
-    }
-
-    private void drawStarPoints(Canvas canvas) {
-        int[][] starPositions = {
-            {1, 2}, {7, 2},
-            {0, 3}, {2, 3}, {4, 3}, {6, 3}, {8, 3},
-            {0, 6}, {2, 6}, {4, 6}, {6, 6}, {8, 6},
-            {1, 7}, {7, 7}
-        };
-
-        float starSize = cellSize * 0.08f;
-        float gap = cellSize * 0.06f;
-
-        Paint starPaint = new Paint(linePaint);
-        starPaint.setStrokeWidth(cellSize * 0.02f);
-
-        for (int[] pos : starPositions) {
-            float cx = offsetX + pos[0] * cellSize;
-            float cy = offsetY + pos[1] * cellSize;
-
-            if (pos[0] > 0) {
-                canvas.drawLine(cx - gap - starSize, cy - gap, cx - gap, cy - gap, starPaint);
-                canvas.drawLine(cx - gap, cy - gap, cx - gap, cy - gap - starSize, starPaint);
-                canvas.drawLine(cx - gap - starSize, cy + gap, cx - gap, cy + gap, starPaint);
-                canvas.drawLine(cx - gap, cy + gap, cx - gap, cy + gap + starSize, starPaint);
-            }
-
-            if (pos[0] < 8) {
-                canvas.drawLine(cx + gap + starSize, cy - gap, cx + gap, cy - gap, starPaint);
-                canvas.drawLine(cx + gap, cy - gap, cx + gap, cy - gap - starSize, starPaint);
-                canvas.drawLine(cx + gap + starSize, cy + gap, cx + gap, cy + gap, starPaint);
-                canvas.drawLine(cx + gap, cy + gap, cx + gap, cy + gap + starSize, starPaint);
-            }
-        }
-    }
-
-    private void drawRiverText(Canvas canvas) {
-        float centerX = offsetX + 4 * cellSize;
-        float riverY = offsetY + 4.5f * cellSize + riverPaint.getTextSize() / 3;
-        canvas.drawText("楚 河", centerX - cellSize * 1.5f, riverY, riverPaint);
-        canvas.drawText("汉 界", centerX + cellSize * 1.5f, riverY, riverPaint);
-    }
-
-    private void drawLastMoveOverlay(Canvas canvas) {
-        if (lastFromX < 0 || lastFromY < 0 || lastToX < 0 || lastToY < 0) return;
-
-        float fromCx = offsetX + lastFromX * cellSize;
-        float fromCy = offsetY + lastFromY * cellSize;
-        float toCx = offsetX + lastToX * cellSize;
-        float toCy = offsetY + lastToY * cellSize;
-
-        float halfSize = cellSize * 0.46f;
-        RectF fromRect = new RectF(fromCx - halfSize, fromCy - halfSize, fromCx + halfSize, fromCy + halfSize);
-        RectF toRect = new RectF(toCx - halfSize, toCy - halfSize, toCx + halfSize, toCy + halfSize);
-
-        canvas.drawRect(fromRect, lastMovePaint);
-        canvas.drawRect(toRect, lastMovePaint);
-
-        Paint cornerPaint = new Paint(lastMovePaint);
-        cornerPaint.setStyle(Paint.Style.STROKE);
-        cornerPaint.setStrokeWidth(cellSize * 0.025f);
-        cornerPaint.setAlpha(180);
-
-        float cornerLen = cellSize * 0.2f;
-
-        Path fromPath = new Path();
-        fromPath.moveTo(fromRect.left, fromRect.top + cornerLen);
-        fromPath.lineTo(fromRect.left, fromRect.top);
-        fromPath.lineTo(fromRect.left + cornerLen, fromRect.top);
-        fromPath.moveTo(fromRect.right - cornerLen, fromRect.top);
-        fromPath.lineTo(fromRect.right, fromRect.top);
-        fromPath.lineTo(fromRect.right, fromRect.top + cornerLen);
-        fromPath.moveTo(fromRect.right, fromRect.bottom - cornerLen);
-        fromPath.lineTo(fromRect.right, fromRect.bottom);
-        fromPath.lineTo(fromRect.right - cornerLen, fromRect.bottom);
-        fromPath.moveTo(fromRect.left + cornerLen, fromRect.bottom);
-        fromPath.lineTo(fromRect.left, fromRect.bottom);
-        fromPath.lineTo(fromRect.left, fromRect.bottom - cornerLen);
-        canvas.drawPath(fromPath, cornerPaint);
-
-        Path toPath = new Path();
-        toPath.moveTo(toRect.left, toRect.top + cornerLen);
-        toPath.lineTo(toRect.left, toRect.top);
-        toPath.lineTo(toRect.left + cornerLen, toRect.top);
-        toPath.moveTo(toRect.right - cornerLen, toRect.top);
-        toPath.lineTo(toRect.right, toRect.top);
-        toPath.lineTo(toRect.right, toRect.top + cornerLen);
-        toPath.moveTo(toRect.right, toRect.bottom - cornerLen);
-        toPath.lineTo(toRect.right, toRect.bottom);
-        toPath.lineTo(toRect.right - cornerLen, toRect.bottom);
-        toPath.moveTo(toRect.left + cornerLen, toRect.bottom);
-        toPath.lineTo(toRect.left, toRect.bottom);
-        toPath.lineTo(toRect.left, toRect.bottom - cornerLen);
-        canvas.drawPath(toPath, cornerPaint);
-    }
-
-    private void drawPieces(Canvas canvas) {
-        if (game == null) return;
-
-        ChineseChessGame.Piece[][] board = game.getBoard();
-        for (int row = 0; row < ChineseChessGame.ROWS; row++) {
-            for (int col = 0; col < ChineseChessGame.COLS; col++) {
-                if (isAnimating && col == animFromX && row == animFromY) {
-                    continue;
-                }
-                ChineseChessGame.Piece piece = board[row][col];
-                if (piece != null) {
-                    drawSinglePiece(canvas, col, row, piece);
-                }
-            }
-        }
-    }
-
-    private void drawAnimatingPiece(Canvas canvas) {
-        if (!isAnimating || animPiece == null) return;
-
-        float cx = animCurrentX;
-        float cy = animCurrentY;
-        float radius = cellSize * 0.42f;
-
-        canvas.drawCircle(cx, cy, radius, pieceFillPaint);
-        canvas.drawCircle(cx, cy, radius, pieceStrokePaint);
-
-        Paint textPaint = (animPiece.side == ChineseChessGame.Side.RED) ? redTextPaint : blackTextPaint;
-        float textY = cy - (textPaint.descent() + textPaint.ascent()) / 2.0f;
-        canvas.drawText(animPiece.getName(), cx, textY, textPaint);
-    }
-
-    private void drawSinglePiece(Canvas canvas, int col, int row, ChineseChessGame.Piece piece) {
-        float cx = offsetX + col * cellSize;
-        float cy = offsetY + row * cellSize;
-        float radius = cellSize * 0.42f;
-
-        canvas.drawCircle(cx, cy, radius, pieceFillPaint);
-        canvas.drawCircle(cx, cy, radius, pieceStrokePaint);
-
-        Paint textPaint = (piece.side == ChineseChessGame.Side.RED) ? redTextPaint : blackTextPaint;
-        float textY = cy - (textPaint.descent() + textPaint.ascent()) / 2.0f;
-        canvas.drawText(piece.getName(), cx, textY, textPaint);
-    }
-
-    private void drawSelectionOverlay(Canvas canvas) {
-        if (isLocked || selectedPos == null) return;
-
-        float cx = offsetX + selectedPos[0] * cellSize;
-        float cy = offsetY + selectedPos[1] * cellSize;
-        float radius = cellSize * 0.46f;
-
-        canvas.drawCircle(cx, cy, radius * 1.3f, glowPaint);
-        canvas.drawCircle(cx, cy, radius, selectPaint);
-        canvas.drawCircle(cx, cy, radius, highlightPaint);
-
-        if (validMoves != null) {
-            for (int[] mv : validMoves) {
-                float mx = offsetX + mv[0] * cellSize;
-                float my = offsetY + mv[1] * cellSize;
-                if (game != null && game.getBoard()[mv[1]][mv[0]] != null) {
-                    canvas.drawCircle(mx, my, cellSize * 0.42f, capturePaint);
-                } else {
-                    canvas.drawCircle(mx, my, cellSize * 0.15f, validDotPaint);
-                }
-            }
-        }
-    }
-
+    /**
+     * 处理触摸事件。
+     * <p>委托给 {@link GestureDetector} 处理，识别点击手势。
+     *
+     * @param event 触摸事件
+     * @return true 若事件被消费
+     */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (game == null || game.isGameOver() || isLocked || isAnimating) {
-            return true;
-        }
-
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            int col = Math.round((event.getX() - offsetX) / cellSize);
-            int row = Math.round((event.getY() - offsetY) / cellSize);
-
-            if (col >= 0 && col < ChineseChessGame.COLS && row >= 0 && row < ChineseChessGame.ROWS) {
-
-                if (onCellClickListener != null) {
-
-                    onCellClickListener.onCellClick(col, row);
-
-                }
-
-            }
-        }
-        return true;
+        return gestureDetector.onTouchEvent(event);
     }
 }

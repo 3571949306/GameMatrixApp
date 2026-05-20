@@ -1,0 +1,127 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.kapt'
+    id 'com.google.dagger.hilt.android'
+}
+
+def versionPropsFile = file("${rootDir}/version.properties")
+def versionFileVersionCode = 1
+def versionFileVersionName = "1.0"
+def configuredLastStableVersionCode = 0
+def configuredLastStableVersionName = ""
+def configuredBetaNoticeVersionGap = 3
+
+def localPropsFile = file("${rootDir}/local.properties")
+def configuredServerUrl = ""
+def configuredServerUrlFallback = ""
+
+if (versionPropsFile.exists()) {
+    versionPropsFile.withReader("UTF-8") { reader ->
+        reader.eachLine { line ->
+            line = line.trim()
+            if (line.isEmpty() || line.startsWith("#")) return
+            def eq = line.indexOf('=')
+            if (eq > 0) {
+                def key = line.substring(0, eq).trim()
+                def val = line.substring(eq + 1).trim()
+                if (key == "versionCode") versionFileVersionCode = val.toInteger()
+                if (key == "versionName") versionFileVersionName = val
+                if (key == "lastStableVersionCode") configuredLastStableVersionCode = val.toInteger()
+                if (key == "lastStableVersionName") configuredLastStableVersionName = val
+                if (key == "betaNoticeVersionGap") configuredBetaNoticeVersionGap = val.toInteger()
+            }
+        }
+    }
+}
+
+if (localPropsFile.exists()) {
+    localPropsFile.withReader("UTF-8") { reader ->
+        reader.eachLine { line ->
+            line = line.trim()
+            if (line.isEmpty() || line.startsWith("#")) return
+            def eq = line.indexOf('=')
+            if (eq > 0) {
+                def key = line.substring(0, eq).trim()
+                def val = line.substring(eq + 1).trim()
+                if (key == "server.url") configuredServerUrl = val
+                if (key == "server.url.fallback") configuredServerUrlFallback = val
+            }
+        }
+    }
+}
+
+def requestedVersionChannel = (project.findProperty("updateChannel") ?: "beta").toString().trim().toLowerCase()
+def normalizeVersionChannel = { String raw ->
+    if (["stable", "release", "formal", "prod", "production"].contains(raw)) return "stable"
+    if (["beta", "test", "debug", "internal"].contains(raw)) return "beta"
+    return "beta"
+}
+def currentVersionChannel = normalizeVersionChannel(requestedVersionChannel)
+
+def toJavaStringLiteral = { String value ->
+    return "\"" + value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "")
+            .replace("\n", "\\n") + "\""
+}
+
+android {
+    namespace "com.gamecenter.app.update"
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 24
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "int", "VERSION_CODE", "${versionFileVersionCode}"
+        buildConfigField "String", "VERSION_NAME", toJavaStringLiteral(versionFileVersionName)
+        buildConfigField "String", "VERSION_CHANNEL", toJavaStringLiteral(currentVersionChannel)
+        buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
+        buildConfigField "String", "SERVER_URL_FALLBACK", toJavaStringLiteral(configuredServerUrlFallback ?: "")
+        buildConfigField "int", "LAST_STABLE_VERSION_CODE", "${configuredLastStableVersionCode}"
+        buildConfigField "String", "LAST_STABLE_VERSION_NAME", toJavaStringLiteral(configuredLastStableVersionName)
+        buildConfigField "int", "BETA_NOTICE_VERSION_GAP", "${configuredBetaNoticeVersionGap}"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java', 'src/main/kotlin']
+            res.srcDirs = ['src/main/res']
+        }
+        test {
+            java.srcDirs = ['src/test/java', 'src/test/kotlin']
+        }
+    }
+}
+
+dependencies {
+    implementation project(':core:common')
+    implementation project(':core:network')
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
+    implementation 'com.google.dagger:hilt-android:2.57.2'
+    kapt 'com.google.dagger:hilt-compiler:2.57.2'
+    implementation 'org.json:json:20250107'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.2.21'
+    testImplementation 'org.json:json:20250107'
+}

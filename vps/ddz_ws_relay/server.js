@@ -13,6 +13,14 @@ function generateClientId() {
     return Math.random().toString(36).substring(2, 10) + Date.now().toString(36).substring(2, 6);
 }
 
+function extractBearerToken(req) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+    return null;
+}
+
 // 清理空房间（每 10 分钟）
 setInterval(() => {
     const now = Date.now();
@@ -69,8 +77,9 @@ wss.on('connection', (ws, req) => {
     const parsedUrl = url.parse(req.url, true);
     const query = parsedUrl.query;
     const roomCode = query.room;
-    const role = query.role; // 'host' or 'client'
+    const role = query.role;
     const clientId = query.clientId || generateClientId();
+    const token = query.token || extractBearerToken(req);
     
     if (!roomCode || !role) {
         console.log(`[Reject] Missing room or role`);

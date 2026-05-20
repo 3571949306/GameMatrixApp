@@ -14,3 +14,6 @@ dependencyResolutionManagement {
 }
 rootProject.name = "GameCenterApp"
 include ':app'
+include ':core:common'
+include ':core:network'
+include ':core:update'

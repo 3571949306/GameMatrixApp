@@ -6,6 +6,10 @@
 
 | 版本 | 变更内容 |
 |------|----------|
+| **当前工作区** | **战略优化：UpdateViewModel 协程化（viewModelScope + suspendCancellableCoroutine + CheckResult/DownloadResult 密封类）、网络层测试（AiApiClientTest + UpdateInfoTest）、CI 质量门（APK 大小/测试结果/Lint 报告）、安全加固（allowBackup=false + backup_rules + data_extraction_rules + 存储权限迁移）、构建优化（MaterialCardView 替代 CardView）** |
+| **当前工作区** | **低优先级代码质量：AppResult 重命名、TaskStatus 枚举、AiErrorCode 常量类、空 catch 块补日志、硬编码文案提取到 strings.xml（48 个）、Java/Kotlin 混合边界规范文档化** |
+| **当前工作区** | **架构优化：UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter、OnlineRoomManager 组合式复用、GameRegistry 双轨注册（@GameEntry + 动态注册）、SaveManager Kotlin 迁移、@Inject 构造函数迁移、AppError/NetworkResult 统一错误模型** |
+| **当前工作区** | **架构优化：DouDiZhuOnlineActivity 拆分（UIController + RuleEngine + AIHelper + NetworkHandler）、Room 数据库恢复（KSP1）、ErrorReporter 统一错误上报、262 个单元测试 + 4 个集成测试类** |
 | **当前工作区** | **Gemma 本地推理接入：MediaPipe LLM Inference、下载前 Gemma Notice、启用后本地优先路由** |
 | **当前工作区** | **AI 阶段 4 完成：模板、历史搜索、收藏、导出；发布脚本统一签名 R8 release 包** |
 | **v1.3.21-beta** | **AI 智能助手接入：新增 AiFragment、AiTaskRouter、LocalAiProcessor，7 种 AI 任务，独立底部导航接入** |
@@ -29,6 +33,25 @@
 | `app/src/main/java/com/gamecenter/app/ai/local/MediaPipeLocalLlmEngine.java` | Gemma `.task` 本地推理封装 |
 | `app/src/main/java/com/gamecenter/app/ai/legal/AiLegalNotices.java` | Gemma 条款、本地 AI 风险提示与下载前确认文本 |
 | `app/src/main/java/com/gamecenter/app/ai/template/AiTemplateManager.java` | AI 常用模板管理 |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuUIController.java` | 斗地主 UI 控制器（视图引用、UI 更新、对话框） |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuRuleEngine.java` | 斗地主规则引擎（出牌验证、叫地主评估、清台判断） |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuAIHelper.java` | 斗地主 AI 辅助（AI 决策调度、出牌/叫地主逻辑） |
+| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuNetworkHandler.java` | 斗地主网络处理（消息路由、客户端意图管理、重连补发） |
+| `app/src/main/kotlin/com/gamecenter/app/database/AppDatabase.kt` | Room 数据库入口（单例、提供 DAO） |
+| `app/src/main/java/com/gamecenter/app/utils/ErrorReporter.java` | 统一错误上报（VPS + 本地回退、限流） |
+| `app/src/main/kotlin/com/gamecenter/app/update/UpdateViewModel.kt` | 更新流程 ViewModel（@HiltViewModel + LiveData，替代 UpdatePresenter） |
+| `app/src/main/kotlin/com/gamecenter/app/util/AppError.kt` | 统一错误模型（密封类，10 种错误类型） |
+| `app/src/main/kotlin/com/gamecenter/app/util/NetworkResult.kt` | 网络请求结果封装（基于 AppError） |
+| `app/src/main/java/com/gamecenter/app/network/OnlineRoomManager.java` | 联机房间管理器（组合式复用，替代 BaseOnlineActivity 继承） |
+| `app/src/main/java/com/gamecenter/app/games/GameEntry.java` | @GameEntry 注解（游戏自声明元数据） |
+| `app/src/main/kotlin/com/gamecenter/app/SaveManager.kt` | 存档管理器（Kotlin 迁移，@Singleton + @Inject） |
+| `app/src/main/java/com/gamecenter/app/ai/data/TaskStatus.java` | AI 任务状态枚举（PENDING/RUNNING/COMPLETED/FAILED） |
+| `app/src/main/java/com/gamecenter/app/ai/data/AiErrorCode.java` | AI 错误码常量类（7 个常量，消除魔法字符串） |
+| `app/src/main/kotlin/com/gamecenter/app/util/AppResult.kt` | 通用结果封装（重命名自 Result.kt，避免与 kotlin.Result 冲突） |
+| `app/src/test/java/com/gamecenter/app/ai/cloud/AiApiClientTest.java` | AI API 客户端 MockWebServer 测试（8 个方法） |
+| `app/src/test/java/com/gamecenter/app/update/UpdateInfoTest.java` | 更新信息 JSON 解析测试（17 个方法） |
+| `app/src/main/res/xml/backup_rules.xml` | Auto Backup 排除规则（sharedpref/database/update/） |
+| `app/src/main/res/xml/data_extraction_rules.xml` | D2D 迁移和云备份排除规则 |
 | `.github/workflows/ci.yml` | GitHub Actions CI/CD 工作流 |
 | `keystore.properties` | APK 签名凭证配置（不提交 Git） |
 | `app/gamecenter.keystore` | APK 签名密钥库（不提交 Git） |
@@ -42,7 +65,7 @@
 | 类型 | Android 单模块应用 |
 | 包名 | `com.gamecenter.app` |
 | 定位 | 集成经典小游戏、网络/设备工具、内置浏览器和应用自更新能力的工具娱乐应用 |
-| 语言 | Java 17 |
+| 语言 | Java 17 + Kotlin（数据层/工具层/ViewModel） |
 | 构建 | Gradle Wrapper + Android Gradle Plugin 8.7.3 |
 | SDK | `minSdk 24`, `targetSdk 35`, `compileSdk 35` |
 | 当前版本来源 | 根目录 `version.properties` |
@@ -96,6 +119,7 @@
 | `LANManager` | 局域网 NSD 服务发现 |
 | `RemoteP2PUtil` | 房间码生成与解析工具 |
 | `OnlineChatHelper` | 可复用联机聊天组件（支持内联模式和弹窗模式） |
+| `OnlineRoomManager` | 联机房间管理器（组合式复用，替代 BaseOnlineActivity 继承） |
 
 **支持联机的游戏：**
 
@@ -117,8 +141,8 @@
 当前 `version.properties` 示例：
 
 ```properties
-versionCode=236
-versionName=1.3.20
+versionCode=262
+versionName=1.3.26
 ```
 
 ## 2. 代码结构
@@ -182,7 +206,7 @@ GameCenterApp/
 - `app/src/main/java/com/gamecenter/app/games`: 各小游戏模块。多数模块采用 `Activity + View + Game` 的简单分层。
 - `app/src/main/java/com/gamecenter/app/settings`: 设置弹窗与设置项交互。`AppSettingsDialog` 已从 `GamesFragment` 拆出，负责主题、配色、版本更新和反馈入口。
 - `app/src/main/java/com/gamecenter/app/tools`: 工具箱拆分后的共享结构和独立 binder。当前包含功能区模型/配置存储、剪贴板/哈希/颜色取色器 binder，以及 `AdvancedToolBinders` 中的网络体检、诊断报告、DNS 查询、局域网扫描、编码/时间戳/JSON、文件哈希、二维码增强、颜色增强、权限隐私说明。AI 不再嵌入工具箱，入口在底部导航。
-- `app/src/main/java/com/gamecenter/app/update`: 自更新模块，包含 `version.json` 检查、正式/测试版策略、下载、MD5 校验、FileProvider 安装。
+- `app/src/main/java/com/gamecenter/app/update`: 自更新模块，包含 `version.json` 检查、正式/测试版策略、下载、MD5 校验、FileProvider 安装。`UpdateViewModel`（Kotlin）提供生命周期安全的更新状态管理，替代旧 `UpdatePresenter`。
 - `vps/var_www_update`: VPS 更新和反馈模板；更新服务部署为 `/var/www/update/server.py`，App 上传目录为 `/var/www/update/app/`，反馈目录为 `/var/www/update/feedback/`。
 - `vps/var_www_update/feedback`: VPS 反馈接收模板，部署目标为 `/var/www/update/feedback/`，通过 nginx `/api/feedback` 转发到本机 `127.0.0.1:9011`；反馈会按类型保存到 `Bug反馈/` 和 `功能建议/`，文件名包含编号、类型、时间和反馈摘要。
 - `app/src/main/java/com/gamecenter/app/views`: 主题/颜色选择相关自定义控件。
@@ -200,8 +224,9 @@ GameCenterApp/
 全局状态和主题：
 
 - `App`: Application 入口，负责应用主题初始化和刷新。
-- `SettingsManager`: 保存主题模式、配色方案、自动检查更新、接收测试版、自动下载安装包和下载后提示安装等用户设置。
+- `SettingsManager`: 保存主题模式、配色方案、自动检查更新、接收测试版、自动下载安装包和下载后提示安装等用户设置。已标注 `@Inject` 构造函数，`getInstance()` 标记 `@Deprecated`。
 - `ColorSchemeManager`: 管理可选配色方案；游戏大厅卡片、按钮、标签栏和底部导航会跟随当前方案刷新。
+- `UpdateViewModel`: 更新流程 ViewModel（@HiltViewModel + LiveData），替代旧 UpdatePresenter，生命周期安全。
 
 ## 4. 游戏模块
 
@@ -214,11 +239,11 @@ memory, pipeline, plane, reaction, rock, snake, sokoban, sudoku, tetris,
 tic, tiles, whack
 ```
 
-游戏入口主要在 `GameRegistry` 中维护，`GamesFragment` 只负责展示、搜索、收藏和最近游玩等交互。新增或调整游戏时通常需要同步：
+游戏入口主要在 `GameRegistry` 中维护（双轨制：静态硬编码 + `@GameEntry` 注解自动发现 + `register()` 动态注册），`GamesFragment` 只负责展示、搜索、收藏和最近游玩等交互。新增或调整游戏时通常需要同步：
 
 1. 在 `games/` 下创建或修改游戏包。
 2. 在 `AndroidManifest.xml` 注册对应 Activity，并确认 `screenOrientation`。
-3. 在 `GameRegistry` 中 import Activity，并加入对应分类卡片。
+3. 在 Activity 类上添加 `@GameEntry` 注解（推荐），或在 `GameRegistry` 中手动添加入口。
 4. 在 `res/values/strings.xml` 添加游戏名称和描述。
 5. 如有新布局、图标、音效，分别放入 `res/layout`、`res/drawable`、`res/raw`。
 
@@ -232,7 +257,7 @@ tic, tiles, whack
 
 ## 5. 构建与版本
 
-当前版本：`versionCode=236`, `versionName=1.3.20`。当前工作区在该版本基础上完成 AI 阶段 4 和发布链路修复。
+当前版本：`versionCode=262`, `versionName=1.3.26`。当前工作区在该版本基础上完成战略优化（UpdateViewModel 协程化、网络层测试、CI 质量门、安全加固、MaterialCardView 替代 CardView）。
 
 Windows 下推荐命令：
 
@@ -308,7 +333,6 @@ implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
 implementation 'androidx.navigation:navigation-fragment:2.8.9'
 implementation 'androidx.navigation:navigation-ui:2.8.9'
 implementation 'androidx.recyclerview:recyclerview:1.4.0'
-implementation 'androidx.cardview:cardview:1.0.0'
 implementation 'androidx.webkit:webkit:1.12.1'
 ```
 
@@ -424,7 +448,7 @@ res/drawable/bg_ai_message_system.xml   # 系统消息气泡背景
 
 ---
 
-最后更新：2026-05-14（AI 阶段 4 + 发布链路修复）
+最后更新：2026-05-19（战略优化：UpdateViewModel 协程化 + 网络层测试 + CI 质量门 + 安全加固 + 构建优化）
 ---
 
 ## 2026-05-14 文档同步：文字适配与应用语言
@@ -441,3 +465,40 @@ res/drawable/bg_ai_message_system.xml   # 系统消息气泡背景
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+## 2026-05-18 文档同步：架构优化
+
+- UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter，密封类 UpdateCheckState/DownloadState 建模状态。
+- OnlineRoomManager 组合式复用，替代 BaseOnlineActivity 继承，支持 Listener 接口。
+- GameRegistry 双轨注册：静态硬编码 + @GameEntry 注解自动发现 + register() 动态注册，分类键名与本地化名称解耦。
+- SaveManager 从 Java 迁移到 Kotlin（@Singleton + @Inject constructor），旧 Java 文件已删除。
+- SettingsManager/OkHttpClientProvider/UpdateManager/SaveManager 添加 @Inject 构造函数，getInstance() 标记 @Deprecated。
+- 新增 AppError（密封类，10 种错误类型）+ NetworkResult（类型安全结果封装）。
+- AppModule 简化：仅保留 ExecutorService/OkHttpClient/AiPreferences/AppDatabase/DAO/ErrorReporter 的 @Provides。
+- 版本号更新：versionCode=260, versionName=1.3.26。
+## 2026-05-18 文档同步：低优先级代码质量
+
+- Result.kt 重命名为 AppResult，消除与 kotlin.Result 标准库命名冲突。CrashHandler.kt 中的扩展函数同步更新。
+- AiTask.status 从 String 改为 TaskStatus 枚举（PENDING/RUNNING/COMPLETED/FAILED），AiTaskRouter 和测试文件同步更新。
+- AiResult.errorCode 新增 AiErrorCode 常量类（7 个常量），AiTaskRouter/AiApiClient/测试文件中裸字符串全部替换为常量引用。
+- 16 处空 catch 块已补日志记录（Log.w/Log.d），保留原有注释说明忽略原因。
+- OnlineRoomManager（35 个）+ AppSettingsDialog（13 个）共 48 个硬编码中文字符串提取到 strings.xml。
+- CODE_WIKI.md 新增第 10 章"Java/Kotlin 混合边界规范"，文档化文件放置、跨语言调用注意事项、迁移优先级和同名类冲突规则。
+## 2026-05-19 文档同步：战略优化
+
+- UpdateViewModel 协程化：`viewModelScope.launch` + `suspendCancellableCoroutine` 包装 Java 回调为 suspend 函数，`CheckResult`/`DownloadResult` 密封类替代布尔标志，`checkJob`/`downloadJob` 替代 `isCheckingUpdate`/`isAutoDownloading`。
+- 网络层测试：新增 `AiApiClientTest`（MockWebServer，8 个方法）和 `UpdateInfoTest`（JSON 解析，17 个方法）。
+- CI 质量门：APK 大小报告、测试结果报告、Android Lint 执行和 Lint 问题报告。
+- 安全加固：`allowBackup=false`，新增 `backup_rules.xml` 和 `data_extraction_rules.xml`，存储权限迁移（`READ_MEDIA_IMAGES`、`maxSdkVersion` 限制）。
+- 构建优化：`MaterialCardView` 替代 `androidx.cardview.widget.CardView`，移除 `cardview:1.0.0` 依赖。
+- 版本号更新：versionCode=262, versionName=1.3.26。
+
+## 2026-05-19 Modularization Update
+
+The project is no longer a pure single-module app. The first modularization pass introduced:
+
+- `:core:common`: shared settings and utility/result types (`SettingsManager`, `AppResult`, `AppError`, `NetworkResult`, common Android/Kotlin helpers).
+- `:core:network`: base networking (`OkHttpClientProvider`, request deduplication, relay URL/client helpers, room-code utilities, network error handling).
+- `:core:update`: update subsystem (`UpdateManager`, checker/downloader/installer, notification helper, `UpdateInfo`, `SSLHelper`, `UpdateViewModel`).
+- `:app`: shell application, main navigation, feature screens, games, tools, AI, resources, manifest, FileProvider declaration, and release/upload tasks.
+
+Dependency direction should stay one-way: `app -> core:update -> core:network -> core:common`, plus direct `app -> core:network` and `app -> core:common` where needed. `CrashHandler` remains app-owned due to `ErrorReporter` coupling.
