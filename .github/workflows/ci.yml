@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, 'codex/**']
   pull_request:
     branches: [main, master]
 
@@ -26,6 +26,21 @@ jobs:
     - name: Build debug APK
       run: ./gradlew clean assembleDebug -PautoBumpVersion=false
     
+    - name: Report APK Size
+      run: |
+        APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
+        if [ -n "$APK_PATH" ]; then
+          SIZE_BYTES=$(stat -c%s "$APK_PATH" 2>/dev/null || stat -f%z "$APK_PATH" 2>/dev/null)
+          SIZE_MB=$(echo "scale=2; $SIZE_BYTES / 1048576" | bc)
+          echo "## 📦 APK Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| $(basename $APK_PATH) | ${SIZE_MB} MB (${SIZE_BYTES} bytes) |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "No APK found" >> $GITHUB_STEP_SUMMARY
+        fi
+    
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
@@ -36,10 +51,59 @@ jobs:
     - name: Run Unit Tests
       run: ./gradlew test -PautoBumpVersion=false
     
+    - name: Report Test Results
+      if: always()
+      run: |
+        echo "## 🧪 Test Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        XML_FILES=$(find app/build/test-results -name "*.xml" -type f 2>/dev/null)
+        if [ -n "$XML_FILES" ]; then
+          TOTAL=0
+          FAILURES=0
+          for f in $XML_FILES; do
+            T=$(grep -oP 'tests="\K[0-9]+' "$f" 2>/dev/null | head -1)
+            F=$(grep -oP 'failures="\K[0-9]+' "$f" 2>/dev/null | head -1)
+            TOTAL=$((TOTAL + ${T:-0}))
+            FAILURES=$((FAILURES + ${F:-0}))
+          done
+          PASSED=$((TOTAL - FAILURES))
+          echo "| Total | Passed | Failed |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| $TOTAL | $PASSED | $FAILURES |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "No test result XML found" >> $GITHUB_STEP_SUMMARY
+        fi
+    
     - name: Upload Test Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: test-results
         path: app/build/reports/tests/
+        retention-days: 7
+    
+    - name: Run Android Lint
+      run: ./gradlew lintDebug -PautoBumpVersion=false
+    
+    - name: Report Lint Issues
+      if: always()
+      run: |
+        echo "## 🔍 Lint Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        LINT_XML="app/build/reports/lint-results-debug.xml"
+        if [ -f "$LINT_XML" ]; then
+          ISSUES=$(grep -c '<issue' "$LINT_XML" 2>/dev/null || echo "0")
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint Issues | $ISSUES |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Lint report not found" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Upload Lint Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: lint-results
+        path: app/build/reports/lint-results-debug.*
         retention-days: 7

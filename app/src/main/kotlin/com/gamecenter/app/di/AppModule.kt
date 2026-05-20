@@ -1,9 +1,13 @@
 package com.gamecenter.app.di
 
 import android.content.Context
-import com.gamecenter.app.SettingsManager
+import com.gamecenter.app.SaveManager
+import com.gamecenter.app.ai.AiPreferences
+import com.gamecenter.app.database.AppDatabase
+import com.gamecenter.app.database.dao.AiMessageDao
+import com.gamecenter.app.database.dao.GameStatsDao
 import com.gamecenter.app.network.OkHttpClientProvider
-import com.gamecenter.app.update.UpdateManager
+import com.gamecenter.app.utils.ErrorReporter
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,25 +21,42 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-    
+
     @Provides
     @Singleton
-    fun provideExecutorService(): ExecutorService = 
+    fun provideExecutorService(): ExecutorService =
         Executors.newCachedThreadPool()
-    
-    @Provides
-    @Singleton
-    fun provideSettingsManager(
-        @ApplicationContext context: Context
-    ): SettingsManager = SettingsManager.getInstance(context)
-    
+
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        @ApplicationContext context: Context
-    ): OkHttpClient = OkHttpClientProvider.getInstance(context).httpClient
-    
+        okHttpClientProvider: OkHttpClientProvider
+    ): OkHttpClient = okHttpClientProvider.httpClient
+
     @Provides
     @Singleton
-    fun provideUpdateManager(): UpdateManager = UpdateManager.getInstance()
+    fun provideAiPreferences(
+        @ApplicationContext context: Context
+    ): AiPreferences = AiPreferences(context)
+
+    @Provides
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
+        AppDatabase.getDatabase(context)
+
+    @Provides
+    @Singleton
+    fun provideAiMessageDao(database: AppDatabase): AiMessageDao =
+        database.aiMessageDao()
+
+    @Provides
+    @Singleton
+    fun provideGameStatsDao(database: AppDatabase): GameStatsDao =
+        database.gameStatsDao()
+
+    @Provides
+    @Singleton
+    fun provideErrorReporter(
+        @ApplicationContext context: Context
+    ): ErrorReporter = ErrorReporter.getInstance(context)
 }

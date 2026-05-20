@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_new_version">发现新版本</string>
+    <string name="update_version">版本: %s</string>
+    <string name="update_size">大小: %s</string>
+    <string name="update_changelog">更新内容:</string>
+    <string name="update_download">立即下载</string>
+    <string name="update_later">稍后再说</string>
+    <string name="update_force">强制更新</string>
+    <string name="update_downloading">正在下载...</string>
+    <string name="update_verifying">正在校验安装包...</string>
+    <string name="update_install">立即安装</string>
+    <string name="update_no_update">已是最新版本</string>
+    <string name="update_beta_only_title">当前只有测试版更新</string>
+    <string name="update_beta_only_enable">开启测试版并重新检查</string>
+    <string name="update_beta_only_wait">等待正式版</string>
+    <string name="update_beta_only_toast">服务器当前最新版是测试版，打开“接受测试版安装包”后才能更新。</string>
+    <string name="update_channel_label">类型: %s</string>
+    <string name="update_version_code">内部版本号: %d</string>
+    <string name="update_last_stable_default">上一个正式版</string>
+    <string name="update_beta_only_msg">服务器当前最新版是测试版 %1$s（内部版本号 %2$d）。</string>
+    <string name="update_beta_only_stable_code">（内部版本号 %d）</string>
+    <string name="update_beta_only_hint"> 已经相差较大。可开启测试版更新，或等待下一个正式版。</string>
+    <string name="update_auto_downloading">更新安装包正在后台下载</string>
+    <string name="update_auto_download_started">发现新版本，正在后台下载安装包</string>
+    <string name="update_auto_download_complete">更新安装包已下载，可在设置中打开下载目录</string>
+    <string name="update_install_prompt">下载完成，是否立即安装？</string>
+    <string name="update_open_directory">打开目录</string>
+    <string name="update_apk_lost">安装包已丢失，请重新下载</string>
+    <string name="update_install_permission_needed">需要安装权限才能安装更新，请在设置中授予</string>
+</resources>

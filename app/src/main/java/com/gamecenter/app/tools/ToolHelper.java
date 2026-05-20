@@ -7,53 +7,97 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiManager;
 
-import com.google.android.material.button.MaterialButton;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import android.util.Log;
+
 /**
- * 工具模块共享辅助类 — 提供网络/系统信息读取的静态方法。
+ * 工具辅助类 — 提供网络信息查询、UI线程操作、传感器类型映射等通用静态方法。
+ * <p>
+ * 设计决策：
+ * <ul>
+ *   <li>构造函数私有化，禁止实例化，所有方法均为静态方法</li>
+ *   <li>网络相关方法优先使用系统API获取信息，失败时回退到遍历网络接口的方式</li>
+ *   <li>网络诊断方法（ping/测速/traceroute等）委托给 {@link NetworkDiagHelper} 实现</li>
+ * </ul>
+ * </p>
  */
 public final class ToolHelper {
+
+    private static final String TAG = "ToolHelper";
 
     private ToolHelper() {
     }
 
+    /**
+     * 安全地设置 TextView 的文本内容。
+     * <p>当 view 为 null 时不执行任何操作，避免空指针异常。</p>
+     *
+     * @param view 目标 TextView，可为 null
+     * @param text 要设置的文本内容
+     */
     public static void setText(android.widget.TextView view, String text) {
         if (view != null) {
             view.setText(text);
         }
     }
 
+    /**
+     * 通过 anchor 视图的 {@code post()} 方法在 UI 线程上设置 TextView 文本。
+     * <p>适用于从后台线程更新 UI 的场景，{@code post()} 会将操作投递到主线程消息队列。</p>
+     *
+     * @param anchor 用于投递任务的视图，可为 null；为 null 时不执行任何操作
+     * @param view   目标 TextView，可为 null（由 setText 内部处理）
+     * @param text   要设置的文本内容
+     */
     public static void postText(android.view.View anchor, android.widget.TextView view, String text) {
         if (anchor != null) {
             anchor.post(() -> setText(view, text));
         }
     }
 
+    /**
+     * 在 UI 线程上安全执行 Runnable。
+     * <p>仅当 context 是 Activity 实例时才调用 {@code runOnUiThread()}，否则静默跳过。</p>
+     *
+     * @param context Android Context，期望为 Activity 实例
+     * @param action  要在 UI 线程执行的任务
+     */
     public static void safeRunOnUiThread(Context context, Runnable action) {
         if (context instanceof android.app.Activity) {
             ((android.app.Activity) context).runOnUiThread(action);
         }
     }
 
+    /**
+     * 获取当前 WiFi 连接的 IPv4 地址。
+     * <p>
+     * 获取策略（按优先级）：
+     * <ol>
+     *   <li>通过 WifiManager 获取连接信息中的 IP 地址（整型转点分十进制）</li>
+     *   <li>若 WifiManager 方式失败，遍历网络接口查找名称包含 "wlan" 或 "wifi" 的接口</li>
+     * </ol>
+     * </p>
+     *
+     * @param context Android Context，用于获取系统服务
+     * @return WiFi 的 IPv4 地址字符串；未连接 WiFi 时返回 "未连接WiFi"
+     */
     public static String getWifiIpAddress(Context context) {
         try {
             WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             if (wm != null && wm.isWifiEnabled()) {
                 int ip = wm.getConnectionInfo().getIpAddress();
+                // WifiManager 返回的 IP 为小端序整型，需按字节拆分后格式化为点分十进制
                 if (ip != 0) return String.format(Locale.getDefault(), "%d.%d.%d.%d",
                         (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
             }
+            // 回退方案：遍历所有网络接口，查找 wlan/wifi 接口的 IPv4 地址
             for (NetworkInterface intf : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (intf.getName().toLowerCase().contains("wlan") || intf.getName().toLowerCase().contains("wifi")) {
                     for (InetAddress addr : Collections.list(intf.getInetAddresses())) {
@@ -62,14 +106,23 @@ public final class ToolHelper {
                 }
             }
         } catch (Exception ignored) {
+            Log.w(TAG, "Get WiFi IP address failed: " + ignored.getMessage());
         }
         return "未连接WiFi";
     }
 
+    /**
+     * 获取当前移动数据网络的 IPv4 地址。
+     * <p>通过遍历网络接口，查找名称包含 "rmnet"、"pdp"、"ppp" 或 "cell" 的接口
+     * （这些是 Android 上常见的移动数据接口命名）。</p>
+     *
+     * @return 移动数据的 IPv4 地址字符串；未连接移动数据时返回 "未连接移动数据"
+     */
     public static String getMobileIpAddress() {
         try {
             for (NetworkInterface intf : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 String name = intf.getName().toLowerCase();
+                // rmnet/pdp/ppp/cell 是 Android 上常见的移动数据网络接口名前缀
                 if (name.contains("rmnet") || name.contains("pdp") || name.contains("ppp") || name.contains("cell")) {
                     for (InetAddress addr : Collections.list(intf.getInetAddresses())) {
                         if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) return addr.getHostAddress();
@@ -82,6 +135,19 @@ public final class ToolHelper {
         return "未连接移动数据";
     }
 
+    /**
+     * 检测当前是否启用了 VPN 连接。
+     * <p>
+     * 检测逻辑：
+     * <ol>
+     *   <li>通过 ConnectivityManager 检查是否存在 VPN 传输类型的网络</li>
+     *   <li>若检测到 VPN 网络，进一步查找名称包含 "tun" 的网络接口（VPN 虚拟隧道接口）</li>
+     * </ol>
+     * </p>
+     *
+     * @param context Android Context，用于获取系统服务
+     * @return VPN 状态字符串："已连接 (接口名)"、"已连接" 或 "未连接"
+     */
     public static String checkVpnStatus(Context context) {
         try {
             ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -90,7 +156,9 @@ public final class ToolHelper {
                 if (networks != null) {
                     for (Network net : networks) {
                         NetworkCapabilities caps = cm.getNetworkCapabilities(net);
+                        // 检查网络是否具有 VPN 传输能力
                         if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                            // 进一步查找 tun 接口以获取更详细的信息
                             for (NetworkInterface intf : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                                 if (intf.isUp() && !intf.isLoopback() && intf.getName().toLowerCase().contains("tun"))
                                     return "已连接 (" + intf.getName() + ")";
@@ -101,10 +169,18 @@ public final class ToolHelper {
                 }
             }
         } catch (Exception ignored) {
+            Log.w(TAG, "Check VPN status failed: " + ignored.getMessage());
         }
         return "未连接";
     }
 
+    /**
+     * 获取当前活动网络使用的 DNS 服务器地址列表。
+     * <p>通过 ConnectivityManager 获取活动网络的 LinkProperties，从中提取 DNS 服务器地址。</p>
+     *
+     * @param context Android Context，用于获取系统服务
+     * @return DNS 服务器地址列表；获取失败时返回空列表
+     */
     public static List<String> getDnsServers(Context context) {
         List<String> dns = new ArrayList<>();
         try {
@@ -122,11 +198,19 @@ public final class ToolHelper {
         return dns;
     }
 
+    /**
+     * 获取当前 WiFi 信号强度描述。
+     * <p>使用 WifiManager 获取 RSSI 值，并通过 {@code calculateSignalLevel()} 将其映射为5级信号等级。</p>
+     *
+     * @param context Android Context，用于获取系统服务
+     * @return 信号强度描述，格式为 "等级 (RSSI dBm)"；未连接 WiFi 时返回 "未连接WiFi"
+     */
     public static String getWifiSignalStrength(Context context) {
         try {
             WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
             if (wm != null && wm.isWifiEnabled()) {
                 int rssi = wm.getConnectionInfo().getRssi();
+                // 将 RSSI 映射为 0-4 的5级信号等级
                 int level = WifiManager.calculateSignalLevel(rssi, 5);
                 String[] levels = {"弱", "一般", "中等", "良好", "强"};
                 return levels[level] + " (" + rssi + " dBm)";
@@ -137,307 +221,112 @@ public final class ToolHelper {
         return "未连接WiFi";
     }
 
+    /**
+     * 测试网络 Ping 延迟。
+     *
+     * @return Ping 延迟（毫秒）；失败时返回 -1
+     * @see NetworkDiagHelper#testPing()
+     */
     public static long testPing() {
-        String[] PING_SERVERS = {"119.29.29.29", "180.76.76.76", "223.5.5.5"};
-        for (String host : PING_SERVERS) {
-            try {
-                Process p = Runtime.getRuntime().exec("/system/bin/ping -c 1 -W 2 " + host);
-                if (p.waitFor() == 0) {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (line.contains("time=")) {
-                            return (long) Double.parseDouble(line.substring(line.indexOf("time=") + 5).split(" ")[0]);
-                        }
-                    }
-                    return -1;
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return -1;
+        return NetworkDiagHelper.testPing();
     }
 
+    /**
+     * 测试网络下载速度。
+     *
+     * @param serverUrl 测速服务器 URL
+     * @return 下载速度（Mbps）；失败时返回 0
+     * @see NetworkDiagHelper#testDownloadSpeed(String)
+     */
     public static double testDownloadSpeed(String serverUrl) {
-        try {
-            java.net.URL url = new java.net.URL(serverUrl);
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(10000);
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            long start = System.currentTimeMillis();
-            java.io.InputStream is = conn.getInputStream();
-            byte[] buf = new byte[8192];
-            long bytes = 0;
-            int read;
-            long maxTime = 8000;
-            while ((read = is.read(buf)) != -1) {
-                bytes += read;
-                if (System.currentTimeMillis() - start > maxTime) break;
-            }
-            is.close();
-            conn.disconnect();
-            long elapsed = System.currentTimeMillis() - start;
-            if (elapsed > 0 && bytes > 0) return (bytes * 8.0) / (elapsed / 1000.0) / 1000000.0;
-        } catch (Exception ignored) {
-        }
-        return 0;
+        return NetworkDiagHelper.testDownloadSpeed(serverUrl);
     }
 
+    /**
+     * 测试网络上传速度。
+     *
+     * @param serverUrl 测速服务器 URL
+     * @return 上传速度（Mbps）；失败时返回 0
+     * @see NetworkDiagHelper#testUploadSpeed(String)
+     */
     public static double testUploadSpeed(String serverUrl) {
-        try {
-            java.net.URL url = new java.net.URL(serverUrl);
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(6000);
-            conn.setDoOutput(true);
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            conn.setRequestProperty("Content-Type", "application/octet-stream");
-            byte[] data = new byte[1024 * 1024];
-            new java.util.Random().nextBytes(data);
-            conn.setFixedLengthStreamingMode(data.length);
-            long start = System.currentTimeMillis();
-            java.io.OutputStream os = conn.getOutputStream();
-            os.write(data);
-            os.flush();
-            os.close();
-            int code = conn.getResponseCode();
-            long elapsed = System.currentTimeMillis() - start;
-            conn.disconnect();
-            if (elapsed > 0 && code == 200) return (data.length * 8.0) / (elapsed / 1000.0) / 1000000.0;
-        } catch (Exception ignored) {
-        }
-        return 0;
+        return NetworkDiagHelper.testUploadSpeed(serverUrl);
     }
 
+    /**
+     * Ping 指定主机，测量延迟。
+     *
+     * @param host 目标主机地址
+     * @return Ping 延迟（毫秒）；失败时返回 -1
+     * @see NetworkDiagHelper#pingHost(String)
+     */
     public static long pingHost(String host) {
-        try {
-            Process p = Runtime.getRuntime().exec("/system/bin/ping -c 1 -W 3 " + host);
-            if (p.waitFor() == 0) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.contains("time=")) {
-                        return (long) Double.parseDouble(line.substring(line.indexOf("time=") + 5).split(" ")[0]);
-                    }
-                }
-                return -1;
-            }
-        } catch (Exception ignored) {
-        }
-        return -1;
+        return NetworkDiagHelper.pingHost(host);
     }
 
-    public static TraceHopResult traceRouteHop(String host, int ttl) {
-        try {
-            long start = System.currentTimeMillis();
-            Process p = Runtime.getRuntime().exec(new String[]{
-                    "/system/bin/sh", "-c",
-                    String.format("ping -c 1 -W 2 -t %d %s 2>&1", ttl, host)
-            });
-            int exitCode = p.waitFor();
-            if (exitCode == 0) {
-                long elapsed = System.currentTimeMillis() - start;
-                return new TraceHopResult(elapsed, extractHopIp(host));
-            }
-            if (exitCode == 1) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                StringBuilder output = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) output.append(line).append("\n");
-                reader.close();
-                long elapsed = System.currentTimeMillis() - start;
-                String hopIp = parseHopIpFromOutput(output.toString());
-                if (hopIp != null && !hopIp.isEmpty()) {
-                    return new TraceHopResult(elapsed, hopIp);
-                }
-                if (elapsed > 10) {
-                    return new TraceHopResult(elapsed, extractHopIp(host));
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return new TraceHopResult(-1, null);
+    /**
+     * 执行路由追踪的某一跳。
+     *
+     * @param host 目标主机地址
+     * @param ttl  生存时间（Time To Live），控制追踪跳数
+     * @return 该跳的追踪结果，包含延迟和中间路由 IP
+     * @see NetworkDiagHelper#traceRouteHop(String, int)
+     */
+    public static NetworkDiagHelper.TraceHopResult traceRouteHop(String host, int ttl) {
+        return NetworkDiagHelper.traceRouteHop(host, ttl);
     }
 
-    private static String parseHopIpFromOutput(String output) {
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
-                "(?:From|from)\\s+(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})");
-        java.util.regex.Matcher m = p.matcher(output);
-        if (m.find()) return m.group(1);
-        return null;
+    /**
+     * 快速获取本机公网 IP 地址。
+     *
+     * @return 公网 IP 地址字符串；获取失败时返回 null
+     * @see NetworkDiagHelper#fetchPublicIpFast()
+     */
+    public static String fetchPublicIpFast() {
+        return NetworkDiagHelper.fetchPublicIpFast();
     }
 
-    private static String extractHopIp(String host) {
-        try {
-            return java.net.InetAddress.getByName(host).getHostAddress();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
+    /**
+     * 根据 IP 地址分类运营商归属。
+     *
+     * @param ip IPv4 地址字符串
+     * @return 运营商名称（如 "电信"、"联通"、"移动"、"内网" 等）
+     * @see IpClassifier#classifyIpCarrier(String)
+     */
     public static String classifyIpCarrier(String ip) {
-        if (ip == null || ip.isEmpty()) return "";
-        try {
-            String[] parts = ip.split("\\.");
-            if (parts.length != 4) return "";
-            int a = Integer.parseInt(parts[0]);
-            int b = Integer.parseInt(parts[1]);
-            int c = Integer.parseInt(parts[2]);
-
-            if (a == 10) return "内网";
-            if (a == 172 && b >= 16 && b <= 31) return "内网";
-            if (a == 192 && b == 168) return "内网";
-            if (a == 127) return "本地";
-            if (a == 100 && b >= 64 && b <= 127) return "CGNAT";
-
-            if (a == 59 && b == 43) return "CN2(电信)";
-            if (a == 202 && b == 97) return "CN2(电信)";
-
-            if (a == 223 && (b == 118 || b == 119 || b == 120 || b == 121 || b == 122)) return "CMI(移动)";
-            if (a == 36 && (b >= 128 && b <= 191)) return "移动";
-            if (a == 39 && (b >= 128 && b <= 191)) return "移动";
-            if (a == 111) return "移动";
-            if (a == 112 && (b >= 0 && b <= 31)) return "移动";
-            if (a == 117 && (b >= 128 && b <= 191)) return "移动";
-            if (a == 120 && (b >= 192 && b <= 255)) return "移动";
-            if (a == 183 && (b >= 192 && b <= 255)) return "移动";
-            if (a == 211 && (b == 136 || b == 137 || b == 138 || b == 139 || b == 140)) return "移动";
-            if (a == 221 && (b >= 176 && b <= 183)) return "移动";
-            if (a == 223 && (b >= 64 && b <= 117)) return "移动";
-
-            if (a == 1 && (b >= 0 && b <= 15)) return "电信";
-            if (a == 14 && (b >= 144 && b <= 159)) return "电信";
-            if (a == 27 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 36 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 42 && (b >= 0 && b <= 127)) return "电信";
-            if (a == 49 && (b >= 64 && b <= 127)) return "电信";
-            if (a == 58 && (b >= 16 && b <= 63) && !(b == 43)) return "电信";
-            if (a == 59 && (b >= 32 && b <= 63)) return "电信";
-            if (a == 61 && (b >= 128 && b <= 191)) return "电信";
-            if (a == 101 && (b >= 64 && b <= 127)) return "电信";
-            if (a == 106 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 110 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 113 && (b >= 0 && b <= 127)) return "电信";
-            if (a == 114 && (b >= 64 && b <= 127)) return "电信";
-            if (a == 115 && (b >= 192 && b <= 255)) return "电信";
-            if (a == 116 && (b >= 0 && b <= 95)) return "电信";
-            if (a == 117 && (b >= 64 && b <= 95)) return "电信";
-            if (a == 118 && (b >= 112 && b <= 127)) return "电信";
-            if (a == 119 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 121 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 122 && (b >= 192 && b <= 255)) return "电信";
-            if (a == 123 && (b >= 128 && b <= 191)) return "电信";
-            if (a == 125 && (b >= 64 && b <= 127)) return "电信";
-            if (a == 171 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 175 && (b >= 0 && b <= 63)) return "电信";
-            if (a == 180 && (b >= 96 && b <= 127)) return "电信";
-            if (a == 182 && (b >= 32 && b <= 63)) return "电信";
-            if (a == 183 && (b >= 0 && b <= 95)) return "电信";
-            if (a == 202 && (b >= 96 && b <= 127)) return "电信";
-            if (a == 210 && (b >= 0 && b <= 47)) return "电信";
-            if ((a == 218 && b >= 64 && b <= 79) || (a == 218 && b >= 88 && b <= 95)) return "电信";
-            if (a == 219 && (b >= 128 && b <= 159)) return "电信";
-            if (a == 220 && (b >= 160 && b <= 191)) return "电信";
-            if (a == 222 && (b >= 64 && b <= 95)) return "电信";
-
-            if (a == 27 && (b >= 128 && b <= 191)) return "联通";
-            if (a == 42 && (b >= 192 && b <= 255)) return "联通";
-            if (a == 43 && (b >= 224 && b <= 255)) return "联通";
-            if (a == 49 && (b >= 128 && b <= 191)) return "联通";
-            if (a == 58 && (b >= 240 && b <= 255)) return "联通";
-            if (a == 60 && (b >= 0 && b <= 31)) return "联通";
-            if (a == 61 && (b >= 48 && b <= 55)) return "联通";
-            if (a == 61 && (b >= 128 && b <= 191)) return "联通";
-            if (a == 110 && (b >= 192 && b <= 255)) return "联通";
-            if (a == 111 && (b >= 192 && b <= 207)) return "联通";
-            if (a == 112 && (b >= 64 && b <= 127)) return "联通";
-            if (a == 113 && (b >= 192 && b <= 255)) return "联通";
-            if (a == 114 && (b >= 240 && b <= 255)) return "联通";
-            if (a == 116 && (b >= 192 && b <= 207)) return "联通";
-            if (a == 118 && (b >= 192 && b <= 207)) return "联通";
-            if (a == 119 && (b >= 192 && b <= 255)) return "联通";
-            if (a == 120 && (b >= 0 && b <= 15)) return "联通";
-            if (a == 122 && (b >= 96 && b <= 127)) return "联通";
-            if (a == 123 && (b >= 112 && b <= 127)) return "联通";
-            if (a == 124 && (b >= 64 && b <= 95)) return "联通";
-            if (a == 125 && (b >= 32 && b <= 47)) return "联通";
-            if (a == 139 && (b >= 208 && b <= 223)) return "联通";
-            if (a == 140 && (b >= 192 && b <= 255)) return "联通";
-            if (a == 153 && (b >= 0 && b <= 3)) return "联通";
-            if (a == 157 && (b >= 0 && b <= 1)) return "联通";
-            if (a == 163 && (b >= 176 && b <= 179)) return "联通";
-            if (a == 202 && (b >= 96 && b <= 111)) return "联通";
-            if (a == 210 && (b >= 12 && b <= 13)) return "联通";
-            if (a == 210 && b >= 20 && b <= 23) return "联通";
-            if ((a == 218 && b >= 56 && b <= 63) || (a == 218 && b >= 104 && b <= 111)) return "联通";
-            if (a == 219 && (b >= 144 && b <= 159)) return "联通";
-            if (a == 220 && (b >= 192 && b <= 207)) return "联通";
-            if (a == 221 && (b >= 0 && b <= 15)) return "联通";
-            if (a == 222 && (b >= 128 && b <= 191)) return "联通";
-
-            if (a == 111 && (b >= 0 && b <= 63)) return "移动";
-            if (a == 218 && (b >= 200 && b <= 207)) return "移动";
-            if (a == 221 && (b >= 130 && b <= 133)) return "移动";
-
-            if (a == 4 || a == 8) return "Level3(美)";
-            if (a == 12) return "AT&T(美)";
-            if (a == 38) return "Cogent(美)";
-            if (a == 80) return "Telia(欧)";
-            if (a == 130) return "NTT(日)";
-            if (a == 165 || a == 166 || a == 167 || a == 169) return "北美教育网";
-            if (a >= 224) return "组播/保留";
-
-            return "国际";
-        } catch (Exception e) {
-            return "";
-        }
+        return IpClassifier.classifyIpCarrier(ip);
     }
 
+    /**
+     * 计算子网信息。
+     *
+     * @param input CIDR 格式的输入，如 "192.168.1.1/24"
+     * @return 子网计算结果的多行文本；格式错误时返回错误提示
+     * @see SubnetCalculator#calculateSubnet(String)
+     */
     public static String calculateSubnet(String input) {
-        try {
-            String[] parts = input.split("/");
-            if (parts.length != 2) return "格式错误，请使用 IP/CIDR 格式，如 192.168.1.1/24";
-            String[] ipParts = parts[0].split("\\.");
-            if (ipParts.length != 4) return "IP地址格式错误";
-            int a = Integer.parseInt(ipParts[0]);
-            int b = Integer.parseInt(ipParts[1]);
-            int c = Integer.parseInt(ipParts[2]);
-            int d = Integer.parseInt(ipParts[3]);
-            int prefix = Integer.parseInt(parts[1]);
-            if (prefix < 0 || prefix > 32) return "子网掩码前缀必须在 0-32 之间";
-
-            long ip = ((long) a << 24) | ((long) b << 16) | ((long) c << 8) | d;
-            long mask = prefix == 0 ? 0 : (0xFFFFFFFFL << (32 - prefix));
-            long network = ip & mask;
-            long broadcast = network | (~mask & 0xFFFFFFFFL);
-            long firstHost = (prefix >= 31) ? network : network + 1;
-            long lastHost = (prefix >= 31) ? broadcast : broadcast - 1;
-            long totalHosts = (prefix >= 31) ? (prefix == 32 ? 1 : 2) : (long) Math.pow(2, 32 - prefix) - 2;
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("IP地址: ").append(longToIp(ip)).append("\n");
-            sb.append("子网掩码: ").append(longToIp(mask)).append(" (/" + prefix + ")\n");
-            sb.append("网络地址: ").append(longToIp(network)).append("\n");
-            sb.append("广播地址: ").append(longToIp(broadcast)).append("\n");
-            sb.append("可用IP范围: ").append(longToIp(firstHost)).append(" - ").append(longToIp(lastHost)).append("\n");
-            sb.append("可用主机数: ").append(totalHosts);
-            return sb.toString();
-        } catch (Exception e) {
-            return "计算失败: " + e.getMessage();
-        }
+        return SubnetCalculator.calculateSubnet(input);
     }
 
-    private static String longToIp(long ip) {
-        return ((ip >> 24) & 0xFF) + "." + ((ip >> 16) & 0xFF) + "." + ((ip >> 8) & 0xFF) + "." + (ip & 0xFF);
-    }
-
+    /**
+     * 使用辗转相除法（欧几里得算法）计算两个整数的最大公约数。
+     *
+     * @param a 第一个整数
+     * @param b 第二个整数
+     * @return a 和 b 的最大公约数
+     */
     public static int gcd(int a, int b) {
         while (b != 0) { int t = b; b = a % b; a = t; }
         return a;
     }
 
+    /**
+     * 获取当前移动网络类型的中文名称。
+     * <p>通过 TelephonyManager 获取网络类型常量，并映射为可读的名称。</p>
+     *
+     * @param telephonyManager 电话管理器实例，可为 null
+     * @return 网络类型名称（如 "LTE(4G)"、"NR(5G)"）；未连接时返回 "未连接"
+     */
     public static String getMobileNetworkType(android.telephony.TelephonyManager telephonyManager) {
         if (telephonyManager == null) return "未连接";
         try {
@@ -448,6 +337,13 @@ public final class ToolHelper {
         }
     }
 
+    /**
+     * 将 TelephonyManager 网络类型常量映射为可读的中文名称。
+     * <p>对于未在 switch 中显式处理的类型，若类型值 >= 20 则判定为 5G 网络。</p>
+     *
+     * @param type TelephonyManager 的网络类型常量
+     * @return 对应的网络类型名称字符串
+     */
     private static String telephonyNetworkTypeName(int type) {
         switch (type) {
             case android.telephony.TelephonyManager.NETWORK_TYPE_UNKNOWN: return "未知";
@@ -466,11 +362,19 @@ public final class ToolHelper {
             case android.telephony.TelephonyManager.NETWORK_TYPE_LTE: return "LTE(4G)";
             case android.telephony.TelephonyManager.NETWORK_TYPE_IWLAN: return "IWLAN";
             default:
+                // Android 9+ 的 NETWORK_TYPE_NR 常量值为 20，此处用 >= 20 兼容低版本 SDK
                 if (type >= 20) return "NR(5G)";
                 return "未知(" + type + ")";
         }
     }
 
+    /**
+     * 将 Android Sensor 类型常量映射为中文传感器名称。
+     * <p>覆盖了常见的传感器类型，未匹配的类型返回 "未知(类型值)"。</p>
+     *
+     * @param type Sensor 类型常量（如 {@link android.hardware.Sensor#TYPE_ACCELEROMETER}）
+     * @return 对应的中文传感器名称
+     */
     public static String sensorTypeName(int type) {
         switch (type) {
             case android.hardware.Sensor.TYPE_ACCELEROMETER: return "加速度计";
@@ -494,41 +398,5 @@ public final class ToolHelper {
             case android.hardware.Sensor.TYPE_HEART_RATE: return "心率传感器";
             default: return "未知(" + type + ")";
         }
-    }
-
-    public static String fetchPublicIpFast() {
-        String[] apis = {
-            "http://ip-api.com/json/?lang=zh-CN",
-            "https://api.ip.sb/json",
-            "https://ipinfo.io/json"
-        };
-        for (String apiUrl : apis) {
-            try {
-                java.net.URL url = new java.net.URL(apiUrl);
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(3000);
-                conn.setReadTimeout(3000);
-                conn.setRequestProperty("User-Agent", "GameCenterApp/1.0");
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder resp = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) resp.append(line);
-                reader.close();
-                conn.disconnect();
-                org.json.JSONObject json = new org.json.JSONObject(resp.toString());
-                String ip = json.optString("query", "");
-                if (ip.isEmpty()) ip = json.optString("ip", "");
-                if (!ip.isEmpty()) return ip;
-            } catch (Exception ignored) {
-            }
-        }
-        return null;
-    }
-
-    public static class TraceHopResult {
-        public long time;
-        public String ip;
-        public TraceHopResult(long time, String ip) { this.time = time; this.ip = ip; }
     }
 }

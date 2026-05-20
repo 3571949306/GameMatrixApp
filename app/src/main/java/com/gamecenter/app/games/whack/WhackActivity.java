@@ -10,6 +10,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.util.Log;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.gamecenter.app.R;
@@ -26,19 +27,41 @@ import java.util.Locale;
 /**
  * 打地鼠游戏 Activity
  *
- * 功能：
- * - 30秒打地鼠游戏
- * - 右上角设置：自定义地鼠颜色、查看历史分数
- * - 📖 教程按钮
+ * <p>管理打地鼠游戏的 UI 交互、游戏状态回调和设置功能。
+ * 作为 MVC 中的 Controller，协调 {@link WhackView}（视图+逻辑）与 UI 控件。</p>
+ *
+ * <p>功能：
+ * <ul>
+ *   <li>30 秒打地鼠游戏，实时显示得分和剩余时间</li>
+ *   <li>设置对话框：自定义地鼠颜色、查看历史分数</li>
+ *   <li>教程按钮：展示游戏玩法说明</li>
+ *   <li>游戏结束时自动记录分数到历史</li>
+ * </ul>
+ * </p>
  */
 public class WhackActivity extends AppCompatActivity {
 
+    /** 游戏唯一标识，用于统计 */
     private static final String GAME_ID = "whack";
+    /** 日志标签 */
+    private static final String TAG = "WhackActivity";
+    /** 打地鼠自定义视图 */
     private WhackView whackView;
+    /** 得分文本显示 */
     private TextView tvScore;
+    /** 剩余时间文本显示 */
     private TextView tvTime;
+    /** 游戏使用统计存储 */
     private GameUsageStore usageStore;
 
+    /**
+     * Activity 创建回调
+     *
+     * <p>初始化视图、游戏状态监听器和所有按钮事件。
+     * 游戏状态监听器负责实时更新得分、时间和游戏结束的 UI 显示。</p>
+     *
+     * @param savedInstanceState 保存的实例状态（未使用）
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +75,7 @@ public class WhackActivity extends AppCompatActivity {
         usageStore = new GameUsageStore(this);
 
         whackView = findViewById(R.id.whack_view);
+        // 设置游戏状态回调：得分变化、时间变化、游戏结束
         whackView.setOnGameStateListener(new WhackView.OnGameStateListener() {
             @Override
             public void onScoreChanged(int score) {
@@ -70,15 +94,18 @@ public class WhackActivity extends AppCompatActivity {
             }
         });
 
+        // 重新开始按钮
         MaterialButton btnRestart = findViewById(R.id.btn_game_restart);
         btnRestart.setOnClickListener(v -> {
             whackView.stopGame();
             whackView.startGame();
         });
 
+        // 教程按钮
         MaterialButton btnTutorial = findViewById(R.id.btn_game_tutorial);
         btnTutorial.setOnClickListener(v -> GameTutorialHelper.showWhackTutorial(this));
 
+        // 设置按钮（地鼠颜色、历史分数）
         ImageButton btnSettings = findViewById(R.id.btn_whack_settings);
         btnSettings.setOnClickListener(v -> showSettingsDialog());
 
@@ -87,8 +114,13 @@ public class WhackActivity extends AppCompatActivity {
 
     /**
      * 显示打地鼠设置对话框
-     * - 改变地鼠颜色
-     * - 查看历史分数
+     *
+     * <p>提供两个选项：
+     * <ul>
+     *   <li>改变地鼠颜色：打开颜色选择器</li>
+     *   <li>历史分数：查看历史得分记录</li>
+     * </ul>
+     * </p>
      */
     private void showSettingsDialog() {
         String[] options = {"改变地鼠颜色", "历史分数"};
@@ -106,7 +138,10 @@ public class WhackActivity extends AppCompatActivity {
     }
 
     /**
-     * 颜色选择对话框
+     * 显示地鼠颜色选择对话框
+     *
+     * <p>提供 10 种预设颜色供选择，当前选中的颜色会被预选。
+     * 选择后立即更新地鼠颜色并持久化保存到 SharedPreferences。</p>
      */
     private void showColorPicker() {
         final int[] colors = {
@@ -126,6 +161,7 @@ public class WhackActivity extends AppCompatActivity {
                 "绿色", "深橙", "灰蓝", "粉色", "黄色"
         };
 
+        // 查找当前颜色在选项中的索引
         int currentColor = whackView.getMoleColor();
         int currentSelection = 0;
         for (int i = 0; i < colors.length; i++) {
@@ -147,7 +183,11 @@ public class WhackActivity extends AppCompatActivity {
     }
 
     /**
-     * 历史分数对话框
+     * 显示历史分数对话框
+     *
+     * <p>从 SharedPreferences 读取历史分数记录，解析后按时间倒序显示。
+     * 每条记录格式为 "分数,时间戳"，用分号分隔。
+     * 最多显示最近 20 条记录，并提供清除历史功能。</p>
      */
     private void showHistory() {
         SharedPreferences prefs = getSharedPreferences("whack_settings", Context.MODE_PRIVATE);
@@ -162,6 +202,7 @@ public class WhackActivity extends AppCompatActivity {
             return;
         }
 
+        // 解析历史记录：格式为 "分数,时间戳;分数,时间戳;..."
         String[] entries = history.split(";");
         List<String> display = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
@@ -174,7 +215,7 @@ public class WhackActivity extends AppCompatActivity {
                     long time = Long.parseLong(parts[1]);
                     String dateStr = sdf.format(new Date(time));
                     display.add(dateStr + " — " + score + "分");
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) { Log.w(TAG, "Invalid number format: " + ignored.getMessage()); }
             }
         }
 
@@ -199,6 +240,11 @@ public class WhackActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Activity 销毁回调
+     *
+     * <p>停止游戏并释放视图资源，避免内存泄漏。</p>
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();

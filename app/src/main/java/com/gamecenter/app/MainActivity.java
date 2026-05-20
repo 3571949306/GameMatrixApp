@@ -1,49 +1,41 @@
 package com.gamecenter.app;
 
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.LayoutInflater;
-import android.widget.ProgressBar;
-import android.widget.TextView;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
+import com.gamecenter.app.update.DownloadState;
+import com.gamecenter.app.update.UpdateCheckState;
 import com.gamecenter.app.update.UpdateInfo;
-import com.gamecenter.app.update.UpdateManager;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.gamecenter.app.update.UpdateViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity {
 
-    private static final int REQUEST_INSTALL_PERMISSION = 1001;
-
     private NavController navController;
-    private AlertDialog updateDialog;
-    private AlertDialog progressDialog;
-    private ProgressBar progressBar;
-    private TextView tvProgressPercent;
-    private TextView tvProgressSize;
-    private File downloadedApk;
-    private boolean isCheckingUpdate = false;
-    private boolean isAutoDownloadingUpdate = false;
-
     private PermissionHelper permissionHelper;
     private ActivityResultLauncher<String[]> permissionLauncher;
+    private UpdateViewModel updateViewModel;
+    private AlertDialog updateDialog;
+    private AlertDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,67 +68,88 @@ public class MainActivity extends AppCompatActivity {
         BottomNavigationView navView = findViewById(R.id.nav_view);
         NavigationUI.setupWithNavController(navView, navController);
 
+        updateViewModel = new ViewModelProvider(this).get(UpdateViewModel.class);
+        observeUpdateStates();
         scheduleAutoUpdateCheck();
+    }
+
+    private void observeUpdateStates() {
+        updateViewModel.getUpdateCheckState().observe(this, state -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            if (state instanceof UpdateCheckState.Available) {
+                UpdateInfo info = ((UpdateCheckState.Available) state).getInfo();
+                showUpdateDialog(info);
+            } else if (state instanceof UpdateCheckState.NotAvailable) {
+                Toast.makeText(this, R.string.update_no_update, Toast.LENGTH_SHORT).show();
+            } else if (state instanceof UpdateCheckState.BetaOnly) {
+                UpdateInfo info = ((UpdateCheckState.BetaOnly) state).getInfo();
+                showBetaOnlyNoticeDialog(info);
+            } else if (state instanceof UpdateCheckState.BetaBlocked) {
+                Toast.makeText(this, R.string.update_beta_only_toast, Toast.LENGTH_LONG).show();
+            } else if (state instanceof UpdateCheckState.Error) {
+                String message = ((UpdateCheckState.Error) state).getMessage();
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        updateViewModel.getDownloadState().observe(this, state -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            if (state instanceof DownloadState.Downloading) {
+                DownloadState.Downloading dl = (DownloadState.Downloading) state;
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    updateProgressDialog(dl.getDownloaded(), dl.getTotal());
+                }
+            } else if (state instanceof DownloadState.Verifying) {
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    updateProgressVerifying();
+                }
+            } else if (state instanceof DownloadState.Completed) {
+                dismissProgressDialog();
+                File apkFile = ((DownloadState.Completed) state).getApkFile();
+                showInstallDialog(apkFile);
+            } else if (state instanceof DownloadState.Error) {
+                dismissProgressDialog();
+                String message = ((DownloadState.Error) state).getMessage();
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            } else if (state instanceof DownloadState.Cancelled) {
+                dismissProgressDialog();
+            }
+        });
     }
 
     private void scheduleAutoUpdateCheck() {
         if (!(getApplication() instanceof App)) return;
         App app = (App) getApplication();
+        new Handler(Looper.getMainLooper()).postDelayed(
+                new SafeUpdateCheckRunnable(this, app), 2000);
+    }
 
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                SettingsManager sm = SettingsManager.getInstance(MainActivity.this);
-                if (!isFinishing() && !isDestroyed()
-                        && app.shouldAutoCheckUpdate()
-                        && sm.isAutoCheckUpdate()) {
-                    checkUpdate(false);
-                }
+    private static class SafeUpdateCheckRunnable implements Runnable {
+        private final WeakReference<MainActivity> activityRef;
+        private final App app;
+
+        SafeUpdateCheckRunnable(MainActivity activity, App app) {
+            this.activityRef = new WeakReference<>(activity);
+            this.app = app;
+        }
+
+        @Override
+        public void run() {
+            MainActivity activity = activityRef.get();
+            if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+            SettingsManager sm = SettingsManager.getInstance(activity);
+            if (app.shouldAutoCheckUpdate() && sm.isAutoCheckUpdate()) {
+                activity.updateViewModel.checkUpdate(activity, false);
             }
-        }, 2000);
+        }
     }
 
     public void checkUpdate(boolean showToast) {
-        if (isCheckingUpdate) return;
-        isCheckingUpdate = true;
-
-        UpdateManager.getInstance().checkUpdate(this, new UpdateManager.UpdateCheckCallback() {
-            @Override
-            public void onResult(final UpdateInfo info) {
-                isCheckingUpdate = false;
-                if (!isFinishing() && !isDestroyed()) {
-                    if (info != null && info.hasUpdate()) {
-                        SettingsManager settings = SettingsManager.getInstance(MainActivity.this);
-                        if (settings.isAutoDownloadUpdate()) {
-                            startAutoDownload(info, showToast);
-                        } else {
-                            showUpdateDialog(info);
-                        }
-                    } else if (info != null && info.isBetaUpdateOutdated()) {
-                        showBetaOnlyNoticeDialog(info);
-                    } else if (info != null && info.isBetaUpdateBlocked() && showToast) {
-                        Toast.makeText(MainActivity.this,
-                                R.string.update_beta_only_toast, Toast.LENGTH_LONG).show();
-                    } else if (showToast) {
-                        Toast.makeText(MainActivity.this,
-                                R.string.update_no_update, Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-
-            @Override
-            public void onError(final String message) {
-                isCheckingUpdate = false;
-                if (showToast && !isFinishing() && !isDestroyed()) {
-                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onCancelled() {
-                isCheckingUpdate = false;
-            }
-        });
+        if (updateViewModel != null) {
+            updateViewModel.checkUpdate(this, showToast);
+        }
     }
 
     private void showUpdateDialog(final UpdateInfo info) {
@@ -149,9 +162,9 @@ public class MainActivity extends AppCompatActivity {
         StringBuilder message = new StringBuilder();
         message.append(String.format(getString(R.string.update_version), info.getVersionName()));
         message.append("\n");
-        message.append("类型: ").append(info.getChannelLabel());
+        message.append(getString(R.string.update_channel_label, info.getChannelLabel()));
         message.append("\n");
-        message.append("内部版本号: ").append(info.getVersionCode());
+        message.append(getString(R.string.update_version_code, info.getVersionCode()));
         message.append("\n");
         message.append(String.format(getString(R.string.update_size), info.getFileSizeFormatted()));
         message.append("\n\n");
@@ -162,20 +175,12 @@ public class MainActivity extends AppCompatActivity {
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle(title)
                 .setMessage(message.toString())
-                .setPositiveButton(R.string.update_download, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        startDownload(info);
-                    }
+                .setPositiveButton(R.string.update_download, (dialog, which) -> {
+                    startDownloadWithProgressDialog(info);
                 });
 
         if (!info.isForceUpdate()) {
-            builder.setNegativeButton(R.string.update_later, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
+            builder.setNegativeButton(R.string.update_later, (dialog, which) -> dialog.dismiss());
         } else {
             builder.setCancelable(false);
         }
@@ -184,52 +189,14 @@ public class MainActivity extends AppCompatActivity {
         updateDialog.show();
     }
 
-    private void showBetaOnlyNoticeDialog(final UpdateInfo info) {
+    private void startDownloadWithProgressDialog(UpdateInfo info) {
         if (isFinishing() || isDestroyed()) return;
 
-        String lastStableName = info.getLastStableVersionName().isEmpty()
-                ? "上一个正式版"
-                : info.getLastStableVersionName();
-        StringBuilder message = new StringBuilder();
-        message.append("服务器当前最新版是测试版 ")
-                .append(info.getVersionName())
-                .append("（内部版本号 ")
-                .append(info.getVersionCode())
-                .append("）。\n\n");
-        message.append("你当前安装的是内部版本号 ")
-                .append(info.getLocalVersionCode())
-                .append("，距离上一个正式版 ")
-                .append(lastStableName);
-        if (info.getLastStableVersionCode() > 0) {
-            message.append("（内部版本号 ")
-                    .append(info.getLastStableVersionCode())
-                    .append("）");
-        }
-        message.append(" 已经相差较大。\n\n");
-        message.append("现在只能开启“接受测试版安装包”后更新到当前内容，或者等待下一次正式版发布。");
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.update_beta_only_title)
-                .setMessage(message.toString())
-                .setPositiveButton(R.string.update_beta_only_enable, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        SettingsManager.getInstance(MainActivity.this).setAcceptBetaUpdate(true);
-                        checkUpdate(true);
-                    }
-                })
-                .setNegativeButton(R.string.update_beta_only_wait, null)
-                .show();
-    }
-
-    private void startDownload(final UpdateInfo info) {
-        if (isFinishing() || isDestroyed()) return;
-
-        final android.view.View dialogView = LayoutInflater.from(this)
+        final android.view.View dialogView = android.view.LayoutInflater.from(this)
                 .inflate(R.layout.dialog_update_progress, null);
-        progressBar = dialogView.findViewById(R.id.progress_bar);
-        tvProgressPercent = dialogView.findViewById(R.id.tv_progress_percent);
-        tvProgressSize = dialogView.findViewById(R.id.tv_progress_size);
+        android.widget.ProgressBar progressBar = dialogView.findViewById(R.id.progress_bar);
+        android.widget.TextView tvProgressPercent = dialogView.findViewById(R.id.tv_progress_percent);
+        android.widget.TextView tvProgressSize = dialogView.findViewById(R.id.tv_progress_size);
 
         progressBar.setMax(100);
         progressBar.setProgress(0, true);
@@ -242,105 +209,59 @@ public class MainActivity extends AppCompatActivity {
         progressDialog = builder.create();
         progressDialog.show();
 
-        UpdateManager.getInstance().downloadApk(this, info, new UpdateManager.DownloadCallback() {
-            @Override
-            public void onProgress(long downloaded, long total) {
-                if (isFinishing() || isDestroyed()) return;
-                int percent = total > 0 ? (int) (downloaded * 100 / total) : 0;
-                if (progressBar != null) {
-                    progressBar.setProgress(percent, true);
-                }
-                if (tvProgressPercent != null) {
-                    tvProgressPercent.setText(percent + "%");
-                }
-                if (tvProgressSize != null) {
-                    tvProgressSize.setText(formatDownloadProgress(downloaded, total));
-                }
-            }
-
-            @Override
-            public void onVerifying() {
-                if (isFinishing() || isDestroyed()) return;
-                if (tvProgressPercent != null) {
-                    tvProgressPercent.setText(getString(R.string.update_verifying));
-                }
-            }
-
-            @Override
-            public void onComplete(final File apkFile) {
-                downloadedApk = apkFile;
-                if (isFinishing() || isDestroyed()) return;
-                dismissProgressDialog();
-                showInstallDialog(apkFile);
-            }
-
-            @Override
-            public void onError(final String message) {
-                if (isFinishing() || isDestroyed()) return;
-                dismissProgressDialog();
-                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onCancelled() {
-                if (isFinishing() || isDestroyed()) return;
-                dismissProgressDialog();
-            }
-        });
+        updateViewModel.startDownload(this, info);
     }
 
-    private void startAutoDownload(final UpdateInfo info, boolean showToast) {
+    private void updateProgressDialog(long downloaded, long total) {
+        if (progressDialog == null || !progressDialog.isShowing()) return;
+        android.view.View decorView = progressDialog.getWindow() != null ? progressDialog.getWindow().getDecorView() : null;
+        if (decorView == null) return;
+
+        android.widget.ProgressBar progressBar = decorView.findViewById(R.id.progress_bar);
+        android.widget.TextView tvProgressPercent = decorView.findViewById(R.id.tv_progress_percent);
+        android.widget.TextView tvProgressSize = decorView.findViewById(R.id.tv_progress_size);
+
+        int percent = total > 0 ? (int) (downloaded * 100 / total) : 0;
+        if (progressBar != null) progressBar.setProgress(percent, true);
+        if (tvProgressPercent != null) tvProgressPercent.setText(percent + "%");
+        if (tvProgressSize != null)
+            tvProgressSize.setText(formatDownloadProgress(downloaded, total));
+    }
+
+    private void updateProgressVerifying() {
+        if (progressDialog == null || !progressDialog.isShowing()) return;
+        android.view.View decorView = progressDialog.getWindow() != null ? progressDialog.getWindow().getDecorView() : null;
+        if (decorView == null) return;
+
+        android.widget.TextView tvProgressPercent = decorView.findViewById(R.id.tv_progress_percent);
+        if (tvProgressPercent != null)
+            tvProgressPercent.setText(getString(R.string.update_verifying));
+    }
+
+    private void showBetaOnlyNoticeDialog(final UpdateInfo info) {
         if (isFinishing() || isDestroyed()) return;
-        if (isAutoDownloadingUpdate) {
-            if (showToast) {
-                Toast.makeText(this, "更新安装包正在后台下载", Toast.LENGTH_SHORT).show();
-            }
-            return;
+
+        String lastStableName = info.getLastStableVersionName().isEmpty()
+                ? getString(R.string.update_last_stable_default)
+                : info.getLastStableVersionName();
+        StringBuilder message = new StringBuilder();
+        message.append(getString(R.string.update_beta_only_msg,
+                info.getVersionName(), info.getVersionCode(),
+                info.getLocalVersionCode(), lastStableName));
+        if (info.getLastStableVersionCode() > 0) {
+            message.append(getString(R.string.update_beta_only_stable_code,
+                    info.getLastStableVersionCode()));
         }
+        message.append(getString(R.string.update_beta_only_hint));
 
-        isAutoDownloadingUpdate = true;
-        Toast.makeText(this, "发现新版本，正在后台下载安装包", Toast.LENGTH_SHORT).show();
-
-        UpdateManager.getInstance().downloadApk(this, info, new UpdateManager.DownloadCallback() {
-            @Override
-            public void onProgress(long downloaded, long total) {
-                // 后台自动下载不展示进度弹窗，避免打断游戏大厅操作。
-            }
-
-            @Override
-            public void onVerifying() {
-                // 校验完成后会统一进入 onComplete 或 onError。
-            }
-
-            @Override
-            public void onComplete(final File apkFile) {
-                isAutoDownloadingUpdate = false;
-                downloadedApk = apkFile;
-                if (isFinishing() || isDestroyed()) return;
-
-                SettingsManager settings = SettingsManager.getInstance(MainActivity.this);
-                if (settings.isPromptInstallAfterAutoDownload()) {
-                    showInstallDialog(apkFile);
-                } else {
-                    Toast.makeText(MainActivity.this,
-                            "更新安装包已下载，可在设置中打开下载目录", Toast.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            public void onError(final String message) {
-                isAutoDownloadingUpdate = false;
-                if (isFinishing() || isDestroyed()) return;
-                if (showToast) {
-                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onCancelled() {
-                isAutoDownloadingUpdate = false;
-            }
-        });
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.update_beta_only_title)
+                .setMessage(message.toString())
+                .setPositiveButton(R.string.update_beta_only_enable, (dialog, which) -> {
+                    updateViewModel.enableBetaAndRecheck(this);
+                })
+                .setNegativeButton(R.string.update_beta_only_wait, null)
+                .show();
     }
 
     private void showInstallDialog(final File apkFile) {
@@ -348,36 +269,35 @@ public class MainActivity extends AppCompatActivity {
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.update_new_version)
-                .setMessage("下载完成，是否立即安装？")
-                .setPositiveButton(R.string.update_install, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        installApk(apkFile);
-                    }
-                })
-                .setNeutralButton("打开目录", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        UpdateManager.getInstance().openDownloadDirectory(MainActivity.this);
-                    }
-                })
+                .setMessage(R.string.update_install_prompt)
+                .setPositiveButton(R.string.update_install, (dialog, which) -> updateViewModel.installApk(this))
+                .setNeutralButton(R.string.update_open_directory, (dialog, which) ->
+                        updateViewModel.openDownloadDirectory(this))
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
 
-    private void installApk(File apkFile) {
-        if (!UpdateManager.getInstance().canRequestInstall(this)) {
-            UpdateManager.getInstance().requestInstallPermission(this, REQUEST_INSTALL_PERMISSION);
-            return;
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == UpdateViewModel.REQUEST_INSTALL_PERMISSION) {
+            updateViewModel.onInstallPermissionResult(this, resultCode);
         }
-        UpdateManager.getInstance().installApk(this, apkFile);
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissProgressDialog();
+        if (updateDialog != null && updateDialog.isShowing()) {
+            try { updateDialog.dismiss(); } catch (Exception e) { Log.d("MainActivity", "Dialog dismiss failed", e); }
+        }
+        updateDialog = null;
+        super.onDestroy();
     }
 
     private void dismissProgressDialog() {
         if (progressDialog != null && progressDialog.isShowing()) {
-            try {
-                progressDialog.dismiss();
-            } catch (Exception ignored) {}
+            try { progressDialog.dismiss(); } catch (Exception e) { Log.d("MainActivity", "Dialog dismiss failed", e); }
         }
         progressDialog = null;
     }
@@ -392,37 +312,10 @@ public class MainActivity extends AppCompatActivity {
         return downloadedStr + " (" + percent + "%)";
     }
 
-    private String formatFileSize(long size) {
+    private static String formatFileSize(long size) {
         if (size < 1024) return size + " B";
         if (size < 1024 * 1024) return String.format("%.1f KB", size / 1024.0);
         return String.format("%.1f MB", size / (1024.0 * 1024.0));
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_INSTALL_PERMISSION) {
-            if (downloadedApk == null || !downloadedApk.exists()) {
-                Toast.makeText(this, "安装包已丢失，请重新下载", Toast.LENGTH_SHORT).show();
-                downloadedApk = null;
-                return;
-            }
-            if (resultCode == RESULT_OK || UpdateManager.getInstance().canRequestInstall(this)) {
-                installApk(downloadedApk);
-            } else {
-                Toast.makeText(this, "需要安装权限才能安装更新，请在设置中授予", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        dismissProgressDialog();
-        if (updateDialog != null && updateDialog.isShowing()) {
-            try { updateDialog.dismiss(); } catch (Exception ignored) {}
-        }
-        updateDialog = null;
-        super.onDestroy();
     }
 
     @Override

@@ -15,17 +15,50 @@ import com.google.android.material.button.MaterialButton;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * 围棋人机对战Activity。
+ * <p>
+ * 负责管理围棋单局对战的完整生命周期，包括：
+ * <ul>
+ *   <li>玩家（黑方）落子交互</li>
+ *   <li>AI（白方）异步计算与落子</li>
+ *   <li>虚手（Pass）操作与双方连续虚手判负</li>
+ *   <li>对局状态显示与重新开始</li>
+ * </ul>
+ * <p>
+ * 关键设计决策：AI计算在单独的线程池中执行，避免阻塞UI线程；
+ * 通过 {@link Handler#postDelayed} 添加400ms延迟，使AI落子有"思考"的视觉效果。
+ */
 public class GoActivity extends AppCompatActivity {
 
+    /** 棋盘视图组件，负责绘制棋盘和棋子 */
     private GoView goView;
+
+    /** 控制面板布局（包含虚手、重开等按钮） */
     private LinearLayout controlPanel;
+
+    /** 状态文本，显示当前回合或对局结果 */
     private TextView tvStatus;
 
+    /** 围棋游戏逻辑核心对象 */
     private GoGame game;
+
+    /** UI线程Handler，用于将AI落子结果投递回主线程 */
     private Handler uiHandler;
+
+    /** AI计算专用单线程执行器，确保AI计算串行执行不冲突 */
     private ExecutorService aiExecutor;
+
+    /** AI是否正在思考的标志位，volatile保证多线程可见性 */
     private volatile boolean aiThinking = false;
 
+    /**
+     * Activity创建时的初始化入口。
+     * <p>
+     * 初始化游戏对象、视图绑定、事件监听器，并设置AI执行器。
+     *
+     * @param savedInstanceState 保存的实例状态（未使用）
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,9 +92,20 @@ public class GoActivity extends AppCompatActivity {
         updateStatus();
     }
 
+    /**
+     * 处理玩家点击棋盘交叉点的落子操作。
+     * <p>
+     * 仅在黑方回合且AI未思考时响应。落子后切换到白方，
+     * 并异步触发AI计算。AI计算完成后通过Handler延迟400ms执行落子。
+     *
+     * @param x 棋盘横坐标（列索引）
+     * @param y 棋盘纵坐标（行索引）
+     */
     private void handleCellClick(int x, int y) {
         if (game.isGameOver()) return;
+        // 仅允许黑方（玩家）手动落子
         if (game.getCurrentPlayer() != GoGame.BLACK) return;
+        // AI思考期间禁止玩家操作，防止状态冲突
         if (aiThinking) return;
 
         if (!game.isValidMove(x, y)) {
@@ -77,10 +121,12 @@ public class GoActivity extends AppCompatActivity {
         aiThinking = true;
         aiExecutor.execute(() -> {
             int[] move = game.getBestMove();
+            // 延迟400ms落子，模拟AI思考过程
             uiHandler.postDelayed(() -> {
                 if (move != null) {
                     game.makeMove(move[0], move[1]);
                 } else {
+                    // AI无合法落子则虚手
                     game.pass();
                     Toast.makeText(this, "AI 弃权一手", Toast.LENGTH_SHORT).show();
                 }
@@ -92,6 +138,12 @@ public class GoActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 处理玩家虚手（Pass）操作。
+     * <p>
+     * 玩家虚手后切换到AI回合，AI同样可能虚手。
+     * 双方连续虚手时对局结束。
+     */
     private void handlePass() {
         if (game.isGameOver()) return;
         if (aiThinking) return;
@@ -100,6 +152,7 @@ public class GoActivity extends AppCompatActivity {
         goView.invalidate();
         updateStatus();
 
+        // 双方连续虚手则对局结束，不再触发AI
         if (game.isGameOver()) return;
 
         aiThinking = true;
@@ -119,6 +172,11 @@ public class GoActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 更新状态栏文本。
+     * <p>
+     * 对局中显示当前回合方，对局结束时显示双方吃子数。
+     */
     private void updateStatus() {
         if (game.isGameOver()) {
             tvStatus.setText("对局结束 - 黑吃子" + game.getBlackCaptures()
@@ -128,6 +186,11 @@ public class GoActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 重新开始对局。
+     * <p>
+     * 重置游戏状态和AI思考标志，刷新视图。
+     */
     private void restart() {
         aiThinking = false;
         game.reset();
@@ -136,6 +199,9 @@ public class GoActivity extends AppCompatActivity {
         updateStatus();
     }
 
+    /**
+     * Activity销毁时关闭AI线程池，防止线程泄漏。
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
