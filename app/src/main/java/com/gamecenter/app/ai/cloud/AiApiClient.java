@@ -106,8 +106,16 @@ public final class AiApiClient {
                         .build();
             }
         } catch (Exception e) {
-            Log.e(TAG, "chatSync failed", e);
+            logError("chatSync failed", e);
             return AiResult.fail("请求失败: " + e.getMessage()).errorCode(AiErrorCode.NETWORK_ERROR).build();
+        }
+    }
+
+    private static void logError(String message, Throwable throwable) {
+        try {
+            Log.e(TAG, message, throwable);
+        } catch (Throwable ignored) {
+            // android.util.Log is unavailable in local JVM tests.
         }
     }
 
