@@ -1,5 +1,11 @@
 # GameCenterApp 自动发布系统 - 快速开始
 
+## 2026-05-20 GitHub 网络基线
+
+- 远端仓库只维护 `main` 分支。
+- 本机 GitHub 上传已改为 GitHub-only Git 代理：`http://127.0.0.1:10808`。
+- 重新检测或修复本地代理配置请运行 `tools/network/Configure-GitHubProxy.ps1 -Apply`。
+
 ## 📦 已创建的发布工具
 
 ### 重要更新（2026-05-12）

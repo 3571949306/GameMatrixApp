@@ -1,5 +1,12 @@
 # GameCenterApp 发布状态
 
+## 2026-05-20 维护状态
+
+- 仓库维护分支：仅 `main`。
+- GitHub Dependabot open alerts：`0`。
+- 本地 GitHub 上传：Git 对 `https://github.com` 使用 `http://127.0.0.1:10808`，无需依赖 xray TUN/虚拟网卡模式。
+- 发布提醒：正式 APK 发布仍走本机签名和既有 VPS/GitHub Release 脚本；云端 CI 负责验证，不保存 release 签名材料。
+
 ## 最新发布信息
 
 **版本**: v1.3.17 (Beta)  

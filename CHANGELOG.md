@@ -1,5 +1,24 @@
 # 夹层 - 版本更新日志
 
+## [当前工作区] - 2026-05-20（GitHub 安全告警清零 + 本地上传网络修复）
+
+### Dependabot / 依赖安全
+- GitHub Dependabot open alerts 已从 33 个降为 0 个。
+- 根构建脚本继续强制安全版本，覆盖 Gradle classpath 与全项目配置中的 Kotlin stdlib、Guava、Protobuf、Netty、OpenTelemetry、BouncyCastle、commons-compress、commons-lang3、jose4j、jdom2 等传递依赖。
+
+### GitHub 分支与 CI
+- 远端仓库保持单一主分支 `main`，未保留其它远端分支。
+- `CI/CD Pipeline` 和 `Dependency Submission` 已在最新安全修复后通过。
+
+### 本地 GitHub 网络
+- 本机 Git 已配置为仅对 `https://github.com` 使用 v2rayN/xray 本地 HTTP 代理 `http://127.0.0.1:10808`，避免上传代码必须开启 xray TUN/虚拟网卡模式。
+- 新增 `tools/network/Configure-GitHubProxy.ps1` 与 `docs/LOCAL_GITHUB_NETWORK.md`，用于重复检测、应用或清除 GitHub-only Git 代理配置。
+
+### Lint 基线
+- 重新生成 `app/lint-baseline.xml`，当前 `lintDebug` 以“无新增问题”通过；历史 1007 条 lint 问题仍在 baseline 中，后续应按模块逐步清理。
+
+---
+
 
 ## [当前工作区] - 2026-05-19（战略优化：协程 + 网络测试 + CI 质量门 + 安全加固 + 构建优化）
 
