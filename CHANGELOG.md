@@ -16,6 +16,7 @@
 
 ### Lint 基线
 - 重新生成 `app/lint-baseline.xml`，当前 `lintDebug` 以“无新增问题”通过；历史 1007 条 lint 问题仍在 baseline 中，后续应按模块逐步清理。
+- CI lint 禁用 `AndroidGradlePluginVersion` 与 `GradleDependency`，避免外部仓库版本提示随时间变化导致主分支红灯；依赖安全继续由 Dependabot 和 Gradle 强制安全版本约束负责。
 
 ---
 
