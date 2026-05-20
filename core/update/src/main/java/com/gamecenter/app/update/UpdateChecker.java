@@ -656,9 +656,8 @@ public class UpdateChecker {
     private static void logDebug(String message) {
         try {
             Log.d(TAG, message);
-        } catch (RuntimeException e) {
+        } catch (Throwable ignored) {
             // Android Log is unavailable in local JVM unit tests.
-            Log.d(TAG, "Android Log unavailable in unit tests", e);
         }
     }
 
