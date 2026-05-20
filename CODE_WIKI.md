@@ -1,5 +1,12 @@
 # GameCenterApp — Code Wiki
 
+## 2026-05-20 Maintenance Notes
+
+- GitHub branch policy: `main` is the only maintained remote branch.
+- Dependabot open alerts are currently `0`; root Gradle security constraints cover high-risk transitive dependencies from both plugin classpath and project configurations.
+- Local GitHub upload should use the GitHub-only Git proxy `http://127.0.0.1:10808` instead of requiring xray TUN mode. See `docs/LOCAL_GITHUB_NETWORK.md`.
+- New helper: `tools/network/Configure-GitHubProxy.ps1`.
+
 > **项目名称**: GameCenterApp  
 > **包名**: `com.gamecenter.app`  
 > **当前版本**: 1.3.26 (versionCode 262)  

@@ -1,5 +1,11 @@
 # GameCenterApp 发布指南
 
+## 2026-05-20 GitHub 上传网络说明
+
+- 本机已配置 GitHub-only Git 代理：`git config --global http.https://github.com.proxy http://127.0.0.1:10808`。
+- 该配置只影响 `https://github.com`，用于在不开启 xray TUN/虚拟网卡模式时完成 `git push` 和 GitHub Release 上传前的 Git 操作。
+- 如本地代理端口变化，运行 `powershell -ExecutionPolicy Bypass -File tools\network\Configure-GitHubProxy.ps1 -Apply` 重新检测并写入配置。
+
 本文档说明如何将 GameCenterApp APK 自动发布到所有更新源。
 
 ## 重要更新（2026-05-12）

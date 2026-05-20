@@ -11,6 +11,15 @@ An Android game center integrating **26** classic mini-games, supporting single-
 
 ---
 
+## 2026-05-20 Maintenance Snapshot
+
+- GitHub remote branch policy: keep `main` as the only maintained branch.
+- Dependabot open alerts: `0` after dependency security constraints were applied in the root Gradle build.
+- Local GitHub upload path: Git is configured to use the local v2rayN/xray HTTP proxy `http://127.0.0.1:10808` only for `https://github.com`, so `git push` does not require xray TUN/virtual adapter mode.
+- Local network recovery guide: see `docs/LOCAL_GITHUB_NETWORK.md`; helper script: `tools/network/Configure-GitHubProxy.ps1`.
+
+---
+
 ## 快速导航 / Quick Navigation
 
 - 🎮 [功能列表](#功能列表--feature-list) — 全部游戏列表与联机支持

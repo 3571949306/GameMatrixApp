@@ -1,5 +1,12 @@
 # GameCenterApp 项目上下文
 
+## 2026-05-20 维护快照
+
+- GitHub 远端只保留 `main` 分支；后续提交、发布和 CI 触发均以 `main` 为唯一主线。
+- Dependabot open alerts 已清零。根 `build.gradle` 通过 resolutionStrategy 统一约束高风险传递依赖版本，避免 Gradle 插件 classpath 与子模块依赖图重新引入已知漏洞版本。
+- 本地 GitHub 上传不再依赖 xray TUN/虚拟网卡模式：Git 已配置 `http.https://github.com.proxy=http://127.0.0.1:10808`，只对 GitHub 走 v2rayN/xray 本地 HTTP 代理。
+- 网络诊断与恢复步骤记录在 `docs/LOCAL_GITHUB_NETWORK.md`，可执行脚本为 `tools/network/Configure-GitHubProxy.ps1`。
+
 > 给 AI 开发助手和维护者的快速入口。优先以仓库当前代码为准，本文档用于减少查找成本和避免常见误判。
 
 ## 0. 最近更新
