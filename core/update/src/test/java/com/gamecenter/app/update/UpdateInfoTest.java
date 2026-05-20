@@ -20,6 +20,11 @@ public class UpdateInfoTest {
                 .put("channel", "stable");
     }
 
+    private JSONObject without(JSONObject json, String key) {
+        json.remove(key);
+        return json;
+    }
+
     @Test
     public void fromJson_parsesAllFields() throws Exception {
         UpdateInfo info = UpdateInfo.fromJson(baseJson());
@@ -47,7 +52,7 @@ public class UpdateInfoTest {
 
     @Test
     public void fromJson_releaseChannelFallback() throws Exception {
-        JSONObject json = baseJson().remove("channel").put("releaseChannel", "beta");
+        JSONObject json = without(baseJson(), "channel").put("releaseChannel", "beta");
         UpdateInfo info = UpdateInfo.fromJson(json);
 
         assertEquals("beta", info.getChannel());
@@ -56,7 +61,7 @@ public class UpdateInfoTest {
 
     @Test
     public void fromJson_isBetaBooleanFallback() throws Exception {
-        JSONObject json = baseJson().remove("channel").put("isBeta", true);
+        JSONObject json = without(baseJson(), "channel").put("isBeta", true);
         UpdateInfo info = UpdateInfo.fromJson(json);
 
         assertEquals("beta", info.getChannel());
@@ -65,7 +70,7 @@ public class UpdateInfoTest {
 
     @Test
     public void fromJson_versionNameBetaFallback() throws Exception {
-        JSONObject json = baseJson().remove("channel").put("versionName", "1.4.0-beta1");
+        JSONObject json = without(baseJson(), "channel").put("versionName", "1.4.0-beta1");
         UpdateInfo info = UpdateInfo.fromJson(json);
 
         assertEquals("beta", info.getChannel());
@@ -74,7 +79,7 @@ public class UpdateInfoTest {
 
     @Test
     public void fromJson_defaultChannelIsStable() throws Exception {
-        JSONObject json = baseJson().remove("channel");
+        JSONObject json = without(baseJson(), "channel");
         UpdateInfo info = UpdateInfo.fromJson(json);
 
         assertEquals("stable", info.getChannel());
@@ -83,11 +88,11 @@ public class UpdateInfoTest {
 
     @Test
     public void fromJson_downloadUrlFallbacks() throws Exception {
-        JSONObject json = baseJson().remove("downloadUrl").put("apkUrl", "https://alt.com/app.apk");
+        JSONObject json = without(baseJson(), "downloadUrl").put("apkUrl", "https://alt.com/app.apk");
         UpdateInfo info = UpdateInfo.fromJson(json);
         assertEquals("https://alt.com/app.apk", info.getDownloadUrl());
 
-        json = baseJson().remove("downloadUrl").remove("apkUrl").put("url", "https://third.com/app.apk");
+        json = without(without(baseJson(), "downloadUrl"), "apkUrl").put("url", "https://third.com/app.apk");
         info = UpdateInfo.fromJson(json);
         assertEquals("https://third.com/app.apk", info.getDownloadUrl());
     }
@@ -101,11 +106,11 @@ public class UpdateInfoTest {
         UpdateInfo info = UpdateInfo.fromJson(json);
         assertEquals(280, info.getLastStableVersionCode());
 
-        json = baseJson().remove("lastStableVersionCode").put("stableVersionCode", 270);
+        json = without(baseJson(), "lastStableVersionCode").put("stableVersionCode", 270);
         info = UpdateInfo.fromJson(json);
         assertEquals(270, info.getLastStableVersionCode());
 
-        json = baseJson().remove("lastStableVersionCode").remove("stableVersionCode").put("releaseVersionCode", 260);
+        json = without(without(baseJson(), "lastStableVersionCode"), "stableVersionCode").put("releaseVersionCode", 260);
         info = UpdateInfo.fromJson(json);
         assertEquals(260, info.getLastStableVersionCode());
     }
