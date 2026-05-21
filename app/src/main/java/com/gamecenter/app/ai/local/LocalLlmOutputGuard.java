@@ -6,6 +6,11 @@ import java.util.Map;
 /**
  * 本地 LLM 输出守卫 — 对本地模型推理结果进行质量与安全校验。
  * <p>
+ * 你可以把这个类想象成一个"质检员"：
+ * 本地小模型（如 Gemma）在手机上运行时，有时会"犯糊涂"——
+ * 比如不停地重复同一句话、输出一堆乱码、或者绕圈子说废话。
+ * 质检员的工作就是检查这些情况，一旦发现问题就拦截，不让劣质输出展示给用户。
+ * <p>
  * 本地端侧模型（如 Gemma）在资源受限的移动设备上运行时，容易出现输出退化问题，
  * 包括：连续重复字符、信息密度过低、段落循环等。此类问题在端侧推理中较为常见，
  * 通常由上下文过长、采样参数不当或模型能力不足引起。
@@ -20,13 +25,14 @@ import java.util.Map;
  */
 public final class LocalLlmOutputGuard {
 
+    // 私有构造方法，防止外部创建实例（因为所有方法都是静态的，不需要实例）
     private LocalLlmOutputGuard() {
     }
 
     /**
      * 对本地模型的输出文本进行质量校验。
      * <p>
-     * 校验流程依次为：
+     * 校验流程依次为（就像工厂质检流水线，一道一道检查）：
      * <ol>
      *   <li>空值或空白检查</li>
      *   <li>短文本豁免（压缩后不足 80 字符则跳过后续检查）</li>
@@ -40,6 +46,7 @@ public final class LocalLlmOutputGuard {
      * @return null 表示校验通过；非空字符串表示拒绝展示的原因（用户可见提示）
      */
     public static String validate(String output) {
+        // 第1关：检查是否为空或全是空白
         if (output == null || output.trim().isEmpty()) {
             return "本地模型没有返回有效内容，请换一种问法或切换到云端模式。";
         }
@@ -51,23 +58,27 @@ public final class LocalLlmOutputGuard {
             return null;
         }
 
+        // 第2关：检查是否有同一字符连续出现太多次（如 "aaaaaa"）
         if (hasLongCharacterRun(compact, 16)) {
             return "本地模型输出出现连续重复字符，已停止展示。请缩短输入、重新提问，或切换到云端模式。";
         }
 
+        // 第3关：检查是否某个字符占比过高（如整段文字都是"的"字）
         if (isDominatedByOneCharacter(compact)) {
             return "本地模型输出信息密度过低，已停止展示。请换一种问法，或切换到云端模式。";
         }
 
+        // 第4关：检查是否有重复的段落
         if (hasRepeatedLine(output)) {
             return "本地模型输出出现重复段落，已停止展示。请重新生成，或切换到云端模式。";
         }
 
+        // 第5关：检查是否有循环片段（一段话翻来覆去地说）
         if (hasRepeatedSegment(compact)) {
             return "本地模型输出出现循环片段，已停止展示。请缩短输入、重新提问，或切换到云端模式。";
         }
 
-        return null;
+        return null; // 所有检查通过，输出质量合格
     }
 
     /**
@@ -80,18 +91,18 @@ public final class LocalLlmOutputGuard {
      * @return true 表示存在超过阈值的连续重复字符
      */
     private static boolean hasLongCharacterRun(String text, int threshold) {
-        int run = 1;
+        int run = 1;  // 当前连续计数
         char previous = text.charAt(0);
         for (int i = 1; i < text.length(); i++) {
             char current = text.charAt(i);
             if (current == previous) {
                 run++;
                 if (run >= threshold) {
-                    return true;
+                    return true;  // 连续重复超过阈值，判定为退化
                 }
             } else {
                 previous = current;
-                run = 1;
+                run = 1;  // 遇到不同字符，重置计数
             }
         }
         return false;
@@ -109,8 +120,8 @@ public final class LocalLlmOutputGuard {
      */
     private static boolean isDominatedByOneCharacter(String text) {
         Map<Character, Integer> counts = new HashMap<>();
-        int max = 0;
-        int counted = 0;
+        int max = 0;  // 最高频字符的出现次数
+        int counted = 0;  // 有效字符总数（排除标点和空白）
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             // 跳过空白和中英文常见标点，只统计有实际语义的字符
@@ -147,7 +158,7 @@ public final class LocalLlmOutputGuard {
             }
             int count = counts.getOrDefault(normalized, 0) + 1;
             if (count >= 4) {
-                return true;
+                return true;  // 同一行出现 4 次以上，判定为重复
             }
             counts.put(normalized, count);
         }
@@ -162,6 +173,7 @@ public final class LocalLlmOutputGuard {
      * <p>
      * 多尺度设计的原因：模型退化的循环单元长度不固定，短窗口捕捉细粒度循环，
      * 长窗口捕捉大段重复，兼顾检测灵敏度与误判率。
+     * 就像用不同大小的筛子来筛沙子，粗筛子找大块，细筛子找小块。
      *
      * @param text 已去除空白的紧凑文本
      * @return true 表示存在循环片段
@@ -174,7 +186,7 @@ public final class LocalLlmOutputGuard {
             if (text.length() < window * 8) {
                 continue;
             }
-            int repeats = 1;
+            int repeats = 1;  // 连续重复次数
             String previous = text.substring(0, window);
             for (int i = window; i + window <= text.length(); i += window) {
                 String current = text.substring(i, i + window);
@@ -186,7 +198,7 @@ public final class LocalLlmOutputGuard {
                     }
                 } else {
                     previous = current;
-                    repeats = 1;
+                    repeats = 1;  // 遇到不同片段，重置计数
                 }
             }
         }

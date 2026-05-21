@@ -5,6 +5,10 @@ import com.gamecenter.app.ai.model.AiModelInfo;
 /**
  * AI 法律声明与条款管理 — 集中管理 AI 功能相关的法律文本和合规提示。
  * <p>
+ * 你可以把这个类想象成应用里的"法务部"：
+ * 它负责准备各种法律声明文本，确保用户在使用 AI 功能前了解相关风险和条款。
+ * 比如，下载本地模型前要让用户确认条款，使用 AI 功能时要有免责声明。
+ * <p>
  * 本类负责生成用户可见的法律声明和合规提示文本，包括：
  * <ul>
  *   <li>Gemma 模型下载前的条款确认提示</li>
@@ -27,12 +31,14 @@ public final class AiLegalNotices {
      * 当 Gemma 使用条款内容发生变更时，需更新此版本号。
      * 用户已同意的版本号会记录在 AiPreferences 中，
      * 若本地记录的版本号与当前版本号不一致，将要求用户重新同意。
+     * 就像软件更新了用户协议，版本号变了就要重新同意。
      */
     public static final String GEMMA_NOTICE_VERSION = "gemma-terms-2026-05-14";
 
-    /** Google Gemma 使用条款的在线地址 */
+    // Google Gemma 使用条款的在线地址
     public static final String GEMMA_TERMS_URL = "https://ai.google.dev/gemma/terms";
 
+    // 私有构造方法，防止实例化
     private AiLegalNotices() {
     }
 

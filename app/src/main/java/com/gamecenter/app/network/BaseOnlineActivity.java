@@ -20,6 +20,14 @@ import org.json.JSONObject;
 
 /**
  * 联机游戏 Activity 基类 — 封装房间管理、聊天、连接状态等联机对战通用逻辑。
+ *
+ * <p>打个比方：如果联机对战是一场线上聚会，那么这个类就是聚会的"总管"，
+ * 负责搭建场地（创建房间）、邀请客人（加入房间）、维持秩序（管理连接状态）、
+ * 以及提供聊天服务。每个具体的游戏只需要告诉"总管"自己的特殊需求即可。</p>
+ *
+ * <p>在网络模块中的角色：这是整个联机模块的"顶层协调者"，它把底层的网络通信
+ * （GameSocketServer/GameSocketClient）和上层的游戏逻辑连接起来，
+ * 让具体的游戏Activity不需要关心网络细节。</p>
  * <p>
  * 职责：
  * <ul>
@@ -33,10 +41,13 @@ import org.json.JSONObject;
  * 关键设计决策：
  * <ul>
  *   <li>采用模板方法模式：子类实现 {@link #initGameViews}、{@link #onGameStarted}、
- *       {@link #onGameMessageReceived}、{@link #onGameReset} 等抽象方法来定制游戏特有逻辑</li>
+ *       {@link #onGameMessageReceived}、{@link #onGameReset} 等抽象方法来定制游戏特有逻辑。
+ *       就像填空题一样，基类出好题目框架，子类填写自己的答案。</li>
  *   <li>UI 完全通过代码动态构建，不依赖 XML 布局，便于在不同游戏中复用</li>
- *   <li>使用 volatile 修饰 {@link #isHost} 和 {@link #isPlaying}，确保多线程间的可见性</li>
- *   <li>所有 UI 更新通过 {@link #mainHandler} 投递到主线程，保证线程安全</li>
+ *   <li>使用 volatile 修饰 {@link #isHost} 和 {@link #isPlaying}，确保多线程间的可见性。
+ *       volatile 就像一块"公告板"，一个线程修改后，其他线程立刻能看到最新值。</li>
+ *   <li>所有 UI 更新通过 {@link #mainHandler} 投递到主线程，保证线程安全。
+ *       Android 要求UI操作只能在主线程进行，Handler就像一个"快递员"，把任务从后台线程送到主线程执行。</li>
  * </ul>
  */
 public abstract class BaseOnlineActivity extends AppCompatActivity {
@@ -44,24 +55,35 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
     /** 中转服务器基础 URL，从 {@link RelayHttpClient} 获取默认值 */
     protected static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
 
-    /** 偏好设置，用于持久化存储对等端令牌等信息 */
+    // ==================== 核心网络组件 ====================
+    // 下面这些是联机对战的"四大金刚"，分别负责不同的网络任务
+
+    /** 偏好设置，用于持久化存储对等端令牌等信息。
+     *  就像一个小本子，把重要的信息记下来，下次打开应用时还能找到。 */
     protected SharedPreferences prefs;
-    /** 主机端 WebSocket 服务器实例，仅在房主端使用 */
+    /** 主机端 WebSocket 服务器实例，仅在房主端使用。
+     *  房主就像"服务器"，负责接收和转发所有玩家的消息。 */
     protected GameSocketServer server;
-    /** 客户端 WebSocket 连接实例，仅在加入方使用 */
+    /** 客户端 WebSocket 连接实例，仅在加入方使用。
+     *  加入方就像"客户端"，连接到房主的服务器上。 */
     protected GameSocketClient client;
-    /** 聊天辅助类，处理聊天消息的收发与显示 */
+    /** 聊天辅助类，处理聊天消息的收发与显示。
+     *  就像聊天软件的后台服务，负责把你说的话发出去，把对方的话显示出来。 */
     protected OnlineChatHelper chatHelper;
+
+    // ==================== 游戏状态变量 ====================
 
     /** 是否为主机端（房主），volatile 保证多线程可见性 */
     protected volatile boolean isHost = false;
     /** 是否正在游戏中，volatile 保证多线程可见性 */
     protected volatile boolean isPlaying = false;
-    /** 本方玩家 ID（房主=1，加入方=2） */
+    /** 本方玩家 ID（房主=1，加入方=2）。
+     *  就像游戏中的座位号，房主坐1号位，加入者坐2号位。 */
     protected int myPlayerId = -1;
     /** 对手玩家 ID，用于标识对手的客户端连接 */
     protected int opponentPlayerId = -1;
-    /** 当前房间码 */
+    /** 当前房间码。
+     *  就像聚会的邀请码，告诉朋友这个码，他们就能找到你的房间。 */
     protected String roomCode = "";
 
     /** 主线程 Handler，用于将回调投递到 UI 线程 */

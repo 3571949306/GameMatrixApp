@@ -34,6 +34,15 @@ import okhttp3.WebSocketListener;
 
 /**
  * 游戏Socket客户端，负责管理多人游戏中的客户端网络通信。
+ *
+ * <p>打个比方：这个类就像一个"多模手机"，支持三种通话方式——
+ * 局域网直连好比"对讲机"（近距离直接通话），云中转好比"卫星电话"（通过中转站通话），
+ * WebSocket好比"视频通话"（保持持久连接，实时双向通信）。
+ * 无论用哪种方式，对外都提供统一的"打电话"和"发消息"接口。</p>
+ *
+ * <p>在网络模块中的角色：这是加入房间一方的"网络管家"，负责建立连接、
+ * 收发消息、维持心跳、断线重连等所有客户端侧的网络工作，
+ * 让上层游戏代码只需关心"发什么消息"和"收到消息后做什么"。</p>
  * <p>
  * 支持三种连接模式：
  * <ul>
@@ -44,33 +53,40 @@ import okhttp3.WebSocketListener;
  * <p>
  * 关键设计决策：
  * <ul>
- *   <li>使用 {@link WeakReference} 持有监听器，避免Activity/Fragment销毁后内存泄漏</li>
+ *   <li>使用 {@link WeakReference} 持有监听器，避免Activity/Fragment销毁后内存泄漏。
+ *       WeakReference就像"弱绳子"，当Activity被销毁时绳子会自动断开，不会阻止回收。</li>
  *   <li>所有回调通过 {@link Handler} 投递到主线程，确保UI操作线程安全</li>
- *   <li>内置自动重连机制，支持指数退避策略，默认最多重连3次</li>
+ *   <li>内置自动重连机制，支持指数退避策略，默认最多重连3次。
+ *       指数退避就像"越来越长的等待"，第1次等2秒，第2次等4秒，第3次等8秒，
+ *       避免频繁重连给服务器造成压力。</li>
  *   <li>使用单例模式管理客户端实例，确保全局只有一个活跃连接</li>
- *   <li>WebSocket模式下支持消息缓存，连接建立后自动发送缓存消息</li>
+ *   <li>WebSocket模式下支持消息缓存，连接建立后自动发送缓存消息。
+ *       就像手机没信号时短信会排队等待，恢复信号后自动发出。</li>
  * </ul>
  */
 public class GameSocketClient {
 
     private static final String TAG = "GameSocketClient";
 
-    /** Socket连接超时时间（毫秒） */
+    // ==================== 超时与重连常量 ====================
+    // 这些常量控制着网络连接的"忍耐程度"和"重试策略"
+
+    /** Socket连接超时时间（毫秒），5秒内连不上就放弃 */
     private static final int CONNECT_TIMEOUT = 5000;
 
-    /** TCP/Relay模式心跳发送间隔（毫秒） */
+    /** TCP/Relay模式心跳发送间隔（毫秒），每3秒发一次"我还活着"信号 */
     private static final long HEARTBEAT_INTERVAL = 3000L;
 
-    /** TCP/Relay模式心跳超时阈值（毫秒） */
+    /** TCP/Relay模式心跳超时阈值（毫秒），30秒没收到回复就认为连接可能断了 */
     private static final long HEARTBEAT_TIMEOUT = 30000L;
 
-    /** 默认最大重连尝试次数 */
+    /** 默认最大重连尝试次数，超过此次数就放弃重连 */
     private static final int DEFAULT_MAX_RECONNECT_ATTEMPTS = 3;
 
-    /** 默认重连基础间隔（毫秒） */
+    /** 默认重连基础间隔（毫秒），第1次重连等2秒 */
     private static final long DEFAULT_RECONNECT_INTERVAL = 2000L;
 
-    /** 默认重连最大间隔（毫秒），指数退避的上限 */
+    /** 默认重连最大间隔（毫秒），指数退避的上限，最多等15秒 */
     private static final long DEFAULT_MAX_RECONNECT_INTERVAL = 15000L;
 
     /** WebSocket模式心跳发送间隔（毫秒），比TCP模式更长以减少开销 */
@@ -82,17 +98,18 @@ public class GameSocketClient {
     /** WebSocket模式连续未收到PONG的最大次数，超过则判定连接断开 */
     private static final int WS_MAX_MISSED_PONGS = 2;
 
-    /** WebSocket模式下待发送消息的最大缓存数量 */
+    /** WebSocket模式下待发送消息的最大缓存数量，防止内存无限增长 */
     private static final int MAX_PENDING_MESSAGES = 32;
 
     /**
      * 连接状态枚举，描述客户端的生命周期状态。
+     * <p>就像打电话的过程：挂断→拨号中→接通→确认身份→重新拨号中</p>
      * <ul>
-     *   <li>DISCONNECTED：已断开</li>
-     *   <li>CONNECTING：正在连接中</li>
-     *   <li>CONNECTED：已连接（未认证）</li>
-     *   <li>AUTHENTICATED：已认证（收到WELCOME后）</li>
-     *   <li>RECONNECTING：正在重连中</li>
+     *   <li>DISCONNECTED：已断开（电话挂断）</li>
+     *   <li>CONNECTING：正在连接中（正在拨号）</li>
+     *   <li>CONNECTED：已连接（电话接通，但还没确认对方身份）</li>
+     *   <li>AUTHENTICATED：已认证（确认了对方身份，可以正式通话了）</li>
+     *   <li>RECONNECTING：正在重连中（电话断了，重新拨号）</li>
      * </ul>
      */
     public enum ConnectionState {
@@ -100,6 +117,7 @@ public class GameSocketClient {
     }
 
     private volatile ConnectionState state = ConnectionState.DISCONNECTED;
+    // ==================== 局域网直连模式相关字段 ====================
     private String serverHost;
     private int serverPort;
     private Socket socket;
@@ -110,10 +128,11 @@ public class GameSocketClient {
     /** 发送消息的独立线程池，单线程执行以保证消息顺序 */
     private final ExecutorService sendExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "SocketWriter");
-        thread.setDaemon(true);
+        thread.setDaemon(true); // 守护线程：当主线程结束时，这个线程也会自动结束
         return thread;
     });
 
+    // ==================== 心跳与重连相关字段 ====================
     private ScheduledExecutorService heartbeatScheduler;
     private ScheduledFuture<?> heartbeatTask;
     private ScheduledExecutorService reconnectScheduler;
@@ -129,15 +148,18 @@ public class GameSocketClient {
 
     /** 是否为用户主动断开，主动断开时不触发自动重连 */
     private volatile boolean manualDisconnect = false;
-    /** 最后一次收到服务器消息的时间戳，用于心跳超时检测 */
+    /** 最后一次收到服务器消息的时间戳，用于心跳超时检测。
+     *  就像"最后一次收到信的日期"，太久没收信就说明邮路可能断了。 */
     private volatile long lastServerMessageTime = 0L;
     /** 是否抑制下一次断开通知，用于重连场景避免重复提示 */
     private volatile boolean suppressNextDisconnectNotice = false;
-    /** P2P令牌，用于重连时服务器识别同一客户端 */
+    /** P2P令牌，用于重连时服务器识别同一客户端。
+     *  就像你的"身份证号"，断线重连时凭此号恢复之前的身份。 */
     private String peerToken = "";
     /** 通信协议版本号，用于兼容性协商 */
     private int protocolVersion = 2;
 
+    // ==================== 云中转（Relay）模式相关字段 ====================
     /** 是否处于云中转模式 */
     private volatile boolean relayMode = false;
     /** 是否正在进行云中转轮询 */
@@ -150,6 +172,7 @@ public class GameSocketClient {
     /** 云中转轮询线程 */
     private Thread relayPollThread;
 
+    // ==================== WebSocket模式相关字段 ====================
     /** 是否处于WebSocket模式 */
     private volatile boolean webSocketMode = false;
     /** 防止并发处理断开事件的标志 */
@@ -157,19 +180,23 @@ public class GameSocketClient {
     private WebSocket webSocket;
     private OkHttpClient okHttpClient;
     private String wsUrl;
-    /** WebSocket模式下待发送的消息队列，连接建立后自动发送 */
+    /** WebSocket模式下待发送的消息队列，连接建立后自动发送。
+     *  就像一个"待发信箱"，网络不通时把信放进去，通了之后自动寄出。 */
     private final ConcurrentLinkedQueue<JSONObject> pendingMessages = new ConcurrentLinkedQueue<>();
     /** WebSocket模式连续未收到PONG的次数 */
     private int consecutiveMissedPongs = 0;
 
+    // ==================== 监听器与回调相关字段 ====================
     /** 主线程Handler，用于将回调投递到主线程 */
     private Handler mainHandler;
+    // 使用WeakReference持有监听器，防止Activity销毁后内存泄漏
     private WeakReference<OnConnectedListener> connectedListenerRef;
     private WeakReference<OnDisconnectedListener> disconnectedListenerRef;
     private WeakReference<OnMessageReceivedListener> messageListenerRef;
     private WeakReference<OnErrorListener> errorListenerRef;
     private WeakReference<OnStateChangedListener> stateChangedListenerRef;
 
+    // ==================== 玩家信息字段 ====================
     private String playerName = "Player";
     /** 服务器分配的客户端ID，-1表示未分配 */
     private int clientId = -1;

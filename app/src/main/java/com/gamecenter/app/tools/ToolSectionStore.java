@@ -12,7 +12,15 @@ import java.util.Set;
 /**
  * 工具分区持久化存储 — 管理工具箱中各工具卡片的排序、可见性、收藏和最近使用记录。
  * <p>
+ * 简单理解：这个类就像工具箱的"记忆管家"，帮你记住：
+ * 哪些工具放在前面、哪些工具被隐藏了、哪些工具被收藏了、最近用过哪些工具。
+ * 即使关掉应用再打开，这些设置也不会丢失。
+ * </p>
+ * <p>
  * 使用 {@link SharedPreferences} 作为底层存储，所有数据以键值对形式持久化到本地。
+ * （SharedPreferences 就像一个小本子，用"键-值"的方式记东西，比如 "tools_order" → "ping,wifi,dns"）
+ * </p>
+ * <p>
  * 存储内容包括：
  * <ul>
  *   <li>工具卡片的排列顺序（逗号分隔的 ID 列表）</li>
@@ -26,7 +34,8 @@ import java.util.Set;
  * 设计决策：
  * <ul>
  *   <li>构造函数中使用 {@code context.getApplicationContext()} 避免 Activity 级别的内存泄漏</li>
- *   <li>使用 {@code apply()} 而非 {@code commit()} 进行持久化，避免阻塞调用线程</li>
+ *   <li>使用 {@code apply()} 而非 {@code commit()} 进行持久化，避免阻塞调用线程
+ *       （apply 是"异步保存"，commit 是"同步保存"，异步不会卡住界面）</li>
  *   <li>加载排序时，未在已保存顺序中的工具追加到末尾，确保新增工具不会丢失</li>
  * </ul>
  * </p>
@@ -57,6 +66,8 @@ public final class ToolSectionStore {
      * @param context Android Context，内部会转为 ApplicationContext 以避免内存泄漏
      */
     public ToolSectionStore(Context context) {
+        // 使用 ApplicationContext 而不是 Activity 的 context
+        // 这样即使 Activity 被销毁了，也不会因为还持有引用而无法回收内存
         this.appContext = context.getApplicationContext();
     }
 
@@ -123,6 +134,7 @@ public final class ToolSectionStore {
             }
             builder.append(sections.get(i).id);
         }
+        // apply() 异步保存，不会阻塞当前线程
         getPrefs().edit().putString(KEY_ORDER, builder.toString()).apply();
     }
 
@@ -173,6 +185,7 @@ public final class ToolSectionStore {
     /**
      * 切换指定工具的收藏状态。
      * <p>若已收藏则取消收藏，若未收藏则添加收藏。</p>
+     * <p>简单理解：就像给工具"加星/取消星"，点一下切换状态。</p>
      *
      * @param id 工具分区的唯一标识符
      * @return 切换后的收藏状态：true 表示已收藏，false 表示已取消收藏
@@ -207,6 +220,8 @@ public final class ToolSectionStore {
      * 将指定工具 ID 移至最近使用列表的头部，并保持列表不超过 {@link #MAX_RECENT} 条。
      * 若该 ID 已存在于列表中，先移除旧位置再插入头部。
      * </p>
+     * <p>简单理解：就像"最近打开的文件"列表，刚用过的排最前面，
+     * 列表满了就把最旧的挤掉。</p>
      *
      * @param id 工具分区的唯一标识符
      */
@@ -273,6 +288,8 @@ public final class ToolSectionStore {
     /**
      * 生成默认的工具分区列表。
      * <p>包含所有内置工具卡片，默认全部可见。新增工具应在此方法中添加。</p>
+     * <p>简单理解：这就是工具箱的"出厂设置"——所有工具默认都显示，
+     * 按照这里的顺序排列。如果用户新安装了应用，第一次看到的就是这个列表。</p>
      *
      * @return 默认工具分区列表
      */

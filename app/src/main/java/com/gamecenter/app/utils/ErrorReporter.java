@@ -32,6 +32,10 @@ import okhttp3.Response;
 /**
  * 错误上报器 —— 负责将应用运行时异常和日志信息上报至远程服务器。
  *
+ * <p>简单来说，这个类就像应用的"黑匣子"——当应用出了问题（比如崩溃、报错），
+ * 它会自动把错误信息收集起来，尝试通过网络发送给开发者，让开发者知道出了什么问题。
+ * 如果网络不通，它也会把错误信息保存到手机本地文件里，等以后有机会再发送。</p>
+ *
  * <p>核心职责：
  * <ul>
  *   <li>捕获并序列化异常信息（含堆栈跟踪、设备信息、线程名等），以 JSON 格式发送到服务端</ul>
@@ -54,22 +58,30 @@ public final class ErrorReporter {
     private static final String TAG = "ErrorReporter";
     private static final MediaType JSON_TYPE = MediaType.get("application/json; charset=utf-8");
 
-    /** 每小时允许上报的最大错误数量，超过此限制后丢弃后续错误 */
+    /** 每小时允许上报的最大错误数量，超过此限制后丢弃后续错误。
+     *  就像手机流量套餐有上限一样，防止错误太多时疯狂发请求，把服务器"轰炸"了 */
     private static final int MAX_ERRORS_PER_HOUR = 10;
 
     /** 一小时的毫秒数，用于频率限制的时间窗口计算 */
     private static final long ONE_HOUR_MS = 60 * 60 * 1000L;
 
-    /** 单例实例，使用 volatile 保证多线程下的可见性 */
+    /** 单例实例，使用 volatile 保证多线程下的可见性。
+     *  volatile 就像一个"公告板"——当一个线程修改了它的值，其他线程立刻就能看到最新值，
+     *  不会读到过期的"缓存"数据。如果没有 volatile，某个线程可能还在看旧值，导致创建多个实例。*/
     private static volatile ErrorReporter instance;
 
-    /** 应用上下文（使用 ApplicationContext 避免Activity泄漏） */
+    /** 应用上下文（使用 ApplicationContext 避免Activity泄漏）。
+     *  ApplicationContext 是整个应用的上下文，和具体的 Activity 无关，
+     *  这样即使 Activity 被销毁了，ErrorReporter 也不会一直引用着它导致内存无法回收 */
     private final Context context;
 
-    /** 单线程执行器，所有上报任务串行执行，避免并发问题 */
+    /** 单线程执行器，所有上报任务串行执行，避免并发问题。
+     *  可以理解为一个只有一个窗口的邮局——所有寄信请求排成一队，一个一个处理，
+     *  这样就不会出现两个人同时抢着用同一个窗口的混乱情况 */
     private final ExecutorService executor;
 
-    /** 当前小时窗口内已上报的错误计数，使用原子操作保证线程安全 */
+    /** 当前小时窗口内已上报的错误计数，使用原子操作保证线程安全。
+     *  AtomicInteger 就像一个带锁的计数器，多个线程同时按它时不会数错 */
     private final AtomicInteger hourlyCount;
 
     /** 当前小时窗口的起始时间戳（毫秒） */
@@ -87,6 +99,8 @@ public final class ErrorReporter {
         this.context = context.getApplicationContext();
         this.executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "ErrorReporter");
+            // 守护线程（Daemon）：就像后台默默工作的"清洁工"，当所有"正式员工"（用户线程）都下班了，
+            // 守护线程也会自动结束，不会阻止程序退出
             t.setDaemon(true);
             return t;
         });
@@ -97,6 +111,11 @@ public final class ErrorReporter {
 
     /**
      * 获取错误上报器的单例实例（双重检查锁模式）。
+     *
+     * <p>"单例"就是整个应用只创建一个对象，就像一个学校只有一个校长。
+     * "双重检查锁"是一种既保证线程安全又不过度影响性能的技巧——
+     * 先快速检查一次（不加锁，速度快），如果已经创建就直接返回；
+     * 如果没有，再加锁仔细检查一次，避免多线程同时创建多个实例。</p>
      *
      * @param context 应用上下文
      * @return 全局唯一的 ErrorReporter 实例

@@ -14,6 +14,10 @@ import java.util.Map;
 /**
  * 通用音效管理器 —— 提供游戏音效播放功能，支持短音效池和背景音乐。
  *
+ * <p>简单来说，这个类就像游戏里的"音响师"——它负责管理两种声音：
+ * 一种是短促的音效（比如点击按钮的"咔嗒"声、得分时的"叮"声），
+ * 另一种是长篇的背景音乐（比如游戏场景中循环播放的旋律）。</p>
+ *
  * <p>核心职责：
  * <ul>
  *   <li>短音效管理：通过 {@link SoundPool} 加载和播放短促音效（如点击、得分、爆炸等），
@@ -40,16 +44,22 @@ public class SoundManager {
     /** 应用上下文（使用 ApplicationContext 避免Activity泄漏） */
     private final Context context;
 
-    /** 短音效池，用于播放低延迟的短促音效 */
+    /** 短音效池，用于播放低延迟的短促音效。
+     *  SoundPool 就像一个"预加载的音效库"——先把音效加载到内存里，
+     *  播放时可以立刻响应，延迟很低，适合按钮点击、得分等需要即时反馈的场景 */
     private SoundPool soundPool;
 
-    /** 音效资源 ID → SoundPool 内部 ID 的映射表，避免同一音效重复加载 */
+    /** 音效资源 ID → SoundPool 内部 ID 的映射表，避免同一音效重复加载。
+     *  就像一本通讯录——通过"名字"（资源ID）查找"电话号码"（SoundPool内部ID） */
     private final Map<Integer, Integer> soundMap;
 
-    /** 背景音乐播放器，同一时刻只允许播放一首背景音乐 */
+    /** 背景音乐播放器，同一时刻只允许播放一首背景音乐。
+     *  MediaPlayer 就像一个"音乐播放器APP"——适合播放较长的音频文件，
+     *  支持暂停、继续、循环播放等操作，但启动比 SoundPool 稍慢 */
     private MediaPlayer bgPlayer;
 
-    /** 音效全局开关，为 false 时所有播放请求被静默忽略 */
+    /** 音效全局开关，为 false 时所有播放请求被静默忽略。
+     *  就像音响的总开关——关掉之后，不管你按多少次播放键都不会有声音 */
     private boolean enabled = true;
 
     /** 音效音量，范围 [0.0, 1.0] */

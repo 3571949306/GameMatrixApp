@@ -69,15 +69,23 @@ import java.util.concurrent.TimeUnit;
 /**
  * 高级工具绑定器集合类，提供游戏中心应用中各类高级工具的 UI 绑定与业务逻辑实现。
  * <p>
+ * 简单理解：这个类就像一个"大仓库"，里面装着各种高级工具的实现代码。
+ * 那些比较简单的工具（如电池、设备信息）各自有独立的 Binder 类，
+ * 但功能复杂的工具（如网络诊断、DNS查询、二维码等）都把代码放在这里集中管理。
+ * </p>
+ * <p>
  * 本类采用静态方法设计，所有工具绑定方法均为 public static，便于外部 Fragment/Activity 直接调用。
  * 关键设计决策：
  * <ul>
- *   <li>工具类模式：私有构造函数 + 静态方法，避免实例化，减少内存开销</li>
+ *   <li>工具类模式：私有构造函数 + 静态方法，避免实例化，减少内存开销
+ *       （就像一本工具手册，翻开就能用，不需要"买"一本新的）</li>
  *   <li>异步执行：耗时操作（网络诊断、DNS查询、LAN扫描、文件哈希等）通过 ExecutorService 在后台线程执行，
- *       结果通过 View.post() 回传到 UI 线程</li>
+ *       结果通过 View.post() 回传到 UI 线程
+ *       （就像去餐厅点菜，服务员下单后你可以继续看菜单，菜做好了再端给你）</li>
  *   <li>空安全：所有 findViewById 结果均做 null 检查，防止布局缺失时崩溃</li>
  *   <li>委托模式：ColorPlusToolBinder、DiagnosticReportToolBinder 等独立 ToolBinder 实现
- *       将实际逻辑委托给本类的静态方法，实现代码复用</li>
+ *       将实际逻辑委托给本类的静态方法，实现代码复用
+ *       （就像各部门的助理只是"传话人"，真正干活的是这个"大仓库"里的方法）</li>
  * </ul>
  * <p>
  * 涵盖的工具功能包括：网络诊断、诊断报告生成、DNS查询、局域网扫描、文本编解码、
@@ -85,6 +93,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class AdvancedToolBinders {
 
+    // 日志标签，用于在 Logcat 中筛选本类的日志输出
     private static final String TAG = "AdvancedToolBinders";
 
     /** 二维码生成的默认尺寸（像素），720px 在清晰度和生成速度间取得平衡 */
@@ -93,11 +102,16 @@ public final class AdvancedToolBinders {
     /** 诊断报告的剪贴板标签，用于标识复制到剪贴板的内容来源 */
     private static final String REPORT_LABEL = "GameCenter diagnostics";
 
+    // 私有构造函数：防止外部 new AdvancedToolBinders()，因为所有方法都是静态的
     private AdvancedToolBinders() {
     }
 
     /**
      * 绑定网络诊断工具的 UI 交互。
+     * <p>
+     * 简单理解：点击按钮后，工具会自动检查网络的各项"健康指标"，
+     * 就像去医院体检，一项项检查网络是否正常。
+     * </p>
      * <p>
      * 点击诊断按钮后，在后台线程执行网络体检（包括网络类型检测、WiFi IP 获取、
      * DNS 连通性测试、HTTPS 连通性测试、公网 IP 获取），并将结果展示在结果文本框中。
@@ -122,7 +136,13 @@ public final class AdvancedToolBinders {
     /**
      * 绑定诊断报告工具的 UI 交互，包括生成、复制和分享三个操作。
      * <p>
+     * 简单理解：这个工具就像给手机做一份"体检报告"，
+     * 可以生成报告、复制报告文字、或者把报告分享给别人。
+     * </p>
+     * <p>
      * 使用 final String[] 数组持有最新的报告内容，避免每次复制/分享时重复生成报告。
+     * （因为 lambda 表达式只能捕获"不可变"的局部变量，所以用数组包装来实现"可变引用"，
+     *  这就像把一张纸放进信封，信封不变但纸可以换）
      * 若报告尚未生成，复制和分享操作会自动触发一次报告生成。
      *
      * @param context     上下文，用于获取系统服务和启动分享 Intent

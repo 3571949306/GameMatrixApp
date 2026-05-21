@@ -7,6 +7,9 @@ import com.gamecenter.app.R;
 /**
  * 国际化（i18n）辅助工具类。
  *
+ * <p>简单来说，这个类就像一个"翻译官"——当你需要给用户显示一条提示消息时，
+ * 你同时提供中文和英文两个版本，它会自动根据用户手机的系统语言选择合适的版本来显示。</p>
+ *
  * <p>提供基于系统语言环境的中英文双语切换能力，主要用于简单的中英文 Toast 提示场景。
  * 根据当前系统语言自动选择中文或英文消息进行展示。
  *
@@ -45,6 +48,7 @@ public class I18nHelper {
      */
     private static boolean isChinese(Context context) {
         // getLocales().get(0) 获取用户首选语言环境
+        // Locale 就像手机的"语言身份证"，记录了用户使用的是什么语言
         String lang = context.getResources().getConfiguration().getLocales().get(0).getLanguage();
         return lang.equals("zh");
     }

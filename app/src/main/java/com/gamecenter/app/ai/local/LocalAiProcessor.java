@@ -7,6 +7,11 @@ import com.gamecenter.app.ai.data.AiResult;
 /**
  * 本地 AI 处理入口 — 处理低复杂度任务，不依赖云端 API。
  * <p>
+ * 你可以把这个类想象成一个"万能小工具箱"：
+ * 里面装着各种简单但实用的小工具（规则引擎），每个工具对应一种 AI 能力。
+ * 这些工具虽然不如云端 AI 那么聪明，但胜在免费、快速、离线可用。
+ * 就像家里的修车工具箱，虽然比不上专业汽修厂，但简单的问题自己就能搞定。
+ * <p>
  * 核心设计决策：
  * <ul>
  *   <li>所有方法均为静态方法，无状态，线程安全，可直接调用。</li>
@@ -29,6 +34,9 @@ import com.gamecenter.app.ai.data.AiResult;
  * </ul>
  */
 public final class LocalAiProcessor {
+
+    // 私有构造方法，防止实例化（所有方法都是静态的）
+    private LocalAiProcessor() {}
 
     /**
      * OCR 后处理：清洗 OCR 输出的杂字符、修正换行。
@@ -165,6 +173,7 @@ public final class LocalAiProcessor {
                 {" failed ", " 失败 "}, {" success ", " 成功 "}, {" settings ", " 设置 "},
                 {" history ", " 历史记录 "}, {" summary ", " 摘要 "}
         };
+        // 逐个替换词典中的词汇
         for (String[] pair : dict) {
             translated = translated.replace(pair[0], pair[1]);
         }
@@ -245,6 +254,7 @@ public final class LocalAiProcessor {
      * <p>
      * 占位符格式为 {@code {{key}}}，将模板中所有匹配的占位符替换为对应的值。
      * 若值为 null，则替换为空字符串。
+     * 就像填表一样，把模板中的空白处填上实际内容。
      *
      * @param template 模板字符串，包含 {@code {{key}}} 格式的占位符
      * @param vars     变量映射表，key 为占位符名称，value 为替换值
@@ -257,6 +267,7 @@ public final class LocalAiProcessor {
         String result = template;
         if (vars != null) {
             for (java.util.Map.Entry<String, String> entry : vars.entrySet()) {
+                // 将 {{key}} 替换为对应的值，null 值替换为空字符串
                 result = result.replace("{{" + entry.getKey() + "}}",
                         entry.getValue() != null ? entry.getValue() : "");
             }
@@ -287,6 +298,7 @@ public final class LocalAiProcessor {
         }
         String lower = text.toLowerCase();
         String category;
+        // 按优先级依次匹配关键词
         if (containsAny(lower, "bug", "错误", "崩溃", "闪退", "问题")) {
             category = "技术问题";
         } else if (containsAny(lower, "建议", "希望", "想要", "功能", "改进")) {
@@ -323,6 +335,7 @@ public final class LocalAiProcessor {
         if (text == null) return new AiCommand("unknown", null);
         String lower = text.trim().toLowerCase();
 
+        // 按优先级依次匹配指令关键词
         if (lower.startsWith("总结") || lower.startsWith("摘要") || lower.contains("帮我总结")) {
             return new AiCommand("summarize", lower);
         }
@@ -424,9 +437,9 @@ public final class LocalAiProcessor {
      * 封装指令识别的结果，包含指令类型和原始输入文本。
      */
     public static class AiCommand {
-        /** 指令类型：summarize、translate、ocr、rewrite、qa_pairs、keywords、unknown */
+        // 指令类型：summarize、translate、ocr、rewrite、qa_pairs、keywords、unknown
         public final String type;
-        /** 用户输入的原始文本（已转小写） */
+        // 用户输入的原始文本（已转小写）
         public final String rawText;
 
         /**

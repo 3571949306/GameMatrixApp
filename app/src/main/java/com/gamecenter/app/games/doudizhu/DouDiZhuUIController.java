@@ -30,11 +30,16 @@ import java.util.List;
  * 通过 {@link GameActionCallback} 回调接口将用户操作转发给 Activity 处理，
  * 实现了 UI 逻辑与业务逻辑的分离。</p>
  *
+ * <p>你可以把UIController想象成一个"遥控器"——它只负责显示画面和接收按钮点击，
+ * 真正的游戏操作都交给Activity（"主机"）去处理。</p>
+ *
  * <p>关键设计决策：
  * <ul>
- *   <li>采用回调模式（{@link GameActionCallback}），UI 控制器不直接操作游戏状态</li>
+ *   <li>采用回调模式（{@link GameActionCallback}），UI 控制器不直接操作游戏状态
+ *       （遥控器不直接换台，而是发信号给电视机）</li>
  *   <li>所有 UI 组件通过 findViewById 获取，由 {@link #initViews()} 统一初始化</li>
- *   <li>界面状态切换通过显示/隐藏容器布局实现，而非替换 Activity</li>
+ *   <li>界面状态切换通过显示/隐藏容器布局实现，而非替换 Activity
+ *       （就像翻卡片，正面是大厅，翻过来是游戏界面）</li>
  *   <li>房间码输入框自动过滤非字母数字字符并转大写，提升用户体验</li>
  * </ul>
  */
@@ -45,7 +50,8 @@ public final class DouDiZhuUIController {
     /**
      * 游戏操作回调接口。
      *
-     * <p>由 Activity 实现，将 UI 操作转发到业务逻辑层。</p>
+     * <p>由 Activity 实现，将 UI 操作转发到业务逻辑层。
+     * 这个接口就像"遥控器的按键"——按下后，信号传给电视（Activity）去处理。</p>
      */
     public interface GameActionCallback {
         /** 创建房间 */
@@ -147,11 +153,11 @@ public final class DouDiZhuUIController {
     /** 回合指示器 */
     private TextView tvTurnIndicator;
 
-    /** 关联的 Activity 实例 */
+    /** 关联的 Activity 实例（UI操作需要Activity上下文） */
     private final Activity activity;
-    /** 游戏操作回调 */
+    /** 游戏操作回调（按钮点击后通知Activity） */
     private GameActionCallback callback;
-    /** 聊天日志缓冲区 */
+    /** 聊天日志缓冲区（累积所有聊天消息） */
     private final StringBuilder chatLog = new StringBuilder();
 
     /**
@@ -744,19 +750,19 @@ public final class DouDiZhuUIController {
         return tableView;
     }
 
-    /** 手动输入 IP 加入的回调接口 */
+    /** 手动输入 IP 加入的回调接口（用户填完IP和端口后通知Activity） */
     public interface ManualJoinCallback {
         /** 用户确认加入时回调 */
         void onJoin(String ip, int port);
     }
 
-    /** 远程房间码加入的回调接口 */
+    /** 远程房间码加入的回调接口（用户输入房间码后通知Activity） */
     public interface RemoteJoinCallback {
         /** 用户确认加入时回调 */
         void onJoin(String roomCode);
     }
 
-    /** 房间选择的回调接口 */
+    /** 房间选择的回调接口（用户从列表中选择一个房间后通知Activity） */
     public interface RoomSelectionCallback {
         /** 用户选择某个房间时回调 */
         void onSelected(int index);

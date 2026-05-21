@@ -25,6 +25,14 @@ import com.google.android.material.button.MaterialButton;
  *   <li>棋盘逻辑和渲染全部委托给 {@link CheckersView}，本类仅负责 UI 编排和状态展示</li>
  *   <li>黑方（player=0）始终先手，与 {@link CheckersView} 的约定一致</li>
  * </ul>
+ *
+ * 【初学者指南】
+ * 这个类是跳棋人机对战的主屏幕，结构和其他棋类的Activity类似。
+ * 跳棋（Checkers）是国际跳棋，和中国跳棋不同：
+ * - 在8×8棋盘的深色格子上进行
+ * - 每方12颗棋子，只能斜着走
+ * - 跳过对方棋子可以吃掉它，连跳时必须继续跳
+ * - 到达对方底线升变为王棋，可以前后移动
  */
 public class CheckersActivity extends AppCompatActivity {
 

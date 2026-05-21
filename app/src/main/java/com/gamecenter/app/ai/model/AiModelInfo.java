@@ -5,6 +5,10 @@ import org.json.JSONObject;
 /**
  * AI 本地模型信息 — 描述一个可下载的端侧 AI 模型的完整元数据。
  *
+ * <p>你可以把 AiModelInfo 想象成一款 App 在应用商店里的"详情页"：
+ * 上面有 App 的名字、大小、版本号、下载链接、系统要求等信息。
+ * AiModelInfo 就是 AI 模型的"详情页"，记录了模型的所有关键信息。</p>
+ *
  * <p>该类封装了端侧 AI 模型的所有元信息，包括模型标识、运行时环境、
  * 下载地址、完整性校验以及硬件兼容性要求等。数据来源于远程 models.json 清单文件，
  * 通过 fromJson 工厂方法从 JSON 反序列化创建。</p>
@@ -20,13 +24,13 @@ import org.json.JSONObject;
  */
 public final class AiModelInfo {
 
-    /** 模型唯一标识，对应清单文件中的 id 字段 */
+    /** 模型唯一标识，对应清单文件中的 id 字段（如 "gemma3-1b-it-q4"） */
     public final String id;
 
-    /** 模型显示名称，缺失时回退为 id */
+    /** 模型显示名称，缺失时回退为 id（如 "Gemma3-1B-IT q4"） */
     public final String name;
 
-    /** 运行时类型，标识模型使用的推理引擎（如 "tflite"、"onnx" 等） */
+    /** 运行时类型，标识模型使用的推理引擎（如 "mediapipe-llm"、"tflite"、"onnx" 等） */
     public final String runtime;
 
     /** 模型版本号 */
@@ -44,7 +48,7 @@ public final class AiModelInfo {
     /** 模型许可证地址，指向开源协议文本 */
     public final String licenseUrl;
 
-    /** 模型文件的 SHA-256 校验值，用于下载后完整性验证 */
+    /** 模型文件的 SHA-256 校验值，用于下载后完整性验证（就像快递的防伪码） */
     public final String sha256;
 
     /** 模型文件大小（字节），用于下载进度计算和存储空间检查 */
