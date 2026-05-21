@@ -15,9 +15,6 @@ buildscript {
     configurations.classpath {
         resolutionStrategy {
             force 'com.google.guava:guava:33.4.0-jre'
-            force 'com.google.protobuf:protobuf-java:4.27.5'
-            force 'com.google.protobuf:protobuf-kotlin:4.27.5'
-            force 'com.google.protobuf:protobuf-javalite:4.27.5'
             force 'io.opentelemetry:opentelemetry-api:1.62.0'
             force 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
             force 'org.jetbrains.kotlin:kotlin-stdlib-common:2.2.21'

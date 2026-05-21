@@ -17,10 +17,16 @@ import java.util.Map;
  * <p>具备角色战术与大局观的智能决策引擎，所有方法均为 static，
  * 作为无状态工具类使用，每次调用时根据传入参数独立决策。</p>
  *
+ * <p>你可以把这个类想象成AI的"军师"——它不负责执行（那是AIHelper的事），
+ * 只负责"出谋划策"：分析手牌结构、判断角色战术、决定出什么牌。
+ * 每次被问到，它都会根据当前情况独立思考，不记住之前的决策。</p>
+ *
  * <p><b>核心优化：</b></p>
  * <ul>
- *   <li>手牌结构化预处理 - 分类为炸弹组、顺子组、三条组、对子组、单牌组</li>
- *   <li>绝对保护机制 - 炸弹/王炸绝不拆开当单牌或对子使用</li>
+ *   <li>手牌结构化预处理 - 分类为炸弹组、顺子组、三条组、对子组、单牌组
+ *       （就像整理手牌：把炸弹放一堆、顺子放一堆，方便决策）</li>
+ *   <li>绝对保护机制 - 炸弹/王炸绝不拆开当单牌或对子使用
+ *       （炸弹是"杀手锏"，不能浪费在小地方）</li>
  *   <li>角色战术 - 顶牌战术（农民对地主）、放水战术（农民对农民）、单牌报警极限防守</li>
  *   <li>优化首发出牌 - 优先打出"累赘牌"（无法组合的最小单牌/对子）</li>
  * </ul>
@@ -118,6 +124,10 @@ public class AIBot {
         public int landlordSeat;
         /** 地主剩余手牌数（用于极限防守判断） */
         public int landlordRemainCards;
+        public int lastPlayerSeat;
+        public int teammateSeat;
+        public int teammateRemainCards;
+        public int nextSeatRemainCards;
 
         /**
          * 构造游戏上下文。
@@ -129,11 +139,20 @@ public class AIBot {
          * @param landlordRemainCards 地主剩余手牌数
          */
         public GameContext(int myRole, int mySeatIndex, int[] seatRoles, int landlordSeat, int landlordRemainCards) {
+            this(myRole, mySeatIndex, seatRoles, landlordSeat, landlordRemainCards, -1, -1, -1, -1);
+        }
+
+        public GameContext(int myRole, int mySeatIndex, int[] seatRoles, int landlordSeat, int landlordRemainCards,
+                           int lastPlayerSeat, int teammateSeat, int teammateRemainCards, int nextSeatRemainCards) {
             this.myRole = myRole;
             this.mySeatIndex = mySeatIndex;
             this.seatRoles = seatRoles;
             this.landlordSeat = landlordSeat;
             this.landlordRemainCards = landlordRemainCards;
+            this.lastPlayerSeat = lastPlayerSeat;
+            this.teammateSeat = teammateSeat;
+            this.teammateRemainCards = teammateRemainCards;
+            this.nextSeatRemainCards = nextSeatRemainCards;
         }
     }
 
@@ -205,6 +224,49 @@ public class AIBot {
      */
     private static GameContext createDefaultContext() {
         return new GameContext(ROLE_FARMER, 0, new int[]{ROLE_FARMER, ROLE_FARMER, ROLE_FARMER}, -1, 17);
+    }
+
+    private static int nextSeat(int seatIndex) {
+        return (seatIndex + 1 + SEAT_COUNT) % SEAT_COUNT;
+    }
+
+    private static boolean isValidSeat(int seatIndex) {
+        return seatIndex >= 0 && seatIndex < SEAT_COUNT;
+    }
+
+    private static boolean isSeatRole(GameContext context, int seatIndex, int role) {
+        return context != null
+                && context.seatRoles != null
+                && isValidSeat(seatIndex)
+                && seatIndex < context.seatRoles.length
+                && context.seatRoles[seatIndex] == role;
+    }
+
+    private static boolean isPreviousPlayFromTeammate(GameContext context) {
+        return context != null
+                && context.myRole == ROLE_FARMER
+                && isValidSeat(context.lastPlayerSeat)
+                && context.lastPlayerSeat != context.mySeatIndex
+                && isSeatRole(context, context.lastPlayerSeat, ROLE_FARMER);
+    }
+
+    private static boolean isPreviousPlayFromLandlord(GameContext context) {
+        return context != null
+                && context.myRole == ROLE_FARMER
+                && isValidSeat(context.lastPlayerSeat)
+                && isSeatRole(context, context.lastPlayerSeat, ROLE_LANDLORD);
+    }
+
+    private static boolean isNextTeammateReadyToWin(GameContext context) {
+        return context != null
+                && context.myRole == ROLE_FARMER
+                && context.nextSeatRemainCards > 0
+                && context.nextSeatRemainCards <= 2
+                && isSeatRole(context, nextSeat(context.mySeatIndex), ROLE_FARMER);
+    }
+
+    private static boolean shouldUseEmergencyBomb(GameContext context) {
+        return isPreviousPlayFromLandlord(context) && context.landlordRemainCards > 0 && context.landlordRemainCards <= 2;
     }
 
     // ============ 手牌结构化预处理 ============
@@ -343,8 +405,8 @@ public class AIBot {
      * @return true 表示下家是地主
      */
     private static boolean isNextSeatLandlord(GameContext context) {
-        int nextSeat = (context.mySeatIndex + 1) % SEAT_COUNT;
-        return context.seatRoles[nextSeat] == ROLE_LANDLORD;
+        int nextSeat = nextSeat(context.mySeatIndex);
+        return isSeatRole(context, nextSeat, ROLE_LANDLORD);
     }
 
     /**
@@ -356,8 +418,8 @@ public class AIBot {
      * @return true 表示下家是农民
      */
     private static boolean isNextSeatFarmer(GameContext context) {
-        int nextSeat = (context.mySeatIndex + 1) % SEAT_COUNT;
-        return context.seatRoles[nextSeat] == ROLE_FARMER;
+        int nextSeat = nextSeat(context.mySeatIndex);
+        return isSeatRole(context, nextSeat, ROLE_FARMER);
     }
 
     /**
@@ -407,7 +469,8 @@ public class AIBot {
         }
 
         // 正常情况：出最小的能管上的牌（singles 降序排列，从后往前找）
-        for (Card single : hs.singles) {
+        for (int i = hs.singles.size() - 1; i >= 0; i--) {
+            Card single = hs.singles.get(i);
             if (single.getWeight() > targetWeight) {
                 return single;
             }
@@ -438,6 +501,13 @@ public class AIBot {
             Card topSingle = getLargestSingle(hs);
             if (topSingle != null) {
                 return new ArrayList<>(Collections.singletonList(topSingle));
+            }
+        }
+
+        if (isNextTeammateReadyToWin(context)) {
+            Card smallestCard = getSmallestCard(hs);
+            if (smallestCard != null) {
+                return new ArrayList<>(Collections.singletonList(smallestCard));
             }
         }
 
@@ -473,7 +543,8 @@ public class AIBot {
     private static Card getBlockingCard(HandStructure hs) {
         int minBlockingWeight = Rank.QUEEN.getWeight();
 
-        for (Card card : hs.singles) {
+        for (int i = hs.singles.size() - 1; i >= 0; i--) {
+            Card card = hs.singles.get(i);
             if (card.getWeight() >= minBlockingWeight) {
                 return card;
             }
@@ -609,6 +680,10 @@ public class AIBot {
             return null;
         }
 
+        if (isPreviousPlayFromTeammate(context)) {
+            return null;
+        }
+
         // 炸弹接牌需要更大的炸弹或王炸
         if (previousType == CardType.BOMB) {
             return handleBombFollow(hs, previousMainWeight);
@@ -624,25 +699,38 @@ public class AIBot {
         }
 
         // 根据上家牌型分派到对应的接牌处理方法
+        List<Card> result;
         switch (previousType) {
             case SINGLE:
-                return handleSingleFollow(hs, previousMainWeight, context);
+                result = handleSingleFollow(hs, previousMainWeight, context);
+                break;
             case PAIR:
-                return handlePairFollow(hs, previousMainWeight);
+                result = handlePairFollow(hs, previousMainWeight);
+                break;
             case TRIO:
-                return handleTrioFollow(hs, previousMainWeight);
+                result = handleTrioFollow(hs, previousMainWeight);
+                break;
             case TRIO_SINGLE:
-                return handleTrioSingleFollow(hs, previousMainWeight);
+                result = handleTrioSingleFollow(hs, previousMainWeight);
+                break;
             case TRIO_PAIR:
-                return handleTrioPairFollow(hs, previousMainWeight);
+                result = handleTrioPairFollow(hs, previousMainWeight);
+                break;
             case STRAIGHT:
-                return handleStraightFollow(hs, previousMainWeight, previousCount);
+                result = handleStraightFollow(hs, previousMainWeight, previousCount);
+                break;
             case STRAIGHT_PAIRS:
                 // 连对的 pairCount = 出牌数 / 2
-                return handleStraightPairsFollow(hs, previousMainWeight, previousCount / 2);
+                result = handleStraightPairsFollow(hs, previousMainWeight, previousCount / 2);
+                break;
             default:
-                return null;
+                result = null;
+                break;
         }
+        if (result == null && shouldUseEmergencyBomb(context)) {
+            return findSmallestBombOrRocket(hs);
+        }
+        return result;
     }
 
     /**
@@ -662,7 +750,8 @@ public class AIBot {
         }
 
         // 找比上家更大的炸弹
-        for (List<Card> bomb : hs.bombs) {
+        for (int i = hs.bombs.size() - 1; i >= 0; i--) {
+            List<Card> bomb = hs.bombs.get(i);
             if (bomb.get(0).getWeight() > previousWeight) {
                 return new ArrayList<>(bomb);
             }
@@ -687,6 +776,16 @@ public class AIBot {
      * @param context        游戏上下文
      * @return 能管上的单牌列表，接不住时返回 null
      */
+    private static List<Card> findSmallestBombOrRocket(HandStructure hs) {
+        if (!hs.bombs.isEmpty()) {
+            return new ArrayList<>(hs.bombs.get(hs.bombs.size() - 1));
+        }
+        if (!hs.jokerBomb.isEmpty()) {
+            return new ArrayList<>(hs.jokerBomb);
+        }
+        return null;
+    }
+
     private static List<Card> handleSingleFollow(HandStructure hs, int previousWeight, GameContext context) {
         // 极限防守：必须出最大的牌
         if (needsOneCardDefense(context)) {
@@ -704,7 +803,8 @@ public class AIBot {
         }
 
         // 尝试拆对子（不拆高价值对子 A/2）
-        for (List<Card> pair : hs.pairs) {
+        for (int i = hs.pairs.size() - 1; i >= 0; i--) {
+            List<Card> pair = hs.pairs.get(i);
             int weight = pair.get(0).getWeight();
             if (weight > previousWeight && !isHighValuePair(weight)) {
                 List<Card> result = new ArrayList<>();
@@ -714,7 +814,8 @@ public class AIBot {
         }
 
         // 尝试拆三条（迫不得已）
-        for (List<Card> trio : hs.trios) {
+        for (int i = hs.trios.size() - 1; i >= 0; i--) {
+            List<Card> trio = hs.trios.get(i);
             int weight = trio.get(0).getWeight();
             if (weight > previousWeight) {
                 List<Card> result = new ArrayList<>();
@@ -737,7 +838,8 @@ public class AIBot {
      * @return 能管上的对子列表，接不住时返回 null
      */
     private static List<Card> handlePairFollow(HandStructure hs, int previousWeight) {
-        for (List<Card> pair : hs.pairs) {
+        for (int i = hs.pairs.size() - 1; i >= 0; i--) {
+            List<Card> pair = hs.pairs.get(i);
             if (pair.get(0).getWeight() > previousWeight) {
                 return new ArrayList<>(pair);
             }

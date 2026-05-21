@@ -944,7 +944,7 @@ KEY_PASSWORD=***
 |--------|---------|
 | `AiApiClientTest` | AI API 客户端（MockWebServer：成功/HTTP错误/连接失败/畸形JSON/缺字段/空system prompt，8 个方法） |
 | `AiTaskRouterTest` | AI 任务路由逻辑 |
-| `GoGameTest` | 围棋游戏逻辑 |
+| `GoGameTest` | 围棋游戏逻辑、连续虚手终局与胜负计分 |
 | `GomokuGameTest` | 五子棋游戏逻辑 |
 | `GameSocketClientTest` | WebSocket 客户端 |
 | `RelayHttpClientTest` | 中转 HTTP 客户端 |
@@ -961,6 +961,7 @@ KEY_PASSWORD=***
 |--------|---------|
 | `AiIntegrationTest` | AI 端到端集成 |
 | `DouDiZhuIntegrationTest` | 斗地主联机集成 |
+| `AIBotTest` | 斗地主 AI 协作策略：农民不压队友、最小可管牌、地主残牌炸弹拦截 |
 | `RoomDatabaseIntegrationTest` | Room 数据库集成 |
 | `UpdateIntegrationTest` | 更新流程集成 |
 

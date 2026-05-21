@@ -118,4 +118,15 @@ public class GoGameTest {
     public void testBoardSize() {
         assertEquals(9, GoGame.BOARD_SIZE);
     }
+
+    @Test
+    public void testConsecutivePassesEndGameAndCalculateWinner() {
+        game.pass();
+        game.switchPlayer();
+        game.pass();
+
+        assertTrue(game.isGameOver());
+        assertEquals(GoGame.WHITE, game.getWinner());
+        assertTrue(game.getResultText().contains("白"));
+    }
 }

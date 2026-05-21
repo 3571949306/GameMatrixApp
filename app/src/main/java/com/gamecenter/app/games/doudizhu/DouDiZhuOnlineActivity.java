@@ -62,40 +62,51 @@ import okhttp3.Response;
  * <p>作为斗地主在线模式的核心控制器，负责协调网络通信、游戏逻辑、AI 决策和 UI 展示。
  * 支持两种联机模式：局域网（LAN）和云联机（Relay/WebSocket）。</p>
  *
+ * <p>你可以把这个类想象成一个"在线棋牌室管理员"——它既管理本地玩家，
+ * 又通过网络和其他玩家沟通，还负责安排AI替补缺席的玩家。</p>
+ *
  * <p>架构设计：
  * <ul>
  *   <li>实现 {@link DouDiZhuUIController.GameActionCallback} 接收 UI 操作回调</li>
  *   <li>实现 {@link DouDiZhuAIHelper.AICallback} 接收 AI 决策回调</li>
  *   <li>实现 {@link DouDiZhuNetworkHandler.NetworkDelegate} 接收网络消息回调</li>
  *   <li>通过委托模式将 UI/AI/网络逻辑分别交给 {@link DouDiZhuUIController}、
- *       {@link DouDiZhuAIHelper}、{@link DouDiZhuNetworkHandler} 处理</li>
+ *       {@link DouDiZhuAIHelper}、{@link DouDiZhuNetworkHandler} 处理
+ *       （委托模式就像"分工合作"——每个人只做自己擅长的事）</li>
  * </ul>
  * </p>
  *
  * <p>运行模式：
  * <ul>
- *   <li>mode=0：房主模式，运行游戏服务器，管理游戏状态，广播同步消息</li>
- *   <li>mode=1：客户端模式，连接房主服务器，发送操作意图，接收状态同步</li>
+ *   <li>mode=0：房主模式，运行游戏服务器，管理游戏状态，广播同步消息
+ *       （房主就像"裁判+服务器"，所有规则判定都在房主端完成）</li>
+ *   <li>mode=1：客户端模式，连接房主服务器，发送操作意图，接收状态同步
+ *       （客户端就像"选手"，只负责出牌，规则交给房主判定）</li>
  * </ul>
  * </p>
  *
  * <p>关键设计决策：
  * <ul>
  *   <li>房主作为权威服务器（Authoritative Server），所有游戏逻辑在房主端执行，
- *       客户端仅发送操作意图，由房主校验后广播结果</li>
- *   <li>支持断线重连：远程玩家断线后保留座位，重连后自动恢复状态</li>
+ *       客户端仅发送操作意图，由房主校验后广播结果
+ *       （这样能防止作弊——客户端不能自己改游戏结果）</li>
+ *   <li>支持断线重连：远程玩家断线后保留座位，重连后自动恢复状态
+ *       （就像暂时离开牌桌，回来后还能继续打）</li>
  *   <li>局域网模式下断线玩家由 AI 接管，云联机模式下保留座位等待重连</li>
- *   <li>保留旧变量（seatTypes/seatClientIds 等）用于向后兼容，通过 syncLocalToManager/syncManagerToLocal 与 SeatManager 同步</li>
+ *   <li>保留旧变量（seatTypes/seatClientIds 等）用于向后兼容，
+ *       通过 syncLocalToManager/syncManagerToLocal 与 SeatManager 同步
+ *       （就像新旧两套账本，要经常对账保持一致）</li>
  * </ul>
  */
 public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZhuUIController.GameActionCallback, DouDiZhuAIHelper.AICallback, DouDiZhuNetworkHandler.NetworkDelegate {
 
     /** 调试日志标签 */
     private static final String TAG = "DouDiZhuOnline";
-    /** Intent 额外参数键：是否启用远程 P2P 模式 */
+    /** Intent 额外参数键：是否启用远程 P2P 模式
+     *  通过这个键从菜单页传递"是否云联机"的信息 */
     public static final String EXTRA_REMOTE_P2P = "remote_p2p";
 
-    /** 游戏状态常量：大厅/等待中 */
+    /** 游戏状态常量：大厅/等待中（还没开始游戏，在选房间） */
     private static final int STATE_LOBBY = 0;
     /** 游戏状态常量：叫地主阶段 */
     private static final int STATE_BIDDING = 1;
@@ -104,29 +115,31 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     /** 游戏状态常量：游戏结束 */
     private static final int STATE_GAME_OVER = 3;
 
-    /** 斗地主总座位数 */
+    /** 斗地主总座位数（固定3人：地主1+农民2） */
     private static final int TOTAL_SEATS = 3;
-    /** 默认服务器端口 */
+    /** 默认服务器端口（房主监听的网络端口） */
     private static final int DEFAULT_SERVER_PORT = 8765;
-    /** 房主端口候选列表，按顺序尝试绑定 */
+    /** 房主端口候选列表，按顺序尝试绑定
+     *  如果8765被占用就试8766，以此类推 */
     private static final int[] HOST_PORT_CANDIDATES = {8765, 8766, 8767, 8768, 8769};
     /** AI 模拟思考的延迟时间（毫秒） */
     private static final long AI_THINKING_DELAY = 1500L;
-    /** P2P 协议版本号，用于客户端与房主版本兼容性校验 */
+    /** P2P 协议版本号，用于客户端与房主版本兼容性校验
+     *  版本不一致可能导致消息格式不兼容 */
     private static final int P2P_PROTOCOL_VERSION = 2;
-    /** 座位类型常量：房主 */
+    /** 座位类型常量：房主（本地玩家） */
     private static final int SEAT_TYPE_HOST = DouDiZhuSeatManager.SEAT_TYPE_HOST;
-    /** 座位类型常量：远程玩家 */
+    /** 座位类型常量：远程玩家（通过网络连接的真实玩家） */
     private static final int SEAT_TYPE_REMOTE = DouDiZhuSeatManager.SEAT_TYPE_REMOTE;
-    /** 座位类型常量：AI 玩家 */
+    /** 座位类型常量：AI 玩家（电脑替补） */
     private static final int SEAT_TYPE_AI = DouDiZhuSeatManager.SEAT_TYPE_AI;
-    /** 远程 P2P 模式下的重连尝试次数 */
+    /** 远程 P2P 模式下的重连尝试次数（120次，约5分钟） */
     private static final int REMOTE_RECONNECT_ATTEMPTS = 120;
-    /** 远程 P2P 模式下的重连间隔（毫秒） */
+    /** 远程 P2P 模式下的重连间隔（毫秒，2.5秒） */
     private static final long REMOTE_RECONNECT_INTERVAL_MS = 2500L;
-    /** 远程 P2P 模式下的最大重连间隔（毫秒） */
+    /** 远程 P2P 模式下的最大重连间隔（毫秒，15秒，会逐渐增加） */
     private static final long REMOTE_RECONNECT_MAX_INTERVAL_MS = 15000L;
-    /** Relay 服务器基础 URL */
+    /** Relay 服务器基础 URL（云联机中转服务器的地址） */
     private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
 
     // ============ 调试日志开关 ============
@@ -202,67 +215,70 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     private TextView tvLandlordIndicator;
     private TextView tvTurnIndicator;
 
-    private LANManager lanManager;
-    private GameSocketServer server;
-    private GameSocketClient client;
+    private LANManager lanManager; // 局域网管理器（负责发现和注册局域网房间）
+    private GameSocketServer server; // 游戏服务器（房主模式使用，监听客户端连接）
+    private GameSocketClient client; // 游戏客户端（客户端模式使用，连接房主服务器）
 
-    private DouDiZhuSeatManager seatManager;
-    private DouDiZhuSyncManager syncManager;
-    private DouDiZhuUIController uiController;
-    private DouDiZhuAIHelper aiHelper;
-    private DouDiZhuNetworkHandler networkHandler;
+    private DouDiZhuSeatManager seatManager; // 座位管理器（管理谁坐在哪个位置）
+    private DouDiZhuSyncManager syncManager; // 状态同步管理器（确保所有玩家看到相同的游戏状态）
+    private DouDiZhuUIController uiController; // UI控制器（管理界面显示和按钮）
+    private DouDiZhuAIHelper aiHelper; // AI辅助类（调度AI的叫地主和出牌决策）
+    private DouDiZhuNetworkHandler networkHandler; // 网络消息处理器（处理收发消息）
 
-    private int mode = -1;
-    private boolean remoteP2PMode = false;
-    private String localPeerToken = "";
+    private int mode = -1; // 运行模式：0=房主，1=客户端，-1=未确定
+    private boolean remoteP2PMode = false; // 是否为云联机模式（true=通过中转服务器连接）
+    private String localPeerToken = ""; // 本机的唯一标识令牌（断线重连时用来识别身份）
 
-    private static final String P2P_PREFS = "doudizhu_p2p";
-    private static final String KEY_PEER_TOKEN = "peer_token";
+    private static final String P2P_PREFS = "doudizhu_p2p"; // SharedPreferences文件名（保存P2P配置）
+    private static final String KEY_PEER_TOKEN = "peer_token"; // Peer Token的存储键名
 
     // ============ 兼容旧代码的变量（已委托给管理器，保留为向后兼容） ============
+    // 这些变量就像"旧账本"，新代码用SeatManager管理座位，
+    // 但这些旧变量还在被很多地方使用，所以需要经常同步
     private int[] seatTypes = new int[]{DouDiZhuSeatManager.SEAT_TYPE_HOST, DouDiZhuSeatManager.SEAT_TYPE_AI, DouDiZhuSeatManager.SEAT_TYPE_AI};
-    private int[] seatClientIds = new int[]{-1, -1, -1};
-    private String[] seatClientIps = new String[]{"", "", ""};
-    private String[] seatPeerTokens = new String[]{"", "", ""};
-    private Map<Integer, String> pendingClientIps = new HashMap<>();
-    private String remoteHostInfoText = "";
-    private String remoteInviteAddress = "";
-    private String remoteRoomCode = "";
-    private long[] lastProcessedActionIds = new long[]{0L, 0L, 0L};
+    private int[] seatClientIds = new int[]{-1, -1, -1}; // 每个座位对应的客户端ID，-1表示无人
+    private String[] seatClientIps = new String[]{"", "", ""}; // 每个座位对应的IP地址
+    private String[] seatPeerTokens = new String[]{"", "", ""}; // 每个座位的唯一标识令牌（用于断线重连识别）
+    private Map<Integer, String> pendingClientIps = new HashMap<>(); // 等待分配座位的客户端IP
+    private String remoteHostInfoText = ""; // 远程房主信息文本（显示在界面上）
+    private String remoteInviteAddress = ""; // 远程邀请地址（发给朋友让他加入）
+    private String remoteRoomCode = ""; // 云联机6位房间码
+    private long[] lastProcessedActionIds = new long[]{0L, 0L, 0L}; // 每个座位最后处理的操作ID（防止重复处理）
 
     // ============ 游戏状态 ============
-    private int gameState = STATE_LOBBY;
-    private int currentTurn = 0;
-    private int landlordIndex = -1;
-    private int winnerIndex = -1;
-    private int lastPlayerWhoPlayed = -1;
-    private boolean[] playerPassed = new boolean[]{false, false, false};
-    private int bidTurn = 0;
-    private int bidRound = 0;
-    private int mySeatIndex = -1;
+    // 这些变量记录着当前游戏进行到哪一步了
+    private int gameState = STATE_LOBBY; // 当前游戏阶段
+    private int currentTurn = 0; // 当前轮到谁出牌
+    private int landlordIndex = -1; // 地主的座位号，-1表示还没确定
+    private int winnerIndex = -1; // 赢家的座位号，-1表示游戏还没结束
+    private int lastPlayerWhoPlayed = -1; // 最后出牌的人（用于判断是否该清空桌面）
+    private boolean[] playerPassed = new boolean[]{false, false, false}; // 每个人是否选择了"不出"
+    private int bidTurn = 0; // 当前叫地主的轮次
+    private int bidRound = 0; // 叫地主已经进行了几轮
+    private int mySeatIndex = -1; // 本机在哪个座位，-1表示还没分配
 
-    private List<Card> playerHandCards = new ArrayList<>();
-    private List<Card> seat1Cards = new ArrayList<>();
-    private List<Card> seat2Cards = new ArrayList<>();
-    private List<Card> bottomCards = new ArrayList<>();
+    private List<Card> playerHandCards = new ArrayList<>(); // 本机玩家的手牌
+    private List<Card> seat1Cards = new ArrayList<>(); // 1号座位的手牌
+    private List<Card> seat2Cards = new ArrayList<>(); // 2号座位的手牌
+    private List<Card> bottomCards = new ArrayList<>(); // 底牌（3张，给地主）
 
-    private List<Card> playerPlayedCards = new ArrayList<>();
-    private List<Card> seat1PlayedCards = new ArrayList<>();
-    private List<Card> seat2PlayedCards = new ArrayList<>();
+    private List<Card> playerPlayedCards = new ArrayList<>(); // 本机玩家已出的牌
+    private List<Card> seat1PlayedCards = new ArrayList<>(); // 1号座位已出的牌
+    private List<Card> seat2PlayedCards = new ArrayList<>(); // 2号座位已出的牌
 
-    private List<Card>[] aiBotHands = new List[]{null, null};
-    private int[] handCounts = new int[]{17, 17, 17};
-    private int[] cardCounterCounts = createFullDeckCounter();
+    private List<Card>[] aiBotHands = new List[]{null, null}; // AI的手牌引用（座位1和座位2）
+    private int[] handCounts = new int[]{17, 17, 17}; // 每个座位剩余手牌数
+    private int[] cardCounterCounts = createFullDeckCounter(); // 记牌器数据
 
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private Handler handler = new Handler(Looper.getMainLooper()); // 主线程定时器
     // aiThinkingRunnable moved to DouDiZhuAIHelper
-    private boolean isCleaningUp = false;
-    private DouDiZhuSoundManager soundManager;
-    private int lastTurnSoundState = -1;
-    private int lastTurnSoundSeat = -1;
+    private boolean isCleaningUp = false; // 是否正在清理资源（防止重复清理）
+    private DouDiZhuSoundManager soundManager; // 音效管理器
+    private int lastTurnSoundState = -1; // 上次播放回合音效时的游戏状态
+    private int lastTurnSoundSeat = -1; // 上次播放回合音效时的座位号
 
-    private StringBuilder chatLog = new StringBuilder();
-    private final List<JSONObject> hostChatHistory = new ArrayList<>();
+    private StringBuilder chatLog = new StringBuilder(); // 聊天记录缓冲区
+    private final List<JSONObject> hostChatHistory = new ArrayList<>(); // 房主端保存的聊天历史（新玩家加入时发送给他）
     // pendingClientIntent moved to DouDiZhuNetworkHandler
 
     /**
@@ -480,7 +496,8 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     /**
      * 生成 6 位随机房间码。
      *
-     * <p>字符集排除了容易混淆的字符（0/O、1/I），仅使用大写字母和数字。</p>
+     * <p>字符集排除了容易混淆的字符（0/O、1/I），仅使用大写字母和数字。
+     * 就像生成一个"临时密码"，让朋友输入这个码就能加入你的房间。</p>
      *
      * @return 6 位房间码字符串
      */
@@ -1073,20 +1090,20 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     /**
      * 为客户端分配座位。
      *
-     * <p>分配优先级：
+     * <p>分配优先级（从高到低，就像医院分诊——最紧急的优先处理）：
      * <ol>
-     *   <li>该 clientId 已有座位 → 返回原座位</li>
-     *   <li>peerToken 匹配已有座位 → 恢复该座位（断线重连）</li>
-     *   <li>游戏进行中，IP 匹配的远程座位 → 恢复该座位</li>
-     *   <li>游戏进行中，当前回合的空远程座位 → 优先分配</li>
+     *   <li>该 clientId 已有座位 → 返回原座位（你之前坐这，还坐这）</li>
+     *   <li>peerToken 匹配已有座位 → 恢复该座位（断线重连：凭"身份证"找回座位）</li>
+     *   <li>游戏进行中，IP 匹配的远程座位 → 恢复该座位（同一台设备重新连上了）</li>
+     *   <li>游戏进行中，当前回合的空远程座位 → 优先分配（让当前该出牌的人先坐下）</li>
      *   <li>按顺序分配第一个空座位（1 或 2）</li>
      * </ol>
      * </p>
      *
      * @param clientId 客户端 ID
      * @param ip 客户端 IP 地址
-     * @param peerToken 客户端的唯一标识令牌
-     * @return 分配的座位索引，-1 表示无可用座位
+     * @param peerToken 客户端的唯一标识令牌（断线重连的"身份证"）
+     * @return 分配的座位索引，-1 表示无可用座位（房间满了）
      */
     private int assignSeatToClient(int clientId, String ip, String peerToken) {
         for (int i = 1; i < TOTAL_SEATS; i++) {
@@ -1223,11 +1240,11 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     /**
      * 房主端处理客户端断线事件。
      *
-     * <p>断线处理策略：
+     * <p>断线处理策略（不同情况不同处理，就像有人临时离开牌桌）：
      * <ul>
-     *   <li>云联机模式：保留座位类型为 REMOTE，等待重连</li>
-     *   <li>局域网模式 + 大厅/游戏结束：替换为 AI</li>
-     *   <li>局域网模式 + 游戏进行中：保留座位等待重连</li>
+     *   <li>云联机模式：保留座位类型为 REMOTE，等待重连（朋友去上厕所，留着位子等他回来）</li>
+     *   <li>局域网模式 + 大厅/游戏结束：替换为 AI（还没开始打牌，直接让电脑顶上）</li>
+     *   <li>局域网模式 + 游戏进行中：保留座位等待重连（打牌中途离开，先等一等）</li>
      * </ul>
      * </p>
      *
@@ -1575,7 +1592,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
             if (gameState != STATE_BIDDING) return;
             if (mode == 0 && currentTurn != 0) return;
             if (mode == 1 && (mySeatIndex < 0 || currentTurn != mySeatIndex)) return;
-            if (soundManager != null) soundManager.bid(call);
+            if (soundManager != null) soundManager.bid(call, currentTurn);
 
             if (mode == 0) {
                 logGame("BID", currentTurn, "call=" + call);
@@ -1769,7 +1786,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
             } catch (JSONException e) { Log.w(TAG, "JSON error: " + e.getMessage()); }
             if (sendClientIntent(msg)) {
                 if (soundManager != null) {
-                    soundManager.cards(selectedCards, GameRuleUtil.getCardType(selectedCards));
+                    soundManager.cards(selectedCards, GameRuleUtil.getCardType(selectedCards), mySeatIndex);
                 }
                 enablePlayerControls(false);
             }
@@ -1816,7 +1833,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
 
         if (mode == 0) {
             logGame("PASS", seatIndex, "host pass");
-            if (soundManager != null) soundManager.pass();
+            if (soundManager != null) soundManager.pass(mySeatIndex);
             playerPassed[seatIndex] = true;
             clearSeatPlayedCards(seatIndex);
             updateTableView();
@@ -1835,7 +1852,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
                 msg.put("currentTurn", currentTurn);
             } catch (JSONException e) { Log.w(TAG, "JSON error: " + e.getMessage()); }
             if (sendClientIntent(msg)) {
-                if (soundManager != null) soundManager.pass();
+                if (soundManager != null) soundManager.pass(mySeatIndex);
                 enablePlayerControls(false);
             }
         }
@@ -1910,7 +1927,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      */
     @Override public void onAIPass(int seatIndex) {
         playerPassed[seatIndex] = true;
-        if (soundManager != null) soundManager.pass();
+        if (soundManager != null) soundManager.pass(seatIndex);
         clearSeatPlayedCards(seatIndex);
         updateTableView();
         if (checkAndClearTable()) {
@@ -1931,7 +1948,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * @param call true 表示 AI 决定叫地主
      */
     @Override public void onAIBid(boolean call) {
-        if (soundManager != null) soundManager.bid(call);
+        if (soundManager != null) soundManager.bid(call, currentTurn);
         if (call) {
             setLandlord(currentTurn);
             broadcastSystemMessage(getSeatActorName(currentTurn) + " 叫地主");
@@ -2003,7 +2020,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     private void executePlay(int seatIndex, List<Card> cards) {
         logGame("PLAY_CARD", seatIndex, "cards=" + cards.size());
         if (soundManager != null) {
-            soundManager.cards(cards, GameRuleUtil.getCardType(cards));
+            soundManager.cards(cards, GameRuleUtil.getCardType(cards), seatIndex);
         }
         List<Card> hand = getSeatHandCards(seatIndex);
         for (Card card : cards) {
@@ -2196,6 +2213,22 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
         List<Card> played = getSeatPlayedCards(lastPlayerWhoPlayed);
         if (played == null || played.isEmpty()) return null;
         return played;
+    }
+
+    @Override public int getLandlordSeat() {
+        return landlordIndex;
+    }
+
+    @Override public int getLastPlayerWhoPlayed() {
+        return lastPlayerWhoPlayed;
+    }
+
+    @Override public int getLandlordStatusForAISeat(int seatIndex) {
+        return getLandlordStatusForSeat(seatIndex);
+    }
+
+    @Override public int getSeatRemainingCardCount(int seatIndex) {
+        return getSeatCardCount(seatIndex);
     }
 
     private void clearSeatPlayedCards(int seatIndex) {
@@ -2400,7 +2433,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
             sendSyncStateToSeat(seatIndex);
             return;
         }
-        if (soundManager != null) soundManager.pass();
+        if (soundManager != null) soundManager.pass(mySeatIndex);
         playerPassed[seatIndex] = true;
         clearSeatPlayedCards(seatIndex);
         updateTableView();
@@ -2437,7 +2470,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
                 return;
             }
             boolean call = msg.optBoolean("call", false);
-            if (soundManager != null) soundManager.bid(call);
+            if (soundManager != null) soundManager.bid(call, seatIndex);
             if (call) {
                 setLandlord(seatIndex);
                 broadcastSystemMessage(getSeatActorName(seatIndex) + " 叫地主");
@@ -2630,7 +2663,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
             String cardsJson = msg.getString("cards");
             List<Card> playedCards = parseCardsFromJson(cardsJson);
             if (soundManager != null) {
-                soundManager.cards(playedCards, GameRuleUtil.getCardType(playedCards));
+                soundManager.cards(playedCards, GameRuleUtil.getCardType(playedCards), playerIndex);
             }
 
             if (playerIndex == mySeatIndex) {
@@ -2667,7 +2700,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
         int playerIndex = msg.optInt("playerIndex", -1);
         if (playerIndex < 0) return;
         playerPassed[playerIndex] = true;
-        if (soundManager != null) soundManager.pass();
+        if (soundManager != null) soundManager.pass(playerIndex);
         clearSeatPlayedCards(playerIndex);
         updateTableView();
         if (mode == 1) {
@@ -2704,8 +2737,10 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     /**
      * 处理客户端收到的状态同步消息。
      *
-     * <p>过滤过期版本号的消息，解析完整的游戏状态并应用到本地，
-     * 包括座位类型、手牌、出牌、底牌、记牌器等。应用后发送 STATE_ACK 确认。</p>
+     * <p>过滤过期版本号的消息（旧消息不要重复处理），解析完整的游戏状态并应用到本地，
+     * 包括座位类型、手牌、出牌、底牌、记牌器等。应用后发送 STATE_ACK 确认。
+     * 这就像"对账"——房主发来最新的账本，客户端对照更新自己的记录，
+     * 然后告诉房主"我已收到"。</p>
      *
      * @param msg SYNC_STATE 消息
      */
@@ -2850,7 +2885,8 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * 从消息中更新权威字段（客户端模式）。
      *
      * <p>从房主广播的消息中提取 currentTurn、landlordIndex、gameState 等字段，
-     * 客户端以房主数据为准，避免本地状态与房主不一致。</p>
+     * 客户端以房主数据为准，避免本地状态与房主不一致。
+     * 就像"以裁判的记录为准"——客户端和房主的数据有出入时，听房主的。</p>
      *
      * @param msg 包含权威字段的 JSON 消息
      */
@@ -3171,7 +3207,8 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * 将本地变量同步到 SeatManager。
      *
      * <p>将 seatTypes、seatClientIds 等旧变量的值写入 SeatManager，
-     * 保持两者数据一致。在需要 SeatManager 参与逻辑判断前调用。</p>
+     * 保持两者数据一致。在需要 SeatManager 参与逻辑判断前调用。
+     * 就像把"旧账本"的数据抄到"新账本"上。</p>
      */
     @Override public void syncLocalToManager() {
         for (int i = 0; i < DouDiZhuSeatManager.TOTAL_SEATS; i++) {
@@ -3184,7 +3221,8 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * 将 SeatManager 的数据同步回本地变量。
      *
      * <p>从 SeatManager 读取 seatTypes、seatClientIds 等数据到旧变量，
-     * 保持两者数据一致。在 SeatManager 执行逻辑操作后调用。</p>
+     * 保持两者数据一致。在 SeatManager 执行逻辑操作后调用。
+     * 就像把"新账本"的更新结果抄回"旧账本"。</p>
      */
     @Override public void syncManagerToLocal() {
         int[] mgrTypes = seatManager.getSeatTypes();
