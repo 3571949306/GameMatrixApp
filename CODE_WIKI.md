@@ -2,7 +2,9 @@
 
 ## 2026-05-21 Maintenance Notes
 
-- Current formal release target: `1.3.27` / `versionCode 265`.
+> Canonical scope: this file documents code structure and module responsibilities. Release snapshots, publishing history, and archived migration notes were moved out of the root set. See `docs/DOCUMENTATION_INDEX.md`.
+
+- Current formal release target: `1.3.29` / `versionCode 267`.
 - MainActivity applies system bar insets so app content is not hidden behind phone status/navigation bars.
 - AI local model selection now stores full local model metadata and routes downloaded MediaPipe LLM files without requiring cloud configuration.
 - Gomoku and Chinese Chess use direct four-level difficulty buttons: low, medium, high, master. Medium has a lower search budget than the previous mid-level configuration.
@@ -15,7 +17,7 @@
 
 > **项目名称**: GameCenterApp  
 > **包名**: `com.gamecenter.app`  
-> **当前版本**: 1.3.27 (versionCode 265)
+> **当前版本**: 1.3.29 (versionCode 267)
 > **最低 SDK**: 24 (Android 7.0) | **目标 SDK**: 35  
 > **语言**: Java (主体) + Kotlin (数据层/工具层)  
 > **构建系统**: Gradle 8.13.2 + AGP 8.13.2  
@@ -905,10 +907,10 @@ AppModule (Hilt DI)
 版本信息存储在 `version.properties`：
 
 ```properties
-versionCode=262          # 内部版本号，每次构建自动递增
-versionName=1.3.26       # 展示版本号
-lastStableVersionCode=241
-lastStableVersionName=1.3.25
+versionCode=267          # 内部版本号，每次构建自动递增
+versionName=1.3.29       # 展示版本号
+lastStableVersionCode=267
+lastStableVersionName=1.3.29
 betaNoticeVersionGap=3
 ```
 
