@@ -3,9 +3,12 @@ package com.gamecenter.app.update;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -39,6 +42,37 @@ public class UpdateInstaller {
     }
 
     /**
+     * 预检测 APK 文件是否有效
+     *
+     * @param context 上下文
+     * @param apkFile 要检测的 APK 文件
+     * @return true 表示 APK 有效
+     */
+    public boolean verifyApk(Context context, File apkFile) {
+        if (!apkFile.exists()) {
+            Log.e(TAG, "APK file not found: " + apkFile.getPath());
+            return false;
+        }
+        if (apkFile.length() == 0) {
+            Log.e(TAG, "APK file is empty: " + apkFile.getPath());
+            return false;
+        }
+        try {
+            PackageManager pm = context.getPackageManager();
+            PackageInfo packageInfo = pm.getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+            if (packageInfo == null) {
+                Log.e(TAG, "Failed to parse APK: " + apkFile.getPath());
+                return false;
+            }
+            Log.d(TAG, "APK verified successfully: " + packageInfo.packageName);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "APK verification failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 安装指定的 APK 文件。
      * <p>
      * 通过系统 Intent 触发 APK 安装界面。
@@ -53,6 +87,11 @@ public class UpdateInstaller {
     public boolean installApk(Context context, File apkFile) {
         if (!apkFile.exists()) {
             Toast.makeText(context, "安装包不存在", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        // 预检测 APK 有效性
+        if (!verifyApk(context, apkFile)) {
+            Toast.makeText(context, "安装包无效，请重新下载", Toast.LENGTH_LONG).show();
             return false;
         }
         Intent intent = new Intent(Intent.ACTION_VIEW);

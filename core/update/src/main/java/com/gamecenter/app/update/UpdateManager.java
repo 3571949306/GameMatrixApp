@@ -27,6 +27,7 @@ import javax.inject.Singleton;
  */
 public class UpdateManager {
 
+    public static final String ACTION_CANCEL_DOWNLOAD = "com.gamecenter.app.update.CANCEL_DOWNLOAD";
     private static final String TAG = "UpdateManager";
     private static UpdateManager instance;
 
