@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
  * </ul>
  * <p>
  * 关键设计决策：AI计算在单独的线程池中执行，避免阻塞UI线程；
- * 通过 {@link Handler#postDelayed} 添加400ms延迟，使AI落子有"思考"的视觉效果。
+ * 通过 {@link Handler#postDelayed} 添加最小响应延迟，使AI落子有"思考"的视觉效果。
  *
  * 【初学者指南】
  * 这个类是围棋人机对战的主屏幕，和五子棋的GomokuActivity结构类似。
@@ -35,6 +35,8 @@ import java.util.concurrent.Executors;
  * 双方连续虚手则对局结束。围棋的AI更复杂，使用蒙特卡洛模拟来决策。
  */
 public class GoActivity extends AppCompatActivity {
+
+    private static final long AI_MIN_RESPONSE_DELAY_MS = 120L;
 
     /** 棋盘视图组件，负责绘制棋盘和棋子 */
     private GoView goView;
@@ -102,7 +104,7 @@ public class GoActivity extends AppCompatActivity {
      * 处理玩家点击棋盘交叉点的落子操作。
      * <p>
      * 仅在黑方回合且AI未思考时响应。落子后切换到白方，
-     * 并异步触发AI计算。AI计算完成后通过Handler延迟400ms执行落子。
+     * 并异步触发AI计算。AI计算完成后按最小响应延迟执行落子。
      *
      * @param x 棋盘横坐标（列索引）
      * @param y 棋盘纵坐标（行索引）
@@ -126,14 +128,15 @@ public class GoActivity extends AppCompatActivity {
         updateStatus();
 
         aiThinking = true;
+        final long startMs = System.currentTimeMillis();
         aiExecutor.execute(() -> {
             int[] move = game.getBestMove();
-            // 延迟400ms落子，模拟AI思考过程
-            uiHandler.postDelayed(() -> {
+            long elapsed = System.currentTimeMillis() - startMs;
+            long delay = Math.max(AI_MIN_RESPONSE_DELAY_MS - elapsed, 0L);
+            Runnable applyMove = () -> {
                 if (move != null) {
                     game.makeMove(move[0], move[1]);
                 } else {
-                    // AI无合法落子则虚手
                     game.pass();
                     Toast.makeText(this, "AI 弃权一手", Toast.LENGTH_SHORT).show();
                 }
@@ -141,7 +144,12 @@ public class GoActivity extends AppCompatActivity {
                 aiThinking = false;
                 goView.invalidate();
                 updateStatus();
-            }, 400);
+            };
+            if (delay > 0L) {
+                uiHandler.postDelayed(applyMove, delay);
+            } else {
+                uiHandler.post(applyMove);
+            }
         });
     }
 
@@ -164,9 +172,12 @@ public class GoActivity extends AppCompatActivity {
         if (game.isGameOver()) return;
 
         aiThinking = true;
+        final long startMs = System.currentTimeMillis();
         aiExecutor.execute(() -> {
             int[] move = game.getBestMove();
-            uiHandler.postDelayed(() -> {
+            long elapsed = System.currentTimeMillis() - startMs;
+            long delay = Math.max(AI_MIN_RESPONSE_DELAY_MS - elapsed, 0L);
+            Runnable applyMove = () -> {
                 if (move != null) {
                     game.makeMove(move[0], move[1]);
                 } else {
@@ -176,7 +187,12 @@ public class GoActivity extends AppCompatActivity {
                 aiThinking = false;
                 goView.invalidate();
                 updateStatus();
-            }, 400);
+            };
+            if (delay > 0L) {
+                uiHandler.postDelayed(applyMove, delay);
+            } else {
+                uiHandler.post(applyMove);
+            }
         });
     }
 

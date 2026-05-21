@@ -694,6 +694,7 @@ public class ChineseChessView extends View {
      */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return gestureDetector.onTouchEvent(event);
+        gestureDetector.onTouchEvent(event);
+        return true;
     }
 }

@@ -59,6 +59,7 @@ public class GomokuView extends View {
     // 当前悬停位置 [x, y]：手指在棋盘上滑动时，显示一个半透明的棋子预览
     // 就像你把棋子悬在棋盘上方还没放下去时的效果
     private int[] hoverPos;
+    private int[] hintPos;
 
     /** 交叉点点击监听器 */
     private OnCellClickListener onCellClickListener;
@@ -83,6 +84,7 @@ public class GomokuView extends View {
 
     /** 悬停预览画笔（半透明） */
     private Paint hoverPaint;
+    private Paint hintPaint, hintInnerPaint;
 
     /** 星位画笔 */
     private Paint starPointPaint;
@@ -170,6 +172,15 @@ public class GomokuView extends View {
         hoverPaint.setStyle(Paint.Style.STROKE);
         hoverPaint.setStrokeWidth(1);
 
+        hintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        hintPaint.setColor(Color.rgb(255, 193, 7));
+        hintPaint.setStyle(Paint.Style.STROKE);
+        hintPaint.setStrokeWidth(4f);
+
+        hintInnerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        hintInnerPaint.setColor(Color.argb(220, 255, 193, 7));
+        hintInnerPaint.setStyle(Paint.Style.FILL);
+
         starPointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         starPointPaint.setColor(line);
 
@@ -181,6 +192,7 @@ public class GomokuView extends View {
         highlightEdgeColor = Color.rgb(255, 50, 50);
 
         hoverPos = null;
+        hintPos = null;
     }
 
     /**
@@ -190,6 +202,8 @@ public class GomokuView extends View {
      */
     public void setGame(GomokuGame game) {
         this.game = game;
+        hoverPos = null;
+        hintPos = null;
         invalidate(); // invalidate() = 告诉系统"画面需要更新了，请重新绘制"
     }
 
@@ -220,7 +234,13 @@ public class GomokuView extends View {
     }
 
     public void showHint(int x, int y) {
-        hoverPos = new int[]{x, y};
+        hintPos = new int[]{x, y};
+        hoverPos = null;
+        invalidate();
+    }
+
+    public void clearHint() {
+        hintPos = null;
         invalidate();
     }
 
@@ -414,6 +434,18 @@ public class GomokuView extends View {
                 canvas.drawCircle(cx, cy, r, hoverPaint);
             }
         }
+
+        if (hintPos != null && !game.isGameOver()) {
+            int hx = hintPos[0], hy = hintPos[1];
+            if (game.isValidMove(hx, hy)) {
+                float cx = offsetX + hx * cellSize;
+                float cy = offsetY + hy * cellSize;
+                float outerRadius = cellSize / 2f - 4;
+                float innerRadius = Math.max(6f, cellSize / 6f);
+                canvas.drawCircle(cx, cy, outerRadius, hintPaint);
+                canvas.drawCircle(cx, cy, innerRadius, hintInnerPaint);
+            }
+        }
     }
 
     /**
@@ -457,6 +489,7 @@ public class GomokuView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         if (game == null || game.isGameOver()) return true;
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            hintPos = null;
             // 手指按下：把屏幕上的像素坐标换算成棋盘上的交叉点坐标
             // Math.round = 四舍五入，找到离触摸点最近的交叉点
             int x = Math.round((event.getX() - offsetX) / cellSize);
@@ -467,6 +500,7 @@ public class GomokuView extends View {
                 }
             }
         } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            hintPos = null;
             // 手指移动：更新悬停位置，显示棋子预览
             int hx = Math.round((event.getX() - offsetX) / cellSize);
             int hy = Math.round((event.getY() - offsetY) / cellSize);
@@ -475,6 +509,10 @@ public class GomokuView extends View {
             } else {
                 hoverPos = null;
             }
+            invalidate();
+        } else if (event.getAction() == MotionEvent.ACTION_CANCEL) {
+            hoverPos = null;
+            hintPos = null;
             invalidate();
         }
         return true;

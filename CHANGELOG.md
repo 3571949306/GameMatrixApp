@@ -1,5 +1,24 @@
 # 夹层 - 版本更新日志
 
+## [v1.3.29] - 2026-05-21（正式版：小游戏 AI 响应优化）
+
+### 小游戏 AI 响应链路优化
+- 五子棋：去除固定 300ms 假延迟，改为按难度最小响应延迟（80/120/170/230ms），AI 算完即落子。
+- 中国象棋：去除固定 1 秒最小展示时间，改为按难度最小响应延迟（140/220/340/480ms），AI 算完即落子。
+- 围棋：去除固定 400ms 假延迟，改为统一 120ms 最小响应延迟。
+- 围棋 AI 引擎：固定 1800ms 时间预算改为动态时间预算（开局 900ms、中局 1400ms、终局 1000ms）。
+- 围棋 AI 引擎：新增保守战术短路，3 子以上提子直接返回，唯一 2 子提法也直接返回。
+- 围棋 AI 引擎：新增根并行蒙特卡洛模拟，多线程独立运行 UCB1 选择后合并结果。
+- 围棋 AI 引擎：`Math.random()` 替换为 `ThreadLocalRandom`，并行模拟无锁竞争。
+
+### 代码修复
+- 修复 GomokuActivity 中 `getAiMinResponseDelayMs()` 方法注释被乱码污染的问题。
+- 修复 ChineseChessActivity 中 `getAiMinResponseDelayMs()` 方法误插入 `applyAIMove` Javadoc 的问题。
+- 修复 ChineseChessActivity 和 GoActivity 中 `delay==0` 时仍使用 `postDelayed(..., 0)` 的问题，改为 `post()`。
+
+### 构建与发布
+- 正式版版本号提升至 `versionName=1.3.29`、`versionCode=267`。
+
 ## [v1.3.28] - 2026-05-21（正式版：中国象棋棋盘对比度修复）
 
 ### 小游戏修复

@@ -38,6 +38,8 @@ import java.util.concurrent.Executors;
  */
 public class ChineseChessActivity extends AppCompatActivity {
 
+    private static final long[] AI_MIN_RESPONSE_DELAYS_MS = {140L, 220L, 340L, 480L};
+
     /** 游戏标识符，用于使用统计记录 */
     private static final String GAME_ID = "chinese_chess";
 
@@ -307,7 +309,7 @@ public class ChineseChessActivity extends AppCompatActivity {
      * 启动AI回合。
      * <p>
      * 锁定棋盘，在后台线程中执行AI搜索，搜索完成后通过UI Handler
-     * 在主线程中应用AI走棋。为保证用户体验，AI思考至少耗时1秒（不足则补延时）。
+     * 在主线程中应用AI走棋。AI思考时间不足难度最小响应延迟时补延时。
      */
     private void startAITurn() {
         isProcessing = true;
@@ -324,11 +326,19 @@ public class ChineseChessActivity extends AppCompatActivity {
             }
             final int[] move = result;
 
-            // 保证AI至少"思考"1秒，避免瞬间落子让用户困惑
             long elapsed = System.currentTimeMillis() - startMs;
-            long delay = Math.max(1000 - elapsed, 100);
-            uiHandler.postDelayed(() -> applyAIMove(move), delay);
+            long delay = Math.max(getAiMinResponseDelayMs() - elapsed, 0L);
+            if (delay > 0L) {
+                uiHandler.postDelayed(() -> applyAIMove(move), delay);
+            } else {
+                uiHandler.post(() -> applyAIMove(move));
+            }
         });
+    }
+
+    private long getAiMinResponseDelayMs() {
+        int idx = Math.max(0, Math.min(aiDifficulty - 1, AI_MIN_RESPONSE_DELAYS_MS.length - 1));
+        return AI_MIN_RESPONSE_DELAYS_MS[idx];
     }
 
     /**
