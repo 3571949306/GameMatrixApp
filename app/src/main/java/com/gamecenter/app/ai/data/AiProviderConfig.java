@@ -3,6 +3,11 @@ package com.gamecenter.app.ai.data;
 /**
  * AI 提供商配置模型 — 描述一个可用的 AI 模型提供商及其配置参数。
  *
+ * <p>你可以把 AiProviderConfig 想象成一张"名片"：
+ * 每个云端 AI 供应商都有一张名片，上面写着它的名字、地址（baseUrl）、
+ * 门禁密码（apiKey）、使用的是哪个模型（modelName）等信息。
+ * 应用根据用户选择的"名片"来连接对应的 AI 服务。</p>
+ *
  * <p>该类封装了与 AI 服务商通信所需的全部配置信息，包括认证密钥、接口地址、
  * 模型名称以及运行约束等。所有提供商均采用 OpenAI 兼容接口格式（/chat/completions），
  * 实现了统一的调用协议，便于在运行时动态切换不同的 AI 后端。</p>
@@ -17,28 +22,28 @@ package com.gamecenter.app.ai.data;
  */
 public final class AiProviderConfig {
 
-    /** 提供商显示名称，如 "OpenAI"、"DeepSeek"、"阿里云通义" 等 */
+    // 提供商显示名称，如 "OpenAI"、"DeepSeek"、"阿里云通义" 等（用于界面展示）
     public final String providerName;
 
-    /** 模型标识名称，对应 API 调用时的 model 参数，如 "gpt-4o-mini"、"deepseek-chat" */
+    // 模型标识名称，对应 API 调用时的 model 参数，如 "gpt-4o-mini"、"deepseek-chat"
     public final String modelName;
 
-    /** API 认证密钥，云端模型必填，本地模型为空字符串 */
+    // API 认证密钥，云端模型必填，本地模型为空字符串
     public final String apiKey;
 
-    /** API 基础地址，所有提供商均使用 OpenAI 兼容的 /chat/completions 端点 */
+    // API 基础地址，所有提供商均使用 OpenAI 兼容的 /chat/completions 端点
     public final String baseUrl;
 
-    /** 是否启用该提供商配置，用于运行时动态开关 */
+    // 是否启用该提供商配置，用于运行时动态开关
     public final boolean enabled;
 
-    /** 是否为纯本地端侧模型（无需网络），true 时表示离线可用 */
+    // 是否为纯本地端侧模型（无需网络），true 时表示离线可用
     public final boolean localOnly;
 
-    /** 模型最大输入长度（字符数），用于输入截断和任务路由判断 */
+    // 模型最大输入长度（字符数），用于输入截断和任务路由判断
     public final int maxInputLength;
 
-    /** 成本等级：0=免费, 1=低, 2=中, 3=高，用于成本感知的智能路由 */
+    // 成本等级：0=免费, 1=低, 2=中, 3=高，用于成本感知的智能路由
     public final int costLevel;
 
     /**
@@ -92,6 +97,20 @@ public final class AiProviderConfig {
         return new AiProviderConfig(
                 "OpenAI", "gpt-4o-mini", apiKey,
                 "https://api.openai.com/v1", true, false, 128000, 1
+        );
+    }
+
+    /**
+     * 创建 OpenAI GPT-4o 的默认配置。
+     * 适合更复杂的创作、推理和长回答任务，成本等级为中。
+     *
+     * @param apiKey OpenAI API 密钥
+     * @return OpenAI GPT-4o 配置实例
+     */
+    public static AiProviderConfig openAIGpt4oConfig(String apiKey) {
+        return new AiProviderConfig(
+                "OpenAI", "gpt-4o", apiKey,
+                "https://api.openai.com/v1", true, false, 128000, 2
         );
     }
 
@@ -169,6 +188,20 @@ public final class AiProviderConfig {
         );
     }
 
+    /**
+     * 创建阿里云通义千问 Long 版本的默认配置。
+     * 适合长文档摘要、资料整理和历史记录分析，成本等级为中。
+     *
+     * @param apiKey 阿里云 DashScope API 密钥
+     * @return 通义千问 Long 配置实例
+     */
+    public static AiProviderConfig aliyunLongConfig(String apiKey) {
+        return new AiProviderConfig(
+                "阿里云通义", "qwen-long", apiKey,
+                "https://dashscope.aliyuncs.com/compatible-mode/v1", true, false, 1000000, 2
+        );
+    }
+
     // ===== 硅基流动 SiliconFlow（最具性价比，提供多种开源模型） =====
 
     /**
@@ -199,6 +232,34 @@ public final class AiProviderConfig {
         );
     }
 
+    /**
+     * 创建硅基流动平台上 Qwen2.5-14B 的默认配置。
+     * 比 7B 更适合结构化写作和较复杂问答，成本等级为中。
+     *
+     * @param apiKey 硅基流动 API 密钥
+     * @return 硅基流动 Qwen2.5-14B 配置实例
+     */
+    public static AiProviderConfig siliconFlowQwen14BConfig(String apiKey) {
+        return new AiProviderConfig(
+                "硅基流动", "Qwen/Qwen2.5-14B-Instruct", apiKey,
+                "https://api.siliconflow.cn/v1", true, false, 32000, 2
+        );
+    }
+
+    /**
+     * 创建硅基流动平台上 DeepSeek-R1 的默认配置。
+     * 适合推理、代码分析和复杂规划，成本等级为高。
+     *
+     * @param apiKey 硅基流动 API 密钥
+     * @return 硅基流动 DeepSeek-R1 配置实例
+     */
+    public static AiProviderConfig siliconFlowDeepSeekR1Config(String apiKey) {
+        return new AiProviderConfig(
+                "硅基流动", "deepseek-ai/DeepSeek-R1", apiKey,
+                "https://api.siliconflow.cn/v1", true, false, 128000, 3
+        );
+    }
+
     // ===== 智谱 AI (GLM) =====
 
     /**
@@ -225,6 +286,20 @@ public final class AiProviderConfig {
     public static AiProviderConfig zhipuPlusConfig(String apiKey) {
         return new AiProviderConfig(
                 "智谱AI", "glm-4-plus", apiKey,
+                "https://open.bigmodel.cn/api/paas/v4", true, false, 128000, 2
+        );
+    }
+
+    /**
+     * 创建智谱 AI GLM-4-Air 的默认配置。
+     * 平衡速度与质量，适合中端设备常用任务，成本等级为中。
+     *
+     * @param apiKey 智谱 AI API 密钥
+     * @return 智谱 GLM-4-Air 配置实例
+     */
+    public static AiProviderConfig zhipuAirConfig(String apiKey) {
+        return new AiProviderConfig(
+                "智谱AI", "glm-4-air", apiKey,
                 "https://open.bigmodel.cn/api/paas/v4", true, false, 128000, 2
         );
     }
@@ -260,8 +335,65 @@ public final class AiProviderConfig {
     }
 
     /**
+     * 创建零一万物 Yi-Medium 的默认配置。
+     * 适合中等复杂度问答和改写任务，成本等级为低。
+     *
+     * @param apiKey 零一万物 API 密钥
+     * @return Yi-Medium 配置实例
+     */
+    public static AiProviderConfig yiMediumConfig(String apiKey) {
+        return new AiProviderConfig(
+                "零一万物", "yi-medium", apiKey,
+                "https://api.lingyiwanwu.com/v1", true, false, 32000, 1
+        );
+    }
+
+    /**
+     * 创建月之暗面 Kimi 8K 的默认配置。
+     * 适合轻量聊天、改写和短文本摘要，成本等级为低。
+     *
+     * @param apiKey Moonshot API 密钥
+     * @return Kimi 8K 配置实例
+     */
+    public static AiProviderConfig moonshot8kConfig(String apiKey) {
+        return new AiProviderConfig(
+                "月之暗面", "moonshot-v1-8k", apiKey,
+                "https://api.moonshot.cn/v1", true, false, 8000, 1
+        );
+    }
+
+    /**
+     * 创建月之暗面 Kimi 32K 的默认配置。
+     * 适合较长资料整理和上下文问答，成本等级为中。
+     *
+     * @param apiKey Moonshot API 密钥
+     * @return Kimi 32K 配置实例
+     */
+    public static AiProviderConfig moonshot32kConfig(String apiKey) {
+        return new AiProviderConfig(
+                "月之暗面", "moonshot-v1-32k", apiKey,
+                "https://api.moonshot.cn/v1", true, false, 32000, 2
+        );
+    }
+
+    /**
+     * 创建月之暗面 Kimi 128K 的默认配置。
+     * 适合长文档摘要和大段上下文问答，成本等级为高。
+     *
+     * @param apiKey Moonshot API 密钥
+     * @return Kimi 128K 配置实例
+     */
+    public static AiProviderConfig moonshot128kConfig(String apiKey) {
+        return new AiProviderConfig(
+                "月之暗面", "moonshot-v1-128k", apiKey,
+                "https://api.moonshot.cn/v1", true, false, 128000, 3
+        );
+    }
+
+    /**
      * 创建一个仅修改 enabled 状态的新配置实例（不可变对象的"修改"模式）。
      * 保留其他所有字段不变，仅将 enabled 设置为指定值。
+     * 因为 AiProviderConfig 是不可变的，所以"修改"实际上是创建一个新对象。
      *
      * @param enabled 新的启用状态
      * @return 新的配置实例，enabled 为指定值，其余字段与当前实例相同

@@ -15,6 +15,10 @@ import java.util.List;
 /**
  * AI 偏好设置管理器 — 负责所有 AI 相关配置的持久化存储与读取。
  * <p>
+ * 你可以把这个类想象成一个"加密保险柜"：
+ * 用户的 API Key 等敏感信息存放在加密的保险柜里，普通的设置项也统一管理在这里。
+ * 即使手机被 root，别人也无法直接读取你的 API Key。
+ * <p>
  * 核心设计决策：
  * <ul>
  *   <li>使用 {@link EncryptedSharedPreferences} 加密存储敏感数据（如 API Key），
@@ -27,36 +31,37 @@ import java.util.List;
 public class AiPreferences {
 
     private static final String TAG = "AiPreferences";
-    /** 明文 SharedPreferences 文件名（旧版，仅用于迁移） */
+    // 明文 SharedPreferences 文件名（旧版，仅用于迁移）
     private static final String PREFS_NAME = "ai_settings";
-    /** 加密 SharedPreferences 文件名 */
+    // 加密 SharedPreferences 文件名
     private static final String ENCRYPTED_PREFS_NAME = "ai_settings_encrypted";
-    /** 标记是否已完成从明文到加密存储的迁移 */
+    // 标记是否已完成从明文到加密存储的迁移
     private static final String KEY_MIGRATION_DONE = "migration_to_encrypted_done";
-    /** 用户选择的 AI 供应商名称 */
+    // 用户选择的 AI 供应商名称（如 "DeepSeek"、"OpenAI" 等）
     private static final String KEY_SELECTED_PROVIDER = "selected_provider";
-    /** 用户选择的模型名称 */
+    // 用户选择的模型名称（如 "deepseek-chat"、"gpt-4o-mini" 等）
     private static final String KEY_SELECTED_MODEL = "selected_model";
-    /** 是否启用本地优先策略 */
+    // 是否启用本地优先策略（开启后优先用本地规则和模型处理，省流量省钱）
     private static final String KEY_USE_LOCAL_FIRST = "use_local_first";
-    /** 云端 API Key（加密存储） */
+    // 云端 API Key（加密存储，这是访问云端 AI 服务的"钥匙"）
     private static final String KEY_API_KEY = "api_key";
-    /** 本地模型标识 */
+    // 本地模型标识（"on-device" 表示纯规则引擎，"gemma3-1b-it-q4" 表示本地 Gemma 模型）
     private static final String KEY_LOCAL_MODEL = "local_model";
-    /** 历史记录最大条数 */
+    // 历史记录最大条数（超过后自动丢弃最旧的消息）
     private static final String KEY_HISTORY_MAX = "history_max";
-    /** 每日免费调用额度上限 */
+    // 每日免费调用额度上限（默认 20 次/天）
     private static final String KEY_FREE_DAILY_LIMIT = "free_daily_limit";
-    /** 今日已使用的免费额度次数 */
+    // 今日已使用的免费额度次数
     private static final String KEY_USED_TODAY = "used_today";
-    /** 上次额度重置的日期（以天为单位的毫秒时间戳） */
+    // 上次额度重置的日期（以天为单位的毫秒时间戳，用于判断是否跨天）
     private static final String KEY_LAST_RESET_DATE = "last_reset_date";
-    /** 用户已接受的 Gemma 模型声明版本号 */
+    // 用户已接受的 Gemma 模型声明版本号（条款更新后需要重新同意）
     private static final String KEY_GEMMA_NOTICE_ACCEPTED_VERSION = "gemma_notice_accepted_version";
-    /** 用户接受 Gemma 声明的时间戳 */
+    // 用户接受 Gemma 声明的时间戳（用于合规审计）
     private static final String KEY_GEMMA_NOTICE_ACCEPTED_AT = "gemma_notice_accepted_at";
 
-    /** 加密 SharedPreferences 实例（降级时为明文实例） */
+    // 加密 SharedPreferences 实例（降级时为明文实例）
+    // SharedPreferences 是 Android 提供的轻量级键值对存储，适合保存少量配置数据
     private final SharedPreferences prefs;
 
     /**
@@ -66,7 +71,9 @@ public class AiPreferences {
      */
     public AiPreferences(Context context) {
         Context appContext = context.getApplicationContext();
+        // 获取加密存储实例
         prefs = getEncryptedPrefs(appContext);
+        // 将旧版明文数据迁移到加密存储（只执行一次）
         migrateFromPlainPrefs(appContext);
     }
 
@@ -75,13 +82,16 @@ public class AiPreferences {
      * <p>
      * 使用 AES256_GCM 加密值、AES256_SIV 加密键，通过 AndroidX Security 库实现。
      * 若加密存储初始化失败（如设备不支持或 keystore 异常），降级为明文存储。
+     * 就像保险柜打不开时，至少还能用普通抽屉存东西。
      *
      * @param appContext 应用级上下文
      * @return 加密或明文的 SharedPreferences 实例
      */
     private static SharedPreferences getEncryptedPrefs(Context appContext) {
         try {
+            // 创建或获取主密钥别名（Android Keystore 系统自动管理密钥安全）
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            // 创建加密的 SharedPreferences：键用 AES256_SIV 加密，值用 AES256_GCM 加密
             return EncryptedSharedPreferences.create(
                     ENCRYPTED_PREFS_NAME,
                     masterKeyAlias,
@@ -90,6 +100,7 @@ public class AiPreferences {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
         } catch (Exception e) {
+            // 加密存储不可用（比如设备太旧不支持），降级为普通明文存储
             Log.w(TAG, "EncryptedSharedPreferences unavailable, falling back to plain prefs", e);
             return appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         }
@@ -98,7 +109,7 @@ public class AiPreferences {
     /**
      * 从旧版明文 SharedPreferences 迁移数据到加密存储。
      * <p>
-     * 迁移流程：
+     * 迁移流程（就像把文件从旧柜子搬到新保险柜）：
      * <ol>
      *   <li>检查迁移标记，若已完成则跳过</li>
      *   <li>读取旧版明文存储中的所有键值对</li>
@@ -111,16 +122,19 @@ public class AiPreferences {
      * @param appContext 应用级上下文
      */
     private void migrateFromPlainPrefs(Context appContext) {
+        // 检查是否已经迁移过了，避免重复迁移
         if (prefs.getBoolean(KEY_MIGRATION_DONE, false)) {
             return;
         }
         try {
+            // 打开旧版明文存储
             SharedPreferences plainPrefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             if (plainPrefs.getAll().isEmpty()) {
                 // 旧存储为空，直接标记迁移完成
                 prefs.edit().putBoolean(KEY_MIGRATION_DONE, true).apply();
                 return;
             }
+            // 逐项迁移各种类型的偏好数据
             SharedPreferences.Editor editor = prefs.edit();
             migrateString(plainPrefs, editor, KEY_SELECTED_PROVIDER);
             migrateString(plainPrefs, editor, KEY_SELECTED_MODEL);
@@ -135,7 +149,7 @@ public class AiPreferences {
             migrateLong(plainPrefs, editor, KEY_GEMMA_NOTICE_ACCEPTED_AT);
             editor.putBoolean(KEY_MIGRATION_DONE, true);
             editor.apply();
-            // 迁移完成后清除旧版明文数据，避免敏感信息残留
+            // 迁移完成后清除旧版明文数据，避免敏感信息（如 API Key）残留
             plainPrefs.edit().clear().apply();
             Log.d(TAG, "Migrated AI preferences to encrypted storage");
         } catch (Exception e) {
@@ -231,6 +245,7 @@ public class AiPreferences {
      * <p>
      * 启用后，AI 任务优先尝试本地规则引擎和本地 LLM 处理，
      * 仅在本地无法胜任时才回退到云端 API。
+     * 就像能自己修的东西先自己修，修不了再请师傅。
      *
      * @return 是否本地优先，默认为 true
      */
@@ -249,6 +264,8 @@ public class AiPreferences {
 
     /**
      * 获取云端 API Key。
+     * <p>
+     * API Key 就像进入云端 AI 服务的门禁卡，每个用户需要自己去 AI 供应商网站申请。
      *
      * @return API Key 字符串；未配置时返回空字符串
      */
@@ -259,7 +276,7 @@ public class AiPreferences {
     /**
      * 设置云端 API Key。
      * <p>
-     * API Key 通过加密 SharedPreferences 安全存储。
+     * API Key 通过加密 SharedPreferences 安全存储，即使手机被 root 也无法直接读取。
      *
      * @param apiKey API Key 字符串
      */
@@ -290,6 +307,7 @@ public class AiPreferences {
      * 检查用户是否已接受指定版本的 Gemma 模型声明。
      * <p>
      * 当声明内容更新时（版本号变更），需要用户重新确认。
+     * 就像软件更新了用户协议，需要你重新勾选"我同意"。
      *
      * @param noticeVersion 当前声明版本号
      * @return 是否已接受该版本的声明
@@ -363,17 +381,19 @@ public class AiPreferences {
      * <p>
      * 通过日期比对实现自动重置：若当前日期与上次重置日期不同，
      * 则自动将已用次数归零并更新重置日期。
+     * 就像每天零点自动刷新的每日签到，新的一天额度自动恢复。
      * <p>
      * 日期计算方式：{@code System.currentTimeMillis() / 86400000L}，
-     * 即以自 Unix 纪元以来的天数作为日期标识（86400000 = 24 * 60 * 60 * 1000）。
+     * 即以自 Unix 纪元以来的天数作为日期标识（86400000 = 24 × 60 × 60 × 1000 毫秒）。
      *
      * @return 今日已使用次数；跨天自动归零
      */
     public int getUsedInDay() {
+        // 将当前毫秒时间戳转换为"天数"，用于判断是否跨天
         long today = System.currentTimeMillis() / 86400000L;
         long lastReset = prefs.getLong(KEY_LAST_RESET_DATE, 0);
         if (today != lastReset) {
-            // 跨天自动重置已用次数
+            // 跨天了，自动重置已用次数为 0
             prefs.edit().putLong(KEY_LAST_RESET_DATE, today).putInt(KEY_USED_TODAY, 0).apply();
             return 0;
         }
@@ -412,8 +432,9 @@ public class AiPreferences {
      *   <li>无 API Key → 仅本地规则引擎可用</li>
      * </ul>
      * <p>
-     * 当前支持的云端供应商：OpenAI、DeepSeek（含 Reasoner）、阿里通义（Turbo/标准/Max）、
-     * SiliconFlow（DeepSeek/Qwen）、智谱（Flash/Plus）、零一万物（Lightning/Large）。
+     * 当前支持的云端供应商：OpenAI、DeepSeek（含 Reasoner）、阿里通义（Turbo/Plus/Max/Long）、
+     * SiliconFlow（DeepSeek/Qwen/R1）、智谱（Flash/Air/Plus）、零一万物（Lightning/Medium/Large）、
+     * 月之暗面 Kimi（8K/32K/128K）。
      *
      * @param context 上下文，用于读取 API Key
      * @return 供应商配置列表，始终包含至少一个本地配置
@@ -421,15 +442,18 @@ public class AiPreferences {
     public static List<AiProviderConfig> getAvailableProviders(Context context) {
         List<AiProviderConfig> list = new ArrayList<>();
         String apiKey = new AiPreferences(context).getApiKey();
+        // 判断用户是否配置了 API Key，有 Key 才能启用云端供应商
         boolean hasKey = !apiKey.isEmpty();
 
-        // 本地规则引擎始终可用，不依赖 API Key
+        // 本地规则引擎始终可用，不依赖 API Key 和网络
         list.add(new AiProviderConfig(
                 "本地", "on-device", "",
                 "", true, true, 2000, 0));
 
-        // 云端供应商仅在配置了 API Key 时启用
+        // 以下云端供应商仅在配置了 API Key 时启用
+        // 没有 Key 的话，这些供应商虽然存在但处于禁用状态
         list.add(AiProviderConfig.openAIConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.openAIGpt4oConfig(apiKey).withEnabled(hasKey));
 
         list.add(AiProviderConfig.deepseekConfig(apiKey).withEnabled(hasKey));
         list.add(AiProviderConfig.deepseekReasonerConfig(apiKey).withEnabled(hasKey));
@@ -437,15 +461,24 @@ public class AiPreferences {
         list.add(AiProviderConfig.aliyunTurboConfig(apiKey).withEnabled(hasKey));
         list.add(AiProviderConfig.aliyunConfig(apiKey).withEnabled(hasKey));
         list.add(AiProviderConfig.aliyunMaxConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.aliyunLongConfig(apiKey).withEnabled(hasKey));
 
         list.add(AiProviderConfig.siliconFlowDeepSeekConfig(apiKey).withEnabled(hasKey));
         list.add(AiProviderConfig.siliconFlowQwenConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.siliconFlowQwen14BConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.siliconFlowDeepSeekR1Config(apiKey).withEnabled(hasKey));
 
         list.add(AiProviderConfig.zhipuFlashConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.zhipuAirConfig(apiKey).withEnabled(hasKey));
         list.add(AiProviderConfig.zhipuPlusConfig(apiKey).withEnabled(hasKey));
 
         list.add(AiProviderConfig.yiLightningConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.yiMediumConfig(apiKey).withEnabled(hasKey));
         list.add(AiProviderConfig.yiLargeConfig(apiKey).withEnabled(hasKey));
+
+        list.add(AiProviderConfig.moonshot8kConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.moonshot32kConfig(apiKey).withEnabled(hasKey));
+        list.add(AiProviderConfig.moonshot128kConfig(apiKey).withEnabled(hasKey));
 
         return list;
     }

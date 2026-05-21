@@ -210,7 +210,7 @@ GameCenterApp/
 目录说明：
 
 - `app/src/main/java/com/gamecenter/app/fragments`: 三个主页面，游戏大厅、工具箱、内置浏览器。`AiFragment` 在 ai/ui 包中。
-- `app/src/main/java/com/gamecenter/app/ai`: AI 助手模块。包含路由调度 (`AiTaskRouter`)、云端客户端 (`AiApiClient`)、本地处理器 (`LocalAiProcessor`)、历史与收藏 (`AiHistoryStore`)、模板 (`AiTemplateManager`)、偏好设置 (`AiPreferences`) 和数据模型。默认 DeepSeek API，可切换阿里云通义、硅基流动、智谱 AI、零一万物、OpenAI 等多家 API。
+- `app/src/main/java/com/gamecenter/app/ai`: AI 助手模块。包含路由调度 (`AiTaskRouter`)、云端客户端 (`AiApiClient`)、本地处理器 (`LocalAiProcessor`)、历史与收藏 (`AiHistoryStore`)、模板 (`AiTemplateManager`)、偏好设置 (`AiPreferences`) 和数据模型。默认 DeepSeek API，可在 AI 页切换 OpenAI、阿里云通义、硅基流动、智谱 AI、零一万物、月之暗面 Kimi 等多家 OpenAI 兼容模型；本地模型入口按低端/中端/高端手机分档展示。
 - `app/src/main/java/com/gamecenter/app/games`: 各小游戏模块。多数模块采用 `Activity + View + Game` 的简单分层。
 - `app/src/main/java/com/gamecenter/app/settings`: 设置弹窗与设置项交互。`AppSettingsDialog` 已从 `GamesFragment` 拆出，负责主题、配色、版本更新和反馈入口。
 - `app/src/main/java/com/gamecenter/app/tools`: 工具箱拆分后的共享结构和独立 binder。当前包含功能区模型/配置存储、剪贴板/哈希/颜色取色器 binder，以及 `AdvancedToolBinders` 中的网络体检、诊断报告、DNS 查询、局域网扫描、编码/时间戳/JSON、文件哈希、二维码增强、颜色增强、权限隐私说明。AI 不再嵌入工具箱，入口在底部导航。
@@ -226,7 +226,8 @@ GameCenterApp/
 `MainActivity` 是底部导航容器，负责挂载三个 Fragment：
 
 - `GamesFragment`: 游戏大厅，使用 `TabLayout + RecyclerView` 展示游戏卡片，支持搜索、最近游玩、收藏。右上角设置入口委托给 `settings/AppSettingsDialog`；反馈入口优先 POST 到 VPS，公开仓库不保存个人邮箱兜底收件人。
-- `ToolsFragment`: 工具箱，包含网络、设备、颜色、二维码、剪贴板等实用工具入口。支持工具搜索、收藏、最近使用、排序、显隐和单双列布局。功能区模型和配置存储已拆到 `tools/ToolSection` 与 `tools/ToolSectionStore`；剪贴板、哈希、颜色取色器和增强工具已拆成独立 binder。`r`n- `AiFragment`: AI 独立底部导航页，支持 7 种任务、模板快捷填充、历史搜索、收藏筛选和导出。
+- `ToolsFragment`: 工具箱，包含网络、设备、颜色、二维码、剪贴板等实用工具入口。支持工具搜索、收藏、最近使用、排序、显隐和单双列布局。功能区模型和配置存储已拆到 `tools/ToolSection` 与 `tools/ToolSectionStore`；剪贴板、哈希、颜色取色器和增强工具已拆成独立 binder。
+- `AiFragment`: AI 独立底部导航页，支持任务类型选择、云端模型选择、本地模型分档、模板快捷填充、历史搜索、收藏筛选和导出。
 - `BrowserFragment`: 内置 WebView 浏览器。
 
 全局状态和主题：

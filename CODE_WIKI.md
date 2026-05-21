@@ -439,6 +439,7 @@ AI 功能调度中心，核心设计遵循**本地优先 (Local First)** 策略�
 - 单线程线程池 (`aiExecutor`) 串行执行，避免并发推理冲突
 - `LocalLlmOutputGuard` 校验输出质量，防止退化输出（乱码/重复）
 - 结果通过 `Handler` 回调到主线程
+- 云端请求按模型能力设置 `max_tokens`：低成本模型 2048，中等模型 3072，高能力/长上下文模型 4096
 
 #### [AiPreferences.java](app/src/main/java/com/gamecenter/app/ai/AiPreferences.java)
 
@@ -455,6 +456,10 @@ AI 偏好设置管理器，使用 `EncryptedSharedPreferences` 加密存储 API 
 | history_max | 50 | 历史记录上限 |
 
 **安全特性**: 自动从明文 SharedPreferences 迁移到加密存储，迁移完成后清除旧数据；加密初始化失败时降级为明文存储。
+
+**云端模型清单**: OpenAI (`gpt-4o-mini`, `gpt-4o`)、DeepSeek (`deepseek-chat`, `deepseek-reasoner`)、阿里云通义 (`qwen-turbo`, `qwen-plus`, `qwen-max`, `qwen-long`)、硅基流动 (`DeepSeek-V3`, `DeepSeek-R1`, `Qwen2.5-7B/14B`)、智谱 (`glm-4-flash`, `glm-4-air`, `glm-4-plus`)、零一万物 (`yi-lightning`, `yi-medium`, `yi-large`)、月之暗面 Kimi (`moonshot-v1-8k/32k/128k`)。
+
+**本地模型分档**: `AiModelDownloadManager` 内置 `on-device` 规则引擎作为低端机兜底；VPS `ai-models/models.json` 返回的 MediaPipe LLM 模型会与内置项合并，在 `AiFragment` 中按低端/中端/高端机显示。
 
 ---
 

@@ -26,6 +26,11 @@ import java.util.concurrent.Executors;
 /**
  * AI 功能调度中心 — 决定任务走本地还是云端，管理任务生命周期。
  * <p>
+ * 你可以把这个类想象成一个"快递调度站"：
+ * 当你提交一个 AI 任务（比如"帮我翻译这段话"），调度站要决定是让"本地快递员"（本地规则引擎/本地模型）
+ * 来处理，还是交给"远方仓库"（云端 API）来处理。优先用本地的，因为又快又免费；
+ * 本地搞不定的才走云端，因为云端更强大但要花额度。
+ * <p>
  * 核心设计决策：
  * <ul>
  *   <li>遵循「本地优先」（Local First）策略：优先尝试本地规则引擎和本地 LLM（Gemma）处理，
@@ -43,23 +48,23 @@ public class AiTaskRouter {
 
     /** 应用级 Context，避免持有 Activity 导致泄漏 */
     private final Context appContext;
-    /** AI 偏好设置，控制本地优先开关、API Key、额度等 */
+    // AI 偏好设置，控制本地优先开关、API Key、额度等
     private final AiPreferences aiPrefs;
-    /** 单线程执行器，保证 AI 任务串行执行，防止本地模型并发加载冲突 */
+    // 单线程执行器，保证 AI 任务串行执行，防止本地模型并发加载冲突
+    // 就像单窗口办事大厅，一次只处理一个任务，避免混乱
     private final ExecutorService aiExecutor;
-    /** 主线程 Handler，用于将结果回调投递到主线程 */
+    // 主线程 Handler，用于将结果回调投递到主线程
+    // Android 中 UI 操作必须在主线程执行，所以结果要"送回"主线程
     private final Handler mainHandler;
-    /** 模型下载管理器，负责检查/获取本地模型文件 */
+    // 模型下载管理器，负责检查/获取本地模型文件
     private final AiModelDownloadManager modelDownloadManager;
-    /** MediaPipe 本地 LLM 推理引擎实例 */
+    // MediaPipe 本地 LLM 推理引擎实例（即手机上运行的 Gemma 小模型）
     private final MediaPipeLocalLlmEngine localLlmEngine;
 
-    /** 累计提交的任务总数 */
-    private int totalTasks = 0;
-    /** 本地成功处理的任务数 */
-    private int localTasks = 0;
-    /** 云端处理的任务数（含成功和失败） */
-    private int cloudTasks = 0;
+    // 以下三个计数器用于统计任务执行情况，方便展示给用户
+    private int totalTasks = 0;   // 累计提交的任务总数
+    private int localTasks = 0;   // 本地成功处理的任务数
+    private int cloudTasks = 0;   // 云端处理的任务数（含成功和失败）
 
     /**
      * 构造调度器，初始化所有依赖组件。
@@ -67,9 +72,12 @@ public class AiTaskRouter {
      * @param context 上下文，内部会转为 Application Context 以避免内存泄漏
      */
     public AiTaskRouter(Context context) {
+        // 使用 ApplicationContext 而不是 Activity Context，防止 Activity 销毁后还持有引用
         this.appContext = context.getApplicationContext();
         this.aiPrefs = new AiPreferences(appContext);
+        // 创建单线程线程池：所有任务排队执行，不会出现两个任务同时抢模型资源的情况
         this.aiExecutor = Executors.newSingleThreadExecutor();
+        // 获取主线程的 Handler，用于把结果"送回"主线程更新 UI
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.modelDownloadManager = new AiModelDownloadManager();
         this.localLlmEngine = new MediaPipeLocalLlmEngine();
@@ -96,7 +104,7 @@ public class AiTaskRouter {
     /**
      * 执行任务路由：先尝试本地处理，本地无法处理再走云端。
      * <p>
-     * 路由决策流程：
+     * 路由决策流程（就像看病先去社区诊所，不行再去大医院）：
      * <ol>
      *   <li>尝试本地处理（本地 LLM + 规则引擎）</li>
      *   <li>检查网络可用性</li>
@@ -109,26 +117,29 @@ public class AiTaskRouter {
      * @param callback 结果回调
      */
     private void executeTask(AiTask task, AiCallback callback) {
+        // 把任务提交到后台线程池执行，避免阻塞主线程（主线程负责 UI，不能做耗时操作）
         aiExecutor.execute(() -> {
             task.status = TaskStatus.RUNNING;
 
-            // 1. 尝试本地优先处理（本地 LLM 或规则引擎）
+            // 第1步：尝试本地优先处理（本地 LLM 或规则引擎）
             AiResult localResult = tryLocalProcessing(task);
             if (localResult != null) {
+                // 本地处理有结果了
                 if (localResult.success) {
                     task.output = localResult.content;
                     task.status = TaskStatus.COMPLETED;
-                    task.costLevel = 0; // 本地处理零成本
+                    task.costLevel = 0; // 本地处理零成本（不消耗云端额度）
                     localTasks++;
                 } else {
                     task.output = localResult.message;
                     task.status = TaskStatus.FAILED;
                 }
                 postResult(callback, task, localResult);
-                return;
+                return; // 本地处理完毕，直接返回
             }
 
-            // 2. 本地无法处理，检查网络可用性
+            // 第2步：本地无法处理，检查网络可用性
+            // 没有网络就像没有公路，请求无法到达云端服务器
             if (!NetworkErrorHandler.isNetworkAvailable(appContext)) {
                 task.status = TaskStatus.FAILED;
                 task.output = "当前无网络连接，仅支持本地规则处理（OCR/摘要/关键词/分类等）";
@@ -137,7 +148,8 @@ public class AiTaskRouter {
                 return;
             }
 
-            // 3. 网络可用，检查每日免费额度是否耗尽
+            // 第3步：网络可用，检查每日免费额度是否耗尽
+            // 免费额度就像每日限量的优惠券，用完了就得等明天
             if (!aiPrefs.hasFreeQuota()) {
                 task.status = TaskStatus.FAILED;
                 task.output = "今日免费额度已用完，请明天再试或设置 API Key 解锁更多次数";
@@ -146,7 +158,8 @@ public class AiTaskRouter {
                 return;
             }
 
-            // 4. 检查 API Key 是否已配置
+            // 第4步：检查 API Key 是否已配置
+            // API Key 就像进入云端服务的门禁卡，没有卡就进不去
             if (aiPrefs.getApiKey().isEmpty()) {
                 task.status = TaskStatus.FAILED;
                 task.output = "未配置 API Key，无法使用云端 AI 功能";
@@ -155,7 +168,7 @@ public class AiTaskRouter {
                 return;
             }
 
-            // 5. 走云端 API 调用
+            // 第5步：所有检查通过，走云端 API 调用
             try {
                 task.costLevel = estimateCost(task.taskType);
                 task.status = TaskStatus.RUNNING;
@@ -167,13 +180,14 @@ public class AiTaskRouter {
                 // 根据任务类型构建对应的提示词
                 String prompt = buildPrompt(task.taskType, task.input);
 
+                // 调用云端 API，同步等待结果
                 AiResult result = client.chatSync("你是一个有用的助手。", prompt);
 
                 if (result.success) {
                     task.output = result.content;
                     task.status = TaskStatus.COMPLETED;
                     cloudTasks++;
-                    aiPrefs.incrementUsage();
+                    aiPrefs.incrementUsage(); // 消耗一次免费额度
                     postResult(callback, task, result);
                 } else {
                     task.status = TaskStatus.FAILED;
@@ -194,7 +208,7 @@ public class AiTaskRouter {
     /**
      * 尝试本地处理任务。
      * <p>
-     * 处理优先级：
+     * 处理优先级（就像看病先试偏方，不行再去医院）：
      * <ol>
      *   <li>若用户未开启「本地优先」，直接返回 null 跳过本地处理</li>
      *   <li>尝试本地 LLM（Gemma）推理</li>
@@ -209,6 +223,7 @@ public class AiTaskRouter {
      * @return 本地处理结果；若无法本地处理则返回 null，由调用方决定是否走云端
      */
     private AiResult tryLocalProcessing(AiTask task) {
+        // 用户关闭了"本地优先"开关，直接跳过本地处理
         if (!aiPrefs.isLocalFirst()) return null;
 
         // 优先尝试本地 LLM（如 Gemma3-1B），可处理更复杂的语义任务
@@ -217,12 +232,14 @@ public class AiTaskRouter {
             return llmResult;
         }
 
-        // 本地 LLM 不可用，回退到规则引擎
+        // 本地 LLM 不可用，回退到规则引擎（用固定规则处理，不需要 AI 模型）
         switch (task.taskType) {
             case "ocr":
             case "ocr_clean":
+                // OCR 后处理：清洗识别结果中的乱码和多余空行
                 return LocalAiProcessor.processOcrResult(task.input);
             case "summary":
+                // 简单摘要：提取前几行 + 含数字的行 + 短行
                 return LocalAiProcessor.simpleSummarize(task.input, 10);
             case "translate":
                 // 翻译任务仅在无 API Key 时使用本地兜底，有 Key 时交给云端获得更好质量
@@ -238,14 +255,17 @@ public class AiTaskRouter {
                 if (!aiPrefs.getApiKey().isEmpty()) return null;
                 return LocalAiProcessor.generateQaPairs(task.input, 5);
             case "keywords":
+                // 关键词提取：基于规则分词和停用词过滤
                 return LocalAiProcessor.extractKeywords(task.input);
             case "classify":
+                // 文本分类：基于关键词匹配判断类别
                 return LocalAiProcessor.classifyText(task.input);
             case "template":
                 // 模板任务直接返回原始输入，由上层处理模板填充
                 return AiResult.success(task.input).source("local").build();
             default:
                 // 未知任务类型，尝试通过指令识别匹配本地可处理的命令
+                // 比如用户输入"帮我总结一下这段话"，能识别出"总结"意图
                 AiCommand cmd = LocalAiProcessor.recognizeCommand(task.input);
                 if (cmd.isKnown()) {
                     switch (cmd.type) {
@@ -273,7 +293,7 @@ public class AiTaskRouter {
     /**
      * 尝试使用本地 LLM（Gemma3-1B-IT）处理任务。
      * <p>
-     * 前置条件检查链：
+     * 前置条件检查链（就像启动一台精密设备前的安全检查）：
      * <ol>
      *   <li>用户选择的是 gemma3-1b-it-q4 模型</li>
      *   <li>任务类型在本地 LLM 支持范围内</li>
@@ -297,11 +317,11 @@ public class AiTaskRouter {
             return null;
         }
         AiModelInfo model = buildGemmaModelInfo();
-        // 检查模型文件是否已下载
+        // 检查模型文件是否已下载到手机上
         if (!modelDownloadManager.isDownloaded(appContext, model)) {
             return null;
         }
-        // 检查设备内存是否足够加载模型
+        // 检查设备内存是否足够加载模型（模型很大，内存不够会崩溃）
         if (!hasEnoughMemory(model.minRamMb)) {
             return AiResult.fail("设备内存不足，无法安全加载本地 Gemma 模型")
                     .source("local-gemma")
@@ -309,10 +329,11 @@ public class AiTaskRouter {
                     .build();
         }
         try {
-            // 加载模型并执行推理
+            // 加载模型文件并执行推理（让模型"思考"并给出回答）
             localLlmEngine.load(appContext, modelDownloadManager.getModelFile(appContext, model));
             String output = localLlmEngine.generate(buildPrompt(task.taskType, task.input));
             // 校验输出质量，防止退化输出（乱码、重复等）
+            // 就像老师批改作业，如果发现答案是乱写的就打回去
             String guardMessage = LocalLlmOutputGuard.validate(output);
             if (guardMessage != null) {
                 return AiResult.fail(guardMessage)
@@ -323,6 +344,7 @@ public class AiTaskRouter {
             return AiResult.success(output).source("local-gemma").build();
         } catch (Throwable t) {
             // 使用 Throwable 而非 Exception，以捕获 NoClassDefFoundError 等链接时错误
+            // 这类错误在模型库缺失时会出现，用 Exception 抓不住
             Log.e(TAG, "Local Gemma task failed", t);
             return AiResult.fail("本地 Gemma 推理失败: " + t.getMessage())
                     .source("local-gemma")
@@ -362,15 +384,16 @@ public class AiTaskRouter {
      */
     private AiModelInfo buildGemmaModelInfo() {
         try {
+            // 用 JSON 对象手动构建模型信息，因为当前只有一个本地模型
             org.json.JSONObject json = new org.json.JSONObject();
             json.put("id", "gemma3-1b-it-q4");
             json.put("name", "Gemma3-1B-IT q4");
-            json.put("runtime", "mediapipe-llm");
+            json.put("runtime", "mediapipe-llm");  // 使用 MediaPipe LLM 推理引擎
             json.put("fileName", "Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task");
             json.put("sha256", "ddfaf1210d8b4d1b812b5fadb6652999e852c8be6dd9abe353b9213a25262c10");
-            json.put("sizeBytes", 554661246L);
-            json.put("minSdk", 24);
-            json.put("minRamMb", 3072);
+            json.put("sizeBytes", 554661246L);  // 约 529MB
+            json.put("minSdk", 24);              // 最低 Android 7.0
+            json.put("minRamMb", 3072);          // 最低 3GB 内存
             json.put("enabled", true);
             return AiModelInfo.fromJson(json);
         } catch (Exception e) {
@@ -389,6 +412,7 @@ public class AiTaskRouter {
      */
     private boolean hasEnoughMemory(int minRamMb) {
         try {
+            // 通过系统服务获取内存信息
             android.app.ActivityManager am =
                     (android.app.ActivityManager) appContext.getSystemService(Context.ACTIVITY_SERVICE);
             android.app.ActivityManager.MemoryInfo info = new android.app.ActivityManager.MemoryInfo();
@@ -412,15 +436,22 @@ public class AiTaskRouter {
      * @return 匹配的云端供应商配置
      */
     private AiProviderConfig buildConfigForTask(AiTask task) {
+        // 从偏好设置中获取所有可用的 AI 供应商列表
         List<AiProviderConfig> providers = AiPreferences.getAvailableProviders(appContext);
+        // 遍历查找用户选择的供应商和模型组合
         for (AiProviderConfig p : providers) {
             if (p.providerName.equals(aiPrefs.getSelectedProvider())
                     && p.modelName.equals(aiPrefs.getSelectedModel())) {
                 return p;
             }
         }
-        // fallback to first available
-        return providers.isEmpty() ? AiProviderConfig.localConfig() : providers.get(0);
+        for (AiProviderConfig p : providers) {
+            if (!p.localOnly && p.enabled) {
+                return p;
+            }
+        }
+        // 没找到匹配项，回退到本地配置兜底
+        return AiProviderConfig.localConfig();
     }
 
     /**
@@ -452,7 +483,10 @@ public class AiTaskRouter {
     /**
      * 根据任务类型构建对应的提示词（Prompt）。
      * <p>
-     * 不同任务类型使用不同的提示词模板，引导 AI 产生符合预期的输出格式。
+     * 提示词就像是给 AI 的"工作指令"，告诉它应该怎么回答。
+     * 不同任务需要不同的指令，比如翻译要说"请翻译成中文"，
+     * 摘要要说"请提取要点"。
+     * <p>
      * chat 类型有额外的输出质量约束规则，防止本地小模型产生退化输出。
      *
      * @param taskType 任务类型标识
@@ -473,11 +507,12 @@ public class AiTaskRouter {
             case "qa":
                 return "请根据以下文本，生成5个问答对（问题和答案），用于复习和测试：\n\n" + input;
             case "chat":
+                // 闲聊模式的提示词特别加了"规则"约束，防止小模型胡说八道
                 return "你是一个运行在手机本地的中文 AI 助手。请用简体中文直接回答。\n"
                         + "规则：\n"
                         + "1. 不要复述用户输入。\n"
                         + "2. 不要输出无意义数字、乱码、重复字符或循环片段。\n"
-                        + "3. 回答控制在300字以内，保持简洁、清楚、可执行。\n"
+                        + "3. 常规回答控制在800字以内；用户要求长文、方案或分析时可以更完整，但要分段清楚。\n"
                         + "4. 如果无法可靠回答，请直接说明不确定，并给出可验证的建议。\n\n"
                         + "用户问题："
                         + input;
@@ -490,6 +525,7 @@ public class AiTaskRouter {
      * 将结果通过主线程 Handler 回调给调用方。
      * <p>
      * 保证回调在主线程执行，便于 UI 层直接更新界面。
+     * Android 中修改 UI 必须在主线程，否则会崩溃。
      *
      * @param callback 回调接口；若为 null 则不执行回调
      * @param task     已完成的任务
@@ -497,6 +533,7 @@ public class AiTaskRouter {
      */
     private void postResult(AiCallback callback, AiTask task, AiResult result) {
         if (callback == null) return;
+        // mainHandler.post() 把任务投递到主线程的消息队列中执行
         mainHandler.post(() -> callback.onResult(task, result));
     }
 
@@ -527,6 +564,7 @@ public class AiTaskRouter {
      * AI 任务回调接口。
      * <p>
      * 用于异步接收任务处理结果，回调在主线程执行。
+     * 就像网购下单后的"收货通知"，货到了会通知你。
      */
     public interface AiCallback {
         /**
