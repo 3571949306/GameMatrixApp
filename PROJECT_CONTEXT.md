@@ -16,7 +16,8 @@
 | **当前工作区** | **战略优化：UpdateViewModel 协程化（viewModelScope + suspendCancellableCoroutine + CheckResult/DownloadResult 密封类）、网络层测试（AiApiClientTest + UpdateInfoTest）、CI 质量门（APK 大小/测试结果/Lint 报告）、安全加固（allowBackup=false + backup_rules + data_extraction_rules + 存储权限迁移）、构建优化（MaterialCardView 替代 CardView）** |
 | **当前工作区** | **低优先级代码质量：AppResult 重命名、TaskStatus 枚举、AiErrorCode 常量类、空 catch 块补日志、硬编码文案提取到 strings.xml（48 个）、Java/Kotlin 混合边界规范文档化** |
 | **当前工作区** | **架构优化：UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter、OnlineRoomManager 组合式复用、GameRegistry 双轨注册（@GameEntry + 动态注册）、SaveManager Kotlin 迁移、@Inject 构造函数迁移、AppError/NetworkResult 统一错误模型** |
-| **当前工作区** | **架构优化：DouDiZhuOnlineActivity 拆分（UIController + RuleEngine + AIHelper + NetworkHandler）、Room 数据库恢复（KSP1）、ErrorReporter 统一错误上报、262 个单元测试 + 4 个集成测试类** |
+| **当前工作区** | **斗地主联机农民 AI 增强：AIHelper 向 AIBot 传递地主/上次出牌者/队友剩余牌上下文，农民不压队友并在地主残牌时加强拦截；斗地主音效按座位复用男女声素材** |
+| **当前工作区** | **棋类单机体验增强：五子棋、围棋、中国象棋人机模式新增提示；围棋连续虚手后按吃子、地盘与 6.5 贴目判定胜负并显示比分** |
 | **当前工作区** | **Gemma 本地推理接入：MediaPipe LLM Inference、下载前 Gemma Notice、启用后本地优先路由** |
 | **当前工作区** | **AI 阶段 4 完成：模板、历史搜索、收藏、导出；发布脚本统一签名 R8 release 包** |
 | **v1.3.21-beta** | **AI 智能助手接入：新增 AiFragment、AiTaskRouter、LocalAiProcessor，7 种 AI 任务，独立底部导航接入** |
@@ -259,7 +260,11 @@ tic, tiles, whack
 - `DouDiZhuMenuActivity`: 菜单入口，竖屏。
 - `DouDiZhuActivity`: 单机游戏，横屏。
 - `DouDiZhuOnlineActivity`: 联机模式，横屏。支持三模联机（局域网 TCP + HTTP Relay + WebSocket）。
+- `DouDiZhuAIHelper` 会为联机 AI 构建 `AIBot.GameContext`，包含地主座位、最后出牌者、队友座位与剩余牌数；改斗地主 AI 时要优先保持农民协作逻辑。
+- `DouDiZhuSoundManager` 支持 `bid/pass/cards(..., seatIndex)`，按座位选择男女声与更多已有 raw 音效；新增调用时优先传真实座位。
 - `doudizhu/model`, `doudizhu/network`, `doudizhu/utils`: 承载牌型、联机网络和规则工具。
+- `gomoku/`, `go/`, `chinesechess/`: 单机人机模式都有提示入口。五子棋用 `GomokuAI#getBestMove` 标记棋盘提示；围棋用 `GoGame#getBestMove` 与 `GoView#showHint`；象棋用 `ChineseChessAI#getBestMove` 选中建议棋子并显示目标坐标。
+- `GoGame` 现在提供 `calculateScore()`、`getWinner()`、`getResultText()`，连续虚手终局后按吃子、地盘与 6.5 贴目输出胜负。
 - `klotski/`: 华容道已重做核心棋盘和 BFS 提示求解器；提示必须从当前棋盘重新计算，目标是连续引导曹操移动到下方出口。
 
 ## 5. 构建与版本
@@ -271,6 +276,7 @@ Windows 下推荐命令：
 ```powershell
 .\gradlew.bat assembleDebug
 .\gradlew.bat assembleRelease
+.\gradlew.bat :app:assembleRelease -PupdateChannel=stable -PskipReleaseLint=true
 .\gradlew.bat clean assembleDebug
 .\gradlew.bat :app:buildAndUploadDebugToVps
 ```
@@ -297,6 +303,7 @@ Release APK 已配置自动签名：
 - `generateBundledVersionJson` 会在构建前生成内置 `assets/version.json`；远端更新检查优先抓取 VPS 的 `/version-beta.json` 或 `/version-release.json`，并按 `channel`/`isBeta` 区分正式版和测试版。
 - `bumpVersion` 会把 `version.properties` 的 `versionCode` 自动加 1。
 - 发布脚本调用 `tools/upload_to_vps.py` 上传签名混淆后的 `app-release.apk`，远端按通道保存为 `app-beta.apk` 或 `app-release.apk`，并同步 `version-beta.json` / `version-release.json`。
+- `-PskipReleaseLint=true` 只用于规避 AGP 8.13 `lintVitalReportRelease` 路径变量序列化缺陷；默认不传该参数时 release lint 仍开启。
 - 上传配置位于 `local_private/vps/upload_config_hk.json`（香港 VPS）和 `upload_config_us.json`（美国 VPS），该目录被 `.gitignore` 排除。
 - 如果只是验证代码能否编译，运行 Debug 构建后要留意 `version.properties` 会变更。
 - 只有明确发布正式版时才修改 `versionName`；其他打包只允许递增内部 `versionCode`，不要把测试包伪装成正式版本。

@@ -133,15 +133,23 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_undo"
             style="@style/Widget.GameCenter.Button"
-            android:layout_width="120dp"
+            android:layout_width="100dp"
             android:layout_height="48dp"
             android:layout_margin="8dp"
             android:text="@string/btn_undo" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_hint"
+            style="@style/Widget.GameCenter.Button.Tonal"
+            android:layout_width="100dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:text="提示" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_restart"
             style="@style/Widget.GameCenter.Button"
-            android:layout_width="120dp"
+            android:layout_width="100dp"
             android:layout_height="48dp"
             android:layout_margin="8dp"
             android:text="@string/btn_restart" />

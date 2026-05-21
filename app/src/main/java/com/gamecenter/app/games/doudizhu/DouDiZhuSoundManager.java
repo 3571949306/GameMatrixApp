@@ -11,11 +11,16 @@ import com.gamecenter.app.games.doudizhu.model.CardType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * 斗地主音效管理器。
  *
  * <p>负责游戏中所有音效的预加载与播放，基于 Android {@link SoundPool} 实现短音效的快速播放。</p>
+ *
+ * <p>你可以把这个类想象成"音效师"——游戏中的各种声音（发牌声、出牌声、炸弹声等）
+ * 都由它来管理。它会在游戏开始前把所有音效文件准备好（预加载），
+ * 需要播放时就能立刻发出声音，不会卡顿。</p>
  *
  * <p><b>职责：</b></p>
  * <ul>
@@ -26,9 +31,12 @@ import java.util.Map;
  *
  * <p><b>关键设计决策：</b></p>
  * <ul>
- *   <li>使用 {@link SoundPool} 而非 {@link android.media.MediaPlayer}，因为 SoundPool 适合播放短促音效，延迟低</li>
+ *   <li>使用 {@link SoundPool} 而非 {@link android.media.MediaPlayer}，
+ *       因为 SoundPool 适合播放短促音效，延迟低
+ *       （MediaPlayer适合播放长音乐，SoundPool适合"叮"一声的短音效）</li>
  *   <li>最大并发流数设为 4，避免同时播放过多音效</li>
- *   <li>音效资源 ID 到 SoundPool 内部 ID 的映射通过 {@link HashMap} 缓存，首次播放未预加载的音效时自动加载</li>
+ *   <li>音效资源 ID 到 SoundPool 内部 ID 的映射通过 {@link HashMap} 缓存，
+ *       首次播放未预加载的音效时自动加载</li>
  *   <li>单牌/对子音效通过资源名称动态查找（如 card_single_15_m 对应权重15的单牌）</li>
  * </ul>
  */
@@ -45,6 +53,7 @@ public class DouDiZhuSoundManager {
      * 用于避免重复加载同一音效资源。
      */
     private final Map<Integer, Integer> sounds = new HashMap<>();
+    private final Random random = new Random();
 
     /**
      * 构造音效管理器。
@@ -157,12 +166,24 @@ public class DouDiZhuSoundManager {
      * @param call true 表示"叫地主"音效，false 表示"不叫"音效
      */
     public void bid(boolean call) {
-        play(call ? R.raw.dz_q_m : R.raw.dz_bj_m);
+        bid(call, 0);
+    }
+
+    public void bid(boolean call, int seatIndex) {
+        playGendered(call ? "dz_q_" : "dz_bj_", seatIndex, call ? R.raw.dz_q_m : R.raw.dz_bj_m);
     }
 
     /** 播放"不出"音效 */
     public void pass() {
-        play(R.raw.card_pass_m_0);
+        pass(0);
+    }
+
+    public void pass(int seatIndex) {
+        if (isFemaleSeat(seatIndex)) {
+            playByName("card_pass_w_4", R.raw.card_pass_m_0);
+            return;
+        }
+        playByName("card_pass_m_" + random.nextInt(4), R.raw.card_pass_m_0);
     }
 
     /**
@@ -185,34 +206,38 @@ public class DouDiZhuSoundManager {
      * @param type  牌型（决定播放哪种音效）
      */
     public void cards(List<Card> cards, CardType type) {
+        cards(cards, type, 0);
+    }
+
+    public void cards(List<Card> cards, CardType type, int seatIndex) {
         if (type == null) {
             play(R.raw.sound_sendpk);
             return;
         }
         switch (type) {
             case BOMB:
-                play(R.raw.card_bomb_sound);
+                playGendered("card_bomb_", seatIndex, R.raw.card_bomb_sound);
                 return;
             case JOKER_BOMB:
-                play(R.raw.card_rocket_sound);
+                playGendered("card_rocket_", seatIndex, R.raw.card_rocket_sound);
                 return;
             case AIRPLANE:
             case AIRPLANE_WITH_WINGS:
-                play(R.raw.card_plane_sound);
+                playGendered("card_plane_", seatIndex, R.raw.card_plane_sound);
                 return;
             case STRAIGHT:
-                play(R.raw.card_shunzi_m);
+                playGendered("card_shunzi_", seatIndex, R.raw.card_shunzi_m);
                 return;
             case STRAIGHT_PAIRS:
-                play(R.raw.card_doubleline_m);
+                playGendered("card_doubleline_", seatIndex, R.raw.card_doubleline_m);
                 return;
             case SINGLE:
+                playRankSound("card_single_", cards, seatIndex);
                 // 单牌：根据牌面权重播放对应点数语音
-                playRankSound("card_single_", cards);
                 return;
             case PAIR:
+                playRankSound("card_double_", cards, seatIndex);
                 // 对子：根据牌面权重播放对应点数语音
-                playRankSound("card_double_", cards);
                 return;
             default:
                 play(R.raw.sound_sendpk);
@@ -229,16 +254,38 @@ public class DouDiZhuSoundManager {
      * @param cards  出的牌列表（取第一张牌的权重值）
      */
     private void playRankSound(String prefix, List<Card> cards) {
+        playRankSound(prefix, cards, 0);
+    }
+
+    private void playRankSound(String prefix, List<Card> cards, int seatIndex) {
         if (cards == null || cards.isEmpty()) {
             play(R.raw.sound_sendpk);
             return;
         }
         // 取第一张牌的权重值，拼接资源名称动态查找
         int weight = cards.get(0).getWeight();
-        int resId = appContext.getResources().getIdentifier(prefix + weight + "_m",
+        String suffix = isFemaleSeat(seatIndex) ? "_w" : "_m";
+        int resId = appContext.getResources().getIdentifier(prefix + weight + suffix,
                 "raw", appContext.getPackageName());
+        if (resId == 0 && isFemaleSeat(seatIndex)) {
+            resId = appContext.getResources().getIdentifier(prefix + weight + "_m",
+                    "raw", appContext.getPackageName());
+        }
         // 找到对应资源则播放，否则回退到通用出牌音效
         play(resId != 0 ? resId : R.raw.sound_sendpk);
+    }
+
+    private boolean isFemaleSeat(int seatIndex) {
+        return seatIndex % 2 != 0;
+    }
+
+    private void playGendered(String resourcePrefix, int seatIndex, int fallbackResId) {
+        playByName(resourcePrefix + (isFemaleSeat(seatIndex) ? "w" : "m"), fallbackResId);
+    }
+
+    private void playByName(String resourceName, int fallbackResId) {
+        int resId = appContext.getResources().getIdentifier(resourceName, "raw", appContext.getPackageName());
+        play(resId != 0 ? resId : fallbackResId);
     }
 
     /**

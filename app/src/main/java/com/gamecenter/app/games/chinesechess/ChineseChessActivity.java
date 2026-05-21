@@ -141,6 +141,7 @@ public class ChineseChessActivity extends AppCompatActivity {
         findViewById(R.id.btn_tutorial).setOnClickListener(v ->
                 GameTutorialHelper.showChineseChessTutorial(this));
         findViewById(R.id.btn_undo).setOnClickListener(v -> undoLastMove());
+        findViewById(R.id.btn_hint).setOnClickListener(v -> showHint());
         findViewById(R.id.btn_restart).setOnClickListener(v -> restartGame());
         findViewById(R.id.btn_tutorial_ingame).setOnClickListener(v ->
                 GameTutorialHelper.showChineseChessTutorial(this));
@@ -395,6 +396,27 @@ public class ChineseChessActivity extends AppCompatActivity {
 
             showStatus("你的回合");
         }
+    }
+
+    private void showHint() {
+        if (isProcessing || game == null || game.isGameOver()) return;
+        if (game.getCurrentSide() != ChineseChessGame.Side.RED) return;
+        showStatus("正在计算提示...");
+        aiExecutor.execute(() -> {
+            ChineseChessAI hintAi = new ChineseChessAI(Math.max(1, Math.min(aiDifficulty, 3)));
+            int[] move = hintAi.getBestMove(game);
+            uiHandler.post(() -> {
+                if (move == null || game.isGameOver() || game.getCurrentSide() != ChineseChessGame.Side.RED) {
+                    showStatus("暂无可用提示");
+                    return;
+                }
+                selectedPos = new int[]{move[0], move[1]};
+                currentValidMoves = game.getLegalMoves(move[0], move[1]);
+                chessView.setSelected(move[0], move[1], currentValidMoves);
+                showStatus("建议: (" + (move[0] + 1) + "," + (move[1] + 1) + ") -> ("
+                        + (move[2] + 1) + "," + (move[3] + 1) + ")");
+            });
+        });
     }
 
     /**

@@ -26,6 +26,12 @@ import android.view.View;
  *   <li>触摸坐标通过四舍五入映射到最近的交叉点</li>
  *   <li>棋盘上方预留15%空间用于信息显示</li>
  * </ul>
+ *
+ * 【初学者指南】
+ * 这个类是围棋的棋盘画板，和五子棋的GomokuView类似但更简单。
+ * 围棋棋盘是9×9（比标准19×19小，适合手机上快速对局），
+ * 棋子没有3D渐变效果，用简单的圆形表示。
+ * 围棋棋盘是木色背景，看起来像真实的木质棋盘。
  */
 public class GoView extends View {
 
@@ -67,6 +73,8 @@ public class GoView extends View {
 
     /** 最后一手标记画笔（红色） */
     private Paint lastMovePaint;
+    private Paint hintPaint;
+    private int[] hintMove;
 
     /** 星位画笔 */
     private Paint starPaint;
@@ -130,6 +138,10 @@ public class GoView extends View {
 
         lastMovePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         lastMovePaint.setColor(Color.rgb(255, 50, 50));
+        hintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        hintPaint.setColor(Color.rgb(76, 175, 80));
+        hintPaint.setStyle(Paint.Style.STROKE);
+        hintPaint.setStrokeWidth(5f);
 
         starPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         starPaint.setColor(Color.BLACK);
@@ -157,6 +169,16 @@ public class GoView extends View {
      */
     public void setOnCellClickListener(OnCellClickListener listener) {
         this.onCellClickListener = listener;
+    }
+
+    public void showHint(int x, int y) {
+        hintMove = new int[]{x, y};
+        invalidate();
+    }
+
+    public void clearHint() {
+        hintMove = null;
+        invalidate();
     }
 
     /**
@@ -267,6 +289,12 @@ public class GoView extends View {
             float cy = offsetY + lastMove[1] * cellSize;
             canvas.drawCircle(cx, cy, 5, lastMovePaint);
         }
+        if (hintMove != null && board[hintMove[1]][hintMove[0]] == GoGame.EMPTY) {
+            float cx = offsetX + hintMove[0] * cellSize;
+            float cy = offsetY + hintMove[1] * cellSize;
+            canvas.drawCircle(cx, cy, cellSize * 0.28f, hintPaint);
+            canvas.drawCircle(cx, cy, cellSize * 0.10f, hintPaint);
+        }
     }
 
     /**
@@ -296,6 +324,7 @@ public class GoView extends View {
             overPaint.setFakeBoldText(true);
             canvas.drawText("对局结束", getWidth() / 2f, getHeight() / 2f - 20, overPaint);
             overPaint.setTextSize(28);
+            canvas.drawText(game.getResultText(), getWidth() / 2f, getHeight() / 2f + 70, overPaint);
             canvas.drawText("黑吃" + game.getBlackCaptures() + "子  白吃" + game.getWhiteCaptures() + "子",
                     getWidth() / 2f, getHeight() / 2f + 30, overPaint);
         }

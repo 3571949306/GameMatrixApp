@@ -30,59 +30,69 @@ import java.util.Map;
  * <p>管理斗地主单机模式的完整游戏生命周期，包括发牌、叫地主、出牌、胜负判定等核心流程。
  * 使用横屏布局（activity_doudizhu.xml），通过 {@link DouDiZhuTableView} 自定义视图渲染游戏桌面。</p>
  *
+ * <p>你可以把这类比为一个"游戏裁判"——它不亲自打牌，但负责发牌、判定规则、
+ * 轮流叫玩家行动，并在有人赢的时候宣布结果。</p>
+ *
  * <p><b>职责：</b></p>
  * <ul>
- *   <li>游戏状态机管理：等待→发牌→叫地主→出牌→游戏结束</li>
+ *   <li>游戏状态机管理：等待→发牌→叫地主→出牌→游戏结束（就像一局牌的"流程图"）</li>
  *   <li>玩家交互处理：出牌、不出、提示、叫地主等操作</li>
- *   <li>AI 决策调度：延迟执行 AI 的叫地主和出牌决策</li>
+ *   <li>AI 决策调度：延迟执行 AI 的叫地主和出牌决策（模拟"思考"过程）</li>
  *   <li>游戏规则校验：牌型合法性、出牌大小比较</li>
  *   <li>UI 状态同步：按钮显隐、状态栏更新、桌面刷新</li>
- *   <li>记牌器维护：跟踪剩余牌数</li>
+ *   <li>记牌器维护：跟踪剩余牌数（帮玩家算牌）</li>
  * </ul>
  *
  * <p><b>关键设计决策：</b></p>
  * <ul>
- *   <li>使用 Handler + Runnable 实现异步 AI 思考延迟，避免阻塞主线程</li>
- *   <li>玩家索引固定：0=玩家，1=左AI，2=右AI，通过取模实现轮转</li>
- *   <li>连续两人"不出"时清空桌面，最后出牌者获得自由出牌权</li>
- *   <li>叫地主评估算法基于手牌中的王炸、炸弹、大牌数量打分</li>
+ *   <li>使用 Handler + Runnable 实现异步 AI 思考延迟，避免阻塞主线程
+ *       （就像让AI"假装在想"，而不是瞬间出牌让游戏体验不自然）</li>
+ *   <li>玩家索引固定：0=玩家，1=左AI，2=右AI，通过取模实现轮转
+ *       （取模就像一个环形跑道，0→1→2→0 循环往复）</li>
+ *   <li>连续两人"不出"时清空桌面，最后出牌者获得自由出牌权
+ *       （这是斗地主的核心规则：两个人都不要，出牌权就回到上一个出牌的人）</li>
+ *   <li>叫地主评估算法基于手牌中的王炸、炸弹、大牌数量打分
+ *       （就像评估一手牌的"战斗力"，分越高越有底气当地主）</li>
  * </ul>
  */
 public class DouDiZhuActivity extends AppCompatActivity {
 
     // ============ 常量定义 ============
+    // 这些数字就像游戏中的"状态标签"，用来标记当前处于哪个阶段
 
-    /** 游戏状态：等待开始 */
+    /** 游戏状态：等待开始（还没开始打牌） */
     private static final int STATE_WAITING = 0;
-    /** 游戏状态：发牌中 */
+    /** 游戏状态：发牌中（正在把牌发给每个人） */
     private static final int STATE_DEALING = 1;
-    /** 游戏状态：叫地主阶段 */
+    /** 游戏状态：叫地主阶段（大家轮流决定要不要当地主） */
     private static final int STATE_BIDDING = 2;
-    /** 游戏状态：出牌阶段 */
+    /** 游戏状态：出牌阶段（正式开始打牌了） */
     private static final int STATE_PLAYING = 3;
-    /** 游戏状态：游戏结束 */
+    /** 游戏状态：游戏结束（有人出完牌了，分出胜负） */
     private static final int STATE_GAME_OVER = 4;
 
-    /** 玩家索引：本地玩家 */
+    /** 玩家索引：本地玩家（就是屏幕前的你） */
     public static final int PLAYER_INDEX = 0;
-    /** 玩家索引：左方AI */
+    /** 玩家索引：左方AI（你左边的电脑对手） */
     public static final int LEFT_AI_INDEX = 1;
-    /** 玩家索引：右方AI */
+    /** 玩家索引：右方AI（你右边的电脑对手） */
     public static final int RIGHT_AI_INDEX = 2;
 
-    /** 地主状态：未确定 */
+    /** 地主状态：未确定（还没开始叫地主） */
     private static final int LANDLORD_NONE = 0;
-    /** 地主状态：农民 */
+    /** 地主状态：农民（和另一个农民组队打地主） */
     private static final int LANDLORD_FARMER = 1;
-    /** 地主状态：地主 */
+    /** 地主状态：地主（一个人打两个，但多拿3张底牌） */
     private static final int LANDLORD_LORD = 2;
 
-    /** AI 思考延迟时间（毫秒），模拟真实思考过程 */
+    /** AI 思考延迟时间（毫秒），模拟真实思考过程
+     *  1.2秒的延迟让AI看起来像在"想"，而不是瞬间出牌 */
     private static final long AI_THINKING_DELAY = 1200L;
 
     // ============ 界面组件 ============
+    // 这些都是屏幕上能看到的各种按钮、文字、进度条等UI元素
 
-    /** 桌面自定义视图，负责所有卡牌的绘制和动画 */
+    /** 桌面自定义视图，负责所有卡牌的绘制和动画（整个游戏画面的"画布"） */
     private DouDiZhuTableView tableView;
 
     /** 叫地主按钮组容器 */
@@ -131,14 +141,15 @@ public class DouDiZhuActivity extends AppCompatActivity {
     private ProgressBar progressLoading;
 
     // ============ 游戏数据 ============
+    // 这些是游戏运行时的核心数据，记录着每个人手里有什么牌、出了什么牌
 
-    /** 玩家手牌 */
+    /** 玩家手牌（你手里的牌） */
     private List<Card> playerHandCards;
-    /** 左AI手牌 */
+    /** 左AI手牌（左边电脑手里的牌） */
     private List<Card> leftAIHandCards;
-    /** 右AI手牌 */
+    /** 右AI手牌（右边电脑手里的牌） */
     private List<Card> rightAIHandCards;
-    /** 底牌（3张，地主获得） */
+    /** 底牌（3张，地主获得——就像"额外奖励"） */
     private List<Card> bottomCards;
 
     /** 玩家上一轮出的牌 */
@@ -148,19 +159,22 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /** 右AI上一轮出的牌 */
     private List<Card> rightAIPlayedCards;
 
-    /** 各玩家是否选择"不出"的标志 [玩家, 左AI, 右AI] */
+    /** 各玩家是否选择"不出"的标志 [玩家, 左AI, 右AI]
+     *  true表示该玩家本轮选择了"不要" */
     private boolean[] playerPassed = new boolean[3];
 
-    /** 各玩家的地主状态 [玩家, 左AI, 右AI] */
+    /** 各玩家的地主状态 [玩家, 左AI, 右AI]
+     *  0=未确定, 1=农民, 2=地主 */
     private int[] landlordStatus = new int[3];
-    /** 地主玩家索引，-1 表示未确定 */
+    /** 地主玩家索引，-1 表示未确定（还没人叫地主） */
     private int landlordPlayerIndex = -1;
 
-    /** 当前游戏状态 */
+    /** 当前游戏状态（对应上面的 STATE_WAITING 等常量） */
     private int gameState = STATE_WAITING;
-    /** 当前轮到谁出牌 */
+    /** 当前轮到谁出牌（0/1/2 三个位置轮流） */
     private int currentTurn = PLAYER_INDEX;
-    /** 最后实际出牌（非过）的玩家索引，用于判断是否清空桌面 */
+    /** 最后实际出牌（非过）的玩家索引，用于判断是否清空桌面
+     *  比如你出了牌，左AI和右AI都"不要"，桌面就该清空，你又获得出牌权 */
     private int lastPlayerWhoPlayed = -1;
 
     /** 当前叫的分数（叫分模式） */
@@ -168,10 +182,12 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /** 基础分数 */
     private int baseScore = 1;
 
-    /** 主线程 Handler，用于延迟执行 AI 动作 */
+    /** 主线程 Handler，用于延迟执行 AI 动作
+     *  Handler就像一个"定时器"，可以在指定时间后执行某段代码 */
     private Handler handler = new Handler(Looper.getMainLooper());
 
-    /** 当前挂起的 AI 思考 Runnable，用于取消前一个未执行的任务 */
+    /** 当前挂起的 AI 思考 Runnable，用于取消前一个未执行的任务
+     *  防止AI还没"想完"就被安排了新任务 */
     private Runnable aiThinkingRunnable;
     /** 音效管理器 */
     private DouDiZhuSoundManager soundManager;
@@ -181,9 +197,10 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /**
      * Activity 创建入口。
      *
-     * <p>初始化音效管理器、界面组件、事件监听器，并自动开始一局新游戏。</p>
+     * <p>初始化音效管理器、界面组件、事件监听器，并自动开始一局新游戏。
+     * 这是Activity的"出生方法"，Activity一创建就会自动调用。</p>
      *
-     * @param savedInstanceState 保存的实例状态（此处未使用）
+     * @param savedInstanceState 保存的实例状态（此处未使用，比如屏幕旋转时会用到）
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,7 +216,8 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /**
      * Activity 销毁时清理资源。
      *
-     * <p>移除所有挂起的 Handler 回调（防止内存泄漏），释放音效资源。</p>
+     * <p>移除所有挂起的 Handler 回调（防止内存泄漏——就像走的时候要把灯关了），
+     * 释放音效资源。</p>
      */
     @Override
     protected void onDestroy() {
@@ -292,7 +310,8 @@ public class DouDiZhuActivity extends AppCompatActivity {
      * 开始一局新游戏。
      *
      * <p>重置所有游戏数据，执行洗牌发牌，然后进入叫地主阶段。
-     * 发牌通过 Handler 延迟 500ms 执行，确保 UI 先更新加载状态。</p>
+     * 发牌通过 Handler 延迟 500ms 执行，确保 UI 先更新加载状态
+     * （就像先让"发牌中"的提示显示出来，再开始发牌）。</p>
      */
     private void startNewGame() {
         // 重置游戏状态和数据
@@ -412,7 +431,9 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /**
      * 创建一副完整牌的记牌器初始计数数组。
      *
-     * <p>索引 0-12 对应 3~K（各4张），索引 13 对应小王（1张），索引 14 对应大王（1张）。</p>
+     * <p>记牌器就像一个"剩余牌数统计表"：
+     * 索引 0-12 对应 3~K（各4张），索引 13 对应小王（1张），索引 14 对应大王（1张）。
+     * 一副牌54张，每种普通牌4张，大小王各1张。</p>
      *
      * @return 初始计数数组，长度15
      */
@@ -484,7 +505,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         if (gameState != STATE_BIDDING || currentTurn != PLAYER_INDEX) {
             return;
         }
-        if (soundManager != null) soundManager.bid(true);
+        if (soundManager != null) soundManager.bid(true, PLAYER_INDEX);
 
         setLandlord(PLAYER_INDEX);
         startPlayingPhase();
@@ -500,7 +521,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         if (gameState != STATE_BIDDING || currentTurn != PLAYER_INDEX) {
             return;
         }
-        if (soundManager != null) soundManager.bid(false);
+        if (soundManager != null) soundManager.bid(false, PLAYER_INDEX);
 
         currentTurn = LEFT_AI_INDEX;
         updateTurnIndicator();
@@ -656,7 +677,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         playerPassed = new boolean[]{false, false, false};
         lastPlayerWhoPlayed = PLAYER_INDEX;
 
-        if (soundManager != null) soundManager.cards(selectedCards, selectedType);
+        if (soundManager != null) soundManager.cards(selectedCards, selectedType, PLAYER_INDEX);
         playerPlayedCards = new ArrayList<>(selectedCards);
         removeCardsFromHand(playerHandCards, selectedCards);
 
@@ -721,7 +742,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         }
 
         playerPassed[PLAYER_INDEX] = true;
-        if (soundManager != null) soundManager.pass();
+        if (soundManager != null) soundManager.pass(PLAYER_INDEX);
 
         // 清空玩家出牌区，显示"不出"状态
         playerPlayedCards.clear();
@@ -799,7 +820,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         List<Card> aiHand = (aiIndex == LEFT_AI_INDEX) ? leftAIHandCards : rightAIHandCards;
 
         boolean shouldBid = evaluateHandForBid(aiHand);
-        if (soundManager != null) soundManager.bid(shouldBid);
+        if (soundManager != null) soundManager.bid(shouldBid, currentTurn);
 
         if (shouldBid) {
             String aiName = (aiIndex == LEFT_AI_INDEX) ? "左AI" : "右AI";
@@ -830,17 +851,17 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /**
      * 评估手牌质量，决定 AI 是否叫地主。
      *
-     * <p>评分规则：</p>
+     * <p>这个方法就像给AI的手牌"打分"——牌越好分越高，分够了就叫地主：</p>
      * <ul>
-     *   <li>王炸（大小王）：+8 分</li>
+     *   <li>王炸（大小王）：+8 分（最强组合，几乎无敌）</li>
      *   <li>小王单独：+3 分</li>
      *   <li>大王单独：+4 分</li>
-     *   <li>每个炸弹（四张相同）：+6 分</li>
-     *   <li>每个2：+2 分</li>
+     *   <li>每个炸弹（四张相同）：+6 分（炸弹一出，对手只能用更大的炸弹压）</li>
+     *   <li>每个2：+2 分（2是普通牌中最大的）</li>
      *   <li>每个A：+1 分</li>
      *   <li>每个K：+0.5 分，Q：+0.3 分，J：+0.2 分</li>
      * </ul>
-     * <p>总分 ≥ 7 时叫地主。</p>
+     * <p>总分 ≥ 7 时叫地主（7分相当于手上有王炸+一个2，或者两个炸弹）。</p>
      *
      * @param handCards AI 的手牌
      * @return true 表示叫地主，false 表示不叫
@@ -923,7 +944,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
             playerPassed = new boolean[]{false, false, false};
             lastPlayerWhoPlayed = aiIndex;
             if (soundManager != null) {
-                soundManager.cards(aiPlayedCards, GameRuleUtil.getCardType(aiPlayedCards));
+                soundManager.cards(aiPlayedCards, GameRuleUtil.getCardType(aiPlayedCards), aiIndex);
             }
 
             switch (aiIndex) {
@@ -941,7 +962,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         } else {
             // AI 选择不出
             playerPassed[aiIndex] = true;
-            if (soundManager != null) soundManager.pass();
+            if (soundManager != null) soundManager.pass(aiIndex);
             switch (aiIndex) {
                 case LEFT_AI_INDEX:
                     leftAIPlayedCards.clear();
@@ -1073,7 +1094,9 @@ public class DouDiZhuActivity extends AppCompatActivity {
      * 检查是否需要清空桌面（连续两人选择"不出"）。
      *
      * <p>斗地主规则：当最后出牌者以外的两人都选择"不出"时，
-     * 清空桌面，最后出牌者获得自由出牌权。</p>
+     * 清空桌面，最后出牌者获得自由出牌权。
+     * 举个例子：你出了对3，左AI说"不要"，右AI也说"不要"，
+     * 那桌面就清空了，轮到你自由出任何牌。</p>
      *
      * @return true 表示已清空桌面，当前轮次已设为最后出牌者
      */
@@ -1163,7 +1186,8 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /**
      * 计算本局得分。
      *
-     * <p>简化实现：地主获胜得 100 分，农民获胜得 50 分。</p>
+     * <p>简化实现：地主获胜得 100 分（一个人赢两个，奖励多），
+     * 农民获胜得 50 分（两个人赢一个，奖励少一些）。</p>
      *
      * @param winnerIndex      获胜者索引
      * @param winnerIsLandlord 获胜者是否为地主

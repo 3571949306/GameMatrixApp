@@ -75,6 +75,7 @@ def currentVersionChannel = normalizeVersionChannel(requestedVersionChannel, cur
 def shouldAutoUploadVps = (project.findProperty("autoUploadVps") ?: "false").toString().toBoolean()
 def shouldUploadDryRun = (project.findProperty("uploadDryRun") ?: "false").toString().toBoolean()
 def shouldSkipUploadVerify = (project.findProperty("skipUploadVerify") ?: "false").toString().toBoolean()
+def shouldSkipReleaseLint = (project.findProperty("skipReleaseLint") ?: "false").toString().toBoolean()
 def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
 def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean()
 def releaseSigningRequired = gradle.startParameter.taskNames.any { taskName ->
@@ -200,7 +201,7 @@ android {
     lint {
         baseline = file("lint-baseline.xml")
         abortOnError true
-        checkReleaseBuilds true
+        checkReleaseBuilds !shouldSkipReleaseLint
         warningsAsErrors true
         disable 'UnusedResources', 'AndroidGradlePluginVersion', 'GradleDependency', 'TrustAllX509TrustManager'
         xmlReport true

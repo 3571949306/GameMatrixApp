@@ -21,6 +21,14 @@ import java.util.List;
  *   <li>贴目采用6.5目（{@link #KOMI}），遵循中国规则惯例</li>
  *   <li>落子判断使用"试下-检测"模式：在棋盘副本上模拟落子，验证合法性后再提交</li>
  * </ul>
+ *
+ * 【初学者指南】
+ * 这个类是围棋的"裁判"，比五子棋的裁判复杂得多，因为围棋规则更复杂：
+ * - 不能自杀：下了一步后如果自己的棋子没气（被围死了），这步棋就不合法
+ * - 提子（吃子）：如果下棋后对方的棋子没气了，就要把对方的棋子拿走
+ * - 虚手（Pass）：可以跳过不走，双方都跳过则对局结束
+ * - AI使用"蒙特卡洛模拟"：就像让AI在脑海中快速下很多盘随机棋局，
+ *   看哪个位置赢的概率最高就选哪个——简单但有效的方法
  */
 public class GoGame {
 
@@ -48,7 +56,10 @@ public class GoGame {
     /** 随机模拟（Playout）的最大步数限制，防止无限对弈 */
     private static final int PLAYOUT_STEP_LIMIT = BOARD_SIZE * BOARD_SIZE * 2;
 
-    /** 贴目值，白方补偿6.5目 */
+    /** 贴目值，白方补偿6.5目
+     *  为什么白方要加6.5目？因为黑方先手有优势（先下占便宜），
+     *  为了公平，白方额外加6.5目作为补偿。0.5目是为了避免平局。
+     */
     private static final double KOMI = 6.5;
 
     /** 棋盘数据，board[y][x]，0=空 1=黑 2=白 */
@@ -66,7 +77,8 @@ public class GoGame {
     /** 白方提子数 */
     private int whiteCaptures;
 
-    /** 连续虚手计数，双方各虚手一次即终局 */
+    /** 连续虚手计数，双方各虚手一次即终局
+     *  就像两个人都说"我不下了"，那就说明对局结束了 */
     private int passes;
 
     /** 落子历史记录 */
@@ -165,6 +177,25 @@ public class GoGame {
      * @return 落子数
      */
     public int getMoveCount() { return moveCount; }
+
+    public ScoreResult calculateScore() {
+        return calculateScore(board, blackCaptures, whiteCaptures);
+    }
+
+    public int getWinner() {
+        ScoreResult result = calculateScore();
+        if (result.margin > 0) return BLACK;
+        if (result.margin < 0) return WHITE;
+        return EMPTY;
+    }
+
+    public String getResultText() {
+        ScoreResult result = calculateScore();
+        String winnerText = result.margin > 0 ? "黑方胜" : (result.margin < 0 ? "白方胜" : "平局");
+        return String.format(java.util.Locale.US,
+                "%s  黑 %.1f / 白 %.1f  贴目 %.1f  差 %.1f",
+                winnerText, result.blackScore, result.whiteScore, KOMI, Math.abs(result.margin));
+    }
 
     /**
      * 判断指定位置是否为当前玩家的合法落子点。
@@ -434,6 +465,13 @@ public class GoGame {
      *   <li>使用UCB1式选择公式（{@link #selectRootCandidate}）平衡探索与利用</li>
      *   <li>最终根据平均胜率加先验偏置选择最优着法</li>
      * </ol>
+     *
+     * 【初学者提示】蒙特卡洛模拟是什么？
+     * 想象你和朋友下棋，到了一个关键点不知道下哪里好。
+     * 蒙特卡洛模拟的做法是：对每个候选位置，在脑海中快速下很多盘随机棋局，
+     * 看哪个位置赢的次数最多就选哪个。
+     * "UCB1选择公式"就像一个聪明的策略：不能只试看起来好的位置（利用），
+     * 也要试试还没怎么试过的位置（探索），说不定有惊喜。
      *
      * @return 最佳落子坐标 [x, y]，无合法着法时返回null
      */
@@ -739,6 +777,11 @@ public class GoGame {
      * @return 黑方得分 - 白方得分（含贴目）
      */
     private double scoreBoardMargin(int[][] b, int blackCaptured, int whiteCaptured) {
+        ScoreResult result = calculateScore(b, blackCaptured, whiteCaptured);
+        return result.margin;
+    }
+
+    private ScoreResult calculateScore(int[][] b, int blackCaptured, int whiteCaptured) {
         double blackScore = blackCaptured;
         double whiteScore = whiteCaptured + KOMI;
         boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
@@ -759,7 +802,7 @@ public class GoGame {
                 }
             }
         }
-        return blackScore - whiteScore;
+        return new ScoreResult(blackScore, whiteScore, blackScore - whiteScore);
     }
 
     /**
@@ -945,6 +988,18 @@ public class GoGame {
             this.y = y;
             this.player = player;
             this.captured = captured;
+        }
+    }
+
+    public static class ScoreResult {
+        public final double blackScore;
+        public final double whiteScore;
+        public final double margin;
+
+        public ScoreResult(double blackScore, double whiteScore, double margin) {
+            this.blackScore = blackScore;
+            this.whiteScore = whiteScore;
+            this.margin = margin;
         }
     }
 

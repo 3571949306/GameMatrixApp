@@ -55,6 +55,14 @@
             android:layout_margin="8dp"
             android:text="@string/btn_restart" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_hint"
+            style="@style/Widget.GameCenter.Button.Tonal"
+            android:layout_width="100dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:text="提示" />
+
     </LinearLayout>
 
     <LinearLayout

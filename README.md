@@ -241,6 +241,10 @@ VPS 上同时维护两个通道的文件，互不覆盖：
   - `DouDiZhuNetworkHandler`：网络处理
   - `DouDiZhuSeatManager`：座位管理
   - `DouDiZhuSyncManager`：状态同步
+- **斗地主农民 AI 增强**：联机 AI 决策会读取地主座位、上次出牌者、队友与地主剩余牌数，农民默认不压队友，地主临近跑完时才启用更强拦截。
+- **斗地主语音音效增强**：出牌、叫地主、不出、炸弹、火箭、飞机、顺子、连对等事件按座位复用男女声与多段 pass 素材。
+- **棋类单机提示增强**：五子棋、围棋、中国象棋单机人机模式新增提示按钮，复用当前 AI/规则评估给玩家推荐下一手。
+- **围棋终局判定增强**：围棋连续虚手后会按吃子、地盘与 6.5 贴目计算胜负，并在状态栏与终局遮罩显示比分。
 - **UpdateViewModel 替代 UpdatePresenter**：@HiltViewModel + LiveData，生命周期安全；协程化（viewModelScope + suspendCancellableCoroutine），CheckResult/DownloadResult 密封类替代布尔标志
 - **第一阶段模块化落地**：新增 `:core:common`、`:core:network`、`:core:update`，先把通用设置/结果类型、基础网络、更新子系统从 `:app` 壳层拆出
 - **OnlineRoomManager 组合式复用**：替代 BaseOnlineActivity 继承，各游戏通过组合复用联机逻辑
@@ -303,7 +307,7 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 | 游戏 | 测试文件 | 测试用例数 | 覆盖内容 |
 |------|----------|-----------|----------|
 | 五子棋 | GomokuGameTest | 12 | 初始状态、落子、横竖斜胜利、重置 |
-| 围棋 | GoGameTest | 12 | 初始状态、落子、提子、跳过、重置 |
+| 围棋 | GoGameTest | 13 | 初始状态、落子、提子、跳过、重置、终局计分 |
 | 华容道 | KlotskiGameTest | 3 | 初始棋盘、提示系统、解题路径 |
 | 井字棋 | TicGameTest | 9 | 初始状态、落子、AI对战、胜负判定 |
 | 2048 | Game2048GameTest | 10 | 初始状态、四方向移动、合并计分 |
@@ -314,10 +318,11 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 | 掷骰子 | DiceGameTest | 10 | 初始状态、骰子类型判定、豹子顺子对子 |
 | 斗地主规则 | DouDiZhuRuleEngineTest | 40+ | 出牌验证、叫地主决策、清台判定 |
 | 斗地主牌型 | GameRuleUtilTest | 60+ | 牌型识别、出牌比较、洗牌发牌 |
+| 斗地主 AI | AIBotTest | 3 | 农民不压队友、最小可管牌、地主残牌炸弹拦截 |
 | 更新逻辑 | UpdateManagerLogicTest | 40+ | URL处理、版本比较、Beta策略 |
 | AI API 客户端 | AiApiClientTest | 8 | MockWebServer：成功/HTTP错误/连接失败/畸形JSON |
 | 更新信息模型 | UpdateInfoTest | 17 | JSON解析：全部字段/Beta渠道/版本回退 |
-| **总计** | **15+ 个测试文件** | **436+ 个测试用例** | |
+| **总计** | **15+ 个测试文件** | **437+ 个测试用例** | |
 
 ### 运行测试 / Run Tests
 
@@ -577,7 +582,9 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 |------|------|------|
 | 日常编译 | `.\gradlew.bat :app:assembleDebug` | 仅编译，versionCode 自动递增 |
 | Beta 发布 | `.\gradlew.bat uploadReleaseArtifactsToVps` | 上传到 VPS，仅测试版用户可用 |
-| 正式发布 | `.\gradlew.bat uploadReleaseArtifactsToVps -PcurrentVersionChannel=stable` | 同时上传到 VPS 和 GitHub Releases |
+| 正式发布 | `.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable` | 同时上传到 VPS 和 GitHub Releases |
+
+> 如果 AGP 8.13 的 `lintVitalReportRelease` 出现路径变量序列化异常，可临时加入 `-PskipReleaseLint=true` 构建正式包；默认 release lint 仍保持开启。
 
 **重要更新（2026-05-12）**：
 - ✅ 双版本分发架构重构：测试版/正式版完全分离

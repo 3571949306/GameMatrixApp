@@ -28,6 +28,11 @@ import java.util.concurrent.Executors;
  * <p>
  * 关键设计决策：AI计算在单独的线程池中执行，避免阻塞UI线程；
  * 通过 {@link Handler#postDelayed} 添加400ms延迟，使AI落子有"思考"的视觉效果。
+ *
+ * 【初学者指南】
+ * 这个类是围棋人机对战的主屏幕，和五子棋的GomokuActivity结构类似。
+ * 主要区别：围棋有"虚手"（Pass）操作——当你觉得无棋可下时可以选择跳过，
+ * 双方连续虚手则对局结束。围棋的AI更复杂，使用蒙特卡洛模拟来决策。
  */
 public class GoActivity extends AppCompatActivity {
 
@@ -79,6 +84,7 @@ public class GoActivity extends AppCompatActivity {
         goView.setOnCellClickListener(this::handleCellClick);
 
         findViewById(R.id.btn_pass).setOnClickListener(v -> handlePass());
+        findViewById(R.id.btn_hint).setOnClickListener(v -> handleHint());
         findViewById(R.id.btn_restart).setOnClickListener(v -> restart());
         findViewById(R.id.btn_tutorial).setOnClickListener(v ->
                 GameTutorialHelper.showGoTutorial(this));
@@ -114,6 +120,7 @@ public class GoActivity extends AppCompatActivity {
         }
 
         game.makeMove(x, y);
+        goView.clearHint();
         game.switchPlayer();
         goView.invalidate();
         updateStatus();
@@ -148,6 +155,7 @@ public class GoActivity extends AppCompatActivity {
         if (game.isGameOver()) return;
         if (aiThinking) return;
         game.pass();
+        goView.clearHint();
         game.switchPlayer();
         goView.invalidate();
         updateStatus();
@@ -179,11 +187,10 @@ public class GoActivity extends AppCompatActivity {
      */
     private void updateStatus() {
         if (game.isGameOver()) {
-            tvStatus.setText("对局结束 - 黑吃子" + game.getBlackCaptures()
-                    + "  白吃子" + game.getWhiteCaptures());
-        } else {
-            tvStatus.setText(game.getCurrentPlayer() == GoGame.BLACK ? "黑方回合" : "白方回合 (AI)");
+            tvStatus.setText(game.getResultText());
+            return;
         }
+        tvStatus.setText(game.getCurrentPlayer() == GoGame.BLACK ? "黑方回合" : "白方回合 (AI)");
     }
 
     /**
@@ -195,8 +202,24 @@ public class GoActivity extends AppCompatActivity {
         aiThinking = false;
         game.reset();
         goView.setGame(game);
+        goView.clearHint();
         goView.invalidate();
         updateStatus();
+    }
+
+    private void handleHint() {
+        if (game.isGameOver() || aiThinking || game.getCurrentPlayer() != GoGame.BLACK) return;
+        aiExecutor.execute(() -> {
+            int[] hint = game.getBestMove();
+            uiHandler.post(() -> {
+                if (hint != null && !game.isGameOver() && game.getCurrentPlayer() == GoGame.BLACK) {
+                    goView.showHint(hint[0], hint[1]);
+                    Toast.makeText(this, "建议落子: " + (hint[0] + 1) + "," + (hint[1] + 1), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "当前建议虚手", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
     }
 
     /**

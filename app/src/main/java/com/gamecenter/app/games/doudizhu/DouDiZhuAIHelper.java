@@ -14,11 +14,17 @@ import java.util.List;
  * <p>负责 AI 玩家的叫地主决策和出牌逻辑调度。通过 {@link AICallback} 回调接口
  * 与 Activity 交互，获取游戏状态并通知出牌/不出/叫地主结果。</p>
  *
+ * <p>你可以把这个类想象成AI的"经纪人"——它不亲自做决策（决策交给AIBot），
+ * 但负责安排AI什么时候行动、延迟多久（模拟思考），以及把AI的决策结果告诉Activity。</p>
+ *
  * <p>关键设计决策：
  * <ul>
- *   <li>AI 操作通过 Handler 延迟执行（1.5 秒），模拟思考时间，提升用户体验</li>
+ *   <li>AI 操作通过 Handler 延迟执行（1.5 秒），模拟思考时间，提升用户体验
+ *       （让AI看起来像在"想"，而不是瞬间出牌）</li>
  *   <li>采用回调模式而非直接持有 Activity 引用，降低耦合度</li>
- *   <li>叫地主决策委托给 {@link DouDiZhuRuleEngine#shouldCallLandlord}，出牌决策委托给 {@link AIBot#decidePlay}</li>
+ *   <li>叫地主决策委托给 {@link DouDiZhuRuleEngine#shouldCallLandlord}，
+ *       出牌决策委托给 {@link AIBot#decidePlay}
+ *       （经纪人只负责调度，具体策略交给"军师"）</li>
  *   <li>支持取消待执行的 AI 操作，防止 Activity 销毁后仍触发回调</li>
  * </ul>
  */
@@ -57,6 +63,13 @@ public class DouDiZhuAIHelper {
         List<Card> getSeatHandCards(int seatIndex);
         /** 获取上家出的牌，null 表示自由出牌 */
         List<Card> getLastPlayedCards();
+        default int getLandlordSeat() { return -1; }
+        default int getLastPlayerWhoPlayed() { return -1; }
+        default int getLandlordStatusForAISeat(int seatIndex) { return 0; }
+        default int getSeatRemainingCardCount(int seatIndex) {
+            List<Card> handCards = getSeatHandCards(seatIndex);
+            return handCards == null ? 0 : handCards.size();
+        }
         /** AI 决定出牌时回调 */
         void onAIPlay(int seatIndex, List<Card> cards);
         /** AI 决定不出时回调 */
@@ -127,7 +140,8 @@ public class DouDiZhuAIHelper {
         List<Card> previousCards = callback.getLastPlayedCards();
 
         // 委托 AIBot 进行出牌决策
-        List<Card> playedCards = AIBot.decidePlay(aiHand, previousCards);
+        AIBot.GameContext context = buildGameContext(seatIndex);
+        List<Card> playedCards = AIBot.decidePlay(aiHand, previousCards, context);
 
         if (playedCards != null && !playedCards.isEmpty()) {
             callback.onAIPlay(seatIndex, playedCards);
@@ -135,6 +149,42 @@ public class DouDiZhuAIHelper {
             // AI 无法压过上家或选择不出
             callback.onAIPass(seatIndex);
         }
+    }
+
+    private AIBot.GameContext buildGameContext(int seatIndex) {
+        int[] roles = new int[]{AIBot.ROLE_FARMER, AIBot.ROLE_FARMER, AIBot.ROLE_FARMER};
+        int landlordSeat = callback.getLandlordSeat();
+        for (int i = 0; i < roles.length; i++) {
+            int status = callback.getLandlordStatusForAISeat(i);
+            roles[i] = (status == 2 || i == landlordSeat) ? AIBot.ROLE_LANDLORD : AIBot.ROLE_FARMER;
+        }
+
+        int myRole = roles[Math.max(0, Math.min(seatIndex, roles.length - 1))];
+        int teammateSeat = -1;
+        int teammateRemainCards = -1;
+        if (myRole == AIBot.ROLE_FARMER) {
+            for (int i = 0; i < roles.length; i++) {
+                if (i != seatIndex && roles[i] == AIBot.ROLE_FARMER) {
+                    teammateSeat = i;
+                    teammateRemainCards = callback.getSeatRemainingCardCount(i);
+                    break;
+                }
+            }
+        }
+
+        int landlordRemainCards = landlordSeat >= 0 ? callback.getSeatRemainingCardCount(landlordSeat) : 17;
+        int nextSeat = (seatIndex + 1) % roles.length;
+        return new AIBot.GameContext(
+                myRole,
+                seatIndex,
+                roles,
+                landlordSeat,
+                landlordRemainCards,
+                callback.getLastPlayerWhoPlayed(),
+                teammateSeat,
+                teammateRemainCards,
+                callback.getSeatRemainingCardCount(nextSeat)
+        );
     }
 
     /**
