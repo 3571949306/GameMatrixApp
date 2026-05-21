@@ -18,7 +18,7 @@ import java.util.Map;
  * 评估技术栈：
  *   分段PST + 机动性 + 子力协调 + 王安全 + 阶段感知
  *
- * 6档难度：搜索时间上限分级，同等时间内搜索更深、更准
+ * 4档难度：每档使用独立AI配置，同等时间内搜索更深、更准
  *
  * <p>关键设计决策：
  * <ul>
@@ -30,9 +30,11 @@ import java.util.Map;
  */
 public class ChineseChessAI {
 
-    /** 6档难度对应的搜索时间上限（毫秒） */
-    private static final int[] LEVEL_TIME_MS = {
-        1000, 2000, 3000, 4000, 5000, 10000
+    private static final DifficultyProfile[] DIFFICULTY_PROFILES = {
+            new DifficultyProfile("chinese_chess_low.ai", 700, 8),
+            new DifficultyProfile("chinese_chess_medium.ai", 1500, 12),
+            new DifficultyProfile("chinese_chess_high.ai", 3500, 18),
+            new DifficultyProfile("chinese_chess_master.ai", 8000, 24)
     };
 
     /** 最大搜索深度上限 */
@@ -46,6 +48,9 @@ public class ChineseChessAI {
 
     /** 当前难度对应的搜索时间上限 */
     private int maxTimeMs;
+
+    /** 当前难度对应的搜索深度上限 */
+    private int searchDepthLimit;
 
     /** 本次搜索开始的时间戳 */
     private long searchStartMs;
@@ -177,14 +182,28 @@ public class ChineseChessAI {
     /**
      * 构造AI引擎。
      *
-     * @param level 难度等级（1~6），决定搜索时间上限
+     * @param level 难度等级（1~4），决定搜索时间和深度上限
      */
     public ChineseChessAI(int level) {
-        int idx = Math.max(0, Math.min(level - 1, LEVEL_TIME_MS.length - 1));
-        this.maxTimeMs = LEVEL_TIME_MS[idx];
+        int idx = Math.max(0, Math.min(level - 1, DIFFICULTY_PROFILES.length - 1));
+        DifficultyProfile profile = DIFFICULTY_PROFILES[idx];
+        this.maxTimeMs = profile.maxTimeMs;
+        this.searchDepthLimit = profile.maxDepth;
         this.historyTable = new HashMap<>();
         this.killerMoves = new int[MAX_DEPTH + 1][4];
         this.killerCount = new int[MAX_DEPTH + 1];
+    }
+
+    private static class DifficultyProfile {
+        final String configFile;
+        final int maxTimeMs;
+        final int maxDepth;
+
+        DifficultyProfile(String configFile, int maxTimeMs, int maxDepth) {
+            this.configFile = configFile;
+            this.maxTimeMs = maxTimeMs;
+            this.maxDepth = maxDepth;
+        }
     }
 
     /**
@@ -317,7 +336,7 @@ public class ChineseChessAI {
         currentBest = moves.get(0);
 
         // 迭代加深 + 渴望窗口
-        for (int depth = 1; depth <= MAX_DEPTH; depth++) {
+        for (int depth = 1; depth <= searchDepthLimit; depth++) {
             int alpha = -INF, beta = INF;
             // 深度>=4时使用渴望窗口，以上一轮最佳分数为中心±50
             if (depth >= 4) {

@@ -13,7 +13,7 @@ import java.util.Set;
  * <p>
  * 关键设计决策：
  * <ul>
- *   <li>6个难度等级对应不同的搜索时间限制（500ms~10000ms）</li>
+ *   <li>4个难度等级对应独立AI配置（低 / 中 / 高 / 大师）</li>
  *   <li>使用威胁评估（{@link Threat}）进行着法排序和局面评估</li>
  *   <li>防御评分乘以1.18/1.25的权重偏置，使AI更重视防守</li>
  *   <li>候选着法仅考虑已有棋子周围2格范围内的空位，大幅减少搜索空间</li>
@@ -31,19 +31,12 @@ import java.util.Set;
  */
 public class GomokuAI {
 
-    // 各难度等级对应的搜索时间限制（毫秒）
-    // 难度1只给0.5秒思考，难度6给10秒——就像从"随便下下"到"深思熟虑"
-    private static final int[] LEVEL_TIME_MS = {
-            500,
-            1500,
-            3000,
-            5000,
-            7000,
-            10000
+    private static final DifficultyProfile[] DIFFICULTY_PROFILES = {
+            new DifficultyProfile("gomoku_low.ai", 450, 3),
+            new DifficultyProfile("gomoku_medium.ai", 1200, 5),
+            new DifficultyProfile("gomoku_high.ai", 3500, 8),
+            new DifficultyProfile("gomoku_master.ai", 8000, 10)
     };
-
-    // 最大搜索深度：AI最多往前看10步棋
-    private static final int MAX_DEPTH = 10;
 
     // 超时检查间隔：每搜索256个节点检查一次是否超时
     // 不是每步都检查，因为检查时间本身也有开销，就像不用每走一步都看表
@@ -54,6 +47,9 @@ public class GomokuAI {
 
     /** 当前难度对应的最大搜索时间 */
     private final int maxTimeMs;
+
+    /** 当前难度对应的最大搜索深度 */
+    private final int maxDepth;
 
     /** 搜索开始时间戳 */
     private long searchStartMs;
@@ -67,11 +63,25 @@ public class GomokuAI {
     /**
      * 构造AI引擎。
      *
-     * @param level 难度等级（1~6）
+     * @param level 难度等级（1~4）
      */
     public GomokuAI(int level) {
-        int idx = Math.max(0, Math.min(level - 1, LEVEL_TIME_MS.length - 1));
-        this.maxTimeMs = LEVEL_TIME_MS[idx];
+        int idx = Math.max(0, Math.min(level - 1, DIFFICULTY_PROFILES.length - 1));
+        DifficultyProfile profile = DIFFICULTY_PROFILES[idx];
+        this.maxTimeMs = profile.maxTimeMs;
+        this.maxDepth = profile.maxDepth;
+    }
+
+    private static class DifficultyProfile {
+        final String configFile;
+        final int maxTimeMs;
+        final int maxDepth;
+
+        DifficultyProfile(String configFile, int maxTimeMs, int maxDepth) {
+            this.configFile = configFile;
+            this.maxTimeMs = maxTimeMs;
+            this.maxDepth = maxDepth;
+        }
     }
 
     /**
@@ -468,7 +478,7 @@ public class GomokuAI {
      *   <li>获取候选着法</li>
      *   <li>检查强制着法（立即获胜、阻挡对手获胜、应对重大威胁）</li>
      *   <li>对候选着法评分排序</li>
-     *   <li>迭代加深Minimax搜索：从深度1逐步增加到{@link #MAX_DEPTH}</li>
+     *   <li>迭代加深Minimax搜索：从深度1逐步增加到当前难度配置的上限</li>
      *   <li>每次迭代保留最佳着法，超时后返回上一轮完成的结果</li>
      * </ol>
      *
@@ -504,7 +514,7 @@ public class GomokuAI {
         List<int[]> orderedMoves = scoreAndSortMoves(moves, board, aiPlayer, moves.size());
         int[] bestMove = orderedMoves.get(0);
 
-        for (int depth = 1; depth <= MAX_DEPTH; depth++) {
+        for (int depth = 1; depth <= maxDepth; depth++) {
             if (timedOut || checkTimeout()) break;
 
             int[] depthBest = null;

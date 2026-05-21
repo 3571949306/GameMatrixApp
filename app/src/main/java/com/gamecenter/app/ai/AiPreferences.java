@@ -8,6 +8,9 @@ import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
 
 import com.gamecenter.app.ai.data.AiProviderConfig;
+import com.gamecenter.app.ai.model.AiModelInfo;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +50,14 @@ public class AiPreferences {
     private static final String KEY_API_KEY = "api_key";
     // 本地模型标识（"on-device" 表示纯规则引擎，"gemma3-1b-it-q4" 表示本地 Gemma 模型）
     private static final String KEY_LOCAL_MODEL = "local_model";
+    private static final String KEY_LOCAL_MODEL_NAME = "local_model_name";
+    private static final String KEY_LOCAL_MODEL_RUNTIME = "local_model_runtime";
+    private static final String KEY_LOCAL_MODEL_FILE_NAME = "local_model_file_name";
+    private static final String KEY_LOCAL_MODEL_SHA256 = "local_model_sha256";
+    private static final String KEY_LOCAL_MODEL_SIZE_BYTES = "local_model_size_bytes";
+    private static final String KEY_LOCAL_MODEL_PEAK_BYTES = "local_model_peak_bytes";
+    private static final String KEY_LOCAL_MODEL_MIN_SDK = "local_model_min_sdk";
+    private static final String KEY_LOCAL_MODEL_MIN_RAM_MB = "local_model_min_ram_mb";
     // 历史记录最大条数（超过后自动丢弃最旧的消息）
     private static final String KEY_HISTORY_MAX = "history_max";
     // 每日免费调用额度上限（默认 20 次/天）
@@ -140,6 +151,14 @@ public class AiPreferences {
             migrateString(plainPrefs, editor, KEY_SELECTED_MODEL);
             migrateString(plainPrefs, editor, KEY_API_KEY);
             migrateString(plainPrefs, editor, KEY_LOCAL_MODEL);
+            migrateString(plainPrefs, editor, KEY_LOCAL_MODEL_NAME);
+            migrateString(plainPrefs, editor, KEY_LOCAL_MODEL_RUNTIME);
+            migrateString(plainPrefs, editor, KEY_LOCAL_MODEL_FILE_NAME);
+            migrateString(plainPrefs, editor, KEY_LOCAL_MODEL_SHA256);
+            migrateLong(plainPrefs, editor, KEY_LOCAL_MODEL_SIZE_BYTES);
+            migrateLong(plainPrefs, editor, KEY_LOCAL_MODEL_PEAK_BYTES);
+            migrateInt(plainPrefs, editor, KEY_LOCAL_MODEL_MIN_SDK);
+            migrateInt(plainPrefs, editor, KEY_LOCAL_MODEL_MIN_RAM_MB);
             migrateBoolean(plainPrefs, editor, KEY_USE_LOCAL_FIRST);
             migrateInt(plainPrefs, editor, KEY_HISTORY_MAX);
             migrateInt(plainPrefs, editor, KEY_FREE_DAILY_LIMIT);
@@ -301,6 +320,94 @@ public class AiPreferences {
      */
     public void setLocalModel(String model) {
         prefs.edit().putString(KEY_LOCAL_MODEL, model).apply();
+    }
+
+    /**
+     * 保存当前启用的本地模型元数据，供后台路由在下次推理时直接加载。
+     */
+    public void setLocalModelInfo(AiModelInfo model) {
+        if (model == null) return;
+        prefs.edit()
+                .putString(KEY_LOCAL_MODEL, model.id)
+                .putString(KEY_LOCAL_MODEL_NAME, model.name)
+                .putString(KEY_LOCAL_MODEL_RUNTIME, model.runtime)
+                .putString(KEY_LOCAL_MODEL_FILE_NAME, model.fileName)
+                .putString(KEY_LOCAL_MODEL_SHA256, model.sha256)
+                .putLong(KEY_LOCAL_MODEL_SIZE_BYTES, model.sizeBytes)
+                .putLong(KEY_LOCAL_MODEL_PEAK_BYTES, model.estimatedPeakMemoryBytes)
+                .putInt(KEY_LOCAL_MODEL_MIN_SDK, model.minSdk)
+                .putInt(KEY_LOCAL_MODEL_MIN_RAM_MB, model.minRamMb)
+                .apply();
+    }
+
+    /**
+     * 读取当前启用的本地模型元数据；旧版只保存模型 ID 的 Gemma 配置会自动补齐。
+     */
+    public AiModelInfo getLocalModelInfo() {
+        String id = getLocalModel();
+        if ("on-device".equals(id)) {
+            return buildRulesModelInfo();
+        }
+        String fileName = prefs.getString(KEY_LOCAL_MODEL_FILE_NAME, "");
+        if (fileName == null || fileName.isEmpty()) {
+            if ("gemma3-1b-it-q4".equals(id)) {
+                return buildLegacyGemmaModelInfo();
+            }
+            return null;
+        }
+        try {
+            JSONObject json = new JSONObject();
+            json.put("id", id);
+            json.put("name", prefs.getString(KEY_LOCAL_MODEL_NAME, id));
+            json.put("runtime", prefs.getString(KEY_LOCAL_MODEL_RUNTIME, "mediapipe-llm"));
+            json.put("fileName", fileName);
+            json.put("sha256", prefs.getString(KEY_LOCAL_MODEL_SHA256, ""));
+            json.put("sizeBytes", prefs.getLong(KEY_LOCAL_MODEL_SIZE_BYTES, 0L));
+            json.put("estimatedPeakMemoryBytes", prefs.getLong(KEY_LOCAL_MODEL_PEAK_BYTES, 0L));
+            json.put("minSdk", prefs.getInt(KEY_LOCAL_MODEL_MIN_SDK, 24));
+            json.put("minRamMb", prefs.getInt(KEY_LOCAL_MODEL_MIN_RAM_MB, 2048));
+            json.put("enabled", true);
+            return AiModelInfo.fromJson(json);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static AiModelInfo buildRulesModelInfo() {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("id", "on-device");
+            json.put("name", "本地规则引擎");
+            json.put("runtime", "rules");
+            json.put("fileName", "on-device");
+            json.put("sizeBytes", 0L);
+            json.put("estimatedPeakMemoryBytes", 128L * 1024L * 1024L);
+            json.put("minSdk", 24);
+            json.put("minRamMb", 1024);
+            json.put("enabled", true);
+            return AiModelInfo.fromJson(json);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static AiModelInfo buildLegacyGemmaModelInfo() {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("id", "gemma3-1b-it-q4");
+            json.put("name", "Gemma3-1B-IT q4");
+            json.put("runtime", "mediapipe-llm");
+            json.put("fileName", "Gemma3-1B-IT_multi-prefill-seq_q4_ekv2048.task");
+            json.put("sha256", "ddfaf1210d8b4d1b812b5fadb6652999e852c8be6dd9abe353b9213a25262c10");
+            json.put("sizeBytes", 554661246L);
+            json.put("estimatedPeakMemoryBytes", 0L);
+            json.put("minSdk", 24);
+            json.put("minRamMb", 3072);
+            json.put("enabled", true);
+            return AiModelInfo.fromJson(json);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

@@ -1,6 +1,11 @@
 # GameCenterApp 项目上下文
 
-## 2026-05-20 维护快照
+## 2026-05-21 维护快照
+
+- 当前正式版目标：`1.3.27` / `versionCode 264`。
+- 主界面已适配系统状态栏/导航栏安全区，避免顶部标题被手机状态栏遮挡。
+- AI 本地模型切换已保存完整模型元数据，下载的新本地模型可直接被本地 LLM 路由识别，不再误提示云端模型未配置。
+- 五子棋和中国象棋难度选择改为按钮式四档（低 / 中 / 高 / 大师），中档 AI 搜索预算下调；对局底部按钮改为两行等宽布局，窄屏不再溢出。
 
 - GitHub 远端只保留 `main` 分支；后续提交、发布和 CI 触发均以 `main` 为唯一主线。
 - Dependabot open alerts 已清零。根 `build.gradle` 通过 resolutionStrategy 统一约束高风险传递依赖版本，避免 Gradle 插件 classpath 与子模块依赖图重新引入已知漏洞版本。
@@ -13,6 +18,7 @@
 
 | 版本 | 变更内容 |
 |------|----------|
+| **当前工作区** | **正式版 1.3.27 准备：MainActivity 系统栏安全区适配、AI 本地模型元数据持久化与本地 LLM 路由修复、五子棋/中国象棋四档按钮难度与底部控制重排，中档难度下调** |
 | **当前工作区** | **战略优化：UpdateViewModel 协程化（viewModelScope + suspendCancellableCoroutine + CheckResult/DownloadResult 密封类）、网络层测试（AiApiClientTest + UpdateInfoTest）、CI 质量门（APK 大小/测试结果/Lint 报告）、安全加固（allowBackup=false + backup_rules + data_extraction_rules + 存储权限迁移）、构建优化（MaterialCardView 替代 CardView）** |
 | **当前工作区** | **低优先级代码质量：AppResult 重命名、TaskStatus 枚举、AiErrorCode 常量类、空 catch 块补日志、硬编码文案提取到 strings.xml（48 个）、Java/Kotlin 混合边界规范文档化** |
 | **当前工作区** | **架构优化：UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter、OnlineRoomManager 组合式复用、GameRegistry 双轨注册（@GameEntry + 动态注册）、SaveManager Kotlin 迁移、@Inject 构造函数迁移、AppError/NetworkResult 统一错误模型** |
