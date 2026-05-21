@@ -15,7 +15,7 @@
 - 五子棋、中国象棋对局底部功能按钮改为两行等宽布局，保证提示、悔棋、重新开始、教程在窄屏可见。
 
 ### 构建与发布
-- 已发布 `versionName=1.3.27`、`versionCode=264` 的 stable 正式包，并上传至 HK/US VPS 与 GitHub Release。
+- 已发布 `versionName=1.3.27`、`versionCode=265` 的 stable 正式包，并上传至 HK/US VPS 与 GitHub Release。
 
 ## [当前工作区] - 2026-05-21（AI 模型扩容 + 输出长度提升）
 

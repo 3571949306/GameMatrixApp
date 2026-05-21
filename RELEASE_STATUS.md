@@ -2,7 +2,7 @@
 
 ## 2026-05-21 维护状态
 
-- 当前正式版目标：`v1.3.27` / `versionCode 264`。
+- 当前正式版目标：`v1.3.27` / `versionCode 265`。
 - 本次发布内容：系统栏安全区适配、AI 本地模型切换/路由修复、五子棋/中国象棋四档按钮难度与底部按钮重排。
 - 仓库维护分支：仅 `main`。
 - GitHub Dependabot open alerts：`0`。
@@ -12,7 +12,7 @@
 ## 最新发布信息
 
 **版本**: v1.3.27 (Stable)
-**内部版本号**: 264
+**内部版本号**: 265
 **发布日期**: 2026-05-21
 **状态**: ✅ 已发布到 HK/US VPS 与 GitHub Release
 
@@ -22,9 +22,9 @@
 
 | 更新源 | URL | 状态 | 版本 |
 |--------|-----|------|------|
-| **香港 VPS** | https://hk-update.tcp0053.shop | ✅ 已验证 | 264 (1.3.27) |
-| **美国 VPS** | https://tcp0053.shop:1443 | ✅ 已验证 | 264 (1.3.27) |
-| **GitHub Releases** | https://github.com/3571949306/GameCenterApp/releases/tag/1.3.27 | ✅ 已上传 | 264 (1.3.27) |
+| **香港 VPS** | https://hk-update.tcp0053.shop | ✅ 已验证 | 265 (1.3.27) |
+| **美国 VPS** | https://tcp0053.shop:1443 | ✅ 已验证 | 265 (1.3.27) |
+| **GitHub Releases** | https://github.com/3571949306/GameCenterApp/releases/tag/1.3.27 | ✅ 已上传 | 265 (1.3.27) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 2026-05-21 Maintenance Notes
 
-- Current formal release target: `1.3.27` / `versionCode 264`.
+- Current formal release target: `1.3.27` / `versionCode 265`.
 - MainActivity applies system bar insets so app content is not hidden behind phone status/navigation bars.
 - AI local model selection now stores full local model metadata and routes downloaded MediaPipe LLM files without requiring cloud configuration.
 - Gomoku and Chinese Chess use direct four-level difficulty buttons: low, medium, high, master. Medium has a lower search budget than the previous mid-level configuration.
@@ -15,7 +15,7 @@
 
 > **项目名称**: GameCenterApp  
 > **包名**: `com.gamecenter.app`  
-> **当前版本**: 1.3.27 (versionCode 264)
+> **当前版本**: 1.3.27 (versionCode 265)
 > **最低 SDK**: 24 (Android 7.0) | **目标 SDK**: 35  
 > **语言**: Java (主体) + Kotlin (数据层/工具层)  
 > **构建系统**: Gradle 8.13.2 + AGP 8.13.2  
