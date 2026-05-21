@@ -32,13 +32,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * 局域网（LAN）设备发现与服务注册管理器。
  *
+ * <p>打个比方：这个类就像一个"小区广播站"，有两种方式找到邻居——
+ * 一种是贴告示栏（NSD/mDNS，相当于在小区公告板上登记自己的服务），
+ * 另一种是大喇叭广播（UDP广播，相当于拿着大喇叭在小区里喊"有人在家吗？"）。
+ * 优先用告示栏，大喇叭是备选方案。</p>
+ *
+ * <p>在网络模块中的角色：这是局域网联机的"侦察兵"，负责在本地网络中
+ * 找到其他正在玩同一游戏的设备。只有在同一WiFi下的设备才能互相发现。</p>
+ *
  * <p>负责在同一局域网内发现其他游戏设备，并注册本机提供的服务。
  * 支持两种发现机制：</p>
  * <ul>
  *   <li><b>NSD（Network Service Discovery）</b>：基于 Android 原生 NSD API（mDNS/DNS-SD），
- *       适用于 Android 设备间的服务发现，优先使用。</li>
+ *       适用于 Android 设备间的服务发现，优先使用。
+ *       就像在小区公告板上登记和查找服务信息。</li>
  *   <li><b>UDP 广播</b>：作为 NSD 不可用时的备选方案，通过 UDP 广播/接收
- *       JSON 格式的发现报文来探测同局域网设备。</li>
+ *       JSON 格式的发现报文来探测同局域网设备。
+ *       就像拿着大喇叭在小区里喊话，谁听到了就回复。</li>
  * </ul>
  *
  * <p>关键设计决策：
@@ -46,7 +56,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *   <li>采用单例模式（{@link #getInstance(Context)}），确保全局只有一个 LAN 管理实例</li>
  *   <li>所有回调通过主线程 Handler 投递，确保调用者在 UI 线程安全接收事件</li>
  *   <li>发现的主机列表使用 synchronizedList 保证线程安全</li>
- *   <li>NSD 服务列表使用 CopyOnWriteArrayList 保证并发读写安全</li>
+ *   <li>NSD 服务列表使用 CopyOnWriteArrayList 保证并发读写安全。
+ *       CopyOnWriteArrayList就像"写时复印"，修改时先复制一份再改，不影响正在读的人。</li>
  *   <li>广播和接收线程设置为守护线程，不阻止 JVM 退出</li>
  * </ul>
  * </p>
@@ -54,13 +65,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class LANManager {
     private static final String TAG = "LANManager";
 
-    /** UDP 发现协议使用的端口号 */
+    /** UDP 发现协议使用的端口号，所有设备都监听这个端口 */
     private static final int DISCOVERY_PORT = 9877;
 
-    /** UDP 广播间隔（毫秒） */
+    /** UDP 广播间隔（毫秒），每3秒喊一次"有人在家吗？" */
     private static final int BROADCAST_INTERVAL = 3000;
 
-    /** 主机过期超时时间（毫秒），超过此时间未收到广播则视为离线 */
+    /** 主机过期超时时间（毫秒），超过8秒没收到广播则视为离线。
+     *  就像8秒没听到邻居回应，就认为他出门了。 */
     private static final int DISCOVERY_TIMEOUT = 8000;
 
     /** NSD 服务类型标识，格式为 "_服务名._协议."，用于 mDNS 服务发现 */
@@ -764,6 +776,9 @@ public class LANManager {
      *
      * <p>封装了通过 UDP 广播发现的其他设备的信息，包括 IP 地址、端口号、
      * 玩家名称以及最后一次收到该主机广播的时间戳。</p>
+     *
+     * <p>打个比方：每个DiscoveredHost就像一张"邻居名片"，上面写着邻居的
+     * 地址（IP）、门牌号（端口）、姓名（玩家名称），以及最后一次见到他的时间。</p>
      */
     public static class DiscoveredHost {
         private final String ip;

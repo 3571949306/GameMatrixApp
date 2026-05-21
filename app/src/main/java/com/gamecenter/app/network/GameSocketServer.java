@@ -27,6 +27,14 @@ import android.content.Context;
 
 /**
  * 游戏Socket服务端，负责管理多人游戏中的主机端网络通信。
+ *
+ * <p>打个比方：这个类就像一个"会议室管理员"，负责开门迎客（接受客户端连接）、
+ * 维持秩序（心跳检测）、传达消息（广播和转发）、以及关门送客（断开连接）。
+ * 会议室最多容纳4个人（MAX_CLIENTS），管理员会确保每个人都有座位号（clientId）。</p>
+ *
+ * <p>在网络模块中的角色：这是创建房间一方的"网络管家"，与 {@link GameSocketClient} 互为对偶。
+ * GameSocketClient 是"打电话的人"，而 GameSocketServer 是"接电话的人"。
+ * 服务端负责管理所有客户端的连接，并将消息在客户端之间转发。</p>
  * <p>
  * 支持三种连接模式：
  * <ul>
@@ -37,7 +45,8 @@ import android.content.Context;
  * <p>
  * 关键设计决策：
  * <ul>
- *   <li>使用 {@link WeakReference} 持有监听器，避免Activity/Fragment销毁后内存泄漏</li>
+ *   <li>使用 {@link WeakReference} 持有监听器，避免Activity/Fragment销毁后内存泄漏。
+ *       WeakReference就像"弱绳子"，当Activity被销毁时绳子会自动断开，不会阻止回收。</li>
  *   <li>所有回调通过 {@link Handler} 投递到主线程，确保UI操作线程安全</li>
  *   <li>发送操作使用独立线程池，避免阻塞读取线程</li>
  *   <li>客户端连接数上限为 {@link #MAX_CLIENTS}（4人）</li>
@@ -47,13 +56,16 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
 
     private static final String TAG = "GameSocketServer";
 
-    /** 最大客户端连接数，即游戏房间人数上限 */
+    /** 最大客户端连接数，即游戏房间人数上限。
+     *  就像会议室最多能坐4个人，超过就不让进了。 */
     private static final int MAX_CLIENTS = 4;
 
-    /** 心跳超时阈值（毫秒），超过此时间未收到客户端消息则判定超时 */
+    /** 心跳超时阈值（毫秒），超过此时间未收到客户端消息则判定超时。
+     *  就像30秒内没听到对方说话，就怀疑电话可能断了。 */
     private static final long HEARTBEAT_TIMEOUT = 30000L;
 
-    /** 心跳检查间隔（毫秒），定期扫描所有客户端的最后心跳时间 */
+    /** 心跳检查间隔（毫秒），定期扫描所有客户端的最后心跳时间。
+     *  每2秒检查一次，看看有没有人"失联"。 */
     private static final long HEARTBEAT_CHECK_INTERVAL = 2000L;
 
     private ServerSocket serverSocket;
@@ -62,9 +74,10 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
     private ExecutorService sendExecutor;
     /** 心跳检查的定时调度器 */
     private ScheduledExecutorService heartbeatScheduler;
-    /** 客户端连接映射表，key为clientId，线程安全 */
+    /** 客户端连接映射表，key为clientId，线程安全。
+     *  就像一本"签到簿"，记录每个座位号对应的客户端连接。 */
     private final ConcurrentHashMap<Integer, ClientConnection> clients = new ConcurrentHashMap<>();
-    /** 自增的客户端ID计数器 */
+    /** 自增的客户端ID计数器，每来一个新客户端就+1 */
     private int nextClientId = 1;
 
     private int serverPort;
@@ -100,6 +113,9 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
 
     /**
      * 客户端连接封装类，管理单个客户端的Socket连接、读写线程和心跳状态。
+     *
+     * <p>打个比方：每个ClientConnection就像一个"专属客服"，专门为一个客户端服务，
+     * 负责听客户说话（读取消息）、回答客户问题（发送消息）、记录客户最后活跃时间（心跳）。</p>
      * <p>
      * 每个客户端连接创建时会自动启动读取线程，持续监听客户端发来的消息。
      * 发送操作通过独立的 {@link #sendExecutor} 异步执行，避免阻塞读取线程。

@@ -15,20 +15,28 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
  * 更新策略（自动检查/下载/安装/来源/测试版）、音效与振动开关、应用语言等。
  * </p>
  * <p>
+ * 你可以把它想象成一个"记忆本"——用户每次修改设置，都会记在这个本子上，
+ * 下次打开应用时再从本子上读取，这样用户的偏好就不会丢失。
+ * </p>
+ * <p>
  * 关键设计决策：
  * <ul>
- *   <li>使用 {@link SharedPreferences} 作为底层存储，轻量且适合键值对型配置</li>
- *   <li>标注 {@code @Singleton} 以配合 Dagger 依赖注入，确保全局唯一实例</li>
+ *   <li>使用 {@link SharedPreferences} 作为底层存储，轻量且适合键值对型配置。
+ *       SharedPreferences 就像一个简易的字典，每个设置项都有一个"键"（名字）和"值"（内容）</li>
+ *   <li>标注 {@code @Singleton} 以配合 Dagger 依赖注入，确保全局唯一实例。
+ *       单例就像一个班级只有一个班主任，不管谁问"班主任是谁"，答案都一样</li>
  *   <li>同时提供构造函数注入和 {@link #getInstance(Context)} 静态工厂方法，
  *       兼容 DI 容器与非 DI 场景的获取需求</li>
- *   <li>所有写操作使用 {@code apply()} 异步提交，避免阻塞主线程</li>
+ *   <li>所有写操作使用 {@code apply()} 异步提交，避免阻塞主线程。
+ *       apply() 就像把作业交给后台批改，不用等结果就能继续做别的事；
+ *       而commit() 则是当场批改，必须等批完才能走</li>
  * </ul>
  * </p>
  */
 @Singleton
 public class SettingsManager {
 
-    /** SharedPreferences 文件名 */
+    /** SharedPreferences 文件名，就像这个"记忆本"的封面标题 */
     private static final String PREF_NAME = "app_settings";
     /** 主题模式键名 */
     private static final String KEY_THEME_MODE = "theme_mode";
@@ -77,24 +85,33 @@ public class SettingsManager {
     /**
      * 单例引用，使用 {@code volatile} 保证多线程可见性，
      * 配合 {@link #getInstance(Context)} 中的 synchronized 实现双重检查锁定。
+     * <p>
+     * volatile 的作用：当一个线程修改了 instance 的值，其他线程能立刻看到最新值。
+     * 就像教室里有一块公共黑板，volatile 保证任何人擦改黑板后，
+     * 其他同学不用离开座位就能立刻看到最新内容，而不是看到旧的缓存版本。
+     * </p>
      */
     private static volatile SettingsManager instance;
 
-    /** 底层 SharedPreferences 实例 */
+    /** 底层 SharedPreferences 实例，就是那个"记忆本"本身 */
     private final SharedPreferences prefs;
 
     /**
      * 构造函数，由 Dagger Hilt 或 {@link #getInstance(Context)} 调用。
      * <p>
      * 使用 {@code context.getApplicationContext()} 避免 Activity 级别 Context 导致内存泄漏。
+     * 可以这样理解：ApplicationContext 是整个应用的"大管家"，只要应用还活着它就存在；
+     * 而 Activity 的 Context 只是一个"临时工"，Activity 销毁后它就没了，
+     * 如果还拿着它的引用，就会导致 Activity 无法被回收，造成内存泄漏。
+     * </p>
      * 标注 {@code @Inject} 使 Hilt 可直接通过构造函数注入创建实例，
      * 配合类级 {@code @Singleton} 注解确保全局唯一。
-     * </p>
      *
      * @param context 任意上下文，内部会转换为 Application Context
      */
     @Inject
     public SettingsManager(@ApplicationContext Context context) {
+        // MODE_PRIVATE 表示这个文件只有本应用能读写，其他应用无法访问
         prefs = context.getApplicationContext()
                 .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         instance = this;
@@ -105,6 +122,12 @@ public class SettingsManager {
      * <p>
      * 当未通过 Dagger 注入时，可使用此方法获取实例。
      * 首次调用时会创建新实例，后续调用直接返回缓存实例。
+     * </p>
+     * <p>
+     * 双重检查锁定（Double-Checked Locking）的工作方式：
+     * 第一次检查（不加锁）：如果实例已存在，直接返回，避免不必要的加锁开销；
+     * 加锁：确保只有一个线程能创建实例；
+     * 第二次检查（加锁后）：防止多个线程同时通过第一次检查后重复创建实例。
      * </p>
      *
      * @param context 上下文，仅首次调用时使用
@@ -126,6 +149,7 @@ public class SettingsManager {
      *         默认为 {@link #THEME_SYSTEM}
      */
     public int getThemeMode() {
+        // 第二个参数 THEME_SYSTEM 是默认值：如果"记忆本"上还没记过这个设置，就返回这个默认值
         return prefs.getInt(KEY_THEME_MODE, THEME_SYSTEM);
     }
 
@@ -135,6 +159,7 @@ public class SettingsManager {
      * @param mode 主题模式常量：{@link #THEME_SYSTEM}、{@link #THEME_LIGHT} 或 {@link #THEME_DARK}
      */
     public void setThemeMode(int mode) {
+        // apply() 是异步保存，不会卡住主线程；如果用 commit() 则是同步保存，会等待写入完成
         prefs.edit().putInt(KEY_THEME_MODE, mode).apply();
     }
 
@@ -308,6 +333,7 @@ public class SettingsManager {
      * @param languageTag 语言标签，如 "zh"、"en"，传 {@code null} 等同于 {@link #LANGUAGE_SYSTEM}
      */
     public void setAppLanguage(String languageTag) {
+        // 防御性编程：如果传入了 null，就用空字符串代替，避免后续代码出错
         if (languageTag == null) {
             languageTag = LANGUAGE_SYSTEM;
         }
@@ -320,11 +346,16 @@ public class SettingsManager {
      * 通过读取系统 {@code uiMode} 配置中 {@code UI_MODE_NIGHT_MASK} 位来判断，
      * 不依赖本应用的设置项，反映的是系统级别的深色模式状态。
      * </p>
+     * <p>
+     * 这就像去问手机系统"你现在是深色模式吗？"，而不是看用户在本应用里选了什么主题。
+     * </p>
      *
      * @param context 用于获取系统资源配置的上下文
      * @return {@code true} 表示系统当前为深色模式
      */
     public static boolean isDarkMode(Context context) {
+        // & 是按位与运算，用来提取 uiMode 中"夜间模式"那几位的信息
+        // 类似于用筛子只筛出你关心的那部分数据
         int mode = context.getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
         return mode == android.content.res.Configuration.UI_MODE_NIGHT_YES;

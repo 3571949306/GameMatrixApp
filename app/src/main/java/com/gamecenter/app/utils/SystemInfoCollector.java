@@ -42,6 +42,10 @@ import java.util.regex.Pattern;
 /**
  * 系统信息采集器 —— 全面收集设备硬件、软件、安全等各项系统信息。
  *
+ * <p>简单来说，这个类就像一个"手机体检报告生成器"——它能帮你把手机的各种信息
+ * （比如什么牌子、什么系统、CPU多快、内存多大、电池健康吗等等）全部收集起来，
+ * 生成一份详细的报告。这在排查问题或者了解设备状况时非常有用。</p>
+ *
  * <p>核心职责：
  * <ul>
  *   <li>采集设备标识（品牌、型号、制造商等）</li>
@@ -75,7 +79,9 @@ public class SystemInfoCollector {
     /** 应用上下文（使用 ApplicationContext 避免Activity泄漏） */
     private final Context context;
 
-    /** 输出缓冲区，所有采集结果追加到此 StringBuilder 中 */
+    /** 输出缓冲区，所有采集结果追加到此 StringBuilder 中。
+     *  StringBuilder 就像一个可擦写的白板——可以不断往上面写字，
+     *  比用 String 拼接（每次都创建新对象）高效得多 */
     private final StringBuilder sb;
 
     /**
@@ -892,6 +898,8 @@ public class SystemInfoCollector {
      */
     private String getSystemProperty(String key) {
         try {
+            // 反射就像"走后门"——SystemProperties 是 Android 系统内部隐藏的类，
+            // 普通应用不让直接用，但通过反射可以绕过这个限制来调用它
             return (String) Class.forName("android.os.SystemProperties")
                     .getMethod("get", String.class, String.class)
                     .invoke(null, key, "");

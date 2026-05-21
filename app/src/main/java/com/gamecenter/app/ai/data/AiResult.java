@@ -3,6 +3,11 @@ package com.gamecenter.app.ai.data;
 /**
  * AI 统一返回结果 — 封装 AI 处理请求的返回数据。
  *
+ * <p>你可以把 AiResult 想象成一次考试的"成绩单"：
+ * 成功时，成绩单上写着你的答案（content）；
+ * 失败时，成绩单上写着没通过的原因（message）。
+ * 不管成功还是失败，都会有一张成绩单返回。</p>
+ *
  * <p>该类是 AI 模块所有处理请求的统一返回类型，无论是成功还是失败，
  * 都通过该类封装结果。采用 Builder 模式构建，支持链式调用，
  * 使调用方可以灵活地附加 source 和 errorCode 等可选信息。</p>
@@ -17,23 +22,24 @@ package com.gamecenter.app.ai.data;
  */
 public final class AiResult {
 
-    /** 处理是否成功 */
+    // 处理是否成功（true=成功，false=失败）
     public final boolean success;
 
-    /** 结果描述信息；成功时通常为空，失败时为错误描述 */
+    // 结果描述信息；成功时通常为空，失败时为错误描述（如"网络连接失败"）
     public final String message;
 
-    /** AI 处理输出的文本内容；成功时有效 */
+    // AI 处理输出的文本内容；成功时有效（如翻译结果、摘要文本等）
     public final String content;
 
-    /** 结果来源标识，"local" 表示本地端侧模型，"cloud" 表示云端 API */
+    // 结果来源标识，"local" 表示本地端侧模型，"cloud" 表示云端 API
     public final String source;
 
-    /** 错误码，空字符串表示无错误；非空时可用于错误分类和国际化提示 */
+    // 错误码，空字符串表示无错误；非空时可用于错误分类和国际化提示
     public final String errorCode;
 
     /**
      * 私有构造方法，仅通过 Builder 创建实例。
+     * 不允许直接 new AiResult()，必须通过 success() 或 fail() 静态方法创建。
      *
      * @param builder 构建器实例，包含所有字段的值
      */
@@ -47,7 +53,7 @@ public final class AiResult {
 
     /**
      * 创建一个成功结果的 Builder。
-     * 成功时 text 参数赋值给 content 字段。
+     * 成功时 text 参数赋值给 content 字段（因为成功时我们关心的是输出内容）。
      *
      * @param content AI 处理输出的文本内容
      * @return Builder 实例，可继续链式设置 source、errorCode 等可选字段
@@ -58,7 +64,7 @@ public final class AiResult {
 
     /**
      * 创建一个失败结果的 Builder。
-     * 失败时 text 参数赋值给 message 字段。
+     * 失败时 text 参数赋值给 message 字段（因为失败时我们关心的是错误原因）。
      *
      * @param message 错误描述信息
      * @return Builder 实例，可继续链式设置 source、errorCode 等可选字段
@@ -70,6 +76,14 @@ public final class AiResult {
     /**
      * AiResult 的构建器，支持链式调用设置可选参数。
      *
+     * <p>使用示例：</p>
+     * <pre>
+     *   AiResult result = AiResult.success("翻译结果")
+     *       .source("cloud")          // 可选：设置来源
+     *       .errorCode("")            // 可选：设置错误码
+     *       .build();                 // 最终构建
+     * </pre>
+     *
      * <p>默认值：</p>
      * <ul>
      *   <li>source 默认为 "cloud"（大多数 AI 调用来自云端）</li>
@@ -80,7 +94,9 @@ public final class AiResult {
         private boolean success;
         private String message;
         private String content;
+        // 默认来源是云端，因为大多数 AI 调用走云端
         private String source = "cloud";
+        // 默认无错误码
         private String errorCode = "";
 
         /**
@@ -102,7 +118,7 @@ public final class AiResult {
         /**
          * 设置结果来源。
          *
-         * @param source 来源标识（"local" / "cloud"）
+         * @param source 来源标识（"local" / "cloud" / "local-gemma"）
          * @return 当前 Builder 实例，支持链式调用
          */
         public Builder source(String source) {
@@ -123,6 +139,7 @@ public final class AiResult {
 
         /**
          * 构建 AiResult 实例。
+         * 调用此方法后，Builder 中的数据被"冻结"到不可变的 AiResult 对象中。
          *
          * @return 不可变的 AiResult 实例
          */

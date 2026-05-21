@@ -20,6 +20,12 @@ import java.util.List;
  *   <li>方向数组仅包含4个方向（横、竖、正斜、反斜），因为胜负检测时正反双向都扫描</li>
  *   <li>悔棋通过 {@link #undoLastMoves} 实现，每次撤销"一手"即双方各一手</li>
  * </ul>
+ *
+ * 【初学者指南】
+ * 这个类是五子棋的"裁判"，负责记住棋盘上每个位置的状态（空/黑/白），
+ * 判断落子是否合法，检测是否有人赢了，以及支持悔棋等功能。
+ * 它不关心界面怎么画，只关心游戏规则——就像真正的裁判只看棋盘，不管棋盘长什么样。
+ * 三层分工：Activity是"指挥官"，View是"画师"，Game是"裁判"。
  */
 public class GomokuGame {
 
@@ -35,10 +41,14 @@ public class GomokuGame {
     /** 白子标识 */
     public static final int WHITE = 2;
 
-    /** 四个方向：水平、垂直、正对角线、反对角线 */
+    // 四个方向：水平、垂直、正对角线、反对角线
+    // 只需要4个方向就够了，因为检测五连时会同时向正反两个方向数
+    // 比如：水平方向会同时向左数和向右数，加起来就是整条线上的连子数
     public static final int[][] DIRECTIONS = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
 
-    /** 棋盘数据，board[y][x]，0=空 1=黑 2=白 */
+    // 棋盘数据：board[y][x]，0=空 1=黑 2=白
+    // 注意：第一个下标是行(y)，第二个下标是列(x)，这是二维数组的常见约定
+    // 可以想象成：y是从上到下的行号，x是从左到右的列号
     private int[][] board;
 
     /** 当前执子方 */
@@ -50,7 +60,7 @@ public class GomokuGame {
     /** 获胜方（null表示平局或未结束） */
     private Integer winner;
 
-    /** 落子历史记录 */
+    // 落子历史记录：按顺序记录每一步棋，用于悔棋时回退
     private List<MoveRecord> moveHistory;
 
     /** 总落子数 */
@@ -64,7 +74,7 @@ public class GomokuGame {
      */
     public GomokuGame() {
         board = new int[BOARD_SIZE][BOARD_SIZE];
-        currentPlayer = BLACK;
+        currentPlayer = BLACK; // 黑方先手
         gameOver = false;
         winner = null;
         moveHistory = new ArrayList<>();
@@ -158,6 +168,7 @@ public class GomokuGame {
      * 判断指定位置是否为合法落子点。
      * <p>
      * 五子棋规则简单：仅需位置在棋盘内且为空位。
+     * （不像围棋有"禁入点"，五子棋任何空位都可以下）
      *
      * @param x 横坐标
      * @param y 纵坐标
@@ -177,9 +188,9 @@ public class GomokuGame {
      */
     public MoveRecord makeMove(int x, int y, int player) {
         if (!isValidMove(x, y)) return null;
-        board[y][x] = player;
+        board[y][x] = player; // 在棋盘上放置棋子
         MoveRecord record = new MoveRecord(x, y, player);
-        moveHistory.add(record);
+        moveHistory.add(record); // 记录到历史，方便以后悔棋
         moveCount++;
         lastMove = new int[]{x, y};
         return record;
@@ -193,8 +204,9 @@ public class GomokuGame {
      * @param record 要撤销的落子记录
      */
     private void undoMove(MoveRecord record) {
-        board[record.y][record.x] = EMPTY;
+        board[record.y][record.x] = EMPTY; // 把棋子从棋盘上拿走
         moveCount--;
+        // 更新最后一手指针
         if (!moveHistory.isEmpty()) {
             MoveRecord last = moveHistory.get(moveHistory.size() - 1);
             lastMove = new int[]{last.x, last.y};
@@ -208,6 +220,7 @@ public class GomokuGame {
      * <p>
      * 每手撤销时先移除AI的棋子，再移除玩家的棋子，
      * 确保撤销后轮到玩家落子。
+     * 就像"时光倒流"：先撤销AI刚下的那手，再撤销你之前下的那手，回到你该走的时候
      *
      * @param count 要撤销的手数
      * @return 实际撤销的手数
@@ -216,10 +229,10 @@ public class GomokuGame {
         int undoCount = Math.min(count, moveCount / 2);
         for (int i = 0; i < undoCount; i++) {
             if (moveHistory.size() >= 2) {
-                // 先撤销AI的一手
+                // 先撤销AI的一手（后下的在列表末尾）
                 MoveRecord aiRecord = moveHistory.remove(moveHistory.size() - 1);
                 undoMove(aiRecord);
-                // 再撤销玩家的一手
+                // 再撤销玩家的一手（先下的）
                 MoveRecord playerRecord = moveHistory.remove(moveHistory.size() - 1);
                 undoMove(playerRecord);
             }
@@ -232,6 +245,7 @@ public class GomokuGame {
      * <p>
      * 在四个方向上分别向正反两方向延伸计数，
      * 任一方向连续同色棋子数≥5即获胜。
+     * 就像数数：从当前位置向两边数同色的棋子，数到5个就赢了
      *
      * @param x      横坐标
      * @param y      纵坐标
@@ -241,7 +255,8 @@ public class GomokuGame {
     public boolean checkWinAt(int x, int y, int player) {
         if (player == EMPTY) return false;
         for (int[] dir : DIRECTIONS) {
-            int count = 1;
+            int count = 1; // 算上当前位置本身
+            // 向正方向数
             for (int step = 1; step < 5; step++) {
                 int nx = x + dir[0] * step;
                 int ny = y + dir[1] * step;
@@ -249,6 +264,7 @@ public class GomokuGame {
                     count++;
                 } else break;
             }
+            // 向反方向数
             for (int step = 1; step < 5; step++) {
                 int nx = x - dir[0] * step;
                 int ny = y - dir[1] * step;
@@ -290,6 +306,7 @@ public class GomokuGame {
 
     /**
      * 切换当前执子方。
+     * 黑方下完换白方，白方下完换黑方
      */
     public void switchPlayer() {
         currentPlayer = (currentPlayer == BLACK) ? WHITE : BLACK;
@@ -297,6 +314,7 @@ public class GomokuGame {
 
     /**
      * 重置游戏到初始状态。
+     * 清空棋盘，回到黑方先手
      */
     public void reset() {
         board = new int[BOARD_SIZE][BOARD_SIZE];
@@ -310,6 +328,7 @@ public class GomokuGame {
 
     /**
      * 落子记录，用于历史回放和悔棋。
+     * 就像棋谱上的每一行：记录了谁在哪个位置下了什么棋
      */
     public static class MoveRecord {
         /** 落子横坐标 */

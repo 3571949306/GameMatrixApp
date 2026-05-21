@@ -3,6 +3,10 @@ package com.gamecenter.app.ai.data;
 /**
  * AI 消息模型 — 存储单条对话消息。
  *
+ * <p>你可以把 AiMessage 想象成聊天软件中的一条消息气泡：
+ * 每条消息都有发送者（用户/AI/系统）、内容、时间等信息。
+ * 用户和 AI 之间的对话就是由一条条 AiMessage 组成的。</p>
+ *
  * <p>该类是 AI 对话系统中的核心数据结构，用于表示用户与 AI 之间的单条消息。
  * 采用不可变设计（final 类 + final 字段），确保消息一旦创建就不会被修改，
  * 从而保证对话历史的数据一致性。</p>
@@ -16,22 +20,22 @@ package com.gamecenter.app.ai.data;
  */
 public final class AiMessage {
 
-    /** 消息唯一标识，用于消息去重和追踪 */
+    // 消息唯一标识，用于消息去重和追踪（就像每条微信消息都有唯一 ID）
     public final String id;
 
-    /** 消息角色，取值为 "user"（用户）、"assistant"（AI助手）、"system"（系统提示） */
+    // 消息角色，取值为 "user"（用户）、"assistant"（AI助手）、"system"（系统提示）
     public final String role;
 
-    /** 消息文本内容 */
+    // 消息文本内容
     public final String content;
 
-    /** 消息创建的时间戳（毫秒级 Unix 时间） */
+    // 消息创建的时间戳（毫秒级 Unix 时间，如 1700000000000）
     public final long timestamp;
 
-    /** 任务类型标识，如 "ocr"（文字识别）、"summary"（摘要）、"translate"（翻译）、"chat"（对话）等 */
+    // 任务类型标识，如 "ocr"（文字识别）、"summary"（摘要）、"translate"（翻译）、"chat"（对话）等
     public final String taskType;
 
-    /** 消息来源标识，"local" 表示本地端侧模型，"cloud" 表示云端 API */
+    // 消息来源标识，"local" 表示本地端侧模型，"cloud" 表示云端 API
     public final String source;
 
     /**

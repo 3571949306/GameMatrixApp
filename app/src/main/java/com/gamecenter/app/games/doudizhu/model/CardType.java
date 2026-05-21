@@ -3,6 +3,10 @@ package com.gamecenter.app.games.doudizhu.model;
 /**
  * 斗地主牌型枚举，定义了游戏中所有合法的出牌组合类型。
  * <p>
+ * 你可以把牌型想象成"出牌的招式"——单牌是最简单的招式，
+ * 炸弹是最强的大招，王炸则是终极必杀技。
+ * 不同的招式之间有克制关系：大招能压小招，同级招式比大小。
+ * <p>
  * 职责：
  * <ul>
  *   <li>枚举所有合法牌型，作为牌型判定的返回值</li>
@@ -13,7 +17,8 @@ package com.gamecenter.app.games.doudizhu.model;
  * 关键设计决策：
  * <ul>
  *   <li>每个枚举值携带中文名称(name)和优先级(priority)，优先级用于牌型间的宏观比较</li>
- *   <li>ERROR 类型用于标记非法牌型，避免使用 null 返回值带来的空指针风险</li>
+ *   <li>ERROR 类型用于标记非法牌型，避免使用 null 返回值带来的空指针风险
+ *       （与其返回null让程序崩溃，不如返回ERROR表示"这不是合法牌型"）</li>
  *   <li>四带两单(QUAD_SINGLE)和四带两对(QUAD_PAIR)不是炸弹，priority 与三带牌型相同，
  *       这符合标准斗地主规则：四带二不算炸弹，不能压制其他牌型</li>
  *   <li>炸弹(BOMB)和王炸(JOKER_BOMB)拥有最高优先级，可以打任意牌型</li>

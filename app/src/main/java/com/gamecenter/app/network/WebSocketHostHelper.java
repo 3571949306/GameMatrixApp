@@ -23,6 +23,15 @@ import okio.ByteString;
 
 /**
  * WebSocket主机端辅助类，封装主机端通过WebSocket与服务器通信的逻辑。
+ *
+ * <p>打个比方：这个类就像主机端的"电话总机"，通过WebSocket连接到中转服务器，
+ * 然后负责接听来电（客户端连接）、转接电话（消息转发）、挂断电话（断开连接），
+ * 以及定期检查线路是否畅通（心跳检测）。</p>
+ *
+ * <p>在网络模块中的角色：这是WebSocket模式主机端的"通信枢纽"，
+ * 与 {@link WebSocketClientHelper}（客户端侧的辅助工具）互为对偶。
+ * WebSocket模式比云中转（Relay）模式更高效，因为它保持持久连接，
+ * 不需要反复发送HTTP请求来拉取消息，就像打电话比写信更即时。</p>
  * <p>
  * 职责：
  * <ul>
@@ -35,7 +44,8 @@ import okio.ByteString;
  * 关键设计决策：
  * <ul>
  *   <li>使用 {@link ConcurrentHashMap} 共享客户端列表（与Relay模式共用），实现模式切换时的无缝衔接</li>
- *   <li>心跳机制：连续 {@link #WS_MAX_MISSED_PONGS} 次未收到PONG且总超时超过 {@link #WS_HEARTBEAT_TIMEOUT} 时判定断开</li>
+ *   <li>心跳机制：连续 {@link #WS_MAX_MISSED_PONGS} 次未收到PONG且总超时超过 {@link #WS_HEARTBEAT_TIMEOUT} 时判定断开。
+ *       就像打电话时连续几次问"你还在吗？"都没人回答，就判定电话断了。</li>
  *   <li>URL中的token参数自动提取并添加到Authorization请求头</li>
  *   <li>客户端ID生成时避免与已有ID冲突</li>
  * </ul>
@@ -46,20 +56,22 @@ class WebSocketHostHelper {
 
     private static final String TAG = "WebSocketHostHelper";
 
-    /** WebSocket心跳发送间隔（毫秒） */
+    /** WebSocket心跳发送间隔（毫秒），每10秒发一次"你还在吗？" */
     static final long WS_HEARTBEAT_INTERVAL = 10000L;
 
-    /** WebSocket心跳超时阈值（毫秒） */
+    /** WebSocket心跳超时阈值（毫秒），45秒没收到回复就认为连接断了 */
     static final long WS_HEARTBEAT_TIMEOUT = 45000L;
 
-    /** 连续未收到PONG的最大次数，超过则判定连接断开 */
+    /** 连续未收到PONG的最大次数，超过则判定连接断开。
+     *  就像连续2次问"你还在吗？"都没人回答，就认为电话断了。 */
     static final int WS_MAX_MISSED_PONGS = 2;
 
     /** 回调接口，用于通知上层客户端连接/断开/消息/错误事件及请求停止 */
     private final WsHostCallback callback;
     /** Android上下文，用于获取OkHttpClient实例 */
     private final Context context;
-    /** 已知客户端集合（与Relay模式共用），key为clientId，value为Boolean占位 */
+    /** 已知客户端集合（与Relay模式共用），key为clientId，value为Boolean占位。
+     *  使用ConcurrentHashMap保证多线程安全，就像一个"签到簿"，多个线程可以同时读写。 */
     private final ConcurrentHashMap<Integer, Boolean> relayKnownClients;
     /** 最大客户端连接数 */
     private final int maxClients;

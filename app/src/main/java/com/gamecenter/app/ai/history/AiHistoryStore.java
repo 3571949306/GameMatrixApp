@@ -19,6 +19,10 @@ import java.util.Set;
 /**
  * AI 消息历史持久化存储 — 管理聊天记录的保存、加载、收藏与清除。
  * <p>
+ * 你可以把这个类想象成一个"日记本管理员"：
+ * 它负责把聊天记录写到日记本里（保存）、从日记本里读出来（加载）、
+ * 给重要的记录贴上星标（收藏）、以及清空整本日记（清除）。
+ * <p>
  * 使用 SharedPreferences 作为底层存储，将消息列表序列化为 JSON 字符串持久化。
  * 收藏 ID 集合使用 SharedPreferences 的 StringSet 原生支持存储。
  * <p>
@@ -35,19 +39,19 @@ public final class AiHistoryStore {
 
     private static final String TAG = "AiHistoryStore";
 
-    /** SharedPreferences 文件名 */
+    // SharedPreferences 文件名
     private static final String PREFS_NAME = "ai_history";
 
-    /** 消息列表的存储键，值为 JSON 数组字符串 */
+    // 消息列表的存储键，值为 JSON 数组字符串
     private static final String KEY_MESSAGES = "messages";
 
-    /** 收藏 ID 集合的存储键，值为 StringSet */
+    // 收藏 ID 集合的存储键，值为 StringSet
     private static final String KEY_FAVORITES = "favorites";
 
-    /** 消息持久化存储 */
+    // 消息持久化存储
     private final SharedPreferences prefs;
 
-    /** AI 偏好设置，用于获取历史记录上限等配置 */
+    // AI 偏好设置，用于获取历史记录上限等配置
     private final AiPreferences aiPreferences;
 
     /**
@@ -73,11 +77,13 @@ public final class AiHistoryStore {
      */
     public List<AiMessage> loadMessages() {
         List<AiMessage> messages = new ArrayList<>();
+        // 从存储中读取 JSON 字符串，默认为空数组 "[]"
         String raw = prefs.getString(KEY_MESSAGES, "[]");
         try {
             JSONArray array = new JSONArray(raw);
             for (int i = 0; i < array.length(); i++) {
                 JSONObject item = array.getJSONObject(i);
+                // 将 JSON 对象逐个转换为 AiMessage
                 messages.add(new AiMessage(
                         item.optString("id"),
                         item.optString("role"),
@@ -120,6 +126,7 @@ public final class AiHistoryStore {
                 break;
             }
             try {
+                // 将消息对象转换为 JSON 并添加到数组
                 JSONObject item = new JSONObject();
                 item.put("id", message.id);
                 item.put("role", message.role);
@@ -133,6 +140,7 @@ public final class AiHistoryStore {
                 Log.w(TAG, "Save message: " + ignored.getMessage());
             }
         }
+        // 将 JSON 数组转为字符串存入 SharedPreferences
         prefs.edit().putString(KEY_MESSAGES, array.toString()).apply();
     }
 
@@ -164,6 +172,7 @@ public final class AiHistoryStore {
      * <p>
      * 先读取当前收藏集合，若消息 ID 已存在则移除（取消收藏），
      * 若不存在则添加（收藏），然后将修改后的集合写回持久化存储。
+     * 就像给消息贴星标：有星标就摘掉，没星标就贴上。
      *
      * @param id 要切换收藏状态的消息 ID
      * @return 切换后的收藏状态（true=已收藏，false=已取消收藏）

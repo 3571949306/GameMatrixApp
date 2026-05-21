@@ -44,6 +44,11 @@ import org.json.JSONObject;
  *   <li>状态版本号（{@link #currentStateVersion}）用于防止旧消息覆盖新状态</li>
  *   <li>提子数由Activity层独立维护，因为GoGame的提子计数与联机同步逻辑存在差异</li>
  * </ul>
+ *
+ * 【初学者指南】
+ * 这个类是围棋联机对战的"网络大厅+对局室"，和五子棋的GomokuOnlineActivity结构类似。
+ * 主要区别：围棋有虚手（Pass）操作，双方连续虚手则对局结束。
+ * 提子数的计算比较特殊，由Activity层独立维护而不是直接用GoGame的计数。
  */
 public class GoOnlineActivity extends AppCompatActivity {
 
@@ -95,7 +100,9 @@ public class GoOnlineActivity extends AppCompatActivity {
     /** 本机执子颜色（黑=1，白=2） */
     private int myColor;
 
-    /** 黑方提子数（Activity层独立维护，与GoGame内部计数分离） */
+    /** 黑方提子数（Activity层独立维护，与GoGame内部计数分离）
+     *  为什么不直接用GoGame的计数？因为联机同步时需要精确控制提子数，
+     *  而GoGame在重放历史时可能会重复计算提子，所以Activity自己维护一份 */
     private int blackCaptures;
 
     /** 白方提子数 */

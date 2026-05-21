@@ -12,7 +12,9 @@ import com.gamecenter.app.R;
 /**
  * 斗地主游戏菜单界面 (DouDiZhu Menu Activity)
  *
- * <p>作为斗地主游戏的入口界面，提供不同游戏模式的导航功能。</p>
+ * <p>作为斗地主游戏的入口界面，提供不同游戏模式的导航功能。
+ * 你可以把这个页面想象成棋牌室的"前台"——在这里选择你想怎么玩，
+ * 然后前台会把你带到对应的牌桌。</p>
  *
  * <p><b>职责：</b></p>
  * <ul>
@@ -23,15 +25,18 @@ import com.gamecenter.app.R;
  * <p><b>关键设计决策：</b></p>
  * <ul>
  *   <li>竖屏显示，作为游戏入口页</li>
- *   <li>按钮使用空指针保护（null check），防止布局中缺少对应按钮时崩溃</li>
- *   <li>远程P2P模式复用联机 Activity，通过 Intent Extra 区分模式</li>
+ *   <li>按钮使用空指针保护（null check），防止布局中缺少对应按钮时崩溃
+ *       （就像"先确认门存在再去推"，避免撞墙）</li>
+ *   <li>远程P2P模式复用联机 Activity，通过 Intent Extra 区分模式
+ *       （同一个Activity，不同的"开关"控制行为）</li>
  * </ul>
  */
 public class DouDiZhuMenuActivity extends AppCompatActivity {
 
     /**
      * Activity 创建时的初始化入口。
-     * <p>设置布局并初始化所有按钮及其点击事件。</p>
+     * <p>设置布局并初始化所有按钮及其点击事件。
+     * 这是Activity的"出生方法"，页面一打开就会自动调用。</p>
      *
      * @param savedInstanceState 保存的实例状态（用于恢复场景，此处未使用）
      */
@@ -46,12 +51,12 @@ public class DouDiZhuMenuActivity extends AppCompatActivity {
     /**
      * 初始化所有菜单按钮及其点击监听器。
      *
-     * <p>包含以下按钮：</p>
+     * <p>包含以下按钮（每个按钮都做了空指针保护，避免布局文件缺少ID时崩溃）：</p>
      * <ul>
-     *   <li><b>单机模式</b>：跳转到 {@link DouDiZhuActivity}，与AI对战</li>
-     *   <li><b>联机模式</b>：跳转到 {@link DouDiZhuOnlineActivity}，局域网对战</li>
+     *   <li><b>单机模式</b>：跳转到 {@link DouDiZhuActivity}，和两个AI电脑对战</li>
+     *   <li><b>联机模式</b>：跳转到 {@link DouDiZhuOnlineActivity}，同一WiFi下和朋友对战</li>
      *   <li><b>远程P2P</b>：跳转到 {@link DouDiZhuOnlineActivity} 并携带
-     *       {@code EXTRA_REMOTE_P2P=true} 标记，启用远程点对点模式</li>
+     *       {@code EXTRA_REMOTE_P2P=true} 标记，通过互联网远程对战</li>
      *   <li><b>返回</b>：关闭当前 Activity，返回上一页</li>
      * </ul>
      *

@@ -19,6 +19,13 @@ import java.util.List;
 
 /**
  * 在线聊天辅助类 — 封装联机对战中玩家之间的实时聊天功能。
+ *
+ * <p>打个比方：这个类就像游戏里的"对讲机"，让你和对手在对战的同时还能聊天。
+ * 它负责把你说的话打包成网络消息发出去，也负责把对手的话接收并显示出来。
+ * 聊天可以嵌入到游戏界面底部（内嵌模式），也可以弹出一个聊天窗口（弹窗模式）。</p>
+ *
+ * <p>在网络模块中的角色：这是联机模块的"聊天服务员"，专门处理聊天相关的所有事情，
+ * 包括消息的收发、显示和存储，让游戏逻辑和聊天逻辑互不干扰。</p>
  * <p>
  * 职责：
  * <ul>
@@ -30,16 +37,20 @@ import java.util.List;
  * 关键设计决策：
  * <ul>
  *   <li>所有 UI 操作通过 {@link Handler}({@link Looper#getMainLooper()}) 投递到主线程，确保线程安全</li>
- *   <li>消息列表采用滑动窗口策略，超过上限后移除最早的消息，避免内存无限增长</li>
+ *   <li>消息列表采用滑动窗口策略，超过上限后移除最早的消息，避免内存无限增长。
+ *       就像一个只能放50封信的信箱，满了就把最早的信扔掉，腾出空间放新信。</li>
  *   <li>聊天 UI 的构建完全通过代码动态创建，不依赖 XML 布局，便于复用</li>
  * </ul>
  */
 public class OnlineChatHelper {
 
-    /** 聊天消息列表的最大容量，超出后移除最早的消息 */
+    /** 聊天消息列表的最大容量，超出后移除最早的消息。
+     *  就像一个只能放50封信的信箱，满了就扔掉最早的信。 */
     private static final int MAX_MESSAGES = 50;
 
-    /** 应用级 Context，避免持有 Activity 导致内存泄漏 */
+    /** 应用级 Context，避免持有 Activity 导致内存泄漏。
+     *  用ApplicationContext而不是Activity，就像用"单位地址"而不是"临时工位"，
+     *  这样Activity销毁了，Context还有效。 */
     private final Context context;
     /** 聊天消息列表，按时间顺序存储 */
     private final List<ChatMessage> messages = new ArrayList<>();

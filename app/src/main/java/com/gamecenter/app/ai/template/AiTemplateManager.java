@@ -7,6 +7,10 @@ import java.util.List;
 /**
  * AI 提示词模板管理 — 提供预设的提示词模板，帮助用户快速开始常见 AI 任务。
  * <p>
+ * 你可以把这个类想象成一个"模板信箱"：
+ * 里面放着几封预先写好的信（模板），每封信都有标题、对应的任务类型和预设的开头语。
+ * 用户只需选一个模板，填上自己的内容，就能快速完成 AI 任务，不用每次都从零开始写提示词。
+ * <p>
  * 每个模板包含三个要素：
  * <ul>
  *   <li>title — 模板显示名称，用于界面上的按钮文本</li>
@@ -23,6 +27,7 @@ import java.util.List;
  */
 public final class AiTemplateManager {
 
+    // 私有构造方法，防止实例化
     private AiTemplateManager() {
     }
 
@@ -54,16 +59,17 @@ public final class AiTemplateManager {
      * 提示词模板数据类。
      * <p>
      * 不可变值对象，所有字段为 public final，构造后不可修改。
+     * 就像一张印好的表格，印好之后就不能改了。
      */
     public static final class Template {
 
-        /** 模板显示名称，用于界面按钮文本 */
+        // 模板显示名称，用于界面按钮文本（如"会议纪要"、"代码报错"）
         public final String title;
 
-        /** 对应的 AI 任务类型标识（如 "summary"、"qa"、"translate" 等） */
+        // 对应的 AI 任务类型标识（如 "summary"、"qa"、"translate" 等）
         public final String taskType;
 
-        /** 预设的提示词前缀文本，以换行符结尾方便用户追加内容 */
+        // 预设的提示词前缀文本，以换行符结尾方便用户追加内容
         public final String prompt;
 
         /**

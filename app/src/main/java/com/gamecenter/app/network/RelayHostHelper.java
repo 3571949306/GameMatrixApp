@@ -13,6 +13,15 @@ import java.util.concurrent.RejectedExecutionException;
 
 /**
  * 云中转（Relay）主机端辅助类，封装主机端与中转服务器之间的通信逻辑。
+ *
+ * <p>打个比方：如果云中转服务器是一个"邮局"，那么这个类就是主机端的"邮局柜台"，
+ * 负责开信箱（创建房间）、定期取信（轮询拉取客户端消息）、寄信（向客户端发送消息），
+ * 以及管理"常客名单"（已知客户端列表）。</p>
+ *
+ * <p>在网络模块中的角色：这是云中转模式主机端的"通信桥梁"，
+ * 与 {@link RelayClientHelper}（客户端侧的辅助工具）互为对偶。
+ * 当两台设备无法直接通信时（比如不在同一WiFi下），就需要通过云中转服务器来转发消息，
+ * 这个类就是帮主机端完成与中转服务器的所有交互。</p>
  * <p>
  * 职责：
  * <ul>
@@ -38,7 +47,7 @@ class RelayHostHelper {
     /** 回调接口，用于通知上层客户端连接/断开/消息/错误事件 */
     private final RelayHostCallback callback;
 
-    /** 最大客户端连接数 */
+    /** 最大客户端连接数，即房间人数上限 */
     private final int maxClients;
 
     /** 发送消息的独立线程池，单线程执行以保证消息顺序 */
@@ -52,13 +61,15 @@ class RelayHostHelper {
     private volatile boolean active = false;
     /** 中转服务器基础URL */
     String relayBaseUrl = RelayHttpClient.DEFAULT_BASE_URL;
-    /** 中转房间码 */
+    /** 中转房间码，就像邮局的信箱号 */
     String relayRoomCode = "";
-    /** 主机令牌，用于向中转服务器验证身份 */
+    /** 主机令牌，用于向中转服务器验证身份。
+     *  就像信箱的钥匙，只有持有令牌的人才能取信和寄信。 */
     String relayHostToken = "";
     /** 轮询线程 */
     private Thread relayPollThread;
-    /** 已知客户端集合，key为clientId，value为Boolean占位 */
+    /** 已知客户端集合，key为clientId，value为Boolean占位。
+     *  就像邮局的"常客名单"，记录哪些客户端已经来过。 */
     public final ConcurrentHashMap<Integer, Boolean> relayKnownClients = new ConcurrentHashMap<>();
 
     /**
