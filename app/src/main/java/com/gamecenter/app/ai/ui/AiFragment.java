@@ -28,6 +28,7 @@ import com.gamecenter.app.R;
 import com.gamecenter.app.ai.AiPreferences;
 import com.gamecenter.app.ai.AiTaskRouter;
 import com.gamecenter.app.ai.data.AiMessage;
+import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
 import com.gamecenter.app.ai.data.AiTask;
 import com.gamecenter.app.ai.history.AiHistoryStore;
@@ -36,6 +37,7 @@ import com.gamecenter.app.ai.model.AiModelDownloadManager;
 import com.gamecenter.app.ai.model.AiModelInfo;
 import com.gamecenter.app.ai.template.AiTemplateManager;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -47,11 +49,15 @@ import java.util.Set;
 
 /**
  * AI 助手页面 — 聊天式交互界面，支持多种 AI 功能。
- * <p>
- * 本 Fragment 是应用 AI 模块的主界面，采用聊天式交互模式，用户可以选择不同的任务类型
- * （闲聊、OCR、摘要、翻译、改写、问答、关键词提取、分类）与 AI 进行交互。
- * <p>
- * 核心职责：
+ *
+ * <p>你可以把这个页面想象成一个"智能客服聊天窗口"：
+ * 用户在底部输入框打字，选择任务类型（翻译、摘要等），点击发送，
+ * AI 就会在后台处理并返回结果，显示在聊天区域中。</p>
+ *
+ * <p>本 Fragment 是应用 AI 模块的主界面，采用聊天式交互模式，用户可以选择不同的任务类型
+ * （闲聊、OCR、摘要、翻译、改写、问答、关键词提取、分类）与 AI 进行交互。</p>
+ *
+ * <p>核心职责：</p>
  * <ul>
  *   <li>消息的发送、接收与展示（通过 RecyclerView + MessageAdapter）</li>
  *   <li>本地 Gemma 模型的下载、启用与管理</li>
@@ -59,8 +65,8 @@ import java.util.Set;
  *   <li>预设模板的展示与应用</li>
  *   <li>消息导出（通过系统分享 Intent）</li>
  * </ul>
- * <p>
- * 设计决策：
+ *
+ * <p>设计决策：</p>
  * <ul>
  *   <li>消息列表采用"新消息在前"（index 0）的倒序排列，配合 LinearLayoutManager 实现最新消息置顶；</li>
  *   <li>维护 messages（全量）和 visibleMessages（过滤后）两个列表，实现收藏/搜索过滤；</li>
@@ -110,6 +116,7 @@ public class AiFragment extends Fragment {
     /** 当前搜索关键词（小写），为空表示不过滤 */
     private String currentSearch = "";
 
+    // 以下为界面控件的引用，在 onViewCreated 中通过 findViewById 绑定
     private RecyclerView rvMessages;
     private TextInputEditText etInput;
     private TextInputEditText etSearch;
@@ -120,10 +127,13 @@ public class AiFragment extends Fragment {
     private ProgressBar progressBar;
     private TextView tvStatus;
     private AutoCompleteTextView actTaskType;
+    private Chip chipModelStatus;
+    private Chip chipModeSwitch;
 
     /**
      * Fragment 关联到 Activity 时初始化核心依赖。
      * 使用 ApplicationContext 创建依赖，避免 Activity 销毁后持有引用导致泄漏。
+     * 就像入职时领工牌，用公司级别的工牌而不是部门级别的，换了部门也不受影响。
      *
      * @param context 宿主 Activity 的上下文
      */
@@ -139,6 +149,7 @@ public class AiFragment extends Fragment {
     /**
      * Fragment 从 Activity 分离时释放资源。
      * 关闭任务路由器和模型下载管理器，防止后台线程泄漏。
+     * 就像离职时归还工牌和钥匙，避免资源浪费。
      */
     @Override
     public void onDetach() {
@@ -156,7 +167,7 @@ public class AiFragment extends Fragment {
     /**
      * 视图创建完成后的初始化入口。
      * <p>
-     * 执行以下初始化：
+     * 执行以下初始化（就像新员工入职第一天的各项手续）：
      * <ol>
      *   <li>绑定所有视图引用</li>
      *   <li>从历史存储恢复收藏 ID 集合</li>
@@ -173,6 +184,7 @@ public class AiFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // 绑定界面控件
         rvMessages = view.findViewById(R.id.rv_ai_messages);
         etInput = view.findViewById(R.id.et_ai_input);
         etSearch = view.findViewById(R.id.et_ai_search);
@@ -183,6 +195,8 @@ public class AiFragment extends Fragment {
         progressBar = view.findViewById(R.id.progress_ai);
         tvStatus = view.findViewById(R.id.tv_ai_status);
         actTaskType = view.findViewById(R.id.act_ai_task_type);
+        chipModelStatus = view.findViewById(R.id.chip_model_status);
+        chipModeSwitch = view.findViewById(R.id.chip_mode_switch);
         // 从持久化存储恢复收藏集合
         favoriteIds.clear();
         favoriteIds.addAll(historyStore.getFavoriteIds());
@@ -194,11 +208,12 @@ public class AiFragment extends Fragment {
         actTaskType.setAdapter(typeAdapter);
         actTaskType.setText(taskLabels[0], false);
 
-        // 消息列表
+        // 配置消息列表 RecyclerView
         adapter = new MessageAdapter(visibleMessages, favoriteIds, this::toggleFavorite);
         rvMessages.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvMessages.setAdapter(adapter);
 
+        // 注册按钮点击事件
         btnSend.setOnClickListener(v -> sendMessage());
         btnFavorites.setOnClickListener(v -> {
             favoritesOnly = !favoritesOnly;
@@ -209,6 +224,16 @@ public class AiFragment extends Fragment {
         if (btnModelDownload != null) {
             btnModelDownload.setOnClickListener(v -> showLocalModelDialog());
         }
+        if (chipModelStatus != null) {
+            chipModelStatus.setOnClickListener(v -> showCloudModelDialog());
+        }
+        if (chipModeSwitch != null) {
+            chipModeSwitch.setOnClickListener(v -> {
+                boolean useCloud = chipModeSwitch.isChecked();
+                aiPreferences.setLocalFirst(!useCloud);
+                updateModelControls();
+            });
+        }
         setupTemplates(view);
 
         MaterialButton btnClearHistory = view.findViewById(R.id.btn_ai_open_full);
@@ -217,12 +242,13 @@ public class AiFragment extends Fragment {
             btnClearHistory.setOnClickListener(v -> clearHistory());
         }
 
-        // 输入框变化时更新按钮状态
+        // 输入框变化时更新发送按钮的可用状态
         etInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override
             public void afterTextChanged(Editable s) {
+                // 输入框有内容时才能发送
                 btnSend.setEnabled(s != null && s.toString().trim().length() > 0);
             }
         });
@@ -248,6 +274,7 @@ public class AiFragment extends Fragment {
         applyMessageFilter();
         scrollToBottom();
 
+        updateModelControls();
         updateStatus("就绪");
     }
 
@@ -263,6 +290,7 @@ public class AiFragment extends Fragment {
         modelDownloadManager.fetchModels(new AiModelDownloadManager.Callback<List<AiModelInfo>>() {
             @Override
             public void onSuccess(List<AiModelInfo> models) {
+                // 检查 Fragment 是否还关联着 Activity，防止操作已销毁的 UI
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> showModelList(models));
             }
@@ -296,22 +324,48 @@ public class AiFragment extends Fragment {
             Toast.makeText(requireContext(), "服务器暂无可用本地模型", Toast.LENGTH_LONG).show();
             return;
         }
-        // 当前只取列表中的第一个模型进行展示
-        AiModelInfo model = models.get(0);
-        boolean downloaded = modelDownloadManager.isDownloaded(requireContext(), model);
+        String[] labels = new String[models.size()];
+        String selectedId = aiPreferences != null ? aiPreferences.getLocalModel() : "on-device";
+        for (int i = 0; i < models.size(); i++) {
+            AiModelInfo model = models.get(i);
+            labels[i] = (model.id.equals(selectedId) ? "✓ " : "")
+                    + model.name
+                    + " · "
+                    + performanceTier(model)
+                    + (model.enabled ? "" : " · 未开放");
+        }
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("本地模型")
+                .setItems(labels, (dialog, which) -> showModelDetail(models.get(which)))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        updateStatus("请选择本地模型");
+    }
+
+    /**
+     * 展示单个本地模型的详情与可执行操作。
+     */
+    private void showModelDetail(AiModelInfo model) {
+        boolean rulesModel = "on-device".equals(model.id);
+        boolean downloaded = rulesModel || modelDownloadManager.isDownloaded(requireContext(), model);
         StringBuilder message = new StringBuilder();
         message.append(model.name).append("\n");
+        message.append("性能档位: ").append(performanceTier(model)).append("\n");
         message.append("运行时: ").append(model.runtime).append("\n");
         message.append("大小: ").append(formatBytes(model.sizeBytes)).append("\n");
         message.append("峰值内存: ").append(formatBytes(model.estimatedPeakMemoryBytes)).append("\n");
-        message.append("存储位置: App 私有目录 / Android/data/")
-                .append(requireContext().getPackageName())
-                .append("/files/Documents/ai_models\n\n");
+        if (!rulesModel) {
+            message.append("存储位置: App 私有目录 / Android/data/")
+                    .append(requireContext().getPackageName())
+                    .append("/files/Documents/ai_models\n\n");
+        } else {
+            message.append("\n");
+        }
         if (downloaded) {
             boolean selected = aiPreferences != null && model.id.equals(aiPreferences.getLocalModel());
             message.append(selected
-                    ? "状态: 已下载并启用。本地优先任务会尝试使用 Gemma 推理。"
-                    : "状态: 已下载。点击启用后，本地优先任务会尝试使用 Gemma 推理。");
+                    ? "状态: 已启用。本地优先任务会使用该档位处理。"
+                    : "状态: 可启用。点击启用后，本地优先任务会优先使用该档位。");
         } else if (!model.enabled) {
             message.append("状态: 暂未开放下载。\n").append(model.note);
             if (!model.upstreamUrl.isEmpty()) {
@@ -322,12 +376,16 @@ public class AiFragment extends Fragment {
         }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("本地 Gemma 模型")
+                .setTitle("本地模型详情")
                 .setMessage(message.toString())
-                .setNeutralButton("查看条款", (dialog, which) -> openGemmaTerms())
                 .setNegativeButton(android.R.string.cancel, null);
+        if (!rulesModel) {
+            builder.setNeutralButton("查看条款", (dialog, which) -> openGemmaTerms());
+        }
         // 根据模型状态动态设置正向按钮
-        if (model.enabled && !downloaded) {
+        if (rulesModel && aiPreferences != null && !model.id.equals(aiPreferences.getLocalModel())) {
+            builder.setPositiveButton("启用", (dialog, which) -> enableLocalModel(model));
+        } else if (model.enabled && !downloaded) {
             builder.setPositiveButton("下载", (dialog, which) -> confirmGemmaNoticeThenDownload(model));
         } else if (downloaded && aiPreferences != null
                 && !model.id.equals(aiPreferences.getLocalModel())) {
@@ -337,11 +395,93 @@ public class AiFragment extends Fragment {
         updateStatus(downloaded ? "本地模型已下载" : "本地模型未下载");
     }
 
+    private String performanceTier(AiModelInfo model) {
+        if (model.minRamMb <= 2048) {
+            return "低端机";
+        }
+        if (model.minRamMb <= 4096) {
+            return "中端机";
+        }
+        return "高端机";
+    }
+
+    /**
+     * 展示云端模型选择列表。
+     * 同一个 API Key 会用于所选 OpenAI 兼容供应商，用户可按自己的 Key 来源切换模型。
+     */
+    private void showCloudModelDialog() {
+        if (aiPreferences == null) return;
+        List<AiProviderConfig> providers = AiPreferences.getAvailableProviders(requireContext());
+        List<AiProviderConfig> cloudProviders = new ArrayList<>();
+        for (AiProviderConfig provider : providers) {
+            if (!provider.localOnly) {
+                cloudProviders.add(provider);
+            }
+        }
+        if (cloudProviders.isEmpty()) {
+            Toast.makeText(requireContext(), "暂无云端模型", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String selectedProvider = aiPreferences.getSelectedProvider();
+        String selectedModel = aiPreferences.getSelectedModel();
+        String[] labels = new String[cloudProviders.size()];
+        for (int i = 0; i < cloudProviders.size(); i++) {
+            AiProviderConfig provider = cloudProviders.get(i);
+            labels[i] = (provider.providerName.equals(selectedProvider)
+                    && provider.modelName.equals(selectedModel) ? "✓ " : "")
+                    + provider.providerName
+                    + " · "
+                    + provider.modelName
+                    + " · "
+                    + cloudTier(provider);
+        }
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("云端模型")
+                .setItems(labels, (dialog, which) -> {
+                    AiProviderConfig provider = cloudProviders.get(which);
+                    aiPreferences.setSelectedProvider(provider.providerName);
+                    aiPreferences.setSelectedModel(provider.modelName);
+                    aiPreferences.setLocalFirst(false);
+                    updateModelControls();
+                    updateStatus("已选择 " + provider.providerName + " · " + provider.modelName);
+                })
+                .setMessage(aiPreferences.getApiKey().isEmpty()
+                        ? "尚未配置 API Key；选择会保存，但调用云端前仍需要先配置 Key。"
+                        : null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private String cloudTier(AiProviderConfig provider) {
+        if (provider.costLevel <= 1) {
+            return "省电/低延迟";
+        }
+        if (provider.costLevel == 2) {
+            return "均衡";
+        }
+        return "高能力/长输出";
+    }
+
+    private void updateModelControls() {
+        if (aiPreferences == null) return;
+        boolean localFirst = aiPreferences.isLocalFirst();
+        if (chipModeSwitch != null) {
+            chipModeSwitch.setChecked(!localFirst);
+            chipModeSwitch.setText(localFirst ? "切换到云端" : "切换到本地");
+        }
+        if (chipModelStatus != null) {
+            chipModelStatus.setText(localFirst
+                    ? "本地: " + aiPreferences.getLocalModel()
+                    : aiPreferences.getSelectedProvider() + ": " + aiPreferences.getSelectedModel());
+        }
+    }
+
     /**
      * 确认 Gemma 条款后下载模型。
      * <p>
      * 若用户已同意当前版本的 Gemma 条款，直接开始下载；
      * 否则弹出条款确认对话框，用户同意后记录同意状态并开始下载。
+     * 就像下载付费软件前要先同意用户协议一样。
      *
      * @param model 待下载的模型信息
      */
@@ -391,8 +531,9 @@ public class AiFragment extends Fragment {
             aiPreferences.setLocalModel(model.id);
             aiPreferences.setLocalFirst(true);
         }
-        updateStatus("本地 Gemma 已启用");
-        Toast.makeText(requireContext(), "已启用本地 Gemma 模型", Toast.LENGTH_LONG).show();
+        updateModelControls();
+        updateStatus("本地模型已启用");
+        Toast.makeText(requireContext(), "已启用 " + model.name, Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -459,7 +600,7 @@ public class AiFragment extends Fragment {
     /**
      * 发送用户消息并提交 AI 任务。
      * <p>
-     * 流程：
+     * 流程（就像寄信：写信 → 投递 → 等回信）：
      * <ol>
      *   <li>读取输入框内容，解析任务类型</li>
      *   <li>将用户消息添加到列表头部并持久化</li>
@@ -482,27 +623,29 @@ public class AiFragment extends Fragment {
         scrollToBottom();
         etInput.setText("");
 
-        // 显示加载
+        // 显示加载状态，禁用发送按钮防止重复提交
         progressBar.setVisibility(View.VISIBLE);
         updateStatus("处理中…");
         btnSend.setEnabled(false);
 
-        // 发送任务
+        // 提交 AI 任务，通过回调异步获取结果
         router.submitTask(taskType, input, new AiTaskRouter.AiCallback() {
             @Override
             public void onResult(AiTask task, AiResult result) {
+                // 检查视图是否还存在，防止 Fragment 已销毁时操作 UI
                 if (getView() == null) return;
                 progressBar.setVisibility(View.GONE);
                 btnSend.setEnabled(true);
 
                 if (result.success) {
+                    // 成功：将 AI 回复添加到消息列表
                     messages.add(0, new AiMessage("assistant", result.content, ftaskType, result.source));
                     saveHistory();
                     applyMessageFilter();
                     scrollToBottom();
                     updateStatus("完成 | " + result.source);
                 } else {
-                    // 失败时以 error 来源标记，内容前加错误符号
+                    // 失败：以 error 来源标记，内容前加错误符号
                     messages.add(0, new AiMessage("assistant", "❌ " + result.message, ftaskType, "error"));
                     saveHistory();
                     applyMessageFilter();
@@ -606,6 +749,7 @@ public class AiFragment extends Fragment {
         LinearLayout layout = root.findViewById(R.id.layout_ai_templates);
         if (layout == null) return;
         layout.removeAllViews();
+        // 6dp 的水平间距，转换为像素值
         int margin = (int) (6 * getResources().getDisplayMetrics().density);
         for (AiTemplateManager.Template template : AiTemplateManager.getTemplates()) {
             MaterialButton button = new MaterialButton(requireContext(), null,
@@ -690,7 +834,7 @@ public class AiFragment extends Fragment {
     /**
      * 根据当前过滤条件（收藏模式、搜索关键词）更新可见消息列表。
      * <p>
-     * 过滤逻辑：
+     * 过滤逻辑（就像用筛子筛沙子，可以叠加多个筛子）：
      * <ul>
      *   <li>收藏模式：仅显示 favoriteIds 中包含的消息</li>
      *   <li>搜索模式：仅显示角色、内容、任务类型中包含搜索关键词的消息</li>
@@ -761,6 +905,7 @@ public class AiFragment extends Fragment {
             Toast.makeText(requireContext(), "没有可导出的内容", Toast.LENGTH_SHORT).show();
             return;
         }
+        // 使用 Android 系统的分享功能，让用户选择导出方式（微信、邮件等）
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
         intent.putExtra(Intent.EXTRA_SUBJECT, "GameCenter AI 导出");
@@ -827,6 +972,7 @@ public class AiFragment extends Fragment {
      * <p>
      * 将 {@link AiMessage} 列表绑定到 RecyclerView，支持收藏状态显示。
      * 使用 visibleMessages 作为数据源，确保过滤后的结果正确展示。
+     * 就像翻译官，把 AiMessage 数据"翻译"成界面上的消息气泡。
      */
     private static class MessageAdapter extends RecyclerView.Adapter<MessageViewHolder> {
 
@@ -848,6 +994,7 @@ public class AiFragment extends Fragment {
         @NonNull
         @Override
         public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // 从布局文件创建单条消息的视图
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.item_ai_message, parent, false);
             return new MessageViewHolder(v);
@@ -855,6 +1002,7 @@ public class AiFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
+            // 将消息数据绑定到视图上
             AiMessage msg = messages.get(position);
             holder.bind(msg, favoriteIds.contains(msg.id), favoriteListener);
         }
@@ -870,6 +1018,7 @@ public class AiFragment extends Fragment {
      * <p>
      * 根据消息角色（user/assistant/system）设置不同的背景色和文字颜色，
      * 并管理收藏按钮的显示与交互。
+     * 就像不同身份的人穿不同颜色的衣服：用户蓝色、AI 绿色、系统灰色。
      */
     private static class MessageViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvRole;
@@ -921,6 +1070,7 @@ public class AiFragment extends Fragment {
                 btnFavorite.setVisibility(View.GONE);
             } else {
                 btnFavorite.setVisibility(View.VISIBLE);
+                // 根据收藏状态显示不同的星星图标
                 btnFavorite.setImageResource(favorite
                         ? android.R.drawable.btn_star_big_on
                         : android.R.drawable.btn_star_big_off);

@@ -26,6 +26,11 @@ import java.util.concurrent.Executors;
 /**
  * AI 模型下载管理器 — 负责端侧 AI 模型的清单获取、文件下载和完整性校验。
  *
+ * <p>你可以把这个类想象成一个"应用商店的下载管理器"：
+ * 它先从服务器获取可下载的模型列表（就像浏览应用商店），
+ * 然后下载你选择的模型文件（就像下载 App），
+ * 下载完后还会校验文件是否完整（就像验证安装包的数字签名）。</p>
+ *
  * <p>该类是 AI 模型离线部署流程的核心组件，承担以下职责：</p>
  * <ul>
  *   <li>从远程服务器获取可用模型清单（models.json）</li>
@@ -66,16 +71,26 @@ public final class AiModelDownloadManager {
                 // 拼接清单 URL：服务器地址 + 清单路径，需去除服务器地址末尾的斜杠避免双斜杠
                 String manifestUrl = trimTrailingSlash(BuildConfig.SERVER_URL) + MANIFEST_PATH;
                 JSONObject root = fetchJson(manifestUrl);
+                // 解析 JSON 中的 models 数组，逐个转换为 AiModelInfo 对象
                 JSONArray array = root.optJSONArray("models");
                 List<AiModelInfo> models = new ArrayList<>();
+                models.addAll(buildBuiltInModels());
                 if (array != null) {
                     for (int i = 0; i < array.length(); i++) {
-                        models.add(AiModelInfo.fromJson(array.getJSONObject(i)));
+                        AiModelInfo model = AiModelInfo.fromJson(array.getJSONObject(i));
+                        if (!containsModel(models, model.id)) {
+                            models.add(model);
+                        }
                     }
                 }
                 callback.onSuccess(models);
             } catch (Exception e) {
-                callback.onError(e);
+                List<AiModelInfo> fallback = buildBuiltInModels();
+                if (!fallback.isEmpty()) {
+                    callback.onSuccess(fallback);
+                } else {
+                    callback.onError(e);
+                }
             }
         });
     }
@@ -83,7 +98,7 @@ public final class AiModelDownloadManager {
     /**
      * 下载指定模型文件到本地存储。
      *
-     * <p>下载流程：</p>
+     * <p>下载流程（就像网购：下单 → 发货 → 验货 → 签收）：</p>
      * <ol>
      *   <li>检查模型是否启用且下载地址有效</li>
      *   <li>确保本地模型目录存在</li>
@@ -117,6 +132,7 @@ public final class AiModelDownloadManager {
                 File temp = new File(dir, model.fileName + ".download");
                 downloadFile(model.downloadUrl, temp, model.sizeBytes, callback);
                 // SHA-256 完整性校验：仅在清单中提供了校验值时执行
+                // 就像收快递时核对防伪码，确保文件没被篡改
                 if (!model.sha256.isEmpty()) {
                     String actual = sha256(temp);
                     if (!model.sha256.equalsIgnoreCase(actual)) {
@@ -259,7 +275,10 @@ public final class AiModelDownloadManager {
 
     /**
      * 计算文件的 SHA-256 哈希值。
+     * <p>
      * 使用 1MB 缓冲区流式计算，避免将整个文件加载到内存。
+     * SHA-256 就像文件的"指纹"，每个文件的指纹都是唯一的，
+     * 通过对比指纹就能判断文件是否被篡改。
      *
      * @param file 待校验的文件
      * @return 小写十六进制格式的 SHA-256 哈希值
@@ -295,6 +314,41 @@ public final class AiModelDownloadManager {
             value = value.substring(0, value.length() - 1);
         }
         return value;
+    }
+
+    /**
+     * 返回不依赖服务器清单的端侧模型选项。
+     * 规则引擎用于低端机兜底；真实可下载模型仍以 VPS models.json 为准。
+     */
+    private static List<AiModelInfo> buildBuiltInModels() {
+        List<AiModelInfo> models = new ArrayList<>();
+        try {
+            JSONObject rules = new JSONObject();
+            rules.put("id", "on-device");
+            rules.put("name", "本地规则引擎（低端机）");
+            rules.put("runtime", "rules");
+            rules.put("version", "builtin");
+            rules.put("fileName", "on-device");
+            rules.put("sizeBytes", 0);
+            rules.put("estimatedPeakMemoryBytes", 128L * 1024L * 1024L);
+            rules.put("minSdk", 24);
+            rules.put("minRamMb", 1024);
+            rules.put("enabled", true);
+            rules.put("note", "无需下载，适合低端手机、离线环境和基础摘要/关键词/分类任务。");
+            models.add(AiModelInfo.fromJson(rules));
+        } catch (Exception ignored) {
+            // Built-in metadata is static; ignore and return any entries already added.
+        }
+        return models;
+    }
+
+    private static boolean containsModel(List<AiModelInfo> models, String id) {
+        for (AiModelInfo model : models) {
+            if (model.id.equals(id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -96,7 +96,7 @@ An Android game center integrating **26** classic mini-games, supporting single-
 - 文件哈希计算（MD5/SHA-1/SHA-256）
 - 颜色取色器（支持 WCAG 对比度检测）
 - 诊断报告导出、电池信息、设备信息
-- **AI 智能助手**（文本总结、翻译、润色、问答、代码解释，支持 DeepSeek/阿里云通义/硅基流动/智谱 AI 等多家 API）
+- **AI 智能助手**（文本总结、翻译、润色、问答、代码解释；支持 DeepSeek、OpenAI、阿里云通义、硅基流动、智谱 AI、零一万物、月之暗面 Kimi 等模型；本地模型按低端/中端/高端机分档，云端输出上限提升到 2048-4096 tokens）
 
 ### ⚙️ 通用设置 / General Settings
 
