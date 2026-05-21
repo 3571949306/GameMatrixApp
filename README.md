@@ -13,7 +13,7 @@ An Android game center integrating **26** classic mini-games, supporting single-
 
 ## 2026-05-21 Maintenance Snapshot
 
-- Formal release target: `v1.3.27` / `versionCode 264`.
+- Formal release target: `v1.3.27` / `versionCode 265`.
 - Main UI now applies system bar insets so top text is no longer covered by phone status bars.
 - AI local model selection persists full local model metadata and routes downloaded local LLM files without incorrectly requiring a cloud model.
 - Gomoku and Chinese Chess difficulty controls are now direct buttons with four profiles: low, medium, high, master. Medium uses a lower search budget than before.
