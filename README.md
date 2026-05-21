@@ -3,7 +3,7 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.3.27-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.3.29-blue)](CHANGELOG.md)
 
 一个集成 **26 款**经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
 
@@ -13,7 +13,7 @@ An Android game center integrating **26** classic mini-games, supporting single-
 
 ## 2026-05-21 Maintenance Snapshot
 
-- Formal release target: `v1.3.27` / `versionCode 265`.
+- Formal release target: `v1.3.29` / `versionCode 267`.
 - Main UI now applies system bar insets so top text is no longer covered by phone status bars.
 - AI local model selection persists full local model metadata and routes downloaded local LLM files without incorrectly requiring a cloud model.
 - Gomoku and Chinese Chess difficulty controls are now direct buttons with four profiles: low, medium, high, master. Medium uses a lower search budget than before.
@@ -23,6 +23,15 @@ An Android game center integrating **26** classic mini-games, supporting single-
 - Dependabot open alerts: `0` after dependency security constraints were applied in the root Gradle build.
 - Local GitHub upload path: Git is configured to use the local v2rayN/xray HTTP proxy `http://127.0.0.1:10808` only for `https://github.com`, so `git push` does not require xray TUN/virtual adapter mode.
 - Local network recovery guide: see `docs/LOCAL_GITHUB_NETWORK.md`; helper script: `tools/network/Configure-GitHubProxy.ps1`.
+
+## Documentation Map
+
+- Primary doc index: `docs/DOCUMENTATION_INDEX.md`
+- Maintainer handoff and repo constraints: `PROJECT_CONTEXT.md`
+- Code structure reference: `CODE_WIKI.md`
+- Ongoing maintenance and governance notes: `项目改进建议书.md`
+- Publishing guide: `docs/PUBLISH_GUIDE.md`
+- Archived historical docs: `docs/archive/`
 
 ---
 

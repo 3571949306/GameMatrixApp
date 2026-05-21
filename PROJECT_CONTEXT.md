@@ -2,7 +2,9 @@
 
 ## 2026-05-21 维护快照
 
-- 当前正式版目标：`1.3.27` / `versionCode 265`。
+> Canonical scope: this file is the maintainer handoff and repo-constraints document. Historical release reports and duplicated publishing walkthroughs were moved under `docs/archive/`. See `docs/DOCUMENTATION_INDEX.md`.
+
+- 当前正式版目标：`1.3.29` / `versionCode 267`。
 - 主界面已适配系统状态栏/导航栏安全区，避免顶部标题被手机状态栏遮挡。
 - AI 本地模型切换已保存完整模型元数据，下载的新本地模型可直接被本地 LLM 路由识别，不再误提示云端模型未配置。
 - 五子棋和中国象棋难度选择改为按钮式四档（低 / 中 / 高 / 大师），中档 AI 搜索预算下调；对局底部按钮改为两行等宽布局，窄屏不再溢出。
@@ -18,7 +20,7 @@
 
 | 版本 | 变更内容 |
 |------|----------|
-| **当前工作区** | **正式版 1.3.27 准备：MainActivity 系统栏安全区适配、AI 本地模型元数据持久化与本地 LLM 路由修复、五子棋/中国象棋四档按钮难度与底部控制重排，中档难度下调** |
+| **当前工作区** | **v1.3.29：小游戏AI响应优化（去假延迟+动态预算+根并行）、CODE_WIKI版本同步、文档一致性修复** |
 | **当前工作区** | **战略优化：UpdateViewModel 协程化（viewModelScope + suspendCancellableCoroutine + CheckResult/DownloadResult 密封类）、网络层测试（AiApiClientTest + UpdateInfoTest）、CI 质量门（APK 大小/测试结果/Lint 报告）、安全加固（allowBackup=false + backup_rules + data_extraction_rules + 存储权限迁移）、构建优化（MaterialCardView 替代 CardView）** |
 | **当前工作区** | **低优先级代码质量：AppResult 重命名、TaskStatus 枚举、AiErrorCode 常量类、空 catch 块补日志、硬编码文案提取到 strings.xml（48 个）、Java/Kotlin 混合边界规范文档化** |
 | **当前工作区** | **架构优化：UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter、OnlineRoomManager 组合式复用、GameRegistry 双轨注册（@GameEntry + 动态注册）、SaveManager Kotlin 迁移、@Inject 构造函数迁移、AppError/NetworkResult 统一错误模型** |
@@ -155,8 +157,8 @@
 当前 `version.properties` 示例：
 
 ```properties
-versionCode=262
-versionName=1.3.26
+versionCode=267
+versionName=1.3.29
 ```
 
 ## 2. 代码结构
@@ -276,7 +278,7 @@ tic, tiles, whack
 
 ## 5. 构建与版本
 
-当前版本：`versionCode=262`, `versionName=1.3.26`。当前工作区在该版本基础上完成战略优化（UpdateViewModel 协程化、网络层测试、CI 质量门、安全加固、MaterialCardView 替代 CardView）。
+当前版本：`versionCode=267`, `versionName=1.3.29`。当前工作区在该版本基础上完成了小游戏AI响应优化（v1.3.29）和小游戏AI响应优化（去假延迟+动态预算+根并行）
 
 Windows 下推荐命令：
 
