@@ -470,8 +470,10 @@ public class AiFragment extends Fragment {
             chipModeSwitch.setText(localFirst ? "切换到云端" : "切换到本地");
         }
         if (chipModelStatus != null) {
+            AiModelInfo localModel = aiPreferences.getLocalModelInfo();
+            String localLabel = localModel != null ? localModel.name : aiPreferences.getLocalModel();
             chipModelStatus.setText(localFirst
-                    ? "本地: " + aiPreferences.getLocalModel()
+                    ? "本地: " + localLabel
                     : aiPreferences.getSelectedProvider() + ": " + aiPreferences.getSelectedModel());
         }
     }
@@ -528,7 +530,7 @@ public class AiFragment extends Fragment {
      */
     private void enableLocalModel(AiModelInfo model) {
         if (aiPreferences != null) {
-            aiPreferences.setLocalModel(model.id);
+            aiPreferences.setLocalModelInfo(model);
             aiPreferences.setLocalFirst(true);
         }
         updateModelControls();

@@ -6,7 +6,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.gamecenter.app.R;
@@ -54,9 +53,6 @@ public class ChineseChessActivity extends AppCompatActivity {
     /** 状态文本：显示当前回合、胜负等信息 */
     private TextView tvStatus;
 
-    /** 难度滑块控件 */
-    private SeekBar seekDifficulty;
-
     /** 难度标签文本 */
     private TextView tvDifficultyLabel;
 
@@ -66,8 +62,10 @@ public class ChineseChessActivity extends AppCompatActivity {
     /** AI引擎对象 */
     private ChineseChessAI ai;
 
-    /** 当前AI难度等级（1~6） */
-    private int aiDifficulty = 3;
+    /** 当前AI难度等级（1~4） */
+    private int aiDifficulty = 2;
+
+    private static final int MAX_AI_DIFFICULTY = 4;
 
     /** UI线程Handler，用于从AI后台线程切换回主线程更新界面 */
     private Handler uiHandler;
@@ -90,9 +88,9 @@ public class ChineseChessActivity extends AppCompatActivity {
     /** 游戏使用统计存储，用于记录胜/负次数 */
     private GameUsageStore usageStore;
 
-    /** 6档难度对应的中文标签名称 */
+    /** 4档难度对应的中文标签名称 */
     private static final String[] DIFFICULTY_NAMES = {
-        "初识象棋", "初级棋手", "入门学生", "中等棋力", "高手水平", "国家大师"
+        "低", "中", "高", "大师"
     };
 
     /**
@@ -114,7 +112,6 @@ public class ChineseChessActivity extends AppCompatActivity {
         difficultyPanel = findViewById(R.id.difficulty_panel);
         controlPanel = findViewById(R.id.control_panel);
         tvStatus = findViewById(R.id.tv_status);
-        seekDifficulty = findViewById(R.id.seek_difficulty);
         tvDifficultyLabel = findViewById(R.id.tv_difficulty_label);
 
         game = new ChineseChessGame();
@@ -122,20 +119,7 @@ public class ChineseChessActivity extends AppCompatActivity {
         usageStore = new GameUsageStore(this);
         chessView.setOnCellClickListener(this::onCellTap);
 
-        seekDifficulty.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                aiDifficulty = progress + 1;
-                if (tvDifficultyLabel != null) {
-                    tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[progress]
-                            + " (" + aiDifficulty + "/6)");
-                }
-            }
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
+        setupDifficultyButtons();
 
         findViewById(R.id.btn_start_game).setOnClickListener(v -> beginGame(aiDifficulty));
         findViewById(R.id.btn_tutorial).setOnClickListener(v ->
@@ -151,12 +135,37 @@ public class ChineseChessActivity extends AppCompatActivity {
         });
     }
 
+    private void setupDifficultyButtons() {
+        int[] ids = {
+                R.id.btn_difficulty_1,
+                R.id.btn_difficulty_2,
+                R.id.btn_difficulty_3,
+                R.id.btn_difficulty_4
+        };
+        for (int i = 0; i < ids.length; i++) {
+            final int difficulty = i + 1;
+            View button = findViewById(ids[i]);
+            if (button != null) {
+                button.setOnClickListener(v -> selectDifficulty(difficulty));
+            }
+        }
+        selectDifficulty(aiDifficulty);
+    }
+
+    private void selectDifficulty(int difficulty) {
+        aiDifficulty = Math.max(1, Math.min(difficulty, MAX_AI_DIFFICULTY));
+        if (tvDifficultyLabel != null) {
+            tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[aiDifficulty - 1]
+                    + " (" + aiDifficulty + "/" + MAX_AI_DIFFICULTY + ")");
+        }
+    }
+
     /**
      * 开始新一局游戏。
      * <p>
      * 根据指定难度创建AI实例，重置棋盘状态，切换界面从难度面板到游戏控制面板。
      *
-     * @param difficulty AI难度等级（1~6），影响AI搜索时间上限
+     * @param difficulty AI难度等级（1~4），影响AI搜索时间上限
      */
     private void beginGame(int difficulty) {
         isProcessing = false;
@@ -403,7 +412,7 @@ public class ChineseChessActivity extends AppCompatActivity {
         if (game.getCurrentSide() != ChineseChessGame.Side.RED) return;
         showStatus("正在计算提示...");
         aiExecutor.execute(() -> {
-            ChineseChessAI hintAi = new ChineseChessAI(Math.max(1, Math.min(aiDifficulty, 3)));
+            ChineseChessAI hintAi = new ChineseChessAI(Math.max(1, Math.min(aiDifficulty, MAX_AI_DIFFICULTY)));
             int[] move = hintAi.getBestMove(game);
             uiHandler.post(() -> {
                 if (move == null || game.isGameOver() || game.getCurrentSide() != ChineseChessGame.Side.RED) {

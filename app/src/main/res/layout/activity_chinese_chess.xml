@@ -45,45 +45,72 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="难度：入门学生 (3/6)"
+            android:text="难度：中 (2/4)"
             android:textColor="@color/chess_line"
             android:textSize="18sp" />
-
-        <SeekBar
-            android:id="@+id/seek_difficulty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="12dp"
-            android:max="5"
-            android:progress="2" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
+            android:orientation="vertical"
+            android:layout_marginTop="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="入门"
-                android:textColor="@color/chess_line"
-                android:textSize="13sp" />
+                android:gravity="center"
+                android:orientation="horizontal">
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_difficulty_1"
+                    style="@style/Widget.GameCenter.Button.Tonal"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:text="低"
+                    android:textSize="14sp" />
 
-            <TextView
-                android:layout_width="wrap_content"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_difficulty_2"
+                    style="@style/Widget.GameCenter.Button.Tonal"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:text="中"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="国手"
-                android:textColor="@color/chess_line"
-                android:textSize="13sp" />
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_difficulty_3"
+                    style="@style/Widget.GameCenter.Button.Tonal"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:text="高"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_difficulty_4"
+                    style="@style/Widget.GameCenter.Button.Tonal"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:text="大师"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -104,18 +131,20 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_tutorial"
                 style="@style/Widget.GameCenter.Button.Outlined"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
-                android:text="📖 新手教程" />
+                android:layout_weight="1"
+                android:text="新手教程" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_online"
                 style="@style/Widget.GameCenter.Button.Tonal"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
-                android:text="🌐 联机" />
+                android:layout_weight="1"
+                android:text="联机" />
 
         </LinearLayout>
 
@@ -127,40 +156,64 @@
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:gravity="center"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:visibility="gone">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_undo"
-            style="@style/Widget.GameCenter.Button"
-            android:layout_width="100dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:text="@string/btn_undo" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_hint"
-            style="@style/Widget.GameCenter.Button.Tonal"
-            android:layout_width="100dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:text="提示" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_undo"
+                style="@style/Widget.GameCenter.Button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_margin="4dp"
+                android:layout_weight="1"
+                android:text="@string/btn_undo"
+                android:textSize="13sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_restart"
-            style="@style/Widget.GameCenter.Button"
-            android:layout_width="100dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:text="@string/btn_restart" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hint"
+                style="@style/Widget.GameCenter.Button.Tonal"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_margin="4dp"
+                android:layout_weight="1"
+                android:text="提示"
+                android:textSize="13sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_tutorial_ingame"
-            style="@style/Widget.GameCenter.Button.Outlined"
-            android:layout_width="120dp"
-            android:layout_height="48dp"
-            android:layout_margin="8dp"
-            android:text="📖 教程" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_restart"
+                style="@style/Widget.GameCenter.Button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_margin="4dp"
+                android:layout_weight="1"
+                android:text="@string/btn_restart"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_tutorial_ingame"
+                style="@style/Widget.GameCenter.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_margin="4dp"
+                android:layout_weight="1"
+                android:text="教程"
+                android:textSize="13sp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

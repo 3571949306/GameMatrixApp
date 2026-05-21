@@ -308,18 +308,33 @@ public class AiTaskRouter {
      * @return 推理结果；若前置条件不满足返回 null，推理失败返回失败结果
      */
     private AiResult tryLocalLlm(AiTask task) {
-        // 仅支持 gemma3-1b-it-q4 这一个本地模型
-        if (!"gemma3-1b-it-q4".equals(aiPrefs.getLocalModel())) {
+        String selectedModelId = aiPrefs.getLocalModel();
+        if ("on-device".equals(selectedModelId)) {
             return null;
         }
         // 检查任务类型是否在本地 LLM 支持范围内
         if (!supportsLocalLlm(task.taskType)) {
             return null;
         }
-        AiModelInfo model = buildGemmaModelInfo();
+        AiModelInfo model = aiPrefs.getLocalModelInfo();
+        if (model == null) {
+            return AiResult.fail("当前本地模型缺少运行元数据，请在“本地模型”列表中重新启用或重新下载该模型。")
+                    .source("local-llm")
+                    .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
+                    .build();
+        }
+        if (!"mediapipe-llm".equals(model.runtime)) {
+            return AiResult.fail("当前本地模型运行时暂不支持: " + model.runtime)
+                    .source("local-llm")
+                    .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
+                    .build();
+        }
         // 检查模型文件是否已下载到手机上
         if (!modelDownloadManager.isDownloaded(appContext, model)) {
-            return null;
+            return AiResult.fail("本地模型尚未下载完成，请先进入“本地模型”下载并启用: " + model.name)
+                    .source("local-llm")
+                    .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
+                    .build();
         }
         // 检查设备内存是否足够加载模型（模型很大，内存不够会崩溃）
         if (!hasEnoughMemory(model.minRamMb)) {
@@ -341,13 +356,13 @@ public class AiTaskRouter {
                         .errorCode(AiErrorCode.LOCAL_LLM_DEGENERATED_OUTPUT)
                         .build();
             }
-            return AiResult.success(output).source("local-gemma").build();
+            return AiResult.success(output).source("local-llm").build();
         } catch (Throwable t) {
             // 使用 Throwable 而非 Exception，以捕获 NoClassDefFoundError 等链接时错误
             // 这类错误在模型库缺失时会出现，用 Exception 抓不住
             Log.e(TAG, "Local Gemma task failed", t);
-            return AiResult.fail("本地 Gemma 推理失败: " + t.getMessage())
-                    .source("local-gemma")
+            return AiResult.fail("本地模型推理失败: " + t.getMessage())
+                    .source("local-llm")
                     .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
                     .build();
         }

@@ -4,12 +4,16 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -99,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         // 加载页面布局文件，把 XML 中定义的界面展示出来
         setContentView(R.layout.activity_main);
+        applySystemBarInsets();
 
         // 初始化权限助手
         permissionHelper = new PermissionHelper(this);
@@ -142,6 +147,31 @@ public class MainActivity extends AppCompatActivity {
         observeUpdateStates();
         // 延迟2秒后自动检查更新
         scheduleAutoUpdateCheck();
+    }
+
+    private void applySystemBarInsets() {
+        View container = findViewById(R.id.container);
+        BottomNavigationView navView = findViewById(R.id.nav_view);
+        if (container == null) return;
+
+        final int left = container.getPaddingLeft();
+        final int top = container.getPaddingTop();
+        final int right = container.getPaddingRight();
+        final int bottom = container.getPaddingBottom();
+        final int navLeft = navView != null ? navView.getPaddingLeft() : 0;
+        final int navTop = navView != null ? navView.getPaddingTop() : 0;
+        final int navRight = navView != null ? navView.getPaddingRight() : 0;
+        final int navBottom = navView != null ? navView.getPaddingBottom() : 0;
+
+        ViewCompat.setOnApplyWindowInsetsListener(container, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(left + bars.left, top + bars.top, right + bars.right, bottom);
+            if (navView != null) {
+                navView.setPadding(navLeft, navTop, navRight, navBottom + bars.bottom);
+            }
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(container);
     }
 
     /**

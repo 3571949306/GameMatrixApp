@@ -6,7 +6,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.gamecenter.app.R;
@@ -21,7 +20,7 @@ import java.util.concurrent.Executors;
  * <p>
  * 负责管理五子棋单局对战的完整生命周期，包括：
  * <ul>
- *   <li>难度选择（1~6级，对应不同AI思考时间）</li>
+ *   <li>难度选择（低 / 中 / 高 / 大师，对应不同AI思考时间）</li>
  *   <li>玩家（黑方）落子交互</li>
  *   <li>AI（白方）异步计算与落子</li>
  *   <li>悔棋功能（同时撤销玩家和AI各一手）</li>
@@ -31,7 +30,7 @@ import java.util.concurrent.Executors;
  * 关键设计决策：
  * <ul>
  *   <li>AI计算在单独线程池中执行，通过Handler延迟300ms回传结果</li>
- *   <li>难度通过SeekBar选择，影响AI的搜索时间限制</li>
+ *   <li>难度通过按钮直接选择，影响AI的搜索时间限制</li>
  *   <li>悔棋按"一手"为单位，每次撤销玩家+AI共两手棋</li>
  * </ul>
  *
@@ -57,9 +56,6 @@ public class GomokuActivity extends AppCompatActivity {
     /** 难度标签文本 */
     private TextView tvDifficultyLabel;
 
-    /** 难度选择滑块 */
-    private SeekBar seekDifficulty;
-
     /** 五子棋游戏逻辑对象 */
     private GomokuGame game;
 
@@ -69,8 +65,10 @@ public class GomokuActivity extends AppCompatActivity {
     /** AI执子颜色（固定为白方） */
     private int aiPlayer = GomokuGame.WHITE;
 
-    /** 当前AI难度等级（1~6） */
-    private int aiDifficulty = 3;
+    /** 当前AI难度等级（1~4） */
+    private int aiDifficulty = 2;
+
+    private static final int MAX_AI_DIFFICULTY = 4;
 
     /** 游戏使用统计存储 */
     private GameUsageStore usageStore;
@@ -88,9 +86,9 @@ public class GomokuActivity extends AppCompatActivity {
     // 就像一块"公共黑板"，谁都能看到上面的内容，而且修改后立刻生效
     private volatile boolean aiThinking = false;
 
-    /** 难度名称数组，与SeekBar进度对应 */
+    /** 难度名称数组，与 1-4 档按钮对应 */
     private static final String[] DIFFICULTY_NAMES = {
-        "初识五子棋", "初级棋手", "入门学生", "中等棋力", "高手水平", "精湛大师"
+        "低", "中", "高", "大师"
     };
 
     /**
@@ -113,7 +111,6 @@ public class GomokuActivity extends AppCompatActivity {
         gomokuView = findViewById(R.id.gomoku_view);
         difficultyPanel = findViewById(R.id.difficulty_panel);
         controlPanel = findViewById(R.id.control_panel);
-        seekDifficulty = findViewById(R.id.seek_difficulty);
         tvDifficultyLabel = findViewById(R.id.tv_difficulty_label);
 
         // 创建游戏逻辑对象和AI引擎
@@ -127,21 +124,7 @@ public class GomokuActivity extends AppCompatActivity {
         // 设置游戏结束监听器：游戏结束时调用handleGameOver方法
         gomokuView.setOnGameOverListener(this::handleGameOver);
 
-        // 难度滑块变化监听器：拖动滑块时更新难度等级和显示文本
-        seekDifficulty.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                aiDifficulty = progress + 1;
-                if (tvDifficultyLabel != null) {
-                    tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[progress]
-                            + " (" + aiDifficulty + "/6)");
-                }
-            }
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
+        setupDifficultyButtons();
 
         // 绑定各个按钮的点击事件
         findViewById(R.id.btn_start_game).setOnClickListener(v -> startGame(aiDifficulty));
@@ -159,10 +142,35 @@ public class GomokuActivity extends AppCompatActivity {
         });
     }
 
+    private void setupDifficultyButtons() {
+        int[] ids = {
+                R.id.btn_difficulty_1,
+                R.id.btn_difficulty_2,
+                R.id.btn_difficulty_3,
+                R.id.btn_difficulty_4
+        };
+        for (int i = 0; i < ids.length; i++) {
+            final int difficulty = i + 1;
+            View button = findViewById(ids[i]);
+            if (button != null) {
+                button.setOnClickListener(v -> selectDifficulty(difficulty));
+            }
+        }
+        selectDifficulty(aiDifficulty);
+    }
+
+    private void selectDifficulty(int difficulty) {
+        aiDifficulty = Math.max(1, Math.min(difficulty, MAX_AI_DIFFICULTY));
+        if (tvDifficultyLabel != null) {
+            tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[aiDifficulty - 1]
+                    + " (" + aiDifficulty + "/" + MAX_AI_DIFFICULTY + ")");
+        }
+    }
+
     /**
      * 开始游戏，根据选择的难度创建AI引擎。
      *
-     * @param difficulty AI难度等级（1~6）
+     * @param difficulty AI难度等级（1~4）
      */
     private void startGame(int difficulty) {
         aiDifficulty = difficulty;
