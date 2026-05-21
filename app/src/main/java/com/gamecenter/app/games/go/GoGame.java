@@ -2,6 +2,7 @@ package com.gamecenter.app.games.go;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 围棋游戏核心逻辑类。
@@ -47,8 +48,31 @@ public class GoGame {
     /** 四个方向偏移量：右、下、左、上 */
     private static final int[][] DIRS = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 
-    /** AI单次决策的最大时间限制（毫秒） */
-    private static final long AI_TIME_LIMIT_MS = 1800;
+    private long computeAiTimeLimitMs() {
+        if (moveCount < 8) return 900L;
+        if (moveCount < 40) return 1400L;
+        return 1000L;
+    }
+
+    private int[] findObviousCapture(List<int[]> legalMoves) {
+        int[] bestMove = null;
+        int bestCaptured = 0;
+        int captureMoveCount = 0;
+        for (int[] move : legalMoves) {
+            int[][] testBoard = copyBoard(board);
+            int captured = applyMoveOnBoard(testBoard, move[0], move[1], currentPlayer);
+            if (captured >= 3) return move;
+            if (captured >= 2) {
+                captureMoveCount++;
+                if (captured > bestCaptured) {
+                    bestCaptured = captured;
+                    bestMove = move;
+                }
+            }
+        }
+        if (captureMoveCount == 1 && bestMove != null) return bestMove;
+        return null;
+    }
 
     /** AI根节点最大模拟次数上限 */
     private static final int MAX_ROOT_SIMULATIONS = 22000;
@@ -451,71 +475,104 @@ public class GoGame {
     public int[] getRandomMove() {
         List<int[]> moves = getLegalMoves();
         if (moves.isEmpty()) return null;
-        return moves.get((int) (Math.random() * moves.size()));
+        return moves.get(ThreadLocalRandom.current().nextInt(moves.size()));
     }
 
     /**
      * AI核心方法：获取当前局面下的最佳落子。
      * <p>
-     * 采用"先验评分筛选 + 蒙特卡洛模拟"的混合策略：
+     * 采用"战术短路 + 先验评分筛选 + 并行蒙特卡洛模拟"的混合策略：
      * <ol>
+     *   <li>检查明显提子着法（3子以上直接返回，唯一2子提法也直接返回）</li>
      *   <li>对所有合法着法进行先验评分（{@link #scoreRootMove}），按分数排序</li>
      *   <li>取前28个候选着法进入模拟阶段</li>
-     *   <li>在时间限制内反复执行蒙特卡洛模拟（{@link #simulateRootMove}）</li>
-     *   <li>使用UCB1式选择公式（{@link #selectRootCandidate}）平衡探索与利用</li>
-     *   <li>最终根据平均胜率加先验偏置选择最优着法</li>
+     *   <li>初始阶段顺序模拟每个候选一次</li>
+     *   <li>迭代阶段使用多线程并行模拟，每个线程独立运行UCB1选择</li>
+     *   <li>合并各线程的模拟结果，根据平均胜率加先验偏置选择最优着法</li>
      * </ol>
-     *
-     * 【初学者提示】蒙特卡洛模拟是什么？
-     * 想象你和朋友下棋，到了一个关键点不知道下哪里好。
-     * 蒙特卡洛模拟的做法是：对每个候选位置，在脑海中快速下很多盘随机棋局，
-     * 看哪个位置赢的次数最多就选哪个。
-     * "UCB1选择公式"就像一个聪明的策略：不能只试看起来好的位置（利用），
-     * 也要试试还没怎么试过的位置（探索），说不定有惊喜。
+     * <p>
+     * 时间预算根据对局阶段动态调整：开局900ms、中局1400ms、终局1000ms。
      *
      * @return 最佳落子坐标 [x, y]，无合法着法时返回null
      */
     public int[] getBestMove() {
         List<int[]> legalMoves = getLegalMoves();
         if (legalMoves.isEmpty()) return null;
-        // 只有一个合法着法时直接返回
         if (legalMoves.size() == 1) return legalMoves.get(0);
 
-        // 先验评分并排序
+        int[] captureMove = findObviousCapture(legalMoves);
+        if (captureMove != null) return captureMove;
+
         List<ScoredMove> candidates = new ArrayList<>();
         for (int[] move : legalMoves) {
             candidates.add(new ScoredMove(move, scoreRootMove(move)));
         }
         candidates.sort((a, b) -> Double.compare(b.prior, a.prior));
 
-        // 取前28个候选着法进入模拟
         int candidateCount = Math.min(28, candidates.size());
-        long deadline = System.currentTimeMillis() + AI_TIME_LIMIT_MS;
+        long deadline = System.currentTimeMillis() + computeAiTimeLimitMs();
         double[] values = new double[candidateCount];
         int[] visits = new int[candidateCount];
         int simulations = 0;
 
-        // 初始阶段：对每个候选至少模拟一次
         for (int i = 0; i < candidateCount && System.currentTimeMillis() < deadline; i++) {
             values[i] += simulateRootMove(candidates.get(i).move, deadline);
             visits[i]++;
             simulations++;
         }
 
-        // 迭代模拟阶段：使用UCB1选择公式分配模拟次数
-        while (System.currentTimeMillis() < deadline && simulations < MAX_ROOT_SIMULATIONS) {
-            int idx = selectRootCandidate(candidates, values, visits, candidateCount, simulations);
-            values[idx] += simulateRootMove(candidates.get(idx).move, deadline);
-            visits[idx]++;
-            simulations++;
+        int numWorkers = Math.min(Runtime.getRuntime().availableProcessors(), 4);
+        if (numWorkers > 1 && System.currentTimeMillis() < deadline) {
+            final double[] seqValues = values.clone();
+            final int[] seqVisits = visits.clone();
+            final int seqSimulations = simulations;
+            int simBudget = Math.max(1, (MAX_ROOT_SIMULATIONS - simulations) / numWorkers);
+            Thread[] workers = new Thread[numWorkers];
+            final Object mergeLock = new Object();
+
+            for (int w = 0; w < numWorkers; w++) {
+                workers[w] = new Thread(() -> {
+                    double[] localValues = seqValues.clone();
+                    int[] localVisits = seqVisits.clone();
+                    int localSims = 0;
+                    while (System.currentTimeMillis() < deadline && localSims < simBudget) {
+                        int idx = selectRootCandidate(candidates, localValues, localVisits,
+                                candidateCount, seqSimulations + localSims);
+                        localValues[idx] += simulateRootMove(candidates.get(idx).move, deadline);
+                        localVisits[idx]++;
+                        localSims++;
+                    }
+                    synchronized (mergeLock) {
+                        for (int i = 0; i < candidateCount; i++) {
+                            values[i] += localValues[i] - seqValues[i];
+                            visits[i] += localVisits[i] - seqVisits[i];
+                        }
+                    }
+                });
+                workers[w].start();
+            }
+
+            for (Thread worker : workers) {
+                try {
+                    long remaining = Math.max(1, deadline - System.currentTimeMillis() + 500);
+                    worker.join(remaining);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        } else {
+            while (System.currentTimeMillis() < deadline && simulations < MAX_ROOT_SIMULATIONS) {
+                int idx = selectRootCandidate(candidates, values, visits, candidateCount, simulations);
+                values[idx] += simulateRootMove(candidates.get(idx).move, deadline);
+                visits[idx]++;
+                simulations++;
+            }
         }
 
-        // 根据平均胜率 + 先验偏置选择最终着法
         int bestIdx = 0;
         double bestScore = -Double.MAX_VALUE;
         for (int i = 0; i < candidateCount; i++) {
             double average = visits[i] == 0 ? 0.5 : values[i] / visits[i];
-            // 综合平均胜率和先验分数，先验分数权重较小仅作微调
             double finalScore = average * 100.0 + candidates.get(i).prior * 0.03;
             if (finalScore > bestScore) {
                 bestScore = finalScore;
@@ -683,7 +740,7 @@ public class GoGame {
     private SimMove chooseWeightedMove(List<SimMove> moves) {
         int total = 0;
         for (SimMove move : moves) total += move.weight;
-        int pick = (int) (Math.random() * total);
+        int pick = ThreadLocalRandom.current().nextInt(total);
         for (SimMove move : moves) {
             pick -= move.weight;
             if (pick < 0) return move;

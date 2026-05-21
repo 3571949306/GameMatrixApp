@@ -29,7 +29,7 @@ import java.util.concurrent.Executors;
  * <p>
  * 关键设计决策：
  * <ul>
- *   <li>AI计算在单独线程池中执行，通过Handler延迟300ms回传结果</li>
+ *   <li>AI计算在单独线程池中执行，通过Handler按难度最小响应延迟回传结果</li>
  *   <li>难度通过按钮直接选择，影响AI的搜索时间限制</li>
  *   <li>悔棋按"一手"为单位，每次撤销玩家+AI共两手棋</li>
  * </ul>
@@ -40,6 +40,8 @@ import java.util.concurrent.Executors;
  * 它就像一个"指挥官"：自己不下棋，但协调棋盘视图(GomokuView)、游戏规则(GomokuGame)和AI大脑(GomokuAI)协同工作。
  */
 public class GomokuActivity extends AppCompatActivity {
+
+    private static final long[] AI_MIN_RESPONSE_DELAYS_MS = {80L, 120L, 170L, 230L};
 
     /** 游戏标识，用于胜负统计 */
     private static final String GAME_ID = "gomoku";
@@ -188,40 +190,33 @@ public class GomokuActivity extends AppCompatActivity {
      * 处理玩家点击棋盘的落子操作。
      * <p>
      * 仅在黑方回合且AI未思考时响应。玩家落子后检查胜负，
-     * 若未结束则异步触发AI计算，AI完成后延迟300ms落子。
+     * 若未结束则异步触发AI计算，AI完成后按难度最小响应延迟落子。
      *
      * @param x 横坐标（列索引）
      * @param y 纵坐标（行索引）
      */
     private void handleCellClick(int x, int y) {
-        // 一系列前置检查：游戏是否结束？是否轮到玩家？AI是否在思考？落子是否合法？
         if (game.isGameOver()) return;
-        // 仅允许黑方（玩家）手动落子
         if (game.getCurrentPlayer() != GomokuGame.BLACK) return;
         if (aiThinking) return;
         if (!game.isValidMove(x, y)) return;
-
-        // 玩家落子，然后切换到AI回合
+        gomokuView.clearHint();
         game.makeMove(x, y, GomokuGame.BLACK);
         game.switchPlayer();
         gomokuView.invalidate();
-
-        // 玩家落子后检查是否已获胜
         if (game.checkGameOver()) {
             gomokuView.invalidate();
             return;
         }
-
-        // 标记AI正在思考，此时玩家不能再操作
         aiThinking = true;
         gomokuView.clearHover();
         gomokuView.invalidate();
-        // 把AI计算任务提交到专用线程池（不在主线程计算，避免界面卡顿）
+        final long startMs = System.currentTimeMillis();
         aiExecutor.execute(() -> {
             int[] bestMove = ai.getBestMove(game, aiPlayer);
-            // 延迟300ms落子，模拟AI思考过程
-            // 就像真人下棋需要思考一会儿，AI也"假装"想了一下
-            mainHandler.postDelayed(() -> {
+            long elapsed = System.currentTimeMillis() - startMs;
+            long delay = Math.max(getAiMinResponseDelayMs() - elapsed, 0L);
+            Runnable applyMove = () -> {
                 if (bestMove != null) {
                     game.makeMove(bestMove[0], bestMove[1], GomokuGame.WHITE);
                     game.switchPlayer();
@@ -229,28 +224,33 @@ public class GomokuActivity extends AppCompatActivity {
                 }
                 aiThinking = false;
                 gomokuView.invalidate();
-            }, 300);
+            };
+            if (delay > 0L) {
+                mainHandler.postDelayed(applyMove, delay);
+            } else {
+                mainHandler.post(applyMove);
+            }
         });
     }
+    private long getAiMinResponseDelayMs() {
+        int idx = Math.max(0, Math.min(aiDifficulty - 1, AI_MIN_RESPONSE_DELAYS_MS.length - 1));
+        return AI_MIN_RESPONSE_DELAYS_MS[idx];
+    }
 
-    /**
-     * 处理悔棋操作。
-     * <p>
-     * 每次悔棋撤销玩家和AI各一手（共两手棋）。
-     * AI思考期间禁止悔棋。
-     */
     private void handleUndo() {
         // AI正在思考时不允许悔棋，避免状态混乱
         if (aiThinking) return;
         // undoLastMoves(1)表示撤销1"手"（包含玩家和AI各一手）
         int undoCount = game.undoLastMoves(1);
         if (undoCount > 0) {
+            gomokuView.clearHint();
             gomokuView.invalidate();
         }
     }
 
     private void handleHint() {
         if (game.isGameOver() || aiThinking || game.getCurrentPlayer() != GomokuGame.BLACK) return;
+        gomokuView.clearHint();
         aiExecutor.execute(() -> {
             int[] hint = ai.getBestMove(game, GomokuGame.BLACK);
             mainHandler.post(() -> {
@@ -270,6 +270,7 @@ public class GomokuActivity extends AppCompatActivity {
         aiThinking = false;
         game.reset();
         gomokuView.clearHover();
+        gomokuView.clearHint();
         gomokuView.setGame(game);
         // 切换界面：显示难度选择面板，隐藏游戏控制面板
         difficultyPanel.setVisibility(View.VISIBLE);
