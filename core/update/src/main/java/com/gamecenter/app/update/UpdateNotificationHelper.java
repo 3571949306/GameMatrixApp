@@ -34,7 +34,7 @@ public class UpdateNotificationHelper {
 
     /**
      * 创建通知渠道（Android 8.0+ 必需）。
-     * 使用低优先级（IMPORTANCE_LOW），通知不会发出声音，仅在通知栏静默显示。
+     * 使用默认优先级（IMPORTANCE_DEFAULT），确保用户能注意到下载进度。
      *
      * @param context 上下文
      */
@@ -43,8 +43,10 @@ public class UpdateNotificationHelper {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "应用更新",
-                    NotificationManager.IMPORTANCE_LOW);
+                    NotificationManager.IMPORTANCE_DEFAULT);
             channel.setDescription("显示应用更新下载进度");
+            channel.enableVibration(false);
+            channel.setSound(null, null);
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -54,26 +56,47 @@ public class UpdateNotificationHelper {
 
     /**
      * 显示下载进度通知。
-     * 通知为持续型（ongoing），不可被用户滑动消除，避免下载过程中误删通知。
+     * 通知为持续型（ongoing），显示下载速度，并添加取消按钮。
      *
      * @param context     上下文
      * @param progress    下载进度百分比（0-100）
      * @param versionName 正在下载的版本名称
+     * @param speed       下载速度（KB/s）
      */
-    public void showDownloadNotification(Context context, int progress, String versionName) {
+    public void showDownloadNotification(Context context, int progress, String versionName, String speed) {
         createNotificationChannel(context);
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null) return;
 
+        // 创建取消下载的PendingIntent
+        Intent cancelIntent = new Intent(UpdateManager.ACTION_CANCEL_DOWNLOAD);
+        cancelIntent.setPackage(context.getPackageName());
+        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(
+                context, 0, cancelIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        String contentText = "版本 " + versionName + " - " + progress + "%";
+        if (speed != null && !speed.isEmpty()) {
+            contentText += " | " + speed;
+        }
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download)
                 .setContentTitle("正在下载更新")
-                .setContentText("版本 " + versionName + " - " + progress + "%")
+                .setContentText(contentText)
                 .setProgress(100, progress, false)
                 .setOngoing(true)
-                .setAutoCancel(false);
+                .setAutoCancel(false)
+                .addAction(android.R.drawable.ic_menu_delete, "取消下载", cancelPendingIntent);
 
         manager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    /**
+     * 兼容旧的调用方式，不传递速度
+     */
+    public void showDownloadNotification(Context context, int progress, String versionName) {
+        showDownloadNotification(context, progress, versionName, "");
     }
 
     /**

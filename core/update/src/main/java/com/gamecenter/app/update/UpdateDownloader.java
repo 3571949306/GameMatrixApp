@@ -1,7 +1,11 @@
 package com.gamecenter.app.update;
 
+import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
+import android.os.Build;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.gamecenter.app.update.BuildConfig;
@@ -196,6 +200,8 @@ public class UpdateDownloader {
         byte[] buf = new byte[65536];
         long downloaded = 0;
         long lastReportTime = 0;
+        long lastSpeedCheckTime = System.currentTimeMillis();
+        long lastSpeedCheckBytes = 0;
         int read;
         // 速度检测相关变量
         long speedCheckStartTime = 0;
@@ -246,7 +252,23 @@ public class UpdateDownloader {
                 final long fTotal = totalSize;
                 if (callback != null) callback.onProgress(fDownloaded, fTotal);
                 int percent = totalSize > 0 ? (int) (downloaded * 100 / totalSize) : 0;
-                notificationHelper.showDownloadNotification(context, percent, info.getVersionName());
+                
+                // 计算并显示下载速度
+                String speedStr = "";
+                if (now - lastSpeedCheckTime >= 1000) { // 每秒计算一次速度
+                    long elapsed = now - lastSpeedCheckTime;
+                    long bytesDiff = downloaded - lastSpeedCheckBytes;
+                    long speedKb = elapsed > 0 ? (bytesDiff * 1000 / elapsed) / 1024 : 0;
+                    if (speedKb > 0) {
+                        speedStr = speedKb >= 1024 ? 
+                            String.format("%.1f MB/s", speedKb / 1024.0) : 
+                            String.format("%d KB/s", speedKb);
+                    }
+                    lastSpeedCheckTime = now;
+                    lastSpeedCheckBytes = downloaded;
+                }
+                
+                notificationHelper.showDownloadNotification(context, percent, info.getVersionName(), speedStr);
                 lastReportTime = now;
             }
         }
@@ -254,12 +276,16 @@ public class UpdateDownloader {
         out.close();
         conn.disconnect();
 
-        // 下载完成后进行 MD5 校验
+        // 下载完成后进行双重完整性校验：文件大小 + MD5
+        if (totalSize > 0 && apkFile.length() != totalSize) {
+            apkFile.delete();
+            throw new Exception("下载文件大小不匹配，期望 " + totalSize + " 字节，实际 " + apkFile.length() + " 字节");
+        }
         if (!info.getMd5().isEmpty()) {
             String actualMd5 = computeMd5(apkFile);
             if (!info.getMd5().equalsIgnoreCase(actualMd5)) {
                 apkFile.delete();
-                throw new Exception("安装包校验失败");
+                throw new Exception("安装包MD5校验失败，期望 " + info.getMd5() + "，实际 " + actualMd5);
             }
         }
         return apkFile;
@@ -436,24 +462,48 @@ public class UpdateDownloader {
     }
 
     /**
+     * 是否保存到公共 Download 目录，默认开启
+     */
+    private static final boolean SAVE_TO_PUBLIC_DOWNLOAD = true;
+
+    /**
      * 获取 APK 下载目录。
-     * 优先使用外部存储的 Downloads 目录，不可用时回退到内部存储。
-     * APK 文件存放在 "update" 子目录下。
+     * 优先保存到公共 Download 目录（用户可通过文件管理器访问），
+     * 不可用时回退到应用私有目录。
      *
      * @param context 上下文
      * @return 下载目录的 File 对象
      */
     public File getDownloadDir(Context context) {
+        if (SAVE_TO_PUBLIC_DOWNLOAD) {
+            // 尝试获取公共 Download 目录
+            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                File publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (publicDir != null && (publicDir.exists() || publicDir.mkdirs())) {
+                    return publicDir;
+                }
+            }
+        }
+        
+        // 回退到应用私有目录
         File baseDir = null;
-        // 优先使用外部存储（用户可通过文件管理器访问）
         if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             baseDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         }
-        // 外部存储不可用时回退到内部存储
         if (baseDir == null) {
             baseDir = context.getFilesDir();
         }
         return new File(baseDir, "update");
+    }
+
+    /**
+     * 获取公共下载目录的 File 对象，用于打开目录等操作
+     */
+    public File getPublicDownloadDir(Context context) {
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        }
+        return getDownloadDir(context);
     }
 
     /**
