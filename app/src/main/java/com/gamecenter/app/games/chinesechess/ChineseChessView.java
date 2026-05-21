@@ -19,6 +19,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.OvershootInterpolator;
 
+import androidx.core.content.ContextCompat;
+
 import java.util.List;
 
 /**
@@ -140,6 +142,7 @@ public class ChineseChessView extends View {
 
     /** 楚河汉界文字画笔 */
     private Paint riverTextPaint;
+    private int boardBackgroundColor;
 
     /** 走棋动画：当前动画中的棋子 */
     private ChineseChessGame.Piece animatingPiece;
@@ -185,14 +188,17 @@ public class ChineseChessView extends View {
      * <p>创建所有绘制所需的Paint对象，设置颜色、线宽、字体等属性。
      */
     private void init() {
+        int boardLineColor = ContextCompat.getColor(getContext(), com.gamecenter.app.R.color.chess_line);
+        int boardLineDarkColor = Color.parseColor("#4E342E");
+
         linePaint = new Paint();
-        linePaint.setColor(Color.parseColor("#5D4037"));
-        linePaint.setStrokeWidth(1.5f);
+        linePaint.setColor(boardLineColor);
+        linePaint.setStrokeWidth(2.5f);
         linePaint.setAntiAlias(true);
 
         thickLinePaint = new Paint();
-        thickLinePaint.setColor(Color.parseColor("#3E2723"));
-        thickLinePaint.setStrokeWidth(3f);
+        thickLinePaint.setColor(boardLineDarkColor);
+        thickLinePaint.setStrokeWidth(4f);
         thickLinePaint.setAntiAlias(true);
 
         redPiecePaint = new Paint();
@@ -204,9 +210,9 @@ public class ChineseChessView extends View {
         blackPiecePaint.setAntiAlias(true);
 
         pieceBorderPaint = new Paint();
-        pieceBorderPaint.setColor(Color.parseColor("#5D4037"));
+        pieceBorderPaint.setColor(boardLineDarkColor);
         pieceBorderPaint.setStyle(Paint.Style.STROKE);
-        pieceBorderPaint.setStrokeWidth(2f);
+        pieceBorderPaint.setStrokeWidth(2.5f);
         pieceBorderPaint.setAntiAlias(true);
 
         redTextPaint = new Paint();
@@ -238,10 +244,12 @@ public class ChineseChessView extends View {
         lastMovePaint.setAntiAlias(true);
 
         riverTextPaint = new Paint();
-        riverTextPaint.setColor(Color.parseColor("#5D4037"));
+        riverTextPaint.setColor(boardLineDarkColor);
         riverTextPaint.setAntiAlias(true);
         riverTextPaint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         riverTextPaint.setTextAlign(Paint.Align.CENTER);
+
+        boardBackgroundColor = ContextCompat.getColor(getContext(), com.gamecenter.app.R.color.chess_bg);
 
         gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -399,11 +407,12 @@ public class ChineseChessView extends View {
      */
     private void drawBoardBackground(Canvas canvas) {
         Paint bgPaint = new Paint();
-        bgPaint.setColor(Color.parseColor("#F5DEB3"));
+        bgPaint.setColor(boardBackgroundColor);
         bgPaint.setAntiAlias(true);
         RectF boardRect = new RectF(
                 boardLeft - boardPadding, boardTop - boardPadding,
                 boardLeft + cellSize * 8 + boardPadding, boardTop + cellSize * 9 + boardPadding);
+        canvas.drawColor(boardBackgroundColor);
         canvas.drawRect(boardRect, bgPaint);
     }
 
