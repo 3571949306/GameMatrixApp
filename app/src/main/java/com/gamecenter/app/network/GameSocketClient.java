@@ -127,8 +127,8 @@ public class GameSocketClient {
 
     /** 发送消息的独立线程池，单线程执行以保证消息顺序 */
     private final ExecutorService sendExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread thread = new Thread(r, "SocketWriter");
-        thread.setDaemon(true); // 守护线程：当主线程结束时，这个线程也会自动结束
+        Thread thread = new Thread(r, "GC-Network-Send");
+        thread.setDaemon(true);
         return thread;
     });
 

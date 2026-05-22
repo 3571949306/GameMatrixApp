@@ -9,14 +9,14 @@ import com.gamecenter.app.database.entity.AiMessageEntity
 @Dao
 interface AiMessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(message: AiMessageEntity): Long
+    fun insert(message: AiMessageEntity): Long
 
     @Query("SELECT * FROM ai_messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
-    suspend fun getBySessionId(sessionId: String): List<AiMessageEntity>
+    fun getBySessionId(sessionId: String): List<AiMessageEntity>
 
     @Query("DELETE FROM ai_messages WHERE sessionId = :sessionId")
-    suspend fun deleteBySessionId(sessionId: String)
+    fun deleteBySessionId(sessionId: String): Int
 
     @Query("DELETE FROM ai_messages WHERE timestamp < :cutoffTime")
-    suspend fun deleteOlderThan(cutoffTime: Long): Int
+    fun deleteOlderThan(cutoffTime: Long): Int
 }

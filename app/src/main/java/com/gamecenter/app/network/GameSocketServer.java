@@ -70,9 +70,7 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
 
     private ServerSocket serverSocket;
     private ExecutorService clientThreadPool;
-    /** 发送消息的独立线程池，单线程执行以保证消息顺序 */
     private ExecutorService sendExecutor;
-    /** 心跳检查的定时调度器 */
     private ScheduledExecutorService heartbeatScheduler;
     /** 客户端连接映射表，key为clientId，线程安全。
      *  就像一本"签到簿"，记录每个座位号对应的客户端连接。 */
@@ -322,16 +320,23 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
             serverSocket = new ServerSocket(port);
             serverPort = port;
             isRunning = true;
-            clientThreadPool = Executors.newFixedThreadPool(MAX_CLIENTS);
+            clientThreadPool = Executors.newFixedThreadPool(MAX_CLIENTS, r -> {
+                Thread t = new Thread(r, "GC-Network-Client");
+                t.setDaemon(true);
+                return t;
+            });
             sendExecutor = Executors.newSingleThreadExecutor(r -> {
-                Thread thread = new Thread(r, "ServerSocketWriter");
+                Thread thread = new Thread(r, "GC-Network-Send");
                 thread.setDaemon(true);
                 return thread;
             });
-            heartbeatScheduler = Executors.newScheduledThreadPool(1);
+            heartbeatScheduler = Executors.newScheduledThreadPool(1, r -> {
+                Thread t = new Thread(r, "GC-Network-Heartbeat");
+                t.setDaemon(true);
+                return t;
+            });
             startHeartbeatCheck();
-            // 启动连接接受线程，循环等待客户端连接
-            new Thread(this::acceptConnections).start();
+            new Thread(this::acceptConnections, "GC-Network-Accept").start();
             Log.d(TAG, "Server started on port " + port);
             return true;
         } catch (IOException e) {
@@ -368,7 +373,7 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
             relayPolling = true;
             relayKnownClients.clear();
             sendExecutor = Executors.newSingleThreadExecutor(r -> {
-                Thread thread = new Thread(r, "RelayHostWriter");
+                Thread thread = new Thread(r, "GC-Network-RelaySend");
                 thread.setDaemon(true);
                 return thread;
             });

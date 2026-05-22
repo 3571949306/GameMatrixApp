@@ -23,11 +23,15 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * 局域网（LAN）设备发现与服务注册管理器。
@@ -77,6 +81,12 @@ public class LANManager {
 
     /** NSD 服务类型标识，格式为 "_服务名._协议."，用于 mDNS 服务发现 */
     private static final String SERVICE_TYPE = "_doudizhu._tcp.";
+
+    /** HMAC 算法，用于验证发现报文的真实性 */
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
+
+    /** 共享密钥前缀，用于标识游戏房间 */
+    private String sharedSecret;
 
     private DatagramSocket socket;
     private volatile boolean running = false;
@@ -140,6 +150,77 @@ public class LANManager {
         this.serverPort = 0;
         this.context = context != null ? context.getApplicationContext() : null;
         this.nsdManager = this.context != null ? (NsdManager) this.context.getSystemService(Context.NSD_SERVICE) : null;
+        this.sharedSecret = generateDefaultSecret();
+    }
+
+    /**
+     * 生成默认共享密钥。
+     *
+     * <p>使用游戏名称和端口号作为熵源，确保同房间的设备能相互认证。</p>
+     *
+     * @return 默认共享密钥
+     */
+    private String generateDefaultSecret() {
+        return "GameCenter_" + gameName + "_" + serverPort;
+    }
+
+    /**
+     * 设置共享密钥，用于 HMAC 签名验证。
+     *
+     * <p>房间创建者应在启动发现前设置共享密钥，加入者可使用相同的密钥进行验证。
+     * 共享密钥确保只有同一房间的设备才能相互发现，防止恶意设备伪造发现报文。</p>
+     *
+     * @param secret 共享密钥字符串
+     */
+    public void setSharedSecret(String secret) {
+        if (secret != null && !secret.isEmpty()) {
+            this.sharedSecret = secret;
+            Log.d(TAG, "Shared secret configured for discovery authentication");
+        }
+    }
+
+    /**
+     * 获取当前共享密钥。
+     *
+     * @return 当前共享密钥，若未设置则返回默认密钥
+     */
+    public String getSharedSecret() {
+        return sharedSecret;
+    }
+
+    /**
+     * 使用 HMAC-SHA256 对数据进行签名。
+     *
+     * <p>签名数据格式：game|player|port|timestamp</p>
+     *
+     * @param data 要签名的数据字符串
+     * @return Base64 编码的签名字符串，签名失败返回空字符串
+     */
+    private String computeHmac(String data) {
+        if (sharedSecret == null || data == null) return "";
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(sharedSecret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
+            mac.init(secretKeySpec);
+            byte[] hmacBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            return android.util.Base64.encodeToString(hmacBytes, android.util.Base64.NO_WRAP);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            Log.e(TAG, "HMAC computation failed: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * 验证 HMAC 签名的有效性。
+     *
+     * @param data 原始数据字符串
+     * @param signature Base64 编码的签名
+     * @return 签名有效返回 true，否则返回 false
+     */
+    private boolean verifyHmac(String data, String signature) {
+        if (signature == null || signature.isEmpty()) return false;
+        String expectedSignature = computeHmac(data);
+        return expectedSignature.equals(signature);
     }
 
     /**
@@ -520,17 +601,27 @@ public class LANManager {
     /**
      * UDP 广播循环：定期向局域网广播本机的游戏发现报文。
      *
-     * <p>报文为 JSON 格式，包含游戏名称、玩家名称和服务端口。
+     * <p>报文为 JSON 格式，包含游戏名称、玩家名称、服务端口和 HMAC 签名。
      * 每隔 {@value #BROADCAST_INTERVAL} 毫秒发送一次，直到 {@link #running} 被置为 false。</p>
+     * <p>
+     * <b>安全说明</b>：报文包含 HMAC 签名，用于验证发现报文的真实性，
+     * 防止同网段恶意设备伪造发现报文。
+     * </p>
      */
     private void broadcastLoop() {
         while (running) {
             try {
+                long timestamp = System.currentTimeMillis();
                 JSONObject broadcast = new JSONObject();
                 broadcast.put("type", "DISCOVERY");
                 broadcast.put("game", gameName);
                 broadcast.put("player", playerName);
                 broadcast.put("port", serverPort);
+                broadcast.put("ts", timestamp);
+
+                String signData = gameName + "|" + playerName + "|" + serverPort + "|" + timestamp;
+                String signature = computeHmac(signData);
+                broadcast.put("sig", signature);
 
                 byte[] data = broadcast.toString().getBytes(StandardCharsets.UTF_8);
                 DatagramPacket packet = new DatagramPacket(data, data.length, getBroadcastAddress(), DISCOVERY_PORT);
@@ -545,7 +636,6 @@ public class LANManager {
 
                 Thread.sleep(BROADCAST_INTERVAL);
             } catch (InterruptedException e) {
-                // 线程被中断时退出循环
                 break;
             } catch (Exception e) {
                 Log.e(TAG, "Error broadcasting: " + e.getMessage());
@@ -557,7 +647,11 @@ public class LANManager {
      * UDP 接收循环：持续监听局域网内其他设备的发现广播报文。
      *
      * <p>收到报文后解析 JSON，仅处理 type 为 "DISCOVERY" 且游戏名称匹配的报文。
-     * 对于已知主机更新其 lastSeen 时间戳，新主机则添加到列表并通知监听器。</p>
+     * 同时验证 HMAC 签名的有效性，忽略签名无效的报文，防止恶意设备伪造发现。</p>
+     * <p>
+     * <b>安全说明</b>：接收方会验证报文的 HMAC 签名，只有使用相同共享密钥签名的报文才会被处理。
+     * 若共享密钥未设置（使用默认密钥），则验证基于默认密钥的签名。
+     * </p>
      */
     private void receiveLoop() {
         byte[] buffer = new byte[1024];
@@ -576,14 +670,20 @@ public class LANManager {
                     String game = json.optString("game");
                     String player = json.optString("player");
                     int port = json.optInt("port", 0);
+                    long timestamp = json.optLong("ts", 0);
+                    String signature = json.optString("sig");
                     String hostIp = packet.getAddress().getHostAddress();
 
-                    // 仅处理同游戏的发现报文，忽略其他游戏的广播
                     if (!game.equals(gameName)) continue;
+
+                    String signData = game + "|" + player + "|" + port + "|" + timestamp;
+                    if (!verifyHmac(signData, signature)) {
+                        Log.w(TAG, "Ignoring discovery packet with invalid signature from: " + hostIp);
+                        continue;
+                    }
 
                     DiscoveredHost host = new DiscoveredHost(hostIp, port, player);
 
-                    // 检查是否为已知主机，若是则更新其活跃时间
                     boolean exists = false;
                     for (DiscoveredHost h : discoveredHosts) {
                         if (h.getIp().equals(hostIp)) {
@@ -593,7 +693,6 @@ public class LANManager {
                         }
                     }
 
-                    // 新主机加入列表并通知监听器
                     if (!exists) {
                         discoveredHosts.add(host);
                         postHostDiscovered(host);

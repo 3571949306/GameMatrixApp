@@ -154,12 +154,11 @@ class WebSocketHostHelper {
         nextWsClientId = 1;
 
         sendExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread thread = new Thread(r, "WebSocketHostWriter");
+            Thread thread = new Thread(r, "GC-Network-WsSend");
             thread.setDaemon(true);
             return thread;
         });
 
-        // 在独立线程中执行WebSocket连接，避免阻塞调用线程
         new Thread(() -> {
             try {
                 doWebSocketConnect();
@@ -168,7 +167,7 @@ class WebSocketHostHelper {
                 callback.onError("WebSocket 连接失败: " + e.getMessage());
                 callback.onRequestStop();
             }
-        }, "GameWebSocketHostConnect").start();
+        }, "GC-Network-WsConnect").start();
 
         return true;
     }
@@ -370,7 +369,11 @@ class WebSocketHostHelper {
     private void startWebSocketHeartbeat() {
         NetworkLogger.logWs(TAG, "HEARTBEAT_START", wsUrl, "interval=" + WS_HEARTBEAT_INTERVAL);
         if (wsHeartbeatScheduler != null) wsHeartbeatScheduler.shutdownNow();
-        wsHeartbeatScheduler = Executors.newScheduledThreadPool(1);
+        wsHeartbeatScheduler = Executors.newScheduledThreadPool(1, r -> {
+            Thread t = new Thread(r, "GC-Network-WsHeartbeat");
+            t.setDaemon(true);
+            return t;
+        });
 
         wsHeartbeatTask = wsHeartbeatScheduler.scheduleAtFixedRate(() -> {
             if (!webSocketMode || webSocket == null || !active) return;
