@@ -31,7 +31,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_permission_copy_privacy"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_margin="3dp"

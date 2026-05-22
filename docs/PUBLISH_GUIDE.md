@@ -1,4 +1,4 @@
-# GameCenterApp 发布指南
+# GameMatrixApp 发布指南
 
 ## 2026-05-20 GitHub 上传网络说明
 
@@ -6,7 +6,7 @@
 - 该配置只影响 `https://github.com`，用于在不开启 xray TUN/虚拟网卡模式时完成 `git push` 和 GitHub Release 上传前的 Git 操作。
 - 如本地代理端口变化，运行 `powershell -ExecutionPolicy Bypass -File tools\network\Configure-GitHubProxy.ps1 -Apply` 重新检测并写入配置。
 
-本文档说明如何将 GameCenterApp APK 自动发布到所有更新源。
+本文档说明如何将 GameMatrixApp APK 自动发布到所有更新源。
 
 ## 重要更新（2026-05-12）
 
@@ -79,7 +79,7 @@ python tools/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.ap
 |------|--------|-----|------|------|
 | 1 | 香港 VPS | https://hk-update.tcp0053.shop | SFTP | 主要更新源，低延迟 |
 | 2 | 美国 VPS | https://tcp0053.shop:1443 | SFTP | 备用更新源 |
-| 3 | GitHub Releases | https://github.com/3571949306/GameCenterApp/releases | HTTPS API | 公开分发 |
+| 3 | GitHub Releases | https://github.com/3571949306/GameMatrixApp/releases | HTTPS API | 公开分发 |
 
 ## 前置准备
 
@@ -95,14 +95,14 @@ pip install paramiko requests
 在项目根目录创建 `keystore.properties` 文件：
 
 ```properties
-# GameCenterApp 签名配置
-STORE_FILE=gamecenter.keystore
+# GameMatrixApp 签名配置
+STORE_FILE=GameMatrix.keystore
 STORE_PASSWORD=<your-store-password>
-KEY_ALIAS=gamecenter
+KEY_ALIAS=GameMatrix
 KEY_PASSWORD=<your-key-password>
 ```
 
-确保 `gamecenter.keystore` 文件存在于项目根目录。
+确保 `GameMatrix.keystore` 文件存在于项目根目录。
 
 ### 3. 配置 VPS 凭证
 
@@ -123,7 +123,7 @@ VPS 配置文件位于 `local_private/vps/` 目录（已排除在版本控制外
   "remoteDir": "/var/www/update/app",
   "publicBaseUrl": "https://your-update-domain.com",
   "postUploadCommands": [
-    "systemctl restart gamecenter-update"
+    "systemctl restart GameMatrix-update"
   ]
 }
 ```
@@ -242,7 +242,7 @@ graph TD
 
 ### 2. 检查 GitHub Releases
 
-访问：https://github.com/3571949306/GameCenterApp/releases
+访问：https://github.com/3571949306/GameMatrixApp/releases
 
 ### 3. 应用内检查更新
 
@@ -305,7 +305,7 @@ python tools/publish-all.py --channel beta --github-token ${{ secrets.GITHUB_TOK
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
 
 ## 2026-05-19 Modularization Note

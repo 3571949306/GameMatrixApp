@@ -133,7 +133,7 @@ public class IpToolBinder implements ToolBinder {
                     conn.setRequestMethod("GET");  // 使用GET请求方式
                     conn.setConnectTimeout(5000);   // 连接超时5秒（5秒内连不上就放弃）
                     conn.setReadTimeout(5000);      // 读取超时5秒（5秒内没收到响应就放弃）
-                    conn.setRequestProperty("User-Agent", "GameCenterApp/1.0");  // 告诉服务器我们是谁
+                    conn.setRequestProperty("User-Agent", "GameMatrixApp/1.0");  // 告诉服务器我们是谁
 
                     // HTTPS API 需设置 Accept 头，告诉服务器我们想要JSON格式的响应
                     if (urlStr.startsWith("https")) {

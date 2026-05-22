@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GameCenter</string>
+    <string name="app_name">GameMatrix</string>
     <string name="nav_browser">Browser</string>
     <string name="nav_games">Games</string>
     <string name="nav_tools">Tools</string>

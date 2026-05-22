@@ -722,13 +722,13 @@ public class AiTaskRouterTest {
         String template = "Hello {{name}}, welcome to {{place}}!";
         Map<String, String> vars = new HashMap<>();
         vars.put("name", "World");
-        vars.put("place", "GameCenter");
+        vars.put("place", "GameMatrix");
 
         AiResult result = LocalAiProcessor.fillTemplate(template, vars);
 
         assertTrue(result.success);
         assertEquals("local", result.source);
-        assertEquals("Hello World, welcome to GameCenter!", result.content);
+        assertEquals("Hello World, welcome to GameMatrix!", result.content);
     }
 
     @Test

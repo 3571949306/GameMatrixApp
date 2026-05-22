@@ -166,7 +166,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_open_download_dir"
-            style="@style/Widget.GameCenter.Button.Outlined"
+            style="@style/Widget.GameMatrix.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginBottom="16dp"
@@ -181,7 +181,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_check_update"
-            style="@style/Widget.GameCenter.Button"
+            style="@style/Widget.GameMatrix.Button"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="16dp"

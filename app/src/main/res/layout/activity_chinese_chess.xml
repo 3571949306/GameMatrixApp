@@ -64,7 +64,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_difficulty_1"
-                    style="@style/Widget.GameCenter.Button.Tonal"
+                    style="@style/Widget.GameMatrix.Button.Tonal"
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_margin="4dp"
@@ -74,7 +74,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_difficulty_2"
-                    style="@style/Widget.GameCenter.Button.Tonal"
+                    style="@style/Widget.GameMatrix.Button.Tonal"
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_margin="4dp"
@@ -92,7 +92,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_difficulty_3"
-                    style="@style/Widget.GameCenter.Button.Tonal"
+                    style="@style/Widget.GameMatrix.Button.Tonal"
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_margin="4dp"
@@ -102,7 +102,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_difficulty_4"
-                    style="@style/Widget.GameCenter.Button.Tonal"
+                    style="@style/Widget.GameMatrix.Button.Tonal"
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_margin="4dp"
@@ -116,7 +116,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_start_game"
-            style="@style/Widget.GameCenter.Button"
+            style="@style/Widget.GameMatrix.Button"
             android:layout_width="160dp"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
@@ -130,7 +130,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_tutorial"
-                style="@style/Widget.GameCenter.Button.Outlined"
+                style="@style/Widget.GameMatrix.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
@@ -139,7 +139,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_online"
-                style="@style/Widget.GameCenter.Button.Tonal"
+                style="@style/Widget.GameMatrix.Button.Tonal"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="8dp"
@@ -167,7 +167,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_undo"
-                style="@style/Widget.GameCenter.Button"
+                style="@style/Widget.GameMatrix.Button"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="4dp"
@@ -177,7 +177,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_hint"
-                style="@style/Widget.GameCenter.Button.Tonal"
+                style="@style/Widget.GameMatrix.Button.Tonal"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="4dp"
@@ -195,7 +195,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_restart"
-                style="@style/Widget.GameCenter.Button"
+                style="@style/Widget.GameMatrix.Button"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="4dp"
@@ -205,7 +205,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_tutorial_ingame"
-                style="@style/Widget.GameCenter.Button.Outlined"
+                style="@style/Widget.GameMatrix.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_margin="4dp"

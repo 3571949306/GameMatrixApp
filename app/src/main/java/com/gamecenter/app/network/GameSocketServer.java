@@ -364,8 +364,8 @@ public class GameSocketServer implements WebSocketHostHelper.WsHostCallback {
             relayBaseUrl = baseUrl != null && !baseUrl.trim().isEmpty() ? baseUrl.trim() : RelayHttpClient.DEFAULT_BASE_URL;
             // 向中转服务器发送创建房间请求
             JSONObject body = new JSONObject();
-            body.put("app", "GameCenterApp");
-            body.put("game", "GameCenterApp");
+            body.put("app", "GameMatrixApp");
+            body.put("game", "GameMatrixApp");
             JSONObject response = RelayHttpClient.post(relayBaseUrl, "/create", body, 10000);
             relayRoomCode = response.getString("roomCode");
             relayHostToken = response.getString("hostToken");

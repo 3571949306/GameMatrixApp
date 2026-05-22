@@ -55,7 +55,7 @@ class SaveManager @Inject constructor(
     }
 
     companion object {
-        private const val PREFS_NAME = "gamecenter_saves"
+        private const val PREFS_NAME = "GameMatrix_saves"
         private const val KEY_PREFIX_SAVE = "save_"
         private const val KEY_PREFIX_PROGRESS = "progress_"
 

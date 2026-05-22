@@ -12,7 +12,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "GameCenterApp"
+rootProject.name = "GameMatrixApp"
 include ':app'
 include ':core:common'
 include ':core:network'

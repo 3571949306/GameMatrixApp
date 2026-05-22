@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GameCenterApp feedback receiver.
+GameMatrixApp feedback receiver.
 
 Deploy target:
   /var/www/update/feedback/feedback_server.py
@@ -37,8 +37,8 @@ APP_FEEDBACK_TYPE_DIRS = {
     "feature": "功能",
 }
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("GAMECENTER_FEEDBACK_PORT", "9011"))
-ADMIN_TOKEN = os.environ.get("GAMECENTER_FEEDBACK_TOKEN", "change-this-token")
+PORT = int(os.environ.get("gamematrix_FEEDBACK_PORT", "9011"))
+ADMIN_TOKEN = os.environ.get("gamematrix_FEEDBACK_TOKEN", "change-this-token")
 MAX_BODY_BYTES = 256 * 1024
 
 
@@ -250,7 +250,7 @@ def list_feedback(limit: int = 100) -> list[sqlite3.Row]:
 
 
 class FeedbackHandler(BaseHTTPRequestHandler):
-    server_version = "GameCenterFeedback/1.0"
+    server_version = "gamematrixFeedback/1.0"
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -332,7 +332,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
         <html lang="zh-CN">
         <head>
           <meta charset="utf-8">
-          <title>GameCenter Feedback</title>
+          <title>gamematrix Feedback</title>
           <style>
             body {{ font-family: sans-serif; margin: 24px; background: #f6f7f9; color: #1f2937; }}
             article {{ background: #fff; padding: 16px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; }}
@@ -340,7 +340,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
           </style>
         </head>
         <body>
-          <h1>GameCenter Feedback</h1>
+          <h1>gamematrix Feedback</h1>
           {''.join(items) if items else '<p>No feedback yet.</p>'}
         </body>
         </html>
@@ -359,7 +359,7 @@ class FeedbackHandler(BaseHTTPRequestHandler):
 def main() -> None:
     init_db()
     httpd = ThreadingHTTPServer((HOST, PORT), FeedbackHandler)
-    print(f"GameCenter feedback server listening on http://{HOST}:{PORT}")
+    print(f"gamematrix feedback server listening on http://{HOST}:{PORT}")
     httpd.serve_forever()
 
 

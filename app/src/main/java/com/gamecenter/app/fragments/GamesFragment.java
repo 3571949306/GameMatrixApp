@@ -303,7 +303,7 @@ public class GamesFragment extends Fragment {
     private void openLocalEmailClient(String recipient, String body) {
         Intent intent = new Intent(Intent.ACTION_SENDTO);
         intent.setData(Uri.parse("mailto:" + recipient));
-        intent.putExtra(Intent.EXTRA_SUBJECT, "GameCenterApp 意见反馈");
+        intent.putExtra(Intent.EXTRA_SUBJECT, "GameMatrixApp 意见反馈");
         intent.putExtra(Intent.EXTRA_TEXT, body);
         try {
             startActivity(intent);
@@ -447,7 +447,7 @@ public class GamesFragment extends Fragment {
                 .url(com.gamecenter.app.BuildConfig.FEEDBACK_URL)
                 .post(body)
                 .addHeader("Accept", "application/json")
-                .addHeader("User-Agent", "GameCenterApp/" + BuildConfig.VERSION_NAME)
+                .addHeader("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {

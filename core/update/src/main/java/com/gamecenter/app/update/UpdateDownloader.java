@@ -157,7 +157,7 @@ public class UpdateDownloader {
             downloadDir.mkdirs();
         }
         File apkFile = new File(downloadDir,
-                MessageFormat.format("GameCenter_v{0}_{1}.apk",
+                MessageFormat.format("GameMatrix_v{0}_{1}.apk",
                         String.valueOf(info.getVersionCode()), info.getVersionName()));
 
         // 断点续传检测：若本地已有 MD5 匹配的 APK，直接返回
@@ -180,7 +180,7 @@ public class UpdateDownloader {
         conn.setConnectTimeout(UpdateChecker.FALLBACK_CONNECT_TIMEOUT);
         // 读取超时设为 5 分钟，适应大文件下载
         conn.setReadTimeout(300000);
-        conn.setRequestProperty("User-Agent", "GameCenterApp/" + BuildConfig.VERSION_NAME);
+        conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
 
         // 连接建立后再次检查取消状态
         if (isCancelled) {
@@ -358,9 +358,9 @@ public class UpdateDownloader {
         String tag = info != null ? info.getVersionName() : "";
         String apkName = info != null && info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
         if (tag == null || tag.isEmpty()) {
-            return "https://github.com/3571949306/GameCenterApp/releases/latest/download/" + apkName;
+            return "https://github.com/3571949306/GameMatrixApp/releases/latest/download/" + apkName;
         }
-        return "https://github.com/3571949306/GameCenterApp/releases/download/" + tag + "/" + apkName;
+        return "https://github.com/3571949306/GameMatrixApp/releases/download/" + tag + "/" + apkName;
     }
 
     /**
@@ -373,7 +373,7 @@ public class UpdateDownloader {
             return;
         }
         File[] apkFiles = downloadDir.listFiles((dir, name) ->
-                name.startsWith("GameCenter_v") && name.endsWith(".apk"));
+                name.startsWith("GameMatrix_v") && name.endsWith(".apk"));
         if (apkFiles == null || apkFiles.length == 0) {
             return;
         }
@@ -396,13 +396,13 @@ public class UpdateDownloader {
             return 0;
         }
         File[] apkFiles = downloadDir.listFiles((dir, name) ->
-                name.startsWith("GameCenter_v") && name.endsWith(".apk"));
+                name.startsWith("GameMatrix_v") && name.endsWith(".apk"));
         // 仅有一个或没有 APK 文件，无需清理
         if (apkFiles == null || apkFiles.length <= 1) {
             return 0;
         }
         // 从文件名中提取版本号，保留版本号最高的 APK
-        Pattern pattern = Pattern.compile("GameCenter_v(\\d+)_");
+        Pattern pattern = Pattern.compile("GameMatrix_v(\\d+)_");
         File latestApk = null;
         int latestVersionCode = -1;
         int deletedCount = 0;

@@ -187,8 +187,8 @@
 - 单元测试总数从 96 增至 411+，核心模块测试覆盖显著提升。
 
 ### 网络模块去重
-- 删除 `com.gamecenter.app.games.doudizhu.network.RelayHttpClient`（与共享版 95% 重复）。
-- 斗地主模块（DouDiZhuOnlineActivity、GameSocketServer、GameSocketClient）统一使用 `com.gamecenter.app.network.RelayHttpClient`。
+- 删除 `com.GameMatrix.app.games.doudizhu.network.RelayHttpClient`（与共享版 95% 重复）。
+- 斗地主模块（DouDiZhuOnlineActivity、GameSocketServer、GameSocketClient）统一使用 `com.GameMatrix.app.network.RelayHttpClient`。
 - 共享版 `RelayHttpClient.post()` 方法从包私有改为 `public`，支持跨包调用。
 
 ### DI 迁移统一
@@ -237,7 +237,7 @@
 ---## [当前工作区] - 2026-05-14（全局文字适配 + 应用内英文切换）
 
 ### 文字适配
-- 新增 `Widget.GameCenter.Button`、`Widget.GameCenter.Button.Tonal`、`Widget.GameCenter.Button.Outlined` 和平台按钮默认样式。
+- 新增 `Widget.GameMatrix.Button`、`Widget.GameMatrix.Button.Tonal`、`Widget.GameMatrix.Button.Outlined` 和平台按钮默认样式。
 - 全局替换 MaterialButton 使用项目样式，统一按钮最小高度、内边距、两行显示和省略策略。
 - 修正斗地主、工具箱、游戏卡片、AI 页面等低高度按钮，减少“进入游戏”“发送”等文字被按钮裁切的问题。
 
@@ -323,7 +323,7 @@
 - **GameUsageStore**: 替换手工 JSON 拼接/解析为 Gson，消除潜在的格式错误隐患
 - **LANManager.postHostDiscovered()**: 修复为空方法的问题，现在正确回调 OnHostDiscoveredListener
 - **util/Log.java**: 删除未使用的自定义日志类（项目统一使用 AppLog/Timber 风格）
-- 删除空目录 `app/src/main/java/com/gamecenter/app/startup/`
+- 删除空目录 `app/src/main/java/com/GameMatrix/app/startup/`
 - 修复 `upload_config_hk.json` publicBaseUrl（移除:2083端口，使用Cloudflare HTTPS代理）
 - 新增 `dependencies {} constraints` 块，锁定 Guava/Okio/Kotlin 等传递依赖版本
 
@@ -351,7 +351,7 @@
 - **API 客户端**：新增 `AiApiClient`，支持 OpenAI 兼容接口（默认 DeepSeek API，可切换阿里云通义、硅基流动、智谱 AI、零一万物、OpenAI）
 
 ### 架构变更 🏗️
-- 新增 `com.gamecenter.app.ai` 包及子包：`ai.data`, `ai.cloud`, `ai.local`, `ai.ui`
+- 新增 `com.GameMatrix.app.ai` 包及子包：`ai.data`, `ai.cloud`, `ai.local`, `ai.ui`
 - 底部导航新增 AI 独立入口注册
 - `MainActivity` 底部导航集成 `AiFragment`
 - 资源文件新增：`fragment_ai.xml`, `item_ai_message.xml`
@@ -510,7 +510,7 @@
 
 ### 技术更新
 - 更新 `keystore.properties` 配置
-- 创建新的 `gamecenter.keystore` 签名文件（SHA384withRSA, 2048 位）
+- 创建新的 `GameMatrix.keystore` 签名文件（SHA384withRSA, 2048 位）
 - 修复 `UpdateManager.java` 版本比较逻辑
 - 修复 `build.gradle` 签名配置
 
@@ -522,7 +522,7 @@ jarsigner -verify app-release.apk
 ```
 
 签名信息：
-- 证书：CN=GameCenter, OU=Development, O=GameCenterApp, L=Shenzhen, ST=Guangdong, C=CN
+- 证书：CN=GameMatrix, OU=Development, O=GameMatrixApp, L=Shenzhen, ST=Guangdong, C=CN
 - 签名算法：SHA384withRSA, 2048 位密钥
 - 有效期：10000 天
 
@@ -539,7 +539,7 @@ jarsigner -verify app-release.apk
 
 ### 新增
 - APK 签名配置（release 构建自动签名）
-- 敏感文件排除（keystore.properties、gamecenter.keystore 不提交 Git）
+- 敏感文件排除（keystore.properties、GameMatrix.keystore 不提交 Git）
 - 自动化发布流程（一键上传到 HK VPS、US VPS、GitHub Releases）
 
 ### 优化
@@ -548,7 +548,7 @@ jarsigner -verify app-release.apk
 
 ### 技术
 - 新增 `keystore.properties` 配置签名凭证
-- 新增 `app/gamecenter.keystore` 签名密钥库（RSA 2048 位，10000 天有效期）
+- 新增 `app/GameMatrix.keystore` 签名密钥库（RSA 2048 位，10000 天有效期）
 - `build.gradle` 添加 `signingConfigs.release` 配置
 - `.gitignore` 添加签名文件排除规则
 
@@ -817,7 +817,7 @@ jarsigner -verify app-release.apk
 ### 联机功能全面扩展
 - **新增 4 个游戏的云联机功能**：剪刀石头布、五子棋、中国象棋、围棋
 - 所有联机均使用**香港 VPS WebSocket 中继服务器**，支持远程双人对战
-- **公共网络模块**：抽取 `com.gamecenter.app.network` 包，所有游戏共享同一套网络基础设施
+- **公共网络模块**：抽取 `com.GameMatrix.app.network` 包，所有游戏共享同一套网络基础设施
   - `GameSocketServer.java` — 房主权威服务器
   - `GameSocketClient.java` — 客户端连接管理
   - `RelayHttpClient.java` — HTTP Relay 通信 + WebSocket URL 生成
@@ -868,7 +868,7 @@ jarsigner -verify app-release.apk
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
 
 ## [Current Workspace] - 2026-05-19 Core Modularization Phase 1

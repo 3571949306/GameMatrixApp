@@ -1,4 +1,4 @@
-# GameCenter App
+# GameMatrix App
 
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
@@ -348,7 +348,7 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 .\gradlew.bat :app:test
 
 # 运行特定游戏测试
-.\gradlew.bat :app:testDebugUnitTest --tests "com.gamecenter.app.games.gomoku.GomokuGameTest"
+.\gradlew.bat :app:testDebugUnitTest --tests "com.GameMatrix.app.games.gomoku.GomokuGameTest"
 ```
 
 ---
@@ -388,7 +388,7 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 
 ### 公共网络模块 / Shared Network Module
 
-所有联机游戏共享 `com.gamecenter.app.network` 包中的网络基础设施：
+所有联机游戏共享 `com.GameMatrix.app.network` 包中的网络基础设施：
 
 | 模块 | 用途 |
 |------|------|
@@ -439,14 +439,14 @@ VPS 上同时维护两个通道的文件，互不覆盖：
 ## 目录结构 / Directory Structure
 
 ```
-GameCenterApp/
+GameMatrixApp/
 ├── app/
 │   ├── build.gradle                          # 壳应用构建配置（版本管理、上传任务、聚合模块依赖）
 │   └── src/main/
 │       ├── AndroidManifest.xml               # 应用清单
 │       ├── assets/
 │       │   └── version.json                  # 内置版本信息（自动生成）
-│       ├── java/com/gamecenter/app/
+│       ├── java/com/GameMatrix/app/
 │       │   ├── App.java                      # 应用入口，全局初始化
 │       │   ├── MainActivity.java             # 主界面（底部导航 + 更新检查）
 │       │   ├── ColorSchemeManager.java       # 主题配色管理
@@ -489,15 +489,15 @@ GameCenterApp/
 ├── core/
 │   ├── common/                               # 通用基础模块
 │   │   └── src/main/
-│   │       ├── java/com/gamecenter/app/
+│   │       ├── java/com/GameMatrix/app/
 │   │       │   └── SettingsManager.java      # 设置管理（SharedPreferences）
-│   │       └── kotlin/com/gamecenter/app/util/
+│   │       └── kotlin/com/GameMatrix/app/util/
 │   │           ├── AppResult.kt              # 通用结果模型
 │   │           ├── AppError.kt               # 错误模型
 │   │           ├── NetworkResult.kt          # 网络结果模型
 │   │           └── Extensions/Lazy/Memory/Accessibility helpers
 │   ├── network/                              # 基础网络模块
-│   │   └── src/main/java/com/gamecenter/app/
+│   │   └── src/main/java/com/GameMatrix/app/
 │   │       ├── network/
 │   │       │   ├── OkHttpClientProvider.java # HTTP/WebSocket 客户端
 │   │       │   ├── RelayHttpClient.java      # Relay HTTP + WebSocket URL
@@ -506,13 +506,13 @@ GameCenterApp/
 │   │       └── utils/NetworkErrorHandler.java
 │   └── update/                               # 更新子系统模块
 │       └── src/main/
-│           ├── java/com/gamecenter/app/update/
+│           ├── java/com/GameMatrix/app/update/
 │           │   ├── UpdateManager.java        # 更新检查、下载、安装入口
 │           │   ├── UpdateChecker.java        # 版本检查策略
 │           │   ├── UpdateDownloader.java     # APK 下载与校验
 │           │   ├── UpdateInstaller.java      # 安装与目录打开
 │           │   └── UpdateInfo.java           # 版本信息数据模型
-│           └── kotlin/com/gamecenter/app/update/
+│           └── kotlin/com/GameMatrix/app/update/
 │               └── UpdateViewModel.kt        # 生命周期安全的更新 ViewModel
 ├── tools/
 │   ├── upload_to_vps.py                      # 上传 APK 到 VPS
@@ -547,8 +547,8 @@ GameCenterApp/
 
 ```bash
 # 1. 克隆项目 / Clone the repository
-git clone https://github.com/3571949306/GameCenterApp.git
-cd GameCenterApp
+git clone https://github.com/3571949306/GameMatrixApp.git
+cd GameMatrixApp
 
 # 2. 配置本地服务器地址 / Configure server addresses
 # 复制配置模板 / Copy configuration template
@@ -614,14 +614,14 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 
 1. 创建密钥库（首次）：
 ```bash
-keytool -genkey -v -keystore gamecenter.keystore -alias gamecenter -keyalg RSA -keysize 2048 -validity 10000 -storepass "<your-store-password>" -keypass "<your-key-password>" -dname "CN=GameCenter, OU=Development, O=GameCenterApp, L=Shenzhen, ST=Guangdong, C=CN"
+keytool -genkey -v -keystore GameMatrix.keystore -alias GameMatrix -keyalg RSA -keysize 2048 -validity 10000 -storepass "<your-store-password>" -keypass "<your-key-password>" -dname "CN=GameMatrix, OU=Development, O=GameMatrixApp, L=Shenzhen, ST=Guangdong, C=CN"
 ```
 
 2. 创建 `keystore.properties`（不提交 Git）：
 ```properties
-STORE_FILE=gamecenter.keystore
+STORE_FILE=GameMatrix.keystore
 STORE_PASSWORD=<your-store-password>
-KEY_ALIAS=gamecenter
+KEY_ALIAS=GameMatrix
 KEY_PASSWORD=<your-key-password>
 ```
 
@@ -634,7 +634,7 @@ jarsigner -verify app-release.apk
 # 输出：jar 已验证 ✅
 ```
 
-> **注意**：`gamecenter.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交到版本控制。
+> **注意**：`GameMatrix.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交到版本控制。
 
 ### GitHub Token 配置 / GitHub Token Setup
 
@@ -667,7 +667,7 @@ jarsigner -verify app-release.apk
 
 MIT License
 
-Copyright (c) 2024-2026 GameCenter App Contributors
+Copyright (c) 2024-2026 GameMatrix App Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -688,7 +688,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
 ## 2026-05-18 文档同步：架构优化
 

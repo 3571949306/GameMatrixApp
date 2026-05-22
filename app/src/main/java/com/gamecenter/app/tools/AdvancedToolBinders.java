@@ -100,7 +100,7 @@ public final class AdvancedToolBinders {
     private static final int QR_SIZE = 720;
 
     /** 诊断报告的剪贴板标签，用于标识复制到剪贴板的内容来源 */
-    private static final String REPORT_LABEL = "GameCenter diagnostics";
+    private static final String REPORT_LABEL = "GameMatrix diagnostics";
 
     // 私有构造函数：防止外部 new AdvancedToolBinders()，因为所有方法都是静态的
     private AdvancedToolBinders() {
@@ -630,7 +630,7 @@ public final class AdvancedToolBinders {
      */
     private static String buildDiagnosticReport(Context context) {
         StringBuilder sb = new StringBuilder();
-        sb.append("GameCenterApp 诊断报告\n");
+        sb.append("GameMatrixApp 诊断报告\n");
         sb.append("生成时间: ").append(formatDate(System.currentTimeMillis())).append("\n");
         sb.append("应用版本: ").append(BuildConfig.VERSION_NAME).append(" (").append(BuildConfig.VERSION_CODE).append(")\n");
         sb.append("系统版本: Android ").append(Build.VERSION.RELEASE).append(" / API ").append(Build.VERSION.SDK_INT).append("\n");
@@ -1189,7 +1189,7 @@ public final class AdvancedToolBinders {
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);
-        conn.setRequestProperty("User-Agent", "GameCenterApp/" + BuildConfig.VERSION_NAME);
+        conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
             String line;

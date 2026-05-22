@@ -62,7 +62,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_game_restart"
-            style="@style/Widget.GameCenter.Button.Outlined"
+            style="@style/Widget.GameMatrix.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -71,7 +71,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_game_tutorial"
-            style="@style/Widget.GameCenter.Button.Outlined"
+            style="@style/Widget.GameMatrix.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

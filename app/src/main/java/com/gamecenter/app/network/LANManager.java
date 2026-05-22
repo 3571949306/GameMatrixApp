@@ -161,7 +161,7 @@ public class LANManager {
      * @return 默认共享密钥
      */
     private String generateDefaultSecret() {
-        return "GameCenter_" + gameName + "_" + serverPort;
+        return "GameMatrix_" + gameName + "_" + serverPort;
     }
 
     /**

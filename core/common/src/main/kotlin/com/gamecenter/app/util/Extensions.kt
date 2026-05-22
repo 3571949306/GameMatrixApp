@@ -8,7 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object AppLog {
-    private const val TAG = "GameCenter"
+    private const val TAG = "GameMatrix"
     
     fun d(message: String) = android.util.Log.d(TAG, message)
     fun i(message: String) = android.util.Log.i(TAG, message)

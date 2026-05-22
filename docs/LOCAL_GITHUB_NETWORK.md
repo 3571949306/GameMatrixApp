@@ -16,7 +16,7 @@ This avoids depending on xray TUN or a virtual network adapter for `git push`, w
 
 ```powershell
 git config --global --get http.https://github.com.proxy
-git ls-remote https://github.com/3571949306/GameCenterApp.git HEAD
+git ls-remote https://github.com/3571949306/GameMatrixApp.git HEAD
 ```
 
 Expected result: `git ls-remote` prints the remote `HEAD` commit.

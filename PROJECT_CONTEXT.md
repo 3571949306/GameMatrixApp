@@ -1,4 +1,4 @@
-# GameCenterApp 项目上下文
+# GameMatrixApp 项目上下文
 
 ## 2026-05-21 维护快照
 
@@ -41,45 +41,45 @@
 
 | 文件 | 用途 |
 |------|------|
-| `app/src/main/java/com/gamecenter/app/PermissionHelper.java` | 权限管理辅助 |
-| `app/src/main/java/com/gamecenter/app/utils/NetworkErrorHandler.java` | 网络错误统一处理 |
-| `app/src/main/java/com/gamecenter/app/utils/I18nHelper.java` | 国际化辅助 |
-| `app/src/main/java/com/gamecenter/app/ai/AiTaskRouter.java` | AI 任务调度（本地优先 → 云端 fallback） |
-| `app/src/main/java/com/gamecenter/app/ai/ui/AiFragment.java` | AI 助手聊天页面 |
-| `app/src/main/java/com/gamecenter/app/ai/local/MediaPipeLocalLlmEngine.java` | Gemma `.task` 本地推理封装 |
-| `app/src/main/java/com/gamecenter/app/ai/legal/AiLegalNotices.java` | Gemma 条款、本地 AI 风险提示与下载前确认文本 |
-| `app/src/main/java/com/gamecenter/app/ai/template/AiTemplateManager.java` | AI 常用模板管理 |
-| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuUIController.java` | 斗地主 UI 控制器（视图引用、UI 更新、对话框） |
-| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuRuleEngine.java` | 斗地主规则引擎（出牌验证、叫地主评估、清台判断） |
-| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuAIHelper.java` | 斗地主 AI 辅助（AI 决策调度、出牌/叫地主逻辑） |
-| `app/src/main/java/com/gamecenter/app/games/doudizhu/DouDiZhuNetworkHandler.java` | 斗地主网络处理（消息路由、客户端意图管理、重连补发） |
-| `app/src/main/kotlin/com/gamecenter/app/database/AppDatabase.kt` | Room 数据库入口（单例、提供 DAO） |
-| `app/src/main/java/com/gamecenter/app/utils/ErrorReporter.java` | 统一错误上报（VPS + 本地回退、限流） |
-| `app/src/main/kotlin/com/gamecenter/app/update/UpdateViewModel.kt` | 更新流程 ViewModel（@HiltViewModel + LiveData，替代 UpdatePresenter） |
-| `app/src/main/kotlin/com/gamecenter/app/util/AppError.kt` | 统一错误模型（密封类，10 种错误类型） |
-| `app/src/main/kotlin/com/gamecenter/app/util/NetworkResult.kt` | 网络请求结果封装（基于 AppError） |
-| `app/src/main/java/com/gamecenter/app/network/OnlineRoomManager.java` | 联机房间管理器（组合式复用，替代 BaseOnlineActivity 继承） |
-| `app/src/main/java/com/gamecenter/app/games/GameEntry.java` | @GameEntry 注解（游戏自声明元数据） |
-| `app/src/main/kotlin/com/gamecenter/app/SaveManager.kt` | 存档管理器（Kotlin 迁移，@Singleton + @Inject） |
-| `app/src/main/java/com/gamecenter/app/ai/data/TaskStatus.java` | AI 任务状态枚举（PENDING/RUNNING/COMPLETED/FAILED） |
-| `app/src/main/java/com/gamecenter/app/ai/data/AiErrorCode.java` | AI 错误码常量类（7 个常量，消除魔法字符串） |
-| `app/src/main/kotlin/com/gamecenter/app/util/AppResult.kt` | 通用结果封装（重命名自 Result.kt，避免与 kotlin.Result 冲突） |
-| `app/src/test/java/com/gamecenter/app/ai/cloud/AiApiClientTest.java` | AI API 客户端 MockWebServer 测试（8 个方法） |
-| `app/src/test/java/com/gamecenter/app/update/UpdateInfoTest.java` | 更新信息 JSON 解析测试（17 个方法） |
+| `app/src/main/java/com/GameMatrix/app/PermissionHelper.java` | 权限管理辅助 |
+| `app/src/main/java/com/GameMatrix/app/utils/NetworkErrorHandler.java` | 网络错误统一处理 |
+| `app/src/main/java/com/GameMatrix/app/utils/I18nHelper.java` | 国际化辅助 |
+| `app/src/main/java/com/GameMatrix/app/ai/AiTaskRouter.java` | AI 任务调度（本地优先 → 云端 fallback） |
+| `app/src/main/java/com/GameMatrix/app/ai/ui/AiFragment.java` | AI 助手聊天页面 |
+| `app/src/main/java/com/GameMatrix/app/ai/local/MediaPipeLocalLlmEngine.java` | Gemma `.task` 本地推理封装 |
+| `app/src/main/java/com/GameMatrix/app/ai/legal/AiLegalNotices.java` | Gemma 条款、本地 AI 风险提示与下载前确认文本 |
+| `app/src/main/java/com/GameMatrix/app/ai/template/AiTemplateManager.java` | AI 常用模板管理 |
+| `app/src/main/java/com/GameMatrix/app/games/doudizhu/DouDiZhuUIController.java` | 斗地主 UI 控制器（视图引用、UI 更新、对话框） |
+| `app/src/main/java/com/GameMatrix/app/games/doudizhu/DouDiZhuRuleEngine.java` | 斗地主规则引擎（出牌验证、叫地主评估、清台判断） |
+| `app/src/main/java/com/GameMatrix/app/games/doudizhu/DouDiZhuAIHelper.java` | 斗地主 AI 辅助（AI 决策调度、出牌/叫地主逻辑） |
+| `app/src/main/java/com/GameMatrix/app/games/doudizhu/DouDiZhuNetworkHandler.java` | 斗地主网络处理（消息路由、客户端意图管理、重连补发） |
+| `app/src/main/kotlin/com/GameMatrix/app/database/AppDatabase.kt` | Room 数据库入口（单例、提供 DAO） |
+| `app/src/main/java/com/GameMatrix/app/utils/ErrorReporter.java` | 统一错误上报（VPS + 本地回退、限流） |
+| `app/src/main/kotlin/com/GameMatrix/app/update/UpdateViewModel.kt` | 更新流程 ViewModel（@HiltViewModel + LiveData，替代 UpdatePresenter） |
+| `app/src/main/kotlin/com/GameMatrix/app/util/AppError.kt` | 统一错误模型（密封类，10 种错误类型） |
+| `app/src/main/kotlin/com/GameMatrix/app/util/NetworkResult.kt` | 网络请求结果封装（基于 AppError） |
+| `app/src/main/java/com/GameMatrix/app/network/OnlineRoomManager.java` | 联机房间管理器（组合式复用，替代 BaseOnlineActivity 继承） |
+| `app/src/main/java/com/GameMatrix/app/games/GameEntry.java` | @GameEntry 注解（游戏自声明元数据） |
+| `app/src/main/kotlin/com/GameMatrix/app/SaveManager.kt` | 存档管理器（Kotlin 迁移，@Singleton + @Inject） |
+| `app/src/main/java/com/GameMatrix/app/ai/data/TaskStatus.java` | AI 任务状态枚举（PENDING/RUNNING/COMPLETED/FAILED） |
+| `app/src/main/java/com/GameMatrix/app/ai/data/AiErrorCode.java` | AI 错误码常量类（7 个常量，消除魔法字符串） |
+| `app/src/main/kotlin/com/GameMatrix/app/util/AppResult.kt` | 通用结果封装（重命名自 Result.kt，避免与 kotlin.Result 冲突） |
+| `app/src/test/java/com/GameMatrix/app/ai/cloud/AiApiClientTest.java` | AI API 客户端 MockWebServer 测试（8 个方法） |
+| `app/src/test/java/com/GameMatrix/app/update/UpdateInfoTest.java` | 更新信息 JSON 解析测试（17 个方法） |
 | `app/src/main/res/xml/backup_rules.xml` | Auto Backup 排除规则（sharedpref/database/update/） |
 | `app/src/main/res/xml/data_extraction_rules.xml` | D2D 迁移和云备份排除规则 |
 | `.github/workflows/ci.yml` | GitHub Actions CI/CD 工作流 |
 | `keystore.properties` | APK 签名凭证配置（不提交 Git） |
-| `app/gamecenter.keystore` | APK 签名密钥库（不提交 Git） |
+| `app/GameMatrix.keystore` | APK 签名密钥库（不提交 Git） |
 | `auto-publish.bat` | 一键发布脚本（Windows） |
 
 ## 1. 项目概览
 
 | 项目 | 说明 |
 | --- | --- |
-| 名称 | GameCenterApp |
+| 名称 | GameMatrixApp |
 | 类型 | Android 单模块应用 |
-| 包名 | `com.gamecenter.app` |
+| 包名 | `com.GameMatrix.app` |
 | 定位 | 集成经典小游戏、网络/设备工具、内置浏览器和应用自更新能力的工具娱乐应用 |
 | 语言 | Java 17 + Kotlin（数据层/工具层/ViewModel） |
 | 构建 | Gradle Wrapper + Android Gradle Plugin 8.7.3 |
@@ -115,7 +115,7 @@
 
 | 优先级 | 下载源 | 地址 | 超时配置 |
 |--------|--------|------|----------|
-| 1 | GitHub Releases | `https://github.com/3571949306/GameCenterApp/releases/latest` | 连接 5s / 读取 10s |
+| 1 | GitHub Releases | `https://github.com/3571949306/GameMatrixApp/releases/latest` | 连接 5s / 读取 10s |
 | 2 | 主更新源（香港 VPS） | `https://hk-update.<YOUR_DOMAIN>` | 连接 3s / 读取 5s |
 | 3 | 备用更新源（美国 VPS） | `https://<YOUR_FALLBACK_DOMAIN>` | 连接 15s / 读取 30s |
 
@@ -125,7 +125,7 @@
 
 ## 1.3 联机架构
 
-本项目采用**房主权威**联机模型，所有联机游戏共享 `com.gamecenter.app.network` 公共模块：
+本项目采用**房主权威**联机模型，所有联机游戏共享 `com.GameMatrix.app.network` 公共模块：
 
 | 模块 | 用途 |
 |------|------|
@@ -164,14 +164,14 @@ versionName=1.3.29
 ## 2. 代码结构
 
 ```text
-GameCenterApp/
+GameMatrixApp/
 ├── app/
 │   ├── build.gradle
 │   └── src/main/
 │       ├── AndroidManifest.xml
 │       ├── assets/
 │       │   └── pkgInfo.txt
-│       ├── java/com/gamecenter/app/
+│       ├── java/com/GameMatrix/app/
 │       │   ├── App.java
 │       │   ├── MainActivity.java
 │       │   ├── SettingsManager.java
@@ -217,15 +217,15 @@ GameCenterApp/
 
 目录说明：
 
-- `app/src/main/java/com/gamecenter/app/fragments`: 三个主页面，游戏大厅、工具箱、内置浏览器。`AiFragment` 在 ai/ui 包中。
-- `app/src/main/java/com/gamecenter/app/ai`: AI 助手模块。包含路由调度 (`AiTaskRouter`)、云端客户端 (`AiApiClient`)、本地处理器 (`LocalAiProcessor`)、历史与收藏 (`AiHistoryStore`)、模板 (`AiTemplateManager`)、偏好设置 (`AiPreferences`) 和数据模型。默认 DeepSeek API，可在 AI 页切换 OpenAI、阿里云通义、硅基流动、智谱 AI、零一万物、月之暗面 Kimi 等多家 OpenAI 兼容模型；本地模型入口按低端/中端/高端手机分档展示。
-- `app/src/main/java/com/gamecenter/app/games`: 各小游戏模块。多数模块采用 `Activity + View + Game` 的简单分层。
-- `app/src/main/java/com/gamecenter/app/settings`: 设置弹窗与设置项交互。`AppSettingsDialog` 已从 `GamesFragment` 拆出，负责主题、配色、版本更新和反馈入口。
-- `app/src/main/java/com/gamecenter/app/tools`: 工具箱拆分后的共享结构和独立 binder。当前包含功能区模型/配置存储、剪贴板/哈希/颜色取色器 binder，以及 `AdvancedToolBinders` 中的网络体检、诊断报告、DNS 查询、局域网扫描、编码/时间戳/JSON、文件哈希、二维码增强、颜色增强、权限隐私说明。AI 不再嵌入工具箱，入口在底部导航。
-- `app/src/main/java/com/gamecenter/app/update`: 自更新模块，包含 `version.json` 检查、正式/测试版策略、下载、MD5 校验、FileProvider 安装。`UpdateViewModel`（Kotlin）提供生命周期安全的更新状态管理，替代旧 `UpdatePresenter`。
+- `app/src/main/java/com/GameMatrix/app/fragments`: 三个主页面，游戏大厅、工具箱、内置浏览器。`AiFragment` 在 ai/ui 包中。
+- `app/src/main/java/com/GameMatrix/app/ai`: AI 助手模块。包含路由调度 (`AiTaskRouter`)、云端客户端 (`AiApiClient`)、本地处理器 (`LocalAiProcessor`)、历史与收藏 (`AiHistoryStore`)、模板 (`AiTemplateManager`)、偏好设置 (`AiPreferences`) 和数据模型。默认 DeepSeek API，可在 AI 页切换 OpenAI、阿里云通义、硅基流动、智谱 AI、零一万物、月之暗面 Kimi 等多家 OpenAI 兼容模型；本地模型入口按低端/中端/高端手机分档展示。
+- `app/src/main/java/com/GameMatrix/app/games`: 各小游戏模块。多数模块采用 `Activity + View + Game` 的简单分层。
+- `app/src/main/java/com/GameMatrix/app/settings`: 设置弹窗与设置项交互。`AppSettingsDialog` 已从 `GamesFragment` 拆出，负责主题、配色、版本更新和反馈入口。
+- `app/src/main/java/com/GameMatrix/app/tools`: 工具箱拆分后的共享结构和独立 binder。当前包含功能区模型/配置存储、剪贴板/哈希/颜色取色器 binder，以及 `AdvancedToolBinders` 中的网络体检、诊断报告、DNS 查询、局域网扫描、编码/时间戳/JSON、文件哈希、二维码增强、颜色增强、权限隐私说明。AI 不再嵌入工具箱，入口在底部导航。
+- `app/src/main/java/com/GameMatrix/app/update`: 自更新模块，包含 `version.json` 检查、正式/测试版策略、下载、MD5 校验、FileProvider 安装。`UpdateViewModel`（Kotlin）提供生命周期安全的更新状态管理，替代旧 `UpdatePresenter`。
 - `vps/var_www_update`: VPS 更新和反馈模板；更新服务部署为 `/var/www/update/server.py`，App 上传目录为 `/var/www/update/app/`，反馈目录为 `/var/www/update/feedback/`。
 - `vps/var_www_update/feedback`: VPS 反馈接收模板，部署目标为 `/var/www/update/feedback/`，通过 nginx `/api/feedback` 转发到本机 `127.0.0.1:9011`；反馈会按类型保存到 `Bug反馈/` 和 `功能建议/`，文件名包含编号、类型、时间和反馈摘要。
-- `app/src/main/java/com/gamecenter/app/views`: 主题/颜色选择相关自定义控件。
+- `app/src/main/java/com/GameMatrix/app/views`: 主题/颜色选择相关自定义控件。
 - `app/src/main/res/raw`: 音效资源较多，尤其是斗地主语音和背景音。
 - `tools/jadx`, `apk_temp`, `com.injoy.games.crazy.poker`: 反编译/参考 APK 相关目录，不属于主应用源码路径，修改主功能时通常不要动。
 
@@ -301,7 +301,7 @@ Windows 下推荐命令：
 
 Release APK 已配置自动签名：
 
-1. **密钥库**：`app/gamecenter.keystore`（RSA 2048 位，10000 天有效期）
+1. **密钥库**：`app/GameMatrix.keystore`（RSA 2048 位，10000 天有效期）
 2. **配置文件**：`keystore.properties`（包含密码和别名）
 3. **Gradle 配置**：`signingConfigs.release` 自动读取配置
 4. **安全注意**：签名文件已添加到 `.gitignore`，切勿提交
@@ -329,7 +329,7 @@ Release APK 已配置自动签名：
 | autoBumpVersion | 参数控制版本号递增（默认 `true`） |
 | CI/CD | `.github/workflows/ci.yml` 自动构建/测试/上传 |
 | APK 签名 | `signingConfigs.release` 自动签名 Release APK |
-| 敏感文件 | `keystore.properties` 和 `gamecenter.keystore` 已添加到 `.gitignore` |
+| 敏感文件 | `keystore.properties` 和 `GameMatrix.keystore` 已添加到 `.gitignore` |
 
 ## 5.2 BuildConfig 字段
 
@@ -383,7 +383,7 @@ implementation 'androidx.webkit:webkit:1.12.1'
 - VPS 更新服务改动后至少验证公网 `/version-beta.json`、`/app-beta.apk`、`version-release.json`、`app-release.apk`、旧 `/api/update/check` 和 `/downloads/...` 兼容路径。
 - 反馈模块涉及 VPS 接口、诊断信息和邮箱兜底，改动后至少验证 `/api/feedback/health`、POST JSON、`feedback.log` 写入。
 - 推送到 GitHub 前必须确认 `local_private/` 被忽略，并扫描密码、token、SSH 私钥、主机指纹和个人服务地址，避免把本机隐私配置提交到公开仓库。
-- **签名文件安全**：`gamecenter.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交
+- **签名文件安全**：`GameMatrix.keystore` 和 `keystore.properties` 已添加到 `.gitignore`，切勿提交
 - **发布流程**：使用 `auto-publish.bat` 或 `publish-all.ps1` 一键发布到三个更新源
 
 ### 8.1 服务器修改限制
@@ -486,7 +486,7 @@ res/drawable/bg_ai_message_system.xml   # 系统消息气泡背景
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
 ## 2026-05-18 文档同步：架构优化
 

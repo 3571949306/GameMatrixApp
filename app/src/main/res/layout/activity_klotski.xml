@@ -59,7 +59,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_game_restart"
-            style="@style/Widget.GameCenter.Button"
+            style="@style/Widget.GameMatrix.Button"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_marginHorizontal="3dp"
@@ -75,7 +75,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_shuffle"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_marginHorizontal="3dp"
@@ -91,7 +91,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_hint"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_marginHorizontal="3dp"
@@ -107,7 +107,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_game_tutorial"
-            style="@style/Widget.GameCenter.Button.Outlined"
+            style="@style/Widget.GameMatrix.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_marginHorizontal="3dp"

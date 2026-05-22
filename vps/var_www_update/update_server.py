@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-GameCenterApp update server — 双版本分发（正式版 + Beta测试版）
+GameMatrixApp update server — 双版本分发（正式版 + Beta测试版）
 
 Deployment target:
   /var/www/update/server.py
@@ -26,12 +26,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-BASE_DIR = Path(os.environ.get("GAMECENTER_UPDATE_BASE_DIR", "/var/www/update"))
-APP_DIR = Path(os.environ.get("GAMECENTER_UPDATE_APP_DIR", str(BASE_DIR / "app")))
+BASE_DIR = Path(os.environ.get("gamematrix_UPDATE_BASE_DIR", "/var/www/update"))
+APP_DIR = Path(os.environ.get("gamematrix_UPDATE_APP_DIR", str(BASE_DIR / "app")))
 LEGACY_DIR = BASE_DIR / "downloads"
-PUBLIC_BASE_URL = os.environ.get("GAMECENTER_UPDATE_PUBLIC_BASE_URL", "http://<YOUR_DOMAIN>").rstrip("/")
-HOST = os.environ.get("GAMECENTER_UPDATE_HOST", "127.0.0.1")
-PORT = int(os.environ.get("GAMECENTER_UPDATE_PORT", "9000"))
+PUBLIC_BASE_URL = os.environ.get("gamematrix_UPDATE_PUBLIC_BASE_URL", "http://<YOUR_DOMAIN>").rstrip("/")
+HOST = os.environ.get("gamematrix_UPDATE_HOST", "127.0.0.1")
+PORT = int(os.environ.get("gamematrix_UPDATE_PORT", "9000"))
 
 # 双版本文件名约定
 BETA_APK_NAME = "app-beta.apk"
@@ -151,7 +151,7 @@ def json_bytes(data):
 
 
 class UpdateHandler(BaseHTTPRequestHandler):
-    server_version = "GameCenterUpdate/3.0"
+    server_version = "gamematrixUpdate/3.0"
 
     def do_HEAD(self):
         self.handle_request(head_only=True)
@@ -220,7 +220,7 @@ class UpdateHandler(BaseHTTPRequestHandler):
             return
 
         if path in ("", "/"):
-            self.send_bytes(200, b"GameCenter update service OK\n", "text/plain; charset=utf-8", head_only=head_only)
+            self.send_bytes(200, b"gamematrix update service OK\n", "text/plain; charset=utf-8", head_only=head_only)
             return
 
         self.send_json(404, {"ok": False, "error": "not found"}, head_only=head_only)

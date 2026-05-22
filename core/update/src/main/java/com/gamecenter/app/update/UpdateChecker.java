@@ -53,7 +53,7 @@ public class UpdateChecker {
     /** 下载源：美国 VPS（备用源） */
     static final String US_BASE_URL = BuildConfig.SERVER_URL_FALLBACK;
     /** 下载源：GitHub Releases（最终备用源） */
-    static final String GITHUB_RELEASES_BASE_URL = "https://github.com/3571949306/GameCenterApp/releases/latest";
+    static final String GITHUB_RELEASES_BASE_URL = "https://github.com/3571949306/GameMatrixApp/releases/latest";
 
     /** SharedPreferences 文件名，用于存储更新配置 */
     static final String PREF_NAME = "update_config";
@@ -434,7 +434,7 @@ public class UpdateChecker {
             conn.setConnectTimeout(connectTimeout);
             conn.setReadTimeout(readTimeout);
             // 设置 User-Agent 让服务器知道是谁在请求，就像自我介绍
-            conn.setRequestProperty("User-Agent", "GameCenterApp/" + BuildConfig.VERSION_NAME);
+            conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
             // 告诉服务器我们想要 JSON 格式的数据
             conn.setRequestProperty("Accept", "application/json");
             Log.d(TAG, "Connecting (timeout=" + connectTimeout + "/" + readTimeout + ")...");
@@ -500,9 +500,9 @@ public class UpdateChecker {
                 String tag = info.getVersionName();
                 String apkName = info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
                 if (tag == null || tag.isEmpty()) {
-                    downloadUrl = "https://github.com/3571949306/GameCenterApp/releases/latest/download/" + apkName;
+                    downloadUrl = "https://github.com/3571949306/GameMatrixApp/releases/latest/download/" + apkName;
                 } else {
-                    downloadUrl = "https://github.com/3571949306/GameCenterApp/releases/download/" + tag + "/" + apkName;
+                    downloadUrl = "https://github.com/3571949306/GameMatrixApp/releases/download/" + tag + "/" + apkName;
                 }
             } else {
                 // VPS 源：直接拼接基础 URL + APK 文件名

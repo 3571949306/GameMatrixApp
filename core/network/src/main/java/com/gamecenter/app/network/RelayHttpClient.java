@@ -238,7 +238,7 @@ public final class RelayHttpClient {
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json; charset=utf-8")
                 .addHeader("Accept", "application/json")
-                .addHeader("User-Agent", "GameCenterApp-Relay")
+                .addHeader("User-Agent", "GameMatrixApp-Relay")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
