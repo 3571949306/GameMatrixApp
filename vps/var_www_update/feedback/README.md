@@ -1,4 +1,4 @@
-# GameCenterApp Feedback VPS Files
+# GameMatrixApp Feedback VPS Files
 
 上传本目录内容到：
 
@@ -11,11 +11,11 @@
 ```bash
 sudo mkdir -p /var/www/update/feedback
 sudo cp feedback_server.py /var/www/update/feedback/
-sudo cp gamecenter-feedback.service /etc/systemd/system/
+sudo cp gamematrix-feedback.service /etc/systemd/system/
 sudo chown -R www-data:www-data /var/www/update/feedback
 sudo chmod +x /var/www/update/feedback/feedback_server.py
 sudo systemctl daemon-reload
-sudo systemctl enable --now gamecenter-feedback
+sudo systemctl enable --now gamematrix-feedback
 ```
 
 推荐直接使用上一层目录的 `nginx-update.conf`，它同时包含更新服务和反馈服务的 80 端口代理规则。
@@ -69,7 +69,7 @@ App 自动上传脚本只清理 `/var/www/update/app/` 目录下的普通 `.apk`
 http://<YOUR_DOMAIN>/admin/feedback?token=change-this-token
 ```
 
-上线前请把 `gamecenter-feedback.service` 里的 `GAMECENTER_FEEDBACK_TOKEN` 改成自己的长随机字符串。
+上线前请把 `gamematrix-feedback.service` 里的 `gamematrix_FEEDBACK_TOKEN` 改成自己的长随机字符串。
 ---
 
 ## 2026-05-14 文档同步：文字适配与应用语言
@@ -84,5 +84,5 @@ http://<YOUR_DOMAIN>/admin/feedback?token=change-this-token
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamematrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。

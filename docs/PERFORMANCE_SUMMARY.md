@@ -2,7 +2,7 @@
 
 ## 优化概述
 
-本次优化针对 GameCenterApp 的四个关键领域进行了全面改进，显著提升了应用性能和用户体验。
+本次优化针对 GameMatrixApp 的四个关键领域进行了全面改进，显著提升了应用性能和用户体验。
 
 ---
 
@@ -185,8 +185,8 @@ public class RequestDeduplicationInterceptor implements Interceptor {
 - `docs/PERFORMANCE_SUMMARY.md` - 本文件
 
 ### 代码文件
-- `app/src/main/java/com/gamecenter/app/initializers/NetworkInitializer.java` - 网络初始化器
-- `app/src/main/java/com/gamecenter/app/network/RequestDeduplicationInterceptor.java` - 请求去重拦截器
+- `app/src/main/java/com/GameMatrix/app/initializers/NetworkInitializer.java` - 网络初始化器
+- `app/src/main/java/com/GameMatrix/app/network/RequestDeduplicationInterceptor.java` - 请求去重拦截器
 
 ---
 
@@ -197,8 +197,8 @@ public class RequestDeduplicationInterceptor implements Interceptor {
 - `app/src/main/AndroidManifest.xml` - 注册 App Startup 初始化器
 
 ### 代码文件
-- `app/src/main/java/com/gamecenter/app/App.java` - 优化初始化逻辑
-- `app/src/main/java/com/gamecenter/app/network/OkHttpClientProvider.java` - 添加预加载和去重功能
+- `app/src/main/java/com/GameMatrix/app/App.java` - 优化初始化逻辑
+- `app/src/main/java/com/GameMatrix/app/network/OkHttpClientProvider.java` - 添加预加载和去重功能
 
 ---
 
@@ -216,7 +216,7 @@ ls app\src\main\res\drawable\*.webp
 ### 启动性能测试
 ```powershell
 # 测量启动时间
-adb shell am start -W com.gamecenter.app/.MainActivity
+adb shell am start -W com.GameMatrix.app/.MainActivity
 ```
 
 ### 网络性能监控
@@ -294,5 +294,5 @@ int pendingCount = OkHttpClientProvider.getInstance(context)
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。

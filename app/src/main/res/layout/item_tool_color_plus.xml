@@ -67,7 +67,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_color_plus_pick_image"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_margin="3dp"

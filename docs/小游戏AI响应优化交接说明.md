@@ -23,8 +23,8 @@
 
 文件：
 
-- `app/src/main/java/com/gamecenter/app/games/gomoku/GomokuActivity.java`
-- `app/src/main/java/com/gamecenter/app/games/gomoku/GomokuAI.java`
+- `app/src/main/java/com/GameMatrix/app/games/gomoku/GomokuActivity.java`
+- `app/src/main/java/com/GameMatrix/app/games/gomoku/GomokuAI.java`
 
 定位结果：
 
@@ -47,8 +47,8 @@
 
 文件：
 
-- `app/src/main/java/com/gamecenter/app/games/chinesechess/ChineseChessActivity.java`
-- `app/src/main/java/com/gamecenter/app/games/chinesechess/ChineseChessAI.java`
+- `app/src/main/java/com/GameMatrix/app/games/chinesechess/ChineseChessActivity.java`
+- `app/src/main/java/com/GameMatrix/app/games/chinesechess/ChineseChessAI.java`
 
 定位结果：
 
@@ -75,8 +75,8 @@
 
 文件：
 
-- `app/src/main/java/com/gamecenter/app/games/go/GoActivity.java`
-- `app/src/main/java/com/gamecenter/app/games/go/GoGame.java`
+- `app/src/main/java/com/GameMatrix/app/games/go/GoActivity.java`
+- `app/src/main/java/com/GameMatrix/app/games/go/GoGame.java`
 
 定位结果：
 

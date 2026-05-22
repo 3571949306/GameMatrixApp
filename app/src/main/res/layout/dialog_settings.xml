@@ -179,7 +179,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_feedback"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="16dp"
@@ -188,7 +188,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_view_stats"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
@@ -237,7 +237,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_check_update"
-            style="@style/Widget.GameCenter.Button.Tonal"
+            style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="4dp"

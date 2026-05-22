@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "ddz-websocket-relay",
   "version": "1.0.0",
-  "description": "GameCenter DouDiZhu WebSocket Relay Server",
+  "description": "gamematrix DouDiZhu WebSocket Relay Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

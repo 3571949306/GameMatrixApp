@@ -294,7 +294,7 @@ public final class NetworkDiagHelper {
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);  // 连接超时3秒
                 conn.setReadTimeout(3000);     // 读取超时3秒
-                conn.setRequestProperty("User-Agent", "GameCenterApp/1.0");
+                conn.setRequestProperty("User-Agent", "GameMatrixApp/1.0");
                 // 读取服务器返回的数据
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder resp = new StringBuilder();

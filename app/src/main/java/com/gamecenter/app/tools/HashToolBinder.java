@@ -190,7 +190,7 @@ public final class HashToolBinder implements ToolBinder {
                 "test", "root", "user", "pass", "guest", "login", "secret",
                 "Android", "android", "google", "apple", "facebook", "twitter",
                 "samsung", "xiaomi", "huawei", "oppo", "vivo", "oneplus",
-                "GameCenter", "ttc", "gamecenter", "tools", "toolbox",
+                "GameMatrix", "ttc", "GameMatrix", "tools", "toolbox",
                 "1q2w3e4r", "1qaz2wsx", "qwerty123", "password123",
                 "letmein", "welcome", "football", "baseball", "starwars",
                 "startrek", "nintendo", "playstation", "xbox", "minecraft"
@@ -247,7 +247,7 @@ public final class HashToolBinder implements ToolBinder {
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
-                conn.setRequestProperty("User-Agent", "GameCenterApp/1.0");
+                conn.setRequestProperty("User-Agent", "GameMatrixApp/1.0");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder resp = new StringBuilder();
                 String line;

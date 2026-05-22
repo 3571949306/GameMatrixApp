@@ -910,7 +910,7 @@ public class AiFragment extends Fragment {
         // 使用 Android 系统的分享功能，让用户选择导出方式（微信、邮件等）
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_SUBJECT, "GameCenter AI 导出");
+        intent.putExtra(Intent.EXTRA_SUBJECT, "GameMatrix AI 导出");
         intent.putExtra(Intent.EXTRA_TEXT, exportText);
         startActivity(Intent.createChooser(intent, "导出 AI 记录"));
     }
@@ -925,7 +925,7 @@ public class AiFragment extends Fragment {
      */
     private String buildExportText() {
         StringBuilder sb = new StringBuilder();
-        sb.append("GameCenter AI 记录\n\n");
+        sb.append("GameMatrix AI 记录\n\n");
         // 收藏/搜索模式下导出可见消息，否则导出全量消息
         List<AiMessage> source = (favoritesOnly || !currentSearch.isEmpty()) ? visibleMessages : messages;
         // 倒序列表从末尾遍历，实现时间正序输出

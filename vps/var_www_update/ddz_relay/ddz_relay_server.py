@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-GameCenterApp DouDiZhu Beta relay server.
+GameMatrixApp DouDiZhu Beta relay server.
 
 Deploy target:
   /var/www/update/ddz_relay/ddz_relay_server.py
@@ -25,7 +25,7 @@ from urllib.parse import urlparse
 
 
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("GAMECENTER_DDZ_RELAY_PORT", "9012"))
+PORT = int(os.environ.get("gamematrix_DDZ_RELAY_PORT", "9012"))
 MAX_BODY_BYTES = 64 * 1024
 ROOM_TTL_SECONDS = 6 * 60 * 60
 POLL_SECONDS = 25.0
@@ -138,7 +138,7 @@ def enqueue(queue: list[dict[str, Any]], item: dict[str, Any]) -> None:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "GameCenterDdzRelay/1.0"
+    server_version = "gamematrixDdzRelay/1.0"
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -336,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     server = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"GameCenter DDZ relay listening on http://{HOST}:{PORT}")
+    print(f"gamematrix DDZ relay listening on http://{HOST}:{PORT}")
     server.serve_forever()
 
 

@@ -621,7 +621,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
                 Request request = new Request.Builder()
                         .url(endpoint)
                         .get()
-                        .addHeader("User-Agent", "GameCenterApp-DDZ-P2P")
+                        .addHeader("User-Agent", "GameMatrixApp-DDZ-P2P")
                         .build();
                 try (Response response = client.newCall(request).execute()) {
                     if (response.isSuccessful() && response.body() != null) {

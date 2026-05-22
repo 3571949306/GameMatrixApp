@@ -1,4 +1,4 @@
-# GameCenterApp 改造详细计划（Detailed Plan）
+# GameMatrixApp 改造详细计划（Detailed Plan）
 
 > **当前进度 (2026-05-21)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ | 下一阶段：阶段5 本地模型
 >
@@ -18,7 +18,7 @@
 
 ## 0. 文档目标
 
-本文档用于指导 `GameCenterApp` 的后续改造。目标不是重做一个新项目，而是在**尽量复用现有工程**的前提下，把它升级为一个具备以下能力的安卓应用：
+本文档用于指导 `GameMatrixApp` 的后续改造。目标不是重做一个新项目，而是在**尽量复用现有工程**的前提下，把它升级为一个具备以下能力的安卓应用：
 
 - 保留现有游戏中心(Game Center)
 - 保留现有工具箱(Tools)
@@ -74,7 +74,7 @@
 ### 2.1 新定位
 建议将项目定位为：
 
-> **GameCenterApp = 游戏娱乐 + 实用工具 + AI 辅助 + 自动化执行**
+> **GameMatrixApp = 游戏娱乐 + 实用工具 + AI 辅助 + 自动化执行**
 
 ### 2.2 用户画像(User Persona)
 本项目最适合的目标用户包括：
@@ -425,14 +425,14 @@ AI 页面可设计为：
 ## 10. 推荐代码包结构
 
 ### 10.1 新增包（已有 ✅ / 待创建 🔜）
-- ✅ `com.gamecenter.app.ai`
-- ✅ `com.gamecenter.app.ai.ui`
-- ✅ `com.gamecenter.app.ai.data`
-- ✅ `com.gamecenter.app.ai.local`
-- ✅ `com.gamecenter.app.ai.cloud`
-- ✅ `com.gamecenter.app.ai.history`
-- ✅ `com.gamecenter.app.ai.template`
-- 🔜 `com.gamecenter.app.ai.automation` — 阶段6
+- ✅ `com.GameMatrix.app.ai`
+- ✅ `com.GameMatrix.app.ai.ui`
+- ✅ `com.GameMatrix.app.ai.data`
+- ✅ `com.GameMatrix.app.ai.local`
+- ✅ `com.GameMatrix.app.ai.cloud`
+- ✅ `com.GameMatrix.app.ai.history`
+- ✅ `com.GameMatrix.app.ai.template`
+- 🔜 `com.GameMatrix.app.ai.automation` — 阶段6
 
 ### 10.2 核心类建议（已实现 ✅ / 待实现 🔜）
 
@@ -698,7 +698,7 @@ AI 项目最大的风险之一就是：
 
 如果你要让这个项目真正有价值，最合理的路线不是继续加小游戏，而是：
 
-> **把现有 GameCenterApp 改造成一个“工具箱 + AI + 自动化”的效率型应用。**
+> **把现有 GameMatrixApp 改造成一个“工具箱 + AI + 自动化”的效率型应用。**
 
 这条路线的优点是：
 - 成本低于重做一个新产品
@@ -731,5 +731,5 @@ AI 项目最大的风险之一就是：
 - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
-- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。

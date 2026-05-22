@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
  * <ul>
  *   <li>二维码尺寸固定为 256x256 像素，兼顾清晰度和性能</li>
  *   <li>生成操作在主线程执行（ZXing 编码速度较快，通常不会造成卡顿）</li>
- *   <li>输入为空时使用默认文本 "GameCenterApp" 作为兜底</li>
+ *   <li>输入为空时使用默认文本 "GameMatrixApp" 作为兜底</li>
  * </ul>
  * </p>
  */
@@ -49,7 +49,7 @@ public final class QrToolBinder implements ToolBinder {
         if (btn != null) btn.setOnClickListener(v -> {
             String text = etText != null ? etText.getText().toString() : "";
             // 输入为空时使用默认文本
-            if (text.isEmpty()) text = "GameCenterApp";
+            if (text.isEmpty()) text = "GameMatrixApp";
             generateAndDisplayQr(text, ivQr, context);
         });
     }

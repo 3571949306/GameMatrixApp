@@ -26,6 +26,7 @@ vps/**/*.pem
 
 # Logs
 *.log
+*.hprof
 
 # Python cache
 **/__pycache__/

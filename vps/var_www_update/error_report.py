@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GameCenterApp error reporter.
+GameMatrixApp error reporter.
 
 Deploy target:
   /var/www/update/error_report.py
@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent
 ERROR_REPORTS_DIR = BASE_DIR / "error_reports"
 LOG_PATH = BASE_DIR / "error_reports.log"
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("GAMECENTER_ERROR_PORT", "9012"))
+PORT = int(os.environ.get("gamematrix_ERROR_PORT", "9012"))
 MAX_BODY_BYTES = 1024 * 1024
 
 
@@ -80,7 +80,7 @@ def save_error_report(data: dict, ip: str) -> str:
 
 
 class ErrorHandler(BaseHTTPRequestHandler):
-    server_version = "GameCenterError/1.0"
+    server_version = "gamematrixError/1.0"
 
     def do_GET(self) -> None:
         parsed = Path(self.path)
@@ -140,7 +140,7 @@ class ErrorHandler(BaseHTTPRequestHandler):
 def main() -> None:
     init_dirs()
     httpd = ThreadingHTTPServer((HOST, PORT), ErrorHandler)
-    print(f"GameCenter error report server listening on http://{HOST}:{PORT}")
+    print(f"gamematrix error report server listening on http://{HOST}:{PORT}")
     httpd.serve_forever()
 
 

@@ -1,4 +1,4 @@
-# GameCenterApp — Code Wiki
+# GameMatrixApp — Code Wiki
 
 ## 2026-05-21 Maintenance Notes
 
@@ -17,8 +17,8 @@
 - Local GitHub upload should use the GitHub-only Git proxy `http://127.0.0.1:10808` instead of requiring xray TUN mode. See `docs/LOCAL_GITHUB_NETWORK.md`.
 - New helper: `tools/network/Configure-GitHubProxy.ps1`.
 
-> **项目名称**: GameCenterApp  
-> **包名**: `com.gamecenter.app`  
+> **项目名称**: GameMatrixApp  
+> **包名**: `com.GameMatrix.app`  
 > **当前版本**: 1.3.30-beta.1 (versionCode 268)
 > **最低 SDK**: 24 (Android 7.0) | **目标 SDK**: 35  
 > **语言**: Java (主体) + Kotlin (数据层/工具层)  
@@ -55,7 +55,7 @@
 
 ## 1. 项目概述
 
-GameCenterApp 是一款 Android 综合应用，集成了 **25+ 款小游戏**、**网络工具箱**、**AI 助手**和**应用内更新**四大核心功能。应用采用单 Activity + 多 Fragment 的 Navigation Component 架构，通过底部导航栏切换四大功能区：游戏大厅、浏览器、工具箱和 AI 助手。
+GameMatrixApp 是一款 Android 综合应用，集成了 **25+ 款小游戏**、**网络工具箱**、**AI 助手**和**应用内更新**四大核心功能。应用采用单 Activity + 多 Fragment 的 Navigation Component 架构，通过底部导航栏切换四大功能区：游戏大厅、浏览器、工具箱和 AI 助手。
 
 ### 核心特性
 
@@ -121,11 +121,11 @@ GameCenterApp 是一款 Android 综合应用，集成了 **25+ 款小游戏**、
 ## 3. 目录结构
 
 ```
-GameCenterApp/
+GameMatrixApp/
 ├── app/                              # Android 应用模块
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/gamecenter/app/
+│   │   │   ├── java/com/GameMatrix/app/
 │   │   │   │   ├── App.java                   # Application 入口
 │   │   │   │   ├── MainActivity.java          # 主 Activity（使用 UpdateViewModel）
 │   │   │   │   ├── ColorSchemeManager.java    # 配色方案管理
@@ -196,7 +196,7 @@ GameCenterApp/
 │   │   │   │       ├── ColorAlphaBar.java
 │   │   │   │       ├── ColorHueBar.java
 │   │   │   │       └── ColorSVPanel.java
-│   │   │   ├── kotlin/com/gamecenter/app/
+│   │   │   ├── kotlin/com/GameMatrix/app/
 │   │   │   │   ├── database/                  # Room 数据库
 │   │   │   │   │   ├── AppDatabase.kt
 │   │   │   │   │   ├── dao/
@@ -240,7 +240,7 @@ GameCenterApp/
 
 ### 4.1 应用入口层
 
-#### [App.java](app/src/main/java/com/gamecenter/app/App.java)
+#### [App.java](app/src/main/java/com/GameMatrix/app/App.java)
 
 应用全局入口类，标注 `@HiltAndroidApp`，负责：
 
@@ -256,7 +256,7 @@ GameCenterApp/
 - `applyColorScheme(Activity)` — 为每个 Activity 应用用户选择的配色方案
 - `refreshColorScheme(Activity)` — 静态方法，供设置页面在更改配色后立即刷新
 
-#### [MainActivity.java](app/src/main/java/com/gamecenter/app/MainActivity.java)
+#### [MainActivity.java](app/src/main/java/com/GameMatrix/app/MainActivity.java)
 
 主界面 Activity，标注 `@AndroidEntryPoint`，作为所有 Fragment 的宿主：
 
@@ -272,7 +272,7 @@ GameCenterApp/
 
 ### 4.2 游戏模块
 
-#### [GameRegistry.java](app/src/main/java/com/gamecenter/app/games/GameRegistry.java)
+#### [GameRegistry.java](app/src/main/java/com/GameMatrix/app/games/GameRegistry.java)
 
 游戏注册中心（final 工具类），采用**双轨制**管理游戏注册信息：
 
@@ -296,7 +296,7 @@ GameCenterApp/
 
 **分类键名常量**: `CATEGORY_CLASSICS` / `CATEGORY_PUZZLE` / `CATEGORY_CASUAL` / `CATEGORY_REACTION` / `CATEGORY_OTHER`
 
-#### [GameEntry.java](app/src/main/java/com/gamecenter/app/games/GameEntry.java)
+#### [GameEntry.java](app/src/main/java/com/GameMatrix/app/games/GameEntry.java)
 
 游戏条目注解（`@Target(TYPE)` + `@Retention(RUNTIME)`），用于在 Activity 类上声明游戏元数据：
 
@@ -335,7 +335,7 @@ public class GomokuActivity extends BaseGameActivity { ... }
 - `getCategories(Context)` — 返回不可修改的分类列表，从字符串资源读取名称（支持国际化）
 - `flatten(List<Category>)` — 将分类列表扁平化为游戏条目列表
 
-#### [BaseGameActivity.java](app/src/main/java/com/gamecenter/app/games/BaseGameActivity.java)
+#### [BaseGameActivity.java](app/src/main/java/com/GameMatrix/app/games/BaseGameActivity.java)
 
 所有游戏 Activity 的抽象基类，提供通用基础设施：
 
@@ -352,14 +352,14 @@ public class GomokuActivity extends BaseGameActivity { ... }
 
 ### 4.3 网络与联机模块
 
-#### [BaseOnlineActivity.java](app/src/main/java/com/gamecenter/app/network/BaseOnlineActivity.java)
+#### [BaseOnlineActivity.java](app/src/main/java/com/GameMatrix/app/network/BaseOnlineActivity.java)
 
 联机游戏 Activity 基类（模板方法模式），封装房间管理、聊天、连接状态等联机通用逻辑。
 
 > ⚠️ 当前各游戏的 OnlineActivity（GomokuOnlineActivity、GoOnlineActivity 等）并未继承此类，
 > 而是各自独立实现联机逻辑。新增游戏建议使用组合方式，通过 `OnlineRoomManager` 复用联机功能。
 
-#### [OnlineRoomManager.java](app/src/main/java/com/gamecenter/app/network/OnlineRoomManager.java)
+#### [OnlineRoomManager.java](app/src/main/java/com/GameMatrix/app/network/OnlineRoomManager.java)
 
 联机房间管理器（组合式），从 `BaseOnlineActivity` 中提取的独立组件，使各游戏 OnlineActivity 可以通过组合方式复用联机逻辑，而不必继承 BaseOnlineActivity。
 
@@ -390,7 +390,7 @@ roomManager.setListener(new OnlineRoomManager.Listener() {
 
 **Listener 接口**: `onGameStarted()` / `onGameMessageReceived(JSONObject)` / `onGameReset()`
 
-#### [LANManager.java](app/src/main/java/com/gamecenter/app/network/LANManager.java)
+#### [LANManager.java](app/src/main/java/com/GameMatrix/app/network/LANManager.java)
 
 局域网设备发现管理器（单例），支持双模式：
 
@@ -401,7 +401,7 @@ roomManager.setListener(new OnlineRoomManager.Listener() {
 
 **关键参数**: 发现端口 9877，广播间隔 3s，主机过期超时 8s
 
-#### [OkHttpClientProvider.java](app/src/main/java/com/gamecenter/app/network/OkHttpClientProvider.java)
+#### [OkHttpClientProvider.java](app/src/main/java/com/GameMatrix/app/network/OkHttpClientProvider.java)
 
 HTTP/WebSocket 客户端提供者（单例），通过 Hilt 注入：
 
@@ -416,7 +416,7 @@ HTTP/WebSocket 客户端提供者（单例），通过 Hilt 注入：
 
 ### 4.4 AI 模块
 
-#### [AiTaskRouter.java](app/src/main/java/com/gamecenter/app/ai/AiTaskRouter.java)
+#### [AiTaskRouter.java](app/src/main/java/com/GameMatrix/app/ai/AiTaskRouter.java)
 
 AI 功能调度中心，核心设计遵循**本地优先 (Local First)** 策略：
 
@@ -451,7 +451,7 @@ AI 功能调度中心，核心设计遵循**本地优先 (Local First)** 策略�
 - 结果通过 `Handler` 回调到主线程
 - 云端请求按模型能力设置 `max_tokens`：低成本模型 2048，中等模型 3072，高能力/长上下文模型 4096
 
-#### [AiPreferences.java](app/src/main/java/com/gamecenter/app/ai/AiPreferences.java)
+#### [AiPreferences.java](app/src/main/java/com/GameMatrix/app/ai/AiPreferences.java)
 
 AI 偏好设置管理器，使用 `EncryptedSharedPreferences` 加密存储 API Key 等敏感数据：
 
@@ -475,7 +475,7 @@ AI 偏好设置管理器，使用 `EncryptedSharedPreferences` 加密存储 API 
 
 ### 4.5 工具箱模块
 
-#### [ToolBinder.java](app/src/main/java/com/gamecenter/app/tools/ToolBinder.java)
+#### [ToolBinder.java](app/src/main/java/com/GameMatrix/app/tools/ToolBinder.java)
 
 工具绑定器接口，定义工具模块的 UI 与业务逻辑绑定契约：
 
@@ -485,7 +485,7 @@ void bind(Context context, View contentView, ExecutorService executor);
 
 每个工具卡片提供一个 `ToolBinder` 实现，在 `bind()` 方法中完成 UI 初始化、事件监听和业务逻辑绑定。
 
-#### [ToolHelper.java](app/src/main/java/com/gamecenter/app/tools/ToolHelper.java)
+#### [ToolHelper.java](app/src/main/java/com/GameMatrix/app/tools/ToolHelper.java)
 
 工具辅助类（final 静态工具类），提供通用方法：
 
@@ -532,7 +532,7 @@ void bind(Context context, View contentView, ExecutorService executor);
 
 ### 4.6 更新模块
 
-#### [UpdateViewModel.kt](app/src/main/kotlin/com/gamecenter/app/update/UpdateViewModel.kt)
+#### [UpdateViewModel.kt](app/src/main/kotlin/com/GameMatrix/app/update/UpdateViewModel.kt)
 
 更新流程 ViewModel（`@HiltViewModel`），替代原有的 `UpdatePresenter`，使用 LiveData 暴露状态。采用 Kotlin 协程（`viewModelScope.launch` + `suspendCancellableCoroutine`）将 Java 回调包装为 suspend 函数，实现结构化并发。
 
@@ -575,11 +575,11 @@ void bind(Context context, View contentView, ExecutorService executor);
 - 配置变更（如旋转屏幕）时自动恢复状态
 - 协程结构化并发：`viewModelScope` 自动取消，`Job?` 替代布尔标志实现精确取消控制
 
-#### [UpdatePresenter.java](app/src/main/java/com/gamecenter/app/update/UpdatePresenter.java)（已废弃）
+#### [UpdatePresenter.java](app/src/main/java/com/GameMatrix/app/update/UpdatePresenter.java)（已废弃）
 
 > ⚠️ 此类已被 `UpdateViewModel` 替代，保留仅供参考。新代码应使用 `UpdateViewModel`。
 
-#### [UpdateManager.java](app/src/main/java/com/gamecenter/app/update/UpdateManager.java)
+#### [UpdateManager.java](app/src/main/java/com/GameMatrix/app/update/UpdateManager.java)
 
 更新管理器（门面模式 + `@Singleton`），协调四个核心组件：
 
@@ -623,7 +623,7 @@ UpdateManager (门面)
 
 ### 4.7 设置与主题管理
 
-#### [SettingsManager.java](app/src/main/java/com/gamecenter/app/SettingsManager.java)
+#### [SettingsManager.java](app/src/main/java/com/GameMatrix/app/SettingsManager.java)
 
 应用设置管理器（`@Singleton`），基于 SharedPreferences：
 
@@ -644,7 +644,7 @@ UpdateManager (门面)
 
 **更新来源选项**: 自动(0) / 香港VPS(1) / 美国VPS(2) / GitHub(3)
 
-#### [ColorSchemeManager.java](app/src/main/java/com/gamecenter/app/ColorSchemeManager.java)
+#### [ColorSchemeManager.java](app/src/main/java/com/GameMatrix/app/ColorSchemeManager.java)
 
 配色方案管理器（静态工具类），定义 8 套配色方案：
 
@@ -665,7 +665,7 @@ UpdateManager (门面)
 
 ### 4.8 数据层
 
-#### [AppDatabase.kt](app/src/main/kotlin/com/gamecenter/app/database/AppDatabase.kt)
+#### [AppDatabase.kt](app/src/main/kotlin/com/GameMatrix/app/database/AppDatabase.kt)
 
 Room 数据库（版本 1），包含两张实体表：
 
@@ -674,9 +674,9 @@ Room 数据库（版本 1），包含两张实体表：
 | `AiMessageEntity` | `AiMessageDao` | AI 聊天消息持久化 |
 | `GameStatsEntity` | `GameStatsDao` | 游戏统计数据 |
 
-单例模式（双重检查锁定），数据库名 `gamecenter_database`。
+单例模式（双重检查锁定），数据库名 `GameMatrix_database`。
 
-#### [AppModule.kt](app/src/main/kotlin/com/gamecenter/app/di/AppModule.kt)
+#### [AppModule.kt](app/src/main/kotlin/com/GameMatrix/app/di/AppModule.kt)
 
 Hilt 依赖注入模块（`@InstallIn(SingletonComponent::class)`），提供以下绑定：
 

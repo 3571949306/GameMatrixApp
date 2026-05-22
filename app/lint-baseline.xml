@@ -4312,7 +4312,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4323,7 +4323,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4334,7 +4334,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `#111827` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `#111827` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;#111827&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4345,7 +4345,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4356,7 +4356,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/chess_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@color/chess_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;@color/chess_bg&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4367,7 +4367,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/black` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@color/black` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;@color/black&quot;>"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4378,7 +4378,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/launcher_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@color/launcher_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;@color/launcher_bg&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4389,7 +4389,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/black` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@color/black` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;@color/black&quot;>"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4400,7 +4400,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4411,7 +4411,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4422,7 +4422,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `#DCB35C` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `#DCB35C` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;#DCB35C&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4433,7 +4433,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/gomoku_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@color/gomoku_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;@color/gomoku_bg&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4444,7 +4444,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4455,7 +4455,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4466,7 +4466,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4477,7 +4477,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4488,7 +4488,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4499,7 +4499,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@color/snake_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@color/snake_bg` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;@color/snake_bg&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4510,7 +4510,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4521,7 +4521,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;>"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4532,7 +4532,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4543,7 +4543,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `#1E1E32` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `#1E1E32` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;#1E1E32&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4554,7 +4554,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4565,7 +4565,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme_GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4576,7 +4576,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `@android:color/white` with a theme that also paints a background (inferred theme is `@style/Theme.GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `@android:color/white` with a theme that also paints a background (inferred theme is `@style/Theme.GameMatrixApp`)"
         errorLine1="    android:background=&quot;@android:color/white&quot;>"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4587,7 +4587,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4598,7 +4598,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4609,7 +4609,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?android:attr/colorBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameMatrixApp`)"
         errorLine1="    android:background=&quot;?android:attr/colorBackground&quot;"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -4620,7 +4620,7 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?attr/selectableItemBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameCenterApp`)"
+        message="Possible overdraw: Root element paints background `?attr/selectableItemBackground` with a theme that also paints a background (inferred theme is `@style/Theme.GameMatrixApp`)"
         errorLine1="    android:background=&quot;?attr/selectableItemBackground&quot;>"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -10449,7 +10449,7 @@
     <issue
         id="HardcodedText"
         message="Hardcoded string &quot;扫描二维码&quot;, should use `@string` resource"
-        errorLine1="        &lt;com.google.android.material.button.MaterialButton android:id=&quot;@+id/btn_scan_qr&quot; style=&quot;@style/Widget.GameCenter.Button.Tonal&quot; android:layout_width=&quot;0dp&quot; android:layout_height=&quot;wrap_content&quot; android:layout_marginStart=&quot;8dp&quot; android:layout_weight=&quot;1&quot; android:text=&quot;扫描二维码&quot; />"
+        errorLine1="        &lt;com.google.android.material.button.MaterialButton android:id=&quot;@+id/btn_scan_qr&quot; style=&quot;@style/Widget.GameMatrix.Button.Tonal&quot; android:layout_width=&quot;0dp&quot; android:layout_height=&quot;wrap_content&quot; android:layout_marginStart=&quot;8dp&quot; android:layout_weight=&quot;1&quot; android:text=&quot;扫描二维码&quot; />"
         errorLine2="                                                                                                                                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/item_tool_qr.xml"
