@@ -116,7 +116,6 @@ jobs:
         retention-days: 7
 
   release:
-    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
