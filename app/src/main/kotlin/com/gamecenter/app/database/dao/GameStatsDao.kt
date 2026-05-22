@@ -5,18 +5,22 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.gamecenter.app.database.entity.GameStatsEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GameStatsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(stats: GameStatsEntity): Long
+    suspend fun insert(stats: GameStatsEntity): Long
 
     @Query("SELECT * FROM game_stats WHERE gameType = :gameType ORDER BY timestamp DESC")
-    fun getByGameType(gameType: String): List<GameStatsEntity>
+    fun getByGameType(gameType: String): Flow<List<GameStatsEntity>>
+
+    @Query("SELECT * FROM game_stats WHERE gameType = :gameType ORDER BY timestamp DESC")
+    suspend fun getByGameTypeSync(gameType: String): List<GameStatsEntity>
 
     @Query("SELECT COUNT(*) FROM game_stats WHERE gameType = :gameType AND result = :result")
-    fun countByGameTypeAndResult(gameType: String, result: String): Int
+    suspend fun countByGameTypeAndResult(gameType: String, result: String): Int
 
     @Query("DELETE FROM game_stats WHERE timestamp < :cutoffTime")
-    fun deleteOlderThan(cutoffTime: Long): Int
+    suspend fun deleteOlderThan(cutoffTime: Long): Int
 }

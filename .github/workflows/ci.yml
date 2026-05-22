@@ -3,36 +3,43 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, master, 'codex/**']
+    tags:
+      - 'v*'
   pull_request:
     branches: [main, master]
+
+env:
+  JAVA_VERSION: '21'
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
+
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up JDK 21
+
+    - name: Set up JDK
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         cache: gradle
-    
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    
+
     - name: Build debug APK
-      run: ./gradlew clean assembleDebug -PautoBumpVersion=false
-    
+      run: ./gradlew clean assembleDebug -PautoBumpVersion=false -PskipReleaseLint=true
+
     - name: Report APK Size
       run: |
         APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
         if [ -n "$APK_PATH" ]; then
           SIZE_BYTES=$(stat -c%s "$APK_PATH" 2>/dev/null || stat -f%z "$APK_PATH" 2>/dev/null)
           SIZE_MB=$(echo "scale=2; $SIZE_BYTES / 1048576" | bc)
-          echo "## 📦 APK Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "## APK Size Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|------|------|" >> $GITHUB_STEP_SUMMARY
@@ -40,21 +47,21 @@ jobs:
         else
           echo "No APK found" >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: debug-apk
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
-    
+
     - name: Run Unit Tests
       run: ./gradlew test -PautoBumpVersion=false
-    
+
     - name: Report Test Results
       if: always()
       run: |
-        echo "## 🧪 Test Report" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         XML_FILES=$(find app/build/test-results -name "*.xml" -type f 2>/dev/null)
         if [ -n "$XML_FILES" ]; then
@@ -73,7 +80,7 @@ jobs:
         else
           echo "No test result XML found" >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Upload Test Results
       if: always()
       uses: actions/upload-artifact@v4
@@ -81,14 +88,14 @@ jobs:
         name: test-results
         path: app/build/reports/tests/
         retention-days: 7
-    
+
     - name: Run Android Lint
       run: ./gradlew lintDebug -PautoBumpVersion=false
-    
+
     - name: Report Lint Issues
       if: always()
       run: |
-        echo "## 🔍 Lint Report" >> $GITHUB_STEP_SUMMARY
+        echo "## Lint Report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         LINT_XML="app/build/reports/lint-results-debug.xml"
         if [ -f "$LINT_XML" ]; then
@@ -99,7 +106,7 @@ jobs:
         else
           echo "Lint report not found" >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Upload Lint Results
       if: always()
       uses: actions/upload-artifact@v4
@@ -107,3 +114,89 @@ jobs:
         name: lint-results
         path: app/build/reports/lint-results-debug.*
         retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Decode keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      if: env.KEYSTORE_BASE64 != ''
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 -d > app/gamecenter.keystore
+
+    - name: Create keystore.properties
+      env:
+        STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+        KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+      if: env.STORE_PASSWORD != ''
+      run: |
+        echo "STORE_PASSWORD=$STORE_PASSWORD" > keystore.properties
+        echo "KEY_PASSWORD=$KEY_PASSWORD" >> keystore.properties
+        echo "KEY_ALIAS=gamecenter" >> keystore.properties
+        echo "STORE_FILE=gamecenter.keystore" >> keystore.properties
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build Release APK
+      run: ./gradlew assembleRelease -PautoBumpVersion=false -PskipReleaseLint=true
+      if: env.KEYSTORE_BASE64 != ''
+
+    - name: Build Debug APK (no signing)
+      run: ./gradlew assembleDebug -PautoBumpVersion=false -PskipReleaseLint=true
+      if: env.KEYSTORE_BASE64 == ''
+
+    - name: Determine APK name and version
+      id: apk-info
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        VERSION_NAME=${TAG_NAME#v}
+        if [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+          APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+          echo "apk_name=GameMatrix-v${VERSION_NAME}-unsigned.apk" >> $GITHUB_OUTPUT
+        elif [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          echo "apk_name=GameMatrix-v${VERSION_NAME}.apk" >> $GITHUB_OUTPUT
+        else
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -1)
+          echo "apk_name=GameMatrix-v${VERSION_NAME}-debug.apk" >> $GITHUB_OUTPUT
+        fi
+        echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+        echo "version=$VERSION_NAME" >> $GITHUB_OUTPUT
+        echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+
+    - name: Upload Release APK
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.apk-info.outputs.tag }}
+        name: GameMatrix ${{ steps.apk-info.outputs.version }}
+        draft: false
+        prerelease: ${{ contains(steps.apk-info.outputs.tag, 'beta') || contains(steps.apk-info.outputs.tag, 'alpha') || contains(steps.apk-info.outputs.tag, 'rc') }}
+        files: |
+          ${{ steps.apk-info.outputs.apk_path }}
+        body: |
+          ## Download
+
+          Download the APK above and install it on your Android device.
+
+          ## Changes
+
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

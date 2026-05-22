@@ -1,5 +1,26 @@
 # 夹层 - 版本更新日志
 
+## [v1.3.30-beta.3] - 2026-05-22（测试版：项目改名 + KSP迁移 + R8 优化）
+
+### 项目改名
+- 项目名称从 GameCenter 全面更名为 GameMatrix
+- GitHub 仓库重命名为 GameMatrixApp
+- 所有字符串资源、主题样式、Java/Kotlin 常量已更新
+
+### 构建系统优化
+- KAPT → KSP 全量迁移：Hilt 2.57.2、Glide 4.16.0、Room 2.7.1 均使用 KSP 处理器
+- Room 升级到 2.7.1，解决 Kotlin 2.2.x Continuation 签名不兼容问题
+- ProGuard 规则收紧，Release APK 体积进一步优化
+- R8 编译配置优化，解决 MediaPipe 内部类缺失警告
+
+### 代码质量
+- Java 工具类迁移到 Kotlin：RelayHostHelper、RelayClientHelper、WebSocketClientHelper、I18nHelper
+- EncryptedSharedPreferences 用于 API Key 安全存储
+- CI/CD 新增自动 Release 发布流程
+
+### 构建与发布
+- 测试版版本号提升至 `versionName=1.3.30-beta.3`、`versionCode=274`
+
 ## [v1.3.30-beta.1] - 2026-05-21（测试版：更新功能优化）
 
 ### 更新功能优化
