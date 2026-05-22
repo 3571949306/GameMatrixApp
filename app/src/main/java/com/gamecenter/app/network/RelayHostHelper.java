@@ -123,7 +123,7 @@ class RelayHostHelper {
             active = true;
             relayKnownClients.clear();
             sendExecutor = Executors.newSingleThreadExecutor(r -> {
-                Thread thread = new Thread(r, "RelayHostWriter");
+                Thread thread = new Thread(r, "GC-Network-RelaySend");
                 thread.setDaemon(true);
                 return thread;
             });

@@ -38,6 +38,7 @@ import java.util.concurrent.Executors;
  *   <li>所有 AI 任务在单线程线程池（{@code aiExecutor}）中串行执行，避免并发推理导致资源竞争。</li>
  *   <li>结果通过 {@link Handler} 回调到主线程，保证 UI 更新安全。</li>
  *   <li>云端调用前依次检查：网络可用性 → 免费额度 → API Key 配置，逐层拦截无效请求。</li>
+ *   <li>支持外部注入 ExecutorService，便于统一线程模型管理。</li>
  * </ul>
  * <p>
  * 路由优先级：本地 LLM（Gemma）→ 本地规则引擎 → 云端 API
@@ -46,38 +47,43 @@ public class AiTaskRouter {
 
     private static final String TAG = "AiTaskRouter";
 
-    /** 应用级 Context，避免持有 Activity 导致泄漏 */
     private final Context appContext;
-    // AI 偏好设置，控制本地优先开关、API Key、额度等
     private final AiPreferences aiPrefs;
-    // 单线程执行器，保证 AI 任务串行执行，防止本地模型并发加载冲突
-    // 就像单窗口办事大厅，一次只处理一个任务，避免混乱
     private final ExecutorService aiExecutor;
-    // 主线程 Handler，用于将结果回调投递到主线程
-    // Android 中 UI 操作必须在主线程执行，所以结果要"送回"主线程
     private final Handler mainHandler;
-    // 模型下载管理器，负责检查/获取本地模型文件
     private final AiModelDownloadManager modelDownloadManager;
-    // MediaPipe 本地 LLM 推理引擎实例（即手机上运行的 Gemma 小模型）
     private final MediaPipeLocalLlmEngine localLlmEngine;
 
-    // 以下三个计数器用于统计任务执行情况，方便展示给用户
-    private int totalTasks = 0;   // 累计提交的任务总数
-    private int localTasks = 0;   // 本地成功处理的任务数
-    private int cloudTasks = 0;   // 云端处理的任务数（含成功和失败）
+    private int totalTasks = 0;
+    private int localTasks = 0;
+    private int cloudTasks = 0;
 
     /**
-     * 构造调度器，初始化所有依赖组件。
+     * 构造调度器，初始化所有依赖组件（使用默认内部创建的线程池）。
      *
      * @param context 上下文，内部会转为 Application Context 以避免内存泄漏
      */
     public AiTaskRouter(Context context) {
-        // 使用 ApplicationContext 而不是 Activity Context，防止 Activity 销毁后还持有引用
+        this(context, Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "GC-AI-Router");
+            t.setDaemon(true);
+            return t;
+        }));
+    }
+
+    /**
+     * 构造调度器，初始化所有依赖组件（使用外部注入的线程池）。
+     *
+     * <p>此构造器支持 Hilt 依赖注入和统一线程模型管理。
+     * 推荐使用此构造器以便线程池由 AppModule 统一管理。</p>
+     *
+     * @param context 上下文，内部会转为 Application Context 以避免内存泄漏
+     * @param executor AI 任务执行器，由外部统一管理的单线程线程池
+     */
+    public AiTaskRouter(Context context, ExecutorService executor) {
         this.appContext = context.getApplicationContext();
         this.aiPrefs = new AiPreferences(appContext);
-        // 创建单线程线程池：所有任务排队执行，不会出现两个任务同时抢模型资源的情况
-        this.aiExecutor = Executors.newSingleThreadExecutor();
-        // 获取主线程的 Handler，用于把结果"送回"主线程更新 UI
+        this.aiExecutor = executor;
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.modelDownloadManager = new AiModelDownloadManager();
         this.localLlmEngine = new MediaPipeLocalLlmEngine();
