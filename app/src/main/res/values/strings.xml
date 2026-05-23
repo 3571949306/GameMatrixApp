@@ -250,4 +250,38 @@
     <string name="settings_source_hk_vps">香港 VPS</string>
     <string name="settings_source_us_vps">美国 VPS</string>
     <string name="settings_source_github">GitHub Releases</string>
+
+    <!-- 成就系统 -->
+    <string name="achievement_first_win_title">初出茅庐</string>
+    <string name="achievement_first_win_desc">赢得你的第一场游戏</string>
+    <string name="achievement_win_streak_3_title">三连胜</string>
+    <string name="achievement_win_streak_3_desc">连续赢得3场游戏</string>
+    <string name="achievement_win_streak_5_title">五连胜</string>
+    <string name="achievement_win_streak_5_desc">连续赢得5场游戏</string>
+    <string name="achievement_win_streak_10_title">十连胜</string>
+    <string name="achievement_win_streak_10_desc">连续赢得10场游戏</string>
+    <string name="achievement_games_played_10_title">初入江湖</string>
+    <string name="achievement_games_played_10_desc">累计完成10局游戏</string>
+    <string name="achievement_games_played_50_title">身经百战</string>
+    <string name="achievement_games_played_50_desc">累计完成50局游戏</string>
+    <string name="achievement_games_played_100_title">百战老将</string>
+    <string name="achievement_games_played_100_desc">累计完成100局游戏</string>
+    <string name="achievement_go_first_capture_title">初尝提子</string>
+    <string name="achievement_go_first_capture_desc">在围棋中首次提掉对方的棋子</string>
+    <string name="achievement_chess_checkmate_title">将军！</string>
+    <string name="achievement_chess_checkmate_desc">在中国象棋中完成将杀</string>
+    <string name="achievement_gomoku_perfect_title">完美对局</string>
+    <string name="achievement_gomoku_perfect_desc">在五子棋中不落败一子获胜</string>
+    <string name="achievement_online_first_win_title">线上首胜</string>
+    <string name="achievement_online_first_win_desc">在联机对战中首次获胜</string>
+    <string name="achievement_online_win_streak_3_title">线上三连胜</string>
+    <string name="achievement_online_win_streak_3_desc">在联机对战中连续赢得3场</string>
+    <string name="achievement_ai_conversations_10_title">AI新朋友</string>
+    <string name="achievement_ai_conversations_10_desc">与AI助手累计对话10次</string>
+    <string name="achievement_ai_conversations_50_title">AI老搭档</string>
+    <string name="achievement_ai_conversations_50_desc">与AI助手累计对话50次</string>
+    <string name="achievement_daily_login_title">每日签到</string>
+    <string name="achievement_daily_login_desc">完成一次每日登录</string>
+    <string name="achievement_daily_login_streak_7_title">坚持不懈</string>
+    <string name="achievement_daily_login_streak_7_desc">连续7天每日登录</string>
 </resources>

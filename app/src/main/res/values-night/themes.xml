@@ -9,8 +9,10 @@
         <item name="colorOnSecondary">@color/md_theme_on_secondary</item>
         <item name="colorSecondaryContainer">@color/md_theme_secondary_container</item>
         <item name="colorOnSecondaryContainer">@color/md_theme_on_secondary_container</item>
+        <item name="colorError">@color/md_theme_error</item>
         <item name="colorSurface">@color/md_theme_surface</item>
         <item name="colorOnSurface">@color/md_theme_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/md_theme_on_surface_variant</item>
         <item name="android:colorBackground">@color/md_theme_background</item>
         <item name="android:statusBarColor">@color/md_theme_surface</item>

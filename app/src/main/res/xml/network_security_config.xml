@@ -6,6 +6,37 @@
         </trust-anchors>
     </base-config>
 
+    <!-- 更新服务器域名（VPS）— 启用证书固定（pin-set）防止中间人攻击 -->
+    <!-- 域名来源：local.properties server.url = hk-update.tcp0053.shop -->
+    <domain-config>
+        <domain includeSubdomains="true">hk-update.tcp0053.shop</domain>
+        <domain includeSubdomains="true">tcp0053.shop</domain>
+        <pin-set expiration="2027-01-01">
+            <!-- 主证书公钥 SHA-256（需替换为实际证书指纹） -->
+            <pin digest="SHA-256">REPLACE_WITH_ACTUAL_PIN_SHA256</pin>
+            <!-- 备用证书公钥，用于证书轮换时保持连通性 -->
+            <pin digest="SHA-256">REPLACE_WITH_BACKUP_PIN_SHA256</pin>
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- AI API 域名 — 强制 HTTPS，禁止明文流量 -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.openai.com</domain>
+        <domain includeSubdomains="true">api.deepseek.com</domain>
+        <domain includeSubdomains="true">dashscope.aliyuncs.com</domain>
+        <domain includeSubdomains="true">api.siliconflow.cn</domain>
+        <domain includeSubdomains="true">open.bigmodel.cn</domain>
+        <domain includeSubdomains="true">api.lingyiwanwu.com</domain>
+        <domain includeSubdomains="true">api.moonshot.cn</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- 局域网明文流量 — 仅限本地网络使用，切勿用于公网通信 -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.0.0/8</domain>
         <domain includeSubdomains="true">192.168.0.0/16</domain>

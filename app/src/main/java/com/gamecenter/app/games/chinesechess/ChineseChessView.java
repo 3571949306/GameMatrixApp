@@ -406,13 +406,13 @@ public class ChineseChessView extends View {
      * @param canvas 画布
      */
     private void drawBoardBackground(Canvas canvas) {
+        // 只在棋盘区域绘制背景，不覆盖整个画布
         Paint bgPaint = new Paint();
         bgPaint.setColor(boardBackgroundColor);
         bgPaint.setAntiAlias(true);
         RectF boardRect = new RectF(
                 boardLeft - boardPadding, boardTop - boardPadding,
                 boardLeft + cellSize * 8 + boardPadding, boardTop + cellSize * 9 + boardPadding);
-        canvas.drawColor(boardBackgroundColor);
         canvas.drawRect(boardRect, bgPaint);
     }
 
@@ -429,6 +429,10 @@ public class ChineseChessView extends View {
      * @param canvas 画布
      */
     private void drawGridLines(Canvas canvas) {
+        // 确保线宽足够清晰
+        linePaint.setStrokeWidth(Math.max(2.5f, cellSize * 0.04f));
+        thickLinePaint.setStrokeWidth(Math.max(4f, cellSize * 0.07f));
+        
         // 横线：10条
         for (int row = 0; row < ChineseChessGame.ROWS; row++) {
             float y = boardTop + row * cellSize;

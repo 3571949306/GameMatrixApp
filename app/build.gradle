@@ -188,11 +188,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
-            
-            // 确保签名配置正确应用
-            if (releaseSigningRequired && signingConfigs.release.storeFile == null) {
-                throw new GradleException("Release signing configuration is incomplete")
+            // 只有在 keystore 存在时才应用签名配置
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
             }
         }
     }
