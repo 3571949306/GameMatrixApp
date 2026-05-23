@@ -471,13 +471,7 @@ public abstract class BaseOnlineActivity extends AppCompatActivity {
      * @return 6位随机房间码
      */
     protected String generateRoomCode() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        StringBuilder sb = new StringBuilder();
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 6; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-        return sb.toString();
+        return RoomCodeHelper.generateRoomCode();
     }
 
     /**
