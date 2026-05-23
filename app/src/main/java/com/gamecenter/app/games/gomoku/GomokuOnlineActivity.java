@@ -21,8 +21,10 @@ import com.google.android.material.card.MaterialCardView;
 import com.gamecenter.app.network.GameSocketClient;
 import com.gamecenter.app.network.GameSocketServer;
 import com.gamecenter.app.network.OnlineChatHelper;
+import com.gamecenter.app.network.OnlineDialogHelper;
 import com.gamecenter.app.network.RelayHttpClient;
 import com.gamecenter.app.network.RemoteP2PUtil;
+import com.gamecenter.app.network.RoomCodeHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -424,13 +426,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
      * @return 6位房间码字符串
      */
     private String generateRoomCode() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        StringBuilder sb = new StringBuilder();
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 6; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-        return sb.toString();
+        return RoomCodeHelper.generateRoomCode();
     }
 
     /**
@@ -439,23 +435,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
      * 用户输入6位房间码后调用 {@link #joinRoom}。
      */
     private void showJoinDialog() {
-        EditText input = new EditText(this);
-        input.setHint("请输入6位房间码");
-        input.setMaxLines(1);
-
-        new AlertDialog.Builder(this)
-                .setTitle("加入房间")
-                .setView(input)
-                .setPositiveButton("加入", (d, w) -> {
-                    String code = input.getText().toString().trim();
-                    if (code.length() == 6) {
-                        joinRoom(code);
-                    } else {
-                        Toast.makeText(this, "请输入6位房间码", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        OnlineDialogHelper.showJoinDialog(this, this::joinRoom);
     }
 
     /**
@@ -825,61 +805,7 @@ public class GomokuOnlineActivity extends AppCompatActivity {
      * @param roomCode 房间码
      */
     private void showWaitingDialog(String roomCode) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("等待对手加入");
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(48, 48, 48, 48);
-        content.setGravity(View.TEXT_ALIGNMENT_CENTER);
-
-        TextView roomCodeView = new TextView(this);
-        roomCodeView.setTextSize(28);
-        roomCodeView.setText(roomCode);
-        roomCodeView.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        roomCodeView.setPadding(0, 16, 0, 16);
-        roomCodeView.setTextColor(0xFF2196F3);
-        roomCodeView.setTypeface(null, android.graphics.Typeface.BOLD);
-
-        Button copyBtn = new Button(this);
-        copyBtn.setText("复制房间码");
-        copyBtn.setTextSize(14);
-        copyBtn.setBackgroundColor(0xFF4CAF50);
-        copyBtn.setTextColor(0xFFFFFFFF);
-        copyBtn.setPadding(24, 8, 24, 8);
-        copyBtn.setOnClickListener(v -> {
-            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            android.content.ClipData clip = android.content.ClipData.newPlainText("room_code", roomCode);
-            cm.setPrimaryClip(clip);
-            Toast.makeText(this, "房间码已复制", Toast.LENGTH_SHORT).show();
-        });
-
-        TextView hintView = new TextView(this);
-        hintView.setTextSize(14);
-        hintView.setText("请将房间码告诉对手\n\n对手输入房间码加入后，游戏将自动开始");
-        hintView.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        hintView.setPadding(0, 8, 0, 8);
-
-        TextView waitingView = new TextView(this);
-        waitingView.setTextSize(14);
-        waitingView.setText("等待中...");
-        waitingView.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        waitingView.setPadding(0, 8, 0, 0);
-        waitingView.setTextColor(0xFFFF9800);
-        waitingView.setTag("waiting_indicator");
-
-        content.addView(roomCodeView);
-        content.addView(copyBtn);
-        content.addView(hintView);
-        content.addView(waitingView);
-
-        builder.setView(content);
-        builder.setCancelable(false);
-        builder.setNegativeButton("取消", (d, w) -> {
-            leaveRoom();
-        });
-
-        waitingDialog = builder.create();
-        waitingDialog.show();
+        waitingDialog = OnlineDialogHelper.showWaitingDialog(this, roomCode, this::leaveRoom);
     }
 
     /**

@@ -20,8 +20,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.gamecenter.app.network.GameSocketClient;
 import com.gamecenter.app.network.GameSocketServer;
 import com.gamecenter.app.network.OnlineChatHelper;
+import com.gamecenter.app.network.OnlineDialogHelper;
 import com.gamecenter.app.network.RelayHttpClient;
 import com.gamecenter.app.network.RemoteP2PUtil;
+import com.gamecenter.app.network.RoomCodeHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -143,6 +145,9 @@ public class ChineseChessOnlineActivity extends AppCompatActivity {
 
     /** 聊天消息显示区域 */
     private TextView chatDisplay;
+
+    /** 等待对手加入的对话框 */
+    private AlertDialog waitingDialog;
 
     /** 聊天消息滚动容器 */
     private ScrollView chatScroll;
@@ -394,7 +399,7 @@ public class ChineseChessOnlineActivity extends AppCompatActivity {
                     roomCode = code;
                     connectionStatusText.setText("房间已创建");
                     roomCodeText.setText("房间码: " + code);
-                    showWaitingDialog();
+                    showWaitingDialog(roomCode);
                 } else {
                     Toast.makeText(this, "创建房间失败", Toast.LENGTH_SHORT).show();
                 }
@@ -409,13 +414,7 @@ public class ChineseChessOnlineActivity extends AppCompatActivity {
      * @return 6位房间码字符串
      */
     private String generateRoomCode() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        StringBuilder sb = new StringBuilder();
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 6; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-        return sb.toString();
+        return RoomCodeHelper.generateRoomCode();
     }
 
     /**
@@ -423,49 +422,8 @@ public class ChineseChessOnlineActivity extends AppCompatActivity {
      * <p>包含房间码显示、复制按钮和提示文字。
      * 对话框不可取消，点击"取消"会离开房间。
      */
-    private void showWaitingDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("等待对手加入");
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(48, 48, 48, 48);
-        content.setGravity(View.TEXT_ALIGNMENT_CENTER);
-
-        TextView roomCodeView = new TextView(this);
-        roomCodeView.setTextSize(28);
-        roomCodeView.setText(roomCode);
-        roomCodeView.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        roomCodeView.setPadding(0, 16, 0, 16);
-        roomCodeView.setTextColor(0xFF2196F3);
-        roomCodeView.setTypeface(null, android.graphics.Typeface.BOLD);
-
-        Button copyBtn = new Button(this);
-        copyBtn.setText("复制房间码");
-        copyBtn.setTextSize(14);
-        copyBtn.setBackgroundColor(0xFF4CAF50);
-        copyBtn.setTextColor(0xFFFFFFFF);
-        copyBtn.setPadding(24, 8, 24, 8);
-        copyBtn.setOnClickListener(v -> {
-            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            android.content.ClipData clip = android.content.ClipData.newPlainText("room_code", roomCode);
-            cm.setPrimaryClip(clip);
-            Toast.makeText(this, "房间码已复制", Toast.LENGTH_SHORT).show();
-        });
-
-        TextView hintView = new TextView(this);
-        hintView.setTextSize(14);
-        hintView.setText("请将房间码告诉对手\n\n对手输入房间码加入后，游戏将自动开始");
-        hintView.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        hintView.setPadding(0, 8, 0, 8);
-
-        content.addView(roomCodeView);
-        content.addView(copyBtn);
-        content.addView(hintView);
-
-        builder.setView(content);
-        builder.setCancelable(false);
-        builder.setNegativeButton("取消", (d, w) -> leaveRoom());
-        builder.create().show();
+    private void showWaitingDialog(String roomCode) {
+        waitingDialog = OnlineDialogHelper.showWaitingDialog(this, roomCode, this::leaveRoom);
     }
 
     /**
@@ -473,26 +431,7 @@ public class ChineseChessOnlineActivity extends AppCompatActivity {
      * <p>包含房间码输入框，输入后调用 {@link #joinRoom} 加入。
      */
     private void showJoinDialog() {
-        loadingBar.setVisibility(View.VISIBLE);
-        connectionStatusText.setText("准备加入...");
-
-        EditText roomCodeInput = new EditText(this);
-        roomCodeInput.setHint("请输入6位房间码");
-        roomCodeInput.setMaxLines(1);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("加入房间");
-        builder.setView(roomCodeInput);
-        builder.setPositiveButton("加入", (dialog, which) -> {
-            String code = roomCodeInput.getText().toString().trim();
-            if (code.isEmpty()) {
-                Toast.makeText(this, "请输入房间码", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            joinRoom(code);
-        });
-        builder.setNegativeButton("取消", null);
-        builder.show();
+        OnlineDialogHelper.showJoinDialog(this, this::joinRoom);
     }
 
     /**
