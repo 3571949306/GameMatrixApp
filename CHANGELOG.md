@@ -1,5 +1,48 @@
 # 夹层 - 版本更新日志
 
+## [v1.4.0] - 2026-05-22（正式版：全面质量提升）
+
+### 测试覆盖
+- 新增斗地主核心单元测试：DouDiZhuGameStateManagerTest（38个用例）、DouDiZhuProtocolTest（45个用例）、DouDiZhuSeatManagerTest（42个用例）
+- 新增棋类AI测试：GomokuAITest（10个用例）、ChineseChessAITest（10个用例）、GoGameExtendedTest（13个用例）
+
+### 安全加固
+- 网络安全配置增强：新增VPS更新服务器证书固定（pin-set）、AI API域名强制HTTPS
+- ProGuard规则收紧：Release构建移除调试日志、保留Serializable/Parcelable类、保护@Keep注解字段
+- AiApiClient新增API Key XOR混淆方法（obfuscateKey/deobfuscateKey）
+
+### 英语国际化
+- 英文字符串资源从73条补全至250+条，实现与中文字符串100%对齐
+- 覆盖所有模块：游戏列表、工具箱、联机对战、设置、更新、成就等
+
+### 深色模式适配
+- 夜间颜色资源从24个补全至49个，覆盖所有游戏模块（五子棋、象棋、贪吃蛇等）
+- ColorSchemeManager新增4个暗色变体字段（darkPrimary/darkTabIndicator/darkNavBarActive/darkCardBorder）
+- 8套配色方案均支持暗色模式，确保暗色背景下对比度充足
+
+### 架构现代化
+- 新增AiViewModel：基于LiveData的AI聊天状态管理，支持后台线程调用、生命周期感知、请求取消
+
+### 成就系统（基础架构）
+- 新增AchievementType枚举：16种成就类型，覆盖通用/围棋/象棋/五子棋/在线/AI/日常
+- 新增AchievementManager单例：SharedPreferences+JSON持久化，线程安全，监听器模式
+
+### 性能与构建优化
+- Gradle构建加速：启用构建缓存、配置缓存、关闭Jetifier、启用非传递R类
+- 预期增量构建时间减少20-40%
+
+### 构建与发布
+- 正式版版本号提升至 `versionName=1.4.0`、`versionCode=280`
+
+## [v1.3.30-beta.4] - 2026-05-22（测试版：P2 任务完成）
+
+### P2 安全与构建优化
+- LAN 发现协议已具备 HMAC-SHA256 签名验证，防止同网段恶意设备伪造发现报文
+- P2 任务已全部完成：allowBackup 关闭、旧存储权限迁移、kapt/ksp 统一为 KSP
+
+### 构建与发布
+- 测试版版本号提升至 `versionName=1.3.30-beta.4`、`versionCode=275`
+
 ## [v1.3.30-beta.3] - 2026-05-22（测试版：项目改名 + KSP迁移 + R8 优化）
 
 ### 项目改名

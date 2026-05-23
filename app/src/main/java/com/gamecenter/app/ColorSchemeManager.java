@@ -118,6 +118,14 @@ public class ColorSchemeManager {
         public final int darkOnSurfaceVariant;
         /** 深色模式-导航栏未选中项颜色 */
         public final int darkNavBarInactive;
+        /** 深色模式-主色 */
+        public final int darkPrimary;
+        /** 深色模式-Tab 指示器颜色 */
+        public final int darkTabIndicator;
+        /** 深色模式-导航栏选中项颜色 */
+        public final int darkNavBarActive;
+        /** 深色模式-卡片边框颜色 */
+        public final int darkCardBorder;
 
         /**
          * 构造一套完整的配色方案。
@@ -155,6 +163,10 @@ public class ColorSchemeManager {
          * @param darkOnBackground     深色-背景上的文字色
          * @param darkOnSurfaceVariant 深色-表面变体上的文字色
          * @param darkNavBarInactive   深色-导航栏未选中项颜色
+         * @param darkPrimary          深色-主色
+         * @param darkTabIndicator     深色-Tab 指示器颜色
+         * @param darkNavBarActive     深色-导航栏选中项颜色
+         * @param darkCardBorder       深色-卡片边框颜色
          */
         Scheme(String name,
                int primary, int onPrimary, int primaryContainer, int onPrimaryContainer,
@@ -164,7 +176,8 @@ public class ColorSchemeManager {
                int tabIndicator, int navBarActive, int cardBorder,
                int darkSurface, int darkBackground, int darkSurfaceVariant,
                int darkOnSurface, int darkOnBackground, int darkOnSurfaceVariant,
-               int darkNavBarInactive) {
+               int darkNavBarInactive,
+               int darkPrimary, int darkTabIndicator, int darkNavBarActive, int darkCardBorder) {
             this.name = name;
             this.primary = primary;
             this.onPrimary = onPrimary;
@@ -190,6 +203,10 @@ public class ColorSchemeManager {
             this.darkOnBackground = darkOnBackground;
             this.darkOnSurfaceVariant = darkOnSurfaceVariant;
             this.darkNavBarInactive = darkNavBarInactive;
+            this.darkPrimary = darkPrimary;
+            this.darkTabIndicator = darkTabIndicator;
+            this.darkNavBarActive = darkNavBarActive;
+            this.darkCardBorder = darkCardBorder;
         }
     }
 
@@ -235,7 +252,8 @@ public class ColorSchemeManager {
                 0xFF5B4E9A, 0xFF5B4E9A, 0xFFD4CBE8,
                 0xFF181622, 0xFF121019, 0xFF282438,
                 0xFFE9E4EF, 0xFFF4EFF7, 0xFFCCC4D9,
-                0xFF958DA5));
+                0xFF958DA5,
+                0xFFD0BCFF, 0xFFD0BCFF, 0xFFD0BCFF, 0xFF3A3450));
 
         // 第2套：深海蓝——以蓝色为主色调，沉稳大气
         SCHEMES.add(new Scheme("深海蓝",
@@ -246,7 +264,8 @@ public class ColorSchemeManager {
                 0xFF2563EB, 0xFF2563EB, 0xFFBFDBFE,
                 0xFF111827, 0xFF0B1120, 0xFF1E293B,
                 0xFFE5E7EB, 0xFFF8FAFC, 0xFFCBD5E1,
-                0xFF94A3B8));
+                0xFF94A3B8,
+                0xFF93C5FD, 0xFF93C5FD, 0xFF93C5FD, 0xFF1E3A5F));
 
         // 第3套：竹影绿——以绿色为主色调，清新自然
         SCHEMES.add(new Scheme("竹影绿",
@@ -257,7 +276,8 @@ public class ColorSchemeManager {
                 0xFF047857, 0xFF047857, 0xFFB7DEC3,
                 0xFF101A15, 0xFF0B1410, 0xFF1B2A22,
                 0xFFE5EEE8, 0xFFF1F8F3, 0xFFB9C8BF,
-                0xFF87988E));
+                0xFF87988E,
+                0xFF6EE7B7, 0xFF6EE7B7, 0xFF6EE7B7, 0xFF1F3A2A));
 
         // 第4套：晨曦橙——以橙色为主色调，温暖活力
         SCHEMES.add(new Scheme("晨曦橙",
@@ -268,7 +288,8 @@ public class ColorSchemeManager {
                 0xFFC2410C, 0xFFC2410C, 0xFFFED7AA,
                 0xFF1D1712, 0xFF15100C, 0xFF30251B,
                 0xFFEFE5DB, 0xFFFFF4E8, 0xFFD0BFAE,
-                0xFFA39485));
+                0xFFA39485,
+                0xFFFDBA74, 0xFFFDBA74, 0xFFFDBA74, 0xFF3D2E1F));
 
         // 第5套：蔷薇莓——以粉红色为主色调，浪漫柔美
         SCHEMES.add(new Scheme("蔷薇莓",
@@ -279,7 +300,8 @@ public class ColorSchemeManager {
                 0xFFBE123C, 0xFFBE123C, 0xFFFDA4AF,
                 0xFF1F1419, 0xFF170F13, 0xFF33242B,
                 0xFFF1E3E8, 0xFFFFF1F6, 0xFFD4BCC6,
-                0xFF9E8992));
+                0xFF9E8992,
+                0xFFFDA4AF, 0xFFFDA4AF, 0xFFFDA4AF, 0xFF3D1F2A));
 
         // 第6套：极光青——以青色为主色调，科技感十足
         SCHEMES.add(new Scheme("极光青",
@@ -290,7 +312,8 @@ public class ColorSchemeManager {
                 0xFF0891B2, 0xFF0891B2, 0xFFA5F3FC,
                 0xFF0D1B1F, 0xFF081316, 0xFF172D33,
                 0xFFDFF1F5, 0xFFF0FDFF, 0xFFB4C9CE,
-                0xFF87A0A6));
+                0xFF87A0A6,
+                0xFF67E8F9, 0xFF67E8F9, 0xFF67E8F9, 0xFF1A3040));
 
         // 第7套：墨金——以金色为主色调，典雅高贵
         SCHEMES.add(new Scheme("墨金",
@@ -301,7 +324,8 @@ public class ColorSchemeManager {
                 0xFFA16207, 0xFFA16207, 0xFFFDE68A,
                 0xFF171510, 0xFF100F0B, 0xFF282417,
                 0xFFECE5D8, 0xFFFFF7E8, 0xFFCFC3AB,
-                0xFF9A8F7A));
+                0xFF9A8F7A,
+                0xFFFDE68A, 0xFFFDE68A, 0xFFFDE68A, 0xFF3A3420));
 
         // 第8套：朱砂红——以红色为主色调，热情奔放
         SCHEMES.add(new Scheme("朱砂红",
@@ -312,7 +336,8 @@ public class ColorSchemeManager {
                 0xFFB91C1C, 0xFFB91C1C, 0xFFFCA5A5,
                 0xFF1F1313, 0xFF160D0D, 0xFF332121,
                 0xFFF2DEDE, 0xFFFFF0F0, 0xFFD3BABA,
-                0xFF9E8585));
+                0xFF9E8585,
+                0xFFFCA5A5, 0xFFFCA5A5, 0xFFFCA5A5, 0xFF3A1F1F));
     }
 
     /**
@@ -399,8 +424,10 @@ public class ColorSchemeManager {
         int surfaceVarColor = isDark ? scheme.darkSurfaceVariant : scheme.surfaceVariant;
         int onSurfaceColor = isDark ? scheme.darkOnSurface : scheme.onSurface;
         int onSurfaceVarColor = isDark ? scheme.darkOnSurfaceVariant : scheme.onSurfaceVariant;
-        // 深色模式下导航栏未选中项使用专用暗色，浅色模式下复用 onSurfaceVariant
         int navBarInactive = isDark ? scheme.darkNavBarInactive : scheme.onSurfaceVariant;
+        int primaryColor = isDark ? scheme.darkPrimary : scheme.primary;
+        int tabIndicatorColor = isDark ? scheme.darkTabIndicator : scheme.tabIndicator;
+        int navBarActiveColor = isDark ? scheme.darkNavBarActive : scheme.navBarActive;
 
         // 设置状态栏（手机顶部显示时间、电量的那一栏）和导航栏的背景色
         window.setStatusBarColor(surfaceColor);
@@ -424,7 +451,7 @@ public class ColorSchemeManager {
                     new int[] {android.R.attr.state_checked},
                     new int[] {-android.R.attr.state_checked}
             };
-            int[] colors = new int[] { scheme.navBarActive, navBarInactive };
+            int[] colors = new int[] { navBarActiveColor, navBarInactive };
             navView.setItemIconTintList(new android.content.res.ColorStateList(states, colors));
             navView.setItemTextColor(new android.content.res.ColorStateList(states, colors));
         }
@@ -433,9 +460,9 @@ public class ColorSchemeManager {
         // 【初学者理解】TabLayout 就是页面顶部的标签栏，可以左右滑动切换分类
         TabLayout tabLayout = activity.findViewById(R.id.tab_layout);
         if (tabLayout != null) {
-            tabLayout.setSelectedTabIndicatorColor(scheme.tabIndicator);
+            tabLayout.setSelectedTabIndicatorColor(tabIndicatorColor);
             // 未选中文字使用 onSurfaceVariant，选中文字使用 primary
-            tabLayout.setTabTextColors(onSurfaceVarColor, scheme.primary);
+            tabLayout.setTabTextColors(onSurfaceVarColor, primaryColor);
             tabLayout.setBackgroundColor(surfaceVarColor);
         }
     }
@@ -461,6 +488,9 @@ public class ColorSchemeManager {
         int surfaceVarColor = isDark ? scheme.darkSurfaceVariant : scheme.surfaceVariant;
         int onSurfaceVarColor = isDark ? scheme.darkOnSurfaceVariant : scheme.onSurfaceVariant;
         int navBarInactive = isDark ? scheme.darkNavBarInactive : scheme.onSurfaceVariant;
+        int primaryColor = isDark ? scheme.darkPrimary : scheme.primary;
+        int tabIndicatorColor = isDark ? scheme.darkTabIndicator : scheme.tabIndicator;
+        int navBarActiveColor = isDark ? scheme.darkNavBarActive : scheme.navBarActive;
 
         if (view instanceof BottomNavigationView) {
             // 如果是底部导航栏控件，设置背景色和图标/文字颜色
@@ -471,15 +501,15 @@ public class ColorSchemeManager {
                     new int[] {android.R.attr.state_checked},
                     new int[] {-android.R.attr.state_checked}
             };
-            int[] colors = new int[] { scheme.navBarActive, navBarInactive };
+            int[] colors = new int[] { navBarActiveColor, navBarInactive };
             navView.setItemIconTintList(new android.content.res.ColorStateList(states, colors));
             navView.setItemTextColor(new android.content.res.ColorStateList(states, colors));
         } else if (view instanceof TabLayout) {
             // 如果是标签栏控件，设置指示器、文字和背景颜色
             TabLayout tabLayout = (TabLayout) view;
-            tabLayout.setSelectedTabIndicatorColor(scheme.tabIndicator);
+            tabLayout.setSelectedTabIndicatorColor(tabIndicatorColor);
             // 未选中文字使用 onSurfaceVariant，选中文字使用 primary
-            tabLayout.setTabTextColors(onSurfaceVarColor, scheme.primary);
+            tabLayout.setTabTextColors(onSurfaceVarColor, primaryColor);
             tabLayout.setBackgroundColor(surfaceVarColor);
         }
     }

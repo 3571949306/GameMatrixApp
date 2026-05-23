@@ -341,36 +341,38 @@ public class AiPreferences {
     }
 
     /**
-     * 读取当前启用的本地模型元数据；旧版只保存模型 ID 的 Gemma 配置会自动补齐。
+     * 读取当前启用的本地模型元数据；旧版只保存模型ID的Gemma配置会自动补齐。
      */
     public AiModelInfo getLocalModelInfo() {
         String id = getLocalModel();
         if ("on-device".equals(id)) {
             return buildRulesModelInfo();
         }
+        // 首先尝试从已保存的完整信息中重建
         String fileName = prefs.getString(KEY_LOCAL_MODEL_FILE_NAME, "");
-        if (fileName == null || fileName.isEmpty()) {
-            if ("gemma3-1b-it-q4".equals(id)) {
-                return buildLegacyGemmaModelInfo();
+        if (fileName != null && !fileName.isEmpty()) {
+            try {
+                JSONObject json = new JSONObject();
+                json.put("id", id);
+                json.put("name", prefs.getString(KEY_LOCAL_MODEL_NAME, id));
+                json.put("runtime", prefs.getString(KEY_LOCAL_MODEL_RUNTIME, "mediapipe-llm"));
+                json.put("fileName", fileName);
+                json.put("sha256", prefs.getString(KEY_LOCAL_MODEL_SHA256, ""));
+                json.put("sizeBytes", prefs.getLong(KEY_LOCAL_MODEL_SIZE_BYTES, 0L));
+                json.put("estimatedPeakMemoryBytes", prefs.getLong(KEY_LOCAL_MODEL_PEAK_BYTES, 0L));
+                json.put("minSdk", prefs.getInt(KEY_LOCAL_MODEL_MIN_SDK, 24));
+                json.put("minRamMb", prefs.getInt(KEY_LOCAL_MODEL_MIN_RAM_MB, 2048));
+                json.put("enabled", true);
+                return AiModelInfo.fromJson(json);
+            } catch (Exception e) {
+                // 失败时尝试旧版兼容
             }
-            return null;
         }
-        try {
-            JSONObject json = new JSONObject();
-            json.put("id", id);
-            json.put("name", prefs.getString(KEY_LOCAL_MODEL_NAME, id));
-            json.put("runtime", prefs.getString(KEY_LOCAL_MODEL_RUNTIME, "mediapipe-llm"));
-            json.put("fileName", fileName);
-            json.put("sha256", prefs.getString(KEY_LOCAL_MODEL_SHA256, ""));
-            json.put("sizeBytes", prefs.getLong(KEY_LOCAL_MODEL_SIZE_BYTES, 0L));
-            json.put("estimatedPeakMemoryBytes", prefs.getLong(KEY_LOCAL_MODEL_PEAK_BYTES, 0L));
-            json.put("minSdk", prefs.getInt(KEY_LOCAL_MODEL_MIN_SDK, 24));
-            json.put("minRamMb", prefs.getInt(KEY_LOCAL_MODEL_MIN_RAM_MB, 2048));
-            json.put("enabled", true);
-            return AiModelInfo.fromJson(json);
-        } catch (Exception e) {
-            return null;
+        // 旧版Gemma模型兼容处理
+        if ("gemma3-1b-it-q4".equals(id)) {
+            return buildLegacyGemmaModelInfo();
         }
+        return null;
     }
 
     private static AiModelInfo buildRulesModelInfo() {

@@ -40,12 +40,11 @@ import okhttp3.Response;
 public final class AiApiClient {
 
     private static final String TAG = "AiApiClient";
-    // JSON 请求体的 MediaType（告诉服务器我们发的是 JSON 格式的数据）
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-    // 连接超时时间（秒）— 建立网络连接的最大等待时间
     private static final int CONNECT_TIMEOUT = 20;
-    // 读取超时时间（秒）— AI 推理响应较慢，设置较长超时，避免还没出结果就超时了
     private static final int READ_TIMEOUT = 60;
+
+    private static final byte[] XOR_KEY = {0x5A, 0x3C, 0x7F, 0x21, 0x6B, 0x0E, 0x4D, (byte) 0x92};
 
     // 当前请求使用的供应商配置（包含 baseUrl、apiKey、modelName 等）
     private final AiProviderConfig config;
@@ -194,5 +193,50 @@ public final class AiApiClient {
             return 3072;
         }
         return 2048;
+    }
+
+    /**
+     * 对明文 API Key 进行 XOR 混淆，生成混淆后的十六进制字符串。
+     * <p>
+     * 此方法主要用于构建流程或开发工具，将明文密钥转换为混淆形式，
+     * 以便安全地存储在代码或配置中，避免明文硬编码。
+     * <p>
+     * 混淆方式：将每个字符与 XOR_KEY 中对应位置的固定字节进行异或运算，
+     * 结果以十六进制字符串形式输出。
+     *
+     * @param plain 明文 API Key
+     * @return 混淆后的十六进制字符串
+     */
+    public static String obfuscateKey(String plain) {
+        if (plain == null || plain.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder(plain.length() * 2);
+        for (int i = 0; i < plain.length(); i++) {
+            int b = (plain.charAt(i) ^ XOR_KEY[i % XOR_KEY.length]) & 0xFF;
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 对混淆后的 API Key 进行 XOR 解混淆，还原为明文。
+     * <p>
+     * 与 {@link #obfuscateKey(String)} 互为逆操作。
+     * 建议在 Authorization 请求头中使用此方法解混淆，而非直接存储明文密钥：
+     * <pre>
+     *   .addHeader("Authorization", "Bearer " + deobfuscateKey(obfuscatedKey))
+     * </pre>
+     *
+     * @param obfuscated 混淆后的十六进制字符串
+     * @return 解混淆后的明文 API Key
+     */
+    public static String deobfuscateKey(String obfuscated) {
+        if (obfuscated == null || obfuscated.isEmpty()) return "";
+        int len = obfuscated.length() / 2;
+        StringBuilder sb = new StringBuilder(len);
+        for (int i = 0; i < len; i++) {
+            int b = Integer.parseInt(obfuscated.substring(i * 2, i * 2 + 2), 16);
+            sb.append((char) (b ^ XOR_KEY[i % XOR_KEY.length]));
+        }
+        return sb.toString();
     }
 }

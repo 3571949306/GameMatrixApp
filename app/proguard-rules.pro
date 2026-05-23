@@ -125,8 +125,27 @@
 -keep class com.google.zxing.** { *; }
 -dontwarn com.google.zxing.**
 
-# ============ Native ============
--keepclasseswithmembernames class * {
+# ============ 安全加固 ============
+# 保留 @Keep 注解标注的类成员（用于 API Key 等敏感字段混淆后保持引用）
+-keepclassmembers class * {
+    @androidx.annotation.Keep *;
+}
+
+# Release 构建移除日志输出，防止敏感信息通过 Logcat 泄露
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+}
+
+# 保留所有 Serializable 类的完整结构（反序列化需要）
+-keep class * implements java.io.Serializable { *; }
+
+# 保留所有 Parcelable 类的完整结构（Android IPC 需要）
+-keep class * implements android.os.Parcelable { *; }
+
+# 保留 JNI Native 方法名称（native 方法名必须与 .so 库中的符号一致）
+-keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
 
