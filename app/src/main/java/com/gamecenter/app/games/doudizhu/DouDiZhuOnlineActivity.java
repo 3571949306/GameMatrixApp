@@ -155,30 +155,15 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * @param messageType 消息类型
      */
     private void logEvent(String event, String roomCode, int playerId, String messageType) {
-        if (!DEBUG_NETWORK) return;
-        Log.d(TAG, LOG_PREFIX + " [" + event + "] room=" + (roomCode != null ? roomCode : "-")
-                + " player=" + playerId + " type=" + (messageType != null ? messageType : "-")
-                + " t=" + System.currentTimeMillis());
+        DouDiZhuLogHelper.logEvent(TAG, event, roomCode, playerId, messageType);
     }
 
     private void logGame(String event, int seatIndex, String detail) {
-        if (!DEBUG_NETWORK) return;
-        Log.d(TAG, LOG_PREFIX + " [GAME_" + event + "] seat=" + seatIndex + " " + (detail != null ? detail : ""));
+        DouDiZhuLogHelper.logGame(TAG, event, seatIndex, detail);
     }
 
     private void logSeatState(String context) {
-        if (!DEBUG_NETWORK) return;
-        StringBuilder sb = new StringBuilder();
-        sb.append(context).append(" | mode=").append(mode);
-        sb.append(" gameState=").append(gameState);
-        sb.append(" seats=[");
-        for (int i = 0; i < TOTAL_SEATS; i++) {
-            if (i > 0) sb.append(", ");
-            sb.append(i).append(":type=").append(seatTypes[i])
-              .append(",cid=").append(seatClientIds[i]);
-        }
-        sb.append("]");
-        Log.d(TAG, LOG_PREFIX + " [SEAT_STATE] " + sb.toString());
+        DouDiZhuLogHelper.logSeatState(TAG, context, mode, gameState, seatTypes, seatClientIds);
     }
 
     private DouDiZhuTableView tableView;
@@ -273,12 +258,11 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     private Handler handler = new Handler(Looper.getMainLooper()); // 主线程定时器
     // aiThinkingRunnable moved to DouDiZhuAIHelper
     private boolean isCleaningUp = false; // 是否正在清理资源（防止重复清理）
-    private DouDiZhuSoundManager soundManager; // 音效管理器
-    private int lastTurnSoundState = -1; // 上次播放回合音效时的游戏状态
-    private int lastTurnSoundSeat = -1; // 上次播放回合音效时的座位号
+    private DouDiZhuSoundManager soundManager;
+    private DouDiZhuSoundHelper soundHelper = new DouDiZhuSoundHelper();
 
-    private StringBuilder chatLog = new StringBuilder(); // 聊天记录缓冲区
-    private final List<JSONObject> hostChatHistory = new ArrayList<>(); // 房主端保存的聊天历史（新玩家加入时发送给他）
+    private StringBuilder chatLog = new StringBuilder();
+    private final DouDiZhuChatHelper chatHelper = new DouDiZhuChatHelper();
     // pendingClientIntent moved to DouDiZhuNetworkHandler
 
     /**
@@ -803,31 +787,11 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private String getClipboardText() {
-        try {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard == null || !clipboard.hasPrimaryClip() || clipboard.getPrimaryClip() == null
-                    || clipboard.getPrimaryClip().getItemCount() == 0) {
-                return "";
-            }
-            CharSequence text = clipboard.getPrimaryClip().getItemAt(0).coerceToText(this);
-            return text != null ? text.toString() : "";
-        } catch (Exception e) {
-            Log.w(TAG, "getClipboardText failed: " + e.getMessage());
-            return "";
-        }
+        return DouDiZhuNetUtil.getClipboardText(this);
     }
 
     private String getSuggestedIpPrefix() {
-        if (lanManager == null) return "192.168.1.";
-        List<String> addresses = lanManager.getAllLocalIPv4Addresses();
-        for (String ip : addresses) {
-            if (ip == null || !ip.contains(".")) continue;
-            int lastDot = ip.lastIndexOf('.');
-            if (lastDot > 0) {
-                return ip.substring(0, lastDot + 1);
-            }
-        }
-        return "192.168.1.";
+        return DouDiZhuNetUtil.getSuggestedIpPrefix(lanManager);
     }
 
     /**
@@ -1339,21 +1303,11 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private boolean hasDisconnectedRemoteSeat() {
-        for (int i = 1; i < TOTAL_SEATS; i++) {
-            if (seatTypes[i] == SEAT_TYPE_REMOTE && seatClientIds[i] < 0) {
-                return true;
-            }
-        }
-        return false;
+        return DouDiZhuSeatNameHelper.hasDisconnectedRemoteSeat(seatTypes, seatClientIds);
     }
 
     private boolean hasAnyRemoteSeat() {
-        for (int i = 1; i < TOTAL_SEATS; i++) {
-            if (seatTypes[i] == SEAT_TYPE_REMOTE) {
-                return true;
-            }
-        }
-        return false;
+        return DouDiZhuSeatNameHelper.hasAnyRemoteSeat(seatTypes);
     }
 
     /**
@@ -1474,23 +1428,15 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private void playClickSound() {
-        if (soundManager != null) {
-            soundManager.click();
-        }
+        soundHelper.playClickSound(soundManager);
     }
 
     private void playTurnSoundIfNeeded() {
-        if (soundManager == null || !isLocalSeat(currentTurn)) return;
-        if (gameState != STATE_BIDDING && gameState != STATE_PLAYING) return;
-        if (lastTurnSoundState == gameState && lastTurnSoundSeat == currentTurn) return;
-        lastTurnSoundState = gameState;
-        lastTurnSoundSeat = currentTurn;
-        soundManager.turn();
+        soundHelper.playTurnSoundIfNeeded(soundManager, currentTurn, gameState, mode, mySeatIndex);
     }
 
     private void resetTurnSoundMarker() {
-        lastTurnSoundState = -1;
-        lastTurnSoundSeat = -1;
+        soundHelper.resetTurnSoundMarker();
     }
 
     /**
@@ -2026,18 +1972,10 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
         this.winnerIndex = winnerIndex;
         hideAllButtons();
 
-        String result;
-        if (mode == 0) {
-            result = (winnerIndex == 0) ? "你赢了！" : "你输了！";
-        } else {
-            boolean winnerIsLandlord = (winnerIndex == landlordIndex);
-            boolean iAmLandlord = (mySeatIndex == landlordIndex);
-            if (winnerIsLandlord == iAmLandlord) result = "你赢了！";
-            else result = "你输了！";
-        }
+        String result = DouDiZhuDisplayHelper.getGameOverResult(winnerIndex, mode, mySeatIndex, landlordIndex);
         if (soundManager != null) soundManager.win(result.contains("赢"));
 
-        int score = (winnerIndex == landlordIndex) ? 100 : 50;
+        int score = DouDiZhuDisplayHelper.getGameOverScore(winnerIndex, landlordIndex);
         String scoreDetail = "本局得分：" + (score >= 0 ? "+" : "") + score;
         uiController.showGameOverDialog("游戏结束", result, scoreDetail);
 
@@ -2177,21 +2115,19 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private void removeCardsFromHand(List<Card> hand, List<Card> cards) {
-        for (Card card : cards) {
-            hand.remove(card);
-        }
+        DouDiZhuCardUtil.removeCardsFromHand(hand, cards);
     }
 
     private int getPlayerDisplaySeat() {
-        return mode == 1 && mySeatIndex >= 0 ? mySeatIndex : 0;
+        return DouDiZhuDisplayHelper.getPlayerDisplaySeat(mode, mySeatIndex);
     }
 
     private int getLeftDisplaySeat() {
-        return mode == 1 && mySeatIndex >= 0 ? (mySeatIndex + 1) % TOTAL_SEATS : 1;
+        return DouDiZhuDisplayHelper.getLeftDisplaySeat(mode, mySeatIndex);
     }
 
     private int getRightDisplaySeat() {
-        return mode == 1 && mySeatIndex >= 0 ? (mySeatIndex + 2) % TOTAL_SEATS : 2;
+        return DouDiZhuDisplayHelper.getRightDisplaySeat(mode, mySeatIndex);
     }
 
     /**
@@ -2204,10 +2140,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * @return 显示槽位（0=底部，1=左边，2=右边），-1 表示无效
      */
     private int getDisplaySlotForSeat(int seatIndex) {
-        if (seatIndex == getPlayerDisplaySeat()) return 0;
-        if (seatIndex == getLeftDisplaySeat()) return 1;
-        if (seatIndex == getRightDisplaySeat()) return 2;
-        return -1;
+        return DouDiZhuDisplayHelper.getDisplaySlotForSeat(seatIndex, mode, mySeatIndex);
     }
 
     private int getSeatCardCount(int seatIndex) {
@@ -2221,8 +2154,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private int getLandlordStatusForSeat(int seatIndex) {
-        if (landlordIndex < 0) return 0;
-        return landlordIndex == seatIndex ? 2 : 1;
+        return DouDiZhuDisplayHelper.getLandlordStatusForSeat(seatIndex, landlordIndex);
     }
 
     // ============ UI Updates ============
@@ -2257,17 +2189,11 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private void updateLandlordIndicator() {
-        uiController.updateLandlordIndicator(landlordIndex < 0 ? "待定" : getSeatName(landlordIndex));
+        uiController.updateLandlordIndicator(DouDiZhuDisplayHelper.getLandlordIndicatorText(landlordIndex, seatTypes));
     }
 
     private void updateTurnIndicator() {
-        String turnText;
-        if (gameState == STATE_BIDDING) {
-            turnText = getTurnSeatName(currentTurn) + "叫地主";
-        } else {
-            turnText = getTurnSeatName(currentTurn) + "出牌";
-        }
-        uiController.updateTurnIndicator(turnText);
+        uiController.updateTurnIndicator(DouDiZhuDisplayHelper.getTurnIndicatorText(currentTurn, gameState, mode, mySeatIndex, seatTypes));
     }
 
     /**
@@ -2658,12 +2584,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     @Override public void handleGameOverMsg(JSONObject msg) {
         int winnerIndex = msg.optInt("winnerIndex", -1);
         this.winnerIndex = winnerIndex;
-        boolean winnerIsLandlord = (winnerIndex == landlordIndex);
-        boolean iAmLandlord = (mySeatIndex == landlordIndex);
-        String result;
-        if (winnerIndex == mySeatIndex) result = "你赢了！";
-        else if (winnerIsLandlord == iAmLandlord) result = "你赢了！";
-        else result = "你输了！";
+        String result = DouDiZhuDisplayHelper.getClientGameOverResult(winnerIndex, mySeatIndex, landlordIndex);
         if (soundManager != null) soundManager.win(result.contains("赢"));
         showGameOverDialog(result);
     }
@@ -2985,50 +2906,19 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * @param message 聊天消息内容
      */
     private void rememberHostChat(int seatIndex, String message) {
-        if (message == null) return;
-        JSONObject item = new JSONObject();
-        try {
-            item.put("seatIndex", seatIndex);
-            item.put("message", message);
-            item.put("time", System.currentTimeMillis());
-            hostChatHistory.add(item);
-        } catch (JSONException e) { Log.w(TAG, "JSON error: " + e.getMessage()); }
+        chatHelper.rememberHostChat(seatIndex, message);
     }
 
     private void sendChatHistoryToClient(int clientId) {
-        if (server == null) return;
-        JSONObject msg = new JSONObject();
-        JSONArray messages = new JSONArray();
-        try {
-            for (JSONObject item : hostChatHistory) {
-                messages.put(item);
-            }
-            msg.put("type", "CHAT_HISTORY");
-            msg.put("messages", messages);
-            server.sendTo(clientId, msg);
-        } catch (JSONException e) {
-            Log.e(TAG, "sendChatHistoryToClient error: " + e.getMessage());
-        }
+        chatHelper.sendChatHistoryToClient(server, clientId);
     }
 
-    /**
-     * 向所有远程座位广播聊天历史。
-     *
-     * <p>新客户端加入时，将已有的聊天记录发送给该客户端。</p>
-     */
     private void broadcastChatHistoryToAll() {
-        if (server == null) return;
-        sendChatHistoryToAllNow();
-        handler.postDelayed(this::sendChatHistoryToAllNow, 200);
+        chatHelper.broadcastChatHistoryToAll(server, handler, seatTypes, seatClientIds);
     }
 
     private void sendChatHistoryToAllNow() {
-        if (server == null) return;
-        for (int i = 0; i < TOTAL_SEATS; i++) {
-            if (seatTypes[i] == SEAT_TYPE_REMOTE && seatClientIds[i] >= 0) {
-                sendChatHistoryToClient(seatClientIds[i]);
-            }
-        }
+        chatHelper.sendChatHistoryToAllNow(server, seatTypes, seatClientIds);
     }
 
     private JSONObject createErrorMsg(String error) {
@@ -3064,12 +2954,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private String getSeatName(int seatIndex) {
-        if (seatIndex < 0 || seatIndex >= TOTAL_SEATS) return "未知";
-        String role = getRoleName(seatIndex);
-        if (seatTypes[seatIndex] == SEAT_TYPE_AI) {
-            return "人机（" + role + "）";
-        }
-        return "P" + (seatIndex + 1) + "（" + role + "）";
+        return DouDiZhuSeatNameHelper.getSeatName(seatIndex, seatTypes, landlordIndex);
     }
     private String getFixedSeatName(int seatIndex) {
         return DouDiZhuSeatNameHelper.getFixedSeatName(seatIndex);

@@ -13,6 +13,7 @@ public final class DouDiZhuSeatNameHelper {
 
     static final int TOTAL_SEATS = 3;
     static final int SEAT_TYPE_AI = 2;
+    static final int SEAT_TYPE_REMOTE = 1;
 
     private DouDiZhuSeatNameHelper() {}
 
@@ -93,5 +94,32 @@ public final class DouDiZhuSeatNameHelper {
      */
     public static String getTurnSeatName(int seatIndex, int mode, int mySeatIndex, int[] seatTypes) {
         return isLocalSeat(seatIndex, mode, mySeatIndex) ? "你" : getShortSeatName(seatIndex, seatTypes);
+    }
+
+    public static String getSeatName(int seatIndex, int[] seatTypes, int landlordIndex) {
+        if (seatIndex < 0 || seatIndex >= TOTAL_SEATS) return "未知";
+        String role = getRoleName(seatIndex, landlordIndex);
+        if (seatTypes != null && seatIndex < seatTypes.length && seatTypes[seatIndex] == SEAT_TYPE_AI) {
+            return "人机（" + role + "）";
+        }
+        return "P" + (seatIndex + 1) + "（" + role + "）";
+    }
+
+    public static boolean hasDisconnectedRemoteSeat(int[] seatTypes, int[] seatClientIds) {
+        for (int i = 1; i < TOTAL_SEATS; i++) {
+            if (seatTypes[i] == SEAT_TYPE_REMOTE && seatClientIds[i] < 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean hasAnyRemoteSeat(int[] seatTypes) {
+        for (int i = 1; i < TOTAL_SEATS; i++) {
+            if (seatTypes[i] == SEAT_TYPE_REMOTE) {
+                return true;
+            }
+        }
+        return false;
     }
 }
