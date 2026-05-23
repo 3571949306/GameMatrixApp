@@ -502,13 +502,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * @return 6 位房间码字符串
      */
     private String generateRoomCode() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        StringBuilder sb = new StringBuilder();
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 6; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-        return sb.toString();
+        return DouDiZhuRoomHelper.generateRoomCode();
     }
 
     /**
@@ -520,53 +514,20 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
      * @return 可用的端口号
      */
     private int findAvailablePort() {
-        for (int port : HOST_PORT_CANDIDATES) {
-            try {
-                java.net.ServerSocket socket = new java.net.ServerSocket(port);
-                socket.close();
-                return port;
-            } catch (Exception e) {
-                continue;
-            }
-        }
-        return DEFAULT_SERVER_PORT;
+        return DouDiZhuRoomHelper.findAvailablePort();
     }
 
     private String formatHostAddress(String ip, int port) {
-        if (ip == null || ip.trim().isEmpty()) {
-            return "请查看本机IP:" + port;
-        }
-        return ip + ":" + port;
+        return DouDiZhuRoomHelper.formatHostAddress(ip, port);
     }
 
     private String buildRelayHostInfo(String roomCode) {
-        String code = RemoteP2PUtil.normalizeRoomCode(roomCode);
-        if (code.isEmpty()) {
-            return "云房间已开启，正在生成房间码...";
-        }
-        return "云房间已开启\n\n"
-                + "房间码: " + code + "\n"
-                + "让其他玩家进入 斗地主 → 云联机 → 输入房间码。\n"
-                + "建议直接点“复制房间码”发给对方，系统会自动识别粘贴内容。";
+        return DouDiZhuRoomHelper.buildRelayHostInfo(roomCode);
     }
 
     private String buildRemoteHostInfo(String localIp, int port, String publicIp) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("远程 P2P 房间已开启\n");
-        if (publicIp != null && !publicIp.trim().isEmpty()) {
-            sb.append("公网地址: ").append(publicIp.trim()).append(":").append(port).append("\n");
-        } else {
-            sb.append("公网地址: 正在检测...\n");
-        }
-        if (localIp != null && !localIp.trim().isEmpty()) {
-            sb.append("本地地址: ").append(localIp.trim()).append(":").append(port).append("\n");
-        }
-        sb.append("\n连接条件: 房主需要公网IP、IPv6，或路由器端口映射到本机端口 ")
-                .append(port)
-                .append("。\nAndroid 16/高版本建议保持应用在前台，避免系统省电策略中断网络。");
-        return sb.toString();
+        return DouDiZhuRoomHelper.buildRemoteHostInfo(localIp, port, publicIp);
     }
-
     /**
      * 复制房间地址到剪贴板。
      *
@@ -608,34 +569,7 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
     }
 
     private String fetchPublicIp() {
-        String[] endpoints = new String[]{
-                "https://api.ipify.org",
-                "https://ipv4.icanhazip.com"
-        };
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(4, TimeUnit.SECONDS)
-                .readTimeout(4, TimeUnit.SECONDS)
-                .build();
-        for (String endpoint : endpoints) {
-            try {
-                Request request = new Request.Builder()
-                        .url(endpoint)
-                        .get()
-                        .addHeader("User-Agent", "GameMatrixApp-DDZ-P2P")
-                        .build();
-                try (Response response = client.newCall(request).execute()) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        String ip = response.body().string().trim();
-                        if (!ip.isEmpty()) {
-                            return ip;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "fetchPublicIp failed: " + endpoint + " " + e.getMessage());
-            }
-        }
-        return "";
+        return DouDiZhuRoomHelper.fetchPublicIp();
     }
 
     // ============ Client Mode ============
@@ -3137,38 +3071,23 @@ public class DouDiZhuOnlineActivity extends AppCompatActivity implements DouDiZh
         }
         return "P" + (seatIndex + 1) + "（" + role + "）";
     }
-
     private String getFixedSeatName(int seatIndex) {
-        if (seatIndex < 0 || seatIndex >= TOTAL_SEATS) return "未知";
-        return "P" + (seatIndex + 1);
+        return DouDiZhuSeatNameHelper.getFixedSeatName(seatIndex);
     }
-
     private String getSeatActorName(int seatIndex) {
-        if (seatIndex < 0 || seatIndex >= TOTAL_SEATS) return "未知";
-        if (seatTypes[seatIndex] == SEAT_TYPE_AI) {
-            return getFixedSeatName(seatIndex) + "（人机）";
-        }
-        return getFixedSeatName(seatIndex);
+        return DouDiZhuSeatNameHelper.getSeatActorName(seatIndex, seatTypes);
     }
-
     private String getRoleName(int seatIndex) {
-        if (landlordIndex < 0) return "待定";
-        return landlordIndex == seatIndex ? "地主" : "农民";
+        return DouDiZhuSeatNameHelper.getRoleName(seatIndex, landlordIndex);
     }
-
     private String getShortSeatName(int seatIndex) {
-        if (seatIndex < 0 || seatIndex >= TOTAL_SEATS) return "未知";
-        if (seatTypes[seatIndex] == SEAT_TYPE_AI) return "人机";
-        return "P" + (seatIndex + 1);
+        return DouDiZhuSeatNameHelper.getShortSeatName(seatIndex, seatTypes);
     }
-
     private boolean isLocalSeat(int seatIndex) {
-        return (mode == 0 && seatIndex == 0)
-                || (mode == 1 && mySeatIndex >= 0 && seatIndex == mySeatIndex);
+        return DouDiZhuSeatNameHelper.isLocalSeat(seatIndex, mode, mySeatIndex);
     }
-
     private String getTurnSeatName(int seatIndex) {
-        return isLocalSeat(seatIndex) ? "你" : getShortSeatName(seatIndex);
+        return DouDiZhuSeatNameHelper.getTurnSeatName(seatIndex, mode, mySeatIndex, seatTypes);
     }
 
     // ============ GameStateProvider ============
