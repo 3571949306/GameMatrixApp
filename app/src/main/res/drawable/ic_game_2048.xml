@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#BBADA0"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 方块2 (蓝色) -->
+    <path
+        android:fillColor="#EEE4DA"
+        android:pathData="M6,6h17v17h-17z" />
+    <path
+        android:fillColor="#776E65"
+        android:pathData="M12,12h5v5h-5z" />
+    <!-- 方块0 (绿色) -->
+    <path
+        android:fillColor="#EEE4DA"
+        android:pathData="M25,6h17v17h-17z" />
+    <path
+        android:fillColor="#776E65"
+        android:pathData="M31,12h5v5h-5z" />
+    <!-- 方块4 (橙色) -->
+    <path
+        android:fillColor="#EDE0C8"
+        android:pathData="M6,25h17v17h-17z" />
+    <path
+        android:fillColor="#776E65"
+        android:pathData="M12,31h5v5h-5z" />
+    <!-- 方块8 (紫色) -->
+    <path
+        android:fillColor="#F2B179"
+        android:pathData="M25,25h17v17h-17z" />
+    <path
+        android:fillColor="#F9F6F2"
+        android:pathData="M31,31h5v5h-5z" />
+</vector>

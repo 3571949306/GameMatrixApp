@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 网格线 -->
+    <path
+        android:strokeColor="#333333"
+        android:strokeWidth="2"
+        android:pathData="M18,6v36M30,6v36M6,18h36M6,30h36" />
+    <!-- X符号 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E53935"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M9,9l6,6M15,9l-6,6" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E53935"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M33,9l6,6M39,9l-6,6" />
+    <!-- O符号 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1E88E5"
+        android:strokeWidth="3"
+        android:pathData="M24,24m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1E88E5"
+        android:strokeWidth="3"
+        android:pathData="M24,12m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1E88E5"
+        android:strokeWidth="3"
+        android:pathData="M12,24m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <!-- 获胜线 -->
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2"
+        android:pathData="M6,12h36" />
+</vector>

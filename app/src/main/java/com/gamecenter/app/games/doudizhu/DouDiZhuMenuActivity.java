@@ -1,11 +1,20 @@
 package com.gamecenter.app.games.doudizhu;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.BounceInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 
 import com.gamecenter.app.R;
 
@@ -45,7 +54,24 @@ public class DouDiZhuMenuActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_doudizhu_menu);
 
+        initTitleAnimation();
         initButtons();
+    }
+
+    /**
+     * 初始化标题淡入动画。
+     * <p>标题从完全透明渐变到完全不透明，持续500ms，
+     * 使用 OvershootInterpolator 产生轻微的过冲效果，让动画更有活力。</p>
+     */
+    private void initTitleAnimation() {
+        TextView tvTitle = findViewById(R.id.tvTitle);
+        if (tvTitle != null) {
+            tvTitle.setAlpha(0f);
+            ObjectAnimator fadeIn = ObjectAnimator.ofFloat(tvTitle, "alpha", 0f, 1f);
+            fadeIn.setDuration(500);
+            fadeIn.setInterpolator(new OvershootInterpolator());
+            fadeIn.start();
+        }
     }
 
     /**
@@ -64,8 +90,9 @@ public class DouDiZhuMenuActivity extends AppCompatActivity {
      */
     private void initButtons() {
         // 单机模式按钮：启动本地AI对战
-        Button btnSinglePlayer = findViewById(R.id.btnSinglePlayer);
+        AppCompatButton btnSinglePlayer = findViewById(R.id.btnSinglePlayer);
         if (btnSinglePlayer != null) {
+            setupButtonAnimation(btnSinglePlayer);
             btnSinglePlayer.setOnClickListener(v -> {
                 Intent intent = new Intent(this, DouDiZhuActivity.class);
                 startActivity(intent);
@@ -73,28 +100,70 @@ public class DouDiZhuMenuActivity extends AppCompatActivity {
         }
 
         // 联机模式按钮：启动局域网联机对战
-        Button btnOnline = findViewById(R.id.btnOnline);
+        AppCompatButton btnOnline = findViewById(R.id.btnOnline);
         if (btnOnline != null) {
+            setupButtonAnimation(btnOnline);
             btnOnline.setOnClickListener(v -> {
-                Intent intent = new Intent(this, DouDiZhuOnlineActivity.class);
-                startActivity(intent);
+                android.widget.Toast.makeText(
+                        this,
+                        "联机模式已移到模块商店，当前内置版仅保留单机模式",
+                        android.widget.Toast.LENGTH_SHORT
+                ).show();
             });
         }
 
         // 远程P2P按钮：启动远程点对点联机，通过 Extra 标记区分模式
-        Button btnRemoteP2P = findViewById(R.id.btnRemoteP2P);
+        AppCompatButton btnRemoteP2P = findViewById(R.id.btnRemoteP2P);
         if (btnRemoteP2P != null) {
+            setupButtonAnimation(btnRemoteP2P);
             btnRemoteP2P.setOnClickListener(v -> {
-                Intent intent = new Intent(this, DouDiZhuOnlineActivity.class);
-                intent.putExtra(DouDiZhuOnlineActivity.EXTRA_REMOTE_P2P, true);
-                startActivity(intent);
+                android.widget.Toast.makeText(
+                        this,
+                        "远程 P2P 已移到模块商店，当前内置版仅保留单机模式",
+                        android.widget.Toast.LENGTH_SHORT
+                ).show();
             });
         }
 
         // 返回按钮：关闭当前页面
-        Button btnBack = findViewById(R.id.btnBack);
+        AppCompatButton btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) {
+            setupButtonAnimation(btnBack);
             btnBack.setOnClickListener(v -> finish());
         }
+    }
+
+    /**
+     * 为按钮添加按下缩放动画效果。
+     * <p>当用户按下按钮时，按钮会缩小到0.95倍；松开时恢复原始大小。
+     * 这种微妙的反馈让用户感受到按钮的"物理感"，提升交互体验。</p>
+     *
+     * @param button 要添加动画的按钮
+     */
+    private void setupButtonAnimation(AppCompatButton button) {
+        button.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    // 按下时缩小到 0.95x
+                    v.animate()
+                        .scaleX(0.95f)
+                        .scaleY(0.95f)
+                        .setDuration(100)
+                        .setInterpolator(new AccelerateDecelerateInterpolator())
+                        .start();
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    // 松开时恢复原始大小
+                    v.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(150)
+                        .setInterpolator(new BounceInterpolator())
+                        .start();
+                    break;
+            }
+            return false;
+        });
     }
 }

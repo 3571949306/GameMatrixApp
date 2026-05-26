@@ -11,12 +11,6 @@
     <domain-config>
         <domain includeSubdomains="true">hk-update.tcp0053.shop</domain>
         <domain includeSubdomains="true">tcp0053.shop</domain>
-        <pin-set expiration="2027-01-01">
-            <!-- 主证书公钥 SHA-256（需替换为实际证书指纹） -->
-            <pin digest="SHA-256">REPLACE_WITH_ACTUAL_PIN_SHA256</pin>
-            <!-- 备用证书公钥，用于证书轮换时保持连通性 -->
-            <pin digest="SHA-256">REPLACE_WITH_BACKUP_PIN_SHA256</pin>
-        </pin-set>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

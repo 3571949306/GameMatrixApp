@@ -3,13 +3,30 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.3.30--beta.3-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.4.0-blue)](CHANGELOG.md)
 
-一个集成 **26 款**经典小游戏的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战，内置浏览器和 20+ 网络/设备工具。
+一个集成模块商店，支持按需扩展小游戏、工具箱、浏览器、AI 助手和科学上网（VPN）的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战。
 
-An Android game center integrating **26** classic mini-games, supporting single-player AI, LAN multiplayer, cloud multiplayer, built-in browser, and 20+ network/device tools.
+An Android game center with a modular marketplace for on-demand expansion of games, tools, browser, AI assistant, and VPN, supporting single-player AI, LAN multiplayer, and cloud multiplayer.
 
 ---
+
+## 2026-05-26 Maintenance Snapshot
+
+- **Module Store Expansion**: Upgraded `modules.json` from version 10 to version 11. Added 23 new game modules (blackjack, breakout, brotato, checkers, dice, flappy, go, guess, knife, match, memory, minesweeper, pipeline, plane, reaction, rock, snake, sokoban, sudoku, tetris, tic, tiles, whack), bringing the total to 29 game modules and 33 modules overall.
+- **VPS Deployment**: All game ZIP files uploaded to VPS at `/var/www/modules/` and `/var/www/update/modules/`.
+- **Compatibility Fixes**: Certificate pinning temporarily disabled in `SecureOkHttpFactory` for emulator SIGSEGV compatibility. R8 minify disabled for debug builds.
+- **Bug Fixes**: `games_hall` module corrected to show as `builtIn` in the initial APK. Module download SHA-256 verification fixed -- all VPS files now match `modules.json`.
+- **Version info**: `modules.json` version 11.
+
+## 2026-05-25 Maintenance Snapshot
+
+- **Modularization and Dynamic Loading**: Separated Chinese Chess (`chinesechess`) and Klotski (`klotski`) games into standalone dynamic APK modules. Implemented `ModuleResourceLoader` in `ModuleLoader` to load assets and drawables inside dynamic modules, fixing crashes caused by local dynamic resource inflation.
+- **Built-In Architecture Fixes**: Corrected the `builtIn` flag design flaw where browser, tools, and AI modules were hardcoded as built-in and couldn't be dynamically downloaded or disabled. They are now standard dynamic APK modules (`builtIn: false`) fully served from modules store.
+- **Module Store Search & Directory Layout**: Added real-time module filtering via `etModuleSearch` inside `ModuleStoreActivity`. Restructured module repository directories: created root folder `模块商店/` to house game ZIP packages (`压缩模块/`) and standalone modules codebase (`功能模块/`), and registered updated paths in `settings.gradle`.
+- **One-Click Deploy & ADB Setup**: Synced 8 module APKs and updated `modules.json` (Version 8) to VPS using Python script, and set up `install_app.ps1` to detect emulator devices and launch the host app automatically.
+- **Module Framework Overhaul**: Fixed three critical module store issues: (1) SHA-256 verification errors after update — added pre-download cleanup of old files and temp files, try-finally resource leak fix in `ModuleVerifier`; (2) modules won't open after download — `ModuleLoader` now version-aware, auto-unloads old instances and clears DEX optimization cache before reloading; (3) store UI doesn't reflect update — `ModuleAdapter` now shows orange "Update" button with version diff when installed version is behind remote, `ModuleStoreActivity` tracks installed versions in real-time.
+- **Version info**: `versionCode 343`, `versionName 1.4.0`.
 
 ## 2026-05-21 Maintenance Snapshot
 
@@ -51,56 +68,35 @@ An Android game center integrating **26** classic mini-games, supporting single-
 
 ## 功能列表 / Feature List
 
-### 🎲 经典游戏 / Classics
+### 🛒 模块商店 / Module Store
+- **按需扩展**：宿主包内置了经典小游戏入口，其他游戏（ZIP 格式）以及各种核心功能模块（浏览器、工具箱、AI、VPN）均通过模块商店进行动态下载安装，极大地减小了初始 APK 体积。模块商店现包含 29 款游戏模块和 4 个功能模块，共 33 个可下载模块。
+- **动态插件机制**：对于 Browser, Tools, AI, VPN, Chinese Chess, Klotski, Knife，通过将其设置为 `builtIn: false` 的动态 APK 插件，运行时通过 `DexClassLoader` 动态装载并使用反射或 Hook 对资源进行重装载，防止内置依赖导致的资源冲突与崩溃。
+- **实时搜索框**：在 `ModuleStoreActivity` 顶部增加了按关键词快速搜索模块的过滤机制。
+- **卸载与更新**：提供已下载模块管理入口，支持快捷卸载 and 秒级热更新。
+
+### 🎲 经典游戏（内置） / Classics (Built-in)
 
 | 游戏 | 单机 AI | 局域网 | 云联机 |
 |------|:-------:|:------:|:------:|
 | 五子棋 Gomoku | ✅ | ❌ | ✅ WebSocket |
 | 围棋 Go | ✅ | ❌ | ✅ WebSocket |
-| 中国象棋 Chinese Chess | ✅ | ❌ | ✅ WebSocket |
 | 贪吃蛇 Snake | ✅ | ❌ | ❌ |
 | 俄罗斯方块 Tetris | ✅ | ❌ | ❌ |
 | 斗地主 DouDiZhu | ✅ | ✅ | ✅ WebSocket |
 | Brotato | ✅ | ❌ | ❌ |
 
-### 🧩 益智游戏 / Puzzle
+### 🧩 扩展游戏与独立功能模块（市场下载） / Market Downloads
 
-| 游戏 | 单机 AI | 局域网 | 云联机 |
+| 模块名 | 模块类型 | 加载格式 | 动态注册大厅/Tab |
 |------|:-------:|:------:|:------:|
-| 2048 | ✅ | ❌ | ❌ |
-| 数独 Sudoku | ✅ | ❌ | ❌ |
-| 推箱子 Sokoban | ✅ | ❌ | ❌ |
-| 接水管 Pipeline | ✅ | ❌ | ❌ |
-| 华容道 Klotski | ✅ | ❌ | ❌ |
-
-### 🎯 休闲游戏 / Casual
-
-| 游戏 | 单机 AI | 局域网 | 云联机 |
-|------|:-------:|:------:|:------:|
-| 打砖块 Breakout | ✅ | ❌ | ❌ |
-| 打地鼠 Whack | ✅ | ❌ | ❌ |
-| 连连看 Match | ✅ | ❌ | ❌ |
-| 21点 Blackjack | ✅ | ❌ | ❌ |
-| 跳棋 Checkers | ✅ | ❌ | ❌ |
-
-### ⚡ 反应游戏 / Reaction
-
-| 游戏 | 单机 AI | 局域网 | 云联机 |
-|------|:-------:|:------:|:------:|
-| Flappy Bird | ✅ | ❌ | ❌ |
-| 拼图 Tiles | ✅ | ❌ | ❌ |
-| 飞机大战 Plane | ✅ | ❌ | ❌ |
-| **石头剪刀布 Rock-Paper-Scissors** | ✅ | ❌ | **✅ WebSocket** |
-| 反应测试 Reaction | ✅ | ❌ | ❌ |
-
-### 🃏 其他游戏 / Others
-
-| 游戏 | 单机 AI | 局域网 | 云联机 |
-|------|:-------:|:------:|:------:|
-| 井字棋 Tic-Tac-Toe | ✅ | ❌ | ❌ |
-| 记忆翻牌 Memory | ✅ | ❌ | ❌ |
-| 猜数字 Guess | ✅ | ❌ | ❌ |
-| 掷骰子 Dice | ✅ | ❌ | ❌ |
+| 中国象棋 Chinese Chess | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅且支持云联机 |
+| 华容道 Klotski | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅 |
+| 飞刀大师 Knife | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅 |
+| 浏览器 Browser | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增“浏览器”导航 Tab |
+| 工具箱 Tools | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增“工具箱”导航 Tab |
+| AI 智能助手 AI | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增“AI助手”导航 Tab |
+| 科学上网 VPN | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后提供全局 VPN 服务支持 |
+| 2048 等 23 款益智/休闲游戏 | 扩展小游戏 (ZIP) | ZIP 压缩资源包 | ✅ 自动解压并加载注册至大厅 |
 
 > **联机说明 / Multiplayer Note**：**斗地主、五子棋、围棋、中国象棋、石头剪刀布** 均支持 WebSocket 云联机对战，联机游戏支持内联聊天功能。其余游戏均为单机模式。
 
@@ -471,7 +467,7 @@ GameMatrixApp/
 │       │   │   ├── gomoku/                   # 五子棋 + GomokuOnlineActivity
 │       │   │   ├── chinesechess/              # 中国象棋 + ChineseChessOnlineActivity
 │       │   │   ├── go/                       # 围棋 + GoOnlineActivity
-│       │   │   └── [其他 21 款单机游戏]
+│       │   │   └── [其他 23 款单机游戏]
 │       │   ├── tools/                        # 工具箱实现（26+ 工具）
 │       │   │   ├── ToolSectionStore.java     # 工具分类与排序
 │       │   │   ├── AdvancedToolBinders.java  # 高级工具绑定
@@ -654,6 +650,7 @@ jarsigner -verify app-release.apk
 
 | 版本 | 日期 | 类型 | 主要更新 |
 |------|------|------|----------|
+| v341 (1.4.0) | 2026-05-26 | Stable | modules.json v11：23款新游戏模块、证书绑定临时关闭、R8 Debug关闭、SHA-256校验修复 |
 | v224 (1.3.19) | 2026-05-12 | Stable | 双版本分发架构重构、版本检查问题修复、自定义更新源切换修复 |
 | v217 (1.3.18) | 2026-05-12 | Stable | APK 签名配置、敏感文件排除、发布流程完善 |
 | v26 (1.11.0) | 2026-05-11 | Stable | Lint 严格模式、网络错误处理、国际化、内存泄漏检测 |

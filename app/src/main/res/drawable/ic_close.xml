@@ -3,8 +3,13 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:viewportHeight="24"
+    android:tint="?attr/colorOnSurfaceVariant">
     <path
-        android:fillColor="?attr/colorOnSurface"
-        android:pathData="M18.3,5.71L12,12l6.3,6.29 -1.41,1.41L10.59,13.41 4.29,19.71 2.88,18.3 9.17,12 2.88,5.71 4.29,4.29l6.3,6.3 6.29,-6.3z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="?attr/colorOnSurfaceVariant"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M18,6L6,18M6,6l12,12" />
 </vector>

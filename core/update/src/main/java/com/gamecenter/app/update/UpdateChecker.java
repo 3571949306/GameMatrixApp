@@ -18,6 +18,7 @@ import java.text.MessageFormat;
 import javax.net.ssl.HttpsURLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -110,33 +111,28 @@ public class UpdateChecker {
      */
     public void checkUpdate(Context context, final UpdateManager.UpdateCheckCallback callback) {
         isCancelled = false;
-        // 根据用户设置构建更新源列表（排好优先级顺序）
         List<String> urls = buildUpdateUrls(context);
-        // 把检查任务提交到线程池中执行，不会阻塞主线程
+        final WeakReference<UpdateManager.UpdateCheckCallback> weakCallback = new WeakReference<>(callback);
         executor.execute(new Runnable() {
             @Override
             public void run() {
                 UpdateInfo result = null;
                 String errorMsg = null;
 
-                // 逐个尝试每个更新源，直到成功或全部失败
                 for (int i = 0; i < urls.size(); i++) {
                     if (isCancelled) {
-                        // 用户取消了检查，立即停止
-                        if (callback != null) callback.onCancelled();
+                        UpdateManager.UpdateCheckCallback cb = weakCallback.get();
+                        if (cb != null) cb.onCancelled();
                         return;
                     }
                     String baseUrl = urls.get(i);
-                    // 主源使用较短超时，备用源使用较长超时
                     boolean isPrimary = (i == 0);
                     int connectTimeout = isPrimary ? PRIMARY_CONNECT_TIMEOUT : FALLBACK_CONNECT_TIMEOUT;
                     int readTimeout = isPrimary ? PRIMARY_READ_TIMEOUT : FALLBACK_READ_TIMEOUT;
                     try {
                         Log.d(TAG, "Checking update source " + (i + 1) + "/" + urls.size()
                                 + ": " + baseUrl + " (primary=" + isPrimary + ")");
-                        // 读取本地版本号
                         LocalVersion localVersion = readBundledVersion(context);
-                        // 读取用户是否接受 Beta 更新
                         boolean acceptBeta = SettingsManager.getInstance(context).isAcceptBetaUpdate();
 
                         result = checkUpdateFromSource(context, baseUrl, localVersion, acceptBeta,
@@ -144,23 +140,22 @@ public class UpdateChecker {
 
                         if (result != null) {
                             Log.d(TAG, "Update check succeeded on source " + (i + 1) + ": " + baseUrl);
-                            break; // 成功了就不再尝试下一个源
+                            break;
                         }
                     } catch (Exception e) {
                         Log.w(TAG, "Source " + (i + 1) + " (" + baseUrl + ") failed: " + e.getMessage());
-                        // 仅在最后一个源也失败时才生成错误消息
                         if (i == urls.size() - 1) {
                             errorMsg = MessageFormat.format("检查更新失败：{0}", e.getMessage());
                         }
                     }
                 }
 
-                // 根据结果回调通知调用方
-                if (callback != null) {
+                UpdateManager.UpdateCheckCallback cb = weakCallback.get();
+                if (cb != null) {
                     if (errorMsg != null) {
-                        callback.onError(errorMsg);
+                        cb.onError(errorMsg);
                     } else {
-                        callback.onResult(result);
+                        cb.onResult(result);
                     }
                 }
             }

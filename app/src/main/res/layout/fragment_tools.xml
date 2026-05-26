@@ -5,69 +5,74 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:orientation="vertical"
-    android:paddingTop="28dp">
+    android:paddingTop="24dp">
 
-    <TextView
-        android:id="@+id/tv_tools_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="16dp"
-        android:text="@string/tools_title"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
-    <FrameLayout
+    <!-- 顶部工具栏 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp">
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="12dp">
 
         <TextView
-            android:id="@+id/tv_tools_subtitle"
+            android:id="@+id/tv_tools_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="多功能工具箱"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="14sp" />
+            android:text="@string/tools_title"
+            android:textAppearance="@style/TextAppearance.GameMatrix.Title"
+            android:textSize="22sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <ImageButton
             android:id="@+id/btn_tools_layout"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="8dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="布局"
             android:padding="8dp"
-            android:src="@android:drawable/ic_menu_sort_by_size"
-            app:tint="?android:attr/textColorPrimary" />
+            android:src="@drawable/ic_drag_handle"
+            app:tint="?attr/colorOnSurfaceVariant"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    </FrameLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_refresh"
+    <TextView
+        android:id="@+id/tv_tools_subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="2dp"
+        android:text="多功能工具箱"
+        android:textAppearance="@style/TextAppearance.GameMatrix.Subtitle"
+        android:textSize="13sp" />
+
+    <!-- 刷新按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_refresh"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"
-        android:icon="@drawable/ic_refresh"
-        android:text="@string/refresh" />
+        android:text="@string/refresh"
+        android:textSize="12sp"
+        app:icon="@drawable/ic_refresh"
+        app:iconSize="16dp" />
 
+    <!-- 搜索框 -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tool_search_layout"
+        style="@style/Widget.GameMatrix.Search"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         android:hint="搜索工具"
-        app:boxCornerRadiusBottomEnd="8dp"
-        app:boxCornerRadiusBottomStart="8dp"
-        app:boxCornerRadiusTopEnd="8dp"
-        app:boxCornerRadiusTopStart="8dp"
-        app:startIconDrawable="@android:drawable/ic_menu_search">
+        app:startIconDrawable="@drawable/ic_search">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_tool_search"
@@ -80,51 +85,49 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <LinearLayout
-        android:id="@+id/tool_filter_bar"
-        android:layout_width="match_parent"
+    <!-- 筛选Chip组 -->
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/tool_filter_chips"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
         android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="16dp">
+        android:paddingEnd="16dp"
+        app:singleSelection="true"
+        app:checkedChip="@id/chip_filter_all">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_tool_filter_all"
-            style="@style/Widget.GameMatrix.Button.Tonal"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
-            android:text="全部" />
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_all"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="全部"
+            android:checked="true" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_tool_filter_favorites"
-            style="@style/Widget.GameMatrix.Button.Tonal"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_favorites"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="收藏" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_tool_filter_recent"
-            style="@style/Widget.GameMatrix.Button.Tonal"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_recent"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="最近" />
 
-    </LinearLayout>
+    </com.google.android.material.chip.ChipGroup>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:padding="16dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        android:padding="12dp"
+        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+        app:spanCount="2" />
 
 </LinearLayout>

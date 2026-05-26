@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 天空背景 -->
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 云朵 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,8h10v3h-10zM8,6h6v2h-6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,10h10v3h-10zM34,8h6v2h-6z" />
+    <!-- 玩家飞机 -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M22,14l4,0l0,8l-4,0z" />
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M18,18l12,0l0,4l-12,0z" />
+    <path
+        android:fillColor="#D32F2F"
+        android:pathData="M22,22l4,0l0,6l-4,0z" />
+    <!-- 子弹 -->
+    <path
+        android:fillColor="#FFEB3B"
+        android:pathData="M23,8h2v4h-2z" />
+    <!-- 敌机1 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M10,28l3,0l0,4l-3,0z" />
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M8,30h6v2h-6z" />
+    <!-- 敌机2 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M36,32l3,0l0,4l-3,0z" />
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M34,34h6v2h-6z" />
+    <!-- 爆炸效果 -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M16,36m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M16,33v2M14,36h2M18,36h2M16,37v2" />
+</vector>

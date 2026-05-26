@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+        android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#FFEBEE"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 骰子1 (显示1点) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M8,8h12v12h-12z" />
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M14,14m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <!-- 骰子2 (显示6点) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M22,6h12v12h-12z" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M25,9m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M31,9m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M25,12m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M31,12m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M25,15m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M31,15m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <!-- 骰子3 (显示3点) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M12,24h12v12h-12z" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M15,27m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M18,30m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M21,33m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <!-- 总和显示 -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M30,28h12v8h-12z" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M34,30h4v4h-4z" />
+</vector>

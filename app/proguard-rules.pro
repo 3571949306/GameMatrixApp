@@ -69,6 +69,18 @@
 -keep class * extends dagger.hilt.android.internal.managers.ComponentSupplier { *; }
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
 -keep,allowobfuscation,allowshrinking class * extends dagger.hilt.android.internal.managers.ApplicationComponentManager { *; }
+-keepclassmembers,allowobfuscation class * {
+    @javax.inject.Inject <init>(...);
+}
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.lifecycle.HiltViewModel class *
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.ActivityRetainedScoped class *
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.ActivityScoped class *
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.FragmentScoped class *
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.ViewScoped class *
+-keep,allowobfuscation,allowshrinking @javax.inject.Singleton class *
+
+# ============ App Startup ============
+-keep class * implements androidx.startup.Initializer { *; }
 
 # ============ Coroutines ============
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
@@ -130,6 +142,13 @@
 -keepclassmembers class * {
     @androidx.annotation.Keep *;
 }
+
+# ============ Kotlin Coroutines / Serialization ============
+-dontwarn kotlinx.coroutines.**
+-keep class kotlinx.coroutines.internal.ClassValueCtorCache { *; }
+-keep class kotlinx.coroutines.internal.ClassValueCtorCache$cache$1 { *; }
+-keep class kotlinx.serialization.internal.ClassValueCache { *; }
+-keep class kotlinx.serialization.internal.ClassValueReferences { *; }
 
 # Release 构建移除日志输出，防止敏感信息通过 Logcat 泄露
 -assumenosideeffects class android.util.Log {

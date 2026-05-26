@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 斗地主菜单背景渐变 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="#1B5E20"
+        android:endColor="#0D3310"
+        android:type="linear" />
+</shape>

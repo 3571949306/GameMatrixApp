@@ -4,24 +4,54 @@
     android:id="@+id/mobile_navigation"
     app:startDestination="@id/navigation_games">
 
-    <fragment
+    <keep_state_fragment
         android:id="@+id/navigation_browser"
-        android:name="com.gamecenter.app.fragments.BrowserFragment"
-        android:label="@string/nav_browser" />
+        android:name="com.gamecenter.app.features.ModuleShellFragment"
+        android:label="@string/nav_browser">
+        <argument
+            android:name="module_id"
+            app:argType="string"
+            android:defaultValue="browser" />
+    </keep_state_fragment>
 
-    <fragment
+    <keep_state_fragment
         android:id="@+id/navigation_games"
-        android:name="com.gamecenter.app.fragments.GamesFragment"
-        android:label="@string/nav_games" />
+        android:name="com.gamecenter.app.features.ModuleShellFragment"
+        android:label="@string/nav_games">
+        <argument
+            android:name="module_id"
+            app:argType="string"
+            android:defaultValue="games_hall" />
+    </keep_state_fragment>
 
-    <fragment
+    <keep_state_fragment
         android:id="@+id/navigation_tools"
-        android:name="com.gamecenter.app.fragments.ToolsFragment"
-        android:label="@string/nav_tools" />
+        android:name="com.gamecenter.app.features.ModuleShellFragment"
+        android:label="@string/nav_tools">
+        <argument
+            android:name="module_id"
+            app:argType="string"
+            android:defaultValue="tools" />
+    </keep_state_fragment>
 
-    <fragment
+    <keep_state_fragment
         android:id="@+id/navigation_ai"
-        android:name="com.gamecenter.app.ai.ui.AiFragment"
-        android:label="@string/nav_ai" />
+        android:name="com.gamecenter.app.features.ModuleShellFragment"
+        android:label="@string/nav_ai">
+        <argument
+            android:name="module_id"
+            app:argType="string"
+            android:defaultValue="ai" />
+    </keep_state_fragment>
+
+    <keep_state_fragment
+        android:id="@+id/navigation_vpn"
+        android:name="com.gamecenter.app.features.ModuleShellFragment"
+        android:label="@string/nav_vpn">
+        <argument
+            android:name="module_id"
+            app:argType="string"
+            android:defaultValue="vpn" />
+    </keep_state_fragment>
 
 </navigation>

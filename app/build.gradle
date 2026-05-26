@@ -101,6 +101,13 @@ def readChangelogText = {
     return source.exists() ? source.getText("UTF-8").trim() : ""
 }
 
+def readBuildConfigChangelogText = {
+    def full = readChangelogText()
+    def maxChars = 24000
+    if (full.length() <= maxChars) return full
+    return full.substring(0, maxChars) + "\n\n... changelog truncated in BuildConfig; full text is bundled in version.json ..."
+}
+
 def toJavaStringLiteral = { String value ->
     return "\"" + value
             .replace("\\", "\\\\")
@@ -169,7 +176,8 @@ android {
         versionCode currentVersionCode
         versionName currentVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readChangelogText())
+        resConfigs "zh-rCN", "en"
+        buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
         buildConfigField "String", "SERVER_URL_FALLBACK", toJavaStringLiteral(configuredServerUrlFallback ?: "")
@@ -185,8 +193,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // 只有在 keystore 存在时才应用签名配置
             if (signingConfigs.release.storeFile != null) {
@@ -237,6 +245,12 @@ dependencies {
     implementation project(':core:common')
     implementation project(':core:network')
     implementation project(':core:update')
+    // Phase 1: 安全加固模块
+    implementation project(':core:security')
+    // Phase 2: 模块宿主框架
+    implementation project(':core:module-host')
+    // TODO: 联机游戏模块存在依赖问题，暂时注释掉
+    // implementation project(':feature:games')
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.12.0'
@@ -360,7 +374,7 @@ task uploadReleaseArtifactsToVps(type: Exec) {
 
     def uploadChannel = currentVersionChannel == "stable" ? "release" : "beta"
     def args = [
-            file("${rootDir}/tools/upload_to_vps.py").absolutePath,
+            file("${rootDir}/工具/upload_to_vps.py").absolutePath,
             "--apk", file("${buildDir}/outputs/apk/release/app-release.apk").absolutePath,
             "--version", file("${buildDir}/outputs/apk/release/version.json").absolutePath,
             "--channel", uploadChannel
@@ -396,7 +410,7 @@ task uploadApkToGitHubRelease {
 
         def args = [
                 uploadPythonExecutable,
-                file("${rootDir}/tools/upload_to_github_release.py").absolutePath,
+                file("${rootDir}/工具/upload_to_github_release.py").absolutePath,
                 "--apk", apkFile.absolutePath,
                 "--version-name", currentVersionName,
                 "--changelog-file", changelogSource.absolutePath
@@ -491,3 +505,13 @@ afterEvaluate {
         }
     }
 }
+
+task packageAppClasses(type: Jar) {
+    dependsOn 'compileDebugJavaWithJavac', 'compileDebugKotlin'
+    archiveFileName = "app-classes.jar"
+    destinationDirectory = file("${buildDir}/libs")
+    
+    from("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+    from("${buildDir}/tmp/kotlin-classes/debug")
+}
+

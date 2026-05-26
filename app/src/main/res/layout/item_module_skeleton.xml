@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <!-- Icon skeleton -->
+    <View
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="#E0E0E0" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Title skeleton -->
+        <View
+            android:layout_width="120dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="#E0E0E0" />
+
+        <!-- Description skeleton -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            android:layout_marginBottom="4dp"
+            android:background="#E0E0E0" />
+            
+        <!-- Description skeleton line 2 -->
+        <View
+            android:layout_width="200dp"
+            android:layout_height="12dp"
+            android:background="#E0E0E0" />
+
+    </LinearLayout>
+
+    <!-- Button skeleton -->
+    <View
+        android:layout_width="64dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="16dp"
+        android:layout_gravity="center_vertical"
+        android:background="#E0E0E0" />
+
+</LinearLayout>
