@@ -1,5 +1,257 @@
 # 夹层 - 版本更新日志
 
+## [当前工作区] - 2026-05-26（modules.json v11：23款新游戏模块 + 兼容性修复）
+
+### 模块商店扩展
+- **modules.json 升级至 v11**：从 v10 升级，新增 23 款游戏模块，游戏模块总数达 29，全部模块总数 33
+- **新增游戏**：blackjack(21点)、breakout(打砖块)、brotato、checkers(跳棋)、dice(骰子)、flappy(Flappy Bird)、go(围棋)、guess(猜数字)、knife(飞刀大师)、match(消消乐)、memory(记忆翻牌)、minesweeper(扫雷)、pipeline(管道)、plane(飞机大战)、reaction(反应测试)、rock(石头剪刀布)、snake(贪吃蛇)、sokoban(推箱子)、sudoku(数独)、tetris(俄罗斯方块)、tic(井字棋)、tiles(拼图)、whack(打地鼠)
+- **VPS 部署**：所有游戏 ZIP 文件已上传至 VPS `/var/www/modules/` 和 `/var/www/update/modules/`
+
+### 兼容性修复
+- **证书绑定临时关闭**：`SecureOkHttpFactory` 中证书绑定临时禁用，解决模拟器 SIGSEGV 兼容性问题
+- **R8 混淆 Debug 关闭**：Debug 构建禁用 R8 minify，加快调试构建速度
+
+### Bug 修复
+- **games_hall builtIn 修复**：游戏大厅模块修正为在初始 APK 中正确显示为 builtIn
+- **模块下载 SHA-256 校验修复**：所有 VPS 文件现在与 modules.json 的 SHA-256 哈希值一致，下载校验不再失败
+
+## [当前工作区] - 2026-05-25（模块框架全链路修复：校验错误/打不开/不更新显示）
+
+### 模块下载与校验修复
+- **下载前清理旧文件**：`ModuleDownloader.doDownload` 在开始下载前删除旧模块文件和残留临时文件，避免文件名冲突导致新文件覆盖失败
+- **多源切换清理临时文件**：切换下载源时删除临时文件，防止断点续传拼接出损坏文件
+- **ModuleVerifier 资源泄漏修复**：`computeSha256` 和 `verifyDexFile` 中的 `FileInputStream` 改为 try-finally 确保异常时也能关闭流
+- **版本校验增强**：`ModuleManager.downloadModule` 不再仅比较版本号，还会检查文件是否存在且 SHA-256 校验通过，文件损坏时自动重新下载
+
+### 模块加载修复（下载后打不开）
+- **版本感知重加载**：`ModuleLoader.loadModule` 不再无条件返回缓存实例，而是对比已安装版本与 manifest 版本。版本变更时自动卸载旧实例后重新加载
+- **DEX 优化缓存清理**：新增 `clearOptimizedDex` 方法，重加载前清除 `modules_opt/` 中对应的优化 DEX 缓存，避免 DexClassLoader 加载旧代码
+- **下载后卸载旧实例**：`ModuleManager.downloadModule` 的 `onComplete` 回调中先调用 `ModuleLoader.unloadModule` 卸载旧实例
+
+### 模块显示更新修复
+- **ModuleAdapter 更新按钮**：新增 `installedVersions` 映射和 `hasUpdate` 判断，已安装版本低于远程版本时显示橙色"更新"按钮和版本变更提示
+- **ModuleStoreActivity 版本追踪**：新增 `buildInstalledVersionsMap()` 方法，`applyCategoryFilter` 和下载完成回调中同步刷新已安装版本信息
+- **ModuleStoreActivity 乱码修复**：修复 `openModule` 中 Toast 文本乱码为正确的"模块加载失败"
+- **ModuleStoreActivity ACTION_UPDATE**：新增 `ACTION_UPDATE` 处理分支
+
+## [当前工作区] - 2026-05-25（中国象棋/华容道重构与动态资源加载集成 + 模块商店BuiltIn逻辑修复 + 一键部署）
+
+### 动态模块编译与打包修复
+- **补充桩函数与缺失类**：在宿主 `app` 模块中创建了 `SaveManager.java` 编译桩，并补全了 `GameUsageStore.recordPlayTime` 游戏时长追踪方法以及 `GameTutorialHelper` 中的中国象棋与华容道教程弹窗，解决了子模块无法编译引用的问题。
+- **模块编译与打包**：成功编译中国象棋 (`chinesechess`) 和华容道 (`klotski`) 两个独立 APK 模块，并生成了对应的 `feature_chinesechess_v200.apk` 和 `feature_klotski_v200.apk` 插件包。
+- **Gradle 任务优化**：修复了 Gradle 构建生命周期中 `packageAppClasses` 的隐式依赖检测警告，显式声明其依赖 `compileDebugJavaWithJavac` 与 `compileDebugKotlin`，保障类编译生成顺序。
+
+### 动态资源加载集成与修复
+- **动态资源加载**：在 `com.gamecenter.app.modules.ModuleLoader` 中集成了 `ModuleResourceLoader`。在加载外部 APK 时为其单独装载 `AssetManager` 并生成 `Resources`，解决外部 APK 模块由于缺少布局和资源导致无法打开的问题。
+- **单例引用修复**：修改 `ChineseChessModuleFragment.java` 和 `KlotskiModuleFragment.java` 中错误的 `com.gamecenter.app.modular.ModuleManager.INSTANCE` 包路径，统一指向新的 `com.gamecenter.app.modules.ModuleManager.INSTANCE`。
+
+### 模块商店设计逻辑与部署修复
+- **BuiltIn 逻辑修复**：修复了 `modules.json` 中 `browser`、`tools`、`ai` 被错误标记为 `"builtIn": true` 导致无法显示下载按钮且启用无反应的逻辑设计错误。将其修正为 `"builtIn": false`，模块商店目前能够正常下载、校验、加载和启用。
+- **加入中国象棋与华容道**：在 `modules.json` 中添加了中国象棋 (chinesechess) 和华容道 (klotski) 的下载选项，并将配置清单升级至 **Version 8**。
+- **一键上传部署**：编写并运行 `upload_modules.py` 同步脚本，成功将所有功能模块 APK 与 `modules.json` 同步部署至香港 VPS 的 `/var/www/update/modules/` 下，实现模块商店的一键秒级拉取。
+- **ADB 自动部署安装**：编写了 `install_app.ps1` 一键部署测试脚本，实现了宿主 App 对模拟器 `emulator-5554` 的自动检测、安装与 MainActivity 运行。
+
+## [当前工作区] - 2026-05-25（模块商店目录结构重组）
+
+### 模块商店目录结构重组
+- **新目录结构创建**：在项目根目录创建 `模块商店/` 文件夹
+- **压缩模块迁移**：将 `deploy/modules/` 下的所有游戏压缩包（25个ZIP文件）移至 `模块商店/压缩模块/`
+- **功能模块迁移**：将 `feature/games/` 移至 `模块商店/功能模块/游戏/games/`，将 `feature/vpn/` 移至 `模块商店/功能模块/工具/vpn/`
+- **模块清单复制**：将 `deploy/modules.json` 和 `deploy/modules_v2.json` 复制到 `模块商店/` 目录（deploy目录保留备份）
+- **构建配置更新**：更新 `settings.gradle` 文件中的模块引用路径
+  - `:feature:vpn` → `:模块商店:功能模块:工具:vpn`
+  - `:feature:games` → `:模块商店:功能模块:游戏:games`
+  - `:feature:games:game2048` → `:模块商店:功能模块:游戏:games:game2048`
+  - `:feature:games:klotski` → `:模块商店:功能模块:游戏:games:klotski`
+  - `:feature:games:chinesechess` → `:模块商店:功能模块:游戏:games:chinesechess`
+- **文档创建**：在 `模块商店/` 目录下创建 `模块商店结构说明.md`，详细说明新的目录结构
+- **备份保留**：原 `deploy/` 目录仍保留所有文件作为备份，确保可回滚
+- **文档更新**：同步更新 `PROJECT_CONTEXT.md`、`DOCUMENTATION_INDEX.md` 等相关文档
+
+### 新增游戏模块
+- **飞刀大师** - 经典飞刀游戏（v1.0.0）已添加至模块商店
+  - 旋转靶子投掷飞刀，击中苹果获得额外分数
+  - 连击系统、关卡递进、多种视觉效果
+  - 游戏源代码已移动至 `模块商店/功能模块/游戏/games/knife/`
+  - 模块压缩包：`game_knife_v100.zip`
+
+### 新目录结构
+```
+模块商店/
+├── 压缩模块/                    # 游戏模块压缩包（26个ZIP文件）
+├── 功能模块/                   # 独立功能模块源代码
+│   ├── 游戏/                   # 游戏功能模块
+│   │   └── games/              # 包含knife、chinesechess、game2048、klotski等
+│   └── 工具/                   # 工具功能模块
+│       └── vpn/                # 科学上网VPN模块
+├── modules.json                # 模块市场清单文件（主版本）
+├── modules_v2.json             # 模块市场清单文件（v2版本）
+└── 模块商店结构说明.md         # 本文档
+```
+
+## [当前工作区] - 2026-05-24（游戏美化 + 中国象棋提示改进 + 华容道/中国象棋模块商店上架）
+
+### 四个游戏视觉美化
+- 斗地主 DouDiZhuTableView：径向渐变桌面、菱形花纹卡牌背面、金色选中高亮、AI信息区半透明面板
+- 五子棋 GomokuView：木纹渐变棋盘、3D棋子效果增强、星位标记增大、最后一手红色圆环
+- 华容道 KlotskiView：深色渐变背景、方块金色边框+外发光、出口脉冲动画、双层边框
+- 中国象棋 ChineseChessView：木纹渐变棋盘、四角L形角标、楚河汉界波浪线、棋子投影+选中发光
+
+### 中国象棋提示功能改进
+- 提示改为棋盘可视化：起始位置蓝色脉冲光环 + 目标位置蓝色脉冲光环 + 连接箭头指引
+- 状态栏显示中文棋谱描述（如"馬八进七"、"車九平五"），替代原来的坐标文本
+- ChineseChessView 新增 setHintMove/clearHint 方法和 drawHint 绘制逻辑
+- ChineseChessActivity 新增 buildHintDescription/numToChinese 方法生成中文棋谱
+- 走棋、悔棋、重新开始、切换选中时自动清除提示
+
+### 华容道和中国象棋模块商店上架
+- 创建华容道独立 APK 模块 `feature/games/klotski/`（KlotskiModuleEntryPoint + KlotskiModuleFragment）
+- 创建中国象棋独立 APK 模块 `feature/games/chinesechess/`（ChineseChessModuleEntryPoint + ChineseChessModuleFragment）
+- settings.gradle 注册新模块：`:feature:games:klotski` 和 `:feature:games:chinesechess`
+- modules.json 更新：版本 v1.0.0 → v2.0.0，ZIP → APK 格式，添加 entryClass
+- APK 已上传到 VPS：`feature_klotski_v200.apk`（7,085 bytes）、`feature_chinesechess_v200.apk`（7,069 bytes）
+- 服务器 modules.json 已同步更新，通过 `https://hk-update.tcp0053.shop/modules/` 可正常下载
+
+## [当前工作区] - 2026-05-24（底部导航切换闪退修复 + 模块下载修复 + 内存泄漏全面修复）
+
+### 底部导航切换闪退修复
+- 核心修复：创建 KeepStateNavigator 自定义导航器，使用 add/show/hide 策略替代 Navigation 组件默认的 replace 策略
+- 切换Tab时不再销毁和重建Fragment，只改变可见性，彻底解决快速切换时的闪退问题
+- 导航图 mobile_navigation.xml 中将 fragment 标签改为 keep_state_fragment
+- activity_main.xml 移除 app:navGraph 属性，改为代码中设置（先注册导航器再设置导航图）
+- MainActivity 中自定义底部导航点击处理，替代 NavigationUI.setupWithNavController（避免 setPopUpTo 破坏Fragment复用）
+- MainActivity.onResume 中仅当菜单为空时才重建导航菜单
+
+### 模块下载修复
+- ModuleDownloader 全面重写：添加全局异常捕获（try-catch 覆盖整个下载线程），防止线程崩溃导致回调永远不被调用
+- 降低网络超时：连接超时从30秒降为15秒，读取超时从300秒降为30秒
+- 移除全局 cancelled 标志的死代码，改为通过 activeDownloads Map 检查取消状态
+- 增加详尽的日志输出：每个关键步骤都有 Log.d/Log.e 日志
+- 下载回调使用 mainHandler.post 确保在主线程执行
+- ModuleManager.downloadModule 增加日志和错误回调
+- ModuleStoreActivity.downloadModule 增加即时Toast反馈和日志
+
+### 内存泄漏全面修复
+- ModuleManager.loadModuleList 移除 WeakReference 包装callback（不再需要，Fragment不会被销毁重建）
+- GamesFragment.refreshInstalledModuleGames 添加 try-catch 和 isDestroyed 安全检查
+- BrowserFragment 添加 isDestroyed 标记，WebViewClient/WebChromeClient/DownloadListener 回调中添加安全检查
+- ToolsFragment 中 requireContext() 替换为 getContext() 安全调用
+- AiFragment.onDestroyView 更彻底的视图引用清理
+- ModuleShellFragment 添加 isDestroyed 标记和 isAdded 安全检查
+- UpdateChecker 使用 WeakReference 包装 UpdateCheckCallback
+
+### 压力测试结果
+- 40轮快速Tab切换（每轮4次切换，间隔100ms）无崩溃
+- 无 onDestroyView 回调（Fragment被复用而非重建）
+- 无 LeakCanary 泄漏报告
+- APP进程保持稳定运行
+
+## [当前工作区] - 2026-05-23（科学上网修复：内存泄漏 + 模块ID + CloudFlare缓存 + VPS路由分离）
+
+### 科学上网修复
+- 修复内存泄漏：ProtocolFactory 及四个协议模块改用 applicationContext 代替 Activity Context
+- 修复模块 ID 不一致：统一为 "vpn"（原 modules.json 为 "vpn_basic"，MainActivity 检查 "vpn"）
+- 修复 CloudFlare CDN 缓存旧响应：APK 文件改名为 feature_vpn_v100_v2.apk
+- 重构 VPS 模块服务体系：模块商店与 App 更新完全分离（9001 端口独立模块服务器）
+- ModuleManager 重写：本地缓存 + 版本对比 + 后台刷新（loadModuleList 替代 fetchRemoteModules）
+- 新增科学上网功能：支持 VMess/VLESS/Trojan/Shadowsocks 四种协议
+- VPN 模块为非内置模块（builtIn=false），通过模块商店下载启用，不预制在主 APK 中
+- 模块架构三层分离：core:common（共享接口）+ 主 APK（VpnServiceProxy 壳 + ModuleShellFragment 宿主）+ feature/vpn（独立 APK，含全部协议和 UI）
+- 新增 VpnServiceProxy：主 APK 中唯一的 VpnService 实现（~70行），仅负责 TUN 隧道建立/拆除，委托 VpnDelegate 处理协议
+- 新增 ModuleShellFragment：通用动态模块宿主，未下载模块时显示引导页，下载后自动加载模块 Fragment
+- 新增 FeatureModule 接口（core:common）：可下载功能模块的 Fragment 提供者
+- 新增 VpnDelegate 接口（core:common）：VPN 服务代理，返回 Tunnel（InputStream/OutputStream）供 VpnServiceProxy 转发流量
+- 新增 ModuleInterface 迁移到 core:common（通过 typealias 保持向后兼容）
+- feature/vpn 模块 VpnFragment 采用纯代码构建 UI（无 XML 布局依赖），确保动态加载时资源可用
+- 模块 dex 文件已上传至 HK VPS：`/var/www/update/modules/feature_vpn_v100.apk`（662KB）
+- modules.json 已更新 vpn_basic 条目：entryClass、downloadUrl、sha256、fileSize
+
+### 模块市场
+- 新增模块市场入口：游戏大厅左上角版本号下方添加"模块市场"按钮，点击进入ModuleStoreActivity
+
+### VPS 服务器修复
+- 修复 update_server.py 路由顺序 bug：`/modules/*` 检测必须在 `.apk` 后缀检测之前，否则 `/modules/xxx.apk` 会被误路由到 APP_DIR 的主 APK 文件（返回 71MB 而非实际模块文件 662KB）
+- 新增ModuleStoreActivity：展示可下载模块列表，支持下载、安装、卸载操作
+- 新增ModuleAdapter：模块列表适配器，支持已安装状态实时更新
+
+### 底部导航栏动态化
+- 底部导航栏改为动态显示：初始仅显示"游戏"Tab
+- 安装浏览器模块后自动出现"浏览器"Tab
+- 安装工具箱模块后自动出现"工具箱"Tab
+- 安装AI助手模块后自动出现"AI"Tab
+- MainActivity.onResume()时刷新导航栏状态
+
+### 游戏分类重新划分
+- 游戏分类精简为3个：经典（内置）、益智（市场下载）、休闲（市场下载）
+- GameRegistry.buildStaticCategories()仅保留classics分类（7个经典游戏）
+- reaction/other分类映射到casual分类
+- GameRegistry.Entry构造函数改为public，允许外部动态注册
+
+### 模块化改造
+- 浏览器改为独立市场模块（type="nav"）
+- 工具箱改为独立市场模块（type="nav"）
+- AI助手改为独立市场模块（type="nav"）
+- 19款非经典游戏改为独立市场模块（type="game"）
+- 初始安装包不再自带浏览器、工具箱、AI工具和非经典游戏
+
+### ModuleManifest扩展
+- 新增type字段：区分"game"（游戏模块）和"nav"（导航模块）
+- 新增activityClass字段：游戏Activity全限定类名
+- 新增gameId字段：游戏ID（与GameRegistry对应）
+- 新增gameCategory字段：游戏分类键名
+- 新增gameDesc字段：游戏描述
+
+### 模块市场分类与已安装列表
+- 模块市场顶部新增分类Tab：全部、游戏、浏览器、工具箱、AI助手、VPN
+- 模块市场标题栏右侧新增"已安装模块"按钮，点击进入InstalledModulesActivity
+- 新增InstalledModulesActivity：展示已安装模块列表，支持更新/卸载操作
+- 新增InstalledModuleAdapter：已安装模块列表适配器
+- 新增layout文件：activity_installed_modules.xml、item_installed_module.xml
+- ModuleManifest新增storeCategory字段：game/browser/工具/ai/vpn
+- ModuleManifest新增isBaseFramework字段：标记基础框架模块
+- ModuleStoreActivity支持按storeCategory筛选模块，基础框架模块置顶显示
+- modules.json所有模块添加storeCategory和isBaseFramework字段
+
+### 模块拆分
+- 浏览器模块拆分为：浏览器基础框架（isBaseFramework=true）+ 扩展功能
+- 工具箱模块拆分为：工具箱框架（isBaseFramework=true）+ 扩展工具
+- AI助手模块拆分为：AI的基础框架（isBaseFramework=true）+ 扩展功能
+- 新增VPN基础服务占位模块（storeCategory=vpn）
+
+### 内置模块（builtIn）机制
+- ModuleManifest新增builtIn字段：标记代码已在主APK中的模块，无需下载dex文件
+- ModuleAdapter新增ACTION_ENABLE：内置模块显示"内置"标签+蓝色"启用"按钮，而非"下载"
+- ModuleStoreActivity新增enableBuiltInModule()：点击"启用"直接标记已安装并注册游戏
+- ModuleManager新增enableBuiltInModule()：标记已安装+动态注册游戏到GameRegistry
+- modules.json全部22个模块标记builtIn=true：因为代码都在主APK中，无需下载
+- 修复模块市场下载失败：之前所有模块都指向不存在的dex文件导致404，现在内置模块无需下载
+
+### 修复
+- 修复扫雷难度切换闪退（ClassCastException：ContentFrameLayout无法转换为LinearLayout）
+- 修复模块市场界面被状态栏遮挡：activity_module_store.xml添加fitsSystemWindows=true
+- 修复lint-baseline.xml路径变量导致release构建失败
+- 修复VPS上modules.json只有扫雷1个条目的问题：上传完整22模块版本
+- 修复ModuleStoreActivity中R.color.material_blue_500颜色资源不存在导致编译失败
+
+### ModuleManager增强
+- 新增registerInstalledGameModules()：遍历已安装模块，将game类型模块注册到GameRegistry
+- 新增registerGameFromManifest()：从ModuleManifest创建GameRegistry.Entry并动态注册
+- GamesFragment.initCategories()中调用动态注册和远程模块获取
+
+### 模块入口类
+- 新增BrowserModuleEntryPoint：浏览器模块入口，通过EXTRA_NAV_TAB跳转
+- 新增ToolsModuleEntryPoint：工具箱模块入口
+- 新增AiModuleEntryPoint：AI助手模块入口
+
+### VPS服务器扩展
+- Python更新服务器新增/modules.json路由：返回模块清单
+- Python更新服务器新增/modules/路由：提供模块dex文件下载
+- deploy/modules.json扩展为22个模块（3个nav + 19个game）
+- 上传完整modules.json（22个模块）到VPS，替换原来只有扫雷1个条目的版本
+
+### 构建与发布
+- 编译验证通过（assembleDebug BUILD SUCCESSFUL）
+
 ## [v1.4.0] - 2026-05-22（正式版：全面质量提升）
 
 ### 测试覆盖
@@ -173,7 +425,7 @@
 
 ### 本地 GitHub 网络
 - 本机 Git 已配置为仅对 `https://github.com` 使用 v2rayN/xray 本地 HTTP 代理 `http://127.0.0.1:10808`，避免上传代码必须开启 xray TUN/虚拟网卡模式。
-- 新增 `tools/network/Configure-GitHubProxy.ps1` 与 `docs/LOCAL_GITHUB_NETWORK.md`，用于重复检测、应用或清除 GitHub-only Git 代理配置。
+- 新增 `工具/network/Configure-GitHubProxy.ps1` 与 `文档/LOCAL_GITHUB_NETWORK.md`，用于重复检测、应用或清除 GitHub-only Git 代理配置。
 
 ### Lint 基线
 - 重新生成 `app/lint-baseline.xml`，当前 `lintDebug` 以“无新增问题”通过；历史 1007 条 lint 问题仍在 baseline 中，后续应按模块逐步清理。
@@ -337,7 +589,7 @@
 ### AI 协议与合规
 - 新增 `AiLegalNotices`，在首次下载 Gemma 前展示 Google Gemma Terms、本地推理说明、风险提示和用户责任。
 - `AiPreferences` 记录 Gemma notice 版本和确认时间，避免条款变化后无法重新触达用户。
-- 新增 `docs/AI_USER_AGREEMENT_LOCAL_AI.md`，记录 App 内 AI 用户协议、下载前确认项、发布检查清单。
+- 新增 `文档/AI_USER_AGREEMENT_LOCAL_AI.md`，记录 App 内 AI 用户协议、下载前确认项、发布检查清单。
 
 ---
 
@@ -933,7 +1185,7 @@ jarsigner -verify app-release.apk
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
-- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 服务器部署/GitHub Release 发布仍以本机发布流程为准。
 
 ## [Current Workspace] - 2026-05-19 Core Modularization Phase 1
 
@@ -947,3 +1199,4 @@ jarsigner -verify app-release.apk
 ### Follow-up Note
 - `CrashHandler` remains in `:app` because it still directly calls app-owned `ErrorReporter`.
 - Local Gradle verification is currently blocked before compilation by a Windows socket/buffer resource error in Gradle file lock startup.
+

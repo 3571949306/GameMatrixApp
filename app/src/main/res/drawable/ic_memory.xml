@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#E8EAF6"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 大脑轮廓 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#5C6BC0"
+        android:strokeWidth="2"
+        android:pathData="M24,8c-6,0 -12,4 -12,10c0,4 2,8 6,10c0,3 -2,6 -4,8c4,0 8,-2 10,-4c2,2 6,4 10,4c-2,-2 -4,-5 -4,-8c4,-2 6,-6 6,-10c0,-6 -6,-10 -12,-10z" />
+    <!-- 大脑纹理 -->
+    <path
+        android:strokeColor="#7986CB"
+        android:strokeWidth="1"
+        android:pathData="M18,14c2,0 4,2 4,4M26,14c-2,0 -4,2 -4,4M20,22c2,0 3,2 3,3M28,22c-2,0 -3,2 -3,3" />
+    <!-- 卡片1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#3949AB"
+        android:strokeWidth="1"
+        android:pathData="M12,30h8v10h-8z" />
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M14,33h4v4h-4z" />
+    <!-- 卡片2 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#3949AB"
+        android:strokeWidth="1"
+        android:pathData="M22,30h8v10h-8z" />
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M24,33h4v4h-4z" />
+    <!-- 卡片3 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#3949AB"
+        android:strokeWidth="1"
+        android:pathData="M32,30h8v10h-8z" />
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M34,33h4v4h-4z" />
+</vector>

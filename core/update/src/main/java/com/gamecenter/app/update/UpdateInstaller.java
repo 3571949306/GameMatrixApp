@@ -7,6 +7,8 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
@@ -149,53 +151,94 @@ public class UpdateInstaller {
     /**
      * 打开下载目录，让用户可以通过文件管理器查看已下载的 APK 文件。
      * <p>
-     * 打开策略：
-     * <ol>
-     *   <li>首先尝试使用 FileProvider + ACTION_VIEW 打开目录</li>
-     *   <li>若失败，尝试使用 ACTION_OPEN_DOCUMENT_TREE 让用户手动选择目录</li>
-     *   <li>若仍失败，显示下载目录的绝对路径供用户手动查找</li>
-     * </ol>
+     * APK 实际保存到公共 Download 目录 (/storage/emulated/0/Download/),
+     * 文件名格式为 GameMatrix_v{版本号}.apk。
      * 打开前会先清理旧 APK 文件，仅保留最新版本。
      * </p>
      *
      * @param context 上下文
-     * @return true 表示成功打开目录或显示了路径信息，false 表示所有方式均失败
+     * @return true 表示成功打开目录或显示了路径信息
      */
     public boolean openDownloadDirectory(Context context) {
         // 打开目录前清理旧 APK
         downloader.cleanOldApks(context);
-        File downloadDir = downloader.getDownloadDir(context);
-        if (!downloadDir.exists() && !downloadDir.mkdirs()) {
-            Toast.makeText(context, "无法创建下载目录", Toast.LENGTH_SHORT).show();
+        File downloadDir = downloader.getPublicDownloadDir(context);
+        
+        // 确保目录存在
+        if (!downloadDir.exists()) {
+            downloadDir.mkdirs();
+        }
+
+        // 检查是否有 APK 文件
+        File[] apkFiles = downloadDir.listFiles((dir, name) -> 
+                name.startsWith("GameMatrix_v") && name.endsWith(".apk"));
+        
+        if (apkFiles == null || apkFiles.length == 0) {
+            // 没有 APK 文件，提示用户
+            String message = "当前没有已下载的更新包\n\nAPK 下载位置：\n" + downloadDir.getAbsolutePath();
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show();
             return false;
         }
+
+        // 尝试打开 Download 目录 - 使用更可靠的方法
+        boolean opened = false;
+        
+        // 方式一：使用文件 URI 打开下载目录（最通用的方法）
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                // Android 7.0+：使用 FileProvider 提供目录 URI
-                Uri uri = FileProvider.getUriForFile(context,
-                        context.getPackageName() + ".update.fileprovider", downloadDir);
-                intent.setDataAndType(uri, "resource/folder");
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            } else {
-                intent.setDataAndType(Uri.fromFile(downloadDir), "resource/folder");
-            }
+            Uri uri = Uri.fromFile(downloadDir);
+            intent.setDataAndType(uri, "*/*");
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-            return true;
+            
+            if (intent.resolveActivity(context.getPackageManager()) != null) {
+                context.startActivity(intent);
+                opened = true;
+            }
         } catch (Exception e) {
-            // FileProvider 方式失败，尝试使用系统文件选择器
+            Log.w(TAG, "Failed to open download directory with file URI: " + e.getMessage());
+        }
+
+        // 方式二：如果方式一失败，尝试使用 Documents UI（仅在Android 4.4+）
+        if (!opened && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             try {
-                Intent fallback = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(fallback);
-                Toast.makeText(context, "请选择应用目录下的 Download/update 文件夹", Toast.LENGTH_LONG).show();
-                return true;
-            } catch (Exception ignored) {
-                // 所有方式均失败，显示路径让用户手动查找
-                Toast.makeText(context, "下载目录: " + downloadDir.getAbsolutePath(), Toast.LENGTH_LONG).show();
-                return false;
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("*/*");
+                // 尝试使用存储访问框架打开下载目录
+                String downloadPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+                // 注意：这是一个后备方案，实际打开可能需要用户导航
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, 
+                        Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ADownload"));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                
+                if (intent.resolveActivity(context.getPackageManager()) != null) {
+                    context.startActivity(intent);
+                    opened = true;
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to open download directory with Documents UI: " + e.getMessage());
             }
         }
+
+        // 方式三：显示目录路径（如果以上方法都失败）
+        if (!opened) {
+            String path = downloadDir.getAbsolutePath();
+            Toast.makeText(context, "APK 下载目录: " + path, Toast.LENGTH_LONG).show();
+            
+            // 如果是在 Activity 中调用，显示 Snackbar
+            try {
+                if (context instanceof android.app.Activity) {
+                    com.google.android.material.snackbar.Snackbar.make(
+                            ((android.app.Activity) context).findViewById(android.R.id.content),
+                            "APK 保存在: " + path + "\n请使用文件管理器查看",
+                            com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                    ).show();
+                }
+            } catch (Exception ignored) {
+                // 如果无法显示 Snackbar，只保留 Toast
+            }
+        }
+
+        return true;
     }
 }

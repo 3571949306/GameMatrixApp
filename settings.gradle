@@ -17,3 +17,19 @@ include ':app'
 include ':core:common'
 include ':core:network'
 include ':core:update'
+// Phase 1: 安全加固模块（证书固定 + SHA-256 强制校验）
+include ':core:security'
+// Phase 2: 模块宿主框架（ClassLoader 池 + 无泄漏模块加载）
+include ':core:module-host'
+
+// 模块商店功能模块
+include ':feature:games'
+include ':模块商店:功能模块:工具:vpn'
+include ':模块商店:功能模块:游戏:games'
+include ':模块商店:功能模块:游戏:games:game2048'
+include ':模块商店:功能模块:工具:browser'
+include ':模块商店:功能模块:工具:tools'
+include ':模块商店:功能模块:工具:ai'
+include ':模块商店:功能模块:游戏:games:hall'
+include ':模块商店:功能模块:游戏:games:chinesechess'
+include ':模块商店:功能模块:游戏:games:klotski'

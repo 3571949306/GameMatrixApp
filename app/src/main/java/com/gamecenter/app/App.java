@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.os.LocaleListCompat;
 
 import com.gamecenter.app.network.OkHttpClientProvider;
+import com.gamecenter.app.recovery.CrashDetector;
 import com.gamecenter.app.update.UpdateManager;
 
 import dagger.hilt.android.HiltAndroidApp;
@@ -65,6 +66,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        CrashDetector.INSTANCE.markAppStart(this);
         applyLanguage();
         // 主题设置立即应用（影响 UI）
         applyTheme();

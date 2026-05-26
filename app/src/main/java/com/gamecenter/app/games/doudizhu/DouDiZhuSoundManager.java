@@ -1,6 +1,9 @@
 package com.gamecenter.app.games.doudizhu;
 
 import android.content.Context;
+import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.doudizhu.model.Card;
@@ -15,11 +18,18 @@ public class DouDiZhuSoundManager {
     private final Context appContext;
     private final SoundManager soundManager;
     private final Random random = new Random();
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    private float musicVolume = 0.5f;
+    private float effectVolume = 0.75f;
+    private float voiceVolume = 0.8f;
+
+    private boolean soundEnabled = true;
 
     public DouDiZhuSoundManager(Context context) {
         this.appContext = context.getApplicationContext();
         this.soundManager = new SoundManager(appContext);
-        this.soundManager.setVolume(0.75f);
+        this.soundManager.setVolume(effectVolume);
         preload();
     }
 
@@ -42,7 +52,127 @@ public class DouDiZhuSoundManager {
     }
 
     private void play(int resId) {
+        if (!soundEnabled) return;
         soundManager.playSound(resId);
+    }
+
+    private void playWithVolume(int resId, float volume) {
+        if (!soundEnabled) return;
+        float oldVolume = soundManager.getVolume();
+        soundManager.setVolume(volume);
+        soundManager.playSound(resId);
+        soundManager.setVolume(oldVolume);
+    }
+
+    public void setSoundEnabled(boolean enabled) {
+        this.soundEnabled = enabled;
+        soundManager.setEnabled(enabled);
+    }
+
+    public boolean isSoundEnabled() {
+        return soundEnabled;
+    }
+
+    public void setMusicVolume(float volume) {
+        this.musicVolume = Math.max(0f, Math.min(1f, volume));
+        MediaPlayer bgPlayer = getBackgroundMediaPlayer();
+        if (bgPlayer != null) {
+            bgPlayer.setVolume(this.musicVolume, this.musicVolume);
+        }
+    }
+
+    public void setEffectVolume(float volume) {
+        this.effectVolume = Math.max(0f, Math.min(1f, volume));
+        soundManager.setVolume(this.effectVolume);
+    }
+
+    public void setVoiceVolume(float volume) {
+        this.voiceVolume = Math.max(0f, Math.min(1f, volume));
+    }
+
+    public float getMusicVolume() {
+        return musicVolume;
+    }
+
+    public float getEffectVolume() {
+        return effectVolume;
+    }
+
+    public float getVoiceVolume() {
+        return voiceVolume;
+    }
+
+    public void playBackgroundMusic() {
+        // 斗地主不使用循环背景音乐，避免发牌音效重复播放
+        // 仅保留该方法以兼容现有调用，实际不播放任何声音
+    }
+
+    public void stopBackgroundMusic() {
+        soundManager.stopBackgroundMusic();
+    }
+
+    public void pauseBackgroundMusic() {
+        MediaPlayer player = getBackgroundMediaPlayer();
+        if (player != null && player.isPlaying()) {
+            player.pause();
+        }
+    }
+
+    public void resumeBackgroundMusic() {
+        MediaPlayer player = getBackgroundMediaPlayer();
+        if (player != null && !player.isPlaying()) {
+            player.start();
+        }
+    }
+
+    public void playBombEffect() {
+        if (!soundEnabled) return;
+        playWithVolume(R.raw.card_bomb_sound, effectVolume);
+        handler.postDelayed(() -> playWithVolume(R.raw.card_bomb_sound, effectVolume * 0.6f), 150);
+        handler.postDelayed(() -> playWithVolume(R.raw.card_bomb_sound, effectVolume * 0.3f), 300);
+    }
+
+    public void playRocketEffect() {
+        if (!soundEnabled) return;
+        playWithVolume(R.raw.card_rocket_sound, effectVolume);
+        handler.postDelayed(() -> playWithVolume(R.raw.card_rocket_sound, effectVolume * 0.5f), 200);
+    }
+
+    public void playPlaneEffect() {
+        if (!soundEnabled) return;
+        playWithVolume(R.raw.card_plane_sound, effectVolume);
+    }
+
+    public void playSpringEffect() {
+        if (!soundEnabled) return;
+        playWithVolume(R.raw.sound_win, effectVolume * 0.8f);
+        handler.postDelayed(() -> playWithVolume(R.raw.ui_confirm, effectVolume * 0.6f), 200);
+    }
+
+    public void playWinEffect() {
+        if (!soundEnabled) return;
+        playWithVolume(R.raw.sound_win, effectVolume);
+        handler.postDelayed(() -> playWithVolume(R.raw.ui_confirm, effectVolume * 0.5f), 300);
+        handler.postDelayed(() -> playWithVolume(R.raw.sound_win, effectVolume * 0.7f), 600);
+    }
+
+    public void playLoseEffect() {
+        if (!soundEnabled) return;
+        playWithVolume(R.raw.sound_lose, effectVolume);
+        handler.postDelayed(() -> playWithVolume(R.raw.sound_lose, effectVolume * 0.6f), 400);
+    }
+
+    public void playBidEffect(boolean call, int seatIndex) {
+        bid(call, seatIndex);
+    }
+
+    public void playDealEffect() {
+        if (!soundEnabled) return;
+        for (int i = 0; i < 6; i++) {
+            final int delay = i * 80;
+            final float vol = effectVolume * (1.0f - i * 0.1f);
+            handler.postDelayed(() -> playWithVolume(R.raw.sound_sendpk, vol), delay);
+        }
     }
 
     public void click() {
@@ -155,7 +285,18 @@ public class DouDiZhuSoundManager {
         play(resId != 0 ? resId : fallbackResId);
     }
 
+    private MediaPlayer getBackgroundMediaPlayer() {
+        try {
+            java.lang.reflect.Field field = SoundManager.class.getDeclaredField("bgPlayer");
+            field.setAccessible(true);
+            return (MediaPlayer) field.get(soundManager);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public void release() {
+        handler.removeCallbacksAndMessages(null);
         soundManager.release();
     }
 }

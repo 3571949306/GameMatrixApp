@@ -1,19 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
     <path
-        android:fillColor="#8D6E63"
-        android:pathData="M4,2h6v10h-6zM14,2h6v4h-6zM4,12h6v10h-6zM14,6h6v16h-6z"/>
+        android:fillColor="#FFF3E0"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 网格线 -->
     <path
-        android:fillColor="#FF5722"
-        android:pathData="M17,8h2v4h-2z"/>
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="0.5"
+        android:pathData="M12,4v40M20,4v40M28,4v40M36,4v40M4,12h40M4,20h40M4,28h40M4,36h40" />
+    <!-- 曹操大方块 (2x2) -->
     <path
-        android:fillColor="#FF9800"
-        android:pathData="M17,14h2v2h-2z"/>
+        android:fillColor="#F44336"
+        android:strokeColor="#B71C1C"
+        android:strokeWidth="1"
+        android:pathData="M12,12h16v16h-16z" />
     <path
-        android:fillColor="#FFC107"
-        android:pathData="M7,14h2v2h-2z"/>
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,18h4v4h-4z" />
+    <!-- 小方块1 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:strokeColor="#388E3C"
+        android:strokeWidth="1"
+        android:pathData="M28,12h8v8h-8z" />
+    <!-- 小方块2 -->
+    <path
+        android:fillColor="#2196F3"
+        android:strokeColor="#1976D2"
+        android:strokeWidth="1"
+        android:pathData="M12,28h8v8h-8z" />
+    <!-- 出口标记 -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M16,36h16v4h-16z" />
 </vector>

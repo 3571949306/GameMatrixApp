@@ -29,7 +29,7 @@
         errorLine1="            int type = telephonyManager.getNetworkType();"
         errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ToolHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/ToolHelper.java"
             line="333"
             column="24"/>
     </issue>
@@ -40,7 +40,7 @@
         errorLine1="            int type = telephonyManager.getNetworkType();"
         errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ToolHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/ToolHelper.java"
             line="333"
             column="24"/>
     </issue>
@@ -150,7 +150,7 @@
         errorLine1="                tvHsl.setText(String.format(&quot;HSL: %d°, %d%%, %d%%&quot;,"
         errorLine2="                              ^">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="172"
             column="31"/>
     </issue>
@@ -161,7 +161,7 @@
         errorLine1="                tvHsv.setText(String.format(&quot;HSV: %d°, %d%%, %d%%&quot;,"
         errorLine2="                              ^">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="177"
             column="31"/>
     </issue>
@@ -172,7 +172,7 @@
         errorLine1="                tvInt.setText(&quot;INT: 0x&quot; + Integer.toHexString(color).toUpperCase());"
         errorLine2="                                                                     ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="182"
             column="70"/>
     </issue>
@@ -183,7 +183,7 @@
         errorLine1="                    tvCss.setText(String.format(&quot;CSS: rgba(%d,%d,%d,%.2f)&quot;, r, g, b, alphaF));"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="189"
             column="35"/>
     </issue>
@@ -194,7 +194,7 @@
         errorLine1="                    tvCss.setText(String.format(&quot;CSS: rgb(%d,%d,%d)&quot;, r, g, b));"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="191"
             column="35"/>
     </issue>
@@ -205,7 +205,7 @@
         errorLine1="                builder.append(String.format(&quot;HSL: %d°, %d%%, %d%%\n&quot;,"
         errorLine2="                               ^">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="310"
             column="32"/>
     </issue>
@@ -216,7 +216,7 @@
         errorLine1="                builder.append(String.format(&quot;HSV: %d°, %d%%, %d%%\n&quot;,"
         errorLine2="                               ^">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="312"
             column="32"/>
     </issue>
@@ -227,7 +227,7 @@
         errorLine1="                builder.append(&quot;INT: 0x&quot;).append(Integer.toHexString(color).toUpperCase());"
         errorLine2="                                                                            ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="314"
             column="77"/>
     </issue>
@@ -392,7 +392,7 @@
         errorLine1="                    String.format(&quot;ping -c 1 -W 2 -t %d %s 2>&amp;1&quot;, ttl, host)"
         errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/NetworkDiagHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/NetworkDiagHelper.java"
             line="183"
             column="21"/>
     </issue>
@@ -502,7 +502,7 @@
         errorLine1="                if (intf.getName().toLowerCase().contains(&quot;wlan&quot;) || intf.getName().toLowerCase().contains(&quot;wifi&quot;)) {"
         errorLine2="                                   ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ToolHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/ToolHelper.java"
             line="102"
             column="36"/>
     </issue>
@@ -513,7 +513,7 @@
         errorLine1="                if (intf.getName().toLowerCase().contains(&quot;wlan&quot;) || intf.getName().toLowerCase().contains(&quot;wifi&quot;)) {"
         errorLine2="                                                                                    ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ToolHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/ToolHelper.java"
             line="102"
             column="85"/>
     </issue>
@@ -524,7 +524,7 @@
         errorLine1="                String name = intf.getName().toLowerCase();"
         errorLine2="                                             ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ToolHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/ToolHelper.java"
             line="124"
             column="46"/>
     </issue>
@@ -535,7 +535,7 @@
         errorLine1="                                if (intf.isUp() &amp;&amp; !intf.isLoopback() &amp;&amp; intf.getName().toLowerCase().contains(&quot;tun&quot;))"
         errorLine2="                                                                                        ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ToolHelper.java"
+            file="src/main/java/com/gamecenter/app/工具/ToolHelper.java"
             line="163"
             column="89"/>
     </issue>
@@ -557,7 +557,7 @@
         errorLine1="                        android.telephony.CellSignalStrength css = info.getCellSignalStrength();"
         errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/WifiToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/WifiToolBinder.java"
             line="141"
             column="73"/>
     </issue>
@@ -568,7 +568,7 @@
         errorLine1="                    android.telephony.CellSignalStrength css = cellInfoList.get(0).getCellSignalStrength();"
         errorLine2="                                                                                   ~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/WifiToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/WifiToolBinder.java"
             line="151"
             column="84"/>
     </issue>
@@ -1540,7 +1540,7 @@
             line="248"
             column="24"/>
         <location
-            file="${:core:update*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            file="core/update/src/main/res/values/strings.xml"
             line="21"
             column="5"
             message="This definition requires 2 arguments"/>
@@ -5568,7 +5568,7 @@
         errorLine1="            domainInput.setText(&quot;example.com&quot;);"
         errorLine2="                                ~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/AdvancedToolBinders.java"
+            file="src/main/java/com/gamecenter/app/工具/AdvancedToolBinders.java"
             line="189"
             column="33"/>
     </issue>
@@ -5645,7 +5645,7 @@
         errorLine1="                        if (viewLevel != null) viewLevel.setText(&quot;电量: &quot; + fLevel);"
         errorLine2="                                                                 ~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/BatteryToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/BatteryToolBinder.java"
             line="83"
             column="66"/>
     </issue>
@@ -5656,7 +5656,7 @@
         errorLine1="                        if (viewTemp != null) viewTemp.setText(&quot;温度: &quot; + fTemp);"
         errorLine2="                                                               ~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/BatteryToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/BatteryToolBinder.java"
             line="84"
             column="64"/>
     </issue>
@@ -5667,7 +5667,7 @@
         errorLine1="                        if (viewVoltage != null) viewVoltage.setText(&quot;电压: &quot; + fVoltage);"
         errorLine2="                                                                     ~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/BatteryToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/BatteryToolBinder.java"
             line="85"
             column="70"/>
     </issue>
@@ -5821,7 +5821,7 @@
         errorLine1="                tvRgb.setText(&quot;RGB: &quot; + r + &quot;, &quot; + g + &quot;, &quot; + b);"
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="162"
             column="31"/>
     </issue>
@@ -5832,7 +5832,7 @@
         errorLine1="                tvRgb.setText(&quot;RGB: &quot; + r + &quot;, &quot; + g + &quot;, &quot; + b);"
         errorLine2="                              ~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="162"
             column="31"/>
     </issue>
@@ -5843,7 +5843,7 @@
         errorLine1="                tvArgb.setText(&quot;ARGB: &quot; + a + &quot;, &quot; + r + &quot;, &quot; + g + &quot;, &quot; + b);"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="165"
             column="32"/>
     </issue>
@@ -5854,7 +5854,7 @@
         errorLine1="                tvArgb.setText(&quot;ARGB: &quot; + a + &quot;, &quot; + r + &quot;, &quot; + g + &quot;, &quot; + b);"
         errorLine2="                               ~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="165"
             column="32"/>
     </issue>
@@ -5865,7 +5865,7 @@
         errorLine1="                tvInt.setText(&quot;INT: 0x&quot; + Integer.toHexString(color).toUpperCase());"
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="182"
             column="31"/>
     </issue>
@@ -5876,7 +5876,7 @@
         errorLine1="                tvInt.setText(&quot;INT: 0x&quot; + Integer.toHexString(color).toUpperCase());"
         errorLine2="                              ~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ColorPickerToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ColorPickerToolBinder.java"
             line="182"
             column="31"/>
     </issue>
@@ -5887,7 +5887,7 @@
         errorLine1="        if (tvOs != null) tvOs.setText(Build.VERSION.RELEASE + &quot; (API &quot; + Build.VERSION.SDK_INT + &quot;)&quot;);"
         errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/DeviceToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/DeviceToolBinder.java"
             line="47"
             column="40"/>
     </issue>
@@ -5898,7 +5898,7 @@
         errorLine1="        if (tvOs != null) tvOs.setText(Build.VERSION.RELEASE + &quot; (API &quot; + Build.VERSION.SDK_INT + &quot;)&quot;);"
         errorLine2="                                                               ~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/DeviceToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/DeviceToolBinder.java"
             line="47"
             column="64"/>
     </issue>
@@ -6294,7 +6294,7 @@
         errorLine1="                    tvResult.setText(&quot;MD5: &quot; + hashText(text, &quot;MD5&quot;));"
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/HashToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/HashToolBinder.java"
             line="66"
             column="38"/>
     </issue>
@@ -6305,7 +6305,7 @@
         errorLine1="                    tvResult.setText(&quot;MD5: &quot; + hashText(text, &quot;MD5&quot;));"
         errorLine2="                                     ~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/HashToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/HashToolBinder.java"
             line="66"
             column="38"/>
     </issue>
@@ -6316,7 +6316,7 @@
         errorLine1="                    tvResult.setText(&quot;SHA1: &quot; + hashText(text, &quot;SHA-1&quot;));"
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/HashToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/HashToolBinder.java"
             line="77"
             column="38"/>
     </issue>
@@ -6327,7 +6327,7 @@
         errorLine1="                    tvResult.setText(&quot;SHA1: &quot; + hashText(text, &quot;SHA-1&quot;));"
         errorLine2="                                     ~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/HashToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/HashToolBinder.java"
             line="77"
             column="38"/>
     </issue>
@@ -6338,7 +6338,7 @@
         errorLine1="                    tvResult.setText(&quot;SHA256: &quot; + hashText(text, &quot;SHA-256&quot;));"
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/HashToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/HashToolBinder.java"
             line="88"
             column="38"/>
     </issue>
@@ -6349,7 +6349,7 @@
         errorLine1="                    tvResult.setText(&quot;SHA256: &quot; + hashText(text, &quot;SHA-256&quot;));"
         errorLine2="                                     ~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/HashToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/HashToolBinder.java"
             line="88"
             column="38"/>
     </issue>
@@ -6459,7 +6459,7 @@
         errorLine1="        btnStart.setText(&quot;Ping中...&quot;);"
         errorLine2="                         ~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/PingToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/PingToolBinder.java"
             line="57"
             column="26"/>
     </issue>
@@ -6470,7 +6470,7 @@
         errorLine1="                    btnStart.setText(&quot;Ping&quot;);"
         errorLine2="                                     ~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/PingToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/PingToolBinder.java"
             line="95"
             column="38"/>
     </issue>
@@ -6481,7 +6481,7 @@
         errorLine1="                    if (tvResult != null) tvResult.setText(&quot;失败: &quot; + e.getMessage());"
         errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/PingToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/PingToolBinder.java"
             line="99"
             column="60"/>
     </issue>
@@ -6492,7 +6492,7 @@
         errorLine1="                    btnStart.setText(&quot;Ping&quot;);"
         errorLine2="                                     ~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/PingToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/PingToolBinder.java"
             line="101"
             column="38"/>
     </issue>
@@ -6602,7 +6602,7 @@
         errorLine1="            if (tvRes != null) tvRes.setText(&quot;分辨率: &quot; + w + &quot;x&quot; + h + &quot; px&quot;);"
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ScreenToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ScreenToolBinder.java"
             line="72"
             column="46"/>
     </issue>
@@ -6613,7 +6613,7 @@
         errorLine1="            if (tvRes != null) tvRes.setText(&quot;分辨率: &quot; + w + &quot;x&quot; + h + &quot; px&quot;);"
         errorLine2="                                                                     ~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ScreenToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ScreenToolBinder.java"
             line="72"
             column="70"/>
     </issue>
@@ -6624,7 +6624,7 @@
         errorLine1="            if (tvRefresh != null) tvRefresh.setText(&quot;刷新率: &quot; + refresh + &quot; Hz&quot;);"
         errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ScreenToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ScreenToolBinder.java"
             line="76"
             column="54"/>
     </issue>
@@ -6635,7 +6635,7 @@
         errorLine1="            if (tvRefresh != null) tvRefresh.setText(&quot;刷新率: &quot; + refresh + &quot; Hz&quot;);"
         errorLine2="                                                                         ~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/ScreenToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/ScreenToolBinder.java"
             line="76"
             column="74"/>
     </issue>
@@ -6712,7 +6712,7 @@
         errorLine1="                            if (tvServer != null) tvServer.setText(&quot;下载测试: &quot; + shortName);"
         errorLine2="                                                                   ~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/SpeedTestToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/SpeedTestToolBinder.java"
             line="98"
             column="68"/>
     </issue>
@@ -6789,7 +6789,7 @@
         errorLine1="        if (tvMobileType != null) tvMobileType.setText(&quot;网络类型: &quot; + getMobileNetworkType());"
         errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/WifiToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/WifiToolBinder.java"
             line="56"
             column="56"/>
     </issue>
@@ -6800,7 +6800,7 @@
         errorLine1="        if (tvMobileSignal != null) tvMobileSignal.setText(&quot;信号强度: &quot; + getMobileSignalText(context));"
         errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/WifiToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/WifiToolBinder.java"
             line="57"
             column="60"/>
     </issue>
@@ -6811,7 +6811,7 @@
         errorLine1="        if (tvMobileOperator != null) tvMobileOperator.setText(&quot;运营商: &quot; + getMobileOperator());"
         errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/gamecenter/app/tools/WifiToolBinder.java"
+            file="src/main/java/com/gamecenter/app/工具/WifiToolBinder.java"
             line="58"
             column="64"/>
     </issue>
@@ -11052,3 +11052,4 @@
     </issue>
 
 </issues>
+

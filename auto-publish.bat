@@ -41,7 +41,7 @@ if /I "%CHANNEL%"=="beta" set GITHUB_VERSION=%VERSION_NAME%-beta
 
 REM 步骤 3: 上传到 VPS (HK + US)
 echo [3/4] 上传到 VPS 服务器...
-python tools\upload_to_vps.py ^
+python 工具\\upload_to_vps.py ^
     --apk app\build\outputs\apk\release\app-release.apk ^
     --version app\build\outputs\apk\release\version.json ^
     --channel %CHANNEL% --skip-verify
@@ -55,7 +55,7 @@ if "%GITHUB_TOKEN%"=="" (
     echo [警告] 未提供 GitHub Token，跳过 GitHub Releases 上传
 ) else (
     echo [4/4] 上传到 GitHub Releases...
-    python tools\upload_to_github_release.py ^
+    python 工具\\upload_to_github_release.py ^
         --apk app\build\outputs\apk\release\app-release.apk ^
         --version-name "%GITHUB_VERSION%"
     if errorlevel 1 (
@@ -75,3 +75,4 @@ echo   3. GitHub Releases: https://github.com/3571949306/GameCenterApp/releases
 echo.
 
 pause
+

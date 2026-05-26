@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:paddingTop="16dp">
+
+    <TextView
+        android:id="@+id/tv_game_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="8dp"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="#212121" />
+
+    <TextView
+        android:id="@+id/tv_game_status"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="2"
+        android:paddingHorizontal="16dp"
+        android:textSize="15sp"
+        android:textColor="#4CAF50" />
+
+    <TextView
+        android:id="@+id/tv_moves"
+        android:layout_width="match_parent"
+        android:layout_height="22dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:textSize="13sp"
+        android:textColor="#757575" />
+
+    <com.gamecenter.app.klotski.KlotskiView
+        android:id="@+id/klotski_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_margin="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingBottom="8dp">
+
+        <Button
+            android:id="@+id/btn_game_restart"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="3dp"
+            android:layout_weight="1"
+            android:contentDescription="重开"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:minWidth="0dp"
+            android:paddingHorizontal="4dp"
+            android:text="重开"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_shuffle"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="3dp"
+            android:layout_weight="1"
+            android:contentDescription="打乱棋盘"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:minWidth="0dp"
+            android:paddingHorizontal="4dp"
+            android:text="打乱"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_hint"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="3dp"
+            android:layout_weight="1"
+            android:contentDescription="提示下一步"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:minWidth="0dp"
+            android:paddingHorizontal="4dp"
+            android:text="提示"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_game_tutorial"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="3dp"
+            android:layout_weight="1"
+            android:contentDescription="查看教程"
+            android:ellipsize="end"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:minWidth="0dp"
+            android:paddingHorizontal="4dp"
+            android:text="教程"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+</LinearLayout>

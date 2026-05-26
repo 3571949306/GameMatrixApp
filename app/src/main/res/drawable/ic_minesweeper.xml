@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#C8E6C9"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 网格 -->
+    <path
+        android:strokeColor="#81C784"
+        android:strokeWidth="0.5"
+        android:pathData="M10,4v40M18,4v40M26,4v40M34,4v40M4,10h40M4,18h40M4,26h40M4,34h40" />
+    <!-- 已翻开格子 -->
+    <path
+        android:fillColor="#E8F5E9"
+        android:pathData="M10,10h8v8h-8z" />
+    <!-- 数字1 -->
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M13,13h2v2h-2z" />
+    <!-- 已翻开格子 -->
+    <path
+        android:fillColor="#E8F5E9"
+        android:pathData="M18,10h8v8h-8z" />
+    <!-- 数字2 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M21,13h2v2h-2z" />
+    <!-- 未翻开格子 -->
+    <path
+        android:fillColor="#A5D6A7"
+        android:strokeColor="#81C784"
+        android:strokeWidth="1"
+        android:pathData="M26,10h8v8h-8z" />
+    <!-- 红旗标记 -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M28,12l4,2l-4,2z" />
+    <path
+        android:fillColor="#8D6E63"
+        android:pathData="M28,14v4" />
+    <!-- 地雷爆炸 -->
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M22,26m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M22,20v2M22,30v2M16,26h2M26,26h2M17,21l1.5,1.5M25.5,29.5l1.5,1.5M17,31l1.5,-1.5M25.5,22.5l1.5,-1.5" />
+</vector>

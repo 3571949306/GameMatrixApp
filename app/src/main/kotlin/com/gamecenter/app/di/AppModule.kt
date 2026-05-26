@@ -1,10 +1,7 @@
 package com.gamecenter.app.di
 
 import android.content.Context
-import com.gamecenter.app.SaveManager
-import com.gamecenter.app.ai.AiPreferences
 import com.gamecenter.app.database.AppDatabase
-import com.gamecenter.app.database.dao.AiMessageDao
 import com.gamecenter.app.database.dao.GameStatsDao
 import com.gamecenter.app.network.OkHttpClientProvider
 import com.gamecenter.app.utils.ErrorReporter
@@ -35,19 +32,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAiPreferences(
-        @ApplicationContext context: Context
-    ): AiPreferences = AiPreferences(context)
-
-    @Provides
-    @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         AppDatabase.getDatabase(context)
-
-    @Provides
-    @Singleton
-    fun provideAiMessageDao(database: AppDatabase): AiMessageDao =
-        database.aiMessageDao()
 
     @Provides
     @Singleton

@@ -1,8 +1,8 @@
 # GameMatrixApp 改造详细计划（Detailed Plan）
 
-> **当前进度 (2026-05-21)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ | 下一阶段：阶段5 本地模型
+> **当前进度 (2026-05-24)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ 模块市场 ✅（builtIn修复 + 右上角按钮/已下载列表/卸载入口已完善）| 下一阶段：阶段5 本地模型
 >
-> 当前版本: **v1.3.30-beta.1** (vc=268)
+> 当前版本: **v1.4.0** (vc=294)
 > APK 已发布到 HK VPS + US VPS（beta channel）
 >
 > | 阶段 | 状态 | 版本 | 说明 |
@@ -13,7 +13,8 @@
 > | 阶段4：模板与记录 | ✅ 已完成 | v1.3.20/vc236 | 模板/历史搜索/收藏/导出 |
 > | 阶段4+：棋类 AI 响应优化 | ✅ 已完成 | v1.3.29 | 五子棋/象棋/围棋去除假延迟，围棋新增并行模拟 |
 > | 阶段4+：更新功能优化 | ✅ 已完成 | v1.3.30-beta.1 | 下载到公共目录，通知改善，完整性校验 |
-> | 阶段5：本地模型 | 📅 规划中 | — | on-device 模型管理 |
+| 阶段4+：模块市场架构 | ✅ 已完成（builtIn修复 + VPN模块上线 + 右上角按钮完善） | v1.4.0 | 市场入口、默认游戏分类、刷新按钮、已下载模块列表、浏览器/工具箱/AI改为市场模块、VPN 科学上网模块（非内置可下载） |
+| 阶段5：本地模型 | 📅 规划中 | — | on-device 模型管理 |
 > | 阶段6：扩展自动化 | 📅 规划中 | — | 界面识别/任务规划 |
 
 ## 0. 文档目标
@@ -24,6 +25,7 @@
 - 保留现有工具箱(Tools)
 - 保留现有浏览器(Browser)
 - 新增 AI 助手(AI Assistant)
+- 新增 科学上网 VPN（模块商店可下载）
 - 新增本地优先(Local First)的处理策略
 - 为后续自动化(Automation)预留接口
 - 最终形成可变现(Monetization)的产品结构
@@ -732,4 +734,16 @@ AI 项目最大的风险之一就是：
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
-- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 服务器部署/GitHub Release 发布仍以本机发布流程为准。
+
+## 模块市场开发约束（AI代理必读）
+
+> ⚠️ 以下规则是因历史bug总结的约束，AI代理在修改模块市场相关代码时必须遵守。
+
+1. **禁止创建指向不存在文件的downloadUrl**：modules.json中的downloadUrl必须指向VPS上实际存在的文件。如果模块代码在主APK中，必须设置`builtIn: true`并将downloadUrl留空。
+2. **builtIn模块不需要dex文件**：当`builtIn=true`时，ModuleAdapter显示"启用"按钮而非"下载"，ModuleManager直接标记已安装。不要为内置模块编译dex文件。
+3. **新增模块时先确认代码位置**：如果模块的Activity/Fragment代码在主APK的源码目录中，该模块必须标记为`builtIn=true`。只有代码完全独立于主APK（通过DexClassLoader动态加载）的模块才能设置`builtIn=false`并提供downloadUrl。
+4. **上传modules.json前验证**：每次修改deploy/modules.json后，必须同时：(a) 上传到VPS的/var/www/update/modules.json；(b) 如果有非builtIn模块，确保对应dex文件已上传到VPS的/var/www/update/modules/目录。
+5. **fileSize和sha256必须真实**：非builtIn模块的fileSize和sha256必须与VPS上实际dex文件一致，不能留空或填0。builtIn模块的fileSize填0、sha256留空。
+
+- 2026-05-24 游戏美化+中国象棋提示改进+华容道&中国象棋模块商店上架：四个游戏视觉美化（斗地主径向渐变桌面/五子棋木纹3D棋子/华容道深色渐变金色边框/中国象棋木纹角标波浪线）；中国象棋提示改为棋盘可视化（蓝色脉冲光环+箭头指引）+中文棋谱描述；华容道和中国象棋创建独立APK模块（feature/games/klotski、feature/games/chinesechess）v2.0.0上架模块商店

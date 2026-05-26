@@ -1,19 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
     <path
-        android:fillColor="#E91E63"
-        android:pathData="M12,2L4,6v6c0,5.55 3.84,10.74 8,12 4.16,-1.26 8,-6.45 8,-12V6L12,2z"/>
+        android:fillColor="#E8EAF6"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 卡片1 (背面) -->
     <path
-        android:fillColor="#F44336"
-        android:pathData="M9,9m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+        android:fillColor="#5C6BC0"
+        android:strokeColor="#3949AB"
+        android:strokeWidth="1"
+        android:pathData="M6,8h14v18h-14z" />
+    <path
+        android:fillColor="#3949AB"
+        android:pathData="M10,12h6v2h-6zM10,16h6v2h-6z" />
+    <!-- 卡片2 (翻开 - 星星) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M22,8h14v18h-14z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M29,14l1.5,3l3,0.5l-2.5,2l1,3l-2.5,-1.5l-2.5,1.5l1,-3l-2.5,-2l3,-0.5z" />
+    <!-- 卡片3 (背面) -->
+    <path
+        android:fillColor="#5C6BC0"
+        android:strokeColor="#3949AB"
+        android:strokeWidth="1"
+        android:pathData="M6,26h14v18h-14z" />
+    <!-- 卡片4 (翻开 - 星星，配对成功) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#4CAF50"
+        android:strokeWidth="2"
+        android:pathData="M22,26h14v18h-14z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M29,32l1.5,3l3,0.5l-2.5,2l1,3l-2.5,-1.5l-2.5,1.5l1,-3l-2.5,-2l3,-0.5z" />
+    <!-- 配对标记 -->
     <path
         android:fillColor="#4CAF50"
-        android:pathData="M15,9m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
-    <path
-        android:fillColor="#2196F3"
-        android:pathData="M12,14m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+        android:pathData="M38,20l2,2l4,-4l-1,-1l-3,3l-1,-1z" />
 </vector>

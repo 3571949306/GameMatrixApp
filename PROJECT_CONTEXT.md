@@ -4,7 +4,7 @@
 
 > Canonical scope: this file is the maintainer handoff and repo-constraints document. Historical release reports and duplicated publishing walkthroughs were moved under `docs/archive/`. See `docs/DOCUMENTATION_INDEX.md`.
 
-- 当前正式版目标：`1.3.29` / `versionCode 267`。
+- 当前正式版目标：`1.4.0` / `versionCode 341`。
 - 主界面已适配系统状态栏/导航栏安全区，避免顶部标题被手机状态栏遮挡。
 - AI 本地模型切换已保存完整模型元数据，下载的新本地模型可直接被本地 LLM 路由识别，不再误提示云端模型未配置。
 - 五子棋和中国象棋难度选择改为按钮式四档（低 / 中 / 高 / 大师），中档 AI 搜索预算下调；对局底部按钮改为两行等宽布局，窄屏不再溢出。
@@ -20,6 +20,12 @@
 
 | 版本 | 变更内容 |
 |------|----------|
+| **当前工作区** | **2026-05-26：modules.json 升级至 v11，新增23款游戏模块（blackjack/21点、breakout/打砖块、brotato、checkers/跳棋、dice/骰子、flappy/Flappy Bird、go/围棋、guess/猜数字、knife/飞刀大师、match/消消乐、memory/记忆翻牌、minesweeper/扫雷、pipeline/管道、plane/飞机大战、reaction/反应测试、rock/石头剪刀布、snake/贪吃蛇、sokoban/推箱子、sudoku/数独、tetris/俄罗斯方块、tic/井字棋、tiles/拼图、whack/打地鼠），游戏模块总数29，全部模块33；所有游戏ZIP上传至VPS /var/www/modules/和/var/www/update/modules/；证书绑定临时关闭（模拟器SIGSEGV兼容）；R8混淆Debug关闭；games_hall builtIn修复；模块下载SHA-256校验修复** |
+| **当前工作区** | **模块框架全面修复：下载后校验错误/打不开/不更新显示三大问题修复；ModuleLoader 版本感知重加载+DEX缓存清理；ModuleDownloader 下载前清理旧文件+多源切换清理临时文件；ModuleVerifier 资源泄漏修复；ModuleAdapter 新增"更新"按钮逻辑；ModuleStoreActivity 已安装版本追踪+乱码修复** |
+| **当前工作区** | **中国象棋/华容道重构为独立APK插件 + 动态资源加载集成（通过ModuleResourceLoader解决布局/资源闪退问题）** |
+| **当前工作区** | **模块商店 BuiltIn 逻辑彻底修复：核心模块（browser/tools/ai）统一改为动态 APK 模块并成功部署** |
+| **当前工作区** | **2026-05-25：游戏大厅恢复为主 APK 内置模块入口（`games_hall builtIn=true`，仍保留商店 APK 更新路径）；商店清单统一展示五子棋、斗地主、2048、中国象棋、华容道；AI/VPN/工具等导航模块安装后会刷新主页面底栏并可从商店直接打开；模块框架下载/校验/加载/显示全链路修复** |
+| **当前工作区** | **模块商店目录结构重组：创建项目根目录“模块商店/”，分类组织“功能模块/”和“压缩模块/”，新增飞刀大师（knife）独立游戏模块，新增模块商店实时搜索框** |
 | **当前工作区** | **v1.3.29：小游戏AI响应优化（去假延迟+动态预算+根并行）、CODE_WIKI版本同步、文档一致性修复** |
 | **当前工作区** | **战略优化：UpdateViewModel 协程化（viewModelScope + suspendCancellableCoroutine + CheckResult/DownloadResult 密封类）、网络层测试（AiApiClientTest + UpdateInfoTest）、CI 质量门（APK 大小/测试结果/Lint 报告）、安全加固（allowBackup=false + backup_rules + data_extraction_rules + 存储权限迁移）、构建优化（MaterialCardView 替代 CardView）** |
 | **当前工作区** | **低优先级代码质量：AppResult 重命名、TaskStatus 枚举、AiErrorCode 常量类、空 catch 块补日志、硬编码文案提取到 strings.xml（48 个）、Java/Kotlin 混合边界规范文档化** |
@@ -278,7 +284,7 @@ tic, tiles, whack
 
 ## 5. 构建与版本
 
-当前版本：`versionCode=267`, `versionName=1.3.29`。当前工作区在该版本基础上完成了小游戏AI响应优化（v1.3.29）和小游戏AI响应优化（去假延迟+动态预算+根并行）
+当前版本：`versionCode=341`, `versionName=1.4.0`。当前工作区在该版本基础上完成了小游戏AI响应优化（v1.3.29）和小游戏AI响应优化（去假延迟+动态预算+根并行）
 
 Windows 下推荐命令：
 
@@ -471,7 +477,7 @@ res/drawable/bg_ai_message_system.xml   # 系统消息气泡背景
 
 ---
 
-最后更新：2026-05-19（战略优化：UpdateViewModel 协程化 + 网络层测试 + CI 质量门 + 安全加固 + 构建优化）
+最后更新：2026-05-26（modules.json v11：新增23款游戏模块，游戏模块总数29，全部模块33；证书绑定临时关闭；R8混淆Debug关闭；games_hall builtIn修复；SHA-256校验修复）
 ---
 
 ## 2026-05-14 文档同步：文字适配与应用语言
@@ -525,3 +531,24 @@ The project is no longer a pure single-module app. The first modularization pass
 - `:app`: shell application, main navigation, feature screens, games, tools, AI, resources, manifest, FileProvider declaration, and release/upload tasks.
 
 Dependency direction should stay one-way: `app -> core:update -> core:network -> core:common`, plus direct `app -> core:network` and `app -> core:common` where needed. `CrashHandler` remains app-owned due to `ErrorReporter` coupling.
+
+## 2026-05-25 文档同步：中国象棋/华容道独立APK插件化、内置模块BuiltIn逻辑修复与模块商店重组
+
+- **中国象棋/华容道重构为独立APK插件**：将中国象棋 (`chinesechess`) 和华容道 (`klotski`) 完全重构为独立的 APK 功能模块（v2.0.0），支持通过模块商店动态下载、校验和加载。
+- **解决 dynamic 模块布局/资源加载闪退问题**：在 `com.gamecenter.app.modules.ModuleLoader` 中集成了 `ModuleResourceLoader`，动态装载外部 APK 时的 AssetManager 和 Resources，解决了外部 APK 引用局部资源（如本地 drawable 等）导致 inflate 闪退的问题。
+- **内置模块 BuiltIn 缺陷修复**：修复了 modules.json 中内置模块（`browser`、`tools`、`ai`）被错误标记为 `builtIn: true` 导致模块商店里无法展示“下载”和“启用”点击无反应的逻辑，统一修改为 `builtIn: false` 的动态 APK 模块。
+- **新增模块商店实时搜索框**：在 `ModuleStoreActivity.kt` 顶部增加了实时搜索框 `etModuleSearch`，支持过滤游戏/工具/AI等功能模块。
+- **目录结构重组**：创建了项目根目录下的 `模块商店/` 文件夹。将所有压缩游戏包（25个ZIP文件）移入 `模块商店/压缩模块/`。将所有独立功能模块（`vpn`、`chinesechess`、`game2048`、`klotski` 等）移入 `模块商店/功能模块/` 下，并更新 `settings.gradle` 的模块引用路径。
+
+## 2026-05-25 文档同步：模块框架全链路修复
+
+- **ModuleLoader 版本感知重加载**：`loadModule` 不再无条件返回缓存实例，而是对比已安装版本与 manifest 版本。版本变更时自动卸载旧实例、清除 DEX 优化缓存（`modules_opt/`）后重新加载，解决模块更新后仍运行旧代码的问题。
+- **ModuleDownloader 下载前清理**：`doDownload` 在开始下载前删除旧模块文件和残留临时文件，避免文件名冲突导致新文件覆盖失败。多源切换时也清理临时文件，防止断点续传拼接出损坏文件。
+- **ModuleVerifier 资源泄漏修复**：`computeSha256` 和 `verifyDexFile` 中的 `FileInputStream` 改为 try-finally 确保异常时也能关闭流。
+- **ModuleManager 下载后卸载旧实例**：`downloadModule` 的 `onComplete` 回调中先调用 `ModuleLoader.unloadModule` 卸载旧实例，确保下次加载使用新文件。
+- **ModuleManager 版本校验增强**：`downloadModule` 不再仅比较版本号，还会检查文件是否存在且 SHA-256 校验通过，文件损坏时自动重新下载。
+- **ModuleAdapter 更新按钮**：新增 `installedVersions` 映射和 `hasUpdate` 判断，已安装版本低于远程版本时显示橙色"更新"按钮和版本变更提示（如"有更新 v100→v200"）。
+- **ModuleStoreActivity 版本追踪**：新增 `buildInstalledVersionsMap()` 方法，`applyCategoryFilter` 和下载完成回调中同步刷新已安装版本信息，确保更新状态实时反映。
+- **ModuleStoreActivity 乱码修复**：修复 `openModule` 中 Toast 文本"妯″潃鍔犺浇澶辫触"为正确的"模块加载失败"。
+- **ModuleStoreActivity ACTION_UPDATE**：新增 `ACTION_UPDATE` 处理分支，点击"更新"按钮时触发下载流程。
+

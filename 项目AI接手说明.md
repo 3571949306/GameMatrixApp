@@ -6,15 +6,15 @@
 - GitHub 仓库：`https://github.com/3571949306/GameMatrixApp.git`
 - 主维护分支：`main`
 - Android 构建核心目录：`app/`
-- 发布相关脚本目录：`tools/`、`docs/`、`local_private/`
+- 发布相关脚本目录：`工具/`、`文档/`、`local_private/`
 
 建议 AI 或新维护者接手时，先读这几份文档：
 
 - `README.md`：项目总览、更新分发架构、文档入口
 - `PROJECT_CONTEXT.md`：维护约束、仓库规则、接手背景
 - `CODE_WIKI.md`：代码结构与模块说明
-- `docs/LOCAL_GITHUB_NETWORK.md`：本机 GitHub 访问与代理说明
-- `docs/PUBLISH_GUIDE.md`：发布链路历史说明
+- `文档/LOCAL_GITHUB_NETWORK.md`：本机 GitHub 访问与代理说明
+- `文档/PUBLISH_GUIDE.md`：发布链路历史说明
 
 ## 2. 当前发布架构
 
@@ -39,6 +39,16 @@ VPS 上的更新目录约定为：
 └── version-release.json
 ```
 
+模块市场相关文件：
+/var/www/modules/
+├── modules.json              # 模块清单（当前为 29 个模块）
+├── modules/                  # 模块包实际服务目录
+│   ├── feature_game2048_v100.apk
+│   └── game_sudoku_v100.zip
+
+/var/www/update/
+└── modules/                  # 兼容备份目录，发布时同步模块包
+
 本地构建产物默认使用：
 
 ```text
@@ -53,7 +63,7 @@ app/build/outputs/apk/release/version.json
 VPS 凭证不进 Git，放在：
 
 ```text
-local_private/vps/
+local_private/服务器部署/
 ```
 
 脚本会自动读取：
@@ -83,12 +93,12 @@ local_private/vps/
 仓库当前用于连接 VPS 的脚本是：
 
 ```text
-tools/upload_to_vps.py
+工具/upload_to_vps.py
 ```
 
 它使用 `paramiko` 通过 SSH/SFTP 连接 VPS，默认会：
 
-1. 读取 `local_private/vps/upload_config_*.json`
+1. 读取 `local_private/服务器部署/upload_config_*.json`
 2. 上传 `app-release.apk` 和 `version.json`
 3. 在远端重命名为通道文件名
 4. 清理旧的 `.apk` / `.json` 文件，但保留 `beta` 和 `release` 两套当前文件
@@ -105,19 +115,19 @@ python -m pip install paramiko
 上传测试版到所有已配置 VPS：
 
 ```powershell
-python tools\upload_to_vps.py --channel beta
+python 工具\\upload_to_vps.py --channel beta
 ```
 
 上传正式版到所有已配置 VPS：
 
 ```powershell
-python tools\upload_to_vps.py --channel release
+python 工具\\upload_to_vps.py --channel release
 ```
 
 如果要指定文件路径：
 
 ```powershell
-python tools\upload_to_vps.py `
+python 工具\\upload_to_vps.py `
   --apk app\build\outputs\apk\release\app-release.apk `
   --version app\build\outputs\apk\release\version.json `
   --channel release
@@ -172,13 +182,13 @@ git ls-remote https://github.com/3571949306/GameMatrixApp.git HEAD
 如果代理失效，可重新执行：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\network\Configure-GitHubProxy.ps1 -Apply
+powershell -ExecutionPolicy Bypass -File 工具\\network\Configure-GitHubProxy.ps1 -Apply
 ```
 
 清理 GitHub 专用代理：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\network\Configure-GitHubProxy.ps1 -Clear
+powershell -ExecutionPolicy Bypass -File 工具\\network\Configure-GitHubProxy.ps1 -Clear
 ```
 
 ### 4.3 上传 GitHub Releases
@@ -186,7 +196,7 @@ powershell -ExecutionPolicy Bypass -File tools\network\Configure-GitHubProxy.ps1
 当前正式版 APK 上传 GitHub Release 的脚本是：
 
 ```text
-tools/upload_to_github_release.py
+工具/upload_to_github_release.py
 ```
 
 它会按以下顺序取 Token：
@@ -198,7 +208,7 @@ tools/upload_to_github_release.py
 示例：
 
 ```powershell
-python tools\upload_to_github_release.py `
+python 工具\\upload_to_github_release.py `
   --apk app\build\outputs\apk\release\app-release.apk `
   --version-name 1.3.27 `
   --changelog-file CHANGELOG.md
@@ -249,7 +259,7 @@ python tools\upload_to_github_release.py `
 ```powershell
 .\gradlew.bat assembleRelease -PupdateChannel=beta
 .\gradlew.bat generateVersionJson -PupdateChannel=beta
-python tools\upload_to_vps.py --channel beta
+python 工具\\upload_to_vps.py --channel beta
 ```
 
 正式版：
@@ -257,8 +267,8 @@ python tools\upload_to_vps.py --channel beta
 ```powershell
 .\gradlew.bat assembleRelease -PupdateChannel=stable
 .\gradlew.bat generateVersionJson -PupdateChannel=stable
-python tools\upload_to_vps.py --channel release
-python tools\upload_to_github_release.py `
+python 工具\\upload_to_vps.py --channel release
+python 工具\\upload_to_github_release.py `
   --apk app\build\outputs\apk\release\app-release.apk `
   --version-name 版本号 `
   --changelog-file CHANGELOG.md
@@ -303,12 +313,84 @@ python tools\upload_to_github_release.py `
 ## 6. 接手时的注意事项
 
 - `local_private/` 是本地私有配置区，不要提交。
-- GitHub 网络问题先看 `docs/LOCAL_GITHUB_NETWORK.md`，不要直接改全局网络方案。
+- GitHub 网络问题先看 `文档/LOCAL_GITHUB_NETWORK.md`，不要直接改全局网络方案。
 - 日常测试包优先走 `beta` 通道，不要误发正式版到 GitHub Releases。
 - 正式版发布前确认 `CHANGELOG.md`、`version.properties`、`version.json` 一致。
 - 美国 VPS 当前主要是备用更新源，不建议随意改公网入口。
 - 如果上传脚本或发布任务异常，优先检查 Python 依赖、GitHub Token、本地代理、VPS 配置文件路径是否正确。
+- 模块市场系统（ModuleStoreActivity + ModuleManager）是新增的核心功能，浏览器/工具箱/AI助手和非经典游戏已改为市场下载模块，初始安装包不再自带。修改导航栏或游戏注册逻辑时需注意动态注册机制。
 
 ## 7. 一句话接手结论
 
-这个项目当前已经具备完整的本地构建、双 VPS 上传、GitHub Releases 发布链路。AI 接手时，优先复用 `tools/upload_to_vps.py`、`tools/upload_to_github_release.py` 和 `app/build.gradle` 里的发布任务，不要重新发明一套发布流程。
+这个项目当前已经具备完整的本地构建、双 VPS 上传、GitHub Releases 发布链路。AI 接手时，优先复用 `工具/upload_to_vps.py`、`工具/upload_to_github_release.py` 和 `app/build.gradle` 里的发布任务，不要重新发明一套发布流程。
+
+## 8. 模块市场架构说明
+
+- 模块市场入口位于游戏大厅左上角版本号下方。
+- 初始安装包仅内置五子棋和斗地主。
+- 模块市场默认打开“游戏”分类，不再提供“全部”分类 Tab，也不显示“全部”游戏子分类按钮。
+- 模块市场右上角有两个操作按钮：刷新当前列表、进入已下载模块列表；最右侧为已下载列表按钮。
+- 已下载模块列表需要按全部、游戏、浏览器、工具箱、AI助手、VPN 分类展示。
+- 模块市场卡片对已下载模块显示“打开/卸载”两级按钮，可直接快速卸载。
+- 商店下载的游戏安装成功后必须动态注册回游戏大厅，用户返回大厅即可看到并打开。
+- 游戏大厅初始只展示五子棋和斗地主；`GamesFragment` 恢复时需要调用 `registerInstalledGameModules()` 同步已安装商店游戏。
+- 浏览器、工具箱、AI助手改为独立市场模块，初始安装包不再自带。
+- 底部导航栏动态化：默认仅保留"游戏"Tab，安装对应导航模块后自动出现浏览器/工具箱/AI Tab。
+- 非内置游戏通过市场下载安装后注册到 `GameRegistry`，并出现在游戏大厅。
+- VPS更新服务器已新增/modules.json和/modules/路由。
+- 模块包已发布到 VPS 实际服务目录 `/var/www/modules/modules/`，并同步到 `/var/www/update/modules/` 作为兼容备份。
+- ModuleManifest新增builtIn字段：代码在主APK中的模块标记builtIn=true，显示"启用"按钮而非"下载"，无需下载dex文件。
+
+### 8.1 核心类
+| 类 | 语言 | 职责 |
+|----|------|------|
+| ModuleManager | Kotlin | 模块下载/安装/注册 |
+| ModuleManifest | Kotlin | 模块清单数据模型 |
+| ModuleStoreActivity | Kotlin | 模块市场页面 |
+| ModuleAdapter | Kotlin | 模块列表适配器 |
+| InstalledModulesActivity | Kotlin | 已下载模块列表页面 |
+| InstalledModuleAdapter | Kotlin | 已下载模块列表适配器 |
+
+### 8.2 模块市场架构
+- 模块市场顶部分类 Tab：游戏、浏览器、工具箱、AI助手、VPN
+- 模块市场不提供“全部”分类 Tab，游戏分类内也不显示“全部”子分类按钮。
+- 标题栏右侧有“刷新”和“已下载模块”按钮，Toolbar 菜单必须显式绑定点击监听。
+- ModuleManifest新增storeCategory和isBaseFramework字段
+- 浏览器/工具箱/AI拆分为基础框架+扩展功能
+
+### 8.3 模块类型
+| type | 说明 | 效果 |
+|------|------|------|
+| nav | 导航模块 | 安装后底部导航栏自动出现对应Tab |
+| game | 游戏模块 | 安装后注册到 GameRegistry，并回流显示到游戏大厅 |
+| builtIn=true | 内置模块 | 代码在主APK中，显示"启用"按钮，无需下载 |
+
+### 8.4 模块分类规则
+| storeCategory | 说明 | 示例 |
+|---------------|------|------|
+| game | 游戏模块 | 2048、数独、扫雷等 |
+| browser | 浏览器模块 | 浏览器基础框架 |
+| tools | 工具箱模块 | 工具箱框架 |
+| ai | AI助手模块 | AI基础框架 |
+| vpn | VPN模块 | VPN基础服务 |
+
+### 8.5 游戏模块打开流程
+
+1. `ModuleStoreActivity` 默认加载 `storeCategory=game` 的模块列表。
+2. 用户点击“下载”后，模块包保存到 App 私有目录并标记已安装。
+3. `ModuleManager` 标记安装成功后调用 `registerInstalledGameModules()`，将游戏动态注册到 `GameRegistry`。
+4. 用户返回游戏大厅时，`GamesFragment.onResume()` 重新同步模块游戏并刷新分类与列表。
+5. 用户可从模块市场直接打开，也可从游戏大厅打开已安装的模块游戏。
+6. 用户卸载模块后，`ModuleManager.uninstallModule()` 需要同步移除下载文件、安装标记和 `GameRegistry` 动态注册项。
+
+## 9. 模块市场开发约束（AI代理必读）
+
+> ⚠️ 以下规则是因历史bug总结的约束，AI代理在修改模块市场相关代码时必须遵守。
+
+1. **禁止创建指向不存在文件的downloadUrl**：modules.json中的downloadUrl必须指向VPS上实际存在的文件。如果模块代码在主APK中，必须设置`builtIn: true`并将downloadUrl留空。
+2. **builtIn模块不需要dex文件**：当`builtIn=true`时，ModuleAdapter显示"启用"按钮而非"下载"，ModuleManager直接标记已安装。不要为内置模块编译dex文件。
+3. **新增模块时先确认代码位置**：如果模块的Activity/Fragment代码在主APK的源码目录中，该模块必须标记为`builtIn=true`。只有代码完全独立于主APK（通过DexClassLoader动态加载）的模块才能设置`builtIn=false`并提供downloadUrl。
+4. **上传modules.json前验证**：每次修改deploy/modules.json后，必须同时：(a) 上传到VPS的/var/www/update/modules.json；(b) 如果有非builtIn模块，确保对应dex文件已上传到VPS的/var/www/update/modules/目录。
+5. **fileSize和sha256必须真实**：非builtIn模块的fileSize和sha256必须与VPS上实际dex文件一致，不能留空或填0。builtIn模块的fileSize填0、sha256留空。
+
+- 2026-05-24 游戏美化+中国象棋提示改进+华容道&中国象棋模块商店上架：四个游戏视觉美化（斗地主径向渐变桌面/五子棋木纹3D棋子/华容道深色渐变金色边框/中国象棋木纹角标波浪线）；中国象棋提示改为棋盘可视化（蓝色脉冲光环+箭头指引）+中文棋谱描述；华容道和中国象棋创建独立APK模块（feature/games/klotski、feature/games/chinesechess）v2.0.0上架模块商店

@@ -555,10 +555,8 @@ public class GameRuleUtil {
         }
 
         for (int weight : trioWeights) {
-            if (weight >= Rank.TWO.getWeight() || Rank.fromSymbol(String.valueOf(weight)) == null) {
-                if (weight == Rank.TWO.getWeight()) {
-                    return CardType.ERROR;
-                }
+            if (weight >= Rank.TWO.getWeight()) {
+                return CardType.ERROR;
             }
         }
 
@@ -630,10 +628,6 @@ public class GameRuleUtil {
         }
 
         if (currentType == CardType.BOMB && !previousType.isBomb()) {
-            return true;
-        }
-
-        if (currentType == CardType.JOKER_BOMB && previousType == CardType.BOMB) {
             return true;
         }
 
@@ -927,7 +921,7 @@ public class GameRuleUtil {
 
         for (Map.Entry<Integer, List<Card>> entry : pairs.entrySet()) {
             if (entry.getValue().size() >= 2) {
-                return entry.getValue().subList(0, 2);
+                return new ArrayList<>(entry.getValue().subList(0, 2));
             }
         }
         return null;

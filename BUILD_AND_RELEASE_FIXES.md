@@ -111,7 +111,7 @@ if (latestVersionCode > currentVersionCode) {
 
 #### 3.1 修复上传脚本
 
-**文件**: `tools/upload_to_vps.py`
+**文件**: `工具/upload_to_vps.py`
 
 ```python
 # ❌ 错误逻辑
@@ -130,7 +130,7 @@ remote_ver = f"version-{channel}.json"
 task uploadReleaseArtifactsToVps(type: Exec) {
     dependsOn generateVersionJson
     def args = [
-            file("${rootDir}/tools/upload_to_vps.py").absolutePath,
+            file("${rootDir}/工具/upload_to_vps.py").absolutePath,
             "--apk", file("${buildDir}/outputs/apk/release/app-release.apk").absolutePath,
             "--version", file("${buildDir}/outputs/apk/release/version.json").absolutePath,
             "--channel", uploadChannel
@@ -176,7 +176,7 @@ jarsigner -verify app-release.apk
 .\gradlew.bat uploadReleaseArtifactsToVps
 
 # 或手动上传
-python tools\upload_to_vps.py --apk app\build\outputs\apk\release\app-release.apk --version app\build\outputs\apk\release\version.json --channel beta
+python 工具\\upload_to_vps.py --apk app\build\outputs\apk\release\app-release.apk --version app\build\outputs\apk\release\version.json --channel beta
 ```
 
 ### 3. 验证 VPS 更新源
@@ -236,7 +236,7 @@ task verifyReleaseSignature(type: Exec) {
 
 - ✅ 更新 `README.md` - 构建与部署说明
 - ✅ 更新 `RELEASE_STATUS.md` - 发布状态跟踪
-- ✅ 更新 `docs/PUBLISH_GUIDE.md` - 发布指南
+- ✅ 更新 `文档/PUBLISH_GUIDE.md` - 发布指南
 - ✅ 更新 `CHANGELOG.md` - 版本日志
 - ✅ 创建 `BUILD_AND_RELEASE_FIXES.md` - 修复说明
 
@@ -258,7 +258,7 @@ task verifyReleaseSignature(type: Exec) {
 
 - [APK 签名配置](https://developer.android.com/studio/build/signing-apk)
 - [版本管理](https://developer.android.com/studio/publish/versioning)
-- [发布指南](docs/PUBLISH_GUIDE.md)
+- [发布指南](文档/PUBLISH_GUIDE.md)
 - [发布状态](RELEASE_STATUS.md)
 ---
 
@@ -275,8 +275,16 @@ task verifyReleaseSignature(type: Exec) {
 - GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
 - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
-- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 VPS/GitHub Release 发布仍以本机发布流程为准。
+- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 服务器部署/GitHub Release 发布仍以本机发布流程为准。
 
 ## 2026-05-19 Modularization Note
 
 The build now includes `:core:common`, `:core:network`, and `:core:update`. Release and upload commands should continue to target `:app` tasks, but maintainers must keep module-level BuildConfig generation in sync when adding new release fields to `local.properties` or `version.properties`.
+
+## 2026-05-24 文档同步
+- 底部导航切换闪退修复：创建 KeepStateNavigator 自定义导航器，使用 add/show/hide 策略替代 Navigation 默认 replace 策略
+- 模块下载修复：ModuleDownloader 全面重写，添加全局异常捕获、降低超时、增加日志
+- 内存泄漏全面修复：移除 WeakReference callback、Fragment 回调安全检查、视图引用彻底清理
+- 压力测试通过：40轮快速Tab切换无崩溃
+
+- 2026-05-24 游戏美化+中国象棋提示改进+华容道&中国象棋模块商店上架：四个游戏视觉美化（斗地主径向渐变桌面/五子棋木纹3D棋子/华容道深色渐变金色边框/中国象棋木纹角标波浪线）；中国象棋提示改为棋盘可视化（蓝色脉冲光环+箭头指引）+中文棋谱描述；华容道和中国象棋创建独立APK模块（feature/games/klotski、feature/games/chinesechess）v2.0.0上架模块商店

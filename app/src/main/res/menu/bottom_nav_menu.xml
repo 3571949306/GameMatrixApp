@@ -16,4 +16,8 @@
         android:id="@+id/navigation_ai"
         android:icon="@drawable/ic_ai"
         android:title="@string/nav_ai" />
+    <item
+        android:id="@+id/navigation_vpn"
+        android:icon="@drawable/ic_vpn"
+        android:title="@string/nav_vpn" />
 </menu>

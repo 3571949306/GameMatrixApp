@@ -1,19 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 棋盘背景 -->
     <path
-        android:fillColor="#FF5722"
-        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/>
+        android:fillColor="#8B4513"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 棋盘格子 (浅色) -->
     <path
-        android:fillColor="#FFCCBC"
-        android:pathData="M7,10m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"/>
+        android:fillColor="#DEB887"
+        android:pathData="M4,4h10v10h-10zM24,4h10v10h-10zM14,14h10v10h-10zM34,14h10v10h-10zM4,24h10v10h-10zM24,24h10v10h-10zM14,34h10v10h-10zM34,34h10v10h-10z" />
+    <!-- 黑棋子 -->
     <path
-        android:fillColor="#8D6E63"
-        android:pathData="M17,10m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"/>
+        android:fillColor="#1a1a1a"
+        android:pathData="M9,9m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path
-        android:fillColor="#FF5722"
-        android:pathData="M12,14m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"/>
+        android:fillColor="#1a1a1a"
+        android:pathData="M29,9m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#1a1a1a"
+        android:pathData="M19,19m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <!-- 白棋子 -->
+    <path
+        android:fillColor="#f0f0f0"
+        android:strokeColor="#cccccc"
+        android:strokeWidth="0.5"
+        android:pathData="M19,29m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#f0f0f0"
+        android:strokeColor="#cccccc"
+        android:strokeWidth="0.5"
+        android:pathData="M39,29m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#f0f0f0"
+        android:strokeColor="#cccccc"
+        android:strokeWidth="0.5"
+        android:pathData="M29,39m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
 </vector>
