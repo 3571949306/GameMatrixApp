@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 棋盘背景 -->
+    <path
+        android:fillColor="#F9E4B7"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 棋盘边框 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#8B5A2B"
+        android:strokeWidth="1.5"
+        android:pathData="M8,8h32v32h-32z" />
+    <!-- 横线 -->
+    <path
+        android:strokeColor="#8B5A2B"
+        android:strokeWidth="0.8"
+        android:pathData="M8,14h32M8,20h32M8,26h32M8,32h32" />
+    <!-- 竖线（上半部分） -->
+    <path
+        android:strokeColor="#8B5A2B"
+        android:strokeWidth="0.8"
+        android:pathData="M14,8v18M20,8v18M26,8v18M32,8v18" />
+    <!-- 竖线（下半部分） -->
+    <path
+        android:strokeColor="#8B5A2B"
+        android:strokeWidth="0.8"
+        android:pathData="M14,26v14M20,26v14M26,26v14M32,26v14" />
+    <!-- 楚河汉界 -->
+    <path
+        android:fillColor="#8B5A2B"
+        android:pathData="M12,23.5h6v1h-6zM30,23.5h6v1h-6z" />
+    <!-- 红方棋子(帅) -->
+    <path
+        android:fillColor="#E53935"
+        android:strokeColor="#B71C1C"
+        android:strokeWidth="0.5"
+        android:pathData="M20,10.5m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+    <!-- 黑方棋子(将) -->
+    <path
+        android:fillColor="#1a1a1a"
+        android:strokeColor="#000000"
+        android:strokeWidth="0.5"
+        android:pathData="M20,35.5m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+</vector>

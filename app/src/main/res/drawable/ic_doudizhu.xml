@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 扑克牌1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M10,8h10v14h-10z" />
+    <!-- 扑克牌2 (大王) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M19,10h10v14h-10z" />
+    <!-- 大王红色装饰 -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M22,13h4v2h-4zM22,17h4v2h-4z" />
+    <!-- 扑克牌3 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M28,8h10v14h-10z" />
+    <!-- 牌面数字 -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M12,11h2v2h-2z" />
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M30,11h2v2h-2z" />
+    <!-- 底部文字区域 -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M4,32h40v12h-40z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,38h12v2h-12z" />
+</vector>

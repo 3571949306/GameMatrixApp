@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
@@ -142,8 +143,8 @@ public class GomokuView extends View {
         bgPaint.setColor(bg);
 
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        linePaint.setColor(line);
-        linePaint.setStrokeWidth(1.5f);
+        linePaint.setColor(Color.parseColor("#5D4037"));
+        linePaint.setStrokeWidth(2f);
 
         blackPiecePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         blackPiecePaint.setColor(blackP);
@@ -291,8 +292,24 @@ public class GomokuView extends View {
         if (cellSize == 0) {
             recalcDimensions(getWidth(), getHeight());
         }
-        // 第1层：画背景色
-        canvas.drawRect(0, 0, getWidth(), getHeight(), bgPaint);
+        Paint outerBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        outerBgPaint.setColor(Color.parseColor("#3E2723"));
+        canvas.drawRect(0, 0, getWidth(), getHeight(), outerBgPaint);
+
+        float boardLeft = offsetX;
+        float boardTop = offsetY;
+        float boardRight = offsetX + (GomokuGame.BOARD_SIZE - 1) * cellSize;
+        float boardBottom = offsetY + (GomokuGame.BOARD_SIZE - 1) * cellSize;
+        float halfCell = cellSize / 2f;
+        LinearGradient boardGradient = new LinearGradient(
+                boardLeft - halfCell, boardTop - halfCell,
+                boardRight + halfCell, boardBottom + halfCell,
+                Color.parseColor("#DEB887"), Color.parseColor("#D2A679"),
+                Shader.TileMode.CLAMP);
+        Paint boardBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        boardBgPaint.setShader(boardGradient);
+        canvas.drawRect(boardLeft - halfCell, boardTop - halfCell,
+                boardRight + halfCell, boardBottom + halfCell, boardBgPaint);
         // 第2层：画棋盘网格
         drawBoard(canvas);
         if (game != null) {
@@ -319,21 +336,32 @@ public class GomokuView extends View {
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.LEFT);
 
-        // 回合数 = (落子数 + 1) / 2，因为每回合双方各下一手
         int currentTurn = (game.getMoveCount() + 1) / 2;
         String turnText = "第 " + currentTurn + " 回合";
+
+        Paint panelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        panelPaint.setColor(Color.argb(120, 0, 0, 0));
+        float turnTextWidth = textPaint.measureText(turnText);
+        canvas.drawRoundRect(10, 12, 20 + turnTextWidth, 50, 8, 8, panelPaint);
         canvas.drawText(turnText, 20, 40, textPaint);
 
         int currentPlayer = game.getCurrentPlayer();
         String playerText = currentPlayer == GomokuGame.BLACK ? "黑方回合" : "白方回合";
         textPaint.setTextAlign(Paint.Align.RIGHT);
+        float playerTextWidth = textPaint.measureText(playerText);
+        canvas.drawRoundRect(w - 20 - playerTextWidth - 10, 12, w - 10, 50, 8, 8, panelPaint);
         canvas.drawText(playerText, w - 20, 40, textPaint);
 
         if (game.isGameOver()) {
-            // 绘制半透明遮罩，就像在棋盘上盖了一层半透明的黑布
-            Paint overlayPaint = new Paint();
-            overlayPaint.setColor(Color.argb(180, 0, 0, 0));
+            Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            overlayPaint.setColor(Color.argb(160, 0, 0, 0));
             canvas.drawRect(0, 0, w, h, overlayPaint);
+
+            Paint blurPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            blurPaint.setColor(Color.argb(40, 255, 255, 255));
+            for (int i = 0; i < 3; i++) {
+                canvas.drawRect(0, 0, w, h, blurPaint);
+            }
 
             textPaint.setTextSize(48);
             textPaint.setTextAlign(Paint.Align.CENTER);
@@ -354,7 +382,6 @@ public class GomokuView extends View {
             textPaint.setTextSize(24);
             canvas.drawText("最终回合数: " + game.getMoveCount(), w / 2f, h / 2f + 30, textPaint);
 
-            // 通知Activity层游戏结束（只通知一次，因为onDraw可能被多次调用）
             if (gameOverListener != null) {
                 gameOverListener.onGameOver(winner);
             }
@@ -369,14 +396,12 @@ public class GomokuView extends View {
      */
     private void drawBoard(Canvas canvas) {
         for (int i = 0; i < GomokuGame.BOARD_SIZE; i++) {
-            // 画横线：从左到右
             float x1 = offsetX;
             float y1 = offsetY + i * cellSize;
             float x2 = offsetX + (GomokuGame.BOARD_SIZE - 1) * cellSize;
             float y2 = y1;
             canvas.drawLine(x1, y1, x2, y2, linePaint);
 
-            // 画竖线：从上到下
             x1 = offsetX + i * cellSize;
             y1 = offsetY;
             x2 = x1;
@@ -384,11 +409,23 @@ public class GomokuView extends View {
             canvas.drawLine(x1, y1, x2, y2, linePaint);
         }
 
-        // 绘制5个星位（棋盘上的小黑点）
+        Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        borderPaint.setColor(Color.parseColor("#5D4037"));
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(4f);
+        float boardLeft = offsetX;
+        float boardTop = offsetY;
+        float boardRight = offsetX + (GomokuGame.BOARD_SIZE - 1) * cellSize;
+        float boardBottom = offsetY + (GomokuGame.BOARD_SIZE - 1) * cellSize;
+        canvas.drawRect(boardLeft, boardTop, boardRight, boardBottom, borderPaint);
+
         for (int[] sp : STAR_POINTS) {
             float cx = offsetX + sp[0] * cellSize;
             float cy = offsetY + sp[1] * cellSize;
-            canvas.drawCircle(cx, cy, 4, starPointPaint);
+            Paint solidStarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            solidStarPaint.setColor(Color.parseColor("#5D4037"));
+            solidStarPaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(cx, cy, 5f, solidStarPaint);
         }
     }
 
@@ -421,7 +458,15 @@ public class GomokuView extends View {
         if (lastMove != null) {
             float cx = offsetX + lastMove[0] * cellSize;
             float cy = offsetY + lastMove[1] * cellSize;
-            canvas.drawCircle(cx, cy, 5, lastMovePaint);
+            Paint lastMoveRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            lastMoveRingPaint.setStyle(Paint.Style.STROKE);
+            lastMoveRingPaint.setColor(Color.rgb(255, 50, 50));
+            lastMoveRingPaint.setStrokeWidth(2f);
+            canvas.drawCircle(cx, cy, 8, lastMoveRingPaint);
+            Paint lastMoveCenterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            lastMoveCenterPaint.setStyle(Paint.Style.FILL);
+            lastMoveCenterPaint.setColor(Color.rgb(255, 50, 50));
+            canvas.drawCircle(cx, cy, 3, lastMoveCenterPaint);
         }
 
         // 绘制悬停预览（半透明棋子轮廓），就是你手指悬在棋盘上时的预览效果
@@ -464,16 +509,26 @@ public class GomokuView extends View {
      * @param isBlack 是否为黑子
      */
     private void drawPiece3D(Canvas canvas, float cx, float cy, float radius, Paint fill, Paint border, boolean isBlack) {
+        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shadowPaint.setColor(Color.argb(60, 0, 0, 0));
+        canvas.drawCircle(cx + 2, cy + 2, radius, shadowPaint);
+
         int baseColor = isBlack ? Color.rgb(20, 20, 20) : Color.rgb(240, 240, 240);
-        int highlightColor = isBlack ? Color.rgb(80, 80, 80) : Color.rgb(255, 255, 255);
-        // 高光偏移到左上方，模拟光源效果
-        // RadialGradient = 径向渐变，从中心向外颜色逐渐变化，就像光照射在球体上的效果
+        int highlightColor = isBlack ? Color.rgb(120, 120, 120) : Color.rgb(255, 255, 255);
         RadialGradient gradient = new RadialGradient(cx - radius * 0.3f, cy - radius * 0.3f, radius,
                 new int[]{highlightColor, baseColor}, null, Shader.TileMode.CLAMP);
         Paint gradPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         gradPaint.setShader(gradient);
         canvas.drawCircle(cx, cy, radius, gradPaint);
         canvas.drawCircle(cx, cy, radius, border);
+
+        if (!isBlack) {
+            Paint edgeShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            edgeShadowPaint.setStyle(Paint.Style.STROKE);
+            edgeShadowPaint.setStrokeWidth(2f);
+            edgeShadowPaint.setColor(Color.argb(50, 0, 0, 0));
+            canvas.drawCircle(cx, cy, radius - 1f, edgeShadowPaint);
+        }
     }
 
     /**

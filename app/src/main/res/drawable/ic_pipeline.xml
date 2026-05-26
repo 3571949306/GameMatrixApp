@@ -1,19 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M2,4h4v4h-4zM2,10h4v4h-4zM2,16h4v4h-4zM8,4h4v4h-4zM14,4h4v4h-4zM20,4h2v4h-2z"/>
+        android:fillColor="#E3F2FD"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 起点 -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M8,8h6v6h-6z" />
+    <!-- 终点 -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M34,34h6v6h-6z" />
+    <!-- 管道片段: L型 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#2196F3"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M11,14v8h8" />
+    <!-- 管道片段: 直线 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#2196F3"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M19,22h12" />
+    <!-- 管道片段: L型 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#2196F3"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M31,22v8h3" />
+    <!-- 水滴 -->
     <path
         android:fillColor="#03A9F4"
-        android:pathData="M8,10h4v4h-4zM14,10h4v4h-4zM20,10h2v4h-2z"/>
-    <path
-        android:fillColor="#00BCD4"
-        android:pathData="M8,16h4v4h-4zM14,16h4v4h-4zM20,16h2v4h-2z"/>
-    <path
-        android:fillColor="#4FC3F7"
-        android:pathData="M14,8l4,4 -4,4z"/>
+        android:pathData="M16,18m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 </vector>

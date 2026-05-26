@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.Menu;
 import android.view.View;
 import android.widget.Toast;
 
@@ -19,6 +20,9 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
+import com.gamecenter.app.modules.ModuleManager;
+import com.gamecenter.app.modules.ModuleStoreActivity;
+import com.gamecenter.app.recovery.CrashDetector;
 import com.gamecenter.app.update.DownloadState;
 import com.gamecenter.app.update.UpdateCheckState;
 import com.gamecenter.app.update.UpdateInfo;
@@ -28,6 +32,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.util.Set;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -60,6 +65,8 @@ import dagger.hilt.android.AndroidEntryPoint;
  */
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity {
+
+    public static final String EXTRA_NAV_TAB = "extra_nav_tab";
 
     // 导航控制器，用于管理页面之间的跳转
     // 【初学者理解】就像地铁的调度中心，控制着列车（页面）该开往哪个方向
@@ -101,7 +108,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // 加载页面布局文件，把 XML 中定义的界面展示出来
+        if (CrashDetector.INSTANCE.shouldLaunchRecovery(this)) {
+            startActivity(new android.content.Intent(this, com.gamecenter.app.recovery.RecoveryActivity.class));
+            finish();
+            return;
+        }
+        CrashDetector.INSTANCE.markAppRunning(this);
         setContentView(R.layout.activity_main);
         applySystemBarInsets();
 
@@ -134,12 +146,18 @@ public class MainActivity extends AppCompatActivity {
                 .findFragmentById(R.id.nav_host_fragment);
         if (navHostFragment != null) {
             navController = navHostFragment.getNavController();
+            KeepStateNavigator keepStateNavigator = new KeepStateNavigator(
+                    this, navHostFragment.getChildFragmentManager(), R.id.nav_host_fragment);
+            navController.getNavigatorProvider().addNavigator(keepStateNavigator);
+            navController.setGraph(R.navigation.mobile_navigation);
         }
 
         // 设置底部导航栏，让导航栏的点击事件与 NavController 关联
         // 【初学者理解】这样用户点击底部导航栏的不同按钮时，就会自动切换到对应的页面
         BottomNavigationView navView = findViewById(R.id.nav_view);
-        NavigationUI.setupWithNavController(navView, navController);
+        setupDynamicNavigation(navView);
+
+        handleNavTabIntent();
 
         // 创建 UpdateViewModel，用于管理应用更新相关的数据和状态
         updateViewModel = new ViewModelProvider(this).get(UpdateViewModel.class);
@@ -147,6 +165,139 @@ public class MainActivity extends AppCompatActivity {
         observeUpdateStates();
         // 延迟2秒后自动检查更新
         scheduleAutoUpdateCheck();
+
+        // 自动静默下载必需的核心模块
+        downloadCoreModulesIfMissing();
+    }
+
+    private void setupDynamicNavigation(BottomNavigationView navView) {
+        Set<String> installedIds = ModuleManager.INSTANCE.getInstalledModuleIds(this);
+
+        Menu menu = navView.getMenu();
+        menu.clear();
+
+        // games_hall 现在是动态模块，但作为主页必须保留入口，如果未安装则点击后进入占位页面
+        menu.add(Menu.NONE, R.id.navigation_games, Menu.NONE, R.string.nav_games)
+                .setIcon(R.drawable.ic_games);
+
+        if (installedIds.contains("browser")) {
+            menu.add(Menu.NONE, R.id.navigation_browser, Menu.NONE, R.string.nav_browser)
+                    .setIcon(R.drawable.ic_browser);
+        }
+
+        if (installedIds.contains("tools")) {
+            menu.add(Menu.NONE, R.id.navigation_tools, Menu.NONE, R.string.nav_tools)
+                    .setIcon(R.drawable.ic_tools);
+        }
+
+        if (installedIds.contains("ai")) {
+            menu.add(Menu.NONE, R.id.navigation_ai, Menu.NONE, R.string.nav_ai)
+                    .setIcon(R.drawable.ic_ai);
+        }
+
+        if (installedIds.contains("vpn")) {
+            menu.add(Menu.NONE, R.id.navigation_vpn, Menu.NONE, R.string.nav_vpn)
+                    .setIcon(R.drawable.ic_vpn);
+        }
+
+        navView.setOnItemSelectedListener(item -> {
+            if (navController != null) {
+                navController.navigate(item.getItemId());
+            }
+            return true;
+        });
+
+        navView.setOnItemReselectedListener(item -> {});
+        if (navController != null && navController.getCurrentDestination() != null) {
+            int currentId = navController.getCurrentDestination().getId();
+            if (menu.findItem(currentId) != null) {
+                menu.findItem(currentId).setChecked(true);
+            }
+        }
+    }
+
+    private void downloadCoreModulesIfMissing() {
+        String[] coreModules = {"games_hall", "browser"};
+        for (String moduleId : coreModules) {
+            if (!ModuleManager.INSTANCE.isModuleInstalled(this, moduleId)) {
+                // 延迟下载，避免阻塞启动
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    ModuleManager.INSTANCE.downloadModule(this, moduleId, new com.gamecenter.app.modules.ModuleDownloader.Callback() {
+                        @Override
+                        public void onProgress(String id, long downloaded, long total, long speed) {}
+
+                        @Override
+                        public void onComplete(String id, File file) {
+                            runOnUiThread(() -> {
+                                BottomNavigationView navView = findViewById(R.id.nav_view);
+                                if (navView != null) {
+                                    setupDynamicNavigation(navView);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(String id, String message) {
+                            Log.e("MainActivity", "Core module download failed: " + id + " - " + message);
+                        }
+
+                        @Override
+                        public void onSourceSwitch(String id, int sourceIndex, String url) {}
+                    });
+                }, 1000);
+            }
+        }
+    }
+
+    private void handleNavTabIntent() {
+        if (getIntent() == null) return;
+        String tab = getIntent().getStringExtra(EXTRA_NAV_TAB);
+        if (tab == null || navController == null) return;
+
+        int destId;
+        switch (tab) {
+            case "games_hall":
+                destId = R.id.navigation_games;
+                break;
+            case "browser":
+                destId = R.id.navigation_browser;
+                break;
+            case "tools":
+                destId = R.id.navigation_tools;
+                break;
+            case "ai":
+                destId = R.id.navigation_ai;
+                break;
+            case "vpn":
+                destId = R.id.navigation_vpn;
+                break;
+            default:
+                return;
+        }
+        BottomNavigationView navView = findViewById(R.id.nav_view);
+        if (navView != null && navView.getMenu().findItem(destId) != null) {
+            navView.setSelectedItemId(destId);
+        } else {
+            navController.navigate(destId);
+        }
+        getIntent().removeExtra(EXTRA_NAV_TAB);
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        BottomNavigationView navView = findViewById(R.id.nav_view);
+        if (navView != null) {
+            setupDynamicNavigation(navView);
+        }
+        handleNavTabIntent();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        handleNavTabIntent();
     }
 
     private void applySystemBarInsets() {

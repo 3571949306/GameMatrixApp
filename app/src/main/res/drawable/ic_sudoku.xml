@@ -1,16 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#1E88E5"
-        android:pathData="M3,3h8v8h-8zM13,3h8v8h-8zM3,13h8v8h-8zM13,13h8v8h-8z"/>
-    <path
-        android:fillColor="#BBDEFB"
-        android:pathData="M5,5h4v4h-4zM15,5h4v4h-4zM5,15h4v4h-4zM15,15h4v4h-4z"/>
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M6,6h2v2h-2zM8,8h2v2h-2zM16,6h2v2h-2zM18,8h2v2h-2zM6,16h2v2h-2zM8,18h2v2h-2zM16,16h2v2h-2zM18,18h2v2h-2z"/>
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 外边框 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#333333"
+        android:strokeWidth="2"
+        android:pathData="M6,6h36v36h-36z" />
+    <!-- 粗线分隔 (3x3宫格) -->
+    <path
+        android:strokeColor="#333333"
+        android:strokeWidth="1.5"
+        android:pathData="M18,6v36M30,6v36M6,18h36M6,30h36" />
+    <!-- 细线分隔 -->
+    <path
+        android:strokeColor="#999999"
+        android:strokeWidth="0.5"
+        android:pathData="M12,6v36M24,6v36M36,6v36M6,12h36M6,24h36M6,36h36" />
+    <!-- 数字1 -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M10,10h4v4h-4z" />
+    <!-- 数字5 -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M22,22h4v4h-4z" />
+    <!-- 数字9 -->
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M34,34h4v4h-4z" />
 </vector>

@@ -1,16 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M4,4h40v40h-40z" />
+    <!-- 网格 -->
+    <path
+        android:strokeColor="#2A2A4E"
+        android:strokeWidth="0.5"
+        android:pathData="M12,4v40M20,4v40M28,4v40M36,4v40M4,12h40M4,20h40M4,28h40M4,36h40" />
+    <!-- 蛇身体 -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M8,12h8v8h-8zM16,12h8v8h-8zM24,12h8v8h-8z" />
+    <!-- 蛇头 -->
     <path
         android:fillColor="#4CAF50"
-        android:pathData="M4,4h4v4h-4zM6,6h4v4h-4zM8,8h4v4h-4zM10,10h4v4h-4zM12,12h4v4h-4z"/>
+        android:pathData="M32,12h8v8h-8z" />
+    <!-- 蛇眼睛 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,14h1.5v1.5h-1.5zM37,14h1.5v1.5h-1.5z" />
+    <!-- 苹果食物 -->
     <path
         android:fillColor="#F44336"
-        android:pathData="M16,14h4v4h-4z"/>
+        android:pathData="M20,28m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path
-        android:fillColor="#8BC34A"
-        android:pathData="M18,16m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+        android:fillColor="#4CAF50"
+        android:pathData="M20,24v2" />
 </vector>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:fillViewport="false">
@@ -8,71 +9,127 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_current_version"
-            android:layout_width="wrap_content"
+        <!-- 版本信息 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="当前版本: v1.0.0"
-            android:textSize="13sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="?attr/colorSecondaryContainer">
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@mipmap/ic_launcher"
+                    android:layout_marginEnd="12dp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="版本信息"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnSecondaryContainer" />
+
+                    <TextView
+                        android:id="@+id/tv_current_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="版本 1.0.0"
+                        android:textSize="13sp"
+                        android:textColor="?attr/colorOnSecondaryContainer" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 更新源 -->
         <LinearLayout
             android:id="@+id/ll_update_source"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="12dp"
+            android:padding="16dp"
+            android:gravity="center_vertical"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp">
+            android:focusable="true">
 
-            <TextView
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_upload"
+                app:tint="?attr/colorPrimary"
+                android:layout_marginEnd="16dp" />
+
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="更新源"
-                android:textSize="14sp"
-                android:textColor="?android:attr/textColorPrimary" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="更新源"
+                    android:textSize="15sp"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <TextView
+                    android:id="@+id/tv_update_source"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="自动（推荐）"
+                    android:textSize="13sp"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/tv_update_source"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="自动"
-                android:textSize="14sp"
-                android:alpha="0.6"
-                android:textColor="?android:attr/textColorPrimary" />
-
-            <TextView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="8dp"
                 android:text="›"
                 android:textSize="20sp"
-                android:gravity="center"
                 android:alpha="0.4"
                 android:textColor="?android:attr/textColorPrimary" />
-
         </LinearLayout>
 
+        <!-- 自动检查更新 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:padding="16dp"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_popup_sync"
+                app:tint="?attr/colorPrimary"
+                android:layout_marginEnd="16dp" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="自动检查更新"
-                android:textSize="14sp"
+                android:textSize="15sp"
                 android:textColor="?android:attr/textColorPrimary" />
 
             <com.google.android.material.materialswitch.MaterialSwitch
@@ -81,20 +138,41 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <!-- 接受测试版 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:layout_marginBottom="4dp">
+            android:padding="16dp"
+            android:gravity="center_vertical">
 
-            <TextView
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_info_details"
+                app:tint="?attr/colorPrimary"
+                android:layout_marginEnd="16dp" />
+
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="接受测试版安装包"
-                android:textSize="14sp"
-                android:textColor="?android:attr/textColorPrimary" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="接受测试版更新"
+                    android:textSize="15sp"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="关闭后只接收正式版更新；开启后会接收 Beta 测试包"
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_accept_beta"
@@ -102,28 +180,41 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="关闭后只接收正式版更新；打开后会接收 version.json 标记为 beta 的测试包。"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp" />
-
+        <!-- 自动下载安装包 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
 
-            <TextView
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/stat_sys_download"
+                app:tint="?attr/colorPrimary"
+                android:layout_marginEnd="16dp" />
+
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="自动下载安装包"
-                android:textColor="?android:attr/textColorPrimary"
-                android:textSize="14sp" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="自动下载安装包"
+                    android:textSize="15sp"
+                    android:textColor="?android:attr/textColorPrimary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="发现新版本后在后台自动下载安装包"
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_auto_download_update"
@@ -131,14 +222,15 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <!-- 下载后提示安装 -->
         <LinearLayout
             android:id="@+id/ll_prompt_install_after_download"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="16dp">
+            android:padding="16dp"
+            android:paddingStart="56dp"
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tv_prompt_install_after_download"
@@ -146,8 +238,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="下载完成后提示安装"
-                android:textColor="?android:attr/textColorPrimary"
-                android:textSize="14sp" />
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary" />
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_prompt_install_after_download"
@@ -155,39 +247,60 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_auto_download_hint"
+        <!-- 打开下载目录 -->
+        <LinearLayout
+            android:id="@+id/ll_open_download_dir"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="打开后，发现新版本会在后台下载安装包；安装包保存在应用下载目录。"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp" />
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_open_download_dir"
-            style="@style/Widget.GameMatrix.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="16dp"
-            android:text="打开下载目录"
-            android:textSize="14sp" />
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_recent_history"
+                app:tint="?attr/colorPrimary"
+                android:layout_marginEnd="16dp" />
 
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="打开下载目录"
+                android:textSize="15sp"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textSize="20sp"
+                android:alpha="0.4"
+                android:textColor="?android:attr/textColorPrimary" />
+        </LinearLayout>
+
+        <!-- 分隔线 -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="?attr/colorOnSurfaceVariant"
-            android:alpha="0.15" />
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="?attr/colorOutlineVariant"
+            android:alpha="0.5" />
 
+        <!-- 检查更新按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_check_update"
-            style="@style/Widget.GameMatrix.Button"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="16dp"
-            android:text="@string/update_check"
-            android:textSize="14sp" />
+            android:layout_height="56dp"
+            android:text="检查更新"
+            android:textSize="15sp"
+            app:icon="@android:drawable/ic_popup_sync" />
 
     </LinearLayout>
-
 </ScrollView>

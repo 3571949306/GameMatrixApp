@@ -1,6 +1,5 @@
 package com.gamecenter.app.games.gomoku;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -87,6 +86,7 @@ public class GomokuActivity extends AppCompatActivity {
     // volatile关键字保证：一个线程改了这个值，其他线程能立刻看到最新值
     // 就像一块"公共黑板"，谁都能看到上面的内容，而且修改后立刻生效
     private volatile boolean aiThinking = false;
+    private volatile long aiGeneration = 0;
 
     /** 难度名称数组，与 1-4 档按钮对应 */
     private static final String[] DIFFICULTY_NAMES = {
@@ -104,6 +104,18 @@ public class GomokuActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gomoku);
+
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (difficultyPanel.getVisibility() == View.GONE) {
+                    handleRestart();
+                } else {
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        });
 
         // 创建主线程信使和AI专用线程池
         mainHandler = new Handler(Looper.getMainLooper());
@@ -138,10 +150,12 @@ public class GomokuActivity extends AppCompatActivity {
         findViewById(R.id.btn_tutorial_ingame).setOnClickListener(v ->
                 GameTutorialHelper.showGomokuTutorial(this));
         // 跳转到联机对战界面
-        findViewById(R.id.btn_online).setOnClickListener(v -> {
-            Intent intent = new Intent(this, GomokuOnlineActivity.class);
-            startActivity(intent);
-        });
+        findViewById(R.id.btn_online).setOnClickListener(v ->
+                android.widget.Toast.makeText(
+                        this,
+                        "联机模式已移到模块商店，当前内置版仅保留单机模式",
+                        android.widget.Toast.LENGTH_SHORT
+                ).show());
     }
 
     private void setupDifficultyButtons() {
@@ -211,12 +225,14 @@ public class GomokuActivity extends AppCompatActivity {
         aiThinking = true;
         gomokuView.clearHover();
         gomokuView.invalidate();
+        final long currentGen = aiGeneration;
         final long startMs = System.currentTimeMillis();
         aiExecutor.execute(() -> {
             int[] bestMove = ai.getBestMove(game, aiPlayer);
             long elapsed = System.currentTimeMillis() - startMs;
             long delay = Math.max(getAiMinResponseDelayMs() - elapsed, 0L);
             Runnable applyMove = () -> {
+                if (currentGen != aiGeneration) return;
                 if (bestMove != null) {
                     game.makeMove(bestMove[0], bestMove[1], GomokuGame.WHITE);
                     game.switchPlayer();
@@ -251,9 +267,11 @@ public class GomokuActivity extends AppCompatActivity {
     private void handleHint() {
         if (game.isGameOver() || aiThinking || game.getCurrentPlayer() != GomokuGame.BLACK) return;
         gomokuView.clearHint();
+        final long currentGen = aiGeneration;
         aiExecutor.execute(() -> {
             int[] hint = ai.getBestMove(game, GomokuGame.BLACK);
             mainHandler.post(() -> {
+                if (currentGen != aiGeneration) return;
                 if (hint != null && !game.isGameOver() && game.getCurrentPlayer() == GomokuGame.BLACK) {
                     gomokuView.showHint(hint[0], hint[1]);
                 }
@@ -267,6 +285,7 @@ public class GomokuActivity extends AppCompatActivity {
      * 重置游戏状态，返回难度选择界面。
      */
     private void handleRestart() {
+        aiGeneration++;
         aiThinking = false;
         game.reset();
         gomokuView.clearHover();
@@ -290,19 +309,6 @@ public class GomokuActivity extends AppCompatActivity {
         } else if (winner != null && winner == GomokuGame.WHITE) {
             // AI（白方）赢了，记录一次失败
             usageStore.recordLoss(GAME_ID);
-        }
-    }
-
-    /**
-     * 返回键处理：游戏中返回难度选择，否则正常退出。
-     */
-    @Override
-    public void onBackPressed() {
-        if (difficultyPanel.getVisibility() == View.GONE) {
-            // 如果正在游戏中，按返回键回到难度选择界面（而不是退出）
-            handleRestart();
-        } else {
-            super.onBackPressed();
         }
     }
 

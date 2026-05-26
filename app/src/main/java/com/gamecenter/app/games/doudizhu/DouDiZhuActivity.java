@@ -211,6 +211,10 @@ public class DouDiZhuActivity extends AppCompatActivity {
         initViews();
         initListeners();
         startNewGame();
+
+        if (soundManager != null && soundManager.isSoundEnabled()) {
+            soundManager.playBackgroundMusic();
+        }
     }
 
     /**
@@ -224,8 +228,25 @@ public class DouDiZhuActivity extends AppCompatActivity {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
         if (soundManager != null) {
+            soundManager.stopBackgroundMusic();
             soundManager.release();
             soundManager = null;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (soundManager != null) {
+            soundManager.pauseBackgroundMusic();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (soundManager != null && soundManager.isSoundEnabled()) {
+            soundManager.resumeBackgroundMusic();
         }
     }
 
@@ -350,7 +371,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
             tableView.setAICardCounts(leftAIHandCards.size(), rightAIHandCards.size());
             tableView.setPassStates(false, false);
             updateCardCounter();
-            if (soundManager != null) soundManager.deal();
+            if (soundManager != null) soundManager.playDealEffect();
 
             progressLoading.setVisibility(View.GONE);
 
@@ -425,6 +446,31 @@ public class DouDiZhuActivity extends AppCompatActivity {
     private void playClickSound() {
         if (soundManager != null) {
             soundManager.click();
+        }
+    }
+
+    /**
+     * 根据牌型播放对应的增强版音效。
+     *
+     * <p>炸弹、火箭、飞机等特殊牌型使用增强音效，
+     * 普通牌型使用基础语音音效。</p>
+     */
+    private void playCardEffect(List<Card> cards, CardType type, int seatIndex) {
+        if (soundManager == null || type == null) return;
+        switch (type) {
+            case BOMB:
+                soundManager.playBombEffect();
+                break;
+            case JOKER_BOMB:
+                soundManager.playRocketEffect();
+                break;
+            case AIRPLANE:
+            case AIRPLANE_WITH_WINGS:
+                soundManager.playPlaneEffect();
+                break;
+            default:
+                soundManager.cards(cards, type, seatIndex);
+                break;
         }
     }
 
@@ -545,14 +591,12 @@ public class DouDiZhuActivity extends AppCompatActivity {
         if (score > currentBidScore) {
             currentBidScore = score;
             landlordPlayerIndex = PLAYER_INDEX;
-            setLandlord(PLAYER_INDEX);
             Toast.makeText(this, "你叫了 " + score + " 分", Toast.LENGTH_SHORT).show();
 
             if (score == 3) {
-                // 叫3分直接开始，无需继续叫分
+                setLandlord(PLAYER_INDEX);
                 startPlayingPhase();
             } else {
-                // 继续让 AI 叫分
                 currentTurn = LEFT_AI_INDEX;
                 updateTurnIndicator();
                 scheduleAIAction();
@@ -597,6 +641,13 @@ public class DouDiZhuActivity extends AppCompatActivity {
                 GameRuleUtil.sortCardsByWeightAscending(rightAIHandCards);
                 break;
         }
+
+        // 更新身份标签
+        String[] labels = new String[3];
+        labels[PLAYER_INDEX] = (landlordStatus[PLAYER_INDEX] == LANDLORD_LORD) ? "你（地主）" : "你（农民）";
+        labels[LEFT_AI_INDEX] = (landlordStatus[LEFT_AI_INDEX] == LANDLORD_LORD) ? "左AI（地主）" : "左AI（农民）";
+        labels[RIGHT_AI_INDEX] = (landlordStatus[RIGHT_AI_INDEX] == LANDLORD_LORD) ? "右AI（地主）" : "右AI（农民）";
+        tableView.setPlayerLabels(labels);
 
         tableView.setAllLandlordStatus(landlordStatus);
         updateCardCounter();
@@ -677,7 +728,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         playerPassed = new boolean[]{false, false, false};
         lastPlayerWhoPlayed = PLAYER_INDEX;
 
-        if (soundManager != null) soundManager.cards(selectedCards, selectedType, PLAYER_INDEX);
+        playCardEffect(selectedCards, selectedType, PLAYER_INDEX);
         playerPlayedCards = new ArrayList<>(selectedCards);
         removeCardsFromHand(playerHandCards, selectedCards);
 
@@ -769,15 +820,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
      * @param cardsToSelect 要选中的卡牌列表
      */
     private void selectCardsByList(List<Card> cardsToSelect) {
-        tableView.clearSelection();
-        List<Card> selected = new ArrayList<>();
-        for (Card card : cardsToSelect) {
-            int index = playerHandCards.indexOf(card);
-            if (index >= 0) {
-                selected.add(card);
-            }
-        }
-        // 简化处理：提示玩家手动选择
+        tableView.selectCards(cardsToSelect);
     }
 
     // ============ AI 逻辑 ============
@@ -871,7 +914,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
             return false;
         }
 
-        int score = 0;
+        double score = 0;
 
         // 统计各牌值的数量
         Map<Integer, Integer> rankCountMap = new HashMap<>();
@@ -913,7 +956,6 @@ public class DouDiZhuActivity extends AppCompatActivity {
         score += queenCount * 0.3;
         score += jackCount * 0.2;
 
-        // 阈值判断：总分 ≥ 7 叫地主
         return score >= 7;
     }
 
@@ -943,9 +985,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
             // AI 选择出牌
             playerPassed = new boolean[]{false, false, false};
             lastPlayerWhoPlayed = aiIndex;
-            if (soundManager != null) {
-                soundManager.cards(aiPlayedCards, GameRuleUtil.getCardType(aiPlayedCards), aiIndex);
-            }
+            playCardEffect(aiPlayedCards, GameRuleUtil.getCardType(aiPlayedCards), aiIndex);
 
             switch (aiIndex) {
                 case LEFT_AI_INDEX:
@@ -1172,7 +1212,13 @@ public class DouDiZhuActivity extends AppCompatActivity {
         } else {
             result = "你输了！";
         }
-        if (soundManager != null) soundManager.win(winnerIndex == PLAYER_INDEX);
+        if (soundManager != null) {
+            if (winnerIndex == PLAYER_INDEX) {
+                soundManager.playWinEffect();
+            } else {
+                soundManager.playLoseEffect();
+            }
+        }
 
         int scoreChange = calculateScore(winnerIndex, winnerIsLandlord);
 

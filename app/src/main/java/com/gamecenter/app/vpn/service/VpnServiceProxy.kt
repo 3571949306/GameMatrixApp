@@ -1,0 +1,90 @@
+package com.gamecenter.app.vpn.service
+
+import android.content.Intent
+import android.net.VpnService
+import android.util.Log
+import com.gamecenter.app.core.common.VpnDelegate
+import com.gamecenter.app.modules.ModuleManager
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+
+/**
+ * VPN 服务代理 —— 主 APK 中唯一的 VpnService（约70行）。
+ *
+ * 流程：建立 TUN 接口 → VpnDelegate.connect() 获取远端流 → 双向转发。
+ * 本类不包含任何协议实现代码。
+ */
+class VpnServiceProxy : VpnService() {
+
+    private var tunnel: VpnDelegate.Tunnel? = null
+    private var delegate: VpnDelegate? = null
+    @Volatile private var running = false
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_CONNECT -> {
+                val nodeJson = intent.getStringExtra(EXTRA_NODE_JSON)
+                if (nodeJson == null) { stopSelf(); return START_NOT_STICKY }
+                delegate = ModuleManager.getLoadedVpnDelegate(this)
+                if (delegate == null) { Log.e(TAG, "VPN 模块未加载"); stopSelf(); return START_NOT_STICKY }
+                try {
+                    tunnel = delegate!!.connect(nodeJson)
+                    establishAndForward()
+                } catch (e: Exception) {
+                    Log.e(TAG, "VPN 连接失败", e)
+                    stopSelf()
+                }
+            }
+            ACTION_DISCONNECT -> {
+                running = false
+                delegate?.disconnect()
+                stopSelf()
+            }
+        }
+        return START_NOT_STICKY
+    }
+
+    private fun establishAndForward() {
+        val t = tunnel ?: return
+        val iface = Builder()
+            .setSession("科学上网")
+            .addRoute("0.0.0.0", 0).addRoute("::", 0)
+            .addDnsServer("8.8.8.8").addDnsServer("8.8.4.4")
+            .establish() ?: return
+
+        running = true
+        val tunIn = FileInputStream(iface.fileDescriptor)
+        val tunOut = FileOutputStream(iface.fileDescriptor)
+
+        // 线程1: 远端 → TUN
+        Thread {
+            val buf = ByteArray(4096)
+            try { while (running) { val n = t.input.read(buf); if (n > 0) tunOut.write(buf, 0, n) } }
+            catch (_: Exception) {}
+        }.start()
+
+        // 线程2: TUN → 远端
+        Thread {
+            val buf = ByteArray(4096)
+            try { while (running) { val n = tunIn.read(buf); if (n > 0) t.output.write(buf, 0, n) } }
+            catch (_: Exception) {}
+        }.start()
+    }
+
+    override fun onBind(intent: Intent?) = null
+
+    override fun onDestroy() {
+        running = false
+        delegate?.disconnect()
+        super.onDestroy()
+    }
+
+    companion object {
+        private const val TAG = "VpnServiceProxy"
+        const val ACTION_CONNECT = "com.gamecenter.app.vpn.CONNECT"
+        const val ACTION_DISCONNECT = "com.gamecenter.app.vpn.DISCONNECT"
+        const val EXTRA_NODE_JSON = "node_json"
+    }
+}

@@ -15,10 +15,10 @@ local_private/
 .codex-local/
 
 # VPS deployment configs (may contain real IPs/domains)
-vps/**/*.conf
-vps/**/*.service
-vps/**/*.key
-vps/**/*.pem
+服务器部署/**/*.conf
+服务器部署/**/*.service
+服务器部署/**/*.key
+服务器部署/**/*.pem
 
 # Generated APKs and bundles
 *.apk
@@ -33,8 +33,8 @@ vps/**/*.pem
 *.pyc
 
 # Local tool downloads
-tools/jadx/*.zip
-tools/jadx/lib/
+工具/jadx/*.zip
+工具/jadx/lib/
 
 # Decompiled APK temporary files
 apk_temp/
@@ -53,3 +53,4 @@ app/gamecenter.keystore
 
 # Other project data (not related to GameCenterApp)
 /data/
+
