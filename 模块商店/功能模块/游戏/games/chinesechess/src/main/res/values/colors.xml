@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="chess_bg">#F9E4B7</color>
-    <color name="chess_line">#8B5A2B</color>
-    <color name="chess_red">#C0392B</color>
-    <color name="chess_black">#1A1A1A</color>
-</resources>
