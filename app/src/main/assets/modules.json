@@ -1,5 +1,5 @@
 {
-  "version": 15,
+  "version": 16,
   "modules": [
     {
       "id": "games_hall",
@@ -135,8 +135,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.tts.TtsModuleEntryPoint",
       "fileName": "feature_tts_voice_v100.apk",
-      "fileSize": 833998,
-      "sha256": "9a9d3578f1d0777223e61bfb82c53e821cad3c7cc9674929e0789ff6acb7ba2d",
+      "fileSize": 859991,
+      "sha256": "2570d5429c04653bb9e3b9d0ec24315b035242264ec14ed6e7ba5c21d0c2acf6",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -144,7 +144,7 @@
       "category": "tool",
       "minAppVersion": 288,
       "type": "nav",
-      "activityClass": "com.gamecenter.app.tts.TtsActivity",
+      "activityClass": "",
       "gameId": "",
       "gameCategory": "",
       "gameDesc": "",
