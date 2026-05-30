@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 管道工基础信息 -->
+    <string name="game_pipeline_name">管道工</string>
+    <string name="game_pipeline_desc">旋转管道连接通路</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_pipeline_rules_title">管道工规则</string>
+    <string name="game_pipeline_rules_content">
+        1. 点击管道旋转90°\n
+        2. 将所有管道正确连接\n
+        3. 连接完成后点击\"检查连接\"验证\n
+        4. 管道类型：直线、L型、T型、十字\n
+        5. 随着关卡提升，网格更大更复杂\n
+        6. 步数越少，得分越高
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_pipeline_ach_first_complete">初次连通</string>
+    <string name="game_pipeline_ach_first_complete_desc">首次完成管道连接</string>
+    <string name="game_pipeline_ach_min_steps">管道专家</string>
+    <string name="game_pipeline_ach_min_steps_desc">用最少步数通关</string>
+    <string name="game_pipeline_ach_level_3">管道高手</string>
+    <string name="game_pipeline_ach_level_3_desc">通过第3关</string>
+    <string name="game_pipeline_ach_30_seconds">闪电连通</string>
+    <string name="game_pipeline_ach_30_seconds_desc">30秒内完成通关</string>
+    <string name="game_pipeline_ach_10_levels">管道大师</string>
+    <string name="game_pipeline_ach_10_levels_desc">累计通过10关</string>
+</resources>

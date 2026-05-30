@@ -15,9 +15,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
-import com.gamecenter.app.DynamicGameActivity
 import com.gamecenter.app.R
 import com.gamecenter.app.games.GameRegistry
+import com.gamecenter.app.games.ui.GameLauncherHelper
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.modules.ModuleStoreActivity
 import com.gamecenter.app.settings.AppSettingsDialog
@@ -159,11 +159,7 @@ class BuiltInGamesHallFragment : Fragment() {
 
     private fun openGame(entry: GameRegistry.Entry) {
         val ctx = requireContext()
-        val intent = Intent(ctx, entry.activityClass)
-        if (entry.activityClass == DynamicGameActivity::class.java) {
-            intent.putExtra(DynamicGameActivity.EXTRA_GAME_ID, entry.id)
-        }
-        startActivity(intent)
+        GameLauncherHelper.launchGameWithDialog(ctx, entry.id)
     }
 
     private fun showSettingsDialog() {

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 俄罗斯方块游戏字符串资源 -->
+<resources>
+    <!-- 游戏信息 -->
+    <string name="tetris_rules_title">俄罗斯方块规则</string>
+    <string name="tetris_rules_basic">7 种不同形状的方块从顶部不断下落，你可以左右移动、旋转方块，并加速下落。</string>
+    <string name="tetris_rules_victory">当一整行被方块填满时，该行会被消除。消除的行数越多，得分越高。</string>
+    <string name="tetris_rules_scoring">消除 1 行得 100 分，2 行 300 分，3 行 500 分，4 行 800 分（乘以等级倍数）。</string>
+    <string name="tetris_rules_special">每消除 10 行升一级，等级越高方块下落越快。同时消除 4 行称为"完美消除"。</string>
+
+    <!-- 成就 -->
+    <string name="tetris_ach_first_score_name">初次落块</string>
+    <string name="tetris_ach_first_score_desc">第一次开始游戏</string>
+    <string name="tetris_ach_score_1000_name">方块新手</string>
+    <string name="tetris_ach_score_1000_desc">单局得分达到 1000</string>
+    <string name="tetris_ach_score_5000_name">方块高手</string>
+    <string name="tetris_ach_score_5000_desc">单局得分达到 5000</string>
+    <string name="tetris_ach_score_10000_name">方块大师</string>
+    <string name="tetris_ach_score_10000_desc">单局得分达到 10000</string>
+    <string name="tetris_ach_clear_10_name">消行达人</string>
+    <string name="tetris_ach_clear_10_desc">累计消除 10 行</string>
+    <string name="tetris_ach_clear_50_name">消行专家</string>
+    <string name="tetris_ach_clear_50_desc">累计消除 50 行</string>
+    <string name="tetris_ach_tetris_perfect_name">完美消除</string>
+    <string name="tetris_ach_tetris_perfect_desc">同时消除 4 行</string>
+    <string name="tetris_ach_level_5_name">速度王者</string>
+    <string name="tetris_ach_level_5_desc">达到 5 级</string>
+
+    <!-- 教程 -->
+    <string name="tetris_tutorial_step1_title">控制方块</string>
+    <string name="tetris_tutorial_step1_desc">向左或向右滑动移动方块，向下滑动加速下落，向上滑动或点击旋转方块。</string>
+    <string name="tetris_tutorial_step2_title">消除行列</string>
+    <string name="tetris_tutorial_step2_desc">当一行被完全填满时，该行会被消除并获得分数。同时消除多行得分更高。</string>
+    <string name="tetris_tutorial_step3_title">等级提升</string>
+    <string name="tetris_tutorial_step3_desc">每消除 10 行升一级，方块下落速度会加快。挑战更高等级！</string>
+    <string name="tetris_tutorial_step4_title">游戏结束</string>
+    <string name="tetris_tutorial_step4_desc">当方块堆积到顶部时游戏结束。尽量保持堆叠整齐，留出空间。</string>
+</resources>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/dialog_create_room_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/dialogCreateRoomTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="创建房间"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Room Name Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dialogRoomNameLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusTopStart="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogCreateRoomTitle">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/dialogRoomNameInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="房间名称（可选）"
+            android:inputType="text"
+            android:maxLength="20"
+            android:maxLines="1"
+            android:textSize="14sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Game Type Selection -->
+    <TextView
+        android:id="@+id/dialogGameTypeLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="游戏类型"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogRoomNameLayout" />
+
+    <HorizontalScrollView
+        android:id="@+id/dialogGameTypeScroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:scrollbars="none"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogGameTypeLabel">
+
+        <LinearLayout
+            android:id="@+id/dialogGameTypeContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Game type chips will be added dynamically -->
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Max Players -->
+    <TextView
+        android:id="@+id/dialogMaxPlayersLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="最大玩家数"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogGameTypeScroll" />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/dialogMaxPlayersSlider"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:value="4"
+        android:valueFrom="2"
+        android:valueTo="8"
+        app:labelBehavior="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogMaxPlayersLabel" />
+
+    <TextView
+        android:id="@+id/dialogMaxPlayersValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="4 人"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogMaxPlayersSlider" />
+
+    <!-- Password Protection -->
+    <LinearLayout
+        android:id="@+id/dialogPasswordLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogMaxPlayersValue">
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/dialogPasswordSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:thumbTint="?attr/colorPrimary"
+            app:trackTint="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="设置密码保护"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Password Input (visible when switch is on) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dialogPasswordInputLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusTopStart="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogPasswordLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/dialogPasswordInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="输入房间密码"
+            android:inputType="textPassword"
+            android:maxLength="12"
+            android:maxLines="1"
+            android:textSize="14sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Public/Private Toggle -->
+    <LinearLayout
+        android:id="@+id/dialogPublicLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogPasswordInputLayout">
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/dialogPublicSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:thumbTint="?attr/colorPrimary"
+            app:trackTint="?attr/colorOnSurfaceVariant" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="公开房间（可被他人看到）"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:id="@+id/dialogCreateRoomButtons"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialogPublicLayout">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dialogCreateRoomCancelBtn"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="@android:string/cancel"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dialogCreateRoomConfirmBtn"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="创建"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

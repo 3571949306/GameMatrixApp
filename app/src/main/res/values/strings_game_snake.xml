@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 贪吃蛇游戏字符串资源 -->
+<resources>
+    <!-- 游戏信息 -->
+    <string name="snake_rules_title">贪吃蛇规则</string>
+    <string name="snake_rules_basic">控制一条蛇在网格中移动，通过吃食物让蛇身不断变长。使用滑动手势控制蛇的移动方向。</string>
+    <string name="snake_rules_victory">蛇碰到边界或自身身体时游戏结束。吃得越多，分数越高。</string>
+    <string name="snake_rules_scoring">每吃一个食物得 10 分。蛇越长，难度越大。</string>
+    <string name="snake_rules_special">蛇的移动速度会随难度变化。简单模式速度较慢，困难模式速度较快。</string>
+
+    <!-- 成就 -->
+    <string name="snake_ach_first_score_name">初尝甜头</string>
+    <string name="snake_ach_first_score_desc">第一次吃到食物</string>
+    <string name="snake_ach_score_100_name">小蛇成长</string>
+    <string name="snake_ach_score_100_desc">单局得分达到 100</string>
+    <string name="snake_ach_score_500_name">贪吃蛇王</string>
+    <string name="snake_ach_score_500_desc">单局得分达到 500</string>
+    <string name="snake_ach_score_1000_name">蛇界传说</string>
+    <string name="snake_ach_score_1000_desc">单局得分达到 1000</string>
+    <string name="snake_ach_length_20_name">长蛇阵</string>
+    <string name="snake_ach_length_20_desc">蛇身长度达到 20</string>
+
+    <!-- 教程 -->
+    <string name="snake_tutorial_step1_title">滑动控制</string>
+    <string name="snake_tutorial_step1_desc">在屏幕上滑动手指控制蛇的移动方向。上、下、左、右四个方向。</string>
+    <string name="snake_tutorial_step2_title">吃食物</string>
+    <string name="snake_tutorial_step2_desc">控制蛇吃到红色食物，每吃一个食物蛇身变长，得分增加 10 分。</string>
+    <string name="snake_tutorial_step3_title">避免碰撞</string>
+    <string name="snake_tutorial_step3_desc">不要撞到边界或蛇的身体，否则游戏结束。蛇越长越需要小心。</string>
+    <string name="snake_tutorial_step4_title">挑战高分</string>
+    <string name="snake_tutorial_step4_desc">尝试在不同难度下获得高分！难度越高，蛇移动速度越快。</string>
+</resources>

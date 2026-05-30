@@ -3,6 +3,7 @@ package com.gamecenter.app.recovery
 import android.content.Context
 import android.os.Environment
 import android.util.Log
+import com.gamecenter.app.BuildConfig
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -17,11 +18,17 @@ object RecoveryDownloader {
     private const val READ_TIMEOUT = 300_000
     private const val BUFFER_SIZE = 8192
 
-    private val DOWNLOAD_SOURCES = listOf(
-        "https://hk-update.tcp0053.shop/app-stable.apk",
-        "https://tcp0053.shop:1443/app-stable.apk",
-        "https://github.com/3571949306/GameMatrixApp/releases/latest/download/app-release.apk"
-    )
+    private val DOWNLOAD_SOURCES: List<String> get() {
+        val sources = mutableListOf(
+            BuildConfig.SERVER_URL + "/app-stable.apk",
+            BuildConfig.GITHUB_RELEASES_URL + "/latest/download/app-release.apk"
+        )
+        val fallback = BuildConfig.SERVER_URL_FALLBACK
+        if (fallback.isNotEmpty()) {
+            sources.add(1, "$fallback/app-stable.apk")
+        }
+        return sources
+    }
 
     interface Callback {
         fun onProgress(downloaded: Long, total: Long, speedKbps: Long)

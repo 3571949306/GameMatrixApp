@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 21点基础信息 -->
+    <string name="game_blackjack_name">21点</string>
+    <string name="game_blackjack_desc">经典21点纸牌游戏</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_blackjack_rules_title">21点规则</string>
+    <string name="game_blackjack_rules_content">
+        1. 目标：使手牌点数接近21点但不超过\n
+        2. A算1或11，JQK算10，其他按面值\n
+        3. \"要牌\"再拿一张，\"停牌\"停止\n
+        4. 超过21点则\"爆牌\"自动输\n
+        5. 庄家点数小于17必须继续要牌\n
+        6. 首两张为A+10点牌=Blackjack！
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_blackjack_ach_first_win">21点新手</string>
+    <string name="game_blackjack_ach_first_win_desc">首次赢得21点</string>
+    <string name="game_blackjack_ach_blackjack">天生Blackjack</string>
+    <string name="game_blackjack_ach_blackjack_desc">拿到A+10点牌的Blackjack</string>
+    <string name="game_blackjack_ach_streak_3">三连胜</string>
+    <string name="game_blackjack_ach_streak_3_desc">连续赢得3局</string>
+    <string name="game_blackjack_ach_20_rounds">21点达人</string>
+    <string name="game_blackjack_ach_20_rounds_desc">累计完成20局21点</string>
+    <string name="game_blackjack_ach_no_loss_5">不败金身</string>
+    <string name="game_blackjack_ach_no_loss_5_desc">连续5局不输</string>
+</resources>

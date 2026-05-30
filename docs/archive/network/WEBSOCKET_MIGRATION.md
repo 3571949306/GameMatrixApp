@@ -1,0 +1,160 @@
+# 斗地主 Beta WebSocket 联机迁移文档
+
+## 1. 概述
+
+**目的**：将斗地主 Beta 联机从 HTTP 轮询迁移到 OkHttp WebSocket 长连接，实现低延迟实时通信。
+
+**架构**：
+
+```
+Android (房主/客户端)
+    │
+    ▼
+OkHttp WebSocket Client
+    │
+    ▼
+Cloudflare (CDN/WAF) → 香港 VPS nginx (WSS 代理)
+    │
+    ▼
+Node.js Relay Server (127.0.0.1:18080)
+    │
+    └── 房间管理 (内存 Map)
+    └── 消息转发 (房主 ↔ 客户端)
+```
+
+**当前状态**：v21 (vc=167) - 游戏状态同步已验证成功 ✅
+
+**最新修复**：
+- Relay 转发使用 `data.toString('utf8')` 确保文本帧
+- Android 端新增 `onMessage(WebSocket, ByteString)` 处理二进制帧
+- 3 次冗余广播 + STATE_ACK 确认机制
+- 禁止在没有 REMOTE 座位时开始游戏
+
+---
+
+## 2. 联机架构总览
+
+### 2.1 三种联机模式
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    斗地主 Beta 联机架构                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │  模式 1     │    │  模式 2     │    │  模式 3     │     │
+│  │  LAN TCP    │    │  WebSocket  │    │  HTTP Relay │     │
+│  │  (局域网)   │    │  (主方案)   │    │  (Fallback) │     │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘     │
+│         │                  │                  │             │
+│         ▼                  ▼                  ▼             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ TCP Server  │    │  WSS Relay  │    │ HTTP Relay  │     │
+│  │  Socket     │    │  Server     │    │  Server     │     │
+│  └─────────────┘    └──────┬──────┘    └─────────────┘     │
+│                            │                                │
+│                            ▼                                │
+│                     ┌─────────────┐                         │
+│                     │ Cloudflare  │                         │
+│                     │   + nginx   │                         │
+│                     │  (WSS 代理) │                         │
+│                     └──────┬──────┘                         │
+│                            │                                │
+│                     ┌──────┴──────┐                         │
+│                     │  美国 VPS   │                         │
+│                     │  <YOUR_VPS_IP>  │                        │
+│                     └─────────────┘                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 模式对比
+
+| 特性 | LAN TCP | WebSocket | HTTP Relay |
+|------|---------|-----------|------------|
+| 适用场景 | 同一 WiFi | 远程联机 | 远程 fallback |
+| 延迟 | < 10ms | 50-200ms | 1000-3000ms |
+| 消息方向 | 双向实时 | 双向实时 | 单向轮询 |
+| 服务器依赖 | 无 | 需要 Relay | 需要 Relay |
+| 稳定性 | 高 | 高 | 中 |
+| 跨境支持 | 不支持 | 支持 | 支持 |
+
+---
+
+## 3. 服务器架构
+
+### 3.1 部署拓扑
+
+```
+┌────────────────────────────────────────┐
+│           Cloudflare CDN               │
+│         (Full Strict SSL)              │
+│            <YOUR_DOMAIN>                │
+└───────────────┬────────────────────────┘
+                │
+                ▼ WSS (WebSocket Secure)
+┌────────────────────────────────────────┐
+│              nginx                     │
+│         (Port 2083)                    │
+│  ┌─────────────┐  ┌─────────────┐     │
+│  │ /ddz-ws     │  │ /health     │     │
+│  │ WebSocket   │  │ Health Check│     │
+│  │ Upgrade     │  │             │     │
+│  └──────┬──────┘  └─────────────┘     │
+│         │                              │
+│         ▼ proxy_pass                   │
+│  ┌─────────────────────────────┐      │
+│  │  localhost:18080            │      │
+│  │  Node.js WebSocket Relay    │      │
+│  └─────────────────────────────┘      │
+└────────────────────────────────────────┘
+```
+
+### 3.2 服务器组件
+
+| 组件 | 技术 | 端口 | 路径 | 状态 |
+|------|------|------|------|------|
+| nginx | nginx | 2083 | /ddz-ws, /health | ✅ 运行中 |
+| WebSocket Relay | Node.js + ws | 18080 | / | ✅ 运行中 |
+| SSL 证书 | Cloudflare Origin | - | - | ✅ Full Strict |
+
+### 3.3 关键配置
+
+**nginx 配置** (`/etc/nginx/conf.d/ws-ssl.conf`):
+```nginx
+server {
+    listen 2083 ssl;
+    server_name ws.<YOUR_DOMAIN>;
+    
+    ssl_certificate /etc/nginx/ssl/cloudflare_origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/cloudflare_origin.key;
+    
+    location /ddz-ws {
+        proxy_pass http://127.0.0.1:18080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection
+---
+
+## 2026-05-14 文档同步：文字适配与应用语言
+
+- 新增全局按钮文字适配样式，统一提升 MaterialButton 与平台 Button 的最小高度、内边距和两行显示能力，减少“进入游戏”“发送”等按钮文字被裁切的问题。
+- 设置弹窗新增应用语言选项：跟随系统、中文、English；应用启动时会恢复已选择语言。
+- AI 任务下拉改为资源字符串，切换 English 后可显示 Chat、Summary、Translate 等英文选项。
+- 发布前检查需覆盖中文/英文两种语言、深色/浅色主题、游戏大厅卡片按钮、AI 发送按钮、工具箱小按钮和斗地主操作按钮。
+## 2026-05-15 文档同步：Dependabot 与 CI 修复
+
+- Dependabot 安全告警已处理：升级 Android Gradle Plugin 到 8.13.2、Gradle Wrapper 到 8.13、Kotlin 到 2.2.21、Hilt 到 2.57.2。
+- 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1。
+- GitHub Actions 已改为验证型 CI：使用 JDK 21，执行 debug 构建与单元测试，不在云端构建 release 包，避免暴露或依赖 release 签名文件。
+- CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`。
+- `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码。
+- 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 服务器部署/GitHub Release 发布仍以本机发布流程为准。
+
+## 2026-05-24 文档同步
+- 底部导航切换闪退修复：创建 KeepStateNavigator 自定义导航器，使用 add/show/hide 策略替代 Navigation 默认 replace 策略
+- 模块下载修复：ModuleDownloader 全面重写，添加全局异常捕获、降低超时、增加日志
+- 内存泄漏全面修复：移除 WeakReference callback、Fragment 回调安全检查、视图引用彻底清理
+- 压力测试通过：40轮快速Tab切换无崩溃
+
+- 2026-05-24 游戏美化+中国象棋提示改进+华容道&中国象棋模块商店上架：四个游戏视觉美化（斗地主径向渐变桌面/五子棋木纹3D棋子/华容道深色渐变金色边框/中国象棋木纹角标波浪线）；中国象棋提示改为棋盘可视化（蓝色脉冲光环+箭头指引）+中文棋谱描述；华容道和中国象棋创建独立APK模块（feature/games/klotski、feature/games/chinesechess）v2.0.0上架模块商店

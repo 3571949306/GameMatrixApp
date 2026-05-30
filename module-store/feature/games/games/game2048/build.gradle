@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.gamecenter.app.game2048'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.gamecenter.app.game2048"
+        minSdk 26
+        targetSdk 35
+        versionCode 100
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly project(':core:common')
+    compileOnly project(':module-store:feature:games:games')
+
+    compileOnly 'androidx.appcompat:appcompat:1.6.1'
+    compileOnly 'com.google.android.material:material:1.9.0'
+    compileOnly 'androidx.fragment:fragment:1.5.0'
+}

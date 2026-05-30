@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/eye_care_bg">
+
+    <!-- 标题 -->
+    <TextView
+        android:id="@+id/tv_difficulty_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="选择难度"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#2D2D2D"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
+
+    <!-- 简单难度 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_difficulty_easy"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="@color/eye_care_card"
+        android:textColor="#2D2D2D"
+        android:strokeColor="#5B8A72"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="16dp"
+        android:textSize="16sp"
+        tools:text="简单\n适合新手玩家" />
+
+    <!-- 中等难度 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_difficulty_medium"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="@color/eye_care_card"
+        android:textColor="#2D2D2D"
+        android:strokeColor="#5B8A72"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="16dp"
+        android:textSize="16sp"
+        tools:text="中等\n有一定挑战性" />
+
+    <!-- 困难难度 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_difficulty_hard"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="@color/eye_care_card"
+        android:textColor="#2D2D2D"
+        android:strokeColor="#5B8A72"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="16dp"
+        android:textSize="16sp"
+        tools:text="困难\n需要丰富经验" />
+
+    <!-- 大师难度 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_difficulty_master"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp"
+        android:backgroundTint="@color/eye_care_card"
+        android:textColor="#2D2D2D"
+        android:strokeColor="#5B8A72"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="16dp"
+        android:textSize="16sp"
+        tools:text="大师\n极限挑战" />
+
+</LinearLayout>

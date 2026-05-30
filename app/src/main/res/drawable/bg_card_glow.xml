@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 外层发光阴影 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0D00D9FF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <!-- 内层卡片背景 -->
+    <item
+        android:bottom="2dp"
+        android:left="2dp"
+        android:right="2dp"
+        android:top="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSurface" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+</layer-list>

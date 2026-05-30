@@ -62,7 +62,7 @@
     <!-- 图标按钮 - 圆形 -->
     <style name="Widget.GameMatrix.Button.Icon" parent="Widget.Material3.Button.IconButton">
         <item name="iconSize">20dp</item>
-        <item name="iconTint">?attr/colorOnPrimary</item>
+        <item name="iconTint">?attr/colorPrimary</item>
     </style>
 
     <!-- 浮动操作按钮 FAB -->
@@ -152,7 +152,7 @@
     <style name="TextAppearance.GameMatrix.Tab" parent="TextAppearance.Material3.TitleSmall">
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="textAllCaps">false</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="TextAppearance.GameMatrix.CardTitle" parent="TextAppearance.Material3.TitleSmall">
@@ -176,4 +176,11 @@
         <item name="android:ellipsize">end</item>
         <item name="android:textAllCaps">false</item>
     </style>
+
+    <!-- T01: 补充缺少的基础 ShapeAppearance 样式 -->
+    <style name="ShapeAppearance" />
+
+    <!-- T01: Material3 兼容桥接样式（material 1.12.0 不含 Tonal/Elevated 子样式） -->
+    <style name="Widget.Material3.Button.Tonal" parent="Widget.Material3.Button.TonalButton" />
+
 </resources>

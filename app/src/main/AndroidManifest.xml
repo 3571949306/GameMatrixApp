@@ -44,7 +44,6 @@
         android:theme="@style/Theme.GameMatrixApp"
         tools:targetApi="35">
 
-        <!-- App Startup 鍒濆鍖栧櫒 -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -56,14 +55,20 @@
         </provider>
 
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.GameMatrixApp">
+            android:theme="@style/Theme.GameMatrixApp.Splash"
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp" />
 
         <activity
             android:name=".DynamicGameActivity"
@@ -76,28 +81,60 @@
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
-        <!-- 鏂楀湴涓昏彍鍗?- 绔栧睆鏄剧ず -->
+
         <activity
             android:name=".games.doudizhu.DouDiZhuMenuActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
 
-        <!-- 鏂楀湴涓诲崟鏈烘父鎴?- 妯睆 -->
         <activity
             android:name=".games.doudizhu.DouDiZhuActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="landscape" />
 
+        <activity android:name=".games.StatsActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.blackjack.BlackjackActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.breakout.BreakoutActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.brotato.BrotatoActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.checkers.CheckersActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.dice.DiceActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.flappy.FlappyActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.go.GoActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.guess.GuessActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.match.MatchActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.memory.MemoryActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.minesweeper.MinesweeperActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.pipeline.PipelineActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.plane.PlaneActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.reaction.ReactionActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.rock.RockActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.snake.SnakeActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.sokoban.SokobanActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.sudoku.SudokuActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.tetris.TetrisActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.tic.TicTacToeActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.tiles.TilesActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.whack.WhackActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.klotski.KlotskiActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.chinesechess.ChineseChessActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.game2048.Game2048Activity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+
         <activity
-            android:name=".games.StatsActivity"
+            android:name=".recovery.RecoveryActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
 
         <activity
-            android:name=".recovery.RecoveryActivity"
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".games.achievement.AchievementCenterActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />

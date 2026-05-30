@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 猜数字基础信息 -->
+    <string name="game_guess_name">猜数字</string>
+    <string name="game_guess_desc">猜出隐藏的数字</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_guess_rules_title">猜数字规则</string>
+    <string name="game_guess_rules_content">
+        1. 系统生成一个随机数字\n
+        2. 输入你的猜测，系统会提示\"大了\"或\"小了\"\n
+        3. 根据提示缩小范围，直到猜中\n
+        4. 猜测次数越少，得分越高\n
+        5. 每3局难度递增（范围扩大）
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_guess_ach_first_win">初次猜中</string>
+    <string name="game_guess_ach_first_win_desc">首次猜中数字</string>
+    <string name="game_guess_ach_5_tries">神机妙算</string>
+    <string name="game_guess_ach_5_tries_desc">5次以内猜中</string>
+    <string name="game_guess_ach_hard_3_tries">数字天才</string>
+    <string name="game_guess_ach_hard_3_tries_desc">高难度范围3次以内猜中</string>
+    <string name="game_guess_ach_10_games">猜数字达人</string>
+    <string name="game_guess_ach_10_games_desc">累计完成10局猜数字</string>
+    <string name="game_guess_ach_15_tries">坚持不懈</string>
+    <string name="game_guess_ach_15_tries_desc">一局内猜了超过15次终于猜中</string>
+</resources>

@@ -76,6 +76,14 @@ public final class GameUsageStore {
         prefs.edit().putStringSet(KEY_FAVORITES, favorites).apply();
     }
 
+    public int getWinCount(String gameId) {
+        return prefs.getInt(KEY_WIN_PREFIX + gameId, 0);
+    }
+
+    public int getLossCount(String gameId) {
+        return prefs.getInt(KEY_LOSS_PREFIX + gameId, 0);
+    }
+
     public List<String> getRecentIds(int limit) {
         String stored = prefs.getString(KEY_RECENT_IDS, "");
         List<String> result = new ArrayList<>();

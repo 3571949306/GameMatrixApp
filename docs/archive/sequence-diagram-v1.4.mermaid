@@ -1,0 +1,38 @@
+sequenceDiagram
+    actor User as 用户
+    participant MS as ModuleStoreActivity
+    participant MM as ModuleManager
+    participant MDR as ModuleDependencyResolver
+    participant MDD as ModuleDependencyDownloader
+    participant MD as ModuleDownloader
+    participant VPS as VPS 服务器
+    
+    User->>MS: 点击"下载"按钮（模块 A）
+    MS->>MM: installModuleWithDependencies(context, "moduleA")
+    MM->>MDR: resolveDependencies(moduleA)
+    MDR->>MDR: 解析 moduleA.depends = ["moduleB", "moduleC"]
+    MDR->>MDR: detectCircularDependency("moduleA", {})
+    MDR-->>MM: 返回依赖列表 ["moduleB", "moduleC"]
+    
+    loop 每个依赖
+        MM->>MM: isModuleInstalled("moduleB")
+        alt 依赖未安装
+            MM->>MDD: downloadDependencies(context, "moduleB", callback)
+            MDD->>MD: downloadModule(context, moduleB, callback)
+            MD->>VPS: HTTP GET /modules/moduleB_v100.apk
+            VPS-->>MD: 返回 APK 文件
+            MD->>MD: verifySha256(file, sha256)
+            MD-->>MDD: onComplete("moduleB", file)
+            MDD-->>MM: onDependencyDownloaded("moduleB")
+        else 依赖已安装
+            MM->>MM: 跳过下载（日志输出）
+        end
+    end
+    
+    MM->>MD: downloadModule(context, "moduleA", callback)
+    MD->>VPS: HTTP GET /modules/moduleA_v200.apk
+    VPS-->>MD: 返回 APK 文件
+    MD-->>MM: onComplete("moduleA", file)
+    MM->>MM: markModuleInstalled(context, moduleA)
+    MM-->>MS: onInstallSuccess(moduleA)
+    MS-->>User: 显示"打开"按钮

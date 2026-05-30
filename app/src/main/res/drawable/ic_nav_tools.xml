@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 工具箱图标：扳手 + 螺丝刀交叉 -->
+    <path
+        android:fillColor="@color/nav_icon_tint"
+        android:pathData="M22.61,18.89l-3.46,-3.46c0.31,-0.95 0.26,-2.01 -0.17,-2.88l-3.46,-6.5
+                       c-0.73,-1.36 -2.25,-2.04 -3.71,-1.71L3.7,6.44c-1.46,0.33 -2.56,1.56 -2.76,3.05
+                       L0.23,17.64c-0.15,1.21 0.39,2.3 1.44,2.88l5.34,2.94c1.06,0.58 2.35,0.53 3.39,-0.12
+                       l3.46,-3.46L22.61,18.89zM12,15c-1.66,0 -3,-1.34 -3,-3s1.34,-3 3,-3 3,1.34 3,3 -1.34,3 -3,3z" />
+</vector>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 骰子基础信息 -->
+    <string name="game_dice_name">骰子</string>
+    <string name="game_dice_desc">掷骰子比大小</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_dice_rules_title">骰子规则</string>
+    <string name="game_dice_rules_content">
+        1. 点击掷骰子，你和电脑各掷两个\n
+        2. 总点数大的一方获胜\n
+        3. 获胜时获得点数对应的分数\n
+        4. 可选择\"加倍\"重新掷骰，得分翻倍\n
+        5. 平局也能获得点数分数
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_dice_ach_double_6">完美掷骰</string>
+    <string name="game_dice_ach_double_6_desc">掷出双6（12点）</string>
+    <string name="game_dice_ach_streak_3">运气王</string>
+    <string name="game_dice_ach_streak_3_desc">连续赢得3局</string>
+    <string name="game_dice_ach_double_1">倒霉蛋</string>
+    <string name="game_dice_ach_double_1_desc">掷出双1（2点）</string>
+    <string name="game_dice_ach_20_rounds">骰子达人</string>
+    <string name="game_dice_ach_20_rounds_desc">累计完成20局骰子</string>
+    <string name="game_dice_ach_high_score">高分赢家</string>
+    <string name="game_dice_ach_high_score_desc">单局获得50分以上</string>
+</resources>

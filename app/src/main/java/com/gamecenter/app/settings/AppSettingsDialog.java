@@ -83,7 +83,7 @@ public class AppSettingsDialog {
         Context context = fragment.requireContext();
         Activity activity = fragment.requireActivity();
         SettingsManager settings = SettingsManager.getInstance(context);
-        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_settings, null);
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_settings_modern, null);
 
         // 版本信息
         TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);

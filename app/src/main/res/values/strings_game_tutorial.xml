@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 教程相关的字符串资源 -->
+<resources>
+    <string name="tutorial_skip">跳过教程</string>
+    <string name="tutorial_next">下一步</string>
+    <string name="tutorial_previous">上一步</string>
+    <string name="tutorial_finish">开始游戏</string>
+    <string name="tutorial_step_of">第 %d 步，共 %d 步</string>
+    <string name="tutorial_welcome">欢迎来到游戏！</string>
+    <string name="tutorial_congratulations">恭喜！教程完成！</string>
+</resources>

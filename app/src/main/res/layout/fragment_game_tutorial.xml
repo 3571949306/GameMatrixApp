@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tutorial_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <!-- 教程内容容器 -->
+    <LinearLayout
+        android:id="@+id/tutorial_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@color/card_background"
+        android:elevation="8dp"
+        android:layout_margin="16dp"
+        android:backgroundTint="@color/card_background">
+
+        <!-- 步骤编号 -->
+        <TextView
+            android:id="@+id/tv_step_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary_color"
+            tools:text="步骤 1/3" />
+
+        <!-- 步骤标题 -->
+        <TextView
+            android:id="@+id/tv_step_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="20sp"
+            android:textColor="@color/text_color"
+            android:textStyle="bold"
+            tools:text="落子位置" />
+
+        <!-- 步骤描述 -->
+        <TextView
+            android:id="@+id/tv_step_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary_color"
+            android:lineSpacingMultiplier="1.2"
+            tools:text="点击棋盘交叉点放置棋子" />
+
+        <!-- 按钮区域 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <!-- 跳过按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_skip"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tutorial_skip"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary_color" />
+
+            <!-- 上一步按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_previous"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/tutorial_previous"
+                android:textSize="14sp"
+                android:textColor="@color/primary_color"
+                android:strokeColor="@color/primary_color" />
+
+            <!-- 下一步按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_next"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/tutorial_next"
+                android:textSize="14sp"
+                android:backgroundTint="@color/primary_color"
+                android:textColor="@android:color/white" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

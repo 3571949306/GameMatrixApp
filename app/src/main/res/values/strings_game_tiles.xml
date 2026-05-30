@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 麻将连连看基础信息 -->
+    <string name="game_tiles_name">麻将连连看</string>
+    <string name="game_tiles_desc">消除相同的麻将牌</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_tiles_rules_title">麻将连连看规则</string>
+    <string name="game_tiles_rules_content">
+        1. 在网格中找到两张相同的牌\n
+        2. 依次点击两张相同的牌进行消除\n
+        3. 消除所有配对即过关\n
+        4. 随着关卡提升，牌面数量递增\n
+        5. 步数越少，得分越高\n
+        6. 挑战更高关卡！
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_tiles_ach_first_complete">初次消除</string>
+    <string name="game_tiles_ach_first_complete_desc">首次完成麻将连连看</string>
+    <string name="game_tiles_ach_30_seconds">闪电消除</string>
+    <string name="game_tiles_ach_30_seconds_desc">30秒内完成通关</string>
+    <string name="game_tiles_ach_level_3">连连看高手</string>
+    <string name="game_tiles_ach_level_3_desc">通过第3关</string>
+    <string name="game_tiles_ach_streak_5">连续消除</string>
+    <string name="game_tiles_ach_streak_5_desc">连续成功消除5对</string>
+    <string name="game_tiles_ach_10_levels">连连看大师</string>
+    <string name="game_tiles_ach_10_levels_desc">累计通过10关</string>
+</resources>

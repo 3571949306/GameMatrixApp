@@ -6,15 +6,14 @@
         </trust-anchors>
     </base-config>
 
-    <!-- 更新服务器域名（VPS）— 启用证书固定（pin-set）防止中间人攻击 -->
-    <!-- 域名来源：local.properties server.url = hk-update.tcp0053.shop -->
-    <domain-config>
-        <domain includeSubdomains="true">hk-update.tcp0053.shop</domain>
-        <domain includeSubdomains="true">tcp0053.shop</domain>
+    <!-- 模块服务器域名 — 启用证书固定（pin-set）防止中间人攻击 -->
+    <!-- 部署时替换为实际服务器域名，或从 local.properties 生成 -->
+    <!-- <domain-config>
+        <domain includeSubdomains="true">your-server.example.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-    </domain-config>
+    </domain-config> -->
 
     <!-- AI API 域名 — 强制 HTTPS，禁止明文流量 -->
     <domain-config cleartextTrafficPermitted="false">

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 教程高亮脉冲动画 -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_decelerate_interpolator">
+    <alpha
+        android:fromAlpha="0.3"
+        android:toAlpha="1.0"
+        android:duration="1500"
+        android:repeatCount="infinite"
+        android:repeatMode="reverse" />
+</set>

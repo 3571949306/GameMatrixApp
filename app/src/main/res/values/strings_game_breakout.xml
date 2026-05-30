@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 打砖块基础信息 -->
+    <string name="game_breakout_name">打砖块</string>
+    <string name="game_breakout_desc">挡板反弹球消除砖块</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_breakout_rules_title">打砖块规则</string>
+    <string name="game_breakout_rules_content">
+        1. 移动手指控制底部挡板\n
+        2. 球会从挡板反弹\n
+        3. 用球消除上方所有砖块\n
+        4. 球掉出底部会失去一条命（共3条）\n
+        5. 消除所有砖块即过关\n
+        6. 随着关卡提升，砖块更多、球速更快
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_breakout_ach_first_complete">初次通关</string>
+    <string name="game_breakout_ach_first_complete_desc">首次完成打砖块关卡</string>
+    <string name="game_breakout_ach_no_miss">完美挡板</string>
+    <string name="game_breakout_ach_no_miss_desc">不丢球通关</string>
+    <string name="game_breakout_ach_level_3">打砖块高手</string>
+    <string name="game_breakout_ach_level_3_desc">通过第3关</string>
+    <string name="game_breakout_ach_score_100">高分打砖块</string>
+    <string name="game_breakout_ach_score_100_desc">单关得分100+</string>
+    <string name="game_breakout_ach_10_levels">打砖块大师</string>
+    <string name="game_breakout_ach_10_levels_desc">累计通过10关</string>
+</resources>

@@ -1,40 +1,21 @@
-# ============ 基础设置 ============
--optimizationpasses 5
--dontusemixedcaseclassnames
--verbose
--keepattributes Signature,Exceptions,InnerClasses,EnclosingMethod,SourceFile,LineNumberTable
--keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
+# ProGuard 混淆规则（GameCenterApp 框架 APK）
+# 用于 R8 全模式优化，目标：框架 APK 体积 ≤15MB
 
-# ============ Android 基础保持 ============
--keep public class * extends android.app.Activity { public <init>(); }
--keep public class * extends android.app.Application { public <init>(); }
--keep public class * extends android.app.Service { public <init>(); }
--keep public class * extends android.content.BroadcastReceiver { public <init>(); }
--keep public class * extends android.content.ContentProvider { public <init>(); }
--keep public class * extends android.app.backup.BackupAgentHelper { public <init>(); }
--keep public class * extends android.preference.Preference { public <init>(); }
--keep public class * extends android.view.View {
-    public <init>(android.content.Context);
-    public <init>(android.content.Context, android.util.AttributeSet);
-    public <init>(android.content.Context, android.util.AttributeSet, int);
-    protected void onMeasure(int, int);
-    protected void onDraw(android.graphics.Canvas);
-    public void onClick(android.view.View);
-}
+# ============ Android 核心组件 ============
 
-# ============ AndroidX ============
--keep class androidx.fragment.app.** { *; }
--keep class androidx.appcompat.app.** { *; }
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+-keep public class * extends android.app.backup.BackupAgentHelper
+-keep public class * extends android.preference.Preference
+-keep public class org.xmlpull.v1.XmlPullParser
+-keep public class android.*
+-keep public class androidx.**
 
-# ============ WebView ============
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
+# ============ 序列化 ============
 
-# ============ 反射和序列化 ============
--keep class * implements android.os.Parcelable {
-    public static final android.os.Parcelable$Creator *;
-}
 -keepclassmembers class * implements java.io.Serializable {
     static final long serialVersionUID;
     private static final java.io.ObjectStreamField[] serialPersistentFields;
@@ -43,132 +24,96 @@
     java.lang.Object writeReplace();
     java.lang.Object readResolve();
 }
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
+
+# ============ 注解框架 ============
+
+# Dagger/Hilt
+-keep class dagger.* { *; }
+-keep class * extends dagger.hilt.android.internal.*
+-keepclasseswithmembers class * {
+    @dagger.inject.* <methods>;
+}
+-keepclasseswithmembers class * {
+    @javax.inject.Inject <methods>;
+}
+-keepclasseswithmembers class * {
+    @javax.inject.Qualifier <methods>;
 }
 
-# ============ R 类 ============
--keepclassmembers class com.gamecenter.app.R$* { public static <fields>; }
--keepclassmembers class com.gamecenter.app.core.**.R$* { public static <fields>; }
+# ============ 网络层 ============
 
-# ============ 主包保留（WebView JS 接口） ============
--keep class com.gamecenter.app.** {
-    @android.webkit.JavascriptInterface <methods>;
-}
-
-# ============ Room ============
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--keep @androidx.room.Dao class *
--dontwarn androidx.room.paging.**
-
-# ============ Hilt ============
--keep class dagger.hilt.** { *; }
--keep class javax.inject.** { *; }
--keep class * extends dagger.hilt.android.internal.managers.ComponentSupplier { *; }
--keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
--keep,allowobfuscation,allowshrinking class * extends dagger.hilt.android.internal.managers.ApplicationComponentManager { *; }
--keepclassmembers,allowobfuscation class * {
-    @javax.inject.Inject <init>(...);
-}
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.lifecycle.HiltViewModel class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.ActivityRetainedScoped class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.ActivityScoped class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.FragmentScoped class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.scopes.ViewScoped class *
--keep,allowobfuscation,allowshrinking @javax.inject.Singleton class *
-
-# ============ App Startup ============
--keep class * implements androidx.startup.Initializer { *; }
-
-# ============ Coroutines ============
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
--keepclassmembers class kotlinx.coroutines.** { volatile <fields>; }
--keepclassmembers class kotlin.coroutines.SafeContinuation { volatile <fields>; }
--dontwarn kotlinx.coroutines.**
-
-# ============ OkHttp / Okio ============
+# OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**
--dontwarn javax.annotation.**
--keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
+-keep class okhttp3.* { *; }
+-keep interface okhttp3.* { *; }
 
-# ============ Gson ============
--keepattributes Signature
--keepattributes *Annotation*
--keep class com.google.gson.stream.** { *; }
--keep class * extends com.google.gson.TypeAdapter
--keep class * implements com.google.gson.TypeAdapterFactory
+# Gson
+-keep class com.google.gson.* { *; }
+-keep class * implements com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
--keepclassmembers,allowobfuscation,allowshrinking class * {
-    @com.google.gson.annotations.SerializedName <fields>;
+
+# ============ 模块系统 ============
+
+# 模块接口（动态加载，不能混淆）
+-keep interface com.gamecenter.app.interfaces.IModule { *; }
+-keep interface com.gamecenter.app.interfaces.IModuleLoader { *; }
+-keep interface com.gamecenter.app.interfaces.IModuleStore { *; }
+
+# 模块加载器
+-keep class com.gamecenter.app.moduleloader.ModuleLoaderV2 { *; }
+-keep class com.gamecenter.app.moduleloader.ModuleVerifier { *; }
+
+# ============ 数据模型 ============
+
+# Parcelable 实现
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
 }
--keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
--keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
-
-# ============ Glide (KSP) ============
--keep public class * implements com.bumptech.glide.module.GlideModule
--keep class * extends com.bumptech.glide.module.AppGlideModule { <init>(...); }
--keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
-    **[] $VALUES;
-    public *;
-}
--keep class com.bumptech.glide.load.data.ParcelFileDescriptorRewinder$InternalRewinder { *** rewind(); }
-
-# ============ MediaPipe ============
--keep class com.google.mediapipe.** { *; }
--keep class com.google.protobuf.** { *; }
--dontwarn com.google.auto.value.AutoValue$Builder
--dontwarn com.google.auto.value.AutoValue
--dontwarn com.google.protobuf.Internal$*
--dontwarn com.google.mediapipe.framework.image.BitmapExtractor
--dontwarn com.google.mediapipe.framework.image.ByteBufferExtractor
--dontwarn com.google.mediapipe.framework.image.MPImage
--dontwarn com.google.mediapipe.framework.image.MPImageProperties
--dontwarn com.google.mediapipe.framework.image.MediaImageExtractor
--dontwarn com.google.protobuf.ProtoField
--dontwarn com.google.protobuf.ProtoPresenceBits
--dontwarn com.google.protobuf.ProtoPresenceCheckedField
-
-# ============ ZXing ============
--keep class com.google.zxing.** { *; }
--dontwarn com.google.zxing.**
-
-# ============ 安全加固 ============
-# 保留 @Keep 注解标注的类成员（用于 API Key 等敏感字段混淆后保持引用）
--keepclassmembers class * {
-    @androidx.annotation.Keep *;
+-keep class * implements android.os.Parcelable$Creator {
+    public * createFromParcel(android.os.Parcel);
+    public *[] newArray(int);
 }
 
-# ============ Kotlin Coroutines / Serialization ============
--dontwarn kotlinx.coroutines.**
--keep class kotlinx.coroutines.internal.ClassValueCtorCache { *; }
--keep class kotlinx.coroutines.internal.ClassValueCtorCache$cache$1 { *; }
--keep class kotlinx.serialization.internal.ClassValueCache { *; }
--keep class kotlinx.serialization.internal.ClassValueReferences { *; }
+# ModuleInfo、ModuleVersion 等
+-keep class com.gamecenter.app.models.* { *; }
 
-# Release 构建移除日志输出，防止敏感信息通过 Logcat 泄露
+# ============ WebSockets ============
+
+# WebSocket 相关（okhttp3 WebSocketListener）
+-keep class okhttp3.WebSocketListener { *; }
+-keep class com.gamecenter.app.online.GameSocketClient* { *; }
+
+# ============ 资源收缩白名单 ============
+
+# 保留所有 Activity 的布局引用
+-keepclassmembers class * extends android.app.Activity {
+    public void *(android.view.View);
+}
+
+# 保留所有 XML 中引用的 View 类
+-keepclasseswithmembers class * {
+    <init>(android.content.Context, android.util.AttributeSet);
+    <init>(android.content.Context, android.util.AttributeSet, int);
+}
+
+# ============ 调试保留 ============
+
+# 保留已混淆后的类名映射（用于崩溃报告）
+-printmapping build/outputs/mapping/release/mapping.txt
+-printseeds build/outputs/mapping/release/seeds.txt
+
+# ============ 优化选项 ============
+
+# 允许访问修改的 Jar（提高优化效果）
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
+-optimizationpasses 5
+-allowaccessmodification
+-repackageclasses ''
+
+# 移除日志（Release 版）
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);
-    public static *** i(...);
 }
-
-# 保留所有 Serializable 类的完整结构（反序列化需要）
--keep class * implements java.io.Serializable { *; }
-
-# 保留所有 Parcelable 类的完整结构（Android IPC 需要）
--keep class * implements android.os.Parcelable { *; }
-
-# 保留 JNI Native 方法名称（native 方法名必须与 .so 库中的符号一致）
--keepclasseswithmembernames,includedescriptorclasses class * {
-    native <methods>;
-}
-
-# ============ 其他 ============
--dontwarn org.bouncycastle.**
--dontwarn org.conscrypt.**
--dontwarn org.openjsse.**

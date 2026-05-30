@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 数独基础信息 -->
+    <string name="game_sudoku_name">数独</string>
+    <string name="game_sudoku_desc">经典9×9数独益智游戏</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_sudoku_select_difficulty">选择难度开始游戏</string>
+    <string name="game_sudoku_playing">填入数字完成数独</string>
+    <string name="game_sudoku_congratulations">恭喜通关！耗时%d秒</string>
+    <string name="game_sudoku_expert">专家</string>
+    <string name="game_sudoku_hint">提示</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_sudoku_rules_title">数独规则</string>
+    <string name="game_sudoku_rules_content">
+        1. 在9×9的网格中填入数字1-9\n
+        2. 每行必须包含1-9，不重复\n
+        3. 每列必须包含1-9，不重复\n
+        4. 每个3×3宫格必须包含1-9，不重复\n
+        5. 点击空格后在下方数字键盘选择数字输入\n
+        6. 可使用提示功能查看正确答案
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_sudoku_ach_first_solve">初露锋芒</string>
+    <string name="game_sudoku_ach_first_solve_desc">首次完成数独</string>
+    <string name="game_sudoku_ach_medium">进阶棋手</string>
+    <string name="game_sudoku_ach_medium_desc">完成中等难度数独</string>
+    <string name="game_sudoku_ach_hard">数独高手</string>
+    <string name="game_sudoku_ach_hard_desc">完成困难难度数独</string>
+    <string name="game_sudoku_ach_no_hint">独立思考</string>
+    <string name="game_sudoku_ach_no_hint_desc">不使用任何提示完成数独</string>
+    <string name="game_sudoku_ach_10min">神速解题</string>
+    <string name="game_sudoku_ach_10min_desc">在10分钟内完成任意难度数独</string>
+</resources>

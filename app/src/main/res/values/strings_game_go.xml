@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 围棋基础信息 -->
+    <string name="game_go_name">围棋</string>
+    <string name="game_go_desc">简化版9×9围棋对弈AI</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_go_welcome">简化版围棋，点击开始对弈</string>
+    <string name="game_go_start">开始对弈</string>
+    <string name="game_go_your_turn">你的回合（黑棋），点击落子</string>
+    <string name="game_go_ai_thinking">AI 思考中…</string>
+    <string name="game_go_ai_passed">AI 虚着（Pass）</string>
+    <string name="game_go_you_win">恭喜获胜！黑：%d目 vs 白：%d目（含贴目）</string>
+    <string name="game_go_ai_wins">AI 获胜。黑：%d目 vs 白：%d目（含贴目）</string>
+    <string name="game_go_you_resigned">你已认输</string>
+    <string name="game_go_pass">虚着</string>
+    <string name="game_go_resign">认输</string>
+    <string name="game_go_score_display">黑提%d | 白提%d | 当前：%s</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_go_rules_title">围棋规则（简化版）</string>
+    <string name="game_go_rules_content">
+        1. 9×9简化围棋棋盘，黑棋先行\n
+        2. 轮流在交叉点落子\n
+        3. 连续同色棋子形成"棋串"，无气（相邻空点）的棋串被提走\n
+        4. 禁止自杀（落子后自身无气且未提子）\n
+        5. 禁止劫争（不能立刻回提单子）\n
+        6. 双方都虚着（Pass）则终局\n
+        7. 终局计算领地，黑棋贴6.5目\n
+        8. 领地多者获胜
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_go_ach_first_win">初入棋道</string>
+    <string name="game_go_ach_first_win_desc">在围棋中获得首次胜利</string>
+    <string name="game_go_ach_territory50">领地过半</string>
+    <string name="game_go_ach_territory50_desc">领地超过棋盘50%</string>
+    <string name="game_go_ach_captures10">吃子高手</string>
+    <string name="game_go_ach_captures10_desc">单局吃子超过10目</string>
+    <string name="game_go_ach_perfect">完美对弈</string>
+    <string name="game_go_ach_perfect_desc">未被AI吃子的情况下获胜</string>
+    <string name="game_go_ach_streak5">棋道连胜</string>
+    <string name="game_go_ach_streak5_desc">连胜5局围棋</string>
+</resources>

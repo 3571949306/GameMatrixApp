@@ -14,6 +14,11 @@ object ModuleLoader {
     private val resourceLoaders = mutableMapOf<String, com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources>()
 
     fun loadModule(context: Context, manifest: ModuleManifest): ModuleInterface? {
+        if (manifest.entryClass.isEmpty()) {
+            Log.d(TAG, "模块 ${manifest.id} 没有动态入口类，跳过 Dex 加载")
+            return null
+        }
+
         val moduleFile = ModuleDownloader.getModuleFile(context, manifest)
         if (manifest.builtIn && (
                 !moduleFile.exists() ||
@@ -53,6 +58,8 @@ object ModuleLoader {
             Log.e(TAG, "模块文件格式无效: ${manifest.id}")
             return null
         }
+
+        prepareDexFileForLoading(moduleFile)
 
         return try {
             val optimizedDir = File(context.cacheDir, "modules_opt")
@@ -97,6 +104,18 @@ object ModuleLoader {
         } catch (e: Exception) {
             Log.e(TAG, "模块加载失败 ${manifest.id}: ${e.message}", e)
             null
+        }
+    }
+
+    private fun prepareDexFileForLoading(moduleFile: File) {
+        if (!moduleFile.extension.equals("apk", ignoreCase = true) &&
+            !moduleFile.extension.equals("dex", ignoreCase = true)) {
+            return
+        }
+        if (moduleFile.canWrite()) {
+            moduleFile.setWritable(false, false)
+            moduleFile.setReadOnly()
+            Log.d(TAG, "模块文件已切换为只读以允许 DexClassLoader 加载: ${moduleFile.name}")
         }
     }
 

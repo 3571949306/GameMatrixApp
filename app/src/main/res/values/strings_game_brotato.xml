@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 土豆兄弟基础信息 -->
+    <string name="game_brotato_name">土豆兄弟</string>
+    <string name="game_brotato_desc">控制土豆角色生存战斗</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_brotato_rules_title">土豆兄弟规则</string>
+    <string name="game_brotato_rules_content">
+        1. 滑动手指控制土豆角色移动\n
+        2. 角色会自动朝最近的敌人射击\n
+        3. 消灭所有敌人完成一波\n
+        4. 被敌人碰到会失去生命\n
+        5. 每波结束恢复3点生命\n
+        6. 波次递增，敌人更多更强\n
+        7. 生存越久，得分越高！
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_brotato_ach_wave_1">初次生存</string>
+    <string name="game_brotato_ach_wave_1_desc">成功生存过第1波</string>
+    <string name="game_brotato_ach_wave_3">生存高手</string>
+    <string name="game_brotato_ach_wave_3_desc">生存过第3波</string>
+    <string name="game_brotato_ach_wave_5">土豆英雄</string>
+    <string name="game_brotato_ach_wave_5_desc">生存过第5波</string>
+    <string name="game_brotato_ach_score_200">高分土豆</string>
+    <string name="game_brotato_ach_score_200_desc">单局得分达到200分</string>
+    <string name="game_brotato_ach_10_games">土豆老手</string>
+    <string name="game_brotato_ach_10_games_desc">累计完成10局土豆兄弟</string>
+</resources>
