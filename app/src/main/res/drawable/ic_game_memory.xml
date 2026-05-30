@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 翻牌卡牌（正面） -->
+    <path
+        android:pathData="M8,8L22,8L22,22L8,22Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#4A7460"
+        android:strokeWidth="1.5" />
+    <!-- 翻牌卡牌（背面） -->
+    <path
+        android:pathData="M26,8L40,8L40,22L26,22Z"
+        android:fillColor="#FBF9F6"
+        android:strokeColor="#C8C3BC"
+        android:strokeWidth="1.5" />
+    <!-- 问号 -->
+    <path
+        android:pathData="M30,12L36,12L36,18L30,18Z"
+        android:fillColor="#5B8A72"
+        android:strokeWidth="0" />
+    <!-- 翻牌卡牌（正面-下方） -->
+    <path
+        android:pathData="M26,26L40,26L40,40L26,40Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#4A7460"
+        android:strokeWidth="1.5" />
+    <!-- 翻牌卡牌（背面-下方） -->
+    <path
+        android:pathData="M8,26L22,26L22,40L8,40Z"
+        android:fillColor="#FBF9F6"
+        android:strokeColor="#C8C3BC"
+        android:strokeWidth="1.5" />
+    <!-- 对勾符号 -->
+    <path
+        android:pathData="M30,33L34,37L39,29"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 现代恢复模式界面 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <!-- 图标区域 -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:layout_marginTop="32dp"
+        app:cardCornerRadius="44dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:cardBackgroundColor="@color/brand_primary"
+        app:strokeColor="@color/brand_primary">
+
+        <ImageView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/recovery_icon_desc"
+            android:src="@android:drawable/ic_menu_manage"
+            app:tint="@color/white" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:text="@string/recovery_title"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <!-- 状态文本 -->
+    <TextView
+        android:id="@+id/tv_recovery_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/recovery_status_ready"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="14sp" />
+
+    <!-- 进度条：现代样式 -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress_recovery"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="28dp"
+        android:progress="0"
+        app:indicatorColor="@color/brand_primary"
+        app:trackColor="?attr/colorSurfaceVariant"
+        app:trackThickness="8dp" />
+
+    <!-- 进度文本 -->
+    <TextView
+        android:id="@+id/tv_recovery_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp" />
+
+    <!-- 下载源信息 -->
+    <TextView
+        android:id="@+id/tv_recovery_source"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="11sp"
+        android:alpha="0.6" />
+
+    <!-- 错误提示卡片 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_recovery_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0.5dp"
+        app:strokeColor="@color/md_theme_error"
+        app:cardBackgroundColor="@color/md_theme_error_container">
+
+        <TextView
+            android:id="@+id/tv_recovery_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:textColor="@color/md_theme_on_error_container"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 下载按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_recovery_download"
+        style="@style/Widget.GameMatrix.Button"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="28dp"
+        android:text="@string/recovery_btn_download"
+        android:textSize="16sp"
+        app:icon="@android:drawable/ic_menu_upload"
+        app:iconSize="20dp" />
+
+    <!-- 安装按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_recovery_install"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:enabled="false"
+        android:text="@string/recovery_btn_install"
+        android:textSize="16sp"
+        app:icon="@android:drawable/ic_menu_save"
+        app:iconSize="20dp" />
+
+    <!-- 重试按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_recovery_retry"
+        style="@style/Widget.GameMatrix.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:visibility="gone"
+        android:text="@string/recovery_btn_retry"
+        android:textSize="16sp" />
+
+    <!-- 取消按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_recovery_cancel"
+        style="@style/Widget.GameMatrix.Button.Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="6dp"
+        android:visibility="gone"
+        android:text="@string/recovery_btn_cancel"
+        android:textSize="14sp" />
+
+    <!-- 底部提示 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="@string/recovery_hint"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        android:alpha="0.5" />
+
+</LinearLayout>

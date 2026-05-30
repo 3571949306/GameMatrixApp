@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 2048 游戏字符串资源 -->
+<resources>
+    <!-- 游戏信息 -->
+    <string name="game2048_rules_title">2048 规则</string>
+    <string name="game2048_rules_basic">在 4×4 的网格中，通过上下左右滑动合并相同的数字方块。每次滑动后会随机生成一个新的 2 或 4。</string>
+    <string name="game2048_rules_victory">当出现 2048 方块时即为胜利。之后可以继续挑战更高分数。</string>
+    <string name="game2048_rules_scoring">合并时获得新方块的数值作为分数。例如两个 64 合并为 128，得 128 分。</string>
+    <string name="game2048_rules_special">当网格填满且无法再合并时，游戏结束。策略性地安排方块位置是关键。</string>
+
+    <!-- 成就 -->
+    <string name="game2048_ach_first_merge_name">数字启蒙</string>
+    <string name="game2048_ach_first_merge_desc">第一次合并方块</string>
+    <string name="game2048_ach_score_1000_name">数字收集者</string>
+    <string name="game2048_ach_score_1000_desc">单局得分达到 1000</string>
+    <string name="game2048_ach_score_5000_name">数字大师</string>
+    <string name="game2048_ach_score_5000_desc">单局得分达到 5000</string>
+    <string name="game2048_ach_score_20000_name">数字传说</string>
+    <string name="game2048_ach_score_20000_desc">单局得分达到 20000</string>
+    <string name="game2048_ach_tile_128_name">百位数</string>
+    <string name="game2048_ach_tile_128_desc">合成 128 方块</string>
+    <string name="game2048_ach_tile_512_name">半千数</string>
+    <string name="game2048_ach_tile_512_desc">合成 512 方块</string>
+    <string name="game2048_ach_tile_2048_name">终极目标</string>
+    <string name="game2048_ach_tile_2048_desc">合成 2048 方块</string>
+    <string name="game2048_ach_reach_2048_name">2048 达成</string>
+    <string name="game2048_ach_reach_2048_desc">成功达到 2048</string>
+
+    <!-- 教程 -->
+    <string name="game2048_tutorial_step1_title">滑动合并</string>
+    <string name="game2048_tutorial_step1_desc">向任意方向滑动，所有方块会向该方向移动。相同的方块碰到一起会合并为一个更大的方块。</string>
+    <string name="game2048_tutorial_step2_title">数值翻倍</string>
+    <string name="game2048_tutorial_step2_desc">每次合并，方块的数值翻倍：2→4→8→16→32→64→128→256→512→1024→2048。</string>
+    <string name="game2048_tutorial_step3_title">策略思考</string>
+    <string name="game2048_tutorial_step3_desc">把大数字放在角落，小数字围绕在外。保持一个方向的主导，避免混乱移动。</string>
+    <string name="game2048_tutorial_step4_title">挑战 2048</string>
+    <string name="game2048_tutorial_step4_desc">目标是合成 2048 方块！即使达到 2048 后也可以继续挑战更高分。</string>
+</resources>

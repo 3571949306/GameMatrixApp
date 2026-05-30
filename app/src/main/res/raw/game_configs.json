@@ -1,0 +1,2586 @@
+[
+  {
+    "gameId": "gomoku",
+    "name": "五子棋",
+    "type": "BOARD",
+    "priority": "P0",
+    "hasAI": true,
+    "description": "经典五子棋游戏，先形成五子连珠者获胜",
+    "activityClassName": "com.gamecenter.app.games.gomoku.GomokuActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "AI 搜索 2 层，适合新手",
+        "aiSearchDepth": 2,
+        "aiResponseDelayMs": 500,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "AI 搜索 4 层，标准难度",
+        "aiSearchDepth": 4,
+        "aiResponseDelayMs": 300,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "AI 搜索 6 层，挑战模式",
+        "aiSearchDepth": 6,
+        "aiResponseDelayMs": 100,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "落子位置",
+        "description": "点击棋盘交叉点放置棋子",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "board_view",
+        "shape": "CIRCLE",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "五子连珠",
+        "description": "横向、纵向或斜向连续五颗棋子获胜",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      },
+      {
+        "stepNumber": 3,
+        "title": "阻挡对手",
+        "description": "阻止对手形成五子连珠",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "win_streak_3",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "STREAK",
+        "threshold": 3,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      },
+      {
+        "key": "win_streak_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "STREAK",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      },
+      {
+        "key": "games_played_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已游戏 %d/%d 局"
+      },
+      {
+        "key": "perfect_game",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": true,
+        "iconResId": 0,
+        "progressFormat": "完成完美对局"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "doudizhu",
+    "name": "斗地主",
+    "type": "CARD",
+    "priority": "P0",
+    "hasAI": true,
+    "description": "经典斗地主纸牌游戏",
+    "activityClassName": "com.gamecenter.app.games.doudizhu.DouDiZhuActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "AI 较弱，适合新手",
+        "aiSearchDepth": 1,
+        "aiResponseDelayMs": 1000,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "AI 中等，标准难度",
+        "aiSearchDepth": 2,
+        "aiResponseDelayMs": 500,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "AI 较强，挑战模式",
+        "aiSearchDepth": 3,
+        "aiResponseDelayMs": 200,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "出牌规则",
+        "description": "点击手牌选择要出的牌，然后点击出牌按钮",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "hand_cards",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "UP",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "牌型介绍",
+        "description": "单张、对子、三带一、顺子、炸弹等牌型",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 5000
+      },
+      {
+        "stepNumber": 3,
+        "title": "抢地主",
+        "description": "游戏开始时可以选择是否抢地主",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "btn_grab_landlord",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "UP",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "win_streak_3",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "STREAK",
+        "threshold": 3,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      },
+      {
+        "key": "games_played_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已游戏 %d/%d 局"
+      },
+      {
+        "key": "landlord_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "地主胜利"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "chinesechess",
+    "name": "中国象棋",
+    "type": "BOARD",
+    "priority": "P0",
+    "hasAI": true,
+    "description": "中国象棋，将死对方将帅获胜",
+    "activityClassName": "com.gamecenter.app.games.chinesechess.ChineseChessActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "AI 搜索 2 层，适合新手",
+        "aiSearchDepth": 2,
+        "aiResponseDelayMs": 800,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "AI 搜索 4 层，标准难度",
+        "aiSearchDepth": 4,
+        "aiResponseDelayMs": 400,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "AI 搜索 6 层，挑战模式",
+        "aiSearchDepth": 6,
+        "aiResponseDelayMs": 100,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "棋子走法",
+        "description": "点击棋子选择，然后点击目标位置移动",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "chess_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "特殊规则",
+        "description": "将帅不能直面，蹩马腿，象眼等规则",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 5000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "checkmate",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "完成将杀"
+      },
+      {
+        "key": "win_streak_5",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "STREAK",
+        "threshold": 5,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "go",
+    "name": "围棋",
+    "type": "BOARD",
+    "priority": "P1",
+    "hasAI": true,
+    "description": "经典围棋9路棋盘对战",
+    "activityClassName": "com.gamecenter.app.games.go.GoActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "AI 较弱，适合新手",
+        "aiSearchDepth": 2,
+        "aiResponseDelayMs": 500,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "AI 中等，标准难度",
+        "aiSearchDepth": 4,
+        "aiResponseDelayMs": 300,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "AI 较强，挑战模式",
+        "aiSearchDepth": 6,
+        "aiResponseDelayMs": 100,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "落子",
+        "description": "点击棋盘交叉点放置棋子",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "go_board",
+        "shape": "CIRCLE",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "提子规则",
+        "description": "完全包围对方棋子即可提掉",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "first_capture",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次提子"
+      },
+      {
+        "key": "win_streak_3",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "STREAK",
+        "threshold": 3,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "checkers",
+    "name": "跳棋",
+    "type": "BOARD",
+    "priority": "P1",
+    "hasAI": true,
+    "description": "经典跳棋对战",
+    "activityClassName": "com.gamecenter.app.games.checkers.CheckersActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "AI 较弱，适合新手",
+        "aiSearchDepth": 2,
+        "aiResponseDelayMs": 500,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "AI 中等，标准难度",
+        "aiSearchDepth": 4,
+        "aiResponseDelayMs": 300,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "AI 较强，挑战模式",
+        "aiSearchDepth": 6,
+        "aiResponseDelayMs": 100,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "移动棋子",
+        "description": "点击棋子选择，再点击目标位置移动",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "checkers_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "跳吃规则",
+        "description": "跳过对方棋子即可吃掉，连续跳吃可连跳",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "win_streak_3",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "STREAK",
+        "threshold": 3,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      },
+      {
+        "key": "games_played_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已游戏 %d/%d 局"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "game2048",
+    "name": "2048",
+    "type": "PUZZLE",
+    "priority": "P0",
+    "hasAI": false,
+    "description": "滑动数字方块，合并相同数字",
+    "activityClassName": "com.gamecenter.app.games.game2048.Game2048Activity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "4x4棋盘，容易上手",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "4x4棋盘，标准难度",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "5x5棋盘，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "滑动操作",
+        "description": "上下左右滑动移动所有方块",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "game_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "合并规则",
+        "description": "相同数字的方块相撞会合并",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      },
+      {
+        "stepNumber": 3,
+        "title": "目标",
+        "description": "合并出2048方块即可获胜",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "score_2048",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 2048,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "score_4096",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SCORE",
+        "threshold": 4096,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "games_played_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已游戏 %d/%d 局"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "klotski",
+    "name": "华容道",
+    "type": "PUZZLE",
+    "priority": "P1",
+    "hasAI": false,
+    "description": "中国传统益智游戏，滑动方块让目标块移出",
+    "activityClassName": "com.gamecenter.app.games.klotski.KlotskiActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "基础关卡",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "进阶关卡",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "挑战关卡",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "滑动方块",
+        "description": "上下左右滑动方块，腾出空间",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "klotski_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "目标",
+        "description": "将大方块移到底部出口位置",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_clear",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次通关"
+      },
+      {
+        "key": "puzzles_solved_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已通关 %d/%d 关"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "sudoku",
+    "name": "数独",
+    "type": "PUZZLE",
+    "priority": "P1",
+    "hasAI": false,
+    "description": "数字逻辑益智游戏",
+    "activityClassName": "com.gamecenter.app.games.sudoku.SudokuActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "9x9，少量空格",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "9x9，中等空格",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "9x9，大量空格",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "填入数字",
+        "description": "点击空格，选择1-9的数字填入",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "sudoku_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "规则",
+        "description": "每行、每列、每宫内数字1-9不重复",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_solve",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次完成"
+      },
+      {
+        "key": "puzzles_solved_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已完成 %d/%d 题"
+      },
+      {
+        "key": "speed_solve",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "TIME",
+        "threshold": 300,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "5分钟内完成"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "sokoban",
+    "name": "推箱子",
+    "type": "PUZZLE",
+    "priority": "P1",
+    "hasAI": false,
+    "description": "经典推箱子解谜，将所有箱子推到目标位置",
+    "activityClassName": "com.gamecenter.app.games.sokoban.SokobanActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "基础关卡，少量箱子",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "进阶关卡",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "挑战关卡，复杂地形",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "移动角色",
+        "description": "使用方向键移动角色",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "sokoban_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "推箱子",
+        "description": "将箱子推到目标位置，不能拉箱子",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_clear",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次通关"
+      },
+      {
+        "key": "levels_cleared_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已通关 %d/%d 关"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "tic",
+    "name": "井字棋",
+    "type": "PUZZLE",
+    "priority": "P1",
+    "hasAI": true,
+    "description": "三子连线游戏",
+    "activityClassName": "com.gamecenter.app.games.tic.TicTacToeActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "AI 较弱，适合新手",
+        "aiSearchDepth": 1,
+        "aiResponseDelayMs": 500,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "AI 中等",
+        "aiSearchDepth": 2,
+        "aiResponseDelayMs": 300,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "AI 最强，无法战胜",
+        "aiSearchDepth": 9,
+        "aiResponseDelayMs": 100,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "落子",
+        "description": "点击格子放置 X 或 O",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "tic_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "三子连线",
+        "description": "横向、纵向或斜向三子连线获胜",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "win_streak_5",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "STREAK",
+        "threshold": 5,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "memory",
+    "name": "记忆翻牌",
+    "type": "PUZZLE",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "锻炼记忆力游戏，翻牌配对消除",
+    "activityClassName": "com.gamecenter.app.games.memory.MemoryActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "4x3 卡牌",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "4x4 卡牌",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "6x4 卡牌",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "翻开卡牌",
+        "description": "点击卡牌翻开查看图案",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "memory_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "配对消除",
+        "description": "连续翻开两张相同图案的卡牌即可消除",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_clear",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次通关"
+      },
+      {
+        "key": "perfect_memory",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "无失误通关"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "snake",
+    "name": "贪吃蛇",
+    "type": "CASUAL",
+    "priority": "P0",
+    "hasAI": false,
+    "description": "控制蛇吃食物，不断成长",
+    "activityClassName": "com.gamecenter.app.games.snake.SnakeActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "速度较慢，适合新手",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准速度",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "速度较快，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "控制方向",
+        "description": "使用方向键或滑动控制蛇的移动方向",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "game_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "吃食物",
+        "description": "让蛇头碰到食物即可吃掉，蛇身会变长",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      },
+      {
+        "stepNumber": 3,
+        "title": "避免碰撞",
+        "description": "不要撞到墙壁或自己的身体",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "length_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "长度 %d/%d"
+      },
+      {
+        "key": "length_20",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 20,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "长度 %d/%d"
+      },
+      {
+        "key": "length_30",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SCORE",
+        "threshold": 30,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "长度 %d/%d"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "tetris",
+    "name": "俄罗斯方块",
+    "type": "CASUAL",
+    "priority": "P0",
+    "hasAI": false,
+    "description": "经典俄罗斯方块，消除整行得分",
+    "activityClassName": "com.gamecenter.app.games.tetris.TetrisActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "下落速度较慢",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准下落速度",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "快速下落，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "移动方块",
+        "description": "左右滑动移动方块，下滑加速",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "game_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "旋转方块",
+        "description": "点击方块进行旋转",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      },
+      {
+        "stepNumber": 3,
+        "title": "消除行",
+        "description": "填满一整行即可消除得分",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "lines_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "消除 %d/%d 行"
+      },
+      {
+        "key": "lines_50",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 50,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "消除 %d/%d 行"
+      },
+      {
+        "key": "lines_100",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SCORE",
+        "threshold": 100,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "消除 %d/%d 行"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "minesweeper",
+    "name": "扫雷",
+    "type": "PUZZLE",
+    "priority": "P0",
+    "hasAI": false,
+    "description": "经典扫雷游戏，翻开所有安全格子获胜",
+    "activityClassName": "com.gamecenter.app.games.minesweeper.MinesweeperActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "9x9，10个地雷",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "16x16，40个地雷",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "16x30，99个地雷",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "翻开格子",
+        "description": "短按翻开格子，数字表示周围地雷数量",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "mine_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "标记地雷",
+        "description": "长按格子标记旗帜，标识地雷位置",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "speed_clear",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "TIME",
+        "threshold": 60,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "60秒内完成"
+      },
+      {
+        "key": "win_streak_5",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "STREAK",
+        "threshold": 5,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "rock",
+    "name": "石头剪刀布",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "简单猜拳对战",
+    "activityClassName": "com.gamecenter.app.games.rock.RockActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "随机出拳",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "选择出拳",
+        "description": "选择石头、剪刀或布",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "win_streak_5",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "STREAK",
+        "threshold": 5,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "连胜 %d/%d 次"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "dice",
+    "name": "骰子游戏",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "简单随机骰子游戏",
+    "activityClassName": "com.gamecenter.app.games.dice.DiceActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "基础骰子",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "掷骰子",
+        "description": "点击骰子进行投掷",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_roll",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次掷骰"
+      },
+      {
+        "key": "rolls_50",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 50,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已掷 %d/%d 次"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "guess",
+    "name": "猜数字",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "猜数字小游戏",
+    "activityClassName": "com.gamecenter.app.games.guess.GuessActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "1-50 范围",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "1-100 范围",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "1-1000 范围",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "输入数字",
+        "description": "输入你猜测的数字",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "获得提示",
+        "description": "系统会提示猜大了或猜小了",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_guess",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次猜对"
+      },
+      {
+        "key": "lucky_guess",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "一次猜对"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "reaction",
+    "name": "反应力挑战",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "测试你的反应速度",
+    "activityClassName": "com.gamecenter.app.games.reaction.ReactionActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "基础反应测试",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "等待变色",
+        "description": "屏幕变绿时立即点击",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      }
+    ],
+    "achievements": [
+      {
+        "key": "fast_reaction",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "TIME",
+        "threshold": 300,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "300毫秒内反应"
+      },
+      {
+        "key": "super_fast",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "TIME",
+        "threshold": 200,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "200毫秒内反应"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "whack",
+    "name": "打地鼠",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "快速反应打地鼠",
+    "activityClassName": "com.gamecenter.app.games.whack.WhackActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "地鼠出现较慢",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准速度",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "快速出现，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "点击地鼠",
+        "description": "地鼠出现时快速点击",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      }
+    ],
+    "achievements": [
+      {
+        "key": "score_50",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 50,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "score_100",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 100,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "perfect_round",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "全中一轮"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "match",
+    "name": "消消乐",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "匹配消除类游戏",
+    "activityClassName": "com.gamecenter.app.games.match.MatchActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "基础关卡",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "进阶关卡",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "交换位置",
+        "description": "滑动交换相邻元素的位置",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "match_board",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "三连消除",
+        "description": "三个或以上相同元素连成一线即可消除",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "score_500",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 500,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "combo_5",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SPECIAL",
+        "threshold": 5,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "5连击"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "blackjack",
+    "name": "21点",
+    "type": "CARD",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "经典纸牌游戏21点",
+    "activityClassName": "com.gamecenter.app.games.blackjack.BlackjackActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "标准规则",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "要牌或停牌",
+        "description": "选择要牌继续或停牌结算",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "接近21点",
+        "description": "手牌总和尽量接近21点但不能超过",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_win",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已胜利 %d/%d 局"
+      },
+      {
+        "key": "blackjack",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "获得天然21点"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "tiles",
+    "name": "别踩白块",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "快速点击黑块",
+    "activityClassName": "com.gamecenter.app.games.tiles.TilesActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "速度较慢",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准速度",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "高速模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "点击黑块",
+        "description": "快速点击从上方落下的黑块",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      }
+    ],
+    "achievements": [
+      {
+        "key": "score_50",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 50,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "score_100",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 100,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "pipeline",
+    "name": "接水管",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "连接管道益智游戏",
+    "activityClassName": "com.gamecenter.app.games.pipeline.PipelineActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "小棋盘",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "中棋盘",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "旋转管道",
+        "description": "点击管道旋转方向",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "连接管道",
+        "description": "将所有管道正确连接，让水流通过",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_clear",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次通关"
+      },
+      {
+        "key": "levels_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "WIN_COUNT",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "已通关 %d/%d 关"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "breakout",
+    "name": "打砖块",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "经典弹球打砖块",
+    "activityClassName": "com.gamecenter.app.games.breakout.BreakoutActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "球速较慢",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准球速",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "快速球，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "控制挡板",
+        "description": "左右滑动控制底部挡板",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "paddle",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "弹球消砖",
+        "description": "用球弹射消除上方所有砖块",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "first_clear",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "WIN_COUNT",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "首次通关"
+      },
+      {
+        "key": "score_1000",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 1000,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "flappy",
+    "name": "Flappy Bird",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "小鸟飞行挑战",
+    "activityClassName": "com.gamecenter.app.games.flappy.FlappyActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "管道间距较大",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准间距",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "点击飞行",
+        "description": "点击屏幕让小鸟上升",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "穿过管道",
+        "description": "控制小鸟穿过管道之间的缝隙",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "score_10",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 10,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "score_30",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 30,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "score_50",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SCORE",
+        "threshold": 50,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "plane",
+    "name": "飞机大战",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "经典射击游戏",
+    "activityClassName": "com.gamecenter.app.games.plane.PlaneActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "敌人较少",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准敌人数量",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "大量敌人，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "移动飞机",
+        "description": "滑动控制飞机移动",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "game_area",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "射击敌人",
+        "description": "飞机会自动射击，消灭敌人得分",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "score_1000",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "SCORE",
+        "threshold": 1000,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "score_5000",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 5000,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "得分 %d/%d"
+      },
+      {
+        "key": "boss_killer",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "GOLD",
+        "conditionType": "SPECIAL",
+        "threshold": 1,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "击败Boss"
+      }
+    ],
+    "rulesResId": 0
+  },
+  {
+    "gameId": "brotato",
+    "name": "生存射击",
+    "type": "CASUAL",
+    "priority": "P2",
+    "hasAI": false,
+    "description": "击败敌人获取金币升级",
+    "activityClassName": "com.gamecenter.app.games.brotato.BrotatoActivity",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "isBuiltIn": true,
+    "difficultyLevels": [
+      {
+        "name": "简单",
+        "level": 1,
+        "description": "敌人较少较弱",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.3,
+        "isDefault": true
+      },
+      {
+        "name": "普通",
+        "level": 2,
+        "description": "标准难度",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.6,
+        "isDefault": false
+      },
+      {
+        "name": "困难",
+        "level": 3,
+        "description": "大量强敌，挑战模式",
+        "aiSearchDepth": 0,
+        "aiResponseDelayMs": 0,
+        "difficultyFactor": 0.9,
+        "isDefault": false
+      }
+    ],
+    "tutorialSteps": [
+      {
+        "stepNumber": 1,
+        "title": "移动角色",
+        "description": "使用虚拟摇杆移动角色",
+        "highlightType": "VIEW_ID",
+        "targetViewId": "game_area",
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": true,
+        "animationType": "fade",
+        "autoPlayDurationMs": 0
+      },
+      {
+        "stepNumber": 2,
+        "title": "自动射击",
+        "description": "武器会自动攻击最近的敌人",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      },
+      {
+        "stepNumber": 3,
+        "title": "升级武器",
+        "description": "击败敌人获取金币，在商店中升级武器",
+        "highlightType": "NONE",
+        "targetViewId": 0,
+        "shape": "ROUNDED_RECT",
+        "arrowDirection": "NONE",
+        "waitForAction": false,
+        "animationType": "fade",
+        "autoPlayDurationMs": 3000
+      }
+    ],
+    "achievements": [
+      {
+        "key": "survive_60s",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "BRONZE",
+        "conditionType": "TIME",
+        "threshold": 60,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "存活 %d/%d 秒"
+      },
+      {
+        "key": "survive_180s",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "TIME",
+        "threshold": 180,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "存活 %d/%d 秒"
+      },
+      {
+        "key": "kill_100",
+        "nameResId": 0,
+        "descriptionResId": 0,
+        "level": "SILVER",
+        "conditionType": "SCORE",
+        "threshold": 100,
+        "hidden": false,
+        "iconResId": 0,
+        "progressFormat": "击杀 %d/%d 个敌人"
+      }
+    ],
+    "rulesResId": 0
+  }
+]

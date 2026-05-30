@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 记忆翻牌基础信息 -->
+    <string name="game_memory_name">记忆翻牌</string>
+    <string name="game_memory_desc">翻开卡牌找到所有配对</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_memory_press_start">点击开始按钮开始游戏</string>
+    <string name="game_memory_start">开始游戏</string>
+    <string name="game_memory_playing">翻开两张卡牌进行配对</string>
+    <string name="game_memory_congratulations">恭喜通关！用了%d步，耗时%d秒</string>
+    <string name="game_memory_play_again">再玩一次</string>
+    <string name="game_memory_stats">步数：%d | 配对：%d/%d | 时间：%d秒</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_memory_rules_title">记忆翻牌规则</string>
+    <string name="game_memory_rules_content">
+        1. 棋盘上有8对共16张卡牌\n
+        2. 点击翻开一张卡牌，显示其图案\n
+        3. 再翻开一张，如果图案相同则配对成功\n
+        4. 图案不同则两张翻回背面\n
+        5. 找出所有配对即为通关\n
+        6. 尽量用最少的步数完成挑战
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_memory_ach_first_complete">初次记忆</string>
+    <string name="game_memory_ach_first_complete_desc">首次完成记忆翻牌</string>
+    <string name="game_memory_ach_12_steps">神速记忆</string>
+    <string name="game_memory_ach_12_steps_desc">在12步内完成通关</string>
+    <string name="game_memory_ach_30_seconds">闪电记忆</string>
+    <string name="game_memory_ach_30_seconds_desc">在30秒内完成通关</string>
+    <string name="game_memory_ach_no_mistake">完美记忆</string>
+    <string name="game_memory_ach_no_mistake_desc">无失误通关（无翻错）</string>
+    <string name="game_memory_ach_master">记忆大师</string>
+    <string name="game_memory_ach_master_desc">累计完成10次通关</string>
+</resources>

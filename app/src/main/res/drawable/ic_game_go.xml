@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 棋盘背景 -->
+    <path
+        android:pathData="M6,6L42,6L42,42L6,42Z"
+        android:fillColor="#DEB887"
+        android:strokeColor="#5B4A2F"
+        android:strokeWidth="1.5" />
+    <!-- 网格线（简化为5条） -->
+    <path android:pathData="M14,6L14,42" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M22,6L22,42" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M30,6L30,42" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M38,6L38,42" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M6,14L42,14" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M6,22L42,22" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M6,30L42,30" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <path android:pathData="M6,38L42,38" android:strokeColor="#5B4A2F" android:strokeWidth="1" />
+    <!-- 星位 -->
+    <path android:pathData="M14,14m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" android:fillColor="#5B4A2F" />
+    <path android:pathData="M30,14m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" android:fillColor="#5B4A2F" />
+    <path android:pathData="M22,22m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" android:fillColor="#5B4A2F" />
+    <path android:pathData="M14,30m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" android:fillColor="#5B4A2F" />
+    <path android:pathData="M30,30m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" android:fillColor="#5B4A2F" />
+    <!-- 黑棋 -->
+    <path android:pathData="M22,14m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0"
+        android:fillColor="#1A1A1A" android:strokeColor="#0A0A0A" android:strokeWidth="0.5" />
+    <!-- 白棋 -->
+    <path android:pathData="M30,22m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0"
+        android:fillColor="#F5F0E8" android:strokeColor="#C0C0C0" android:strokeWidth="1" />
+    <!-- 黑棋 -->
+    <path android:pathData="M14,30m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0"
+        android:fillColor="#1A1A1A" android:strokeColor="#0A0A0A" android:strokeWidth="0.5" />
+    <!-- 白棋 -->
+    <path android:pathData="M30,38m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0"
+        android:fillColor="#F5F0E8" android:strokeColor="#C0C0C0" android:strokeWidth="1" />
+</vector>

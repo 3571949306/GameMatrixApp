@@ -22,7 +22,7 @@ class ModuleShellFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        moduleId = arguments?.getString(ARG_MODULE_ID)
+        moduleId = arguments?.getString(ARG_MODULE_ID) ?: inferModuleIdFromTag()
     }
 
     private fun installModuleFragmentFactory() {
@@ -61,7 +61,7 @@ class ModuleShellFragment : Fragment() {
     }
 
     private fun loadOrShowPlaceholder(container: FrameLayout) {
-        val id = moduleId ?: return
+        val id = moduleId ?: inferModuleIdFromTag()?.also { moduleId = it } ?: return
         val ctx = context ?: return
         if (featureLoaded && childFragmentManager.findFragmentById(container.id) != null) {
             return
@@ -115,5 +115,16 @@ class ModuleShellFragment : Fragment() {
 
     companion object {
         const val ARG_MODULE_ID = "module_id"
+    }
+
+    private fun inferModuleIdFromTag(): String? {
+        return when (tag) {
+            "fragment-${R.id.navigation_games}" -> "games_hall"
+            "fragment-${R.id.navigation_browser}" -> "browser"
+            "fragment-${R.id.navigation_tools}" -> "tools"
+            "fragment-${R.id.navigation_ai}" -> "ai"
+            "fragment-${R.id.navigation_vpn}" -> "vpn"
+            else -> null
+        }
     }
 }

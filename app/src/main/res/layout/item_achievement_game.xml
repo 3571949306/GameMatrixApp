@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginBottom="8dp"
+    android:background="@color/eye_care_card"
+    android:elevation="1dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 游戏摘要行 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <!-- 游戏图标 -->
+        <ImageView
+            android:id="@+id/iv_game_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/icon_desc"
+            tools:src="@drawable/ic_snake" />
+
+        <!-- 游戏信息 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/tv_game_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="@color/eye_care_text_primary"
+                android:textStyle="bold"
+                tools:text="贪吃蛇" />
+
+            <TextView
+                android:id="@+id/tv_achievement_summary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="12sp"
+                android:textColor="@color/eye_care_text_secondary"
+                tools:text="已解锁 2 / 5" />
+        </LinearLayout>
+
+        <!-- 进度百分比 -->
+        <TextView
+            android:id="@+id/tv_progress_percent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@color/brand_primary"
+            android:textStyle="bold"
+            tools:text="40%" />
+
+        <!-- 展开箭头 -->
+        <ImageView
+            android:id="@+id/iv_expand_arrow"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:src="@android:drawable/arrow_down_float"
+            android:contentDescription="@string/navigate_next"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- 进度条 -->
+    <ProgressBar
+        android:id="@+id/progress_game"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@android:drawable/progress_horizontal" />
+
+    <!-- 展开的成就列表（默认隐藏） -->
+    <LinearLayout
+        android:id="@+id/layout_achievement_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:background="@color/eye_care_bg" />
+
+</LinearLayout>

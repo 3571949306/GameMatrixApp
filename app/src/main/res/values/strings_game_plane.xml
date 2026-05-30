@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 飞机大战基础信息 -->
+    <string name="game_plane_name">飞机大战</string>
+    <string name="game_plane_desc">控制飞机射击敌人</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_plane_rules_title">飞机大战规则</string>
+    <string name="game_plane_rules_content">
+        1. 滑动手指控制飞机左右移动\n
+        2. 飞机自动发射子弹\n
+        3. 子弹击中敌机得分\n
+        4. 被敌机碰到会失去一条命（共3条）\n
+        5. 敌机飞出屏幕底部也会扣命\n
+        6. 随着波次递增，敌机更多更快
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_plane_ach_first_kill">初次击毁</string>
+    <string name="game_plane_ach_first_kill_desc">首次击毁敌机</string>
+    <string name="game_plane_ach_score_100">空中战士</string>
+    <string name="game_plane_ach_score_100_desc">单局得分达到100分</string>
+    <string name="game_plane_ach_score_500">空中王牌</string>
+    <string name="game_plane_ach_score_500_desc">单局得分达到500分</string>
+    <string name="game_plane_ach_wave_3">波次挑战</string>
+    <string name="game_plane_ach_wave_3_desc">达到波次3</string>
+    <string name="game_plane_ach_10_games">飞机大战达人</string>
+    <string name="game_plane_ach_10_games_desc">累计完成10局飞机大战</string>
+</resources>

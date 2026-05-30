@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id 'com.google.devtools.ksp'
+    id 'org.jetbrains.kotlin.kapt'
     id 'com.google.dagger.hilt.android'
 }
 
@@ -162,7 +162,7 @@ android {
                 storePassword props['STORE_PASSWORD']
                 keyAlias props['KEY_ALIAS']
                 keyPassword props['KEY_PASSWORD']
-                // 启用 v1 和 v2 签名方案
+                // 启用 v1 �?v2 签名方案
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -177,6 +177,12 @@ android {
         versionName currentVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         resConfigs "zh-rCN", "en"
+
+        // 模块系统配置（T08：框�?APK 体积优化�?
+        buildConfigField "boolean", "ENABLE_MODULE_SYSTEM", "true"
+        buildConfigField "String", "MODULE_CACHE_DIR", '"modules"'
+        buildConfigField "int", "MAX_MODULE_CACHE_SIZE", "200"
+
         buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
@@ -184,6 +190,14 @@ android {
         buildConfigField "String", "RELAY_URL", toJavaStringLiteral(configuredRelayUrl ?: "https://your-server.example.com/api/ddz-relay")
         buildConfigField "String", "WS_URL", toJavaStringLiteral(configuredWsUrl ?: "")
         buildConfigField "String", "FEEDBACK_URL", toJavaStringLiteral(configuredFeedbackUrl ?: "https://your-server.example.com/api/feedback")
+
+        // Derived from SERVER_URL — eliminates hardcoded server URLs in source code
+        def _serverBase = configuredServerUrl ?: "https://your-server.example.com"
+        buildConfigField "String", "MODULES_URL", toJavaStringLiteral(_serverBase + "/modules.json")
+        buildConfigField "String", "DOWNLOAD_BASE_URL", toJavaStringLiteral(_serverBase + "/modules/")
+        buildConfigField "String", "MODULE_HOST", "\"${new URI(_serverBase).getHost()}\""
+        buildConfigField "String", "MODULE_FALLBACK_HOST", "\"${new URI(configuredServerUrlFallback ?: _serverBase).getHost()}\""
+        buildConfigField "String", "GITHUB_RELEASES_URL", toJavaStringLiteral("https://github.com/3571949306/GameMatrixApp/releases")
     }
 
     aaptOptions {
@@ -191,12 +205,26 @@ android {
         noCompress 'webp'
     }
 
+    // T08: APK 体积优化 - ABI 拆分（减�?Native 库体积约 75%�?
+    splits {
+        abi {
+            enable true
+            reset()
+            // 仅保�?arm64-v8a（现代设备，占比 >95%�?
+            include "arm64-v8a"
+            universalApk false
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            // T08: 启用 R8 全模式优化（框架 APK 体积优化�?
+            minifyEnabled true
+            shrinkResources true  // 启用资源收缩
+            
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // 只有在 keystore 存在时才应用签名配置
+            
+            // 只有�?keystore 存在时才应用签名配置
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
             }
@@ -242,6 +270,8 @@ android {
 // ============================================================
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
     implementation project(':core:common')
     implementation project(':core:network')
     implementation project(':core:update')
@@ -249,12 +279,18 @@ dependencies {
     implementation project(':core:security')
     // Phase 2: 模块宿主框架
     implementation project(':core:module-host')
-    // TODO: 联机游戏模块存在依赖问题，暂时注释掉
-    // implementation project(':feature:games')
+    // Phase 2: 模块加载引擎
+    implementation project(':core:moduleloader')
+    // Phase 2: 模块商店
+    implementation project(':core:modulestore')
+    // ZIP game packages are lightweight unlock/download artifacts; the runnable
+    // game implementations are compiled into the host and gated by install state.
+    implementation project(':module-store:feature:games:games')
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.navigation:navigation-fragment:2.8.9'
     implementation 'androidx.navigation:navigation-ui:2.8.9'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
@@ -265,14 +301,18 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     implementation 'com.google.mediapipe:tasks-genai:0.10.27'
-    ksp 'com.github.bumptech.glide:ksp:4.16.0'
+    kapt 'com.github.bumptech.glide:compiler:4.16.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20250107'
     testImplementation 'org.mockito:mockito-core:5.15.2'
+    // Robolectric for Android unit tests
+    testImplementation 'org.robolectric:robolectric:4.16.1'
     testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.2.21'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.0.21'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    // AndroidX Test frameworks (for @SmallTest, @MediumTest, @LargeTest)
+    testImplementation 'androidx.test:runner:1.6.2'
     
     // AndroidX Test and Espresso
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
@@ -284,7 +324,8 @@ dependencies {
     androidTestImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
     
     // Kotlin
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:2.0.21'
     implementation 'androidx.core:core-ktx:1.15.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
@@ -293,12 +334,12 @@ dependencies {
     
     // Hilt Dependency Injection
     implementation 'com.google.dagger:hilt-android:2.57.2'
-    ksp 'com.google.dagger:hilt-compiler:2.57.2'
+    kapt 'com.google.dagger:hilt-compiler:2.57.2'
     
     // Room Database
     implementation "androidx.room:room-runtime:2.7.1"
     implementation "androidx.room:room-ktx:2.7.1"
-    ksp "androidx.room:room-compiler:2.7.1"
+    kapt "androidx.room:room-compiler:2.7.1"
     
     // LeakCanary for debug builds only
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
@@ -311,14 +352,14 @@ dependencies {
         implementation('com.squareup.okio:okio:3.10.2') {
             because 'CVE-2023-3635 - force latest Okio'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.2.21') {
+        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.0.21') {
             because 'CVE-2020-29582 fixed since 1.4.30; align with project Kotlin version'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.21') {
-            because 'align with kotlin-stdlib 2.2.21'
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21') {
+            because 'align with kotlin-stdlib 2.0.21'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.21') {
-            because 'align with kotlin-stdlib 2.2.21'
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21') {
+            because 'align with kotlin-stdlib 2.0.21'
         }
         implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1') {
             because 'fix known coroutines vulnerabilities'
@@ -437,9 +478,9 @@ task uploadApkToGitHubRelease {
 // - Do not change versionName for routine beta uploads; versionCode bumps automatically.
 //
 // 双版本分发说明：
-// - Beta 通道（默认）：仅上传到 VPS，供开启"接受测试版"的用户下载
-// - Stable/Release 通道：同时上传到 VPS 和 GitHub Releases
-// - App 下载优先级：香港 VPS（主）→ GitHub Releases（备用1）→ 美国 VPS（备用2）
+// - Beta 通道（默认）：仅上传�?VPS，供开�?接受测试�?的用户下�?
+// - Stable/Release 通道：同时上传到 VPS �?GitHub Releases
+// - App 下载优先级：香港 VPS（主）→ GitHub Releases（备�?）→ 美国 VPS（备�?�?
 task uploadReleaseToVps {
     group = "publishing"
     description = "Build release APK, generate version.json, and upload both files to the update VPS"
@@ -514,4 +555,3 @@ task packageAppClasses(type: Jar) {
     from("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
     from("${buildDir}/tmp/kotlin-classes/debug")
 }
-

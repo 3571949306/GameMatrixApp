@@ -11,8 +11,8 @@ import java.util.concurrent.TimeUnit
  * 使用证书固定（Certificate Pinning）确保 App 只与已知的合法服务器通信，
  * 防止中间人攻击（MITM）篡改模块分发文件。
  *
- * 如何获取证书指纹：
- *   openssl s_client -connect hk-update.tcp0053.shop:443 | openssl x509 -pubkey -noout |
+ * 如何获取证书指纹（将 YOUR_SERVER 替换为实际服务器域名）：
+ *   openssl s_client -connect YOUR_SERVER:443 | openssl x509 -pubkey -noout |
  *   openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | base64
  */
 object SecureOkHttpFactory {
@@ -28,13 +28,22 @@ object SecureOkHttpFactory {
      * - 同时保留至少 2 个有效指纹（当前 + 备用）。
      */
     private val MODULE_SERVER_PINS = arrayOf(
-        "sha256/HeIT3BL0oFGKkDHVuCa8tk99aeVwsuR9z0QxavMzL98=", // hk-update.tcp0053.shop Leaf Cert
+        "sha256/HeIT3BL0oFGKkDHVuCa8tk99aeVwsuR9z0QxavMzL98=", // 模块服务器 Leaf Cert
         "sha256/kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=", // Intermediate Cert
         "sha256/mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c="  // Root Cert
     )
 
-    private const val MODULE_HOST = "hk-update.tcp0053.shop"
-    private const val FALLBACK_HOST = "tcp0053.shop"
+    /** 运行时通过 setHosts() 注入实际服务器域名 */
+    @Volatile private var MODULE_HOST: String = "your-server.example.com"
+    @Volatile private var FALLBACK_HOST: String = "fallback.example.com"
+
+    /**
+     * 由 app 模块在初始化时调用，注入实际服务器域名。
+     */
+    fun setHosts(moduleHost: String, fallbackHost: String) {
+        MODULE_HOST = moduleHost
+        FALLBACK_HOST = fallbackHost
+    }
 
     /**
      * 构建用于下载模块的 OkHttpClient（带证书固定）。

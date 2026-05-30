@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="16dp"
+    android:background="@color/eye_care_card">
+
+    <!-- 圆角卡片容器 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/achievement_card_bg"
+        android:padding="16dp">
+
+        <!-- 成就图标 -->
+        <ImageView
+            android:id="@+id/iv_achievement_icon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/achievement_unlocked"
+            tools:src="@android:drawable/ic_dialog_info" />
+
+        <!-- 成就信息区域 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <!-- 成就名称 -->
+            <TextView
+                android:id="@+id/tv_achievement_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#2D2D2D"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="初次胜利" />
+
+            <!-- 成就描述 -->
+            <TextView
+                android:id="@+id/tv_achievement_desc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="赢得第一场游戏" />
+        </LinearLayout>
+
+        <!-- 成就级别标签 -->
+        <TextView
+            android:id="@+id/tv_achievement_level"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:textSize="12sp"
+            android:textColor="@android:color/white"
+            android:background="@color/brand_primary"
+            android:textStyle="bold"
+            tools:text="入门" />
+    </LinearLayout>
+
+</LinearLayout>

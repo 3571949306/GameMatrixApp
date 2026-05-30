@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.gamecenter.app.ai'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.gamecenter.app.ai"
+        minSdk 26
+        targetSdk 35
+        versionCode 100
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    compileOnly project(':core:common')
+    compileOnly project(':core:network')
+    compileOnly files("${project.rootDir}/app/build/libs/app-classes.jar")
+    compileOnly files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
+    compileOnly 'androidx.room:room-runtime:2.6.1'
+
+    compileOnly 'androidx.appcompat:appcompat:1.7.1'
+    compileOnly 'com.google.android.material:material:1.12.0'
+    compileOnly 'androidx.recyclerview:recyclerview:1.4.0'
+    compileOnly 'androidx.fragment:fragment-ktx:1.5.0'
+    compileOnly 'com.google.mediapipe:tasks-genai:0.10.27'
+    compileOnly 'androidx.security:security-crypto:1.0.0'
+    compileOnly 'com.google.code.gson:gson:2.11.0'
+    compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
+}
+
+tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {
+    dependsOn(":app:packageAppClasses", ":app:processDebugResources")
+}

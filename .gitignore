@@ -51,6 +51,37 @@ app/gamecenter.keystore
 *.keystore
 *.jks
 
-# Other project data (not related to GameCenterApp)
-/data/
+# Local tool downloads (jadx, etc.)
+工具/
+.history/
+
+# ============================================================
+# Server configs, deploy scripts & deployment artifacts
+# (sensitive - kept locally in .server/ and ignored)
+.server/
+服务器部署/
+模块商店/
+
+# ============================================================
+# Upload templates / output
+/uploads/
+.uploads/
+
+# ============================================================
+# Python / Node artifacts
+**/__pycache__/
+*.pyc
+*.pyo
+node_modules/
+
+# ============================================================
+# Decompiled APK temporary files
+apk_temp/
+com.injoy.games.crazy.poker/
+
+# ============================================================
+# OS files
+.DS_Store
+Thumbs.db
+
 

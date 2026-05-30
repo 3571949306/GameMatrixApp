@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 棋盘外框 -->
+    <path
+        android:pathData="M8,6L40,6L40,42L8,42Z"
+        android:fillColor="#E8E0D0"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="2" />
+    <!-- 曹操（红色大方块） -->
+    <path
+        android:pathData="M18,8L30,8L30,22L18,22Z"
+        android:fillColor="#C44536"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 竖将（绿色） -->
+    <path
+        android:pathData="M9,8L17,8L17,22L9,22Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 竖将（绿色） -->
+    <path
+        android:pathData="M31,8L39,8L39,22L31,22Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 横将（绿色） -->
+    <path
+        android:pathData="M9,23L23,23L23,31L9,31Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 横将（绿色） -->
+    <path
+        android:pathData="M25,23L39,23L39,31L25,31Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 士兵（棕色小方块） -->
+    <path
+        android:pathData="M9,32L17,32L17,41L9,41Z"
+        android:fillColor="#8B7355"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <path
+        android:pathData="M18,32L26,32L26,41L18,41Z"
+        android:fillColor="#8B7355"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <path
+        android:pathData="M27,32L35,32L35,41L27,41Z"
+        android:fillColor="#8B7355"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+</vector>

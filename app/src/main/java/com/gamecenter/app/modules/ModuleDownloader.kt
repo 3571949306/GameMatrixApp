@@ -293,6 +293,12 @@ object ModuleDownloader {
             Log.d(TAG, "重命名临时文件: $renamed (${tempFile.name} -> ${targetFile.name})")
         }
 
+        if (targetFile.exists() && targetFile.extension.equals("apk", ignoreCase = true)) {
+            targetFile.setWritable(false, false)
+            targetFile.setReadOnly()
+            Log.d(TAG, "模块 APK 已设置为只读: ${targetFile.name}")
+        }
+
         notifyProgress(moduleId, downloaded, downloaded, 0)
         return targetFile
     }

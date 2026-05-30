@@ -26,17 +26,17 @@ class RecoveryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_recovery)
+        setContentView(R.layout.activity_recovery_modern)
 
-        statusText = findViewById(R.id.recoveryStatusText)
-        progressBar = findViewById(R.id.recoveryProgressBar)
-        progressText = findViewById(R.id.recoveryProgressText)
-        sourceText = findViewById(R.id.recoverySourceText)
-        errorText = findViewById(R.id.recoveryErrorText)
-        downloadBtn = findViewById(R.id.recoveryDownloadBtn)
-        installBtn = findViewById(R.id.recoveryInstallBtn)
-        retryBtn = findViewById(R.id.recoveryRetryBtn)
-        cancelBtn = findViewById(R.id.recoveryCancelBtn)
+        statusText = findViewById(R.id.tv_recovery_status)
+        progressBar = findViewById(R.id.progress_recovery)
+        progressText = findViewById(R.id.tv_recovery_progress)
+        sourceText = findViewById(R.id.tv_recovery_source)
+        errorText = findViewById(R.id.tv_recovery_error)
+        downloadBtn = findViewById(R.id.btn_recovery_download)
+        installBtn = findViewById(R.id.btn_recovery_install)
+        retryBtn = findViewById(R.id.btn_recovery_retry)
+        cancelBtn = findViewById(R.id.btn_recovery_cancel)
 
         downloadBtn.setOnClickListener { startDownload() }
         installBtn.setOnClickListener { installDownloadedApk() }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 五子棋游戏字符串资源（成就和教程补充） -->
+<resources>
+    <!-- 成就 -->
+    <string name="gomoku_ach_first_win_name">五子初胜</string>
+    <string name="gomoku_ach_first_win_desc">第一次战胜 AI</string>
+    <string name="gomoku_ach_win_10_name">五子达人</string>
+    <string name="gomoku_ach_win_10_desc">累计胜利 10 局</string>
+    <string name="gomoku_ach_win_50_name">五子宗师</string>
+    <string name="gomoku_ach_win_50_desc">累计胜利 50 局</string>
+    <string name="gomoku_ach_streak_3_name">连胜三局</string>
+    <string name="gomoku_ach_streak_3_desc">连续胜利 3 局</string>
+    <string name="gomoku_ach_streak_5_name">连胜五局</string>
+    <string name="gomoku_ach_streak_5_desc">连续胜利 5 局</string>
+    <string name="gomoku_ach_master_win_name">大师克星</string>
+    <string name="gomoku_ach_master_win_desc">在大师难度下战胜 AI</string>
+
+    <!-- 教程 -->
+    <string name="gomoku_tutorial_step1_title">落子位置</string>
+    <string name="gomoku_tutorial_step1_desc">点击棋盘上的交叉点放置棋子。黑方先行，双方轮流落子。</string>
+    <string name="gomoku_tutorial_step2_title">五子连珠</string>
+    <string name="gomoku_tutorial_step2_desc">先将五颗同色棋子连成一条直线（横、竖或斜）的一方获胜。</string>
+    <string name="gomoku_tutorial_step3_title">攻防兼顾</string>
+    <string name="gomoku_tutorial_step3_desc">既要尝试形成自己的五子连珠，也要阻止对手形成五子连珠。</string>
+    <string name="gomoku_tutorial_step4_title">难度挑战</string>
+    <string name="gomoku_tutorial_step4_desc">选择不同难度挑战 AI。从简单开始，逐步提升到大师级别！</string>
+</resources>

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.DynamicGameActivity
 import com.gamecenter.app.R
 import com.gamecenter.app.core.common.FeatureModule
@@ -25,7 +26,7 @@ object ModuleManager {
     private const val KEY_MODULES_LIST_VERSION = "modules_list_version"
     private const val KEY_MODULES_LIST_JSON = "modules_list_json"
 
-    private const val MODULES_URL = "https://hk-update.tcp0053.shop/modules.json"
+    private val MODULES_URL: String get() = BuildConfig.MODULES_URL
 
     private val manifests = ConcurrentHashMap<String, ModuleManifest>()
     private val downloadCallbacks = ConcurrentHashMap<String, ModuleDownloader.Callback>()
@@ -332,7 +333,7 @@ object ModuleManager {
                 fileName = "feature_vpn_v100_v2.apk",
                 fileSize = 661544,
                 sha256 = "222b57edf262c23dd71752ba8ba52933c2ffe78cb1035fab48b00ce56d207bae",
-                downloadUrl = "https://hk-update.tcp0053.shop/modules/feature_vpn_v100_v2.apk",
+                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "feature_vpn_v100_v2.apk",
                 type = "nav", storeCategory = "vpn",
                 builtIn = false, isBaseFramework = false, iconUrl = ""
             ),
@@ -345,7 +346,7 @@ object ModuleManager {
                 fileName = "feature_game2048_v100.apk",
                 fileSize = 0,
                 sha256 = "",
-                downloadUrl = "https://hk-update.tcp0053.shop/modules/feature_game2048_v100.apk",
+                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "feature_game2048_v100.apk",
                 type = "game", storeCategory = "game",
                 gameId = "game_2048", gameCategory = "puzzle",
                 gameDesc = "经典数字合并游戏",

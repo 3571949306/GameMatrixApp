@@ -1,51 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="?attr/colorSurface">
 
-    <!-- Icon skeleton -->
+    <!-- 图标骨架 -->
     <View
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="#E0E0E0" />
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <!-- Title skeleton -->
-        <View
-            android:layout_width="120dp"
-            android:layout_height="16dp"
-            android:layout_marginBottom="8dp"
-            android:background="#E0E0E0" />
-
-        <!-- Description skeleton -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="12dp"
-            android:layout_marginBottom="4dp"
-            android:background="#E0E0E0" />
-            
-        <!-- Description skeleton line 2 -->
-        <View
-            android:layout_width="200dp"
-            android:layout_height="12dp"
-            android:background="#E0E0E0" />
-
-    </LinearLayout>
-
-    <!-- Button skeleton -->
-    <View
+        android:id="@+id/skeletonIcon"
         android:layout_width="64dp"
-        android:layout_height="32dp"
-        android:layout_marginStart="16dp"
-        android:layout_gravity="center_vertical"
-        android:background="#E0E0E0" />
+        android:layout_height="64dp"
+        android:background="@drawable/skeleton_background"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-</LinearLayout>
+    <!-- 标题骨架 -->
+    <View
+        android:id="@+id/skeletonTitle"
+        android:layout_width="0dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/skeleton_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/skeletonIcon"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- 副标题骨架 -->
+    <View
+        android:id="@+id/skeletonSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="14dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/skeleton_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/skeletonIcon"
+        app:layout_constraintTop_toBottomOf="@id/skeletonTitle" />
+
+    <!-- 描述行1骨架 -->
+    <View
+        android:id="@+id/skeletonDesc1"
+        android:layout_width="0dp"
+        android:layout_height="12dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/skeleton_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/skeletonIcon" />
+
+    <!-- 描述行2骨架 -->
+    <View
+        android:id="@+id/skeletonDesc2"
+        android:layout_width="0dp"
+        android:layout_height="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/skeleton_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/skeletonDesc1" />
+
+    <!-- 按钮骨架 -->
+    <View
+        android:id="@+id/skeletonButton"
+        android:layout_width="88dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/skeleton_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/skeletonDesc2" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

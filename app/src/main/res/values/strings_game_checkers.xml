@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 跳棋基础信息 -->
+    <string name="game_checkers_name">跳棋</string>
+    <string name="game_checkers_desc">经典跳棋，跳过吃子对战AI</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_checkers_select_difficulty">选择难度开始游戏</string>
+    <string name="game_checkers_your_turn">你的回合，选择棋子移动</string>
+    <string name="game_checkers_ai_turn">AI 思考中…</string>
+    <string name="game_checkers_you_win">恭喜你获胜了！</string>
+    <string name="game_checkers_ai_win">AI 获胜，再接再厉！</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_checkers_rules_title">跳棋规则</string>
+    <string name="game_checkers_rules_content">
+        1. 8×8棋盘，你执黑棋在下方，AI执白棋在上方\n
+        2. 黑棋只能向斜上方移动，白棋向斜下方\n
+        3. 普通棋子每次斜移一格\n
+        4. 跳过对方棋子即可吃子，可连续跳吃\n
+        5. 必须跳吃（有跳吃时不能走普通步）\n
+        6. 棋子到达对方底线升为王，可斜向四方向移动\n
+        7. 吃光对方所有棋子或让对方无棋可走即获胜
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_checkers_ach_first_win">首战告捷</string>
+    <string name="game_checkers_ach_first_win_desc">在跳棋中获得首次胜利</string>
+    <string name="game_checkers_ach_streak3">三连胜</string>
+    <string name="game_checkers_ach_streak3_desc">连续赢得3局跳棋</string>
+    <string name="game_checkers_ach_captures">吃子大师</string>
+    <string name="game_checkers_ach_captures_desc">单局吃子超过5个</string>
+    <string name="game_checkers_ach_beat_hard">棋艺超群</string>
+    <string name="game_checkers_ach_beat_hard_desc">击败困难AI</string>
+    <string name="game_checkers_ach_all_captured">全歼敌军</string>
+    <string name="game_checkers_ach_all_captured_desc">吃掉对手所有棋子获胜</string>
+</resources>

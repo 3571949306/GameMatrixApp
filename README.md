@@ -19,6 +19,20 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 - **Bug Fixes**: `games_hall` module corrected to show as `builtIn` in the initial APK. Module download SHA-256 verification fixed -- all VPS files now match `modules.json`.
 - **Version info**: `modules.json` version 11.
 
+## 2026-05-29 Documentation Sync
+
+- **文档版本同步**: 更新6个核心文档（README.md, PROJECT_CONTEXT.md, CHANGELOG.md, AI_ONBOARDING.md, 项目改进建议书.md, game_center_app_ai_roadmap.md）使版本号与 `version.properties` 同步
+- **版本信息**: `versionCode=400`, `versionName=1.4.0`, 包名 `com.gamecenter.app`
+- **Gradle 工具链**: AGP 8.13.2, Kotlin 2.0.21, Hilt 2.57.2
+- **路线图更新**: 标记阶段5（本地模型）为已完成
+- **测试覆盖核实**: 11个测试文件，100+个测试用例
+
+## 2026-05-27 Maintenance Snapshot
+
+- **版本号更新**: `versionCode` 从 343 升至 400，`versionName` 保持 `1.4.0`。
+- **Gradle 工具链升级**: AGP 从 8.7.3 升级至 8.13.2，Kotlin 保持 2.0.21，Hilt 升级至 2.57.2。
+- **模块系统增强**: 模块加载框架持续优化，支持更多游戏模块的动态加载。
+
 ## 2026-05-25 Maintenance Snapshot
 
 - **Modularization and Dynamic Loading**: Separated Chinese Chess (`chinesechess`) and Klotski (`klotski`) games into standalone dynamic APK modules. Implemented `ModuleResourceLoader` in `ModuleLoader` to load assets and drawables inside dynamic modules, fixing crashes caused by local dynamic resource inflation.

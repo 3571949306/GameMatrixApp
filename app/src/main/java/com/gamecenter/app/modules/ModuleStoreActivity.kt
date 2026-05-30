@@ -411,8 +411,19 @@ class ModuleStoreActivity : AppCompatActivity() {
             return
         }
 
-        if (module.type == "game" && module.activityClass.isNotEmpty()) {
-            Toast.makeText(this, "该游戏需要下载真实模块包，不能再通过钥匙解锁内置代码", Toast.LENGTH_SHORT).show()
+        if (module.type == "game" && ModuleManager.getHostGameActivityClassName(module.gameId.ifEmpty { module.id }) != null) {
+            ModuleManager.registerInstalledGameModules(this)
+            val intent = Intent(this, com.gamecenter.app.DynamicGameActivity::class.java)
+            intent.putExtra(com.gamecenter.app.DynamicGameActivity.EXTRA_GAME_ID, module.gameId.ifEmpty { module.id })
+            startActivity(intent)
+            return
+        }
+
+        if (module.type == "game" && ModuleManager.isModuleInstalled(this, module.id)) {
+            ModuleManager.registerInstalledGameModules(this)
+            val intent = Intent(this, com.gamecenter.app.DynamicGameActivity::class.java)
+            intent.putExtra(com.gamecenter.app.DynamicGameActivity.EXTRA_GAME_ID, module.gameId.ifEmpty { module.id })
+            startActivity(intent)
             return
         }
 
@@ -429,6 +440,11 @@ class ModuleStoreActivity : AppCompatActivity() {
                 Toast.makeText(this, "启动失败: ${e.message}", Toast.LENGTH_SHORT).show()
                 return
             }
+        }
+
+        if (module.activityClass.isNotEmpty()) {
+            Toast.makeText(this, "该游戏需要下载真实模块包", Toast.LENGTH_SHORT).show()
+            return
         }
 
         val instance = ModuleManager.loadModule(this, module.id)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- AI 图标：菱形 + 点 -->
+    <path
+        android:fillColor="@color/nav_icon_tint"
+        android:pathData="M12,2l-10,10 10,10 10,-10L12,2z M12,4.83L19.17,12 12,19.17 4.83,12 12,4.83z" />
+    <!-- 中心亮点 -->
+    <path
+        android:fillColor="@color/nav_icon_tint"
+        android:pathData="M11.25,11.25 a1.5,1.5 0 1,1 1.5,1.5 a1.5,1.5 0 1,1 -1.5,-1.5" />
+    <!-- 左上亮点 -->
+    <path
+        android:fillColor="@color/nav_icon_tint"
+        android:pathData="M8.5,9.5 a1,1 0 1,1 1,1 a1,1 0 1,1 -1,-1" />
+    <!-- 右上亮点 -->
+    <path
+        android:fillColor="@color/nav_icon_tint"
+        android:pathData="M14.5,9.5 a1,1 0 1,1 1,1 a1,1 0 1,1 -1,-1" />
+    <!-- 下方亮点 -->
+    <path
+        android:fillColor="@color/nav_icon_tint"
+        android:pathData="M11.25,14.25 a1,1 0 1,1 1,1 a1,1 0 1,1 -1,-1" />
+</vector>

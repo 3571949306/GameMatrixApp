@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_refresh"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="刷新"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_create_room"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="创建房间"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="设置"
+        app:showAsAction="never" />
+
+</menu>
