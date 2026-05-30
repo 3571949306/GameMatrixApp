@@ -4,7 +4,6 @@ import android.content.Context;
 import androidx.fragment.app.Fragment;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
-import com.gamecenter.app.games.GameRegistry;
 
 /**
  * TTS 语音合成模块入口（供模块商店和游戏大厅识别）。
@@ -19,26 +18,15 @@ public class TtsModuleEntryPoint implements ModuleInterface, FeatureModule {
     @Override
     public void start(Context context) {
         running = true;
-        // 在游戏大厅中注册入口卡片（category_key = "casual"归入休闲分类）
-        try {
-            GameRegistry.register(new GameRegistry.Entry(
-                    "tts_voice",
-                    0,                  // iconRes = 0，用代码绘制图标
-                    "语音合成实验室",
-                    "小米 MiMo TTS · 文字转语音 · 声音克隆",
-                    TtsActivity.class,
-                    "工具",
-                    GameRegistry.CATEGORY_CASUAL
-            ));
-        } catch (Exception ignored) {
-            // 已注册过则忽略
-        }
+        // 注意：不在 GameRegistry 中注册 Activity 类 ——
+        // 动态模块通过 DexClassLoader 加载的 Activity 无法被 Android 系统直接启动。
+        // TTS 使用 Fragment 模式，由 DynamicGameActivity 承载。
     }
 
     @Override
     public void stop() {
         running = false;
-        try { GameRegistry.unregister("tts_voice"); } catch (Exception ignored) {}
+        // 无需反注册（未注册到 GameRegistry）
     }
 
     @Override
@@ -57,5 +45,5 @@ public class TtsModuleEntryPoint implements ModuleInterface, FeatureModule {
     public boolean isRunning() { return running; }
 
     @Override
-    public Fragment createFragment(Context context) { return null; }
+    public Fragment createFragment(Context context) { return new TtsFragment(); }
 }
