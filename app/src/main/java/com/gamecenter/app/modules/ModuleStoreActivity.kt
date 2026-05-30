@@ -394,27 +394,22 @@ class ModuleStoreActivity : AppCompatActivity() {
         }
 
         // 有入口类的独立模块（如 TTS 语音合成等）
+        // 动态模块通过 DexClassLoader 加载，无法直接启动未经 Manifest 声明的 Activity。
+        // 若模块实现 FeatureModule 接口（返回 Fragment），则由 DynamicGameActivity 承载。
         if (module.type == "nav" && module.entryClass.isNotEmpty()) {
             ModuleManager.loadModule(this, module.id)
-            ModuleManager.startModule(this, module.id) // 先调用 start() 注册资源
+            ModuleManager.startModule(this, module.id)
 
-            // 如果设置了 activityClass，从模块 APK 的 DexClassLoader 启动 Activity
-            if (module.activityClass.isNotEmpty()) {
-                val moduleClassLoader = com.gamecenter.app.modules.ModuleLoader.getModuleClassLoader(module.id)
-                if (moduleClassLoader != null) {
-                    try {
-                        val activityClass = moduleClassLoader.loadClass(module.activityClass)
-                        val intent = Intent(this, activityClass)
-                        startActivity(intent)
-                        return
-                    } catch (e: Exception) {
-                        Toast.makeText(this, "启动失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                        return
-                    }
-                }
+            // 检查模块是否通过 FeatureModule 接口提供了 Fragment
+            val feature = ModuleManager.getLoadedFeature(this, module.id)
+            if (feature != null) {
+                val intent = Intent(this, com.gamecenter.app.DynamicGameActivity::class.java)
+                intent.putExtra(com.gamecenter.app.DynamicGameActivity.EXTRA_GAME_ID, module.id)
+                startActivity(intent)
+                return
             }
 
-            // activityClass 为空时，尝试通过游戏大厅入口（TTS 已在 start() 中注册到 GameRegistry）
+            // 否则回退到游戏大厅
             val intent = Intent(this, MainActivity::class.java)
                 .putExtra(MainActivity.EXTRA_NAV_TAB, "games_hall")
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
