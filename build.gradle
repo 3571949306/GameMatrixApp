@@ -7,8 +7,9 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.2'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.21'
-        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.2.21-2.0.5'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21'
+        classpath 'org.jetbrains.kotlin:kotlin-reflect:2.0.21'
+        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.21-1.0.25'
         classpath 'com.google.dagger:hilt-android-gradle-plugin:2.57.2'
     }
 
@@ -16,10 +17,11 @@ buildscript {
         resolutionStrategy {
             force 'com.google.guava:guava:33.4.0-jre'
             force 'io.opentelemetry:opentelemetry-api:1.62.0'
-            force 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
-            force 'org.jetbrains.kotlin:kotlin-stdlib-common:2.2.21'
-            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.21'
-            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-reflect:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21'
             force 'io.netty:netty-common:4.1.133.Final'
             force 'io.netty:netty-buffer:4.1.133.Final'
             force 'io.netty:netty-transport:4.1.133.Final'
@@ -44,6 +46,12 @@ buildscript {
 }
 
 allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    
     configurations.configureEach {
         resolutionStrategy {
             force 'com.google.guava:guava:33.4.0-jre'
@@ -51,10 +59,10 @@ allprojects {
             force 'com.google.protobuf:protobuf-kotlin:4.27.5'
             force 'com.google.protobuf:protobuf-javalite:4.27.5'
             force 'io.opentelemetry:opentelemetry-api:1.62.0'
-            force 'org.jetbrains.kotlin:kotlin-stdlib:2.2.21'
-            force 'org.jetbrains.kotlin:kotlin-stdlib-common:2.2.21'
-            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.21'
-            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21'
             force 'io.netty:netty-common:4.1.133.Final'
             force 'io.netty:netty-buffer:4.1.133.Final'
             force 'io.netty:netty-transport:4.1.133.Final'
