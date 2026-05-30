@@ -294,6 +294,9 @@ object ModuleManager {
         return manifest.versionName
     }
 
+    /** 返回所有已加载模块清单映射表（ID → Manifest） */
+    fun getManifests(): Map<String, ModuleManifest> = HashMap(manifests)
+
     fun getAvailableModules(): List<ModuleManifest> = manifests.values.toList()
 
     fun getModuleManifest(moduleId: String): ModuleManifest? {
@@ -408,6 +411,30 @@ object ModuleManager {
                 registerGameFromManifest(context, manifest)
             }
         }
+    }
+
+    /**
+     * 根据游戏 ID 获取宿主 Activity 类名。
+     *
+     * 查找顺序：
+     * 1. manifests 中有匹配的 builtIn 模块且指定了 activityClass → 返回该类名
+     * 2. manifests 中有匹配的游戏模块 → 返回 DynamicGameActivity 类名（由宿主统一承载）
+     * 3. 未找到 → 返回 null
+     *
+     * @param gameId 游戏 ID（通常为 manifest.gameId 或 manifest.id）
+     * @return Activity 完整类名，未匹配时返回 null
+     */
+    fun getHostGameActivityClassName(gameId: String): String? {
+        if (manifests.isEmpty()) registerLocalFallbackIfNeeded()
+        for ((_, manifest) in manifests) {
+            val mid = manifest.gameId.ifEmpty { manifest.id }
+            if (mid != gameId) continue
+            if (manifest.builtIn && manifest.activityClass.isNotEmpty()) {
+                return manifest.activityClass
+            }
+            return DynamicGameActivity::class.java.name
+        }
+        return null
     }
 
     fun enableBuiltInModule(context: Context, manifest: ModuleManifest) {

@@ -5,13 +5,22 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// dependencyResolutionManagement {
+//     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+//     repositories {
+//         // 本地 Maven 仓库（离线模式）
+//         maven {
+//             url uri("${rootDir}/libs/local-maven")
+//             metadataSources {
+//                 mavenPom()
+//                 artifact()
+//             }
+//         }
+//         
+//         google()
+//         mavenCentral()
+//     }
+// }
 rootProject.name = "GameMatrixApp"
 include ':app'
 include ':core:common'
@@ -21,15 +30,21 @@ include ':core:update'
 include ':core:security'
 // Phase 2: 模块宿主框架（ClassLoader 池 + 无泄漏模块加载）
 include ':core:module-host'
+// Phase 2: 模块加载引擎（DexClassLoader + 验证 + 热更新）
+include ':core:moduleloader'
+// Phase 2: 模块商店（下载 + 安装 + 版本检查）
+include ':core:modulestore'
+// Phase 3: 联机公共模块（WebSocket Relay + 房间管理 + 消息协议）
+include ':core:online'
 
-// 模块商店功能模块
+// 模块商店功能模块（英文路径）
 include ':feature:games'
-include ':模块商店:功能模块:工具:vpn'
-include ':模块商店:功能模块:游戏:games'
-include ':模块商店:功能模块:游戏:games:game2048'
-include ':模块商店:功能模块:工具:browser'
-include ':模块商店:功能模块:工具:tools'
-include ':模块商店:功能模块:工具:ai'
-include ':模块商店:功能模块:游戏:games:hall'
-include ':模块商店:功能模块:游戏:games:chinesechess'
-include ':模块商店:功能模块:游戏:games:klotski'
+include ':module-store:feature:tools:vpn'
+include ':module-store:feature:games:games'
+include ':module-store:feature:games:games:game2048'
+include ':module-store:feature:tools:browser'
+include ':module-store:feature:tools:tools'
+include ':module-store:feature:tools:ai'
+include ':module-store:feature:games:games:hall'
+include ':module-store:feature:games:games:chinesechess'
+include ':module-store:feature:games:games:klotski'

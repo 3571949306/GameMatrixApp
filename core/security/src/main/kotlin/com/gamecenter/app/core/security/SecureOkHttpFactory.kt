@@ -40,6 +40,7 @@ object SecureOkHttpFactory {
     /**
      * 由 app 模块在初始化时调用，注入实际服务器域名。
      */
+    @JvmStatic
     fun setHosts(moduleHost: String, fallbackHost: String) {
         MODULE_HOST = moduleHost
         FALLBACK_HOST = fallbackHost
