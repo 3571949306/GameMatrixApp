@@ -432,7 +432,9 @@ object ModuleManager {
             if (manifest.builtIn && manifest.activityClass.isNotEmpty()) {
                 return manifest.activityClass
             }
-            return DynamicGameActivity::class.java.name
+            // Non-builtIn modules (downloaded from store) handle their own Activity
+            // via entryClass, so return null to avoid DynamicGameActivity infinite loop
+            return null
         }
         return null
     }
