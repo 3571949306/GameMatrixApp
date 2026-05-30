@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 15,
   "modules": [
     {
       "id": "games_hall",
@@ -143,8 +143,8 @@
       "iconUrl": "",
       "category": "tool",
       "minAppVersion": 288,
-      "type": "game",
-      "activityClass": "",
+      "type": "nav",
+      "activityClass": "com.gamecenter.app.tts.TtsActivity",
       "gameId": "",
       "gameCategory": "",
       "gameDesc": "",
