@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant User as 用户
+    participant MSA as ModuleStoreActivity
+    participant MDM as ModuleDownloadManager
+    participant MI as ModuleInstaller
+    participant ML as ModuleLoaderV2
+    participant VPS as VPS Server
+
+    User->>MSA: 点击"下载"按钮
+    MSA->>MDM: downloadModule(moduleInfo)
+    MDM->>VPS: HTTP GET /modules/module.apk
+    loop 下载进度
+        VPS-->>MDM: 返回文件流
+        MDM-->>MSA: onProgress(progress: 50%)
+        MSA-->>User: 更新进度条
+    end
+    VPS-->>MDM: 下载完成
+    MDM->>MDM: 校验 SHA-256
+    alt 校验成功
+        MDM->>MI: installModule(apkFile, moduleInfo)
+        MI->>MI: 解压 APK
+        MI->>MI: 复制到私有目录
+        MI->>ML: loadModule(apkPath, moduleInfo)
+        ML->>ML: DexClassLoader 加载 DEX
+        ML->>ML: 加载资源
+        ML-->>MI: 加载成功
+        MI-->>MDM: 安装成功
+        MDM-->>MSA: onSuccess()
+        MSA->>MSA: 刷新 UI (显示"打开"按钮)
+        MSA-->>User: 提示"安装成功"
+    else 校验失败
+        MDM-->>MSA: onError("校验失败")
+        MSA-->>User: 提示"下载失败，请重试"
+    end

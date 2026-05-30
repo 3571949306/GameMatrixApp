@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 游戏规则相关的字符串资源 -->
+<resources>
+    <!-- 通用规则文本 -->
+    <string name="game_rules_title">游戏规则</string>
+    <string name="game_rules_basic">基本规则</string>
+    <string name="game_rules_special">特殊规则</string>
+    <string name="game_rules_scoring">计分方式</string>
+    <string name="game_rules_victory">胜利条件</string>
+    <string name="game_rules_back">返回</string>
+
+    <!-- 五子棋规则 -->
+    <string name="gomoku_rules_title">五子棋规则</string>
+    <string name="gomoku_rules_basic">在15×15的棋盘上，双方轮流落子。黑方先行，将棋子放在棋盘的交叉点上。</string>
+    <string name="gomoku_rules_victory">先将五颗或以上同色棋子连成一条直线（横、竖或斜）的一方获胜。</string>
+    <string name="gomoku_rules_scoring">每局胜利得3分，平局各得1分，失败不得分。</string>
+    <string name="gomoku_rules_special">禁手规则（高级模式）：黑方不能走三三禁手、四四禁手和长连禁手。</string>
+
+    <!-- 斗地主规则 -->
+    <string name="doudizhu_rules_title">斗地主规则</string>
+    <string name="doudizhu_rules_basic">三人游戏，一副54张牌。地主20张牌，两个农民各17张。叫分最高者成为地主。</string>
+    <string name="doudizhu_rules_victory">地主先出完所有牌则地主胜；任一农民先出完牌则农民胜。</string>
+    <string name="doudizhu_rules_scoring">底分×倍数。炸弹翻倍，春天翻倍。地主赢则两个农民各输底分×倍数。</string>
+    <string name="doudizhu_rules_special">牌型包括：单张、对子、三张、三带一、顺子、连对、飞机、炸弹、火箭（双王）。</string>
+
+    <!-- 中国象棋规则 -->
+
+    <!-- 贪吃蛇规则 -->
+
+    <!-- 俄罗斯方块规则 -->
+
+    <!-- 2048规则 -->
+
+    <!-- 扫雷规则 -->
+</resources>

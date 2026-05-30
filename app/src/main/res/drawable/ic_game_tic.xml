@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 井字棋网格 -->
+    <path
+        android:pathData="M17,11L17,37"
+        android:strokeWidth="2.5"
+        android:strokeColor="#5B8A72"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M31,11L31,37"
+        android:strokeWidth="2.5"
+        android:strokeColor="#5B8A72"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M11,17L37,17"
+        android:strokeWidth="2.5"
+        android:strokeColor="#5B8A72"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M11,31L37,31"
+        android:strokeWidth="2.5"
+        android:strokeColor="#5B8A72"
+        android:fillColor="#00000000" />
+    <!-- X 棋子 -->
+    <path
+        android:pathData="M20,14L26,20"
+        android:strokeWidth="2.5"
+        android:strokeColor="#2D6A4F"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M26,14L20,20"
+        android:strokeWidth="2.5"
+        android:strokeColor="#2D6A4F"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <!-- O 棋子 -->
+    <path
+        android:pathData="M24,28m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0"
+        android:strokeWidth="2.5"
+        android:strokeColor="#C44536"
+        android:fillColor="#00000000" />
+</vector>

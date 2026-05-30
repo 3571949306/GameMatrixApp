@@ -1,105 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"
-    android:paddingTop="28dp">
+    android:background="@color/eye_care_bg">
 
-    <TextView
-        android:id="@+id/tv_version"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="16dp"
-        android:alpha="0.5"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:clickable="true"
-        android:focusable="true"
-        android:padding="4dp"
-        android:text="v1.0.0"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="11sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_module_store"
-        style="@style/Widget.Material3.Button.TonalButton"
-        android:layout_width="wrap_content"
-        android:layout_height="32dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="4dp"
-        android:insetTop="0dp"
-        android:insetBottom="0dp"
-        android:minWidth="0dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:text="模块市场"
-        android:textSize="11sp"
-        app:cornerRadius="16dp"
-        app:icon="@android:drawable/ic_menu_add"
-        app:iconPadding="4dp"
-        app:iconSize="14dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_version" />
-
-    <TextView
-        android:id="@+id/tv_games_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="游戏大厅"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="28sp"
-        android:textStyle="bold"
+    <!-- ===== 顶栏 ===== -->
+    <LinearLayout
+        android:id="@+id/top_bar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@color/eye_care_topbar"
+        android:elevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <ImageButton
-        android:id="@+id/btn_settings"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="设置"
-        android:src="@drawable/ic_settings"
-        android:padding="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="?android:attr/textColorPrimary" />
+        <!-- 模块市场 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_module_store"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="模块"
+            android:textSize="13sp"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_add"
+            app:iconSize="16dp"
+            app:iconPadding="4dp" />
 
-    <TextView
-        android:id="@+id/tv_games_subtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="选择一款游戏开始体验"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_games_title" />
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
+        <!-- 版本号 -->
+        <TextView
+            android:id="@+id/tv_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="v1.0.0"
+            android:textColor="@color/eye_care_text_hint"
+            android:textSize="11sp"
+            android:layout_marginEnd="16dp" />
+
+        <!-- 设置按钮 -->
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="设置"
+            android:scaleType="centerInside"
+            app:srcCompat="@drawable/ic_settings"
+            app:tint="@color/eye_care_text_secondary" />
+
+    </LinearLayout>
+
+    <!-- ===== 搜索栏 ===== -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/search_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="12dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginEnd="16dp"
         android:hint="搜索游戏"
         app:boxBackgroundMode="outline"
-        app:boxCornerRadiusBottomEnd="8dp"
-        app:boxCornerRadiusBottomStart="8dp"
-        app:boxCornerRadiusTopEnd="8dp"
-        app:boxCornerRadiusTopStart="8dp"
-        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:boxCornerRadiusBottomEnd="20dp"
+        app:boxCornerRadiusBottomStart="20dp"
+        app:boxCornerRadiusTopEnd="20dp"
+        app:boxCornerRadiusTopStart="20dp"
+        app:boxStrokeWidth="1dp"
+        app:boxStrokeWidthFocused="2dp"
+        app:boxStrokeColor="@color/eye_care_text_hint"
+        app:startIconDrawable="@drawable/ic_search_animated"
+        app:startIconTint="@color/eye_care_text_hint"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_games_subtitle">
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_game_search"
@@ -108,38 +93,61 @@
             android:inputType="text"
             android:maxLines="1"
             android:singleLine="true"
-            android:textSize="14sp" />
+            android:textSize="15sp"
+            android:textColor="@color/eye_care_text_primary"
+            android:textColorHint="@color/eye_care_text_hint" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tab_layout"
+    <!-- ===== 分类标签 ===== -->
+    <HorizontalScrollView
+        android:id="@+id/tab_scroll"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        app:tabMode="scrollable"
-        app:tabGravity="start"
+        android:layout_marginTop="8dp"
+        android:scrollbars="none"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/search_layout" />
+        app:layout_constraintTop_toBottomOf="@id/search_layout">
 
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:background="@android:color/transparent"
+            app:tabContentStart="8dp"
+            app:tabGravity="start"
+            app:tabIndicatorColor="@color/brand_primary"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicatorHeight="3dp"
+            app:tabMode="scrollable"
+            app:tabSelectedTextColor="@color/brand_primary"
+            app:tabTextColor="@color/eye_care_text_hint"
+            app:tabTextAppearance="@style/TextAppearance.GameMatrix.Tab" />
+
+    </HorizontalScrollView>
+
+    <!-- ===== 游戏网格 ===== -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_games"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="16dp"
         android:layout_marginTop="8dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="16dp"
         android:clipToPadding="false"
-        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tab_layout"
+        app:layout_constraintTop_toBottomOf="@id/tab_scroll"
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="2" />
+        app:spanCount="2"
+        tools:listitem="@layout/item_game_card" />
 
+    <!-- 空状态 -->
     <TextView
         android:id="@+id/tv_empty_state"
         android:layout_width="0dp"
@@ -147,7 +155,7 @@
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:gravity="center"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="@color/eye_care_text_hint"
         android:textSize="15sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/rv_games"

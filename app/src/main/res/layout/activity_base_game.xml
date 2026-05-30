@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_color">
+
+    <!-- 标题栏 -->
+    <LinearLayout
+        android:id="@+id/title_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="@color/card_background"
+        android:elevation="4dp">
+
+        <!-- 返回按钮 -->
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/back"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- 游戏标题 -->
+        <TextView
+            android:id="@+id/tv_game_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:textSize="18sp"
+            android:textColor="@color/text_color"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1"
+            tools:text="五子棋" />
+
+        <!-- 计分板 -->
+        <TextView
+            android:id="@+id/tv_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:textSize="16sp"
+            android:textColor="@color/primary_color"
+            android:textStyle="bold"
+            tools:text="0" />
+
+        <!-- 难度按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_difficulty"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/difficulty"
+            android:textSize="12sp"
+            android:textColor="@color/primary_color"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- 规则按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_rules"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/rules"
+            android:textSize="12sp"
+            android:textColor="@color/primary_color" />
+
+        <!-- 教程按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_tutorial"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tutorial"
+            android:textSize="12sp"
+            android:textColor="@color/primary_color"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- 游戏内容区域 -->
+    <FrameLayout
+        android:id="@+id/game_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/background_color">
+
+        <!-- 游戏内容将在这里动态添加 -->
+    </FrameLayout>
+
+    <!-- 底部控制栏 -->
+    <LinearLayout
+        android:id="@+id/bottom_control_bar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="@color/card_background"
+        android:elevation="4dp">
+
+        <!-- 暂停按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_pause"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/pause"
+            android:textSize="14sp"
+            android:textColor="@color/text_color" />
+
+        <!-- 重新开始按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_restart"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/restart"
+            android:textSize="14sp"
+            android:textColor="@color/text_color" />
+
+        <!-- 设置按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_settings"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/settings"
+            android:textSize="14sp"
+            android:textColor="@color/text_color" />
+    </LinearLayout>
+</LinearLayout>

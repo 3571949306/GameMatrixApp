@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 成就中心专用字符串资源 -->
+<resources>
+    <string name="achievement_center_title">成就中心</string>
+    <string name="achievement_total_progress">总进度</string>
+    <string name="achievement_games_completed">已完成游戏</string>
+    <string name="achievement_unlocked">已解锁</string>
+    <string name="achievement_locked">未解锁</string>
+    <string name="achievement_center_overall">成就总览</string>
+    <string name="achievement_center_unlocked_of">已解锁 %1$d / %2$d</string>
+    <string name="achievement_center_games_summary">%1$d / %2$d 个游戏有成就进度</string>
+    <string name="achievement_center_no_progress">暂无成就进度，开始游戏吧！</string>
+    <string name="achievement_center_explore">去探索</string>
+    <string name="achievement_center_percent_format">%d%%</string>
+</resources>

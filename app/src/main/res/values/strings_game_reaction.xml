@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 反应力基础信息 -->
+    <string name="game_reaction_name">反应力</string>
+    <string name="game_reaction_desc">测试你的反应速度</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_reaction_rules_title">反应力规则</string>
+    <string name="game_reaction_rules_content">
+        1. 屏幕显示一个红色方块\n
+        2. 等待随机时间后方块变绿\n
+        3. 绿色出现后尽快点击！\n
+        4. 不要在变绿之前点击（会判定失败）\n
+        5. 反应时间越短，得分越高\n
+        6. 随着轮次增加，难度递增
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_reaction_ach_first_complete">初次测试</string>
+    <string name="game_reaction_ach_first_complete_desc">首次完成反应力测试</string>
+    <string name="game_reaction_ach_under_300">闪电反应</string>
+    <string name="game_reaction_ach_under_300_desc">反应时间低于300毫秒</string>
+    <string name="game_reaction_ach_under_200">超人反应</string>
+    <string name="game_reaction_ach_under_200_desc">反应时间低于200毫秒</string>
+    <string name="game_reaction_ach_streak_5">持续高速</string>
+    <string name="game_reaction_ach_streak_5_desc">连续5轮反应时间低于400毫秒</string>
+    <string name="game_reaction_ach_20_rounds">反应力达人</string>
+    <string name="game_reaction_ach_20_rounds_desc">累计完成20轮反应力测试</string>
+</resources>

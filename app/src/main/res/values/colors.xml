@@ -2,12 +2,20 @@
 <resources>
     <!-- ========== 全新霓虹电竞主题色彩 ========== -->
 
-    <!-- 核心品牌色 -->
-    <color name="brand_primary">#00D9FF</color>
-    <color name="brand_primary_dark">#00B4D8</color>
-    <color name="brand_secondary">#A855F7</color>
-    <color name="brand_secondary_dark">#7C3AED</color>
-    <color name="brand_accent">#F472B6</color>
+    <!-- 核心品牌色（护眼暖色系） -->
+    <color name="brand_primary">#5B8A72</color>
+    <color name="brand_primary_dark">#4A7460</color>
+    <color name="brand_secondary">#8B7355</color>
+    <color name="brand_secondary_dark">#6B5A42</color>
+    <color name="brand_accent">#7B8FA1</color>
+
+    <!-- 护眼专用色 -->
+    <color name="eye_care_bg">#F5F0E8</color>
+    <color name="eye_care_card">#FBF9F6</color>
+    <color name="eye_care_topbar">#F0EBE3</color>
+    <color name="eye_care_text_primary">#3D3832</color>
+    <color name="eye_care_text_secondary">#7A746B</color>
+    <color name="eye_care_text_hint">#A8A198</color>
 
     <!-- 深色模式主题 -->
     <color name="md_theme_primary">#00D9FF</color>
@@ -34,30 +42,37 @@
     <color name="md_theme_error_container">#7F1D1D</color>
     <color name="md_theme_on_error_container">#FECACA</color>
 
-    <!-- 浅色模式主题 -->
-    <color name="md_theme_light_primary">#0891B2</color>
+    <!-- 浅色模式主题（护眼暖色调） -->
+    <color name="md_theme_light_primary">#5B8A72</color>
     <color name="md_theme_light_on_primary">#FFFFFF</color>
-    <color name="md_theme_light_primary_container">#CFFAFE</color>
-    <color name="md_theme_light_on_primary_container">#083344</color>
-    <color name="md_theme_light_secondary">#7C3AED</color>
+    <color name="md_theme_light_primary_container">#D4EDE1</color>
+    <color name="md_theme_light_on_primary_container">#1A3D2E</color>
+    <color name="md_theme_light_secondary">#8B7355</color>
     <color name="md_theme_light_on_secondary">#FFFFFF</color>
-    <color name="md_theme_light_secondary_container">#EDE9FE</color>
-    <color name="md_theme_light_on_secondary_container">#2E1065</color>
-    <color name="md_theme_light_tertiary">#DB2777</color>
+    <color name="md_theme_light_secondary_container">#F0E4D4</color>
+    <color name="md_theme_light_on_secondary_container">#3D2E1A</color>
+    <color name="md_theme_light_tertiary">#7B8FA1</color>
     <color name="md_theme_light_on_tertiary">#FFFFFF</color>
-    <color name="md_theme_light_tertiary_container">#FCE7F3</color>
-    <color name="md_theme_light_on_tertiary_container">#500724</color>
-    <color name="md_theme_light_surface">#FFFFFF</color>
-    <color name="md_theme_light_on_surface">#0F172A</color>
-    <color name="md_theme_light_surface_variant">#F1F5F9</color>
-    <color name="md_theme_light_on_surface_variant">#475569</color>
-    <color name="md_theme_light_background">#F8FAFC</color>
-    <color name="md_theme_light_on_background">#0F172A</color>
-    <color name="md_theme_light_outline">#CBD5E1</color>
+    <color name="md_theme_light_tertiary_container">#D8E4EF</color>
+    <color name="md_theme_light_on_tertiary_container">#2C3E50</color>
+    <color name="md_theme_light_surface">#FAF8F5</color>
+    <color name="md_theme_light_on_surface">#2D2A26</color>
+    <color name="md_theme_light_surface_variant">#F0EDE8</color>
+    <color name="md_theme_light_on_surface_variant">#5C5852</color>
+    <color name="md_theme_light_background">#F5F2ED</color>
+    <color name="md_theme_light_on_background">#2D2A26</color>
+    <color name="md_theme_light_outline">#C8C3BC</color>
     <color name="md_theme_light_error">#DC2626</color>
     <color name="md_theme_light_on_error">#FFFFFF</color>
     <color name="md_theme_light_error_container">#FEE2E2</color>
     <color name="md_theme_light_on_error_container">#7F1D1D</color>
+
+    <!-- 游戏模板框架使用的颜色别名 -->
+    <color name="primary_color">@color/brand_primary</color>
+    <color name="background_color">@color/eye_care_bg</color>
+    <color name="card_background">@color/eye_care_card</color>
+    <color name="text_color">@color/eye_care_text_primary</color>
+    <color name="text_secondary_color">@color/eye_care_text_secondary</color>
 
     <!-- 功能色 -->
     <color name="success">#22C55E</color>
@@ -121,4 +136,6 @@
     <color name="ai_message_system_text">#D1FAE5</color>
     <color name="ai_message_system_role">#34D399</color>
     <color name="ai_message_star">#FBBF24</color>
+    <color name="status_update_available">#22C55E</color>
+    <color name="status_update_available_container">#DCFCE7</color>
 </resources>

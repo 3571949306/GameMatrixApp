@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 成就相关的字符串资源 -->
+<resources>
+    <string name="achievement_progress">进度：%d/%d</string>
+    <string name="achievement_level_bronze">入门</string>
+    <string name="achievement_level_silver">进阶</string>
+    <string name="achievement_level_gold">挑战</string>
+    <string name="achievement_level_easter">隐藏</string>
+    <string name="achievement_total">共 %d 个成就</string>
+</resources>

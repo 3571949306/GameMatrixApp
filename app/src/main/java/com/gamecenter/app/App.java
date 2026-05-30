@@ -2,7 +2,9 @@ package com.gamecenter.app;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -11,6 +13,9 @@ import androidx.core.os.LocaleListCompat;
 import com.gamecenter.app.network.OkHttpClientProvider;
 import com.gamecenter.app.recovery.CrashDetector;
 import com.gamecenter.app.update.UpdateManager;
+import com.gamecenter.app.core.security.SecureOkHttpFactory;
+
+import com.gamecenter.app.moduleloader.ModuleLoaderV2;
 
 import dagger.hilt.android.HiltAndroidApp;
 
@@ -53,6 +58,27 @@ public class App extends Application {
     /** 标记本次应用启动是否已执行过自动更新检查，用于实现"仅检查一次"的语义 */
     private boolean updateAutoCheckDone = false;
 
+    /** 模块生命周期管理器（延迟初始化） */
+    private ModuleLifecycleManager moduleLifecycleManager;
+
+    /**
+     * 应用程序启动时的入口回调。
+     * <p>
+     * 【初学者理解】这个方法就像应用开机后的"启动流程清单"。
+     * 当用户点击应用图标后，系统会自动调用这个方法，我们在这里依次完成：
+     * 设置语言 → 设置主题 → 注册页面监听器。顺序很重要，就像穿衣服要先穿内衣再穿外套。
+     * <p>
+     * 执行顺序：语言设置 → 主题设置 → 注册 Activity 生命周期回调。
+     * 语言和主题必须尽早应用，以确保首个 Activity 的 UI 正确渲染。
+     */
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        // attachBaseContext 只做最基本的 Context 绑定，不要做其他初始化
+        // 【初学者理解】这个方法只是把系统传给我们的 base Context 保存起来
+        // 此时 Application 还未完全初始化，不能调用 getApplicationContext()
+    }
+
     /**
      * 应用程序启动时的入口回调。
      * <p>
@@ -66,13 +92,18 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        
+        // T02: 使用自研 ModuleLoaderV2，不依赖 RePlugin 框架
         CrashDetector.INSTANCE.markAppStart(this);
         applyLanguage();
         // 主题设置立即应用（影响 UI）
         applyTheme();
 
+        // 注入实际服务器域名到安全模块（从 BuildConfig 读取，避免源码中硬编码服务器地址）
+        SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, BuildConfig.MODULE_FALLBACK_HOST);
+
         // OkHttpClient 改为 App Startup 延迟初始化
-        // 不再在 onCreate 中同步初始化，避免阻塞启动
+        // 不在 onCreate 中同步初始化，避免阻塞启动
 
         // 注册 Activity 生命周期监听器
         // 【初学者理解】这相当于在大门口安排了一个"接待员"，
@@ -109,6 +140,11 @@ public class App extends Application {
             @Override
             public void onActivityDestroyed(@NonNull Activity activity) {}
         });
+
+        // 初始化模块生命周期管理器
+        moduleLifecycleManager = ModuleLifecycleManager.getInstance(this);
+        moduleLifecycleManager.initialize();
+        Log.i("App", "模块系统已初始化");
     }
 
     /**
@@ -220,5 +256,30 @@ public class App extends Application {
             ColorSchemeManager.Scheme scheme = ColorSchemeManager.getScheme(schemeIndex);
             ColorSchemeManager.applyScheme(activity, scheme, app.isDarkMode);
         }
+    }
+
+    /**
+     * 获取模块生命周期管理器。
+     * 
+     * @return ModuleLifecycleManager 实例
+     */
+    @NonNull
+    public ModuleLifecycleManager getModuleLifecycleManager() {
+        return moduleLifecycleManager;
+    }
+
+    /**
+     * 应用程序终止时的回调。
+     * 释放所有模块资源。
+     */
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        
+        if (moduleLifecycleManager != null) {
+            moduleLifecycleManager.release();
+        }
+        
+        Log.i("App", "应用程序已终止，所有资源已释放");
     }
 }

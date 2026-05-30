@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 中国象棋游戏字符串资源 -->
+<resources>
+    <!-- 游戏信息 -->
+    <string name="chinesechess_rules_title">中国象棋规则</string>
+    <string name="chinesechess_rules_basic">双方各执红黑棋子，在 9×10 的棋盘上轮流走棋。红方先行，目标是将死对方的将/帅。</string>
+    <string name="chinesechess_rules_victory">将死对方将/帅即为胜利。将死指对方的将/帅无法逃脱被吃的命运。</string>
+    <string name="chinesechess_rules_scoring">每局胜利得 100 分。不同难度的 AI 对手强度不同。</string>
+    <string name="chinesechess_rules_special">七种棋子走法各异：将帅走九宫一格、仕士斜走、相象走田、马走日、车走直线、炮隔子吃、兵卒前进。</string>
+
+    <!-- 成就 -->
+    <string name="chinesechess_ach_first_win_name">初露锋芒</string>
+    <string name="chinesechess_ach_first_win_desc">第一次战胜 AI</string>
+    <string name="chinesechess_ach_win_10_name">棋坛新秀</string>
+    <string name="chinesechess_ach_win_10_desc">累计胜利 10 局</string>
+    <string name="chinesechess_ach_win_50_name">棋坛老手</string>
+    <string name="chinesechess_ach_win_50_desc">累计胜利 50 局</string>
+    <string name="chinesechess_ach_streak_3_name">三连胜</string>
+    <string name="chinesechess_ach_streak_3_desc">连续胜利 3 局</string>
+    <string name="chinesechess_ach_streak_5_name">五连胜</string>
+    <string name="chinesechess_ach_streak_5_desc">连续胜利 5 局</string>
+    <string name="chinesechess_ach_master_win_name">大师克星</string>
+    <string name="chinesechess_ach_master_win_desc">在大师难度下战胜 AI</string>
+
+    <!-- 教程 -->
+    <string name="chinesechess_tutorial_step1_title">认识棋子</string>
+    <string name="chinesechess_tutorial_step1_desc">红方有帅、仕、相、马、车、炮、兵；黑方有将、士、象、马、车、炮、卒。点击棋子选中。</string>
+    <string name="chinesechess_tutorial_step2_title">走棋方法</string>
+    <string name="chinesechess_tutorial_step2_desc">选中棋子后，点击目标位置移动。不同棋子走法不同，如马走日、象走田。</string>
+    <string name="chinesechess_tutorial_step3_title">吃子规则</string>
+    <string name="chinesechess_tutorial_step3_desc">移动到对方棋子的位置即可吃掉该棋子。注意炮需要隔一个棋子才能吃子。</string>
+    <string name="chinesechess_tutorial_step4_title">将死获胜</string>
+    <string name="chinesechess_tutorial_step4_desc">目标是将死对方的将/帅。保护好自己的将帅，同时攻击对方的将帅。</string>
+</resources>

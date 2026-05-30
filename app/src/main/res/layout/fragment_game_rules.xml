@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_color">
+
+    <!-- 标题栏 -->
+    <LinearLayout
+        android:id="@+id/rules_title_bar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="@color/card_background"
+        android:elevation="4dp">
+
+        <!-- 返回按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_back"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back"
+            android:textSize="14sp"
+            android:textColor="@color/primary_color" />
+
+        <!-- 标题 -->
+        <TextView
+            android:id="@+id/tv_rules_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:textSize="18sp"
+            android:textColor="@color/text_color"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1"
+            tools:text="五子棋规则" />
+    </LinearLayout>
+
+    <!-- 规则内容列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_rules_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp"
+        android:clipToPadding="false"
+        android:background="@color/background_color" />
+</LinearLayout>

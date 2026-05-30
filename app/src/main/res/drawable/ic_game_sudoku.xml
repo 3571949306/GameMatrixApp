@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 9宫格外框 -->
+    <path
+        android:pathData="M6,6L42,6L42,42L6,42Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="2.5" />
+    <!-- 内部3x3宫分隔线 -->
+    <path
+        android:pathData="M18,6L18,42"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <path
+        android:pathData="M30,6L30,42"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <path
+        android:pathData="M6,18L42,18"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <path
+        android:pathData="M6,30L42,30"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 数字示意 -->
+    <path
+        android:pathData="M11,14L13,10L15,14"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M23,10L23,15"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M35,10L37,10L35,13L37,13"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M10,25L12,22L14,25L12,22L12,28"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M22,22L26,22L22,25L26,25L22,28L26,28"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M34,22L38,22L38,25L34,25L34,28L38,28"
+        android:strokeColor="#5B8A72"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M10,36L14,36M12,34L12,38"
+        android:strokeColor="#C44536"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+</vector>

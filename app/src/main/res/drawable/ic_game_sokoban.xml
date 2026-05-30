@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 地板 -->
+    <path
+        android:pathData="M8,8L40,8L40,40L8,40Z"
+        android:fillColor="#E8E0D0" />
+    <!-- 墙壁（上方） -->
+    <path
+        android:pathData="M8,8L40,8L40,16L8,16Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1" />
+    <!-- 墙壁（左侧） -->
+    <path
+        android:pathData="M8,8L16,8L16,40L8,40Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1" />
+    <!-- 墙壁（右侧） -->
+    <path
+        android:pathData="M32,8L40,8L40,40L32,40Z"
+        android:fillColor="#5B8A72"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1" />
+    <!-- 箱子 -->
+    <path
+        android:pathData="M20,20L28,20L28,28L20,28Z"
+        android:fillColor="#8B7355"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1.5" />
+    <!-- 箱子 X 装饰 -->
+    <path
+        android:pathData="M21,21L27,27M27,21L21,27"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1"
+        android:strokeLineCap="round" />
+    <!-- 目标点 -->
+    <path
+        android:pathData="M36,36m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
+        android:fillColor="#C44536"
+        android:strokeWidth="0" />
+    <!-- 玩家 -->
+    <path
+        android:pathData="M12,32m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0"
+        android:fillColor="#2D6A4F"
+        android:strokeColor="#2D2D2D"
+        android:strokeWidth="1" />
+</vector>

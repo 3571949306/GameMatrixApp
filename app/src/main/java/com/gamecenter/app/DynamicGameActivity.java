@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.games.GameRegistry;
+import com.gamecenter.app.games.ui.GameLauncherHelper;
 import com.gamecenter.app.modules.ModuleLoader;
 import com.gamecenter.app.modules.ModuleManager;
 import com.gamecenter.app.modules.ModuleManifest;
@@ -27,14 +28,19 @@ public class DynamicGameActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             String gameId = getIntent().getStringExtra(EXTRA_GAME_ID);
+            Log.d(TAG, "onCreate, gameId=" + gameId);
             if (gameId != null) {
                 loadGame(gameId);
+            } else {
+                Log.w(TAG, "gameId is null, showing empty DynamicGameActivity");
             }
         }
     }
 
     private void loadGame(String gameId) {
+        Log.d(TAG, "loadGame: gameId=" + gameId);
         Class<? extends Fragment> fragmentClass = GameRegistry.getFragmentClassById(this, gameId);
+        Log.d(TAG, "fragmentClass=" + fragmentClass);
         if (fragmentClass != null) {
             try {
                 Fragment fragment = fragmentClass.getDeclaredConstructor().newInstance();
@@ -48,18 +54,34 @@ public class DynamicGameActivity extends AppCompatActivity {
         }
 
         Class<?> activityClass = GameRegistry.getActivityClassById(this, gameId);
-        if (activityClass != null) {
+        Log.d(TAG, "activityClass=" + (activityClass != null ? activityClass.getSimpleName() : "null"));
+        // 如果 activityClass 就是 DynamicGameActivity 本身，跳过避免无限循环
+        if (activityClass != null && activityClass != DynamicGameActivity.class) {
+            Log.d(TAG, "found real activityClass, forwarding to " + activityClass.getSimpleName());
             Intent intent = new Intent(this, activityClass);
+            // 转发难度索引等额外参数
+            intent.putExtra(GameLauncherHelper.EXTRA_DIFFICULTY_INDEX,
+                    getIntent().getIntExtra(GameLauncherHelper.EXTRA_DIFFICULTY_INDEX, -1));
+            intent.putExtra(GameLauncherHelper.EXTRA_ONLINE_MODE,
+                    getIntent().getBooleanExtra(GameLauncherHelper.EXTRA_ONLINE_MODE, false));
             startActivity(intent);
             finish();
             return;
         }
 
+        Log.d(TAG, "activityClass is null or DynamicGameActivity, calling tryLoadModuleGame");
         if (tryLoadModuleGame(gameId)) {
             return;
         }
 
-        Toast.makeText(this, "游戏未安装，请前往模块商店下载", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "游戏未安装，正在前往模块商店…", Toast.LENGTH_SHORT).show();
+        try {
+            Intent storeIntent = new Intent(this, com.gamecenter.app.modules.ModuleStoreActivity.class);
+            storeIntent.putExtra("filter_game_id", gameId);
+            startActivity(storeIntent);
+        } catch (Exception e) {
+            Log.e(TAG, "启动模块商店失败，直接 finish", e);
+        }
         finish();
     }
 
@@ -87,6 +109,26 @@ public class DynamicGameActivity extends AppCompatActivity {
         } else if (!ModuleManager.INSTANCE.isModuleInstalled(this, manifest.getId())) {
             Log.d(TAG, "模块未安装: " + manifest.getId());
             return false;
+        }
+
+        String hostGameActivityClassName = ModuleManager.INSTANCE.getHostGameActivityClassName(
+                manifest.getGameId().isEmpty() ? manifest.getId() : manifest.getGameId());
+        if (hostGameActivityClassName != null) {
+            try {
+                Class<?> hostGameActivity = Class.forName(hostGameActivityClassName);
+                Intent intent = new Intent(this, hostGameActivity);
+                // 转发难度索引等额外参数
+                intent.putExtra(GameLauncherHelper.EXTRA_DIFFICULTY_INDEX,
+                        getIntent().getIntExtra(GameLauncherHelper.EXTRA_DIFFICULTY_INDEX, -1));
+                intent.putExtra(GameLauncherHelper.EXTRA_ONLINE_MODE,
+                        getIntent().getBooleanExtra(GameLauncherHelper.EXTRA_ONLINE_MODE, false));
+                startActivity(intent);
+                finish();
+                return true;
+            } catch (Exception e) {
+                Log.e(TAG, "宿主游戏 Activity 启动失败: " + hostGameActivityClassName, e);
+                return false;
+            }
         }
 
         Log.d(TAG, "开始加载模块: " + manifest.getId());

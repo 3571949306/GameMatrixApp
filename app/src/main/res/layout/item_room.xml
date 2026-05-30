@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="?attr/colorSurface"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Room Icon/Game Type -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/roomItemIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/game_icon_bg_gradient"
+            android:contentDescription="@string/icon_desc"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@android:drawable/ic_menu_gallery" />
+
+        <!-- Room Name -->
+        <TextView
+            android:id="@+id/roomItemName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintEnd_toStartOf="@id/roomItemStatusChip"
+            app:layout_constraintStart_toEndOf="@id/roomItemIcon"
+            app:layout_constraintTop_toTopOf="@id/roomItemIcon" />
+
+        <!-- Status Chip (Waiting/Playing/Full) -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/roomItemStatusChip"
+            style="@style/Widget.Material3.Chip.Assist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="等待中"
+            android:textSize="10sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/roomItemIcon" />
+
+        <!-- Player Count -->
+        <LinearLayout
+            android:id="@+id/roomItemPlayerLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="@id/roomItemName"
+            app:layout_constraintTop_toBottomOf="@id/roomItemName">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                app:srcCompat="@android:drawable/ic_menu_recent_history"
+                app:tint="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/roomItemPlayerCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="2/4"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Game Type -->
+        <TextView
+            android:id="@+id/roomItemGameType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="斗地主"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="11sp"
+            app:layout_constraintStart_toStartOf="@id/roomItemPlayerLayout"
+            app:layout_constraintTop_toBottomOf="@id/roomItemPlayerLayout" />
+
+        <!-- Lock Icon (if password protected) -->
+        <ImageView
+            android:id="@+id/roomItemLockIcon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="@string/icon_desc"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/roomItemGameType"
+            app:layout_constraintStart_toEndOf="@id/roomItemGameType"
+            app:srcCompat="@android:drawable/ic_lock_lock"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <!-- Join Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/roomItemJoinBtn"
+            style="@style/Widget.Material3.Button.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="加入"
+            android:textSize="12sp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/roomItemGameType" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

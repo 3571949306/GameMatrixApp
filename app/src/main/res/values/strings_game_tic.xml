@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 井字棋基础信息 -->
+    <string name="game_tic_name">井字棋</string>
+    <string name="game_tic_desc">经典3×3井字棋，挑战AI对手</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_tic_select_difficulty">选择难度开始游戏</string>
+    <string name="game_tic_your_turn">你的回合，请落子</string>
+    <string name="game_tic_ai_thinking">AI 思考中…</string>
+    <string name="game_tic_you_win">恭喜你获胜了！</string>
+    <string name="game_tic_ai_win">AI 获胜，再接再厉！</string>
+    <string name="game_tic_draw">平局！旗鼓相当！</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_tic_rules_title">井字棋规则</string>
+    <string name="game_tic_rules_content">
+        1. 棋盘为3×3的格子\n
+        2. 你执X先手，AI执O后手\n
+        3. 轮流在空格中落子\n
+        4. 先将三个棋子连成一条直线（横/竖/斜）者获胜\n
+        5. 如果所有格子填满无人获胜，则为平局
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_tic_ach_first_win">首战告捷</string>
+    <string name="game_tic_ach_first_win_desc">在井字棋中获得首次胜利</string>
+    <string name="game_tic_ach_win_streak3">三连胜</string>
+    <string name="game_tic_ach_win_streak3_desc">连续赢得3局井字棋</string>
+    <string name="game_tic_ach_win_streak10">十连胜</string>
+    <string name="game_tic_ach_win_streak10_desc">连续赢得10局井字棋</string>
+    <string name="game_tic_ach_draw_master">平局大师</string>
+    <string name="game_tic_ach_draw_master_desc">累计10次平局</string>
+    <string name="game_tic_ach_beat_hard">挑战王者</string>
+    <string name="game_tic_ach_beat_hard_desc">击败困难模式AI</string>
+</resources>

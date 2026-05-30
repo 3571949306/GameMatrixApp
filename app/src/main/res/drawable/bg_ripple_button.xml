@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 按钮涟漪效果（drawable 版本，供 background 引用） -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorPrimary"
+    android:radius="24dp" />

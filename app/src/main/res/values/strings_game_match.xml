@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 配对基础信息 -->
+    <string name="game_match_name">配对</string>
+    <string name="game_match_desc">翻牌消除所有配对</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_match_rules_title">配对规则</string>
+    <string name="game_match_rules_content">
+        1. 翻开两张卡牌寻找相同的图案\n
+        2. 图案相同则配对成功，卡牌消失\n
+        3. 图案不同则翻回背面\n
+        4. 消除所有配对即过关\n
+        5. 随着关卡提升，卡牌数量递增\n
+        6. 步数越少，得分越高
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_match_ach_first_complete">初次配对</string>
+    <string name="game_match_ach_first_complete_desc">首次完成配对关卡</string>
+    <string name="game_match_ach_no_mistake">完美配对</string>
+    <string name="game_match_ach_no_mistake_desc">无失误通关</string>
+    <string name="game_match_ach_30_seconds">闪电配对</string>
+    <string name="game_match_ach_30_seconds_desc">30秒内完成通关</string>
+    <string name="game_match_ach_level_3">配对高手</string>
+    <string name="game_match_ach_level_3_desc">通过第3关</string>
+    <string name="game_match_ach_level_5">配对大师</string>
+    <string name="game_match_ach_level_5_desc">通过第5关</string>
+</resources>

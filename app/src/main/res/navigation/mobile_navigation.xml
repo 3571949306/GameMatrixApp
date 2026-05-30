@@ -16,13 +16,8 @@
 
     <keep_state_fragment
         android:id="@+id/navigation_games"
-        android:name="com.gamecenter.app.features.ModuleShellFragment"
-        android:label="@string/nav_games">
-        <argument
-            android:name="module_id"
-            app:argType="string"
-            android:defaultValue="games_hall" />
-    </keep_state_fragment>
+        android:name="com.gamecenter.app.GamesFragment"
+        android:label="@string/nav_games" />
 
     <keep_state_fragment
         android:id="@+id/navigation_tools"

@@ -1,0 +1,656 @@
+package com.gamecenter.app.games.go;
+
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+
+import com.gamecenter.app.R;
+import com.gamecenter.app.games.base.BaseGameActivity;
+import com.google.android.material.button.MaterialButton;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+/**
+ * 围棋游戏 Activity（简化版 9×9）。
+ *
+ * <p>支持简化围棋规则：落子、提子、禁入、领地评估。
+ * 使用简单 AI 对手。</p>
+ *
+ * <p>成就系统：
+ * <ul>
+ *   <li>首次胜利</li>
+ *   <li>领地超过 50%</li>
+ *   <li>吃子 10 目</li>
+ *   <li>无失误胜利</li>
+ *   <li>连胜 5 局</li>
+ * </ul>
+ * </p>
+ *
+ * @author Kou Dou Ma (Alex)
+ * @version 1.0
+ * @since 2026-06-20
+ */
+public class GoActivity extends BaseGameActivity {
+
+    private static final int BOARD_SIZE = 9;
+    private static final int EMPTY = GoView.EMPTY;
+    private static final int BLACK = GoView.BLACK;
+    private static final int WHITE = GoView.WHITE;
+    private static final int PASS_MOVE = -1;
+
+    /** 最大连续虚着（双方都 pass）次数，达到则终局 */
+    private static final int MAX_CONSECUTIVE_PASSES = 2;
+
+    /** 贴目 */
+    private static final float KOMI = 6.5f;
+
+    // 游戏状态
+    private int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
+    private int[][] previousBoard = null; // 用于劫争判断
+    private int currentPlayer = BLACK; // 黑先
+    private int capturedByBlack = 0; // 黑方提子数
+    private int capturedByWhite = 0; // 白方提子数
+    private int consecutivePasses = 0;
+    private int totalCaptures = 0;
+    private int totalWins = 0;
+    private int winStreak = 0;
+    private boolean gameOver = false;
+
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Random random = new Random();
+
+    // UI 组件
+    private GoView goView;
+    private TextView tvStatus;
+    private TextView tvScore;
+    private LinearLayout gamePanel;
+    private LinearLayout menuPanel;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    // ==================== BaseGameActivity 抽象方法实现 ====================
+
+    @NonNull
+    @Override
+    protected String getGameId() {
+        return "go";
+    }
+
+    @NonNull
+    @Override
+    protected String getGameName() {
+        return getString(R.string.game_go_name);
+    }
+
+    @Override
+    protected void initGame() {
+        if (gameContentContainer instanceof FrameLayout) {
+            View contentView = createGameContentView();
+            ((FrameLayout) gameContentContainer).addView(contentView);
+        }
+    }
+
+    private View createGameContentView() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setGravity(Gravity.CENTER);
+        root.setBackgroundColor(0xFFF5F0E8);
+
+        tvStatus = new TextView(this);
+        tvStatus.setGravity(Gravity.CENTER);
+        tvStatus.setTextSize(16f);
+        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setPadding(0, 24, 0, 8);
+
+        tvScore = new TextView(this);
+        tvScore.setGravity(Gravity.CENTER);
+        tvScore.setTextSize(14f);
+        tvScore.setTextColor(0xFF5B8A72);
+        tvScore.setPadding(0, 4, 0, 16);
+
+        // 菜单面板
+        menuPanel = new LinearLayout(this);
+        menuPanel.setOrientation(LinearLayout.VERTICAL);
+        menuPanel.setGravity(Gravity.CENTER);
+
+        MaterialButton btnStart = new MaterialButton(this);
+        btnStart.setText(R.string.game_go_start);
+        btnStart.setBackgroundColor(0xFF5B8A72);
+        btnStart.setOnClickListener(v -> startNewGame());
+        menuPanel.addView(btnStart);
+
+        // 游戏面板
+        gamePanel = new LinearLayout(this);
+        gamePanel.setOrientation(LinearLayout.VERTICAL);
+        gamePanel.setGravity(Gravity.CENTER);
+        gamePanel.setVisibility(View.GONE);
+
+        goView = new GoView(this);
+        int viewWidth = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
+        goView.setLayoutParams(new FrameLayout.LayoutParams(viewWidth, viewWidth));
+        goView.setOnCellClickListener(this::onCellClick);
+
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        btnRow.setGravity(Gravity.CENTER);
+        btnRow.setPadding(0, 16, 0, 0);
+
+        MaterialButton btnPass = new MaterialButton(this);
+        btnPass.setText(R.string.game_go_pass);
+        btnPass.setOnClickListener(v -> passMove());
+
+        MaterialButton btnResign = new MaterialButton(this);
+        btnResign.setText(R.string.game_go_resign);
+        btnResign.setOnClickListener(v -> resign());
+
+        MaterialButton btnRestart = new MaterialButton(this);
+        btnRestart.setText(R.string.btn_restart);
+        btnRestart.setOnClickListener(v -> showMenu());
+
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        btnLp.setMargins(12, 0, 12, 0);
+        btnPass.setLayoutParams(btnLp);
+        btnResign.setLayoutParams(btnLp);
+        btnRestart.setLayoutParams(btnLp);
+
+        btnRow.addView(btnPass);
+        btnRow.addView(btnResign);
+        btnRow.addView(btnRestart);
+
+        gamePanel.addView(goView);
+        gamePanel.addView(btnRow);
+
+        root.addView(tvStatus);
+        root.addView(tvScore);
+        root.addView(menuPanel);
+        root.addView(gamePanel);
+
+        return root;
+    }
+
+    private void showMenu() {
+        menuPanel.setVisibility(View.VISIBLE);
+        gamePanel.setVisibility(View.GONE);
+        tvStatus.setText(R.string.game_go_welcome);
+        tvScore.setText("");
+        goView.hideTerritory();
+    }
+
+    /**
+     * 开始新游戏
+     */
+    private void startNewGame() {
+        board = new int[BOARD_SIZE][BOARD_SIZE];
+        previousBoard = null;
+        currentPlayer = BLACK;
+        capturedByBlack = 0;
+        capturedByWhite = 0;
+        consecutivePasses = 0;
+        gameOver = false;
+
+        menuPanel.setVisibility(View.GONE);
+        gamePanel.setVisibility(View.VISIBLE);
+        tvStatus.setText(R.string.game_go_your_turn);
+        updateScoreDisplay();
+
+        goView.hideTerritory();
+        goView.setBoard(board);
+
+        isGameRunning = true;
+        gameStartTime = System.currentTimeMillis();
+    }
+
+    /**
+     * 处理落子
+     */
+    private void onCellClick(int row, int col) {
+        if (gameOver || !isGameRunning) return;
+        if (currentPlayer != BLACK) return;
+        if (board[row][col] != EMPTY) return;
+
+        // 检查合法性（禁入规则）
+        if (!isValidMove(row, col, BLACK)) return;
+
+        // 保存当前棋盘用于劫争判断
+        previousBoard = copyBoard(board);
+
+        // 落子
+        board[row][col] = BLACK;
+        consecutivePasses = 0;
+
+        // 提子
+        int captured = removeCapturedStones(WHITE, row, col);
+        capturedByBlack += captured;
+        totalCaptures += captured;
+
+        goView.setBoard(board);
+        goView.setLastMove(row, col);
+        updateScoreDisplay();
+
+        // AI 回合
+        currentPlayer = WHITE;
+        tvStatus.setText(R.string.game_go_ai_thinking);
+        handler.postDelayed(this::aiMove, 300 + random.nextInt(500));
+    }
+
+    /**
+     * AI 落子
+     */
+    private void aiMove() {
+        if (gameOver) return;
+
+        // 简单 AI：基于领地评估选择落子
+        int[] bestMove = findBestAiMove();
+        if (bestMove == null) {
+            // AI pass
+            consecutivePasses++;
+            tvStatus.setText(R.string.game_go_ai_passed);
+        } else {
+            previousBoard = copyBoard(board);
+            board[bestMove[0]][bestMove[1]] = WHITE;
+            consecutivePasses = 0;
+
+            int captured = removeCapturedStones(BLACK, bestMove[0], bestMove[1]);
+            capturedByWhite += captured;
+
+            goView.setBoard(board);
+            goView.setLastMove(bestMove[0], bestMove[1]);
+        }
+
+        // 检查终局
+        if (consecutivePasses >= MAX_CONSECUTIVE_PASSES) {
+            onGameEnd();
+            return;
+        }
+
+        currentPlayer = BLACK;
+        tvStatus.setText(R.string.game_go_your_turn);
+        updateScoreDisplay();
+    }
+
+    /**
+     * AI 找到最佳落子位置
+     */
+    private int[] findBestAiMove() {
+        List<int[]> candidates = new ArrayList<>();
+        int bestScore = Integer.MIN_VALUE;
+        int[] bestMove = null;
+
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == EMPTY && isValidMove(r, c, WHITE)) {
+                    // 模拟落子
+                    int[][] simulated = copyBoard(board);
+                    simulated[r][c] = WHITE;
+                    int captured = simulateCapture(simulated, BLACK, r, c);
+
+                    // 评估分数
+                    int score = captured * 10 + evaluatePosition(r, c) + random.nextInt(3);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = new int[]{r, c};
+                    }
+                }
+            }
+        }
+
+        // 有时随机 pass（模拟简单 AI）
+        if (bestMove != null && random.nextInt(10) < 2 && consecutivePasses == 0) {
+            return null;
+        }
+
+        return bestMove;
+    }
+
+    /**
+     * 评估位置价值
+     */
+    private int evaluatePosition(int row, int col) {
+        int score = 0;
+        // 中心位置价值更高
+        int centerDist = Math.abs(row - 4) + Math.abs(col - 4);
+        score += (8 - centerDist) * 2;
+
+        // 边角位置价值较低
+        if (row == 0 || row == BOARD_SIZE - 1) score -= 3;
+        if (col == 0 || col == BOARD_SIZE - 1) score -= 3;
+
+        // 相邻已有己方棋子加分
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            int nr = row + d[0];
+            int nc = col + d[1];
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                if (board[nr][nc] == WHITE) score += 2;
+            }
+        }
+
+        return score;
+    }
+
+    /**
+     * 检查落子是否合法
+     */
+    private boolean isValidMove(int row, int col, int color) {
+        if (board[row][col] != EMPTY) return false;
+
+        // 模拟落子
+        int[][] simulated = copyBoard(board);
+        simulated[row][col] = color;
+
+        // 检查是否有气
+        int opponent = color == BLACK ? WHITE : BLACK;
+        int captured = simulateCapture(simulated, opponent, row, col);
+
+        // 落子后自身是否有气
+        if (countLiberties(simulated, row, col) == 0 && captured == 0) {
+            return false; // 自杀
+        }
+
+        // 劫争检查
+        if (previousBoard != null && boardsEqual(simulated, previousBoard)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 模拟提子并返回提子数
+     */
+    private int simulateCapture(int[][] sim, int opponent, int row, int col) {
+        int totalCaptured = 0;
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            int nr = row + d[0];
+            int nc = col + d[1];
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE
+                    && sim[nr][nc] == opponent) {
+                if (countLiberties(sim, nr, nc) == 0) {
+                    totalCaptured += removeGroup(sim, nr, nc);
+                }
+            }
+        }
+        return totalCaptured;
+    }
+
+    /**
+     * 移除被吃掉的棋子（实际棋盘）
+     */
+    private int removeCapturedStones(int opponent, int row, int col) {
+        int totalCaptured = 0;
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            int nr = row + d[0];
+            int nc = col + d[1];
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE
+                    && board[nr][nc] == opponent) {
+                if (countLiberties(board, nr, nc) == 0) {
+                    totalCaptured += removeGroup(board, nr, nc);
+                }
+            }
+        }
+        return totalCaptured;
+    }
+
+    /**
+     * 计算棋子（组）的气数
+     */
+    private int countLiberties(int[][] grid, int row, int col) {
+        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
+        int[] liberties = {0};
+        countLibertiesDFS(grid, row, col, grid[row][col], visited, liberties);
+        return liberties[0];
+    }
+
+    private void countLibertiesDFS(int[][] grid, int row, int col, int color,
+                                   boolean[][] visited, int[] liberties) {
+        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
+        if (visited[row][col]) return;
+        if (grid[row][col] != color && grid[row][col] != EMPTY) return;
+
+        if (grid[row][col] == EMPTY) {
+            liberties[0]++;
+            return;
+        }
+
+        visited[row][col] = true;
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            countLibertiesDFS(grid, row + d[0], col + d[1], color, visited, liberties);
+        }
+    }
+
+    /**
+     * 移除一个棋子组
+     */
+    private int removeGroup(int[][] grid, int row, int col) {
+        int color = grid[row][col];
+        if (color == EMPTY) return 0;
+        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
+        return removeGroupDFS(grid, row, col, color, visited);
+    }
+
+    private int removeGroupDFS(int[][] grid, int row, int col, int color, boolean[][] visited) {
+        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return 0;
+        if (visited[row][col] || grid[row][col] != color) return 0;
+
+        visited[row][col] = true;
+        grid[row][col] = EMPTY;
+        int count = 1;
+
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            count += removeGroupDFS(grid, row + d[0], col + d[1], color, visited);
+        }
+        return count;
+    }
+
+    /**
+     * Pass
+     */
+    private void passMove() {
+        if (gameOver || !isGameRunning) return;
+        consecutivePasses++;
+        if (consecutivePasses >= MAX_CONSECUTIVE_PASSES) {
+            onGameEnd();
+            return;
+        }
+        currentPlayer = WHITE;
+        tvStatus.setText(R.string.game_go_ai_thinking);
+        handler.postDelayed(this::aiMove, 300);
+    }
+
+    /**
+     * 认输
+     */
+    private void resign() {
+        if (gameOver) return;
+        gameOver = true;
+        isGameRunning = false;
+        tvStatus.setText(R.string.game_go_you_resigned);
+        winStreak = 0;
+        usageStore.recordLoss(getGameId());
+        if (gameStartTime > 0) {
+            usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
+        }
+    }
+
+    /**
+     * 终局处理
+     */
+    private void onGameEnd() {
+        gameOver = true;
+        isGameRunning = false;
+
+        // 简化计分：统计领地
+        float blackTerritory = countTerritory(BLACK) + capturedByBlack;
+        float whiteTerritory = countTerritory(WHITE) + capturedByWhite + KOMI;
+
+        // 显示领地
+        float[][] territory = calculateTerritory();
+        goView.showTerritory(territory);
+
+        boolean playerWins = blackTerritory > whiteTerritory;
+        float blackPercent = blackTerritory / (BOARD_SIZE * BOARD_SIZE) * 100;
+
+        if (playerWins) {
+            totalWins++;
+            winStreak++;
+            tvStatus.setText(getString(R.string.game_go_you_win,
+                    (int) blackTerritory, (int) whiteTerritory));
+            usageStore.recordWin(getGameId());
+
+            checkAchievement("win", totalWins);
+            checkAchievement("score", (int) blackPercent);
+            checkAchievement("streak", winStreak);
+            if (capturedByBlack > 0) {
+                checkAchievement("special", true);
+            }
+            updateScore(currentScore + 300);
+        } else {
+            winStreak = 0;
+            tvStatus.setText(getString(R.string.game_go_ai_wins,
+                    (int) blackTerritory, (int) whiteTerritory));
+            usageStore.recordLoss(getGameId());
+        }
+
+        if (gameStartTime > 0) {
+            usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
+        }
+    }
+
+    /**
+     * 简化领地计算
+     */
+    private int countTerritory(int color) {
+        int count = 0;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == color) count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 计算领地标记
+     */
+    private float[][] calculateTerritory() {
+        float[][] territory = new float[BOARD_SIZE][BOARD_SIZE];
+        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
+
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == EMPTY && !visited[r][c]) {
+                    List<int[]> region = new ArrayList<>();
+                    int borderBlack = 0;
+                    int borderWhite = 0;
+                    floodFill(r, c, visited, region, new int[]{0, 0});
+
+                    for (int[] cell : region) {
+                        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+                        for (int[] d : dirs) {
+                            int nr = cell[0] + d[0];
+                            int nc = cell[1] + d[1];
+                            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                                if (board[nr][nc] == BLACK) borderBlack = 1;
+                                if (board[nr][nc] == WHITE) borderWhite = 1;
+                            }
+                        }
+                    }
+
+                    float owner = 0;
+                    if (borderBlack > 0 && borderWhite == 0) owner = -1;
+                    if (borderWhite > 0 && borderBlack == 0) owner = 1;
+
+                    for (int[] cell : region) {
+                        territory[cell[0]][cell[1]] = owner;
+                    }
+                }
+            }
+        }
+        return territory;
+    }
+
+    private void floodFill(int r, int c, boolean[][] visited, List<int[]> region, int[] count) {
+        if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return;
+        if (visited[r][c] || board[r][c] != EMPTY) return;
+        visited[r][c] = true;
+        region.add(new int[]{r, c});
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            floodFill(r + d[0], c + d[1], visited, region, count);
+        }
+    }
+
+    private void updateScoreDisplay() {
+        tvScore.setText(getString(R.string.game_go_score_display,
+                capturedByBlack, capturedByWhite, currentPlayer == BLACK ? "●" : "○"));
+    }
+
+    private int[][] copyBoard(int[][] src) {
+        int[][] dst = new int[BOARD_SIZE][BOARD_SIZE];
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            System.arraycopy(src[r], 0, dst[r], 0, BOARD_SIZE);
+        }
+        return dst;
+    }
+
+    private boolean boardsEqual(int[][] a, int[][] b) {
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (a[r][c] != b[r][c]) return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    protected void startGame() {
+        isGameRunning = true;
+    }
+
+    @Override
+    protected void pauseGame() {
+        isGamePaused = true;
+    }
+
+    @Override
+    protected void resumeGame() {
+        isGamePaused = false;
+    }
+
+    @Override
+    protected void endGame() {
+        isGameRunning = false;
+        handler.removeCallbacksAndMessages(null);
+        if (gameStartTime > 0) {
+            usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
+        }
+    }
+
+    @Override
+    protected void checkAchievement(@NonNull String eventType, @NonNull Object... params) {
+        achievementManager.checkAndUnlock(eventType, params);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+    }
+}

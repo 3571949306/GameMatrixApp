@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 斗地主游戏字符串资源（成就补充） -->
+<resources>
+    <!-- 成就 -->
+    <string name="doudizhu_ach_first_win_name">斗地主首胜</string>
+    <string name="doudizhu_ach_first_win_desc">第一次在斗地主中获胜</string>
+    <string name="doudizhu_ach_win_10_name">牌场老手</string>
+    <string name="doudizhu_ach_win_10_desc">累计胜利 10 局</string>
+    <string name="doudizhu_ach_win_50_name">牌场传奇</string>
+    <string name="doudizhu_ach_win_50_desc">累计胜利 50 局</string>
+    <string name="doudizhu_ach_streak_3_name">连胜三把</string>
+    <string name="doudizhu_ach_streak_3_desc">连续胜利 3 局</string>
+    <string name="doudizhu_ach_streak_5_name">连胜五把</string>
+    <string name="doudizhu_ach_streak_5_desc">连续胜利 5 局</string>
+    <string name="doudizhu_ach_landlord_win_name">地主之王</string>
+    <string name="doudizhu_ach_landlord_win_desc">作为地主获胜一次</string>
+    <string name="doudizhu_ach_farmer_win_name">农民英雄</string>
+    <string name="doudizhu_ach_farmer_win_desc">作为农民获胜一次</string>
+</resources>

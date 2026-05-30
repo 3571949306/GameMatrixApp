@@ -50,4 +50,9 @@
     <color name="ai_message_system_text">#E8F7EC</color>
     <color name="ai_message_system_role">#A7E8B8</color>
     <color name="ai_message_star">#FFD166</color>
+    <color name="status_update_available">#22C55E</color>
+    <color name="status_update_available_container">#14532D</color>
+    <color name="card_glow_primary">#1A00D9FF</color>
+    <color name="card_glow_secondary">#1AA855F7</color>
+    <color name="surface_elevated">#1E293B</color>
 </resources>

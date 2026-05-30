@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 飞翔的小鸟基础信息 -->
+    <string name="game_flappy_name">飞翔的小鸟</string>
+    <string name="game_flappy_desc">点击屏幕飞翔穿越管道</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_flappy_rules_title">飞翔的小鸟规则</string>
+    <string name="game_flappy_rules_content">
+        1. 点击屏幕使小鸟上升\n
+        2. 小鸟受重力影响会自然下落\n
+        3. 穿过管道间隙得分\n
+        4. 碰到管道或地面/天花板游戏结束\n
+        5. 得分越高，难度越大\n
+        6. 挑战你的最高记录！
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_flappy_ach_first_score">初次飞翔</string>
+    <string name="game_flappy_ach_first_score_desc">首次在飞翔小鸟中得分</string>
+    <string name="game_flappy_ach_score_10">飞翔新手</string>
+    <string name="game_flappy_ach_score_10_desc">得分达到10分</string>
+    <string name="game_flappy_ach_score_30">飞翔高手</string>
+    <string name="game_flappy_ach_score_30_desc">得分达到30分</string>
+    <string name="game_flappy_ach_score_50">飞翔大师</string>
+    <string name="game_flappy_ach_score_50_desc">得分达到50分</string>
+    <string name="game_flappy_ach_10_games">飞翔达人</string>
+    <string name="game_flappy_ach_10_games_desc">累计完成10局飞翔小鸟</string>
+</resources>

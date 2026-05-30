@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 推箱子基础信息 -->
+    <string name="game_sokoban_name">推箱子</string>
+    <string name="game_sokoban_desc">经典推箱子益智游戏</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_sokoban_select_level">选择关卡开始游戏</string>
+    <string name="game_sokoban_push_boxes">将所有箱子推到目标点上</string>
+    <string name="game_sokoban_moves">步数：%d | 推箱：%d</string>
+    <string name="game_sokoban_level_complete">恭喜通关！步数%d，推箱%d次，耗时%d秒</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_sokoban_rules_title">推箱子规则</string>
+    <string name="game_sokoban_rules_content">
+        1. 使用方向按钮控制玩家上下左右移动\n
+        2. 玩家推着箱子走，将箱子推到标记位置\n
+        3. 箱子只能推不能拉\n
+        4. 每次只能推一个箱子\n
+        5. 所有箱子到达目标位置即通关\n
+        6. 尽量用最少的步数完成挑战
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_sokoban_ach_first_clear">破冰之旅</string>
+    <string name="game_sokoban_ach_first_clear_desc">首次通关推箱子</string>
+    <string name="game_sokoban_ach_10_levels">初窥门径</string>
+    <string name="game_sokoban_ach_10_levels_desc">累计通关10关</string>
+    <string name="game_sokoban_ach_best_steps">步数达人</string>
+    <string name="game_sokoban_ach_best_steps_desc">在最少步数内通关任意关卡</string>
+    <string name="game_sokoban_ach_all_levels">推箱子大师</string>
+    <string name="game_sokoban_ach_all_levels_desc">通关所有关卡</string>
+    <string name="game_sokoban_ach_speed">速推高手</string>
+    <string name="game_sokoban_ach_speed_desc">在120秒内通关任意关卡</string>
+</resources>

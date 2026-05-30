@@ -1,1 +1,4 @@
-appName:CrazyPoker,packageName:com.injoy.games.crazy.poker,versionName:V1.14,versionCode:14,size:17.20M,minSdkInfo:Android8.0以上
+# 内置游戏信息配置文件
+# 格式：appName:packageName,versionName:versionCode,size:minSdkInfo
+# 如果不需要内置游戏，可以清空此文件
+# 模块系统会在需要时自动下载游戏模块

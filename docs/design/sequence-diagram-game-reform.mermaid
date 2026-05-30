@@ -1,0 +1,63 @@
+sequenceDiagram
+    participant User as 用户
+    participant GameList as GamesFragment
+    participant Registry as GameRegistry
+    participant Config as GameConfigLoader
+    participant Base as BaseGameActivity
+    participant Rules as GameRulesFragment
+    participant Tutorial as GameTutorialFragment
+    participant Achieve as GameAchievementManager
+    participant Diff as GameDifficultyManager
+
+    User->>GameList: 点击游戏卡片
+    GameList->>Registry: getActivityClassById(gameId)
+    Registry-->>GameList: Activity Class
+    GameList->>Base: startActivity(intent)
+    
+    Base->>Config: loadGameConfig(gameId)
+    Config-->>Base: GameConfig
+    
+    Base->>Base: initGame() [抽象方法]
+    Base->>Achieve: init(gameId, IAchievementCallback)
+    Base->>Diff: init(gameId, IGameDifficulty)
+    Base->>Base: checkFirstTime()
+    
+    alt 首次游玩
+        Base->>Tutorial: showTutorial(steps)
+        Tutorial-->>User: 显示步骤1高亮
+        User->>Tutorial: 点击"下一步"
+        Tutorial-->>User: 显示步骤2...
+        Tutorial->>Base: onTutorialCompleted()
+    end
+    
+    Base->>Base: startGame()
+    Base-->>User: 游戏开始
+
+    Note over Base,Achieve: === 成就检查流程 ===
+    Base->>Base: 游戏事件（胜利/得分）
+    Base->>Achieve: checkAndUnlock(gameId, eventType, params)
+    Achieve->>Achieve: evaluateConditions(eventType, params)
+    alt 满足解锁条件
+        Achieve-->>User: showAchievementPopup()
+        Achieve->>Base: onAchievementUnlocked()
+    else 仅进度更新
+        Achieve->>Base: onAchievementProgress(key, progress)
+    end
+
+    Note over Base,Diff: === 难度切换流程 ===
+    User->>Base: 点击"难度"按钮
+    Base->>Diff: showDifficultyDialog()
+    Diff-->>User: 弹出难度选择弹窗
+    User->>Diff: 选择"困难"
+    Diff->>Base: onDifficultyChanged(OLD, HARD)
+    Base-->>User: 更新难度标签
+
+    Note over User,Rules: === 规则查看流程 ===
+    User->>Base: 点击"规则"按钮
+    Base->>Rules: newInstance(gameId)
+    Base->>Base: pauseGame()
+    Base->>Rules: show(fragmentTransaction)
+    Rules-->>User: 显示规则页面
+    User->>Rules: 点击"返回"
+    Rules->>Base: onDismiss()
+    Base->>Base: resumeGame()

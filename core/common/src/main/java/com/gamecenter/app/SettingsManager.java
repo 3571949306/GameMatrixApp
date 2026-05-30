@@ -1,5 +1,6 @@
 package com.gamecenter.app;
 
+import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -111,9 +112,11 @@ public class SettingsManager {
      */
     @Inject
     public SettingsManager(@ApplicationContext Context context) {
+        // ⚠️ 直接使用 context，不要调 getApplicationContext()
+        // @ApplicationContext 已经保证了传入的是 Application Context
+        // 在 Application 初始化早期阶段，getApplicationContext() 可能返回 null
         // MODE_PRIVATE 表示这个文件只有本应用能读写，其他应用无法访问
-        prefs = context.getApplicationContext()
-                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         instance = this;
     }
 
@@ -137,7 +140,19 @@ public class SettingsManager {
     @Deprecated
     public static synchronized SettingsManager getInstance(Context context) {
         if (instance == null) {
-            instance = new SettingsManager(context.getApplicationContext());
+            // ⚠️ 直接使用 context，不要调 getApplicationContext()
+            // 如果 context 是 Application，它本身就是 ApplicationContext
+            // 如果在 Application 初始化早期调用，getApplicationContext() 可能返回 null
+            Context appContext = context;
+            if (context instanceof Application) {
+                appContext = context;
+            } else {
+                Context ac = context.getApplicationContext();
+                if (ac != null) {
+                    appContext = ac;
+                }
+            }
+            instance = new SettingsManager(appContext);
         }
         return instance;
     }

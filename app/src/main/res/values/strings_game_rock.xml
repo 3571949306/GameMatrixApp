@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 猜拳基础信息 -->
+    <string name="game_rock_name">猜拳</string>
+    <string name="game_rock_desc">经典石头剪刀布</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_rock_rules_title">猜拳规则</string>
+    <string name="game_rock_rules_content">
+        1. 选择石头✊、剪刀✌️或布🖐\n
+        2. 石头胜剪刀，剪刀胜布，布胜石头\n
+        3. 双方出相同则平局\n
+        4. 每赢一局得10分\n
+        5. 挑战连胜记录！
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_rock_ach_first_win">初次胜利</string>
+    <string name="game_rock_ach_first_win_desc">首次赢得猜拳</string>
+    <string name="game_rock_ach_streak_3">三连胜</string>
+    <string name="game_rock_ach_streak_3_desc">连续赢得3局</string>
+    <string name="game_rock_ach_win_rate_70">猜拳高手</string>
+    <string name="game_rock_ach_win_rate_70_desc">10局以上胜率达到70%%</string>
+    <string name="game_rock_ach_all_choices">全能选手</string>
+    <string name="game_rock_ach_all_choices_desc">使用过全部三种手势</string>
+    <string name="game_rock_ach_20_rounds">猜拳老手</string>
+    <string name="game_rock_ach_20_rounds_desc">累计完成20局猜拳</string>
+</resources>

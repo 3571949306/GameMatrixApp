@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 华容道基础信息 -->
+    <string name="game_klotski_name">华容道</string>
+    <string name="game_klotski_desc">经典滑块拼图，帮助曹操逃出</string>
+
+    <!-- 游戏状态 -->
+    <string name="game_klotski_select_level">选择关卡开始游戏</string>
+    <string name="game_klotski_level">第 %d 关</string>
+    <string name="game_klotski_move_caocao">将曹操（红色大方块）移至底部中央出口</string>
+    <string name="game_klotski_moves">步数：%d</string>
+    <string name="game_klotski_level_complete">恭喜通关！用了%d步，耗时%d秒</string>
+    <string name="game_klotski_back_to_menu">返回选关</string>
+
+    <!-- 游戏规则 -->
+    <string name="game_klotski_rules_title">华容道规则</string>
+    <string name="game_klotski_rules_content">
+        1. 棋盘为4×5格子，底部中央有出口\n
+        2. 曹操（红色2×2）需移至出口位置\n
+        3. 滑动其他方块为曹操让路\n
+        4. 竖将（绿色1×2）和横将（绿色2×1）可上下或左右滑动\n
+        5. 士兵（棕色1×1）可任意方向滑动\n
+        6. 用最少的步数将曹操移出棋盘即为通关
+    </string>
+
+    <!-- 成就名称 -->
+    <string name="game_klotski_ach_first_clear">破局而出</string>
+    <string name="game_klotski_ach_first_clear_desc">首次通关华容道</string>
+    <string name="game_klotski_ach_best_steps">步数之王</string>
+    <string name="game_klotski_ach_best_steps_desc">在最少步数内通关任意关卡</string>
+    <string name="game_klotski_ach_3_levels">渐入佳境</string>
+    <string name="game_klotski_ach_3_levels_desc">通关3个不同关卡</string>
+    <string name="game_klotski_ach_all_levels">华容道大师</string>
+    <string name="game_klotski_ach_all_levels_desc">通关所有关卡</string>
+    <string name="game_klotski_ach_speed">速通高手</string>
+    <string name="game_klotski_ach_speed_desc">在60秒内通关任意关卡</string>
+</resources>

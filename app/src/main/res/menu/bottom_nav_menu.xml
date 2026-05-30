@@ -1,23 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <item
         android:id="@+id/navigation_browser"
-        android:icon="@drawable/ic_browser"
-        android:title="@string/nav_browser" />
+        android:icon="@drawable/ic_nav_browser"
+        android:title="@string/nav_browser"
+        app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/navigation_games"
-        android:icon="@drawable/ic_games"
-        android:title="@string/nav_games" />
+        android:icon="@drawable/ic_nav_games"
+        android:title="@string/nav_games"
+        app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/navigation_tools"
-        android:icon="@drawable/ic_tools"
-        android:title="@string/nav_tools" />
+        android:icon="@drawable/ic_nav_tools"
+        android:title="@string/nav_tools"
+        app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/navigation_ai"
-        android:icon="@drawable/ic_ai"
-        android:title="@string/nav_ai" />
+        android:icon="@drawable/ic_nav_ai"
+        android:title="@string/nav_ai"
+        app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/navigation_vpn"
-        android:icon="@drawable/ic_vpn"
+        android:icon="@drawable/ic_nav_vpn"
+        app:showAsAction="ifRoom"
         android:title="@string/nav_vpn" />
 </menu>

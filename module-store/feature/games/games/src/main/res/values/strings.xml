@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Game categories -->
+    <string name="category_classics">经典</string>
+    <string name="category_puzzle">益智类</string>
+    <string name="category_casual">休闲类</string>
+    <string name="category_reaction">反应类</string>
+    <string name="category_other">其他</string>
+
+    <!-- Common game UI -->
+    <string name="btn_restart">重新开始</string>
+    <string name="btn_undo">悔棋</string>
+    <string name="difficulty_easy">初级</string>
+    <string name="difficulty_medium">中级</string>
+    <string name="difficulty_hard">高级</string>
+    <string name="difficulty_hell">地狱</string>
+    <string name="select_difficulty">请选择难度</string>
+    <string name="game_entrance">进入游戏</string>
+
+    <!-- Game names and descriptions -->
+    <string name="gomoku">五子棋</string>
+    <string name="gomoku_desc">经典五子棋人机对战</string>
+    <string name="chinese_chess">中国象棋</string>
+    <string name="chinese_chess_desc">中国象棋人机对战</string>
+    <string name="snake">贪吃蛇</string>
+    <string name="snake_desc">经典贪吃蛇大作战</string>
+    <string name="tetris">俄罗斯方块</string>
+    <string name="tetris_desc">经典俄罗斯方块</string>
+    <string name="game_doudizhu">斗地主</string>
+    <string name="game_doudizhu_desc">经典三人扑克对战</string>
+    <string name="brotato">生存射击</string>
+    <string name="brotato_desc">击败敌人获取金币升级</string>
+    <string name="game_sudoku">数独</string>
+    <string name="game_sudoku_desc">数字逻辑益智游戏</string>
+    <string name="game_sokoban">推箱子</string>
+    <string name="game_sokoban_desc">经典推箱子解谜</string>
+    <string name="game_pipeline">接水管</string>
+    <string name="game_pipeline_desc">连接管道益智游戏</string>
+    <string name="game_klotski">华容道</string>
+    <string name="game_klotski_desc">中国传统益智游戏</string>
+    <string name="game_breakout">打砖块</string>
+    <string name="game_breakout_desc">经典弹球打砖块</string>
+    <string name="game_whack">打地鼠</string>
+    <string name="game_whack_desc">快速反应打地鼠</string>
+    <string name="game_match">消消乐</string>
+    <string name="game_match_desc">匹配消除类游戏</string>
+    <string name="game_blackjack">21点</string>
+    <string name="game_blackjack_desc">经典纸牌游戏</string>
+    <string name="game_checkers">跳棋</string>
+    <string name="game_checkers_desc">经典跳棋对战</string>
+    <string name="game_flappy">Flappy Bird</string>
+    <string name="game_flappy_desc">小鸟飞行挑战</string>
+    <string name="game_tiles">别踩白块</string>
+    <string name="game_tiles_desc">快速点击黑块</string>
+    <string name="game_plane">飞机大战</string>
+    <string name="game_plane_desc">经典射击游戏</string>
+    <string name="game_rock">石头剪刀布</string>
+    <string name="game_rock_desc">简单猜拳对战</string>
+    <string name="game_tic">井字棋</string>
+    <string name="game_tic_desc">三子连线游戏</string>
+    <string name="game_memory">记忆翻牌</string>
+    <string name="game_memory_desc">锻炼记忆力游戏</string>
+    <string name="game_guess">猜数字</string>
+    <string name="game_guess_desc">猜数字小游戏</string>
+    <string name="game_dice">骰子游戏</string>
+    <string name="game_dice_desc">简单随机骰子游戏</string>
+    <string name="game_reaction">反应力挑战</string>
+    <string name="game_reaction_desc">测试你的反应速度</string>
+    <string name="game_go">围棋</string>
+    <string name="game_go_desc">经典围棋9路棋盘对战</string>
+    <string name="minesweeper">扫雷</string>
+    <string name="minesweeper_desc">经典扫雷游戏，长按标旗，短按翻开</string>
+    <string name="minesweeper_title">扫雷</string>
+    <string name="minesweeper_easy">初级 9×9</string>
+    <string name="minesweeper_medium">中级 16×16</string>
+    <string name="minesweeper_hard">高级 16×30</string>
+    <string name="minesweeper_reset">重新开始</string>
+    <string name="minesweeper_status">剩余: %1$d | 旗帜: %2$d</string>
+    <string name="minesweeper_win_title">恭喜</string>
+    <string name="minesweeper_win_msg">你赢了！</string>
+    <string name="minesweeper_lose_title">游戏结束</string>
+    <string name="minesweeper_lose_msg">踩到地雷了！</string>
+    <string name="minesweeper_play_again">再来一局</string>
+
+    <!-- Online game strings -->
+    <string name="online_title">联机对战</string>
+    <string name="online_create_room">创建房间</string>
+    <string name="online_join_room">加入房间</string>
+    <string name="online_input_message">输入消息...</string>
+    <string name="online_send">发送</string>
+    <string name="online_creating_cloud">正在创建云房间...</string>
+    <string name="online_room_created">房间已创建</string>
+    <string name="online_room_code_label">房间码: </string>
+    <string name="online_create_failed">创建房间失败</string>
+    <string name="online_joining_room">正在加入房间 </string>
+    <string name="online_waiting_opponent">等待对手加入</string>
+    <string name="online_copy_room_code">复制房间码</string>
+    <string name="online_room_code_copied">房间码已复制</string>
+    <string name="online_share_room_code_hint">请将房间码告诉对手\n\n对手输入房间码加入后，游戏将自动开始</string>
+    <string name="online_cancel">取消</string>
+    <string name="online_input_room_code_hint">请输入6位房间码</string>
+    <string name="online_join_room_title">加入房间</string>
+    <string name="online_join">加入</string>
+    <string name="online_input_room_code_toast">请输入6位房间码</string>
+    <string name="online_disconnected_title">连接断开</string>
+    <string name="online_waiting_reconnect">等待重连</string>
+    <string name="online_waiting_opponent_reconnect">等待对手重新连接...</string>
+    <string name="online_reconnect">重新连接</string>
+    <string name="online_reconnecting">正在重新连接...</string>
+    <string name="online_reconnect_failed">无法重连，请重新加入</string>
+    <string name="online_leave_room">离开房间</string>
+    <string name="online_opponent_joined">对手已加入!</string>
+    <string name="online_opponent_disconnected">对手已断开: </string>
+    <string name="online_connected_to_host">已连接到主机</string>
+    <string name="online_connection_lost">连接已断开: </string>
+    <string name="online_server_error">服务器错误: </string>
+    <string name="online_client_error">客户端错误: </string>
+
+    <!-- Stats -->
+    <string name="stats_title">游戏统计</string>
+</resources>
