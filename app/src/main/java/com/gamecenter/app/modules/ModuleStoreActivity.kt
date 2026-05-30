@@ -379,7 +379,8 @@ class ModuleStoreActivity : AppCompatActivity() {
     }
 
     private fun openModule(module: ModuleManifest) {
-        if (module.type == "nav") {
+        // 内置/标准 nav 底部导航栏模块（games_hall, browser, tools, ai, vpn）
+        if (module.type == "nav" && (module.isBaseFramework || listOf("games_hall", "browser", "tools", "ai", "vpn").contains(module.id))) {
             val instance = ModuleManager.loadModule(this, module.id)
             if (instance != null || ModuleManager.isModuleInstalled(this, module.id)) {
                 val intent = Intent(this, MainActivity::class.java)
@@ -389,6 +390,35 @@ class ModuleStoreActivity : AppCompatActivity() {
                 return
             }
             Toast.makeText(this, "模块加载失败", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 有入口类的独立模块（如 TTS 语音合成等）
+        if (module.type == "nav" && module.entryClass.isNotEmpty()) {
+            ModuleManager.loadModule(this, module.id)
+            ModuleManager.startModule(this, module.id) // 先调用 start() 注册资源
+
+            // 如果设置了 activityClass，从模块 APK 的 DexClassLoader 启动 Activity
+            if (module.activityClass.isNotEmpty()) {
+                val moduleClassLoader = com.gamecenter.app.modules.ModuleLoader.getModuleClassLoader(module.id)
+                if (moduleClassLoader != null) {
+                    try {
+                        val activityClass = moduleClassLoader.loadClass(module.activityClass)
+                        val intent = Intent(this, activityClass)
+                        startActivity(intent)
+                        return
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "启动失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        return
+                    }
+                }
+            }
+
+            // activityClass 为空时，尝试通过游戏大厅入口（TTS 已在 start() 中注册到 GameRegistry）
+            val intent = Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_NAV_TAB, "games_hall")
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(intent)
             return
         }
 
@@ -447,11 +477,10 @@ class ModuleStoreActivity : AppCompatActivity() {
             return
         }
 
-        val instance = ModuleManager.loadModule(this, module.id)
-        if (instance != null) {
-            ModuleManager.startModule(this, module.id)
-        } else {
-            Toast.makeText(this, "模块加载失败", Toast.LENGTH_SHORT).show()
-        }
+        // 通用回退：尝试通过 ModuleInterface 启动
+        ModuleManager.loadModule(this, module.id)
+        if (ModuleManager.startModule(this, module.id)) return
+
+        Toast.makeText(this, "模块加载失败", Toast.LENGTH_SHORT).show()
     }
 }

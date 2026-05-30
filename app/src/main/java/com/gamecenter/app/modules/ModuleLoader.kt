@@ -192,6 +192,9 @@ object ModuleLoader {
         return resourceLoaders[moduleId]
     }
 
+    /** 获取已加载模块的 DexClassLoader，用于启动模块内的 Activity */
+    fun getModuleClassLoader(moduleId: String): ClassLoader? = classLoaders[moduleId]
+
     fun getModule(moduleId: String): ModuleInterface? {
         return loadedModules[moduleId]
     }
