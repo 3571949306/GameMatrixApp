@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 17,
   "modules": [
     {
       "id": "games_hall",
@@ -131,13 +131,13 @@
       "id": "tts_voice",
       "name": "语音合成",
       "description": "Xiaomi MiMo 语音合成模块，支持中英文文本转语音。",
-      "versionName": "1.0.0",
-      "versionCode": 100,
+      "versionName": "1.0.1",
+      "versionCode": 101,
       "entryClass": "com.gamecenter.app.tts.TtsModuleEntryPoint",
-      "fileName": "feature_tts_voice_v100.apk",
+      "fileName": "feature_tts_voice_v101.apk",
       "fileSize": 859991,
       "sha256": "2570d5429c04653bb9e3b9d0ec24315b035242264ec14ed6e7ba5c21d0c2acf6",
-      "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v100.apk",
+      "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v101.apk",
       "fallbackUrl": "",
       "githubUrl": "",
       "iconUrl": "",
