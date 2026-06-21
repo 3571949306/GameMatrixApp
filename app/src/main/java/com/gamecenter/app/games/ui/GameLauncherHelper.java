@@ -30,10 +30,14 @@ public class GameLauncherHelper {
 
     /**
      * 显示游戏启动对话框，选择难度后启动游戏
+     * <p>
+     * 对于不需要难度选择的游戏（休闲类），直接启动游戏；
+     * 对于有AI对手的游戏，显示难度选择面板。
+     * </p>
      *
      * @param context 上下文
      * @param gameId  游戏 ID
-     * @return true 表示找到了游戏并显示了对话框，false 表示游戏未找到
+     * @return true 表示找到了游戏并启动/显示了对话框，false 表示游戏未找到
      */
     public static boolean launchGameWithDialog(@NonNull Context context, @NonNull String gameId) {
         return launchGameWithDialog(context, gameId, null);
@@ -45,7 +49,7 @@ public class GameLauncherHelper {
      * @param context       上下文
      * @param gameId        游戏 ID
      * @param customLevels  自定义难度列表（null 表示使用默认）
-     * @return true 表示找到了游戏并显示了对话框，false 表示游戏未找到
+     * @return true 表示找到了游戏并启动/显示了对话框，false 表示游戏未找到
      */
     public static boolean launchGameWithDialog(@NonNull Context context,
                                                @NonNull String gameId,
@@ -56,6 +60,12 @@ public class GameLauncherHelper {
                 + " activityClass=" + (activityClass != null ? activityClass.getSimpleName() : "null"));
         if (activityClass == null) {
             return false;
+        }
+
+        // 如果是不需要难度选择的游戏，直接启动
+        if (!needsDifficultySelection(gameId)) {
+            startGameActivity(context, gameId, activityClass, 0, false);
+            return true;
         }
 
         // 获取游戏名称
@@ -157,6 +167,28 @@ public class GameLauncherHelper {
         levels.add(new DifficultyLevel("大师", 5, "AI 深度思考，强力挑战",
                 6, 3000, 2.0f, false));
         return levels;
+    }
+
+    /**
+     * 判断游戏是否需要难度选择面板
+     * <p>
+     * 有AI对手的游戏需要难度选择，纯休闲游戏直接启动
+     */
+    public static boolean needsDifficultySelection(@NonNull String gameId) {
+        switch (gameId) {
+            // 有AI对手的游戏 - 需要难度选择
+            case "gomoku":
+            case "chinesechess":
+            case "go":
+            case "doudizhu":
+            case "blackjack":
+            case "checkers":
+            case "tic":
+                return true;
+            // 休闲游戏 - 不需要难度选择
+            default:
+                return false;
+        }
     }
 
     /**
