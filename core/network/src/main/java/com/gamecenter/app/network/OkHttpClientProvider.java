@@ -13,6 +13,7 @@ import javax.inject.Singleton;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 
 import okhttp3.Cache;
+import okhttp3.Dispatcher;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -97,20 +98,44 @@ public final class OkHttpClientProvider {
 
         deduplicationInterceptor = new RequestDeduplicationInterceptor();
 
+        // 优化线程池配置：限制 OkHttp 并发数，避免线程爆炸
+        Dispatcher dispatcher = new Dispatcher();
+        dispatcher.setMaxRequests(8);           // 全局最大并发请求数（默认64→8）
+        dispatcher.setMaxRequestsPerHost(4);    // 单主机最大并发请求数（默认5→4）
+
+        // Phase 2.3: 集中所有常用 interceptor
+        // - HeaderInterceptor: 统一 User-Agent / X-Client 等公共 header
+        // - NetworkLoggingInterceptor: 统一日志 (Debug build 用 verbose, Release 用普通)
+        // - RetryInterceptor: 网络抖动重试 (线性退避)
+        // - RequestDeduplicationInterceptor: 短时间重复请求去重
+        HeaderInterceptor headers = new HeaderInterceptor.Builder()
+                .userAgent("GameMatrixApp/1.4.0 (Android)")
+                .addStaticHeader("X-Client-Platform", "android")
+                .addStaticHeader("X-Client-Version", "1.4.0")
+                .build();
+
+        NetworkLoggingInterceptor logging = new NetworkLoggingInterceptor(false, false);
+
         httpClient = new OkHttpClient.Builder()
                 .cache(cache)
+                .dispatcher(dispatcher)  // 使用优化后的线程池配置
                 .connectTimeout(HTTP_CONNECT_TIMEOUT, TimeUnit.SECONDS)
                 .readTimeout(HTTP_READ_TIMEOUT, TimeUnit.SECONDS)
                 .writeTimeout(HTTP_WRITE_TIMEOUT, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
+                .addInterceptor(headers)
+                .addInterceptor(logging)
                 .addInterceptor(new RetryInterceptor(MAX_RETRIES, RETRY_DELAY_MS))
                 .addInterceptor(deduplicationInterceptor)
                 .build();
 
         webSocketClient = new OkHttpClient.Builder()
+                .dispatcher(dispatcher)  // 使用优化后的线程池配置
                 .connectTimeout(WS_CONNECT_TIMEOUT, TimeUnit.SECONDS)
                 .readTimeout(WS_READ_TIMEOUT, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
+                .addInterceptor(headers)
+                .addInterceptor(logging)
                 .build();
 
         instance = this;

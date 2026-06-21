@@ -363,9 +363,106 @@ public final class GameRegistry {
     }
 
     private static List<Category> buildStaticCategories(Context context) {
-        // 所有游戏已通过模块商店动态加载，不再内置硬编码游戏。
-        // 用户可在模块商店中浏览、下载并安装游戏。
-        return new ArrayList<>();
+        // 2026-06-21: 内嵌所有游戏到主app，同时保留模块市场更新能力
+        // 内置游戏通过主 ClassLoader 直接加载，无需下载
+        // ModuleVersionChecker 会在启动时检查更新，如果有新版本会提示下载
+        List<Category> categories = new ArrayList<>();
+
+        // ===== 经典类（classics）=====
+        List<Entry> classics = new ArrayList<>();
+        classics.add(new Entry("gomoku", R.drawable.ic_gomoku, "五子棋", "经典五子棋人机对战",
+                com.gamecenter.app.games.gomoku.GomokuActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("chinesechess", R.drawable.ic_chinesechess, "中国象棋", "经典中国象棋",
+                com.gamecenter.app.games.chinesechess.ChineseChessActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("go", R.drawable.ic_go, "围棋", "经典围棋对弈",
+                com.gamecenter.app.games.go.GoActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("doudizhu", R.drawable.ic_doudizhu, "斗地主", "经典三人扑克对战",
+                com.gamecenter.app.games.doudizhu.DouDiZhuMenuActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("blackjack", R.drawable.ic_blackjack, "21点", "经典21点纸牌游戏",
+                com.gamecenter.app.games.blackjack.BlackjackActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("checkers", R.drawable.ic_checkers, "跳棋", "经典跳棋游戏",
+                com.gamecenter.app.games.checkers.CheckersActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("dice", R.drawable.ic_dice, "骰子", "趣味骰子游戏",
+                com.gamecenter.app.games.dice.DiceActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        classics.add(new Entry("rock", R.drawable.ic_rock, "石头剪刀布", "经典石头剪刀布",
+                com.gamecenter.app.games.rock.RockActivity.class,
+                CATEGORY_CLASSICS, CATEGORY_CLASSICS));
+        categories.add(new Category(context.getString(R.string.category_classics), classics, CATEGORY_CLASSICS));
+
+        // ===== 益智类（puzzle）=====
+        List<Entry> puzzle = new ArrayList<>();
+        puzzle.add(new Entry("game_2048", R.drawable.ic_game_2048, "2048", "经典数字合并游戏",
+                com.gamecenter.app.games.game2048.Game2048Activity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("sudoku", R.drawable.ic_sudoku, "数独", "经典数独益智游戏",
+                com.gamecenter.app.games.sudoku.SudokuActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("klotski", R.drawable.ic_klotski, "华容道", "经典滑块益智游戏",
+                com.gamecenter.app.games.klotski.KlotskiActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("sokoban", R.drawable.ic_sokoban, "推箱子", "经典推箱子益智游戏",
+                com.gamecenter.app.games.sokoban.SokobanActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("pipeline", R.drawable.ic_pipeline, "管道", "管道连接益智游戏",
+                com.gamecenter.app.games.pipeline.PipelineActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("minesweeper", R.drawable.ic_minesweeper, "扫雷", "经典扫雷游戏",
+                com.gamecenter.app.games.minesweeper.MinesweeperActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("match", R.drawable.ic_match, "消消乐", "经典三消游戏",
+                com.gamecenter.app.games.match.MatchActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("memory", R.drawable.ic_memory, "记忆翻牌", "记忆力翻牌配对游戏",
+                com.gamecenter.app.games.memory.MemoryActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("breakout", R.drawable.ic_breakout, "打砖块", "经典打砖块游戏",
+                com.gamecenter.app.games.breakout.BreakoutActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        puzzle.add(new Entry("tiles", R.drawable.ic_tiles, "拼图", "经典拼图游戏",
+                com.gamecenter.app.games.tiles.TilesActivity.class,
+                CATEGORY_PUZZLE, CATEGORY_PUZZLE));
+        // knife 包暂不存在，已移除
+        categories.add(new Category(context.getString(R.string.category_puzzle), puzzle, CATEGORY_PUZZLE));
+
+        // ===== 休闲类（casual）=====
+        List<Entry> casual = new ArrayList<>();
+        casual.add(new Entry("tetris", R.drawable.ic_tetris, "俄罗斯方块", "经典俄罗斯方块",
+                com.gamecenter.app.games.tetris.TetrisActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("snake", R.drawable.ic_snake, "贪吃蛇", "经典贪吃蛇游戏",
+                com.gamecenter.app.games.snake.SnakeActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("flappy", R.drawable.ic_flappy, "Flappy Bird", "像素风飞行躲避游戏",
+                com.gamecenter.app.games.flappy.FlappyActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("brotato", R.drawable.ic_brotato, "Brotato", "趣味生存射击游戏",
+                com.gamecenter.app.games.brotato.BrotatoActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("plane", R.drawable.ic_plane, "飞机大战", "经典飞机射击游戏",
+                com.gamecenter.app.games.plane.PlaneActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("reaction", R.drawable.ic_reaction, "反应测试", "反应速度测试游戏",
+                com.gamecenter.app.games.reaction.ReactionActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("guess", R.drawable.ic_guess, "猜数字", "经典猜数字推理游戏",
+                com.gamecenter.app.games.guess.GuessActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("tic", R.drawable.ic_tic, "井字棋", "经典井字棋游戏",
+                com.gamecenter.app.games.tic.TicTacToeActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        casual.add(new Entry("whack", R.drawable.ic_whack, "打地鼠", "趣味打地鼠游戏",
+                com.gamecenter.app.games.whack.WhackActivity.class,
+                CATEGORY_CASUAL, CATEGORY_CASUAL));
+        categories.add(new Category(context.getString(R.string.category_casual), casual, CATEGORY_CASUAL));
+
+        return categories;
     }
 
     private static String categoryName(Context context, String key) {
@@ -412,6 +509,15 @@ public final class GameRegistry {
             this.activityClass = activityClass;
             this.category = category;
             this.categoryKey = categoryKey;
+        }
+
+        /**
+         * 便捷构造器：使用字符串名称（不依赖string资源）。
+         * 用于模块化游戏中没有string资源ID的情况。
+         */
+        public Entry(String id, String name, String desc,
+                     Class<?> activityClass, String category, String categoryKey) {
+            this(id, 0, name, desc, activityClass, category, categoryKey);
         }
 
         /**

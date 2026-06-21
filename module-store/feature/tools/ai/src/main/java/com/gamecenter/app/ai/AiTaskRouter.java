@@ -22,6 +22,8 @@ import com.gamecenter.app.utils.NetworkErrorHandler;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * AI 功能调度中心 — 决定任务走本地还是云端，管理任务生命周期。
@@ -35,7 +37,8 @@ import java.util.concurrent.Executors;
  * <ul>
  *   <li>遵循「本地优先」（Local First）策略：优先尝试本地规则引擎和本地 LLM（Gemma）处理，
  *       仅在本地无法胜任时才回退到云端 API，从而减少网络依赖和 API 消耗。</li>
- *   <li>所有 AI 任务在单线程线程池（{@code aiExecutor}）中串行执行，避免并发推理导致资源竞争。</li>
+ *   <li>使用双线程池架构：高优先级池处理轻量任务（规则引擎/云端API），低优先级池处理重量任务（本地LLM推理），
+ *       避免本地LLM推理阻塞其他任务。</li>
  *   <li>结果通过 {@link Handler} 回调到主线程，保证 UI 更新安全。</li>
  *   <li>云端调用前依次检查：网络可用性 → 免费额度 → API Key 配置，逐层拦截无效请求。</li>
  *   <li>支持外部注入 ExecutorService，便于统一线程模型管理。</li>
@@ -49,7 +52,8 @@ public class AiTaskRouter {
 
     private final Context appContext;
     private final AiPreferences aiPrefs;
-    private final ExecutorService aiExecutor;
+    private final ExecutorService highPriorityExecutor;  // 高优先级：规则引擎、云端API
+    private final ExecutorService lowPriorityExecutor;   // 低优先级：本地LLM推理
     private final Handler mainHandler;
     private final AiModelDownloadManager modelDownloadManager;
     private final MediaPipeLocalLlmEngine localLlmEngine;
@@ -59,16 +63,38 @@ public class AiTaskRouter {
     private int cloudTasks = 0;
 
     /**
-     * 构造调度器，初始化所有依赖组件（使用默认内部创建的线程池）。
+     * 构造调度器，初始化所有依赖组件（使用统一线程管理器）。
      *
      * @param context 上下文，内部会转为 Application Context 以避免内存泄漏
      */
     public AiTaskRouter(Context context) {
-        this(context, Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "GC-AI-Router");
-            t.setDaemon(true);
-            return t;
-        }));
+        this.appContext = context.getApplicationContext();
+        this.aiPrefs = new AiPreferences(appContext);
+        this.mainHandler = new Handler(Looper.getMainLooper());
+        this.modelDownloadManager = new AiModelDownloadManager();
+        this.localLlmEngine = new MediaPipeLocalLlmEngine();
+
+        // 使用统一线程管理器，避免线程爆炸
+        // 高优先级：计算线程池（规则引擎、云端API）
+        // 低优先级：AI推理线程（本地LLM）
+        try {
+            Class<?> appExecutors = Class.forName("com.gamecenter.app.core.threading.AppExecutors");
+            this.highPriorityExecutor = (ExecutorService) appExecutors.getMethod("compute").invoke(null);
+            this.lowPriorityExecutor = (ExecutorService) appExecutors.getMethod("ai").invoke(null);
+        } catch (Exception e) {
+            // 回退到自建线程池（兼容模式）
+            this.highPriorityExecutor = Executors.newFixedThreadPool(2, r -> {
+                Thread t = new Thread(r, "GC-AI-High");
+                t.setDaemon(true);
+                return t;
+            });
+            this.lowPriorityExecutor = Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "GC-AI-LLM");
+                t.setDaemon(true);
+                t.setPriority(Thread.MIN_PRIORITY);
+                return t;
+            });
+        }
     }
 
     /**
@@ -78,12 +104,28 @@ public class AiTaskRouter {
      * 推荐使用此构造器以便线程池由 AppModule 统一管理。</p>
      *
      * @param context 上下文，内部会转为 Application Context 以避免内存泄漏
-     * @param executor AI 任务执行器，由外部统一管理的单线程线程池
+     * @param highPriorityExecutor 高优先级任务执行器（规则引擎、云端API）
+     * @param lowPriorityExecutor 低优先级任务执行器（本地LLM推理）
      */
+    public AiTaskRouter(Context context, ExecutorService highPriorityExecutor, ExecutorService lowPriorityExecutor) {
+        this.appContext = context.getApplicationContext();
+        this.aiPrefs = new AiPreferences(appContext);
+        this.highPriorityExecutor = highPriorityExecutor;
+        this.lowPriorityExecutor = lowPriorityExecutor;
+        this.mainHandler = new Handler(Looper.getMainLooper());
+        this.modelDownloadManager = new AiModelDownloadManager();
+        this.localLlmEngine = new MediaPipeLocalLlmEngine();
+    }
+
+    /**
+     * @deprecated 使用 {@link #AiTaskRouter(Context, ExecutorService, ExecutorService)} 替代
+     */
+    @Deprecated
     public AiTaskRouter(Context context, ExecutorService executor) {
         this.appContext = context.getApplicationContext();
         this.aiPrefs = new AiPreferences(appContext);
-        this.aiExecutor = executor;
+        this.highPriorityExecutor = executor;
+        this.lowPriorityExecutor = executor;
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.modelDownloadManager = new AiModelDownloadManager();
         this.localLlmEngine = new MediaPipeLocalLlmEngine();
@@ -123,8 +165,13 @@ public class AiTaskRouter {
      * @param callback 结果回调
      */
     private void executeTask(AiTask task, AiCallback callback) {
+        // 根据任务类型选择合适的线程池
+        // 本地LLM推理是耗时任务，使用低优先级线程池，避免阻塞其他快速任务
+        boolean isLlmTask = aiPrefs.isLocalFirst() && isLocalLlmCandidate(task);
+        ExecutorService targetExecutor = isLlmTask ? lowPriorityExecutor : highPriorityExecutor;
+
         // 把任务提交到后台线程池执行，避免阻塞主线程（主线程负责 UI，不能做耗时操作）
-        aiExecutor.execute(() -> {
+        targetExecutor.execute(() -> {
             task.status = TaskStatus.RUNNING;
 
             // 第1步：尝试本地优先处理（本地 LLM 或规则引擎）
@@ -136,12 +183,19 @@ public class AiTaskRouter {
                     task.status = TaskStatus.COMPLETED;
                     task.costLevel = 0; // 本地处理零成本（不消耗云端额度）
                     localTasks++;
+                    postResult(callback, task, localResult);
+                    return; // 本地处理成功，直接返回
+                } else if (shouldFallbackToCloud(localResult)) {
+                    // 本地处理失败但应该回退到云端（如LLM输出退化）
+                    Log.w(TAG, "Local processing failed, falling back to cloud: " + localResult.message);
+                    // 继续执行后续步骤，尝试云端
                 } else {
+                    // 本地处理失败，不需要回退到云端
                     task.output = localResult.message;
                     task.status = TaskStatus.FAILED;
+                    postResult(callback, task, localResult);
+                    return;
                 }
-                postResult(callback, task, localResult);
-                return; // 本地处理完毕，直接返回
             }
 
             // 第2步：本地无法处理，检查网络可用性
@@ -209,6 +263,43 @@ public class AiTaskRouter {
                         AiResult.fail(task.output).errorCode(AiErrorCode.NETWORK_ERROR).build());
             }
         });
+    }
+
+    /**
+     * 判断任务是否是本地LLM的候选任务。
+     * 用于决定将任务提交到哪个线程池。
+     *
+     * @param task 待检查的任务
+     * @return 是否可能是本地LLM任务
+     */
+    private boolean isLocalLlmCandidate(AiTask task) {
+        return supportsLocalLlm(task.taskType);
+    }
+
+    /**
+     * 判断本地处理失败后是否应该回退到云端。
+     * <p>
+     * 以下情况应该回退到云端：
+     * <ul>
+     *   <li>本地LLM输出退化（乱码、重复、无意义内容）</li>
+     *   <li>本地LLM推理失败（模型加载失败等）</li>
+     * </ul>
+     * 以下情况不应该回退：
+     * <ul>
+     *   <li>内存不足（设备硬件限制，云端也无法解决）</li>
+     *   <li>模型未下载（用户需要手动下载）</li>
+     * </ul>
+     *
+     * @param localResult 本地处理结果
+     * @return 是否应该回退到云端
+     */
+    private boolean shouldFallbackToCloud(AiResult localResult) {
+        if (localResult.success) {
+            return false; // 成功不需要回退
+        }
+        // 输出退化或推理失败，应该回退到云端
+        return localResult.hasErrorCode(AiErrorCode.LOCAL_LLM_DEGENERATED_OUTPUT)
+                || localResult.hasErrorCode(AiErrorCode.LOCAL_LLM_ERROR);
     }
 
     /**
@@ -423,10 +514,13 @@ public class AiTaskRouter {
     }
 
     /**
-     * 检查设备总内存是否满足模型最低要求。
+     * 检查设备可用内存是否满足模型最低要求。
      * <p>
-     * 通过 {@link android.app.ActivityManager} 获取设备总物理内存，
+     * 通过 {@link android.app.ActivityManager} 获取设备可用内存，
      * 与模型要求的最低内存比较。若获取失败则默认放行（避免误拦截）。
+     * <p>
+     * 注意：使用可用内存而非总内存，因为多任务场景下即使总内存满足要求，
+     * 可用内存可能不足，导致 OOM。
      *
      * @param minRamMb 模型要求的最低内存（MB）
      * @return 设备内存是否足够；获取信息失败时返回 true（保守放行）
@@ -439,9 +533,13 @@ public class AiTaskRouter {
             android.app.ActivityManager.MemoryInfo info = new android.app.ActivityManager.MemoryInfo();
             if (am == null) return true; // 无法获取 ActivityManager，保守放行
             am.getMemoryInfo(info);
-            long totalMb = info.totalMem / 1024L / 1024L;
-            // totalMb <= 0 表示获取异常，放行；否则与最低要求比较
-            return totalMb <= 0 || totalMb >= minRamMb;
+            // 使用可用内存而非总内存
+            long availableMb = info.availMem / 1024L / 1024L;
+            // 预留 500MB 给系统和其他应用，避免加载模型后系统卡顿
+            long safeAvailableMb = availableMb - 500;
+            // safeAvailableMb <= 0 表示可用内存不足，直接拒绝
+            // 否则与最低要求比较
+            return safeAvailableMb > 0 && safeAvailableMb >= minRamMb;
         } catch (Exception e) {
             return true; // 异常时保守放行，避免误拦截
         }
@@ -561,11 +659,13 @@ public class AiTaskRouter {
     /**
      * 关闭调度器，释放所有资源。
      * <p>
-     * 包括：终止线程池、关闭模型下载管理器、释放本地 LLM 引擎。
-     * 调用后不应再提交新任务。
+     * 注意：不再关闭线程池，因为使用的是 AppExecutors 统一管理的共享线程池，
+     * 线程池生命周期由应用统一管理。
+     * 仅关闭模型下载管理器和释放本地 LLM 引擎。
+     * </p>
      */
     public void shutdown() {
-        aiExecutor.shutdownNow();
+        // 线程池由 AppExecutors 统一管理，不在此关闭
         modelDownloadManager.shutdown();
         localLlmEngine.close();
     }

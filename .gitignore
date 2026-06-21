@@ -13,6 +13,39 @@ local.properties
 local.properties.template.bak
 local_private/
 .codex-local/
+.codex/
+.opencode/
+.workbuddy/
+.agents/
+
+# Privacy protection - tokens, credentials, keys
+*.token
+*.pat
+*token*.txt
+*credential*
+*password*
+*secret*
+*key*.pem
+*key*.key
+ssh_key
+id_rsa
+id_rsa.pub
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# User uploads
+/uploads/
+.uploads/
+**/upload/
+**/uploads/
 
 # VPS deployment configs (may contain real IPs/domains)
 服务器部署/**/*.conf
@@ -85,3 +118,26 @@ com.injoy.games.crazy.poker/
 Thumbs.db
 
 
+
+# ============================================================
+# Android emulator development artifacts (Phase 0)
+# ============================================================
+.emulator-logs/
+
+# Test artifacts
+/test-results/
+/test-reports/
+/coverage/
+/screenshots/
+/logs/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+*.tmp
+
+# AI/MCP artifacts
+.mcp/
+.zcode/
+mcp.json
