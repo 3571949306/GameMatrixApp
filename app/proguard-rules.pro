@@ -87,7 +87,13 @@
 
 # ============ 资源收缩白名单 ============
 
-# 保留所有 Activity 的布局引用
+# ============ 游戏模块 ============
+
+# 保留游戏模块中的匿名内部类和Lambda类（避免重复类问题）
+-keep class com.gamecenter.app.games.breakout.BreakoutActivity$* { *; }
+-keep class com.gamecenter.app.games.**$* { *; }
+
+# 保留所有Activity的布局引用
 -keepclassmembers class * extends android.app.Activity {
     public void *(android.view.View);
 }
@@ -117,3 +123,61 @@
     public static *** d(...);
     public static *** v(...);
 }
+
+# ============ 房间模块 ============
+
+# 保留房间模块中的关键类
+-keep class com.gamecenter.app.room.** { *; }
+
+# ============ 网络模块 ============
+
+# 保留网络模块中的关键类
+-keep class com.gamecenter.app.network.** { *; }
+
+# ============ 更新模块 ============
+
+# 保留更新模块中的关键类
+-keep class com.gamecenter.app.update.** { *; }
+
+# ============ 设置模块 ============
+
+# 保留设置模块中的关键类
+-keep class com.gamecenter.app.settings.** { *; }
+
+# ============ 工具类 ============
+
+# 保留工具类中的关键类
+-keep class com.gamecenter.app.utils.** { *; }
+
+# ============ 数据模型 ============
+
+# 保留数据模型类
+-keep class com.gamecenter.app.models.** { *; }
+
+# ============ 枚举类 ============
+
+# 保留枚举类
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# ============ 注解 ============
+
+# 保留注解
+-keep class * extends java.lang.annotation.Annotation { *; }
+
+# ============ 序列化 ============
+
+# 保留序列化相关类
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# R8 missing classes
+-dontwarn javax.lang.model.element.Modifier
