@@ -30,8 +30,10 @@ import java.util.concurrent.Executors;
  * 直到找到有新版本为止，或者所有仓库都问过了还是没有。
  * </p>
  * <p>
- * 支持三个更新源（按优先级排列）：香港 VPS、美国 VPS、GitHub Releases。
+ * 支持两个更新源（按优先级排列）：香港 VPS、GitHub Releases。
  * 当首选源不可用时，自动降级到下一个源，确保用户总能获取到更新信息。
+ * <p>
+ * 2026-06-19: 已移除美国 VPS 备用源，仅保留 HK VPS + GitHub 两级分发。
  * </p>
  * <p>
  * 关键设计决策：
@@ -51,8 +53,6 @@ public class UpdateChecker {
 
     /** 下载源：香港 VPS（主源） */
     static final String HK_BASE_URL = BuildConfig.SERVER_URL;
-    /** 下载源：美国 VPS（备用源） */
-    static final String US_BASE_URL = BuildConfig.SERVER_URL_FALLBACK;
     /** 下载源：GitHub Releases（最终备用源） */
     static final String GITHUB_RELEASES_BASE_URL = "https://github.com/3571949306/GameMatrixApp/releases/latest";
 
@@ -63,14 +63,15 @@ public class UpdateChecker {
     /** 上次检查更新时间的存储键 */
     static final String KEY_LAST_CHECK = "last_check_time";
 
+    // 优化（v1.4.1）：减少超时时间，避免卡住用户界面
     /** 主源连接超时（毫秒） */
-    static final int PRIMARY_CONNECT_TIMEOUT = 3000;
+    static final int PRIMARY_CONNECT_TIMEOUT = 2000;
     /** 主源读取超时（毫秒） */
-    static final int PRIMARY_READ_TIMEOUT = 5000;
+    static final int PRIMARY_READ_TIMEOUT = 3000;
     /** 备用源连接超时（毫秒），比主源长以应对网络不佳的情况 */
-    static final int FALLBACK_CONNECT_TIMEOUT = 15000;
+    static final int FALLBACK_CONNECT_TIMEOUT = 5000;
     /** 备用源读取超时（毫秒） */
-    static final int FALLBACK_READ_TIMEOUT = 30000;
+    static final int FALLBACK_READ_TIMEOUT = 15000;
     /** GitHub 源连接超时（毫秒） */
     static final int GITHUB_CONNECT_TIMEOUT = 5000;
     /** GitHub 源读取超时（毫秒） */
@@ -90,15 +91,15 @@ public class UpdateChecker {
 
     /**
      * 构造函数，初始化线程池并注册 SSL 信任主机。
-     * 将香港和美国 VPS 的域名注册为信任主机，以便自签名证书的服务器也能正常通信。
+     * 将香港 VPS 的域名注册为信任主机，以便自签名证书的服务器也能正常通信。
      * （自签名证书就像自己写的介绍信，系统默认不信任，需要手动添加到"白名单"里）
+     * <p>
+     * 2026-06-19: 已移除美国 VPS SSL 信任注册（US_BASE_URL 为空字符串，无需注册）。
+     * </p>
      */
     UpdateChecker() {
         executor = Executors.newSingleThreadExecutor();
         SSLHelper.trustUpdateServer(HK_BASE_URL);
-        if (!US_BASE_URL.isEmpty()) {
-            SSLHelper.trustUpdateServer(US_BASE_URL);
-        }
     }
 
     /**
@@ -306,10 +307,14 @@ public class UpdateChecker {
      * 构建优先级：
      * <ol>
      *   <li>若用户设置了自定义 URL，优先使用自定义源，其余源作为备用</li>
-     *   <li>否则根据用户选择的更新源（香港/美国/GitHub）确定首选源，其余源作为备用</li>
-     *   <li>默认优先级：香港 VPS → 美国 VPS → GitHub</li>
+     *   <li>否则根据用户选择的更新源（香港/GitHub）确定首选源，其余源作为备用</li>
+     *   <li>默认优先级：香港 VPS → GitHub</li>
      * </ol>
      * 会自动去重，避免同一 URL 出现多次。
+     * </p>
+     * <p>
+     * 2026-06-19: 已移除美国 VPS 源。若用户历史选择了"美国 VPS"（UPDATE_SOURCE_VPS_US），
+     * 将回退到"自动"模式（HK VPS → GitHub），保证向后兼容。
      * </p>
      *
      * @param context 上下文，用于读取 SharedPreferences 和用户设置
@@ -321,60 +326,59 @@ public class UpdateChecker {
         // 1. 首先检查是否有自定义 URL（用户设置的自定义更新源）
         String customUrl = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BASE_URL, null);
-        if (customUrl != null && !customUrl.trim().isEmpty()) {
+        if (customUrl != null && !customUrl.trim().isEmpty() && !isPlaceholderUrl(customUrl)) {
             // 如果用户设置了自定义 URL，优先使用，并添加备用源
             urls.add(customUrl.trim());
             Log.d(TAG, "Custom update URL configured: " + customUrl);
 
             // 添加默认源作为备用（避免自定义 URL 不可用时无法更新）
-            if (!HK_BASE_URL.equals(customUrl)) {
+            if (!HK_BASE_URL.equals(customUrl) && !isPlaceholderUrl(HK_BASE_URL)) {
                 urls.add(HK_BASE_URL);
             }
-            if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(customUrl) && !US_BASE_URL.equals(HK_BASE_URL)) {
-                urls.add(US_BASE_URL);
+            if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) {
+                urls.add(GITHUB_RELEASES_BASE_URL);
             }
-            urls.add(GITHUB_RELEASES_BASE_URL);
         } else {
-            // 2. 没有自定义 URL，根据用户选择的更新源构建列表
+            // 2. 没有自定义 URL 或自定义 URL 是占位符，根据用户选择的更新源构建列表
             int source = SettingsManager.getInstance(context).getUpdateSource();
             switch (source) {
                 case SettingsManager.UPDATE_SOURCE_VPS_HK:
-                    // 用户选了香港源：香港优先，美国备用，GitHub 兜底
-                    urls.add(HK_BASE_URL);
-                    if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
-                        urls.add(US_BASE_URL);
-                    }
-                    urls.add(GITHUB_RELEASES_BASE_URL);
-                    break;
-                case SettingsManager.UPDATE_SOURCE_VPS_US:
-                    // 用户选了美国源：美国优先，香港备用，GitHub 兜底
-                    urls.add(US_BASE_URL);
-                    if (!HK_BASE_URL.equals(US_BASE_URL)) {
-                        urls.add(HK_BASE_URL);
-                    }
-                    urls.add(GITHUB_RELEASES_BASE_URL);
+                    if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
+                    if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
                     break;
                 case SettingsManager.UPDATE_SOURCE_GITHUB:
-                    // 用户选了 GitHub 源：GitHub 优先，香港和美国备用
-                    urls.add(GITHUB_RELEASES_BASE_URL);
-                    urls.add(HK_BASE_URL);
-                    if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
-                        urls.add(US_BASE_URL);
-                    }
+                    if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
+                    if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
                     break;
                 default:
-                    // 默认：香港 VPS → 美国 VPS → GitHub（自动模式）
-                    urls.add(HK_BASE_URL);
-                    if (!US_BASE_URL.isEmpty() && !US_BASE_URL.equals(HK_BASE_URL)) {
-                        urls.add(US_BASE_URL);
-                    }
-                    urls.add(GITHUB_RELEASES_BASE_URL);
+                    // 默认：香港 VPS → GitHub（自动模式）
+                    if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
+                    if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
                     break;
             }
         }
 
+        // 如果所有URL都是占位符，记录警告
+        if (urls.isEmpty()) {
+            Log.w(TAG, "All update URLs are placeholders! Update check will be skipped.");
+        }
+
         Log.d(TAG, "Build update URLs: " + urls);
         return urls;
+    }
+
+    /**
+     * 检查URL是否为占位符（未配置的URL）
+     * 优化（v1.4.1）：避免向无效URL发起请求导致卡住
+     */
+    private boolean isPlaceholderUrl(String url) {
+        if (url == null || url.isEmpty()) return true;
+        // 常见的占位符特征
+        return url.contains("PLEASE-SET") ||
+               url.contains("your-server") ||
+               url.contains("example.com") ||
+               url.contains("FALLBACK-DOMAIN") ||
+               (!url.startsWith("http://") && !url.startsWith("https://"));
     }
 
     /**
