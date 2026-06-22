@@ -49,10 +49,11 @@ public class UpdateDownloader {
 
     private static final String TAG = "UpdateDownloader";
 
+    // 优化（v1.4.1）：调整速度和超时参数
     // 速度检测阈值：低于此速度 (bytes/s) 触发换源
-    static final long MIN_DOWNLOAD_SPEED_BYTES_PER_SEC = 50 * 1024; // 50 KB/s
+    static final long MIN_DOWNLOAD_SPEED_BYTES_PER_SEC = 30 * 1024; // 30 KB/s（原50KB/s）
     // 速度检测时间：下载开始后等待此时间再检测速度
-    static final long SPEED_CHECK_INTERVAL_MS = 3000; // 3 秒
+    static final long SPEED_CHECK_INTERVAL_MS = 2000; // 2 秒（原3秒）
 
     /** 单线程线程池，确保下载任务串行执行 */
     private final ExecutorService executor;
@@ -299,9 +300,11 @@ public class UpdateDownloader {
      *   <li>UpdateInfo 中的主下载 URL</li>
      *   <li>GitHub Releases 下载 URL</li>
      *   <li>香港 VPS 下载 URL</li>
-     *   <li>美国 VPS 下载 URL</li>
      * </ol>
      * 自动去重，避免同一 URL 出现多次。
+     * </p>
+     * <p>
+     * 2026-06-19: 已移除美国 VPS 下载源，仅保留 HK VPS + GitHub 两级分发。
      * </p>
      *
      * @param info 更新信息
@@ -316,12 +319,10 @@ public class UpdateDownloader {
         String apkName = extractApkName(primaryUrl, info);
         String githubUrl = buildGitHubAssetUrl(info);
         String hkUrl = UpdateManager.trimTrailingSlash(UpdateChecker.HK_BASE_URL) + "/" + apkName;
-        String usUrl = UpdateChecker.US_BASE_URL.isEmpty() ? "" : UpdateManager.trimTrailingSlash(UpdateChecker.US_BASE_URL) + "/" + apkName;
 
-        // 添加备用源，自动去重
+        // 添加备用源，自动去重（2026-06-19: 移除美国 VPS 源）
         if (!urls.contains(githubUrl)) urls.add(githubUrl);
         if (!urls.contains(hkUrl)) urls.add(hkUrl);
-        if (!usUrl.isEmpty() && !urls.contains(usUrl)) urls.add(usUrl);
         return urls;
     }
 
