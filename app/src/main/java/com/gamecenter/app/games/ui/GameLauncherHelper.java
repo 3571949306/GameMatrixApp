@@ -29,27 +29,27 @@ public class GameLauncherHelper {
     public static final String EXTRA_ONLINE_MODE = "game_online_mode";
 
     /**
-     * 显示游戏启动对话框，选择难度后启动游戏
+     * 启动游戏
      * <p>
-     * 对于不需要难度选择的游戏（休闲类），直接启动游戏；
-     * 对于有AI对手的游戏，显示难度选择面板。
+     * 所有游戏都直接启动，难度选择由游戏内部的难度选择面板处理。
+     * 这样避免了重复的难度选择界面（GameStartDialog + 游戏内部面板）。
      * </p>
      *
      * @param context 上下文
      * @param gameId  游戏 ID
-     * @return true 表示找到了游戏并启动/显示了对话框，false 表示游戏未找到
+     * @return true 表示找到了游戏并启动，false 表示游戏未找到
      */
     public static boolean launchGameWithDialog(@NonNull Context context, @NonNull String gameId) {
         return launchGameWithDialog(context, gameId, null);
     }
 
     /**
-     * 显示游戏启动对话框，选择难度后启动游戏
+     * 启动游戏
      *
      * @param context       上下文
      * @param gameId        游戏 ID
-     * @param customLevels  自定义难度列表（null 表示使用默认）
-     * @return true 表示找到了游戏并启动/显示了对话框，false 表示游戏未找到
+     * @param customLevels  自定义难度列表（已废弃，保留兼容性）
+     * @return true 表示找到了游戏并启动，false 表示游戏未找到
      */
     public static boolean launchGameWithDialog(@NonNull Context context,
                                                @NonNull String gameId,
@@ -62,46 +62,8 @@ public class GameLauncherHelper {
             return false;
         }
 
-        // 如果是不需要难度选择的游戏，直接启动
-        if (!needsDifficultySelection(gameId)) {
-            startGameActivity(context, gameId, activityClass, 0, false);
-            return true;
-        }
-
-        // 获取游戏名称
-        String gameName = GameRegistry.getGameNameById(context, gameId);
-        if (gameName == null || gameName.isEmpty()) {
-            gameName = gameId;
-        }
-
-        // 获取难度列表
-        List<DifficultyLevel> levels = customLevels;
-        if (levels == null || levels.isEmpty()) {
-            levels = getDefaultDifficultyLevels();
-        }
-
-        // 检查是否支持联机
-        boolean supportsOnline = supportsOnlineMode(gameId);
-
-        // 显示启动对话框
-        new GameStartDialog(context, gameName, levels, supportsOnline,
-                new GameStartDialog.Listener() {
-                    @Override
-                    public void onDifficultySelected(int difficultyIndex) {
-                        startGameActivity(context, gameId, activityClass, difficultyIndex, false);
-                    }
-
-                    @Override
-                    public void onOnlineSelected() {
-                        startGameActivity(context, gameId, activityClass, 0, true);
-                    }
-
-                    @Override
-                    public void onCancelled() {
-                        // 用户取消，不做任何事
-                    }
-                }).show();
-
+        // 直接启动游戏，难度选择由游戏内部处理
+        startGameActivity(context, gameId, activityClass, 0, false);
         return true;
     }
 
