@@ -1,9 +1,9 @@
 # GameMatrixApp 改造详细计划（Detailed Plan）
 
-> **当前进度 (2026-05-29)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ 模块市场 ✅ 阶段5 本地模型 ✅ | 下一阶段：阶段6 扩展自动化
+> **当前进度 (2026-06-21)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ 模块市场 ✅ 阶段5 本地模型 ✅ 阶段5.5 游戏内嵌 ✅ 阶段5.6 线程优化 ✅ | 下一阶段：阶段6 扩展自动化
 >
-> 当前版本: **v1.4.0** (vc=400)
-> APK 已发布到 HK VPS + US VPS（beta channel）
+> 当前版本: **v1.4.0** (vc=465)
+> APK 已发布到 HK VPS（beta channel）和 GitHub Releases；2026-06-19 起 US VPS 已下线
 > 包名: `com.gamecenter.app`
 > Gradle 工具链: AGP 8.13.2, Kotlin 2.0.21, Hilt 2.57.2
 >
@@ -17,6 +17,9 @@
 > | 阶段4+：更新功能优化 | ✅ 已完成 | v1.3.30-beta.1 | 下载到公共目录，通知改善，完整性校验 |
 | 阶段4+：模块市场架构 | ✅ 已完成（builtIn修复 + VPN模块上线 + 右上角按钮完善） | v1.4.0 | 市场入口、默认游戏分类、刷新按钮、已下载模块列表、浏览器/工具箱/AI改为市场模块、VPN 科学上网模块（非内置可下载） |
 | 阶段5：本地模型 | ✅ 已完成 | v1.4.0/vc400 | MediaPipe LLM Inference、Gemma本地推理、LocalAiProcessor、任务状态枚举、AI错误码常量 |
+| 阶段5.5：游戏内嵌 | ✅ 已完成 | v1.4.0/vc465 | 28个游戏内置到主app，保留更新能力，修复BaseGameActivity/GameStartDialog缺失 |
+| 阶段5.6：线程优化 | ✅ 已完成 | v1.4.0/vc465 | 统一线程管理器AppExecutors，OkHttp线程池64→8，总线程数75→17 |
+| 阶段5.7：UI优化 | ✅ 已完成 | v1.4.0/vc465 | 华容道UI升级，难度选择面板优化（休闲游戏直接启动） |
 > | 阶段6：扩展自动化 | 📅 规划中 | — | 界面识别/任务规划 |
 
 ## 0. 文档目标
@@ -486,7 +489,7 @@ AI 页面可设计为：
 - [x] AI 偏好设置（`AiPreferences`：API Key、模型选择、配额管理）
 - [x] 本地优先策略（默认启用，低复杂度走本地，复杂任务走云端）
 - [x] 每日免费额度（默认 20 次）
-- [x] 测试版 APK 已上传 HK VPS + US VPS（beta channel）
+- [x] 测试版 APK 已上传 HK VPS（beta channel）；US VPS 已于 2026-06-19 下线
 
 已实现 API：`summary`, `translate`, `rewrite`, `ocr`, `qa`/`qa_pairs`, `keywords`, `classify`
 
