@@ -3,11 +3,28 @@
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.4.1-blue)](CHANGELOG.md)
 
 一个集成模块商店，支持按需扩展小游戏、工具箱、浏览器、AI 助手和科学上网（VPN）的 Android 游戏中心，支持单机 AI、局域网联机和云联机对战。
 
 An Android game center with a modular marketplace for on-demand expansion of games, tools, browser, AI assistant, and VPN, supporting single-player AI, LAN multiplayer, and cloud multiplayer.
+
+---
+
+## 2026-06-22 v1.4.1 更新逻辑优化版
+
+### 🚀 更新逻辑优化
+- **OptimizedUpdateManager**：新增缓存、重试、MD5预检查
+- **超时时间优化**：主源 2s/3s（原 3s/5s），备用 5s/15s（原 15s/30s）
+- **速度阈值降低**：30KB/s（原 50KB/s）
+- **占位符URL检测**：自动跳过无效URL（避免卡住）
+- **本地APK预检查**：MD5匹配时跳过下载
+
+### 📦 版本信息
+- `versionCode`: 466
+- `versionName`: 1.4.1
+- 包名: `com.gamecenter.app`
+- 分发: HK VPS（主）+ GitHub Releases（备）
 
 ---
 
