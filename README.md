@@ -11,6 +11,43 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ---
 
+## 2026-06-21 v1.4.0 正式版发布
+
+### 🎮 内嵌所有游戏
+- **28个游戏内置到主app**：无需下载即可使用，开箱即用
+- 保留模块市场更新能力：内置游戏可通过模块市场检查更新
+- 游戏分类：经典（8款）、益智（10款）、休闲（9款）
+
+### ⚡ 线程架构优化
+- **总线程数：~75 → ~17（-77%）**
+- OkHttp线程池：64 → 8（-87%）
+- 新增统一线程管理器 `AppExecutors`（IO/Compute/AI/Background）
+- 为未来融合计划和协程迁移预留架构
+
+### 🎨 UI优化
+- **华容道UI升级**：渐变色方块、阴影效果、动画过渡
+- **难度选择面板优化**：休闲游戏（2048、贪吃蛇等）不再显示难度选择，直接启动
+- 只有有AI对手的游戏（五子棋、象棋、斗地主等）才显示难度选择
+
+### 🔧 关键修复
+- 修复 `BaseGameActivity` 类缺失导致的崩溃
+- 修复 `GameStartDialog` 类缺失导致的游戏点击崩溃
+- 修复游戏图标显示问题（28个游戏图标全部注册）
+- 修复 modules.json 中 builtIn 标记不一致问题
+
+### 📦 版本信息
+- `versionCode`: 465
+- `versionName`: 1.4.0
+- 包名: `com.gamecenter.app`
+- Gradle 工具链: AGP 8.13.2, Kotlin 2.0.21, Hilt 2.57.2
+
+### 🧪 自动化测试
+- 新增自动化测试框架（50+测试用例）
+- 支持ADB连接模拟器进行功能测试
+- 自动生成HTML/JSON测试报告
+
+---
+
 ## 2026-05-26 Maintenance Snapshot
 
 - **Module Store Expansion**: Upgraded `modules.json` from version 10 to version 11. Added 23 new game modules (blackjack, breakout, brotato, checkers, dice, flappy, go, guess, knife, match, memory, minesweeper, pipeline, plane, reaction, rock, snake, sokoban, sudoku, tetris, tic, tiles, whack), bringing the total to 29 game modules and 33 modules overall.
@@ -72,7 +109,7 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 - 🎮 [功能列表](#功能列表--feature-list) — 全部游戏列表与联机支持
 - 🏗 [技术架构](#技术架构--tech-stack) — 开发环境与依赖
-- 🌐 [更新分发架构](#更新分发架构--update-distribution-architecture) — 三级下载源 + 自动换源
+- 🌐 [更新分发架构](#更新分发架构--update-distribution-architecture) — 两级下载源 + 自动换源
 - 🕹 [联机架构](#联机架构--multiplayer-architecture) — 多游戏云联机支持
 - 📁 [目录结构](#目录结构--directory-structure) — 项目文件组织
 - 🛠 [构建与部署](#构建与部署--build--deployment) — 编译、打包、发布
@@ -165,7 +202,7 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ## 更新分发架构 / Update Distribution Architecture
 
-### 三级下载源 / Three-Level Download Sources
+### 两级下载源 / Two-Level Download Sources
 
 App 下载更新时自动尝试以下下载源，优先级从高到低：
 
@@ -176,19 +213,17 @@ App 下载更新时自动尝试以下下载源，优先级从高到低：
 │         │  优先级 2  ┌┴─────────────────┐│
 │         │ ─────────► │  GitHub Releases ││
 │         │            │  (全球 CDN)       ││
-│         │  优先级 3  └┬─────────────────┘│
-│         │ ─────────► ┌┴─────────────────┐│
-│         │            │  美国 VPS         ││
-│         │            │  (仅备用更新源)    ││
 └─────────┘            └──────────────────┘┘
 ```
 
+> **2026-06-19 变更**：美国 VPS 已下线，分发渠道精简为两级（香港 VPS → GitHub Releases）。
+
 ### VPS 职责划分 / VPS Responsibility
 
-| VPS | 主要职责 | 说明 |
+| VPS / 源 | 主要职责 | 说明 |
 |-----|----------|------|
 | **香港 VPS** | 更新服务 + 游戏联机 | 主更新源、WebSocket Relay、HTTP Relay、反馈服务 |
-| **美国 VPS** | 仅备用更新源 | 仅作为更新下载备用源，不承担游戏联机任务 |
+| **GitHub Releases** | 备用更新源 | 全球 CDN，作为香港 VPS 的备用下载源 |
 
 ### 自动换源机制 / Auto-Switch Mechanism
 
@@ -200,8 +235,8 @@ App 下载更新时自动尝试以下下载源，优先级从高到低：
 
 | 版本类型 | 上传目标 | 说明 |
 |----------|----------|------|
-| **Beta 测试版** | 香港 VPS + 美国 VPS | 仅供开启"接收测试版"的用户下载 |
-| **Stable 正式版** | 香港 VPS + 美国 VPS + GitHub Releases | 所有用户均可下载 |
+| **Beta 测试版** | 香港 VPS | 仅供开启"接收测试版"的用户下载 |
+| **Stable 正式版** | 香港 VPS + GitHub Releases | 所有用户均可下载 |
 
 ### 双版本分发架构 / Dual Version Distribution Architecture
 
@@ -585,9 +620,10 @@ ws.url=wss://hk-ws.<YOUR_DOMAIN>/ddz-ws
 # HTTP Relay 服务器地址 / HTTP Relay URL
 relay.url=https://hk-relay.<YOUR_DOMAIN>/api/ddz-relay
 
-# ============ 备用 VPS（可选）============
-# 备用更新源地址 / Fallback update server URL
-server.url.fallback=https://<YOUR_FALLBACK_DOMAIN>
+# ============ 备用更新源（已废弃）============
+# 2026-06-19: 美国 VPS 已下线，备用更新源改由 GitHub Releases 提供
+# server.url.fallback 配置项已废弃，保留空值向后兼容
+# server.url.fallback=
 
 # 反馈服务器地址（可选）/ Feedback server URL (optional)
 feedback.url=https://<YOUR_DOMAIN>/api/feedback
@@ -598,7 +634,7 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 | `server.url` | 应用更新检查 | 无法获取新版本 |
 | `ws.url` | WebSocket 云联机 | 无法使用 WebSocket 联机 |
 | `relay.url` | HTTP Relay 云联机 | 只能局域网对战 |
-| `server.url.fallback` | 备用更新源 | 无法回退到备用源 |
+| `server.url.fallback` | ~~备用更新源~~（已废弃） | 无影响，备用源改由 GitHub Releases 提供 |
 | `feedback.url` | 用户反馈提交 | 反馈功能不可用 |
 
 > **注意 / Note**：修改 `local.properties` 后必须执行 **Build → Clean Project → Rebuild Project**，否则 `BuildConfig` 不会更新。
@@ -725,3 +761,78 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - 安全加固：`allowBackup=false`，新增 `backup_rules.xml` 和 `data_extraction_rules.xml`，存储权限迁移（`READ_MEDIA_IMAGES`、`maxSdkVersion` 限制）。
 - 构建优化：`MaterialCardView` 替代 `androidx.cardview.widget.CardView`，移除 `cardview:1.0.0` 依赖。
 - 版本号更新：versionCode=262, versionName=1.3.26。
+
+---
+
+## Configuration / 配置
+
+### MiMo TTS API Key
+
+TTS 功能需要小米 MiMo TTS API Key。Clone 后需要创建 `local.properties`（已列入 `.gitignore`，不会提交）：
+
+```properties
+# local.properties
+mimo.api.key=你的key
+```
+
+未配置时编译仍能成功，但 TTS 调用会返回 401。
+
+---
+
+## 开发环境搭建 / Development Setup
+
+### 1. 必备工具
+
+- **JDK 17+**（推荐 Microsoft OpenJDK 17 或 Temurin 17）
+- **Android Studio Ladybug | 2024.2.1+**（自带 JBR 21 也可）
+- **Android SDK**：compileSdk 35，build-tools 35.0.0+
+- **Git 2.30+**
+
+### 2. Clone 后第一次准备
+
+```bash
+# Clone
+git clone https://github.com/3571949306/GameMatrixApp.git
+cd GameMatrixApp
+
+# 拷贝 local.properties 模板（按需修改）
+cp local.properties.template local.properties 2>/dev/null || true
+# 编辑 local.properties，至少填一个 mimo.api.key
+
+# 验证 build
+./gradlew :app:assembleDebug
+```
+
+### 3. 常用命令
+
+| 命令 | 用途 |
+|---|---|
+| `./gradlew :app:assembleDebug` | 编译 debug APK |
+| `./gradlew :app:assembleRelease` | 编译 release APK（需 keystore） |
+| `./gradlew :app:test` | 跑单元测试 |
+| `./gradlew :app:lintDebug` | 跑 Android Lint |
+| `./gradlew :app:bumpVersion` | 手动 bump versionCode |
+| `./gradlew :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable` | 完整发布流程（需 keystore + VPS 凭据） |
+
+### 4. 加新模块的步骤
+
+1. **位置**：在 `module-store/feature/` 下选个合适子目录（如 `games/` 或 `tools/`）
+2. **创建 module**：在 `settings.gradle` 加 `include ':module-store:feature:games:新名字'`
+3. **build.gradle**：参考 `module-store/feature/games/klotski/build.gradle` 复制结构
+4. **AndroidManifest.xml**：声明 `applicationId` 和启动 Activity（如果要）
+5. **核心类**：
+   - 实现 `IModuleEntry`（动态加载）或标准 `Application`+`Activity`（内置）
+   - 在 `core/modulestore` 注册模块元数据
+6. **测试**：在 module 自己的 `src/test/` 写单元测试
+7. **打包**：跑 `./gradlew :module-store:feature:games:新名字:assembleDebug` 验证
+
+详见 `docs/MODULE_DEVELOPMENT.md`（如果存在的话）。
+
+### 5. 提交前必做
+
+- [ ] 跑 `./gradlew :app:lintDebug` 没过不能提交
+- [ ] 跑 `./gradlew :app:test` 所有测试绿
+- [ ] 跑 `gitleaks detect --source .` 没命中（防密钥泄露）
+- [ ] 更新 `CHANGELOG.md`
+- [ ] 不要把 `local.properties` / `*.jks` / `keystore.properties` 提交（已被 `.gitignore` 排除）
+
