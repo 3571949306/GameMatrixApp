@@ -80,6 +80,71 @@ public class App extends Application {
     }
 
     /**
+     * 2026-06-23 模块预装：把 assets/modules/ 中的预装 APK 提取到 cacheDir/modules/。
+     * <p>
+     * 提取逻辑：
+     * <ol>
+     *   <li>遍历 assets/modules/ 下的所有 .apk 文件</li>
+     *   <li>检查 cacheDir/modules/ 中是否已存在同名 APK（避免重复提取）</li>
+     *   <li>不存在则复制 APK；写 SharedPreferences 标记已安装</li>
+     * </ol>
+     * ModuleManager 后续会通过 modules.json 中的 fileName/sha256 识别已安装模块；
+     * 当 VPS 上 versionCode 更高时，ModuleDownloader 会下载覆盖（更新通道保留）。
+     * <p>
+     * VPN 模块刻意不预装（合规/分发约束）。
+     * ai 模块本轮因编译错误跳过预装（待 Step import 单独修复后纳入）。
+     */
+    private void extractPreinstalledModules() {
+        java.io.File modulesDir = new java.io.File(getCacheDir(), "modules");
+        if (!modulesDir.exists() && !modulesDir.mkdirs()) {
+            Log.w("App", "[preinstall] 无法创建 modules 目录: " + modulesDir.getAbsolutePath());
+            return;
+        }
+
+        String[] assetFiles;
+        try {
+            assetFiles = getAssets().list("modules");
+        } catch (java.io.IOException e) {
+            Log.w("App", "[preinstall] 无法读取 assets/modules/: " + e.getMessage());
+            return;
+        }
+        if (assetFiles == null || assetFiles.length == 0) {
+            Log.d("App", "[preinstall] assets/modules/ 中无预装模块");
+            return;
+        }
+
+        int extractedCount = 0;
+        for (String assetName : assetFiles) {
+            if (!assetName.endsWith(".apk")) continue;
+            java.io.File targetFile = new java.io.File(modulesDir, assetName);
+            if (targetFile.exists()) {
+                Log.d("App", "[preinstall] 已存在: " + assetName + "，跳过提取");
+                continue;
+            }
+            try (java.io.InputStream in = getAssets().open("modules/" + assetName);
+                 java.io.OutputStream out = new java.io.FileOutputStream(targetFile)) {
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+                extractedCount++;
+                Log.i("App", "[preinstall] 提取成功: " + assetName + " ("
+                        + targetFile.length() + " bytes)");
+            } catch (java.io.IOException e) {
+                Log.e("App", "[preinstall] 提取失败: " + assetName + " - " + e.getMessage());
+            }
+        }
+        if (extractedCount > 0) {
+            android.content.SharedPreferences prefs =
+                    getSharedPreferences("module_manager_prefs", MODE_PRIVATE);
+            prefs.edit().putLong("preinstall_last_extract_time",
+                    System.currentTimeMillis()).apply();
+            Log.i("App", "[preinstall] 共提取 " + extractedCount + " 个模块 APK");
+        }
+    }
+
+    /**
      * 应用程序启动时的入口回调。
      * <p>
      * 【初学者理解】这个方法就像应用开机后的"启动流程清单"。
@@ -98,6 +163,10 @@ public class App extends Application {
         applyLanguage();
         // 主题设置立即应用（影响 UI）
         applyTheme();
+
+        // 2026-06-23 模块预装：把 assets/modules/ 中的预装 APK 提取到 cacheDir/modules/
+        // 保留 VPS 更新通道：modules.json 中 versionCode > pref 中版本时，ModuleManager 会下载覆盖
+        extractPreinstalledModules();
 
         // 注入实际服务器域名到安全模块（从 BuildConfig 读取，避免源码中硬编码服务器地址）
         // 2026-06-19: 美国 VPS 已下线，仅保留主源域名

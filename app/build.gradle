@@ -333,8 +333,14 @@ dependencies {
     // ZIP game packages are lightweight unlock/download artifacts; the runnable
     // game implementations are compiled into the host and gated by install state.
     // Phase 3.1: 改 implementation → compileOnly, 防止 SaveManager 等类与模块商店运行时
-    // 动态加载的 games 模块重复, 修 release build 'Type X is defined multiple times' 问题
+    // 动态加载的 games 模块重复, 修 release build 'Type X is defined multiple types' 问题
     compileOnly project(':module-store:feature:games:games')
+
+    // 2026-06-23 模块预装策略（修订版）：
+    // 模块 APK 文件打包到 assets/modules/，首次启动提取到 cacheDir/modules_opt/。
+    // 原因：模块代码依赖主 app 的类（R.jar/app-classes.jar），直接 compileOnly 会循环依赖。
+    // 通过 APK 预装既保留开箱即用，又支持 VPS 热更新（versionCode 升级时下载覆盖）。
+    // 注意：VPN 模块保持动态下载（不预装到 APK，避免合规/分发问题）。
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.12.0'
@@ -615,7 +621,82 @@ task packageAppClasses(type: Jar) {
     dependsOn 'compileDebugJavaWithJavac', 'compileDebugKotlin'
     archiveFileName = "app-classes.jar"
     destinationDirectory = file("${buildDir}/libs")
-    
+
     from("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
     from("${buildDir}/tmp/kotlin-classes/debug")
+}
+
+// =============================================================================
+// 模块预装：把浏览器/工具/TTS 模块的 Debug APK 打包到 assets/modules/，
+// 首次启动时由 App.java 提取到 cacheDir/modules/，DexClassLoader 加载。
+// 保留 VPS 更新通道：modules.json 的 downloadUrl 仍指向 VPS，versionCode 升级时下载覆盖。
+// VPN 模块刻意不预装（合规/分发约束）。
+// 注意：当前跳过 ai 模块（其源码有未解决的 Step import 编译错误，待单独修复）。
+// =============================================================================
+task bundlePreinstalledModules() {
+    group = 'build'
+    description = '把可预装模块的 Debug APK 复制到 app/src/main/assets/modules/'
+
+    def moduleMappings = [
+        // [模块项目路径, 源APK名, 目标文件名（与 modules.json 中 fileName 一致）]
+        [':module-store:feature:tools:browser',    'browser-debug.apk', 'feature_browser_v100.apk'],
+        [':module-store:feature:tools:tools',      'tools-debug.apk',   'feature_tools_v100.apk'],
+        [':module-store:feature:games:games:tts',  'tts-debug.apk',     'feature_tts_voice_v101.apk']
+    ]
+
+    doLast {
+        def assetsModulesDir = file("${projectDir}/src/main/assets/modules")
+        assetsModulesDir.mkdirs()
+        moduleMappings.each { mapping ->
+            def modulePath = mapping[0]
+            def srcApkName = mapping[1]
+            def targetName = mapping[2]
+            def moduleProject = rootProject.findProject(modulePath)
+            if (moduleProject == null) {
+                logger.warn("[preinstall] 模块未包含: ${modulePath}（跳过）")
+                return
+            }
+            def srcApk = file("${moduleProject.buildDir}/outputs/apk/debug/${srcApkName}")
+            if (!srcApk.exists()) {
+                logger.warn("[preinstall] 模块 APK 未构建: ${srcApk}（请先 assembleDebug 该模块，跳过）")
+                return
+            }
+            def dstApk = file("${assetsModulesDir}/${targetName}")
+            copy {
+                from srcApk
+                into assetsModulesDir
+                rename { String fileName -> targetName }
+            }
+            logger.lifecycle("[preinstall] ${targetName} (${srcApk.length()} bytes) 已复制到 assets/modules/")
+        }
+    }
+}
+
+// 在 assembleDebug 完成后才执行预装任务（避免循环依赖：模块依赖 app classes.jar）
+afterEvaluate {
+    // 模块构建依赖 app，但 app 构建完成后再用模块产物
+    // 所以：app 的 assembleDebug 完成后，再触发模块构建 + 复制
+    def moduleTasks = [
+        ':module-store:feature:tools:browser:assembleDebug',
+        ':module-store:feature:tools:tools:assembleDebug',
+        ':module-store:feature:games:games:tts:assembleDebug'
+    ]
+
+    // 先确保模块 APK 已构建（如果还没构建），然后在 app build 完成后复制到 assets
+    tasks.named('bundlePreinstalledModules').configure {
+        moduleTasks.each { taskPath ->
+            def modulePath = taskPath.split(':').dropRight(1).join(':')
+            if (rootProject.findProject(modulePath) != null) {
+                it.dependsOn taskPath
+            }
+        }
+    }
+
+    // 在 app:assembleDebug 完成后自动跑 bundlePreinstalledModules（post-build hook）
+    tasks.named('assembleDebug').configure {
+        it.finalizedBy 'bundlePreinstalledModules'
+    }
+    tasks.named('assembleRelease').configure {
+        it.finalizedBy 'bundlePreinstalledModules'
+    }
 }
