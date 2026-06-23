@@ -122,6 +122,16 @@ public class TetrisView extends View {
         void onGameOver(int finalScore);
     }
 
+    /** 方块旋转成功回调 */
+    public interface OnPieceRotateListener {
+        void onPieceRotated();
+    }
+
+    /** 方块落地（锁定）回调 */
+    public interface OnPieceLandListener {
+        void onPieceLanded();
+    }
+
     // ==================== 游戏状态 ====================
 
     /** 游戏网格（0=空，1-7=方块颜色索引） */
@@ -179,6 +189,8 @@ public class TetrisView extends View {
     private OnLinesClearedListener linesClearedListener;
     private OnLevelChangeListener levelChangeListener;
     private OnGameOverListener gameOverListener;
+    private OnPieceRotateListener pieceRotateListener;
+    private OnPieceLandListener pieceLandListener;
 
     // ==================== 构造函数 ====================
 
@@ -240,6 +252,8 @@ public class TetrisView extends View {
     public void setOnLinesClearedListener(OnLinesClearedListener l) { this.linesClearedListener = l; }
     public void setOnLevelChangeListener(OnLevelChangeListener l) { this.levelChangeListener = l; }
     public void setOnGameOverListener(OnGameOverListener l) { this.gameOverListener = l; }
+    public void setOnPieceRotateListener(OnPieceRotateListener l) { this.pieceRotateListener = l; }
+    public void setOnPieceLandListener(OnPieceLandListener l) { this.pieceLandListener = l; }
     public void setSpeedFactor(float factor) { this.speedFactor = Math.max(0.1f, Math.min(1.0f, factor)); }
 
     // ==================== 游戏控制 ====================
@@ -354,6 +368,9 @@ public class TetrisView extends View {
         if (isValidPosition(currentPiece, newRotation, pieceX, pieceY)) {
             currentRotation = newRotation;
             invalidate();
+            if (pieceRotateListener != null) {
+                pieceRotateListener.onPieceRotated();
+            }
         }
     }
 
@@ -384,6 +401,9 @@ public class TetrisView extends View {
                     }
                 }
             }
+        }
+        if (pieceLandListener != null) {
+            pieceLandListener.onPieceLanded();
         }
     }
 

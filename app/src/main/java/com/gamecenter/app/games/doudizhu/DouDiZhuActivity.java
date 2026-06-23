@@ -1,6 +1,7 @@
 package com.gamecenter.app.games.doudizhu;
 
 import android.app.AlertDialog;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.doudizhu.model.Card;
 import com.gamecenter.app.games.doudizhu.model.CardType;
 import com.gamecenter.app.games.doudizhu.model.Rank;
@@ -205,14 +207,19 @@ public class DouDiZhuActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Android 16+ (API 36) 将忽略 manifest 中的 android:screenOrientation，
+        // 需在运行时强制锁定横屏。
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_doudizhu);
         soundManager = new DouDiZhuSoundManager(this);
+        // 音效开关从 SettingsManager 持久化读取，同步到 DouDiZhuSoundManager 内部状态
+        soundManager.setSoundEnabled(SettingsManager.getInstance(this).shouldPlayGameSound());
 
         initViews();
         initListeners();
         startNewGame();
 
-        if (soundManager != null && soundManager.isSoundEnabled()) {
+        if (soundManager != null && SettingsManager.getInstance(this).shouldPlayGameSound()) {
             soundManager.playBackgroundMusic();
         }
     }
@@ -245,8 +252,13 @@ public class DouDiZhuActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (soundManager != null && soundManager.isSoundEnabled()) {
-            soundManager.resumeBackgroundMusic();
+        // 从 SettingsManager 读取持久化的音效开关，同步到 soundManager 内部状态
+        boolean soundOn = SettingsManager.getInstance(this).shouldPlayGameSound();
+        if (soundManager != null) {
+            soundManager.setSoundEnabled(soundOn);
+            if (soundOn) {
+                soundManager.resumeBackgroundMusic();
+            }
         }
     }
 

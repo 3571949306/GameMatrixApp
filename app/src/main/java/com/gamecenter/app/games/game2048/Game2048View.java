@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.media.SoundPool;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -11,6 +12,8 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.gamecenter.app.SettingsManager;
 
 import java.util.Random;
 
@@ -98,6 +101,14 @@ public class Game2048View extends View {
     private OnGameOverListener gameOverListener;
     private OnWinListener winListener;
 
+    // ==================== 音效 ====================
+
+    /** 音效播放器（由 Activity 注入，生命周期由 Activity 管理） */
+    private SoundPool soundPool;
+
+    /** 已加载的音效 ID（复用 R.raw.ui_turn，滑动与合并共用） */
+    private int gameSoundId = 0;
+
     // ==================== 构造函数 ====================
 
     public Game2048View(@NonNull Context context) { super(context); init(); }
@@ -142,6 +153,34 @@ public class Game2048View extends View {
     public void setOnWinListener(OnWinListener l) { this.winListener = l; }
     public void setDifficultyFactor(float factor) { this.difficultyFactor = Math.max(0.1f, Math.min(1.0f, factor)); }
 
+    /**
+     * 注入音效播放器与已加载的音效 ID。
+     * <p>由 {@link Game2048Activity} 在初始化时调用，SoundPool 的生命周期由 Activity 管理。</p>
+     *
+     * @param pool    SoundPool 实例
+     * @param soundId 已加载的音效 ID
+     */
+    public void setSoundPool(SoundPool pool, int soundId) {
+        this.soundPool = pool;
+        this.gameSoundId = soundId;
+    }
+
+    /**
+     * 播放游戏音效。
+     * <p>播放前检查 {@link SettingsManager#shouldPlayGameSound()} 开关，关闭时静默返回。</p>
+     *
+     * @param volume 音量（0.0~1.0）
+     * @param rate   播放速率（1.0 为正常速率）
+     */
+    private void playGameSound(float volume, float rate) {
+        if (soundPool == null || gameSoundId == 0) return;
+        if (!SettingsManager.getInstance(getContext()).shouldPlayGameSound()) return;
+        try {
+            soundPool.play(gameSoundId, volume, volume, 1, 0, rate);
+        } catch (Exception ignored) {
+        }
+    }
+
     // ==================== 游戏控制 ====================
 
     public void startGame() {
@@ -177,6 +216,7 @@ public class Game2048View extends View {
      */
     private boolean slideLeft() {
         boolean moved = false;
+        boolean merged = false;
         for (int r = 0; r < GRID_SIZE; r++) {
             // 压缩：移除空格
             int[] newRow = new int[GRID_SIZE];
@@ -197,6 +237,7 @@ public class Game2048View extends View {
                     for (int k = c + 1; k < GRID_SIZE - 1; k++) newRow[k] = newRow[k + 1];
                     newRow[GRID_SIZE - 1] = 0;
                     moved = true;
+                    merged = true;
                 }
             }
             // 再次压缩
@@ -209,6 +250,14 @@ public class Game2048View extends View {
             for (int c = 0; c < GRID_SIZE; c++) {
                 if (grid[r][c] != finalRow[c]) moved = true;
                 grid[r][c] = finalRow[c];
+            }
+        }
+        // 触发音效：合并时播放合并音效，纯滑动时播放滑动音效
+        if (moved) {
+            if (merged) {
+                playGameSound(0.7f, 1.2f);
+            } else {
+                playGameSound(0.4f, 1.0f);
             }
         }
         return moved;

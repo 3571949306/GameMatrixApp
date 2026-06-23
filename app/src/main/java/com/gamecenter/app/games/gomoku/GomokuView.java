@@ -1,5 +1,6 @@
 package com.gamecenter.app.games.gomoku;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Canvas;
@@ -11,6 +12,8 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.OvershootInterpolator;
+
 import com.gamecenter.app.R;
 
 /**
@@ -18,10 +21,12 @@ import com.gamecenter.app.R;
  * <p>
  * 负责15×15五子棋棋盘的绘制和触摸交互，包括：
  * <ul>
- *   <li>棋盘网格线和星位绘制</li>
+ *   <li>棋盘网格线、星位、坐标标识（A-O 列 / 1-15 行）绘制</li>
  *   <li>3D渐变效果棋子绘制（黑白棋子带光泽效果）</li>
- *   <li>最后一手标记（红色圆点）</li>
+ *   <li>最后一手标记（红色圆点）与落子动画（缩放渐显）</li>
  *   <li>悬停预览（手指移动时显示半透明棋子轮廓）</li>
+ *   <li>胜利五连线高亮（红色贯穿线）</li>
+ *   <li>AI思考中加载指示</li>
  *   <li>回合信息和胜负结果显示</li>
  *   <li>对局结束遮罩层</li>
  * </ul>
@@ -31,7 +36,8 @@ import com.gamecenter.app.R;
  *   <li>棋盘尺寸自适应View大小，保持正方形</li>
  *   <li>棋子使用 {@link RadialGradient} 实现立体光泽效果</li>
  *   <li>触摸坐标通过四舍五入映射到最近的交叉点</li>
- *   <li>ACTION_MOVE事件用于悬停预览，ACTION_DOWN用于实际落子</li>
+ *   <li>{@code interactive} 开关控制是否响应触摸：未开始游戏时不响应</li>
+ *   <li>颜色全部从资源读取，支持浅色/深色主题</li>
  * </ul>
  *
  * 【初学者指南】
@@ -61,6 +67,18 @@ public class GomokuView extends View {
     // 就像你把棋子悬在棋盘上方还没放下去时的效果
     private int[] hoverPos;
     private int[] hintPos;
+
+    /** 是否响应触摸交互（未开始游戏时为false，防止在难度选择界面就能下子） */
+    private boolean interactive = false;
+
+    /** AI是否正在思考（用于显示加载指示） */
+    private boolean aiThinking = false;
+
+    /** 最后一手落子动画进度（0.0~1.0），1.0表示动画结束 */
+    private float lastMoveAnimScale = 1.0f;
+
+    /** 落子动画驱动器 */
+    private ValueAnimator pieceAnimator;
 
     /** 交叉点点击监听器 */
     private OnCellClickListener onCellClickListener;
@@ -93,12 +111,26 @@ public class GomokuView extends View {
     /** 信息文本画笔 */
     private Paint textPaint;
 
+    /** 坐标标识画笔 */
+    private Paint coordinatePaint;
+
+    /** 胜利五连线画笔 */
+    private Paint winLinePaint;
+
+    /** AI思考指示画笔 */
+    private Paint aiThinkingPaint;
+
     /** 高亮边缘颜色 */
     private int highlightEdgeColor;
 
     // 15路棋盘的5个星位坐标（棋盘上的小黑点，帮助定位）
     // 就像真实棋盘上那些小圆点，让你知道这是棋盘的中心和四角
     private static final int[][] STAR_POINTS = {{3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}};
+
+    /** 列坐标字母（A-O，跳过I避免与1混淆） */
+    private static final String[] COLUMN_LABELS = {
+            "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "O", "P"
+    };
 
     /**
      * 构造函数（代码创建时调用）。
@@ -143,7 +175,7 @@ public class GomokuView extends View {
         bgPaint.setColor(bg);
 
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        linePaint.setColor(Color.parseColor("#5D4037"));
+        linePaint.setColor(line);
         linePaint.setStrokeWidth(2f);
 
         blackPiecePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -190,6 +222,25 @@ public class GomokuView extends View {
         textPaint.setTextSize(28);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
+        // 坐标标识画笔：小号文字，半透明
+        coordinatePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        coordinatePaint.setColor(Color.argb(160, 0, 0, 0));
+        coordinatePaint.setTextSize(20);
+        coordinatePaint.setTextAlign(Paint.Align.CENTER);
+
+        // 胜利五连线画笔：粗红色线
+        winLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        winLinePaint.setColor(Color.rgb(255, 60, 60));
+        winLinePaint.setStrokeWidth(6f);
+        winLinePaint.setStyle(Paint.Style.STROKE);
+        winLinePaint.setStrokeCap(Paint.Cap.ROUND);
+
+        // AI思考指示画笔
+        aiThinkingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        aiThinkingPaint.setColor(Color.argb(180, 255, 193, 7));
+        aiThinkingPaint.setTextSize(22);
+        aiThinkingPaint.setTextAlign(Paint.Align.CENTER);
+
         highlightEdgeColor = Color.rgb(255, 50, 50);
 
         hoverPos = null;
@@ -205,7 +256,34 @@ public class GomokuView extends View {
         this.game = game;
         hoverPos = null;
         hintPos = null;
+        lastMoveAnimScale = 1.0f;
         invalidate(); // invalidate() = 告诉系统"画面需要更新了，请重新绘制"
+    }
+
+    /**
+     * 设置是否响应触摸交互。
+     * <p>
+     * 未开始游戏时设为false，防止用户在难度选择界面就能下子。
+     * 开始游戏时设为true，允许落子。
+     *
+     * @param interactive 是否可交互
+     */
+    public void setInteractive(boolean interactive) {
+        this.interactive = interactive;
+        if (!interactive) {
+            hoverPos = null;
+        }
+        invalidate();
+    }
+
+    /**
+     * 设置AI思考状态，用于显示加载指示。
+     *
+     * @param thinking AI是否正在思考
+     */
+    public void setAiThinking(boolean thinking) {
+        this.aiThinking = thinking;
+        invalidate();
     }
 
     /**
@@ -246,6 +324,26 @@ public class GomokuView extends View {
     }
 
     /**
+     * 启动最后一手落子动画（缩放渐显）。
+     * <p>
+     * 使用 OvershootInterpolator 让棋子有轻微回弹效果，更生动。
+     */
+    public void animateLastMove() {
+        if (pieceAnimator != null && pieceAnimator.isRunning()) {
+            pieceAnimator.cancel();
+        }
+        lastMoveAnimScale = 0.0f;
+        pieceAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
+        pieceAnimator.setDuration(180);
+        pieceAnimator.setInterpolator(new OvershootInterpolator(1.8f));
+        pieceAnimator.addUpdateListener(animation -> {
+            lastMoveAnimScale = (float) animation.getAnimatedValue();
+            invalidate();
+        });
+        pieceAnimator.start();
+    }
+
+    /**
      * View尺寸变化时重新计算棋盘布局参数。
      *
      * @param w    新宽度
@@ -281,7 +379,7 @@ public class GomokuView extends View {
     /**
      * 绘制视图内容。
      * <p>
-     * 绘制顺序：背景 → 棋盘网格 → 棋子 → 游戏信息。
+     * 绘制顺序：背景 → 棋盘网格 → 坐标 → 棋子 → 胜利线 → 游戏信息。
      * 就像画画一样，先画底层（背景），再画上层（棋子），一层一层叠上去
      *
      * @param canvas 画布
@@ -312,16 +410,20 @@ public class GomokuView extends View {
                 boardRight + halfCell, boardBottom + halfCell, boardBgPaint);
         // 第2层：画棋盘网格
         drawBoard(canvas);
+        // 第2.5层：画坐标标识
+        drawCoordinates(canvas);
         if (game != null) {
             // 第3层：画棋子
             drawPieces(canvas);
+            // 第3.5层：画胜利五连线
+            drawWinningLine(canvas);
             // 第4层：画游戏信息（回合数、胜负结果等）
             drawGameInfo(canvas);
         }
     }
 
     /**
-     * 绘制游戏信息（回合数、当前执子方）和对局结束遮罩。
+     * 绘制游戏信息（回合数、当前执子方、AI思考指示）和对局结束遮罩。
      * <p>
      * 对局结束时绘制半透明黑色遮罩，中央显示胜负结果。
      * 同时触发游戏结束回调通知Activity层。
@@ -346,11 +448,22 @@ public class GomokuView extends View {
         canvas.drawText(turnText, 20, 40, textPaint);
 
         int currentPlayer = game.getCurrentPlayer();
-        String playerText = currentPlayer == GomokuGame.BLACK ? "黑方回合" : "白方回合";
+        String playerText;
+        if (game.isGameOver()) {
+            playerText = "对局结束";
+        } else if (aiThinking) {
+            playerText = "AI思考中…";
+        } else {
+            playerText = currentPlayer == GomokuGame.BLACK ? "黑方回合" : "白方回合";
+        }
         textPaint.setTextAlign(Paint.Align.RIGHT);
         float playerTextWidth = textPaint.measureText(playerText);
+        // AI思考时用琥珀色高亮
+        panelPaint.setColor(aiThinking ? Color.argb(140, 80, 60, 0) : Color.argb(120, 0, 0, 0));
         canvas.drawRoundRect(w - 20 - playerTextWidth - 10, 12, w - 10, 50, 8, 8, panelPaint);
+        textPaint.setColor(aiThinking ? Color.rgb(255, 193, 7) : Color.WHITE);
         canvas.drawText(playerText, w - 20, 40, textPaint);
+        textPaint.setColor(Color.WHITE);
 
         if (game.isGameOver()) {
             Paint overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -430,12 +543,48 @@ public class GomokuView extends View {
     }
 
     /**
+     * 绘制棋盘四周的坐标标识（列 A-P 跳过 I，行 1-15）。
+     * <p>
+     * 坐标显示在棋盘外侧，帮助玩家定位。
+     *
+     * @param canvas 画布
+     */
+    private void drawCoordinates(Canvas canvas) {
+        coordinatePaint.setTextSize(Math.max(12f, cellSize * 0.28f));
+        float halfCell = cellSize / 2f;
+
+        // 顶部和底部：列字母 A-P
+        for (int i = 0; i < GomokuGame.BOARD_SIZE; i++) {
+            float cx = offsetX + i * cellSize;
+            // 顶部
+            canvas.drawText(COLUMN_LABELS[i], cx, offsetY - halfCell * 0.6f, coordinatePaint);
+            // 底部
+            canvas.drawText(COLUMN_LABELS[i], cx,
+                    offsetY + (GomokuGame.BOARD_SIZE - 1) * cellSize + halfCell * 1.4f, coordinatePaint);
+        }
+
+        // 左侧和右侧：行号 1-15（从上到下）
+        for (int i = 0; i < GomokuGame.BOARD_SIZE; i++) {
+            float cy = offsetY + i * cellSize;
+            String rowLabel = String.valueOf(i + 1);
+            // 左侧
+            canvas.drawText(rowLabel, offsetX - halfCell * 0.8f,
+                    cy + coordinatePaint.getTextSize() / 3f, coordinatePaint);
+            // 右侧
+            canvas.drawText(rowLabel,
+                    offsetX + (GomokuGame.BOARD_SIZE - 1) * cellSize + halfCell * 0.8f,
+                    cy + coordinatePaint.getTextSize() / 3f, coordinatePaint);
+        }
+    }
+
+    /**
      * 绘制棋盘上的所有棋子、最后一手标记和悬停预览。
      *
      * @param canvas 画布
      */
     private void drawPieces(Canvas canvas) {
         int[][] board = game.getBoard();
+        int[] lastMove = game.getLastMove();
         for (int y = 0; y < GomokuGame.BOARD_SIZE; y++) {
             for (int x = 0; x < GomokuGame.BOARD_SIZE; x++) {
                 if (board[y][x] != GomokuGame.EMPTY) {
@@ -444,18 +593,25 @@ public class GomokuView extends View {
                     float cy = offsetY + y * cellSize;
                     float radius = cellSize / 2f - 2;
 
+                    // 最后一手棋子应用落子动画缩放
+                    float scale = 1.0f;
+                    if (lastMove != null && lastMove[0] == x && lastMove[1] == y
+                            && lastMoveAnimScale < 1.0f) {
+                        scale = lastMoveAnimScale;
+                    }
+                    float animRadius = radius * scale;
+
                     if (board[y][x] == GomokuGame.BLACK) {
-                        drawPiece3D(canvas, cx, cy, radius, blackPiecePaint, blackPieceBorderPaint, true);
+                        drawPiece3D(canvas, cx, cy, animRadius, blackPiecePaint, blackPieceBorderPaint, true);
                     } else {
-                        drawPiece3D(canvas, cx, cy, radius, whitePiecePaint, whitePieceBorderPaint, false);
+                        drawPiece3D(canvas, cx, cy, animRadius, whitePiecePaint, whitePieceBorderPaint, false);
                     }
                 }
             }
         }
 
         // 绘制最后一手标记（红色小圆点），让你知道对手刚下在哪里
-        int[] lastMove = game.getLastMove();
-        if (lastMove != null) {
+        if (lastMove != null && lastMoveAnimScale >= 1.0f) {
             float cx = offsetX + lastMove[0] * cellSize;
             float cy = offsetY + lastMove[1] * cellSize;
             Paint lastMoveRingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -470,7 +626,7 @@ public class GomokuView extends View {
         }
 
         // 绘制悬停预览（半透明棋子轮廓），就是你手指悬在棋盘上时的预览效果
-        if (hoverPos != null && !game.isGameOver()) {
+        if (interactive && hoverPos != null && !game.isGameOver()) {
             int hx = hoverPos[0], hy = hoverPos[1];
             if (game.isValidMove(hx, hy)) {
                 float cx = offsetX + hx * cellSize;
@@ -494,6 +650,24 @@ public class GomokuView extends View {
     }
 
     /**
+     * 绘制胜利五连线高亮（红色贯穿线）。
+     * <p>
+     * 从游戏对象读取 winningLine 坐标，绘制粗红色直线贯穿五子。
+     *
+     * @param canvas 画布
+     */
+    private void drawWinningLine(Canvas canvas) {
+        if (game == null || !game.isGameOver()) return;
+        int[] line = game.getWinningLine();
+        if (line == null || line.length < 4) return;
+        float x1 = offsetX + line[0] * cellSize;
+        float y1 = offsetY + line[1] * cellSize;
+        float x2 = offsetX + line[2] * cellSize;
+        float y2 = offsetY + line[3] * cellSize;
+        canvas.drawLine(x1, y1, x2, y2, winLinePaint);
+    }
+
+    /**
      * 绘制带3D渐变效果的棋子。
      * <p>
      * 使用 {@link RadialGradient} 在棋子左上方创建高光效果，
@@ -509,6 +683,7 @@ public class GomokuView extends View {
      * @param isBlack 是否为黑子
      */
     private void drawPiece3D(Canvas canvas, float cx, float cy, float radius, Paint fill, Paint border, boolean isBlack) {
+        if (radius <= 0) return;
         Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         shadowPaint.setColor(Color.argb(60, 0, 0, 0));
         canvas.drawCircle(cx + 2, cy + 2, radius, shadowPaint);
@@ -534,6 +709,7 @@ public class GomokuView extends View {
     /**
      * 处理触摸事件。
      * <p>
+     * 未开始游戏（interactive=false）时直接消费事件不响应。
      * ACTION_DOWN：将触摸坐标映射到最近的交叉点，触发落子回调。
      * ACTION_MOVE：更新悬停预览位置，实时显示半透明棋子轮廓。
      *
@@ -543,6 +719,8 @@ public class GomokuView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (game == null || game.isGameOver()) return true;
+        // 未开始游戏时不响应触摸，防止在难度选择界面就能下子
+        if (!interactive) return true;
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             hintPos = null;
             // 手指按下：把屏幕上的像素坐标换算成棋盘上的交叉点坐标
