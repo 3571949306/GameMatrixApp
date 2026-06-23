@@ -52,8 +52,9 @@ public class AiTaskRouter {
 
     private final Context appContext;
     private final AiPreferences aiPrefs;
-    private final ExecutorService highPriorityExecutor;  // 高优先级：规则引擎、云端API
-    private final ExecutorService lowPriorityExecutor;   // 低优先级：本地LLM推理
+    // 2026-06-23: 改为非 final（修复"已分配变量"编译错误 — try/catch 双路径赋值 final 字段不被允许）
+    private ExecutorService highPriorityExecutor;  // 高优先级：规则引擎、云端API
+    private ExecutorService lowPriorityExecutor;   // 低优先级：本地LLM推理
     private final Handler mainHandler;
     private final AiModelDownloadManager modelDownloadManager;
     private final MediaPipeLocalLlmEngine localLlmEngine;
