@@ -343,7 +343,7 @@ dependencies {
     // 注意：VPN 模块保持动态下载（不预装到 APK，避免合规/分发问题）。
 
     implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.google.android.material:material:1.13.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'androidx.navigation:navigation-fragment:2.8.9'
@@ -354,7 +354,7 @@ dependencies {
     implementation 'androidx.core:core-splashscreen:1.0.1'
     implementation 'androidx.security:security-crypto:1.0.0'
     implementation 'com.google.zxing:core:3.5.3'
-    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'com.google.code.gson:gson:2.13.1'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     implementation 'com.google.mediapipe:tasks-genai:0.10.27'

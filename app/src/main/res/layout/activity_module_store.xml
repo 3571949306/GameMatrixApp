@@ -18,6 +18,40 @@
         app:navigationIcon="@android:drawable/ic_menu_revert"
         app:menu="@menu/module_store_menu" />
 
+    <!-- 2026-06-23 UI 升级：模块统计 + 一键更新 -->
+    <LinearLayout
+        android:id="@+id/statsBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp">
+
+        <TextView
+            android:id="@+id/tvModuleStats"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="加载中…"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUpdateAll"
+            style="@style/Widget.Material3.Button.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="12dp"
+            android:text="一键更新"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/moduleSearchLayout"
         android:layout_width="match_parent"
@@ -32,6 +66,7 @@
         app:boxCornerRadiusBottomStart="8dp"
         app:boxCornerRadiusTopEnd="8dp"
         app:boxCornerRadiusTopStart="8dp"
+        app:endIconMode="clear_text"
         app:startIconDrawable="@android:drawable/ic_menu_search">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -112,17 +147,33 @@
             android:textSize="14sp"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/moduleErrorText"
+        <!-- 2026-06-23 UI 升级：错误状态 + 重试按钮 -->
+        <LinearLayout
+            android:id="@+id/moduleErrorContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
             android:gravity="center"
-            android:textColor="?attr/colorError"
-            android:textSize="14sp"
-            android:visibility="gone" />
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/moduleErrorText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="?attr/colorError"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRetry"
+                style="@style/Widget.Material3.Button.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="重试" />
+        </LinearLayout>
     </FrameLayout>
 
 </LinearLayout>

@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gamecenter.app.MainActivity
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.gamecenter.app.R
 import android.util.Log
@@ -25,7 +26,12 @@ class ModuleStoreActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var skeletonContainer: LinearLayout
     private lateinit var emptyText: TextView
+    private lateinit var errorContainer: LinearLayout
     private lateinit var errorText: TextView
+    private lateinit var statsBar: LinearLayout
+    private lateinit var tvModuleStats: TextView
+    private lateinit var btnUpdateAll: MaterialButton
+    private lateinit var btnRetry: MaterialButton
     private lateinit var categoryTabLayout: TabLayout
     private lateinit var subCategoryTabsContainer: LinearLayout
     private lateinit var subCategoryContainer: HorizontalScrollView
@@ -80,10 +86,18 @@ class ModuleStoreActivity : AppCompatActivity() {
         skeletonContainer = findViewById(R.id.moduleSkeletonContainer)
         startSkeletonAnimation()
         emptyText = findViewById(R.id.moduleEmptyText)
+        errorContainer = findViewById(R.id.moduleErrorContainer)
         errorText = findViewById(R.id.moduleErrorText)
+        statsBar = findViewById(R.id.statsBar)
+        tvModuleStats = findViewById(R.id.tvModuleStats)
+        btnUpdateAll = findViewById(R.id.btnUpdateAll)
+        btnRetry = findViewById(R.id.btnRetry)
         categoryTabLayout = findViewById(R.id.moduleCategoryTabs)
         subCategoryTabsContainer = findViewById(R.id.moduleSubCategoryTabs)
         subCategoryContainer = findViewById(R.id.moduleSubCategoryContainer)
+
+        btnRetry.setOnClickListener { refreshModules() }
+        btnUpdateAll.setOnClickListener { updateAllAvailable() }
 
         adapter = ModuleAdapter(emptyList(), ModuleManager.getInstalledModuleIds(this)) { module, action ->
             when (action) {
@@ -148,6 +162,14 @@ class ModuleStoreActivity : AppCompatActivity() {
             R.id.action_refresh -> {
                 refreshModules()
                 Toast.makeText(this, "正在刷新模块列表", Toast.LENGTH_SHORT).show()
+                true
+            }
+            R.id.action_manage -> {
+                updateAllAvailable()
+                true
+            }
+            R.id.action_settings -> {
+                Toast.makeText(this, "设置开发中", Toast.LENGTH_SHORT).show()
                 true
             }
             else -> false
@@ -282,7 +304,7 @@ class ModuleStoreActivity : AppCompatActivity() {
         skeletonContainer.visibility = View.VISIBLE
         recyclerView.visibility = View.GONE
         emptyText.visibility = View.GONE
-        errorText.visibility = View.GONE
+        errorContainer.visibility = View.GONE
 
         // 本地优先 + 后台版本对比（内置兜底在 loadModuleList 内部处理）
         var firstCallback = true
@@ -293,7 +315,7 @@ class ModuleStoreActivity : AppCompatActivity() {
                 recyclerView.visibility = View.VISIBLE
                 if (error != null && firstCallback && modules.isEmpty()) {
                     errorText.text = error
-                    errorText.visibility = View.VISIBLE
+                    errorContainer.visibility = View.VISIBLE
                 } else if (modules.isEmpty() && firstCallback) {
                     emptyText.visibility = View.VISIBLE
                 } else {
@@ -301,7 +323,45 @@ class ModuleStoreActivity : AppCompatActivity() {
                     applyCategoryFilter()
                 }
                 firstCallback = false
+                updateStatsBar()
             }
+        }
+    }
+
+    /**
+     * 2026-06-23 UI 升级：更新顶部统计信息 + 一键更新按钮可见性。
+     * 格式：'共 X 模块 | Y 已安装 | Z 有更新'
+     * 当有可更新模块时显示一键更新按钮。
+     */
+    private fun updateStatsBar() {
+        val total = allModules.size
+        val installed = allModules.count { ModuleManager.isModuleInstalled(this, it.id) }
+        val updatable = allModules.count { module ->
+            ModuleManager.isModuleInstalled(this, module.id) &&
+                    ModuleManager.getInstalledVersionCode(this, module.id) < module.versionCode
+        }
+        tvModuleStats.text = "共 $total 模块 | $installed 已安装${if (updatable > 0) " | $updatable 有更新" else ""}"
+        btnUpdateAll.visibility = if (updatable > 0) View.VISIBLE else View.GONE
+        btnUpdateAll.text = if (updatable > 0) "一键更新 ($updatable)" else "一键更新"
+    }
+
+    /**
+     * 批量更新所有可更新的模块（已安装但 versionCode < manifest.versionCode）。
+     * 顺序下载，第一个失败不阻塞后续。
+     */
+    private fun updateAllAvailable() {
+        val updatable = allModules.filter { module ->
+            ModuleManager.isModuleInstalled(this, module.id) &&
+                    ModuleManager.getInstalledVersionCode(this, module.id) < module.versionCode &&
+                    module.fileName.isNotEmpty() && module.sha256.isNotEmpty()
+        }
+        if (updatable.isEmpty()) {
+            Toast.makeText(this, "没有可更新的模块", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "开始更新 ${updatable.size} 个模块", Toast.LENGTH_SHORT).show()
+        for (module in updatable) {
+            downloadModule(module)
         }
     }
 
