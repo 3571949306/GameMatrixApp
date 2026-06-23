@@ -52,6 +52,31 @@ public final class AiResult {
     }
 
     /**
+     * 获取错误码。
+     * <p>
+     * 用于判断错误类型，决定是否需要回退到其他处理方式。
+     *
+     * @return 错误码字符串，空字符串表示无错误
+     */
+    public int getErrorCode() {
+        if (errorCode == null || errorCode.isEmpty()) {
+            return 0;
+        }
+        // 将错误码字符串转换为hashCode用于比较
+        return errorCode.hashCode();
+    }
+
+    /**
+     * 判断是否是特定错误码。
+     *
+     * @param targetErrorCode 目标错误码
+     * @return 是否匹配
+     */
+    public boolean hasErrorCode(String targetErrorCode) {
+        return errorCode != null && errorCode.equals(targetErrorCode);
+    }
+
+    /**
      * 创建一个成功结果的 Builder。
      * 成功时 text 参数赋值给 content 字段（因为成功时我们关心的是输出内容）。
      *
