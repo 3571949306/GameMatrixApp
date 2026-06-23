@@ -52,7 +52,10 @@ dependencies {
     compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
 
     // Phase 1: MiMo TTS 能力 SDK（AI 助手朗读）
-    compileOnly project(':modules:capabilities:mimo-tts')
+    // 仅当 settings.gradle 中通过 mimo.tts.dir 包含该模块时启用
+    if (rootProject.findProject(':modules:capabilities:mimo-tts') != null) {
+        compileOnly project(':modules:capabilities:mimo-tts')
+    }
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {

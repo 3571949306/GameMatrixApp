@@ -38,3 +38,9 @@ feedback.url=https://<YOUR_DOMAIN>/api/feedback
 # 权限要求：repo (full control of private repositories)
 # 将 Token 内容保存到 local_private/github/token.txt（自动被 .gitignore 排除）
 # 路径：local_private/github/token.txt
+
+# ============ MiMo TTS 模块路径（可选）============
+# MiMo TTS 是独立的能力 SDK，不在主仓库内。
+# 配置示例: mimo.tts.dir=D:/GameMatrixWorkspace/capabilities/mimo-tts
+# 留空或删除该行可跳过该模块。
+# mimo.tts.dir=
