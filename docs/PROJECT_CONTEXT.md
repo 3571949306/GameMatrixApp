@@ -4,7 +4,7 @@
 
 > Canonical scope: this file is the maintainer handoff and repo-constraints document. Historical release reports and duplicated publishing walkthroughs were moved under `docs/archive/`. See `docs/DOCUMENTATION_INDEX.md`.
 
-- 当前正式版目标：`1.4.0` / `versionCode 400`。
+- 当前正式版目标：`1.4.1` / `versionCode 488`（最新工作区已 commit 入库）。
 - Gradle 工具链：AGP 8.13.2, Kotlin 2.0.21, Hilt 2.57.2。
 - 包名：`com.gamecenter.app`（非 `com.GameMatrix.app`）。
 - 主界面已适配系统状态栏/导航栏安全区，避免顶部标题被手机状态栏遮挡。
@@ -166,8 +166,8 @@
 当前 `version.properties` 示例：
 
 ```properties
-versionCode=267
-versionName=1.3.29
+versionCode=488
+versionName=1.4.1
 ```
 
 ## 2. 代码结构
@@ -287,7 +287,7 @@ tic, tiles, whack
 
 ## 5. 构建与版本
 
-当前版本：`versionCode=341`, `versionName=1.4.0`。当前工作区在该版本基础上完成了小游戏AI响应优化（v1.3.29）和小游戏AI响应优化（去假延迟+动态预算+根并行）
+当前版本：`versionCode=488`, `versionName=1.4.1`（v1.4.0 正式版 `versionCode=465` / v1.3.29 优化版 `versionCode=341`）。当前工作区在 v1.4.1 基础上完成了 WIP 收尾入库（7 个 commit：基线设施/核心重构/28 游戏内嵌/AI 协程化/测试套件/UI 资源/文档审计归档）。
 
 Windows 下推荐命令：
 

@@ -136,7 +136,9 @@ object ModuleDownloadManager {
      * @return 下载进度（0-100），如果未下载则返回 -1
      */
     fun getDownloadProgress(moduleId: String): Int {
-        // TODO: 从 ModuleDownloader 获取实时进度
+        // 当前架构: ModuleDownloader 内部持有进度但未暴露回调。
+        // 后续若需要 UI 实时进度，可让 ModuleDownloader 持有 SharedFlow<DownloadProgress>，
+        // 在此处 collectLatest 转发到 LiveData。短期返回 -1（未知）。
         return -1
     }
 

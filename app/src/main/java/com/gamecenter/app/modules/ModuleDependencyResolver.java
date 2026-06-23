@@ -130,8 +130,8 @@ public class ModuleDependencyResolver {
             return null;
         }
         
-        // TODO: 如果存在多个版本，选择最高版本
-        // 当前假设每个依赖只有一个版本
+        // 当前假设每个依赖只有一个版本（modules.json 不存多版本）。
+        // 未来支持多版本时，按 manifest.version 倒序取第一个即可。
         return manifest;
     }
     
