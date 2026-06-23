@@ -65,3 +65,8 @@ VPN 模块 APK（feature/vpn）
 - 修复内存泄漏：ProtocolFactory 及四个协议模块改用 applicationContext 代替 Activity Context
 - 修复模块 ID 不一致：统一为 "vpn"（原 modules.json 为 "vpn_basic"，MainActivity 检查 "vpn"）
 - 修复 CloudFlare CDN 缓存旧响应：APK 文件改名为 feature_vpn_v100_v2.apk
+
+## v1.0.1 — 2026-06-23
+
+### 修复记录
+- 修复 Android 14+ 后台启动服务限制：VpnFragment.connectToNode 中将 `startService` 改为 `ContextCompat.startForegroundService`，避免在后台启动服务时抛 `IllegalStateException`。VpnServiceProxy.onStartCommand 已调用 `startForeground`，使用 `startForegroundService` 安全。添加 try-catch 兜底，失败时 Toast 提示用户保持应用在前台重试。
