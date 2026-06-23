@@ -1,7 +1,9 @@
 package com.gamecenter.app.games.base;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -54,6 +56,9 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Android 16+ (API 36) 将忽略 manifest 中的 android:screenOrientation，
+        // 需在运行时强制锁定竖屏，以保证旧版本与新版本行为一致。
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setupGameFramework();
 
         // 读取由启动方传入的难度索引（key必须与 GameLauncherHelper.EXTRA_DIFFICULTY_INDEX 一致）
@@ -65,6 +70,10 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         initGame();
         View contentView = getGameContentView();
         if (contentView != null && gameContentContainer != null) {
+            // 移除已有的父视图，避免 "The specified child already has a parent" 错误
+            if (contentView.getParent() != null) {
+                ((ViewGroup) contentView.getParent()).removeView(contentView);
+            }
             gameContentContainer.addView(contentView);
         }
     }

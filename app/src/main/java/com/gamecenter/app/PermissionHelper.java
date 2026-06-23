@@ -93,10 +93,17 @@ public class PermissionHelper {
      * 通过检查 SharedPreferences 中是否已记录对话框显示标记来判断。
      * 首次安装后该标记不存在，返回 {@code true}。
      * </p>
+     * <p>
+     * 当 {@link BuildConfig#TEST_MODE} 为 true 时，自动跳过权限说明对话框，
+     * 避免阻塞自动化测试。
+     * </p>
      *
      * @return {@code true} 表示首次启动，需要展示权限说明对话框
      */
     public boolean isFirstLaunch() {
+        if (BuildConfig.TEST_MODE) {
+            return false;
+        }
         SharedPreferences prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         return !prefs.getBoolean(KEY_PERMISSION_SHOWN, false);
     }
@@ -203,6 +210,20 @@ public class PermissionHelper {
             if (ContextCompat.checkSelfPermission(activity, android.Manifest.permission.READ_MEDIA_IMAGES)
                     != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_IMAGES);
+            }
+            // Android 14+ 部分照片访问权限：用户可选择只授权部分照片
+            // 【初学者理解】Android 14 引入"部分照片访问"能力，用户可以只选一部分照片给应用访问，
+            // 需要单独请求 READ_MEDIA_VISUAL_USER_SELECTED 权限，配合 READ_MEDIA_IMAGES 一起使用
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED);
+                }
+            }
+            // Android 13+ 通知权限：未授权则请求
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
             }
         } else {
             // Android 12 及以下：需要读写外部存储的权限

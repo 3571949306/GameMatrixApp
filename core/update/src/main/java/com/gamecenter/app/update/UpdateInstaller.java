@@ -183,10 +183,19 @@ public class UpdateInstaller {
         // 尝试打开 Download 目录 - 使用更可靠的方法
         boolean opened = false;
         
-        // 方式一：使用文件 URI 打开下载目录（最通用的方法）
+        // 方式一：使用 FileProvider 打开下载目录（Android 7.0+ 避免 FileUriExposedException）
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri uri = Uri.fromFile(downloadDir);
+            Uri uri;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                // Android 7.0+：使用 FileProvider 获取 content:// URI，避免 FileUriExposedException
+                uri = FileProvider.getUriForFile(context,
+                        context.getPackageName() + ".update.fileprovider", downloadDir);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } else {
+                // Android 7.0 以下：直接使用 file:// URI
+                uri = Uri.fromFile(downloadDir);
+            }
             intent.setDataAndType(uri, "*/*");
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             
