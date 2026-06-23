@@ -326,7 +326,10 @@ dependencies {
     // 联机模块
     implementation project(':core:online')
     // Phase 1: MiMo TTS 能力 SDK（AI 助手朗读）
-    implementation project(':modules:capabilities:mimo-tts')
+    // 仅当 settings.gradle 中通过 mimo.tts.dir 包含该模块时启用
+    if (rootProject.findProject(':modules:capabilities:mimo-tts') != null) {
+        implementation project(':modules:capabilities:mimo-tts')
+    }
     // ZIP game packages are lightweight unlock/download artifacts; the runnable
     // game implementations are compiled into the host and gated by install state.
     // Phase 3.1: 改 implementation → compileOnly, 防止 SaveManager 等类与模块商店运行时
