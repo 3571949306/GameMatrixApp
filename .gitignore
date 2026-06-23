@@ -147,3 +147,4 @@ ui_test*.xml
 test*-launch.png
 test*-module-store.png
 home_nav*.png
+build_output*.txt
