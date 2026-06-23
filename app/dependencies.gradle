@@ -1,0 +1,39 @@
+// app/dependencies.gradle
+// Phase 1.4: 从 app/build.gradle 拆出 — 所有 dependencies 集中管理
+// 配合 libs.versions.toml 使用, 让 build.gradle 主文件保持 100 行以内
+
+ext.dependenciesConfig = { ->
+    // 这里只列 const blocks, 真正的 implementation 还在 build.gradle 里
+    // 因为 Groovy DSL 的 implementation 必须在 android {} 块里出现
+    // 此文件主要存约束 (constraints) 等不依赖 android {} 上下文的依赖
+    return [
+        // 占位, 实际 dependencies 在 app/build.gradle
+    ]
+}
+
+// Phase 1.4: 强制安全版本约束 (CVE fixes)
+ext.applySecurityConstraints = { project ->
+    project.dependencies.constraints {
+        implementation('com.google.guava:guava:33.4.0-jre') {
+            because 'CVE-2023-2976 and others - force latest Guava'
+        }
+        implementation('com.squareup.okio:okio:3.10.2') {
+            because 'CVE-2023-3635 - force latest Okio'
+        }
+        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.0.21') {
+            because 'CVE-2020-29582 fixed since 1.4.30; align with project Kotlin version'
+        }
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21') {
+            because 'align with kotlin-stdlib 2.0.21'
+        }
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21') {
+            because 'align with kotlin-stdlib 2.0.21'
+        }
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1') {
+            because 'fix known coroutines vulnerabilities'
+        }
+        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1') {
+            because 'align with coroutines-core 1.10.1'
+        }
+    }
+}

@@ -21,4 +21,19 @@
         <item name="materialButtonStyle">@style/Widget.GameMatrix.Button</item>
         <item name="android:buttonStyle">@style/Widget.GameMatrix.PlatformButton</item>
     </style>
+
+    <!-- 启动屏专用主题：接入 AndroidX SplashScreen API，适配 Android 12+ 双启动屏（深色主题） -->
+    <style name="Theme.GameMatrixApp.Splash" parent="Theme.SplashScreen">
+        <!-- SplashScreen API 配置 -->
+        <item name="windowSplashScreenBackground">#2D2A26</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.GameMatrixApp</item>
+
+        <!-- 全屏 + 透明系统栏（保持原有启动屏视觉） -->
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

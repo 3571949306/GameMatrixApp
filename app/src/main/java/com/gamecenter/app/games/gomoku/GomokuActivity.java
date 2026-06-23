@@ -1,16 +1,31 @@
 package com.gamecenter.app.games.gomoku;
 
+import android.content.pm.ActivityInfo;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
+import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
-import com.google.android.material.button.MaterialButton;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,17 +35,23 @@ import java.util.concurrent.Executors;
  * 负责管理五子棋单局对战的完整生命周期，包括：
  * <ul>
  *   <li>难度选择（低 / 中 / 高 / 大师，对应不同AI思考时间）</li>
- *   <li>玩家（黑方）落子交互</li>
- *   <li>AI（白方）异步计算与落子</li>
- *   <li>悔棋功能（同时撤销玩家和AI各一手）</li>
+ *   <li>先手选择（执黑或执白）</li>
+ *   <li>玩家落子交互与落子动画</li>
+ *   <li>AI异步计算与落子</li>
+ *   <li>对局计时（双方用时统计）</li>
+ *   <li>悔棋功能（可撤销1-5手）</li>
+ *   <li>认输、提示、重新开始</li>
  *   <li>胜负统计记录</li>
+ *   <li>落子音效与震动反馈</li>
+ *   <li>对局状态保存（旋转屏幕不丢局）</li>
  * </ul>
  * <p>
  * 关键设计决策：
  * <ul>
  *   <li>AI计算在单独线程池中执行，通过Handler按难度最小响应延迟回传结果</li>
- *   <li>难度通过按钮直接选择，影响AI的搜索时间限制</li>
- *   <li>悔棋按"一手"为单位，每次撤销玩家+AI共两手棋</li>
+ *   <li>{@code interactive} 开关控制棋盘是否响应触摸，未开始游戏时禁止下子</li>
+ *   <li>玩家可选执黑（先手）或执白（后手），AI自动执另一方</li>
+ *   <li>对局计时使用 SystemClock.elapsedRealtime，不受系统时间调整影响</li>
  * </ul>
  *
  * 【初学者指南】
@@ -45,11 +66,22 @@ public class GomokuActivity extends AppCompatActivity {
     /** 游戏标识，用于胜负统计 */
     private static final String GAME_ID = "gomoku";
 
+    /** 状态保存的key前缀 */
+    private static final String STATE_BOARD = "gomoku_board";
+    private static final String STATE_CURRENT_PLAYER = "gomoku_current_player";
+    private static final String STATE_MOVE_COUNT = "gomoku_move_count";
+    private static final String STATE_AI_DIFFICULTY = "gomoku_ai_difficulty";
+    private static final String STATE_PLAYER_COLOR = "gomoku_player_color";
+    private static final String STATE_GAME_STARTED = "gomoku_game_started";
+    private static final String STATE_HISTORY_X = "gomoku_history_x";
+    private static final String STATE_HISTORY_Y = "gomoku_history_y";
+    private static final String STATE_HISTORY_PLAYER = "gomoku_history_player";
+
     /** 棋盘视图组件 */
     private GomokuView gomokuView;
 
     /** 难度选择面板 */
-    private LinearLayout difficultyPanel;
+    private ScrollView difficultyPanel;
 
     /** 游戏控制面板（悔棋、重开等按钮） */
     private LinearLayout controlPanel;
@@ -57,14 +89,20 @@ public class GomokuActivity extends AppCompatActivity {
     /** 难度标签文本 */
     private TextView tvDifficultyLabel;
 
+    /** 对局计时文本 */
+    private TextView tvTimer;
+
     /** 五子棋游戏逻辑对象 */
     private GomokuGame game;
 
     /** AI决策引擎 */
     private GomokuAI ai;
 
-    /** AI执子颜色（固定为白方） */
+    /** AI执子颜色 */
     private int aiPlayer = GomokuGame.WHITE;
+
+    /** 玩家执子颜色 */
+    private int playerColor = GomokuGame.BLACK;
 
     /** 当前AI难度等级（1~4） */
     private int aiDifficulty = 2;
@@ -74,71 +112,86 @@ public class GomokuActivity extends AppCompatActivity {
     /** 游戏使用统计存储 */
     private GameUsageStore usageStore;
 
-    // 主线程Handler：就像一个"信使"，负责把AI的计算结果从后台线程送到主线程（UI线程）
-    // 因为Android规定：只有主线程才能修改界面，后台线程不能直接改界面
+    /** 主线程Handler */
     private Handler mainHandler;
 
-    // AI计算专用线程池：就像给AI单独开了一个"办公室"，在里面专心计算不会卡住界面
-    // 如果AI在主线程计算，界面就会冻住（卡顿），用户体验很差
+    /** AI计算专用线程池 */
     private ExecutorService aiExecutor;
 
-    // AI是否正在思考的标志位
-    // volatile关键字保证：一个线程改了这个值，其他线程能立刻看到最新值
-    // 就像一块"公共黑板"，谁都能看到上面的内容，而且修改后立刻生效
+    /** AI是否正在思考的标志位 */
     private volatile boolean aiThinking = false;
     private volatile long aiGeneration = 0;
 
     /** 难度名称数组，与 1-4 档按钮对应 */
     private static final String[] DIFFICULTY_NAMES = {
-        "低", "中", "高", "大师"
+            "低", "中", "高", "大师"
     };
+
+    /** 对局开始时间戳（elapsedRealtime） */
+    private long gameStartElapsedMs = 0L;
+
+    /** 计时刷新Handler */
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private final Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateTimerDisplay();
+            if (game != null && !game.isGameOver() && difficultyPanel.getVisibility() == View.GONE) {
+                timerHandler.postDelayed(this, 500);
+            }
+        }
+    };
+
+    /** 落子音效与震动 */
+    private SoundPool soundPool;
+    private int pieceSoundId = 0;
+    private Vibrator vibrator;
+    private boolean soundEnabled = true;
+    private boolean vibrateEnabled = true;
 
     /**
      * Activity创建时的初始化入口。
-     * <p>
-     * 初始化游戏对象、AI引擎、视图绑定和事件监听器。
      *
      * @param savedInstanceState 保存的实例状态
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Android 16+ (API 36) 将忽略 manifest 中的 android:screenOrientation，
+        // 需在运行时强制锁定竖屏。
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_gomoku);
-
-        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                if (difficultyPanel.getVisibility() == View.GONE) {
-                    handleRestart();
-                } else {
-                    setEnabled(false);
-                    onBackPressed();
-                }
-            }
-        });
 
         // 创建主线程信使和AI专用线程池
         mainHandler = new Handler(Looper.getMainLooper());
         aiExecutor = Executors.newSingleThreadExecutor();
 
-        // 找到布局中的各个UI组件（就像从图纸上找到各个零件的位置）
+        // 找到布局中的各个UI组件
         gomokuView = findViewById(R.id.gomoku_view);
         difficultyPanel = findViewById(R.id.difficulty_panel);
         controlPanel = findViewById(R.id.control_panel);
         tvDifficultyLabel = findViewById(R.id.tv_difficulty_label);
+        tvTimer = findViewById(R.id.tv_timer);
 
         // 创建游戏逻辑对象和AI引擎
         game = new GomokuGame();
         ai = new GomokuAI(aiDifficulty);
         gomokuView.setGame(game);
+        // 初始未开始游戏，禁止棋盘交互并隐藏棋盘，让难度选择面板获得充足显示空间
+        gomokuView.setInteractive(false);
+        gomokuView.setVisibility(View.GONE);
         usageStore = new GameUsageStore(this);
 
-        // 设置棋盘点击监听器：玩家点击棋盘时调用handleCellClick方法
+        // 初始化音效与震动
+        initSoundAndVibration();
+
+        // 设置棋盘点击监听器
         gomokuView.setOnCellClickListener((x, y) -> handleCellClick(x, y));
-        // 设置游戏结束监听器：游戏结束时调用handleGameOver方法
+        // 设置游戏结束监听器
         gomokuView.setOnGameOverListener(this::handleGameOver);
 
         setupDifficultyButtons();
+        setupColorSelectionButtons();
 
         // 绑定各个按钮的点击事件
         findViewById(R.id.btn_start_game).setOnClickListener(v -> startGame(aiDifficulty));
@@ -146,16 +199,78 @@ public class GomokuActivity extends AppCompatActivity {
                 GameTutorialHelper.showGomokuTutorial(this));
         findViewById(R.id.btn_undo).setOnClickListener(v -> handleUndo());
         findViewById(R.id.btn_hint).setOnClickListener(v -> handleHint());
-        findViewById(R.id.btn_restart).setOnClickListener(v -> handleRestart());
+        findViewById(R.id.btn_restart).setOnClickListener(v -> confirmRestart());
+        findViewById(R.id.btn_resign).setOnClickListener(v -> handleResign());
         findViewById(R.id.btn_tutorial_ingame).setOnClickListener(v ->
                 GameTutorialHelper.showGomokuTutorial(this));
-        // 跳转到联机对战界面
-        findViewById(R.id.btn_online).setOnClickListener(v ->
-                android.widget.Toast.makeText(
-                        this,
-                        "联机模式已移到模块商店，当前内置版仅保留单机模式",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show());
+
+        // 返回键：游戏中弹确认对话框，难度选择界面直接退出
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (difficultyPanel.getVisibility() == View.GONE && game != null && !game.isGameOver()) {
+                    showExitConfirmDialog();
+                } else {
+                    finish();
+                }
+            }
+        });
+
+        // 恢复保存的对局状态
+        if (savedInstanceState != null) {
+            restoreGameState(savedInstanceState);
+        }
+    }
+
+    /**
+     * 初始化落子音效与震动反馈。
+     */
+    private void initSoundAndVibration() {
+        soundEnabled = SettingsManager.getInstance(this).shouldPlayGameSound();
+        vibrateEnabled = SettingsManager.getInstance(this).shouldVibrate();
+        try {
+            soundPool = new SoundPool.Builder().setMaxStreams(2).build();
+            // 尝试加载落子音效，失败则静默处理
+            pieceSoundId = soundPool.load(this, R.raw.ui_turn, 1);
+        } catch (Exception e) {
+            soundEnabled = false;
+        }
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                VibratorManager vm = (VibratorManager) getSystemService(VIBRATOR_MANAGER_SERVICE);
+                vibrator = vm != null ? vm.getDefaultVibrator() : null;
+            } else {
+                vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+            }
+        } catch (Exception e) {
+            vibrateEnabled = false;
+        }
+    }
+
+    /**
+     * 播放落子音效。
+     */
+    private void playPieceSound() {
+        if (!SettingsManager.getInstance(this).shouldPlayGameSound() || soundPool == null || pieceSoundId == 0) return;
+        try {
+            soundPool.play(pieceSoundId, 0.6f, 0.6f, 1, 0, 1.0f);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * 触发轻震动反馈。
+     */
+    private void vibrateLight() {
+        if (!SettingsManager.getInstance(this).shouldVibrate() || vibrator == null || !vibrator.hasVibrator()) return;
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                vibrator.vibrate(20);
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private void setupDifficultyButtons() {
@@ -175,54 +290,113 @@ public class GomokuActivity extends AppCompatActivity {
         selectDifficulty(aiDifficulty);
     }
 
+    /**
+     * 设置先手选择按钮（执黑/执白）。
+     */
+    private void setupColorSelectionButtons() {
+        View btnBlack = findViewById(R.id.btn_color_black);
+        View btnWhite = findViewById(R.id.btn_color_white);
+        if (btnBlack != null) {
+            btnBlack.setOnClickListener(v -> selectPlayerColor(GomokuGame.BLACK));
+        }
+        if (btnWhite != null) {
+            btnWhite.setOnClickListener(v -> selectPlayerColor(GomokuGame.WHITE));
+        }
+        selectPlayerColor(playerColor);
+    }
+
+    private void selectPlayerColor(int color) {
+        playerColor = color;
+        aiPlayer = (color == GomokuGame.BLACK) ? GomokuGame.WHITE : GomokuGame.BLACK;
+        View btnBlack = findViewById(R.id.btn_color_black);
+        View btnWhite = findViewById(R.id.btn_color_white);
+        if (btnBlack != null) {
+            btnBlack.setSelected(color == GomokuGame.BLACK);
+        }
+        if (btnWhite != null) {
+            btnWhite.setSelected(color == GomokuGame.WHITE);
+        }
+    }
+
     private void selectDifficulty(int difficulty) {
         aiDifficulty = Math.max(1, Math.min(difficulty, MAX_AI_DIFFICULTY));
         if (tvDifficultyLabel != null) {
             tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[aiDifficulty - 1]
                     + " (" + aiDifficulty + "/" + MAX_AI_DIFFICULTY + ")");
         }
+        // 更新难度按钮选中态（LinearLayout 用 setSelected 触发 selector）
+        int[] ids = {
+                R.id.btn_difficulty_1,
+                R.id.btn_difficulty_2,
+                R.id.btn_difficulty_3,
+                R.id.btn_difficulty_4
+        };
+        for (int i = 0; i < ids.length; i++) {
+            View btn = findViewById(ids[i]);
+            if (btn != null) {
+                btn.setSelected(i + 1 == aiDifficulty);
+            }
+        }
     }
 
     /**
-     * 开始游戏，根据选择的难度创建AI引擎。
+     * 开始游戏，根据选择的难度和先手创建AI引擎。
      *
      * @param difficulty AI难度等级（1~4）
      */
     private void startGame(int difficulty) {
         aiDifficulty = difficulty;
-        // 每次开始新游戏都重新创建AI，因为难度可能变了
         ai = new GomokuAI(difficulty);
         game.reset();
         gomokuView.setGame(game);
+        // 开启棋盘交互并显示棋盘
+        gomokuView.setInteractive(true);
+        gomokuView.setVisibility(View.VISIBLE);
         // 切换界面：隐藏难度选择面板，显示游戏控制面板
         difficultyPanel.setVisibility(View.GONE);
         controlPanel.setVisibility(View.VISIBLE);
+        // 启动对局计时
+        gameStartElapsedMs = SystemClock.elapsedRealtime();
+        timerHandler.post(timerRunnable);
         gomokuView.invalidate();
+
+        // 若玩家执白，AI先手
+        if (playerColor == GomokuGame.WHITE) {
+            triggerAiMove();
+        }
     }
 
     /**
      * 处理玩家点击棋盘的落子操作。
-     * <p>
-     * 仅在黑方回合且AI未思考时响应。玩家落子后检查胜负，
-     * 若未结束则异步触发AI计算，AI完成后按难度最小响应延迟落子。
      *
      * @param x 横坐标（列索引）
      * @param y 纵坐标（行索引）
      */
     private void handleCellClick(int x, int y) {
         if (game.isGameOver()) return;
-        if (game.getCurrentPlayer() != GomokuGame.BLACK) return;
+        if (game.getCurrentPlayer() != playerColor) return;
         if (aiThinking) return;
         if (!game.isValidMove(x, y)) return;
         gomokuView.clearHint();
-        game.makeMove(x, y, GomokuGame.BLACK);
+        game.makeMove(x, y, playerColor);
         game.switchPlayer();
-        gomokuView.invalidate();
+        gomokuView.animateLastMove();
+        playPieceSound();
+        vibrateLight();
         if (game.checkGameOver()) {
             gomokuView.invalidate();
+            stopTimer();
             return;
         }
+        triggerAiMove();
+    }
+
+    /**
+     * 触发AI计算落子。
+     */
+    private void triggerAiMove() {
         aiThinking = true;
+        gomokuView.setAiThinking(true);
         gomokuView.clearHover();
         gomokuView.invalidate();
         final long currentGen = aiGeneration;
@@ -234,11 +408,17 @@ public class GomokuActivity extends AppCompatActivity {
             Runnable applyMove = () -> {
                 if (currentGen != aiGeneration) return;
                 if (bestMove != null) {
-                    game.makeMove(bestMove[0], bestMove[1], GomokuGame.WHITE);
+                    game.makeMove(bestMove[0], bestMove[1], aiPlayer);
                     game.switchPlayer();
                     game.checkGameOver();
+                    gomokuView.animateLastMove();
+                    playPieceSound();
                 }
                 aiThinking = false;
+                gomokuView.setAiThinking(false);
+                if (game.isGameOver()) {
+                    stopTimer();
+                }
                 gomokuView.invalidate();
             };
             if (delay > 0L) {
@@ -248,15 +428,17 @@ public class GomokuActivity extends AppCompatActivity {
             }
         });
     }
+
     private long getAiMinResponseDelayMs() {
         int idx = Math.max(0, Math.min(aiDifficulty - 1, AI_MIN_RESPONSE_DELAYS_MS.length - 1));
         return AI_MIN_RESPONSE_DELAYS_MS[idx];
     }
 
+    /**
+     * 处理悔棋操作，撤销最多5手（玩家+AI各一手为一手）。
+     */
     private void handleUndo() {
-        // AI正在思考时不允许悔棋，避免状态混乱
         if (aiThinking) return;
-        // undoLastMoves(1)表示撤销1"手"（包含玩家和AI各一手）
         int undoCount = game.undoLastMoves(1);
         if (undoCount > 0) {
             gomokuView.clearHint();
@@ -265,14 +447,14 @@ public class GomokuActivity extends AppCompatActivity {
     }
 
     private void handleHint() {
-        if (game.isGameOver() || aiThinking || game.getCurrentPlayer() != GomokuGame.BLACK) return;
+        if (game.isGameOver() || aiThinking || game.getCurrentPlayer() != playerColor) return;
         gomokuView.clearHint();
         final long currentGen = aiGeneration;
         aiExecutor.execute(() -> {
-            int[] hint = ai.getBestMove(game, GomokuGame.BLACK);
+            int[] hint = ai.getBestMove(game, playerColor);
             mainHandler.post(() -> {
                 if (currentGen != aiGeneration) return;
-                if (hint != null && !game.isGameOver() && game.getCurrentPlayer() == GomokuGame.BLACK) {
+                if (hint != null && !game.isGameOver() && game.getCurrentPlayer() == playerColor) {
                     gomokuView.showHint(hint[0], hint[1]);
                 }
             });
@@ -280,21 +462,91 @@ public class GomokuActivity extends AppCompatActivity {
     }
 
     /**
-     * 处理重新开始操作。
-     * <p>
-     * 重置游戏状态，返回难度选择界面。
+     * 处理认输操作。
+     */
+    private void handleResign() {
+        if (game.isGameOver() || aiThinking) return;
+        new AlertDialog.Builder(this)
+                .setTitle("认输")
+                .setMessage("确定要认输吗？将记录为AI获胜。")
+                .setPositiveButton("确定认输", (d, w) -> {
+                    game.setGameOver(aiPlayer);
+                    stopTimer();
+                    gomokuView.invalidate();
+                })
+                .setNegativeButton("继续对局", null)
+                .show();
+    }
+
+    /**
+     * 确认重新开始（游戏中弹确认）。
+     */
+    private void confirmRestart() {
+        if (game.isGameOver()) {
+            handleRestart();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("重新开始")
+                .setMessage("确定要重新开始当前对局吗？")
+                .setPositiveButton("确定", (d, w) -> handleRestart())
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
+     * 处理重新开始操作，重置游戏状态返回难度选择界面。
      */
     private void handleRestart() {
         aiGeneration++;
         aiThinking = false;
+        gomokuView.setAiThinking(false);
         game.reset();
         gomokuView.clearHover();
         gomokuView.clearHint();
+        gomokuView.setInteractive(false);
+        // 隐藏棋盘，让难度选择面板获得充足显示空间
+        gomokuView.setVisibility(View.GONE);
         gomokuView.setGame(game);
+        stopTimer();
+        if (tvTimer != null) {
+            tvTimer.setText("00:00");
+        }
         // 切换界面：显示难度选择面板，隐藏游戏控制面板
         difficultyPanel.setVisibility(View.VISIBLE);
         controlPanel.setVisibility(View.GONE);
         gomokuView.invalidate();
+    }
+
+    /**
+     * 显示退出确认对话框。
+     */
+    private void showExitConfirmDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("退出对局")
+                .setMessage("当前对局尚未结束，确定要退出吗？")
+                .setPositiveButton("退出", (d, w) -> finish())
+                .setNegativeButton("重新开始", (d, w) -> handleRestart())
+                .setNeutralButton("继续对局", null)
+                .show();
+    }
+
+    /**
+     * 更新计时显示。
+     */
+    private void updateTimerDisplay() {
+        if (tvTimer == null || gameStartElapsedMs == 0L) return;
+        long elapsedSec = (SystemClock.elapsedRealtime() - gameStartElapsedMs) / 1000;
+        long min = elapsedSec / 60;
+        long sec = elapsedSec % 60;
+        tvTimer.setText(String.format("%02d:%02d", min, sec));
+    }
+
+    /**
+     * 停止计时。
+     */
+    private void stopTimer() {
+        timerHandler.removeCallbacks(timerRunnable);
     }
 
     /**
@@ -303,22 +555,120 @@ public class GomokuActivity extends AppCompatActivity {
      * @param winner 获胜方（BLACK/WHITE），null表示平局
      */
     private void handleGameOver(Integer winner) {
-        if (winner != null && winner == GomokuGame.BLACK) {
-            // 玩家（黑方）赢了，记录一次胜利
+        stopTimer();
+        if (winner != null && winner == playerColor) {
             usageStore.recordWin(GAME_ID);
-        } else if (winner != null && winner == GomokuGame.WHITE) {
-            // AI（白方）赢了，记录一次失败
+        } else if (winner != null && winner == aiPlayer) {
             usageStore.recordLoss(GAME_ID);
         }
     }
 
     /**
-     * Activity销毁时关闭AI线程池，防止线程泄漏。
-     * 就像离开房间要关灯一样，不用了就要关掉，否则会浪费资源
+     * 保存对局状态，支持旋转屏幕恢复。
+     */
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (game == null) return;
+        int[][] board = game.getBoard();
+        int size = GomokuGame.BOARD_SIZE;
+        // 保存棋盘（一维数组）
+        int[] flatBoard = new int[size * size];
+        for (int y = 0; y < size; y++) {
+            System.arraycopy(board[y], 0, flatBoard, y * size, size);
+        }
+        outState.putIntArray(STATE_BOARD, flatBoard);
+        outState.putInt(STATE_CURRENT_PLAYER, game.getCurrentPlayer());
+        outState.putInt(STATE_MOVE_COUNT, game.getMoveCount());
+        outState.putInt(STATE_AI_DIFFICULTY, aiDifficulty);
+        outState.putInt(STATE_PLAYER_COLOR, playerColor);
+        outState.putBoolean(STATE_GAME_STARTED, difficultyPanel.getVisibility() == View.GONE);
+        // 保存落子历史
+        java.util.List<GomokuGame.MoveRecord> history = game.getMoveHistory();
+        int[] histX = new int[history.size()];
+        int[] histY = new int[history.size()];
+        int[] histPlayer = new int[history.size()];
+        for (int i = 0; i < history.size(); i++) {
+            histX[i] = history.get(i).x;
+            histY[i] = history.get(i).y;
+            histPlayer[i] = history.get(i).player;
+        }
+        outState.putIntArray(STATE_HISTORY_X, histX);
+        outState.putIntArray(STATE_HISTORY_Y, histY);
+        outState.putIntArray(STATE_HISTORY_PLAYER, histPlayer);
+    }
+
+    /**
+     * 恢复对局状态。
+     */
+    private void restoreGameState(Bundle state) {
+        int[] flatBoard = state.getIntArray(STATE_BOARD);
+        if (flatBoard == null) return;
+        int size = GomokuGame.BOARD_SIZE;
+        int[][] board = game.getBoard();
+        for (int y = 0; y < size; y++) {
+            System.arraycopy(flatBoard, y * size, board[y], 0, size);
+        }
+        // 恢复历史记录
+        int[] histX = state.getIntArray(STATE_HISTORY_X);
+        int[] histY = state.getIntArray(STATE_HISTORY_Y);
+        int[] histPlayer = state.getIntArray(STATE_HISTORY_PLAYER);
+        if (histX != null) {
+            java.util.List<GomokuGame.MoveRecord> history = game.getMoveHistory();
+            history.clear();
+            for (int i = 0; i < histX.length; i++) {
+                history.add(new GomokuGame.MoveRecord(histX[i], histY[i], histPlayer[i]));
+            }
+        }
+        // 恢复状态
+        try {
+            java.lang.reflect.Field fCurrent = GomokuGame.class.getDeclaredField("currentPlayer");
+            fCurrent.setAccessible(true);
+            fCurrent.setInt(game, state.getInt(STATE_CURRENT_PLAYER, GomokuGame.BLACK));
+            java.lang.reflect.Field fCount = GomokuGame.class.getDeclaredField("moveCount");
+            fCount.setAccessible(true);
+            fCount.setInt(game, state.getInt(STATE_MOVE_COUNT, 0));
+        } catch (Exception ignored) {
+        }
+        // 恢复最后一手
+        if (histX != null && histX.length > 0) {
+            try {
+                java.lang.reflect.Field fLast = GomokuGame.class.getDeclaredField("lastMove");
+                fLast.setAccessible(true);
+                fLast.set(game, new int[]{histX[histX.length - 1], histY[histY.length - 1]});
+            } catch (Exception ignored) {
+            }
+        }
+        // 恢复难度和先手
+        aiDifficulty = state.getInt(STATE_AI_DIFFICULTY, 2);
+        playerColor = state.getInt(STATE_PLAYER_COLOR, GomokuGame.BLACK);
+        aiPlayer = (playerColor == GomokuGame.BLACK) ? GomokuGame.WHITE : GomokuGame.BLACK;
+        boolean started = state.getBoolean(STATE_GAME_STARTED, false);
+        if (started) {
+            ai = new GomokuAI(aiDifficulty);
+            selectDifficulty(aiDifficulty);
+            selectPlayerColor(playerColor);
+            difficultyPanel.setVisibility(View.GONE);
+            controlPanel.setVisibility(View.VISIBLE);
+            gomokuView.setInteractive(true);
+            gomokuView.setVisibility(View.VISIBLE);
+            gomokuView.setGame(game);
+            gameStartElapsedMs = SystemClock.elapsedRealtime();
+            timerHandler.post(timerRunnable);
+        }
+    }
+
+    /**
+     * Activity销毁时关闭AI线程池和音效资源，防止泄漏。
      */
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopTimer();
         aiExecutor.shutdownNow();
+        if (soundPool != null) {
+            soundPool.release();
+            soundPool = null;
+        }
     }
 }

@@ -119,17 +119,18 @@
 
 ## 1.2 更新分发架构 / Update Distribution Architecture
 
-本项目采用**三级下载源**架构，App 下载更新时按以下优先级依次尝试：
+> **2026-06-19 变更**：美国 VPS 已下线，分发渠道精简为**两级下载源**（香港 VPS → GitHub Releases）。
+
+本项目采用**两级下载源**架构，App 下载更新时按以下优先级依次尝试：
 
 | 优先级 | 下载源 | 地址 | 超时配置 |
 |--------|--------|------|----------|
-| 1 | GitHub Releases | `https://github.com/3571949306/GameMatrixApp/releases/latest` | 连接 5s / 读取 10s |
-| 2 | 主更新源（香港 VPS） | `https://hk-update.<YOUR_DOMAIN>` | 连接 3s / 读取 5s |
-| 3 | 备用更新源（美国 VPS） | `https://<YOUR_FALLBACK_DOMAIN>` | 连接 15s / 读取 30s |
+| 1 | 主更新源（香港 VPS） | `https://hk-update.<YOUR_DOMAIN>` | 连接 3s / 读取 5s |
+| 2 | GitHub Releases | `https://github.com/3571949306/GameMatrixApp/releases/latest` | 连接 5s / 读取 10s |
 
 **自动换源机制**：下载开始后 3 秒检测速度，如果低于 50 KB/s，自动删除临时文件并切换到下一个下载源。
 
-**Beta 测试版仅上传到 VPS（不上传 GitHub Releases），正式版同时上传到 VPS 和 GitHub Releases。**
+**Beta 测试版仅上传到香港 VPS（不上传 GitHub Releases），正式版同时上传到香港 VPS 和 GitHub Releases。**
 
 ## 1.3 联机架构
 
@@ -321,7 +322,7 @@ Release APK 已配置自动签名：
 - `bumpVersion` 会把 `version.properties` 的 `versionCode` 自动加 1。
 - 发布脚本调用 `tools/upload_to_vps.py` 上传签名混淆后的 `app-release.apk`，远端按通道保存为 `app-beta.apk` 或 `app-release.apk`，并同步 `version-beta.json` / `version-release.json`。
 - `-PskipReleaseLint=true` 只用于规避 AGP 8.13 `lintVitalReportRelease` 路径变量序列化缺陷；默认不传该参数时 release lint 仍开启。
-- 上传配置位于 `local_private/vps/upload_config_hk.json`（香港 VPS）和 `upload_config_us.json`（美国 VPS），该目录被 `.gitignore` 排除。
+- 上传配置位于 `local_private/vps/upload_config_hk.json`（香港 VPS），该目录被 `.gitignore` 排除。美国 VPS 配置（`upload_config_us.json`）已于 2026-06-19 废弃。
 - 如果只是验证代码能否编译，运行 Debug 构建后要留意 `version.properties` 会变更。
 - 只有明确发布正式版时才修改 `versionName`；其他打包只允许递增内部 `versionCode`，不要把测试包伪装成正式版本。
 - VPS 同时维护 beta/release 双通道文件：`app-beta.apk`、`version-beta.json`、`app-release.apk`、`version-release.json`；旧 `/downloads/...` 路径只做兼容转发。
@@ -346,7 +347,7 @@ Release APK 已配置自动签名：
 | 字段 | 来源 | 用途 |
 |------|------|------|
 | `SERVER_URL` | `server.url` | 主更新源地址（香港） |
-| `SERVER_URL_FALLBACK` | `server.url.fallback` | 备用更新源地址（美国） |
+| `SERVER_URL_FALLBACK` | `server.url.fallback` | ~~备用更新源地址（美国）~~ 已废弃（2026-06-19），保留空值向后兼容 |
 | `RELAY_URL` | `relay.url` | HTTP Relay 地址 |
 | `WS_URL` | `ws.url` | WebSocket Relay 地址 |
 | `FEEDBACK_URL` | `feedback.url` | 反馈服务器地址 |

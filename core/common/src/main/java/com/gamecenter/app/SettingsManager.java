@@ -53,8 +53,10 @@ public class SettingsManager {
     private static final String KEY_PROMPT_INSTALL_AFTER_AUTO_DOWNLOAD = "prompt_install_after_auto_download";
     /** 更新来源键名 */
     private static final String KEY_UPDATE_SOURCE = "update_source";
-    /** 音效开关键名 */
+    /** 音效开关键名（游戏音效总开关） */
     private static final String KEY_SOUND_ENABLED = "sound_enabled";
+    /** 音效总开关键名（控制所有音频，包括BGM和游戏音效） */
+    private static final String KEY_SFX_ENABLED = "sfx_enabled";
     /** 振动开关键名 */
     private static final String KEY_VIBRATION_ENABLED = "vibration_enabled";
     /** 应用语言键名 */
@@ -71,7 +73,13 @@ public class SettingsManager {
     public static final int UPDATE_SOURCE_AUTO = 0;
     /** 香港VPS更新源 */
     public static final int UPDATE_SOURCE_VPS_HK = 1;
-    /** 美国VPS更新源 */
+    /**
+     * 美国VPS更新源（已废弃）
+     * <p>2026-06-19: 已移除美国 VPS 分发渠道。此常量保留以避免 SharedPreferences 已存储值错位，
+     * 但 UI 不再展示该选项。若用户历史选择了此值，{@link #getUpdateSource()} 会自动回退到
+     * {@link #UPDATE_SOURCE_AUTO}。</p>
+     */
+    @Deprecated
     public static final int UPDATE_SOURCE_VPS_US = 2;
     /** GitHub更新源 */
     public static final int UPDATE_SOURCE_GITHUB = 3;
@@ -274,13 +282,21 @@ public class SettingsManager {
 
     /**
      * 获取更新来源。
+     * <p>
+     * 2026-06-19: 若用户历史选择了已废弃的 {@link #UPDATE_SOURCE_VPS_US}，
+     * 自动回退到 {@link #UPDATE_SOURCE_AUTO}（HK VPS → GitHub 两级分发）。
+     * </p>
      *
-     * @return 更新来源常量：{@link #UPDATE_SOURCE_AUTO}、{@link #UPDATE_SOURCE_VPS_HK}、
-     *         {@link #UPDATE_SOURCE_VPS_US} 或 {@link #UPDATE_SOURCE_GITHUB}，
-     *         默认为 {@link #UPDATE_SOURCE_AUTO}
+     * @return 更新来源常量：{@link #UPDATE_SOURCE_AUTO}、{@link #UPDATE_SOURCE_VPS_HK}
+     *         或 {@link #UPDATE_SOURCE_GITHUB}，默认为 {@link #UPDATE_SOURCE_AUTO}
      */
     public int getUpdateSource() {
-        return prefs.getInt(KEY_UPDATE_SOURCE, UPDATE_SOURCE_AUTO);
+        int source = prefs.getInt(KEY_UPDATE_SOURCE, UPDATE_SOURCE_AUTO);
+        // 2026-06-19: 美国 VPS 已下线，回退到自动模式
+        if (source == UPDATE_SOURCE_VPS_US) {
+            return UPDATE_SOURCE_AUTO;
+        }
+        return source;
     }
 
     /**
@@ -293,7 +309,7 @@ public class SettingsManager {
     }
 
     /**
-     * 获取音效是否开启。
+     * 获取音效是否开启（游戏音效总开关）。
      *
      * @return {@code true} 表示音效开启，默认开启
      */
@@ -302,12 +318,50 @@ public class SettingsManager {
     }
 
     /**
-     * 设置音效开关。
+     * 设置音效开关（游戏音效总开关）。
      *
      * @param enabled {@code true} 开启音效，{@code false} 关闭
      */
     public void setSoundEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_SOUND_ENABLED, enabled).apply();
+    }
+
+    /**
+     * 获取音效总开关是否开启（控制所有音频，包括BGM和游戏音效）。
+     * <p>
+     * 这是最高优先级的音频开关。当此开关关闭时，所有音频（BGM、游戏音效、提示音等）
+     * 都不应播放，无论其他子开关如何设置。
+     * </p>
+     *
+     * @return {@code true} 表示音效总开关开启，默认开启
+     */
+    public boolean isSfxEnabled() {
+        return prefs.getBoolean(KEY_SFX_ENABLED, true);
+    }
+
+    /**
+     * 设置音效总开关。
+     * <p>
+     * 控制所有音频的播放。关闭后所有音频都不播放。
+     * </p>
+     *
+     * @param enabled {@code true} 开启音效总开关，{@code false} 关闭
+     */
+    public void setSfxEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_SFX_ENABLED, enabled).apply();
+    }
+
+    /**
+     * 综合判断是否应该播放游戏音效。
+     * <p>
+     * 只有当音效总开关和游戏音效开关都开启时才返回 true。
+     * 供游戏模块调用，避免每个游戏都自己判断两个开关。
+     * </p>
+     *
+     * @return {@code true} 表示应该播放游戏音效
+     */
+    public boolean shouldPlayGameSound() {
+        return isSfxEnabled() && isSoundEnabled();
     }
 
     /**
@@ -326,6 +380,19 @@ public class SettingsManager {
      */
     public void setVibrationEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_VIBRATION_ENABLED, enabled).apply();
+    }
+
+    /**
+     * 综合判断是否应该执行振动反馈。
+     * <p>
+     * 只有当音效总开关和振动开关都开启时才返回 true。
+     * 供游戏模块调用，避免每个游戏都自己判断两个开关。
+     * </p>
+     *
+     * @return {@code true} 表示应该执行振动
+     */
+    public boolean shouldVibrate() {
+        return isSfxEnabled() && isVibrationEnabled();
     }
 
     /**

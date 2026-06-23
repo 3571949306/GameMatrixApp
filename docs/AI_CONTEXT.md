@@ -9,7 +9,7 @@
 **当前状�?*�?- 主版本（`games.doudizhu`）：稳定运行，支持局域网 TCP + HTTP Relay + WebSocket 三模联机
 - 5 个游戏支持云联机：斗地主、五子棋、中国象棋、围棋、石头剪刀�?- 公共网络模块（`com.GameMatrix.app.network`）：所有联机游戏共�?- 其余 20+ 款游戏为单机模式
 - **APK 签名配置已修�?*：Release 构建自动签名，支持正式发布（v1.3.17�?- **自动更新源选择已修�?*：版本比较逻辑正确，可检测新版本
-- **自动化发布流�?*：一键上传到 HK VPS、US VPS、GitHub Releases
+- **自动化发布流程**：一键上传到 HK VPS、GitHub Releases（2026-06-19 起 US VPS 已下线）
 - **Kotlin 升级**�?.9.25 �?2.1.10
 - **Hilt 升级**�?.52 �?2.55
 - **JSON 序列化替�?*：GameUsageStore 手工 JSON 改为 Gson 2.11.0
@@ -20,7 +20,7 @@
 **当前版本**：v1.4.0 (versionCode=343)
 
 **重点模块**�?1. **公共联机网络模块** �?`com.GameMatrix.app.network` 包，包含 GameSocketClient/Server/LANManager/RelayHttpClient/RemoteP2PUtil/OnlineChatHelper/OnlineRoomManager
-2. **应用更新模块** �?三级下载源（GitHub Releases �?香港 VPS �?美国 VPS），UpdateViewModel（@HiltViewModel + LiveData）替�?UpdatePresenter
+2. **应用更新模块**：两级下载源（香港VPS → GitHub Releases），UpdateViewModel（@HiltViewModel + LiveData）替代 UpdatePresenter
 3. **游戏大厅** �?GamesFragment + GameRegistry（三轨注册：静态 + @GameEntry 注解 + 动态注册）管理 2 款内置游戏 + 市场下载扩展游戏，模块市场入口位于版本号下方
 4. **工具�?* �?ToolsFragment 包含 20+ 网络/设备工具，使�?ToolBinder 架构
 5. **APK 签名模块** �?keystore.properties + GameMatrix.keystore + signingConfigs（已修复�?6. **自动化发�?* �?upload_to_vps.py + upload_to_github_release.py + auto-publish.bat

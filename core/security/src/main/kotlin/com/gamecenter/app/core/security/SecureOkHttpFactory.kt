@@ -35,33 +35,44 @@ object SecureOkHttpFactory {
 
     /** 运行时通过 setHosts() 注入实际服务器域名 */
     @Volatile private var MODULE_HOST: String = "your-server.example.com"
-    @Volatile private var FALLBACK_HOST: String = "fallback.example.com"
+    
+    /** 是否启用证书绑定(Release构建启用,Debug构建禁用以避免模拟器SIGSEGV) */
+    @Volatile private var enableCertificatePinning: Boolean = false
 
     /**
-     * 由 app 模块在初始化时调用，注入实际服务器域名。
+     * 由 app 模块在初始化时调用,注入实际服务器域名。
+     * 2026-06-19: 美国 VPS 已下线,移除 fallbackHost 参数
+     * 
+     * @param moduleHost 模块服务器域名
+     * @param enablePinning 是否启用证书绑定(Release构建传true,Debug构建传false)
      */
     @JvmStatic
-    fun setHosts(moduleHost: String, fallbackHost: String) {
+    @JvmOverloads
+    fun setHosts(moduleHost: String, enablePinning: Boolean = false) {
         MODULE_HOST = moduleHost
-        FALLBACK_HOST = fallbackHost
+        enableCertificatePinning = enablePinning
     }
 
     /**
      * 构建用于下载模块的 OkHttpClient（带证书固定）。
      * 仅允许与已固定的服务器通信。
+     *
+     * 注意：证书固定仅在 enableCertificatePinning=true 时启用（Release 构建）。
+     * Debug 构建禁用以兼容 Android 模拟器的 TLS CertificatePinner SIGSEGV 问题。
      */
     fun buildModuleClient(): OkHttpClient {
-        // 注意：由于 Android 模拟器 TLS CertificatePinner 的 SIGSEGV 兼容性问题，
-        // 暂时禁用证书固定。生产环境应重新启用并定期更新指纹。
-        // val pinner = CertificatePinner.Builder().apply {
-        //     MODULE_SERVER_PINS.forEach { pin ->
-        //         add(MODULE_HOST, pin)
-        //         add("*.$FALLBACK_HOST", pin)
-        //     }
-        // }.build()
+        val builder = OkHttpClient.Builder()
 
-        return OkHttpClient.Builder()
-            // .certificatePinner(pinner)
+        if (enableCertificatePinning) {
+            val pinner = CertificatePinner.Builder().apply {
+                MODULE_SERVER_PINS.forEach { pin ->
+                    add(MODULE_HOST, pin)
+                }
+            }.build()
+            builder.certificatePinner(pinner)
+        }
+
+        return builder
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)

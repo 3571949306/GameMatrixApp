@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 难度星级图标：4星（大师难度） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="12dp"
+    android:viewportWidth="48"
+    android:viewportHeight="12">
+    <path
+        android:fillColor="@color/gomoku_star_filled"
+        android:pathData="M6,0 L7.5,3.5 L11,4 L8.5,6.5 L9,10 L6,8.3 L3,10 L3.5,6.5 L1,4 L4.5,3.5 Z" />
+    <path
+        android:fillColor="@color/gomoku_star_filled"
+        android:pathData="M18,0 L19.5,3.5 L23,4 L20.5,6.5 L21,10 L18,8.3 L15,10 L15.5,6.5 L13,4 L16.5,3.5 Z" />
+    <path
+        android:fillColor="@color/gomoku_star_filled"
+        android:pathData="M30,0 L31.5,3.5 L35,4 L32.5,6.5 L33,10 L30,8.3 L27,10 L27.5,6.5 L25,4 L28.5,3.5 Z" />
+    <path
+        android:fillColor="@color/gomoku_star_filled"
+        android:pathData="M42,0 L43.5,3.5 L47,4 L44.5,6.5 L45,10 L42,8.3 L39,10 L39.5,6.5 L37,4 L40.5,3.5 Z" />
+</vector>

@@ -1,11 +1,14 @@
 package com.gamecenter.app.games.tetris;
 
+import android.media.SoundPool;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.R;
+import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
@@ -46,6 +49,15 @@ public class TetrisActivity extends BaseGameActivity {
     /** 消行计数（用于成就） */
     private int totalLinesCleared = 0;
 
+    /** 音效播放器（复用 R.raw.ui_turn 资源） */
+    private SoundPool soundPool;
+    /** 旋转音效 id */
+    private int soundIdRotate = 0;
+    /** 落地音效 id */
+    private int soundIdLand = 0;
+    /** 消行音效 id */
+    private int soundIdClear = 0;
+
     // ==================== BaseGameActivity 实现 ====================
 
     @NonNull
@@ -70,6 +82,16 @@ public class TetrisActivity extends BaseGameActivity {
     protected void initGame() {
         tetrisView = new TetrisView(this);
 
+        // 初始化音效播放器，加载音效资源（复用现有 R.raw.ui_turn）
+        try {
+            soundPool = new SoundPool.Builder().setMaxStreams(4).build();
+            soundIdRotate = soundPool.load(this, R.raw.ui_turn, 1);
+            soundIdLand = soundPool.load(this, R.raw.ui_turn, 1);
+            soundIdClear = soundPool.load(this, R.raw.ui_turn, 1);
+        } catch (Exception e) {
+            soundPool = null;
+        }
+
         // 设置游戏事件监听
         tetrisView.setOnScoreChangeListener(score -> {
             updateScore(score);
@@ -83,6 +105,7 @@ public class TetrisActivity extends BaseGameActivity {
             if (lines >= 4) {
                 checkAchievement("tetris_clear", lines);
             }
+            playSound(soundIdClear);
         });
 
         tetrisView.setOnLevelChangeListener(level -> {
@@ -93,6 +116,11 @@ public class TetrisActivity extends BaseGameActivity {
             usageStore.recordLoss(GAME_ID_VALUE);
             isGameRunning = false;
         });
+
+        // 方块旋转音效
+        tetrisView.setOnPieceRotateListener(() -> playSound(soundIdRotate));
+        // 方块落地音效
+        tetrisView.setOnPieceLandListener(() -> playSound(soundIdLand));
 
         // 添加视图到容器
         if (gameContentContainer != null) {
@@ -125,6 +153,31 @@ public class TetrisActivity extends BaseGameActivity {
     protected void endGame() {
         isGameRunning = false;
         tetrisView.stopGame();
+    }
+
+    // ==================== 音效 ====================
+
+    /**
+     * 播放指定音效。播放前检查用户设置中的游戏音效开关。
+     *
+     * @param soundId SoundPool 加载返回的音效 id
+     */
+    private void playSound(int soundId) {
+        if (soundPool == null || soundId == 0) return;
+        if (!SettingsManager.getInstance(this).shouldPlayGameSound()) return;
+        try {
+            soundPool.play(soundId, 0.6f, 0.6f, 1, 0, 1.0f);
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (soundPool != null) {
+            soundPool.release();
+            soundPool = null;
+        }
     }
 
     @Override

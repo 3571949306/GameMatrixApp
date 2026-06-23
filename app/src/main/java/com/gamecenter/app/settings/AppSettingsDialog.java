@@ -46,33 +46,52 @@ public class AppSettingsDialog {
         this.onFeedback = onFeedback;
     }
 
+    /**
+     * 获取更新源显示名称列表。
+     * <p>
+     * 2026-06-19: 已移除"美国 VPS"选项，仅保留 3 个选项（自动/香港/GitHub）。
+     * 注意：数组索引必须与 {@link SettingsManager#UPDATE_SOURCE_AUTO/HK/GITHUB} 常量值一致，
+     * 因此使用显式数组而非直接遍历常量。
+     * </p>
+     */
     private String[] getUpdateSourceNames() {
+        Context ctx = fragment.requireContext();
         return new String[]{
-                fragment.requireContext().getString(R.string.settings_source_auto_recommended),
-                fragment.requireContext().getString(R.string.settings_source_hk_vps),
-                fragment.requireContext().getString(R.string.settings_source_us_vps),
-                fragment.requireContext().getString(R.string.settings_source_github)
+                ctx.getString(R.string.settings_source_auto_recommended),   // index 0 = AUTO
+                ctx.getString(R.string.settings_source_hk_vps),             // index 1 = VPS_HK
+                "",                                                          // index 2 = VPS_US (deprecated, hidden)
+                ctx.getString(R.string.settings_source_github)              // index 3 = GITHUB
         };
     }
 
+    /**
+     * 根据更新源常量获取显示名称。
+     * 2026-06-19: 美国 VPS（已废弃）回退到"自动"。
+     */
     private String getUpdateSourceName(int source) {
+        if (source == SettingsManager.UPDATE_SOURCE_VPS_US) {
+            // 旧用户历史选择了美国 VPS，显示为"自动"
+            return fragment.requireContext().getString(R.string.settings_source_auto_recommended);
+        }
         String[] names = getUpdateSourceNames();
-        if (source >= 0 && source < names.length) return names[source];
+        if (source >= 0 && source < names.length && !names[source].isEmpty()) return names[source];
         return fragment.requireContext().getString(R.string.settings_source_auto_recommended);
     }
 
     private String getThemeModeLabel(int mode) {
+        Context ctx = fragment.requireContext();
         switch (mode) {
-            case SettingsManager.THEME_LIGHT: return "白天模式";
-            case SettingsManager.THEME_DARK: return "黑暗模式";
-            default: return "跟随系统";
+            case SettingsManager.THEME_LIGHT: return ctx.getString(R.string.theme_light);
+            case SettingsManager.THEME_DARK: return ctx.getString(R.string.theme_dark);
+            default: return ctx.getString(R.string.theme_system);
         }
     }
 
     private String getLanguageLabel(String lang) {
-        if (SettingsManager.LANGUAGE_ZH.equals(lang)) return "中文";
-        if (SettingsManager.LANGUAGE_EN.equals(lang)) return "English";
-        return "跟随系统";
+        Context ctx = fragment.requireContext();
+        if (SettingsManager.LANGUAGE_ZH.equals(lang)) return ctx.getString(R.string.language_chinese);
+        if (SettingsManager.LANGUAGE_EN.equals(lang)) return ctx.getString(R.string.language_english);
+        return ctx.getString(R.string.language_auto);
     }
 
     public void show() {
@@ -171,6 +190,37 @@ public class AppSettingsDialog {
             });
         }
 
+        // ===== 声音与反馈开关 =====
+        // 音效总开关（控制所有音频）
+        MaterialSwitch switchSfxMaster = dialogView.findViewById(R.id.switch_sfx_master);
+        if (switchSfxMaster != null) {
+            switchSfxMaster.setChecked(settings.isSfxEnabled());
+            switchSfxMaster.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                settings.setSfxEnabled(isChecked);
+                // 音效总开关关闭时，联动禁用游戏音效和振动开关
+                updateAudioSwitchStates(dialogView, isChecked);
+            });
+        }
+
+        // 游戏音效开关
+        MaterialSwitch switchSound = dialogView.findViewById(R.id.switch_sound);
+        if (switchSound != null) {
+            switchSound.setChecked(settings.isSoundEnabled());
+            switchSound.setOnCheckedChangeListener((buttonView, isChecked) ->
+                    settings.setSoundEnabled(isChecked));
+        }
+
+        // 振动反馈开关
+        MaterialSwitch switchVibration = dialogView.findViewById(R.id.switch_vibration);
+        if (switchVibration != null) {
+            switchVibration.setChecked(settings.isVibrationEnabled());
+            switchVibration.setOnCheckedChangeListener((buttonView, isChecked) ->
+                    settings.setVibrationEnabled(isChecked));
+        }
+
+        // 初始化开关联动状态
+        updateAudioSwitchStates(dialogView, settings.isSfxEnabled());
+
         new AlertDialog.Builder(context)
                 .setTitle(context.getString(R.string.settings_title))
                 .setView(dialogView)
@@ -179,8 +229,38 @@ public class AppSettingsDialog {
                 .show();
     }
 
+    /**
+     * 根据音效总开关状态，联动更新游戏音效和振动开关的可用性。
+     * <p>
+     * 音效总开关关闭时，游戏音效和振动开关应禁用并变灰；
+     * 开启时恢复可用状态。
+     * </p>
+     */
+    private void updateAudioSwitchStates(View rootView, boolean masterEnabled) {
+        MaterialSwitch switchSound = rootView.findViewById(R.id.switch_sound);
+        MaterialSwitch switchVibration = rootView.findViewById(R.id.switch_vibration);
+        LinearLayout llSound = rootView.findViewById(R.id.ll_sound);
+        LinearLayout llVibration = rootView.findViewById(R.id.ll_vibration);
+
+        float alpha = masterEnabled ? 1f : 0.45f;
+        if (switchSound != null) switchSound.setEnabled(masterEnabled);
+        if (switchVibration != null) switchVibration.setEnabled(masterEnabled);
+        if (llSound != null) {
+            llSound.setEnabled(masterEnabled);
+            llSound.setAlpha(alpha);
+        }
+        if (llVibration != null) {
+            llVibration.setEnabled(masterEnabled);
+            llVibration.setAlpha(alpha);
+        }
+    }
+
     private void showLanguagePicker(Context context, SettingsManager settings, TextView tvCurrentLanguage) {
-        String[] items = {"跟随系统", "中文", "English"};
+        String[] items = {
+                context.getString(R.string.language_auto),
+                context.getString(R.string.language_chinese),
+                context.getString(R.string.language_english)
+        };
         String currentLang = settings.getAppLanguage();
         int checkedItem;
         if (SettingsManager.LANGUAGE_ZH.equals(currentLang)) {
@@ -192,7 +272,7 @@ public class AppSettingsDialog {
         }
 
         new AlertDialog.Builder(context)
-                .setTitle("选择应用语言")
+                .setTitle(context.getString(R.string.settings_select_language))
                 .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
                     String newLang;
                     if (which == 1) {
@@ -212,12 +292,16 @@ public class AppSettingsDialog {
                     fragment.requireActivity().recreate();
                     dialog.dismiss();
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
     }
 
     private void showThemePicker(Context context, SettingsManager settings, TextView tvCurrentTheme) {
-        String[] items = {"跟随系统", "白天模式", "黑暗模式"};
+        String[] items = {
+                context.getString(R.string.theme_system),
+                context.getString(R.string.theme_light),
+                context.getString(R.string.theme_dark)
+        };
         int currentTheme = settings.getThemeMode();
         int checkedItem;
         if (currentTheme == SettingsManager.THEME_LIGHT) {
@@ -229,7 +313,7 @@ public class AppSettingsDialog {
         }
 
         new AlertDialog.Builder(context)
-                .setTitle("选择主题模式")
+                .setTitle(context.getString(R.string.settings_select_theme))
                 .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
                     int newTheme;
                     if (which == 1) {
@@ -247,7 +331,7 @@ public class AppSettingsDialog {
                     fragment.requireActivity().recreate();
                     dialog.dismiss();
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
     }
 
@@ -417,21 +501,51 @@ public class AppSettingsDialog {
         }
     }
 
+    /**
+     * 显示更新源选择器。
+     * <p>
+     * 2026-06-19: 已移除"美国 VPS"选项。使用过滤后的列表展示，但选中后映射回原始常量值。
+     * 旧用户历史选择了美国 VPS 时，默认选中"自动"。
+     * </p>
+     */
     private void showUpdateSourcePicker(
             Context context,
             int currentSource,
             OnUpdateSourceSelectedListener listener) {
-        String[] items = {
-                context.getString(R.string.settings_source_auto_recommended),
-                context.getString(R.string.settings_source_hk_vps),
-                context.getString(R.string.settings_source_us_vps),
-                context.getString(R.string.settings_source_github)
+        // 2026-06-19: 美国 VPS 已下线，旧用户回退到"自动"
+        int effectiveSource = (currentSource == SettingsManager.UPDATE_SOURCE_VPS_US)
+                ? SettingsManager.UPDATE_SOURCE_AUTO : currentSource;
+
+        // 构建过滤后的显示列表（跳过美国 VPS 空项）
+        String[] allNames = {
+                context.getString(R.string.settings_source_auto_recommended),   // 0 = AUTO
+                context.getString(R.string.settings_source_hk_vps),             // 1 = VPS_HK
+                "",                                                             // 2 = VPS_US (hidden)
+                context.getString(R.string.settings_source_github)              // 3 = GITHUB
         };
-        int checkedItem = currentSource >= 0 && currentSource <= 3 ? currentSource : 0;
+        java.util.List<Integer> visibleIndices = new java.util.ArrayList<>();
+        java.util.List<String> visibleNames = new java.util.ArrayList<>();
+        for (int i = 0; i < allNames.length; i++) {
+            if (!allNames[i].isEmpty()) {
+                visibleIndices.add(i);
+                visibleNames.add(allNames[i]);
+            }
+        }
+
+        // 定位当前选中项在可见列表中的位置
+        int checkedItem = 0;
+        for (int i = 0; i < visibleIndices.size(); i++) {
+            if (visibleIndices.get(i) == effectiveSource) {
+                checkedItem = i;
+                break;
+            }
+        }
+
         new AlertDialog.Builder(context)
                 .setTitle(context.getString(R.string.settings_select_update_source))
-                .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
-                    listener.onSelected(which);
+                .setSingleChoiceItems(visibleNames.toArray(new String[0]), checkedItem, (dialog, which) -> {
+                    int originalSource = visibleIndices.get(which);
+                    listener.onSelected(originalSource);
                     dialog.dismiss();
                 })
                 .setNegativeButton(context.getString(R.string.settings_cancel), null)

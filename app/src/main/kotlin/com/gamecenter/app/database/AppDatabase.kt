@@ -10,7 +10,7 @@ import com.gamecenter.app.database.entity.GameStatsEntity
 @Database(
     entities = [GameStatsEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true   // Phase 2.2: 启用 schema 导出 (JSON 在 app/schemas/)
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun gameStatsDao(): GameStatsDao

@@ -69,6 +69,9 @@ public class GomokuGame {
     /** 最后一手坐标 [x, y] */
     private int[] lastMove;
 
+    /** 胜利五连线两端坐标 [x1, y1, x2, y2]，未结束时为null */
+    private int[] winningLine;
+
     /**
      * 构造函数，初始化空棋盘和默认状态。
      */
@@ -144,6 +147,15 @@ public class GomokuGame {
      */
     public int[] getLastMove() {
         return lastMove;
+    }
+
+    /**
+     * 获取胜利五连线两端坐标。
+     *
+     * @return 坐标数组 [x1, y1, x2, y2]，未结束或平局时返回null
+     */
+    public int[] getWinningLine() {
+        return winningLine;
     }
 
     /**
@@ -256,12 +268,15 @@ public class GomokuGame {
         if (player == EMPTY) return false;
         for (int[] dir : DIRECTIONS) {
             int count = 1; // 算上当前位置本身
+            int forwardSteps = 0;
+            int backwardSteps = 0;
             // 向正方向数
             for (int step = 1; step < 5; step++) {
                 int nx = x + dir[0] * step;
                 int ny = y + dir[1] * step;
                 if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && board[ny][nx] == player) {
                     count++;
+                    forwardSteps = step;
                 } else break;
             }
             // 向反方向数
@@ -270,9 +285,18 @@ public class GomokuGame {
                 int ny = y - dir[1] * step;
                 if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && board[ny][nx] == player) {
                     count++;
+                    backwardSteps = step;
                 } else break;
             }
-            if (count >= 5) return true;
+            if (count >= 5) {
+                // 记录胜利五连线两端坐标
+                int x1 = x - dir[0] * backwardSteps;
+                int y1 = y - dir[1] * backwardSteps;
+                int x2 = x + dir[0] * forwardSteps;
+                int y2 = y + dir[1] * forwardSteps;
+                winningLine = new int[]{x1, y1, x2, y2};
+                return true;
+            }
         }
         return false;
     }
@@ -324,6 +348,7 @@ public class GomokuGame {
         moveHistory.clear();
         moveCount = 0;
         lastMove = null;
+        winningLine = null;
     }
 
     /**

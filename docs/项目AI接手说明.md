@@ -18,16 +18,15 @@
 
 ## 2. 当前发布架构
 
-当前项目的安装包分发是三路结构：
+当前项目的安装包分发是两路结构（2026-06-19 起 US VPS 已下线）：
 
-1. 香港 VPS：主更新�?
-2. GitHub Releases：正式版公开分发�?
-3. 美国 VPS：备用更新源
+1. 香港 VPS：主更新源
+2. GitHub Releases：正式版公开分发及备用更新源
 
 版本策略分两类：
 
-- `beta`：上传到香港 VPS 和美�?VPS
-- `stable/release`：上传到香港 VPS、美�?VPS、GitHub Releases
+- `beta`：上传到香港 VPS
+- `stable/release`：上传到香港 VPS、GitHub Releases
 
 VPS 上的更新目录约定为：
 
@@ -69,7 +68,7 @@ local_private/服务器部�?
 脚本会自动读取：
 
 - `upload_config_hk.json`
-- `upload_config_us.json`
+- `upload_config_us.json（2026-06-19 已废弃，US VPS 下线）`
 - 其他匹配 `upload_config_*.json` 的文�?
 
 每个配置至少应包含这些字段：
@@ -138,13 +137,11 @@ python 工具\\upload_to_vps.py `
 至少检查这几个地址是否可访问：
 
 - 香港测试版：`https://your-server.example.com/version-beta.json`
-- 美国测试版：`https://your-server.example.com:1443/version-beta.json`
+- ~~美国测试版~~（已下线）：~~`https://your-server.example.com:1443/version-beta.json`~~
 - 香港正式版：`https://your-server.example.com/version-release.json`
-- 美国正式版：`https://your-server.example.com:1443/version-release.json`
+- ~~美国正式版~~（已下线）：~~`https://your-server.example.com:1443/version-release.json`~~
 
-如果只需要看美国备用更新源是否仍然正常，优先检查：
-
-- `https://your-server.example.com:1443/version-beta.json`
+美国备用更新源已于 2026-06-19 下线，无需检查。
 
 ## 4. 如何上传�?GitHub
 
@@ -316,13 +313,13 @@ python 工具\\upload_to_github_release.py `
 - GitHub 网络问题先看 `文档/LOCAL_GITHUB_NETWORK.md`，不要直接改全局网络方案�?
 - 日常测试包优先走 `beta` 通道，不要误发正式版�?GitHub Releases�?
 - 正式版发布前确认 `CHANGELOG.md`、`version.properties`、`version.json` 一致�?
-- 美国 VPS 当前主要是备用更新源，不建议随意改公网入口�?
+- 美国 VPS 已于 2026-06-19 下线，不再使用。
 - 如果上传脚本或发布任务异常，优先检�?Python 依赖、GitHub Token、本地代理、VPS 配置文件路径是否正确�?
 - 模块市场系统（ModuleStoreActivity + ModuleManager）是新增的核心功能，浏览�?工具�?AI助手和非经典游戏已改为市场下载模块，初始安装包不再自带。修改导航栏或游戏注册逻辑时需注意动态注册机制�?
 
 ## 7. 一句话接手结论
 
-这个项目当前已经具备完整的本地构建、双 VPS 上传、GitHub Releases 发布链路。AI 接手时，优先复用 `工具/upload_to_vps.py`、`工具/upload_to_github_release.py` �?`app/build.gradle` 里的发布任务，不要重新发明一套发布流程�?
+这个项目当前已经具备完整的本地构建、香港 VPS 上传、GitHub Releases 发布链路（2026-06-19 起 US VPS 已下线）。AI 接手时，优先复用 `工具/upload_to_vps.py`、`工具/upload_to_github_release.py` �?`app/build.gradle` 里的发布任务，不要重新发明一套发布流程�?
 
 ## 8. 模块市场架构说明
 

@@ -1,68 +1,24 @@
 # EditorConfig is awesome: https://EditorConfig.org
+# 配合 ktlint 静态分析使用, 让 IDE 和 CI 风格一致
 
-# top-most EditorConfig file
 root = true
 
-# Unix-style newlines with a newline ending every file
 [*]
-end_of_line = lf
-insert_final_newline = true
 charset = utf-8
-trim_trailing_whitespace = false
-
-# Java files
-[*.java]
+end_of_line = lf
 indent_style = space
 indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
 
-# Android XML files
-[*.xml]
-indent_style = space
+[*.{kt,kts}]
 indent_size = 4
+max_line_length = 160
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
 
-# Gradle files
-[*.gradle]
-indent_style = space
-indent_size = 4
+[*.{json,yml,yaml,xml}]
+indent_size = 2
 
-[*.gradle.kts]
-indent_style = space
-indent_size = 4
-
-# Properties files
-[*.properties]
-indent_style = space
-indent_size = 4
-
-# Markdown files
 [*.md]
 trim_trailing_whitespace = false
 max_line_length = off
-
-# JSON files
-[*.json]
-indent_style = space
-indent_size = 2
-
-# Shell scripts
-[*.sh]
-indent_style = space
-indent_size = 2
-end_of_line = lf
-
-# Python files
-[*.py]
-indent_style = space
-indent_size = 4
-end_of_line = lf
-
-# Batch files
-[*.bat]
-indent_style = tab
-end_of_line = crlf
-
-# PowerShell files
-[*.ps1]
-indent_style = space
-indent_size = 4
-end_of_line = crlf
