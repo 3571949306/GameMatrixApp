@@ -1,11 +1,14 @@
 package com.gamecenter.app.games.snake;
 
+import android.media.SoundPool;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.R;
+import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
@@ -47,6 +50,17 @@ public class SnakeActivity extends BaseGameActivity {
     /** 连胜计数 */
     private int winStreak = 0;
 
+    // ==================== 音效组件 ====================
+
+    /** 音效播放器，用于播放吃食物和游戏结束音效 */
+    private SoundPool soundPool;
+
+    /** 吃食物音效 ID（复用 R.raw.ui_turn） */
+    private int eatSoundId = 0;
+
+    /** 游戏结束（撞墙/死亡）音效 ID（复用 R.raw.ui_turn） */
+    private int deathSoundId = 0;
+
     // ==================== BaseGameActivity 实现 ====================
 
     @NonNull
@@ -78,18 +92,68 @@ public class SnakeActivity extends BaseGameActivity {
         });
 
         snakeView.setOnGameOverListener(score -> {
+            // 游戏结束（撞墙/死亡）时播放死亡音效
+            playDeathSound();
             usageStore.recordLoss(GAME_ID_VALUE);
             checkAchievement("game_over", score);
             isGameRunning = false;
         });
 
         snakeView.setOnFoodEatenListener(length -> {
+            // 吃到食物时播放吃食物音效
+            playEatSound();
             checkAchievement("length", length);
         });
 
         // 添加视图到容器
         if (gameContentContainer != null) {
             ((android.widget.FrameLayout) gameContentContainer).addView(snakeView);
+        }
+
+        // 初始化音效：复用现有 R.raw.ui_turn 资源，不新增资源文件
+        initSounds();
+    }
+
+    /**
+     * 初始化 SoundPool 并加载音效资源。
+     * <p>复用现有的 {@code R.raw.ui_turn} 作为吃食物音和死亡音，避免新增资源文件。
+     * 加载失败时静默处理，不影响游戏正常运行。</p>
+     */
+    private void initSounds() {
+        try {
+            soundPool = new SoundPool.Builder().setMaxStreams(2).build();
+            eatSoundId = soundPool.load(this, R.raw.ui_turn, 1);
+            deathSoundId = soundPool.load(this, R.raw.ui_turn, 1);
+        } catch (Exception ignored) {
+            // 加载失败时保持 ID 为 0，播放方法会自动跳过
+        }
+    }
+
+    /**
+     * 播放吃食物音效。
+     * <p>播放前检查用户设置 {@link SettingsManager#shouldPlayGameSound()}，
+     * 仅在音效开关开启时播放。</p>
+     */
+    private void playEatSound() {
+        if (!SettingsManager.getInstance(this).shouldPlayGameSound()) return;
+        if (soundPool == null || eatSoundId == 0) return;
+        try {
+            soundPool.play(eatSoundId, 0.6f, 0.6f, 1, 0, 1.0f);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * 播放游戏结束（撞墙/死亡）音效。
+     * <p>播放前检查用户设置 {@link SettingsManager#shouldPlayGameSound()}，
+     * 仅在音效开关开启时播放。音调略低以区分吃食物音。</p>
+     */
+    private void playDeathSound() {
+        if (!SettingsManager.getInstance(this).shouldPlayGameSound()) return;
+        if (soundPool == null || deathSoundId == 0) return;
+        try {
+            soundPool.play(deathSoundId, 0.8f, 0.8f, 1, 0, 0.6f);
+        } catch (Exception ignored) {
         }
     }
 
@@ -162,5 +226,17 @@ public class SnakeActivity extends BaseGameActivity {
                                     @NonNull DifficultyLevel newLevel) {
         snakeView.setSpeedFactor(newLevel.difficultyFactor);
         Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
+    }
+
+    // ==================== 生命周期 ====================
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 释放 SoundPool 资源，避免内存泄漏
+        if (soundPool != null) {
+            soundPool.release();
+            soundPool = null;
+        }
     }
 }
