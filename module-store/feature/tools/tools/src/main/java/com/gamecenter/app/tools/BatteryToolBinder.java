@@ -90,7 +90,12 @@ public class BatteryToolBinder implements ToolBinder {
         };
 
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        context.registerReceiver(batteryReceiver, filter);
+        // Android 14+ (API 34) 要求动态注册广播接收器必须显式指定 export 标志
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(batteryReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.registerReceiver(batteryReceiver, filter);
+        }
         registeredContext = context;
     }
 
