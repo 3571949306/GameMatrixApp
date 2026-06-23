@@ -108,7 +108,7 @@ public class ModuleLoaderV2 implements IModuleLoader {
         try {
             PackageManager pm = context.getPackageManager();
             PackageInfo pi = pm.getPackageInfo(context.getPackageName(), 0);
-            return pi.versionCode;
+            return Math.max(pi.versionCode, 1);
         } catch (Exception e) {
             Log.w(TAG, "获取框架版本号失败，使用默认值 1", e);
             return 1;
@@ -307,6 +307,10 @@ public class ModuleLoaderV2 implements IModuleLoader {
     
     @Override
     public void unloadModule(@NonNull String moduleId) throws ModuleUnloadException {
+        if (moduleId == null || moduleId.isEmpty()) {
+            Log.w(TAG, "unloadModule: moduleId 为 null 或空，静默处理");
+            return;
+        }
         IModule module = loadedModules.remove(moduleId);
         if (module != null) {
             module.onUnload();

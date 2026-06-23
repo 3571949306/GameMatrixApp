@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [ModuleEntity::class],
     version = 1,
-    exportSchema = false
+    exportSchema = true   // Phase 2.2: 启用 schema 导出
 )
 abstract class ModuleDatabase : RoomDatabase() {
 
