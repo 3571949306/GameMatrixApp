@@ -50,7 +50,8 @@
       "gameDesc": "",
       "builtIn": false,
       "storeCategory": "browser",
-      "isBaseFramework": true
+      "isBaseFramework": true,
+      "builtInVersionCode": 100
     },
     {
       "id": "tools",
@@ -75,7 +76,8 @@
       "gameDesc": "",
       "builtIn": false,
       "storeCategory": "tools",
-      "isBaseFramework": true
+      "isBaseFramework": true,
+      "builtInVersionCode": 100
     },
     {
       "id": "ai",
@@ -100,7 +102,8 @@
       "gameDesc": "",
       "builtIn": false,
       "storeCategory": "ai",
-      "isBaseFramework": true
+      "isBaseFramework": true,
+      "builtInVersionCode": 100
     },
     {
       "id": "vpn",
@@ -125,7 +128,8 @@
       "gameDesc": "",
       "builtIn": false,
       "storeCategory": "vpn",
-      "isBaseFramework": false
+      "isBaseFramework": false,
+      "builtInVersionCode": 0
     },
     {
       "id": "tts_voice",
@@ -150,7 +154,8 @@
       "gameDesc": "",
       "builtIn": false,
       "storeCategory": "tools",
-      "isBaseFramework": false
+      "isBaseFramework": false,
+      "builtInVersionCode": 101
     },
     {
       "id": "gomoku",
