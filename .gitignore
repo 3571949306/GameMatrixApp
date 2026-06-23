@@ -56,6 +56,8 @@ id_rsa.pub
 # Generated APKs and bundles
 *.apk
 *.aab
+# 例外：预装到 assets/modules/ 的模块 APK 必须提交（开箱即用）
+!app/src/main/assets/modules/*.apk
 
 # Logs
 *.log

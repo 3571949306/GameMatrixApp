@@ -36,7 +36,8 @@ import com.gamecenter.app.ai.legal.AiLegalNotices;
 import com.gamecenter.app.ai.model.AiModelDownloadManager;
 import com.gamecenter.app.ai.model.AiModelInfo;
 import com.gamecenter.app.ai.template.AiTemplateManager;
-import com.gamecenter.capability.tts.MiMoTtsEngine;
+// 2026-06-23: MiMoTtsEngine 改为反射加载，避免 mimo-tts 模块未配置时编译失败
+// 原硬依赖: import com.gamecenter.capability.tts.MiMoTtsEngine;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -99,8 +100,8 @@ public class AiFragment extends Fragment {
     /** 本地模型下载管理器 */
     private AiModelDownloadManager modelDownloadManager;
 
-    /** MiMo TTS 朗读引擎 */
-    private MiMoTtsEngine ttsEngine;
+    /** MiMo TTS 朗读引擎（反射加载，运行时可选） */
+    private Object ttsEngine;
 
     /** 消息列表 RecyclerView 的适配器 */
     private MessageAdapter adapter;
@@ -149,10 +150,18 @@ public class AiFragment extends Fragment {
         aiPreferences = new AiPreferences(context);
         modelDownloadManager = new AiModelDownloadManager();
 
-        // Phase 1: 初始化 MiMo TTS 引擎
+        // Phase 1: 初始化 MiMo TTS 引擎（反射加载，mimo-tts 模块未配置时安全失败）
         if (com.gamecenter.app.BuildConfig.ENABLE_MIMO_TTS) {
-            ttsEngine = new MiMoTtsEngine(context);
-            ttsEngine.configure(com.gamecenter.app.BuildConfig.MIMO_API_KEY);
+            try {
+                Class<?> cls = Class.forName("com.gamecenter.capability.tts.MiMoTtsEngine");
+                ttsEngine = cls.getDeclaredConstructor(Context.class).newInstance(context);
+                cls.getMethod("configure", String.class).invoke(ttsEngine,
+                        com.gamecenter.app.BuildConfig.MIMO_API_KEY);
+                android.util.Log.i("AiFragment", "MiMo TTS 引擎加载成功");
+            } catch (Throwable t) {
+                ttsEngine = null;
+                android.util.Log.w("AiFragment", "MiMo TTS 引擎加载失败（mimo-tts 模块未包含?）: " + t.getMessage());
+            }
         }
     }
 
@@ -173,7 +182,9 @@ public class AiFragment extends Fragment {
             modelDownloadManager = null;
         }
         if (ttsEngine != null) {
-            ttsEngine.stop();
+            try {
+                ttsEngine.getClass().getMethod("stop").invoke(ttsEngine);
+            } catch (Throwable ignore) {}
             ttsEngine = null;
         }
     }
@@ -1025,16 +1036,17 @@ public class AiFragment extends Fragment {
         private final List<AiMessage> messages;
         private final Set<String> favoriteIds;
         private final FavoriteListener favoriteListener;
-        private final MiMoTtsEngine ttsEngine;
+        // 2026-06-23: TTS 引擎类型改为 Object，使用反射调用（避免 mimo-tts 模块未配置时编译失败）
+        private final Object ttsEngine;
 
         /**
          * @param messages         可见消息列表（过滤后）
          * @param favoriteIds      已收藏消息 ID 集合
          * @param favoriteListener 收藏切换回调
-         * @param ttsEngine        TTS 朗读引擎
+         * @param ttsEngine        TTS 朗读引擎（可为 null，mimo-tts 模块未配置时为 null）
          */
         MessageAdapter(List<AiMessage> messages, Set<String> favoriteIds,
-                       FavoriteListener favoriteListener, MiMoTtsEngine ttsEngine) {
+                       FavoriteListener favoriteListener, Object ttsEngine) {
             this.messages = messages;
             this.favoriteIds = favoriteIds;
             this.favoriteListener = favoriteListener;
@@ -1099,7 +1111,7 @@ public class AiFragment extends Fragment {
          * @param favoriteListener 收藏切换回调
          * @param ttsEngine        TTS 朗读引擎
          */
-        void bind(AiMessage msg, boolean favorite, FavoriteListener favoriteListener, MiMoTtsEngine ttsEngine) {
+        void bind(AiMessage msg, boolean favorite, FavoriteListener favoriteListener, Object ttsEngine) {
             if (msg.role.equals("user")) {
                 tvRole.setText("你");
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_user);
@@ -1136,11 +1148,26 @@ public class AiFragment extends Fragment {
                     btnTts.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_star));
                     btnTts.setOnClickListener(v -> {
                         Toast.makeText(itemView.getContext(), "正在合成语音…", Toast.LENGTH_SHORT).show();
-                        ttsEngine.speak(msg.content, null, e -> {
-                            if (itemView.getContext() != null) {
-                                Toast.makeText(itemView.getContext(), "朗读失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                        // 反射调用 ttsEngine.speak(String, Object, Callback)
+                        try {
+                            Class<?> callbackCls = Class.forName("com.gamecenter.capability.tts.MiMoTtsEngine$Callback");
+                            Object callback = java.lang.reflect.Proxy.newProxyInstance(
+                                    callbackCls.getClassLoader(),
+                                    new Class<?>[]{callbackCls},
+                                    (proxy, method, args1) -> {
+                                        if (method.getName().equals("onComplete") && args1[0] != null) {
+                                            android.util.Log.w("TTS", "speak failed: " + args1[0]);
+                                        }
+                                        return null;
+                                    });
+                            ttsEngine.getClass().getMethod("speak", String.class, Object.class, callbackCls)
+                                    .invoke(ttsEngine, msg.content, null, callback);
+                        } catch (Throwable t) {
+                            android.util.Log.w("TTS", "speak 反射调用失败: " + t.getMessage());
+                            Toast.makeText(itemView.getContext(),
+                                    "TTS 引擎不可用: " + t.getMessage(),
+                                    Toast.LENGTH_SHORT).show();
+                        }
                     });
                 } else {
                     btnTts.setVisibility(View.GONE);

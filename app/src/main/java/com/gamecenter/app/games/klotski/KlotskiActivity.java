@@ -146,6 +146,11 @@ public class KlotskiActivity extends BaseGameActivity {
             klotskiView.setOnWinListener(() -> {
                 tvStatus.setText("🎉 恭喜通关！");
                 Toast.makeText(this, "恭喜通关！", Toast.LENGTH_SHORT).show();
+                // 2026-06-23: 通关后弹游戏结束 Dialog（含步数+用时）
+                usageStore.recordWin(getGameId());
+                checkAchievement("win", game.getMoves());
+                updateScore(currentScore + 100);
+                showGameEndDialog(true, game.getMoves());
             });
             klotskiView.setOnMoveListener(() -> {
                 if (tvMoves != null) {
@@ -183,5 +188,32 @@ public class KlotskiActivity extends BaseGameActivity {
                 }
             });
         }).start();
+    }
+
+    /**
+     * 2026-06-23：游戏结束 Dialog（华容道通关后显示战绩）。
+     */
+    private void showGameEndDialog(boolean won, int moves) {
+        long elapsed = gameStartTime > 0 ? (System.currentTimeMillis() - gameStartTime) : 0L;
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle(won ? "🎉 通关" : "本局结束");
+        StringBuilder content = new StringBuilder();
+        content.append(won ? "恭喜通关！\n\n" : "再接再厉\n\n");
+        content.append("总步数: ").append(moves).append("\n");
+        content.append("用时: ").append(formatDuration(elapsed));
+        if (won) {
+            content.append("\n\n得分 +100");
+        }
+        builder.setMessage(content.toString());
+        builder.setPositiveButton("再来一局", (d, w) -> startNewGame());
+        builder.setNegativeButton("返回主菜单", (d, w) -> finish());
+        builder.setCancelable(false);
+        builder.show();
+    }
+
+    /** 格式化毫秒为 mm:ss */
+    private String formatDuration(long ms) {
+        long sec = ms / 1000L;
+        return String.format("%02d:%02d", sec / 60L, sec % 60L);
     }
 }
