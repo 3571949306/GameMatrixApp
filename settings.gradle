@@ -38,8 +38,21 @@ include ':core:modulestore'
 include ':core:online'
 
 // Phase 1: MiMo TTS 能力 SDK（注入 AI 助手）
-include ':modules:capabilities:mimo-tts'
-project(':modules:capabilities:mimo-tts').projectDir = file('d:/GameMatrixWorkspace/capabilities/mimo-tts')
+// 路径从 gradle.properties 或 -P 命令行读取: mimo.tts.dir=/path/to/mimo-tts
+// 未配置时跳过该模块，不影响主 App 构建
+def mimoTtsDir = providers.gradleProperty('mimo.tts.dir').orNull ?: ''
+if (mimoTtsDir) {
+    def mimoTtsDirFile = file(mimoTtsDir)
+    if (mimoTtsDirFile.exists()) {
+        include ':modules:capabilities:mimo-tts'
+        project(':modules:capabilities:mimo-tts').projectDir = mimoTtsDirFile
+    } else {
+        logger.lifecycle("[settings] mimo.tts.dir configured but path does not exist: ${mimoTtsDir}")
+        logger.lifecycle("[settings] MiMo TTS module will be SKIPPED. Remove the line or fix the path to enable.")
+    }
+} else {
+    logger.lifecycle("[settings] mimo.tts.dir not configured (set in gradle.properties or -P); MiMo TTS module SKIPPED.")
+}
 
 // 模块商店功能模块（英文路径）
 include ':feature:games'
