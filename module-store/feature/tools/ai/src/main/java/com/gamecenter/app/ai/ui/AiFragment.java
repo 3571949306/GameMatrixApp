@@ -36,6 +36,7 @@ import com.gamecenter.app.ai.legal.AiLegalNotices;
 import com.gamecenter.app.ai.model.AiModelDownloadManager;
 import com.gamecenter.app.ai.model.AiModelInfo;
 import com.gamecenter.app.ai.template.AiTemplateManager;
+import com.gamecenter.capability.tts.MiMoTtsEngine;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -98,6 +99,9 @@ public class AiFragment extends Fragment {
     /** 本地模型下载管理器 */
     private AiModelDownloadManager modelDownloadManager;
 
+    /** MiMo TTS 朗读引擎 */
+    private MiMoTtsEngine ttsEngine;
+
     /** 消息列表 RecyclerView 的适配器 */
     private MessageAdapter adapter;
 
@@ -144,6 +148,12 @@ public class AiFragment extends Fragment {
         historyStore = new AiHistoryStore(context);
         aiPreferences = new AiPreferences(context);
         modelDownloadManager = new AiModelDownloadManager();
+
+        // Phase 1: 初始化 MiMo TTS 引擎
+        if (com.gamecenter.app.BuildConfig.ENABLE_MIMO_TTS) {
+            ttsEngine = new MiMoTtsEngine(context);
+            ttsEngine.configure(com.gamecenter.app.BuildConfig.MIMO_API_KEY);
+        }
     }
 
     /**
@@ -161,6 +171,10 @@ public class AiFragment extends Fragment {
         if (modelDownloadManager != null) {
             modelDownloadManager.shutdown();
             modelDownloadManager = null;
+        }
+        if (ttsEngine != null) {
+            ttsEngine.stop();
+            ttsEngine = null;
         }
     }
 
@@ -239,7 +253,7 @@ public class AiFragment extends Fragment {
         actTaskType.setText(taskLabels[0], false);
 
         // 配置消息列表 RecyclerView
-        adapter = new MessageAdapter(visibleMessages, favoriteIds, this::toggleFavorite);
+        adapter = new MessageAdapter(visibleMessages, favoriteIds, this::toggleFavorite, ttsEngine);
         rvMessages.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvMessages.setAdapter(adapter);
 
@@ -1011,16 +1025,20 @@ public class AiFragment extends Fragment {
         private final List<AiMessage> messages;
         private final Set<String> favoriteIds;
         private final FavoriteListener favoriteListener;
+        private final MiMoTtsEngine ttsEngine;
 
         /**
          * @param messages         可见消息列表（过滤后）
          * @param favoriteIds      已收藏消息 ID 集合
          * @param favoriteListener 收藏切换回调
+         * @param ttsEngine        TTS 朗读引擎
          */
-        MessageAdapter(List<AiMessage> messages, Set<String> favoriteIds, FavoriteListener favoriteListener) {
+        MessageAdapter(List<AiMessage> messages, Set<String> favoriteIds,
+                       FavoriteListener favoriteListener, MiMoTtsEngine ttsEngine) {
             this.messages = messages;
             this.favoriteIds = favoriteIds;
             this.favoriteListener = favoriteListener;
+            this.ttsEngine = ttsEngine;
         }
 
         @NonNull
@@ -1036,7 +1054,7 @@ public class AiFragment extends Fragment {
         public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
             // 将消息数据绑定到视图上
             AiMessage msg = messages.get(position);
-            holder.bind(msg, favoriteIds.contains(msg.id), favoriteListener);
+            holder.bind(msg, favoriteIds.contains(msg.id), favoriteListener, ttsEngine);
         }
 
         @Override
@@ -1056,12 +1074,14 @@ public class AiFragment extends Fragment {
         private final TextView tvRole;
         private final TextView tvContent;
         private final ImageButton btnFavorite;
+        private final ImageButton btnTts;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
             tvRole = itemView.findViewById(R.id.tv_msg_role);
             tvContent = itemView.findViewById(R.id.tv_msg_content);
             btnFavorite = itemView.findViewById(R.id.btn_msg_favorite);
+            btnTts = itemView.findViewById(R.id.btn_msg_tts);
         }
 
         /**
@@ -1077,8 +1097,9 @@ public class AiFragment extends Fragment {
          * @param msg              消息数据
          * @param favorite         是否已收藏
          * @param favoriteListener 收藏切换回调
+         * @param ttsEngine        TTS 朗读引擎
          */
-        void bind(AiMessage msg, boolean favorite, FavoriteListener favoriteListener) {
+        void bind(AiMessage msg, boolean favorite, FavoriteListener favoriteListener, MiMoTtsEngine ttsEngine) {
             if (msg.role.equals("user")) {
                 tvRole.setText("你");
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_user);
@@ -1100,6 +1121,7 @@ public class AiFragment extends Fragment {
             // 系统消息不显示收藏按钮
             if ("system".equals(msg.role)) {
                 btnFavorite.setVisibility(View.GONE);
+                btnTts.setVisibility(View.GONE);
             } else {
                 btnFavorite.setVisibility(View.VISIBLE);
                 // 根据收藏状态显示不同的星星图标
@@ -1107,6 +1129,23 @@ public class AiFragment extends Fragment {
                         ? android.R.drawable.btn_star_big_on
                         : android.R.drawable.btn_star_big_off);
                 btnFavorite.setOnClickListener(v -> favoriteListener.onToggleFavorite(msg));
+
+                // Phase 1: AI 助手消息显示朗读按钮
+                if ("assistant".equals(msg.role) && ttsEngine != null && !msg.content.isEmpty()) {
+                    btnTts.setVisibility(View.VISIBLE);
+                    btnTts.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_star));
+                    btnTts.setOnClickListener(v -> {
+                        Toast.makeText(itemView.getContext(), "正在合成语音…", Toast.LENGTH_SHORT).show();
+                        ttsEngine.speak(msg.content, null, e -> {
+                            if (itemView.getContext() != null) {
+                                Toast.makeText(itemView.getContext(), "朗读失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    });
+                } else {
+                    btnTts.setVisibility(View.GONE);
+                    btnTts.setOnClickListener(null);
+                }
             }
         }
     }

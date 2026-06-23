@@ -281,7 +281,13 @@ public class BrowserFragment extends Fragment {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                handler.proceed();
+                // 安全策略：不绕过 SSL 错误，取消加载不安全的连接
+                // Google Play 政策与 Android 13+ 安全审计禁止使用 handler.proceed()
+                Log.w(TAG, "SSL证书错误，已阻止不安全的连接: " + error.getUrl());
+                if (isAdded() && getContext() != null) {
+                    Toast.makeText(getContext(), "SSL证书错误，已阻止不安全的连接", Toast.LENGTH_LONG).show();
+                }
+                handler.cancel();
             }
 
             @Override
