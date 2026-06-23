@@ -66,6 +66,10 @@ public class GoActivity extends BaseGameActivity {
     private boolean gameOver = false;
     // 2026-06-23: 步数统计（玩家落子数，用于游戏结束 Dialog）
     private int moveCount = 0;
+    // 2026-06-23: AI 难度选择（1=简单/2=普通/3=困难/4=大师）
+    private int aiDifficulty = 2;
+    // 难度按钮列表（用于切换选中状态）
+    private final java.util.List<com.google.android.material.button.MaterialButton> difficultyButtons = new java.util.ArrayList<>();
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Random random = new Random();
@@ -127,6 +131,9 @@ public class GoActivity extends BaseGameActivity {
         menuPanel.setOrientation(LinearLayout.VERTICAL);
         menuPanel.setGravity(Gravity.CENTER);
 
+        // 2026-06-23: 难度选择 2x2 网格
+        addDifficultyButtonsTo(menuPanel);
+
         MaterialButton btnStart = new MaterialButton(this);
         btnStart.setText(R.string.game_go_start);
         btnStart.setBackgroundColor(0xFF5B8A72);
@@ -143,6 +150,9 @@ public class GoActivity extends BaseGameActivity {
         int viewWidth = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
         goView.setLayoutParams(new FrameLayout.LayoutParams(viewWidth, viewWidth));
         goView.setOnCellClickListener(this::onCellClick);
+
+        // 2026-06-23: 游戏中难度切换条
+        addDifficultyButtonsTo(gamePanel);
 
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -285,22 +295,51 @@ public class GoActivity extends BaseGameActivity {
     }
 
     /**
-     * AI 找到最佳落子位置
+     * AI 找到最佳落子位置（4 档难度，2026-06-23 新增）。
+     * - 1 (简单): 纯随机合法位置
+     * - 2 (普通): 贪心 capture + 位置评估 + 随机扰动
+     * - 3 (困难): 贪心 + Minimax depth=2（看对手反应）
+     * - 4 (大师): 贪心 + Minimax depth=3 + 领地评估
      */
     private int[] findBestAiMove() {
-        List<int[]> candidates = new ArrayList<>();
-        int bestScore = Integer.MIN_VALUE;
-        int[] bestMove = null;
+        return switch (aiDifficulty) {
+            case 1 -> findRandomAiMove();
+            case 3 -> findMinimaxAiMove(2);
+            case 4 -> findMinimaxAiMove(3);
+            default -> findGreedyAiMove();
+        };
+    }
 
+    /**
+     * 简单：纯随机合法位置
+     */
+    private int[] findRandomAiMove() {
+        List<int[]> candidates = new ArrayList<>();
         for (int r = 0; r < BOARD_SIZE; r++) {
             for (int c = 0; c < BOARD_SIZE; c++) {
                 if (board[r][c] == EMPTY && isValidMove(r, c, WHITE)) {
-                    // 模拟落子
+                    candidates.add(new int[]{r, c});
+                }
+            }
+        }
+        if (candidates.isEmpty()) return null;
+        // 10% 概率 pass
+        if (random.nextInt(10) == 0 && consecutivePasses == 0) return null;
+        return candidates.get(random.nextInt(candidates.size()));
+    }
+
+    /**
+     * 普通：贪心 capture*10 + 位置评估 + 随机扰动
+     */
+    private int[] findGreedyAiMove() {
+        int bestScore = Integer.MIN_VALUE;
+        int[] bestMove = null;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == EMPTY && isValidMove(r, c, WHITE)) {
                     int[][] simulated = copyBoard(board);
                     simulated[r][c] = WHITE;
                     int captured = simulateCapture(simulated, BLACK, r, c);
-
-                    // 评估分数
                     int score = captured * 10 + evaluatePosition(r, c) + random.nextInt(3);
                     if (score > bestScore) {
                         bestScore = score;
@@ -309,13 +348,108 @@ public class GoActivity extends BaseGameActivity {
                 }
             }
         }
+        if (bestMove != null && random.nextInt(10) < 2 && consecutivePasses == 0) return null;
+        return bestMove;
+    }
 
-        // 有时随机 pass（模拟简单 AI）
-        if (bestMove != null && random.nextInt(10) < 2 && consecutivePasses == 0) {
+    /**
+     * 困难/大师：Minimax 深度搜索。
+     * depth=2 看自己+对手反应；depth=3 多看一步。
+     */
+    private int[] findMinimaxAiMove(int depth) {
+        int bestScore = Integer.MIN_VALUE;
+        int[] bestMove = null;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] != EMPTY || !isValidMove(r, c, WHITE)) continue;
+                int[][] simulated = copyBoard(board);
+                simulated[r][c] = WHITE;
+                int captured = simulateCapture(simulated, BLACK, r, c);
+                int score = captured * 10 + evaluatePosition(r, c)
+                        + minimax(simulated, depth - 1, false, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                // 简单难度加随机扰动；大师级别不加
+                if (aiDifficulty < 4) score += random.nextInt(2);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = new int[]{r, c};
+                }
+            }
+        }
+        if (bestMove != null && aiDifficulty < 4 && random.nextInt(10) < 2 && consecutivePasses == 0) {
             return null;
         }
-
         return bestMove;
+    }
+
+    /**
+     * 极小极大搜索（alpha-beta 剪枝）。
+     * @param isMax 当前层是否是 AI 最大化
+     */
+    private int minimax(int[][] state, int depth, boolean isMax, int alpha, int beta) {
+        if (depth == 0) return evaluateBoard(state);
+        int best = isMax ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        int color = isMax ? WHITE : BLACK;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (state[r][c] != EMPTY) continue;
+                if (!isValidMove(state, r, c, color)) continue;
+                int[][] sim = copyBoard(state);
+                sim[r][c] = color;
+                simulateCapture(sim, color == WHITE ? BLACK : WHITE, r, c);
+                int val = minimax(sim, depth - 1, !isMax, alpha, beta);
+                if (isMax) {
+                    best = Math.max(best, val);
+                    alpha = Math.max(alpha, best);
+                } else {
+                    best = Math.min(best, val);
+                    beta = Math.min(beta, best);
+                }
+                if (beta <= alpha) return best;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * 评估整个棋盘：白方领地 - 黑方领地（白方 = AI）
+     */
+    private int evaluateBoard(int[][] state) {
+        int whiteScore = 0, blackScore = 0;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (state[r][c] == WHITE) whiteScore += 10;
+                else if (state[r][c] == BLACK) blackScore += 10;
+            }
+        }
+        return whiteScore - blackScore;
+    }
+
+    /**
+     * 设置 AI 难度（1-4），游戏中切换立即生效。
+     */
+    public void setAiDifficulty(int level) {
+        if (level < 1 || level > 4) return;
+        this.aiDifficulty = level;
+        // 更新按钮选中状态
+        int[] colorActive = {0xFF5B8A72, 0xFFFFA726, 0xFFEF5350, 0xFF8E24AA};
+        int colorInactive = 0xFF9E9E9E;
+        for (int i = 0; i < difficultyButtons.size(); i++) {
+            difficultyButtons.get(i).setBackgroundColor(
+                    i + 1 == level ? colorActive[i] : colorInactive);
+        }
+        android.widget.Toast.makeText(this,
+                "AI 难度: " + getDifficultyName(level),
+                android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private String getDifficultyName(int level) {
+        switch (level) {
+            case 1: return "简单（随机）";
+            case 2: return "普通（贪心）";
+            case 3: return "困难（Minimax-2）";
+            case 4: return "大师（Minimax-3）";
+            default: return "未知";
+        }
     }
 
     /**
@@ -368,6 +502,20 @@ public class GoActivity extends BaseGameActivity {
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * 2026-06-23: 接收 board 参数的 isValidMove（用于 Minimax 搜索中的模拟棋盘）
+     * 劫争检查不适用模拟过程（previousBoard 是 main 的状态）
+     */
+    private boolean isValidMove(int[][] state, int row, int col, int color) {
+        if (state[row][col] != EMPTY) return false;
+        int[][] simulated = copyBoard(state);
+        simulated[row][col] = color;
+        int opponent = color == BLACK ? WHITE : BLACK;
+        int captured = simulateCapture(simulated, opponent, row, col);
+        if (countLiberties(simulated, row, col) == 0 && captured == 0) return false;
         return true;
     }
 
@@ -569,6 +717,60 @@ public class GoActivity extends BaseGameActivity {
     private String formatDuration(long ms) {
         long sec = ms / 1000L;
         return String.format("%02d:%02d", sec / 60L, sec % 60L);
+    }
+
+    /**
+     * 2026-06-23: 添加 4 个 AI 难度选择按钮到指定容器。
+     * 2x2 网格布局，选中状态用不同背景色。
+     * 同一组按钮共享 difficultyButtons 列表，实现选中状态联动。
+     */
+    private void addDifficultyButtonsTo(LinearLayout parent) {
+        TextView label = new TextView(this);
+        label.setText(R.string.game_go_difficulty_label);
+        label.setTextSize(13f);
+        label.setTextColor(0xFF757575);
+        label.setPadding(0, 12, 0, 6);
+        parent.addView(label);
+
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setGravity(Gravity.CENTER);
+
+        String[] names = {
+                getString(R.string.game_go_diff_1),
+                getString(R.string.game_go_diff_2),
+                getString(R.string.game_go_diff_3),
+                getString(R.string.game_go_diff_4)
+        };
+        int[] colorActive = {0xFF5B8A72, 0xFFFFA726, 0xFFEF5350, 0xFF8E24AA};
+        int colorInactive = 0xFF9E9E9E;
+
+        for (int row = 0; row < 2; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setGravity(Gravity.CENTER);
+            rowLayout.setPadding(0, 0, 0, 6);
+            for (int col = 0; col < 2; col++) {
+                int idx = row * 2 + col + 1; // 1-4
+                MaterialButton btn = new MaterialButton(this);
+                btn.setText(names[idx - 1]);
+                btn.setTextSize(12f);
+                btn.setBackgroundColor(idx == aiDifficulty ? colorActive[idx - 1] : colorInactive);
+                btn.setTextColor(0xFFFFFFFF);
+                btn.setMinWidth(0);
+                btn.setPadding(24, 8, 24, 8);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                lp.setMargins(6, 0, 6, 0);
+                btn.setLayoutParams(lp);
+                btn.setOnClickListener(v -> setAiDifficulty(idx));
+                rowLayout.addView(btn);
+                difficultyButtons.add(btn);
+            }
+            grid.addView(rowLayout);
+        }
+        parent.addView(grid);
     }
 
     /**
