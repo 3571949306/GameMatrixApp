@@ -684,7 +684,13 @@ public final class AdvancedToolBinders {
      */
     private static String getBatterySummary(Context context) {
         // ACTION_BATTERY_CHANGED 是粘性广播，registerReceiver 传入 null 可直接获取最后一次广播
-        Intent battery = context.registerReceiver(null, new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        // Android 14+ (API 34) 要求 registerReceiver 显式指定 export 标志
+        Intent battery;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            battery = context.registerReceiver(null, new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            battery = context.registerReceiver(null, new android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        }
         if (battery == null) return "未知";
         int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
         int scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1);

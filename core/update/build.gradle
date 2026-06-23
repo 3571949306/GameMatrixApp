@@ -13,7 +13,6 @@ def configuredBetaNoticeVersionGap = 3
 
 def localPropsFile = file("${rootDir}/local.properties")
 def configuredServerUrl = ""
-def configuredServerUrlFallback = ""
 
 if (versionPropsFile.exists()) {
     versionPropsFile.withReader("UTF-8") { reader ->
@@ -44,7 +43,6 @@ if (localPropsFile.exists()) {
                 def key = line.substring(0, eq).trim()
                 def val = line.substring(eq + 1).trim()
                 if (key == "server.url") configuredServerUrl = val
-                if (key == "server.url.fallback") configuredServerUrlFallback = val
             }
         }
     }
@@ -77,7 +75,6 @@ android {
         buildConfigField "String", "VERSION_NAME", toJavaStringLiteral(versionFileVersionName)
         buildConfigField "String", "VERSION_CHANNEL", toJavaStringLiteral(currentVersionChannel)
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
-        buildConfigField "String", "SERVER_URL_FALLBACK", toJavaStringLiteral(configuredServerUrlFallback ?: "")
         buildConfigField "int", "LAST_STABLE_VERSION_CODE", "${configuredLastStableVersionCode}"
         buildConfigField "String", "LAST_STABLE_VERSION_NAME", toJavaStringLiteral(configuredLastStableVersionName)
         buildConfigField "int", "BETA_NOTICE_VERSION_GAP", "${configuredBetaNoticeVersionGap}"

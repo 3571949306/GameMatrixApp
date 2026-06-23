@@ -35,7 +35,8 @@ open class EmulatorTestBase {
     /**
      * 测试前准备。
      *
-     * 初始化测试上下文和 UI 设备控制器。
+     * 初始化测试上下文和 UI 设备控制器；
+     * 若目标应用未获得必要运行时权限，则通过 ADB 授予，避免系统弹窗阻塞自动化测试。
      */
     @Before
     open fun setUp() {
@@ -53,6 +54,9 @@ open class EmulatorTestBase {
         if (device.isScreenOn) {
             device.pressHome()
         }
+
+        // 预授权关键运行时权限，减少系统弹窗干扰
+        grantAppPermissions()
 
         Log.d(TAG, "测试准备完成")
     }
@@ -195,6 +199,128 @@ open class EmulatorTestBase {
         } catch (e: Exception) {
             Log.e(TAG, "等待文本异常: $text", e)
             false
+        }
+    }
+
+    /**
+     * 通过 ADB 给目标应用授予关键运行时权限，避免系统弹窗阻塞自动化测试。
+     */
+    protected fun grantAppPermissions() {
+        val packageName = appContext.packageName
+        val permissions = listOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            android.Manifest.permission.READ_MEDIA_IMAGES,
+            android.Manifest.permission.RECORD_AUDIO,
+            android.Manifest.permission.POST_NOTIFICATIONS
+        )
+        permissions.forEach { permission ->
+            try {
+                device.executeShellCommand("pm grant $packageName $permission")
+                Log.d(TAG, "权限已授权: $permission")
+            } catch (e: Exception) {
+                Log.w(TAG, "授权失败或无需授权: $permission - ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * 处理首次启动权限说明弹窗（兜底）。当 TEST_MODE 未生效时自动点击按钮。
+     * 使用短超时（1000ms）避免在没有弹窗时阻塞测试。
+     */
+    protected fun dismissPermissionDialogIfShown(timeout: Long = 1000): Boolean {
+        val grantText = appContext.getString(R.string.permission_grant_all)
+        val declineText = appContext.getString(R.string.permission_decline)
+        if (tapByText(grantText, timeout)) {
+            Log.d(TAG, "点击权限说明弹窗：全部授权")
+        } else if (tapByText(declineText, timeout)) {
+            Log.d(TAG, "点击权限说明弹窗：拒绝")
+        } else {
+            return false
+        }
+        allowSystemPermissionIfRequested()
+        return true
+    }
+
+    /**
+     * 处理应用更新提示对话框（兜底）。点击"稍后再说"/"等待正式版"按钮关闭对话框。
+     * 更新对话框会遮挡底部导航栏，导致 nav_view 不可见。
+     * 使用短超时（1000ms）避免在没有弹窗时阻塞测试。
+     */
+    protected fun dismissUpdateDialogIfShown(timeout: Long = 1000): Boolean {
+        // 更新对话框："稍后再说"按钮
+        val laterTexts = listOf(
+            appContext.getString(R.string.update_later),
+            "Update later",
+            "稍后再说"
+        )
+        // Beta-only 对话框："等待正式版"按钮
+        val waitTexts = listOf(
+            appContext.getString(R.string.update_beta_only_wait),
+            "等待正式版"
+        )
+        for (text in laterTexts) {
+            if (tapByText(text, timeout)) {
+                Log.d(TAG, "关闭更新对话框: $text")
+                safeSleep(500)
+                return true
+            }
+        }
+        for (text in waitTexts) {
+            if (tapByText(text, timeout)) {
+                Log.d(TAG, "关闭Beta-only对话框: $text")
+                safeSleep(500)
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * 等待并点击系统权限弹窗的"允许"按钮。
+     * 使用短超时（500ms）避免在没有权限弹窗时阻塞测试。
+     */
+    protected fun allowSystemPermissionIfRequested(timeout: Long = 500) {
+        val patterns = listOf("允许", "Allow", "仅使用期间允许", "While using the app", "始终允许", "Allow all the time")
+        patterns.forEach { text ->
+            if (tapByText(text, timeout)) {
+                Log.d(TAG, "授权系统权限：$text")
+            }
+        }
+    }
+
+    /**
+     * 启动应用到主界面，自动处理权限弹窗和更新提示对话框。
+     *
+     * 直接启动 SplashActivity（exported=true），它会自动跳转到 MainActivity。
+     * 不能使用 `monkey -c LAUNCHER`：Debug 包中 LeakCanary 也注册了 LAUNCHER activity，
+     * monkey 会随机启动 LeakLauncherActivity 而非 SplashActivity。
+     * 也不能直接 `am start -n pkg/.MainActivity`：MainActivity exported=false。
+     */
+    protected fun launchAppAndHandlePermissionDialog() {
+        val packageName = appContext.packageName
+        device.executeShellCommand("am start -n $packageName/.SplashActivity")
+        // SplashActivity 动画约 1.5 秒，等待 2 秒确保跳转到 MainActivity
+        safeSleep(2000)
+        dismissPermissionDialogIfShown()
+        allowSystemPermissionIfRequested()
+        // 更新检查延迟2秒触发，这里等待3秒后处理更新对话框
+        safeSleep(3000)
+        dismissUpdateDialogIfShown()
+        safeSleep(500)
+    }
+
+    /**
+     * 安全等待指定时间。
+     */
+    protected fun safeSleep(ms: Long) {
+        try {
+            Thread.sleep(ms)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
         }
     }
 

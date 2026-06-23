@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.gamecenter.app.test">
+
+    <!--
+      修复蓝叠模拟器安装测试 APK 时崩溃的问题 (0xC0000409 栈缓冲区溢出)。
+      蓝叠在 hcallOnAppInstalledClbk 回调中解析测试 APK 元数据时，无法处理空 activity 字段，
+      导致 jsonData={"pkg":"com.gamecenter.app.test","activity":"","label":"","versionCode":0,...} 触发崩溃。
+      此处声明一个非空占位 Activity，让蓝叠能正确解析出 activity 和 label。
+      BootstrapActivity 由 androidx.test:core 提供（androidx.test:runner 的传递依赖），无需额外实现。
+      tools:replace="android:exported" 用于覆盖 androidx.test:core 库 manifest 中的默认值，解决合并冲突。
+    -->
+    <application android:label="GameMatrix Tests">
+        <activity
+            android:name="androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity"
+            android:exported="false"
+            android:label="GameMatrix Tests"
+            tools:replace="android:exported">
+            <!-- 必须同时声明 action MAIN + category LAUNCHER，蓝叠才能识别主入口 activity，
+                 否则 jsonData.activity 字段为空会触发 0xC0000409 栈缓冲区溢出崩溃。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

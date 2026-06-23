@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -160,7 +161,15 @@ class VpnFragment : Fragment() {
             action = "com.gamecenter.app.vpn.CONNECT"
             putExtra("node_json", json)
         }
-        requireContext().startService(intent)
-        Toast.makeText(requireContext(), "正在连接...", Toast.LENGTH_SHORT).show()
+        // Android 14+ 对后台启动 Service 有严格限制，调用 startService 会抛 IllegalStateException。
+        // VpnServiceProxy.onStartCommand 中已调用 startForeground，因此这里使用
+        // ContextCompat.startForegroundService 安全地启动前台服务。
+        try {
+            ContextCompat.startForegroundService(requireContext(), intent)
+            Toast.makeText(requireContext(), "正在连接...", Toast.LENGTH_SHORT).show()
+        } catch (e: IllegalStateException) {
+            // Android 14+ 后台启动前台服务被系统拒绝
+            Toast.makeText(requireContext(), "无法在后台启动 VPN 服务，请保持应用在前台后重试", Toast.LENGTH_LONG).show()
+        }
     }
 }

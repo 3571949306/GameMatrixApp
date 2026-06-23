@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:TrojanModule.kt$TrojanModule$node.type != ProtocolType.Trojan || node.address.isEmpty() || node.port &lt;= 0 || node.password.isNullOrEmpty()</ID>
+    <ID>ComplexCondition:VlessModule.kt$VlessModule$node.type != ProtocolType.VLESS || node.address.isEmpty() || node.port &lt;= 0 || node.uuid.isNullOrEmpty()</ID>
+    <ID>ComplexCondition:VmessModule.kt$VmessModule$node.type != ProtocolType.VMess || node.address.isEmpty() || node.port &lt;= 0 || node.uuid.isNullOrEmpty()</ID>
+    <ID>EmptyFunctionBlock:ShadowsocksModule.kt$ShadowsocksModule${}</ID>
+    <ID>EmptyFunctionBlock:TrojanModule.kt$TrojanModule${}</ID>
+    <ID>EmptyFunctionBlock:VlessModule.kt$VlessModule${}</ID>
+    <ID>EmptyFunctionBlock:VmessModule.kt$VmessModule${}</ID>
+    <ID>MagicNumber:NodeAdapter.kt$NodeAdapter$12</ID>
+    <ID>MagicNumber:NodeAdapter.kt$NodeAdapter$12f</ID>
+    <ID>MagicNumber:NodeAdapter.kt$NodeAdapter$13f</ID>
+    <ID>MagicNumber:NodeAdapter.kt$NodeAdapter$16</ID>
+    <ID>MagicNumber:NodeAdapter.kt$NodeAdapter$16f</ID>
+    <ID>MagicNumber:NodeAdapter.kt$NodeAdapter$40</ID>
+    <ID>MagicNumber:VpnFragment.kt$VpnFragment$16</ID>
+    <ID>MagicNumber:VpnFragment.kt$VpnFragment$22f</ID>
+    <ID>MagicNumber:VpnFragment.kt$VpnFragment$3</ID>
+    <ID>MagicNumber:VpnFragment.kt$VpnFragment$56</ID>
+    <ID>MagicNumber:VpnFragment.kt$VpnFragment$80</ID>
+    <ID>NewLineAtEndOfFile:Node.kt$com.gamecenter.app.vpn.model.Node.kt</ID>
+    <ID>NewLineAtEndOfFile:NodeAdapter.kt$com.gamecenter.app.vpn.adapter.NodeAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:NodeRepository.kt$com.gamecenter.app.vpn.repository.NodeRepository.kt</ID>
+    <ID>NewLineAtEndOfFile:ProtocolFactory.kt$com.gamecenter.app.vpn.protocol.ProtocolFactory.kt</ID>
+    <ID>NewLineAtEndOfFile:ProtocolModule.kt$com.gamecenter.app.vpn.protocol.ProtocolModule.kt</ID>
+    <ID>NewLineAtEndOfFile:ShadowsocksModule.kt$com.gamecenter.app.vpn.protocol.ShadowsocksModule.kt</ID>
+    <ID>NewLineAtEndOfFile:TrojanModule.kt$com.gamecenter.app.vpn.protocol.TrojanModule.kt</ID>
+    <ID>NewLineAtEndOfFile:VlessModule.kt$com.gamecenter.app.vpn.protocol.VlessModule.kt</ID>
+    <ID>NewLineAtEndOfFile:VmessModule.kt$com.gamecenter.app.vpn.protocol.VmessModule.kt</ID>
+    <ID>NewLineAtEndOfFile:VpnFragment.kt$com.gamecenter.app.vpn.VpnFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:VpnModuleEntryPoint.kt$com.gamecenter.app.vpn.VpnModuleEntryPoint.kt</ID>
+    <ID>UnusedImports:NodeAdapter.kt$import android.view.View</ID>
+    <ID>UnusedImports:ShadowsocksModule.kt$import android.util.Log</ID>
+    <ID>UnusedImports:VpnFragment.kt$import android.graphics.Typeface</ID>
+    <ID>UnusedParameter:VpnFragment.kt$VpnFragment$container: ViewGroup?</ID>
+    <ID>UnusedPrivateProperty:ShadowsocksModule.kt$ShadowsocksModule$private val TAG = "ShadowsocksModule"</ID>
+    <ID>UseCheckOrError:ProtocolFactory.kt$ProtocolFactory$throw IllegalStateException("ProtocolFactory 未初始化")</ID>
+    <ID>UseCheckOrError:ShadowsocksModule.kt$ShadowsocksModule$throw IllegalStateException("already connected")</ID>
+    <ID>UseCheckOrError:ShadowsocksModule.kt$ShadowsocksModule$throw IllegalStateException("not prepared")</ID>
+    <ID>UseCheckOrError:TrojanModule.kt$TrojanModule$throw IllegalStateException("already connected")</ID>
+    <ID>UseCheckOrError:TrojanModule.kt$TrojanModule$throw IllegalStateException("not prepared")</ID>
+    <ID>UseCheckOrError:VlessModule.kt$VlessModule$throw IllegalStateException("already connected")</ID>
+    <ID>UseCheckOrError:VlessModule.kt$VlessModule$throw IllegalStateException("not prepared")</ID>
+    <ID>UseCheckOrError:VmessModule.kt$VmessModule$throw IllegalStateException("already connected")</ID>
+    <ID>UseCheckOrError:VmessModule.kt$VmessModule$throw IllegalStateException("not prepared")</ID>
+    <ID>UseCheckOrError:VpnModuleEntryPoint.kt$VpnModuleEntryPoint$throw IllegalStateException("不支持的协议: ${node.type}")</ID>
+    <ID>UseCheckOrError:VpnModuleEntryPoint.kt$VpnModuleEntryPoint$throw IllegalStateException("节点参数无效")</ID>
+    <ID>VariableNaming:NodeRepository.kt$NodeRepository$private val KEY_NODES = "saved_nodes"</ID>
+    <ID>VariableNaming:NodeRepository.kt$NodeRepository$private val KEY_SUBSCRIPTION_URLS = "subscription_urls"</ID>
+    <ID>VariableNaming:ShadowsocksModule.kt$ShadowsocksModule$private val TAG = "ShadowsocksModule"</ID>
+    <ID>WildcardImport:VpnFragment.kt$import android.widget.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

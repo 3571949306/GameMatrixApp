@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ExplicitGarbageCollectionCall:MemoryUtils.kt$MemoryMonitor$gc()</ID>
+    <ID>MagicNumber:AppError.kt$AppError.Companion$400</ID>
+    <ID>MagicNumber:AppError.kt$AppError.Companion$500</ID>
+    <ID>MagicNumber:MemoryUtils.kt$MemoryMonitor$1024</ID>
+    <ID>MagicNumber:MemoryUtils.kt$MemoryMonitor$80</ID>
+    <ID>MatchingDeclarationName:Extensions.kt$AppLog</ID>
+    <ID>NewLineAtEndOfFile:FeatureModule.kt$com.gamecenter.app.core.common.FeatureModule.kt</ID>
+    <ID>NewLineAtEndOfFile:VpnDelegate.kt$com.gamecenter.app.core.common.VpnDelegate.kt</ID>
+    <ID>SwallowedException:Extensions.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AppResult.kt$AppResult.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:Extensions.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:NetworkResult.kt$NetworkResult.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionThrown:AppResultTest.kt$AppResultTest$throw RuntimeException("test")</ID>
+    <ID>UnusedImports:AccessibilityHelper.kt$import android.widget.Button</ID>
+    <ID>UnusedImports:NetworkResult.kt$import com.gamecenter.app.util.AppError</ID>
+    <ID>UseCheckOrError:AppResult.kt$AppResult$throw IllegalStateException("Result is still loading")</ID>
+    <ID>UseCheckOrError:NetworkResult.kt$NetworkResult$throw IllegalStateException("Result is still loading")</ID>
+    <ID>WildcardImport:AppResultTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

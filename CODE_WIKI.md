@@ -611,7 +611,7 @@ UpdateManager (门面)
 | 振动 | vibration_enabled | boolean | true |
 | 应用语言 | app_language | String | "" (跟随系统) |
 
-**更新来源选项**: 自动(0) / 香港VPS(1) / 美国VPS(2) / GitHub(3)
+**更新来源选项**: 自动(0) / 香港VPS(1) / ~~美国VPS(2)~~（已废弃，2026-06-19 下线，自动重定向到 AUTO） / GitHub(3)
 
 #### [ColorSchemeManager.java](app/src/main/java/com/GameMatrix/app/ColorSchemeManager.java)
 
@@ -885,7 +885,7 @@ betaNoticeVersionGap=3
 �?`local.properties` 中配置（不纳入版本控制）�?
 ```properties
 server.url=https://your-server.example.com
-server.url.fallback=
+# server.url.fallback=（2026-06-19 已废弃，US VPS 下线）
 relay.url=https://your-server.example.com/api/ddz-relay
 ws.url=
 feedback.url=https://your-server.example.com/api/feedback

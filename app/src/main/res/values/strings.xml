@@ -41,6 +41,47 @@
     <string name="difficulty_hell">地狱</string>
     <string name="select_difficulty">请选择难度</string>
     <string name="difficulty">难度</string>
+
+    <!-- 五子棋游戏专用字符串 -->
+    <string name="gomoku_main_title">五子棋</string>
+    <string name="gomoku_main_subtitle">人机对战 · 经典15×15</string>
+    <string name="gomoku_difficulty_label_default">难度：中 (2/4)</string>
+    <string name="gomoku_difficulty_low">低</string>
+    <string name="gomoku_difficulty_medium">中</string>
+    <string name="gomoku_difficulty_high">高</string>
+    <string name="gomoku_difficulty_master">大师</string>
+    <string name="gomoku_difficulty_low_desc">新手友好</string>
+    <string name="gomoku_difficulty_medium_desc">均衡挑战</string>
+    <string name="gomoku_difficulty_high_desc">需要技巧</string>
+    <string name="gomoku_difficulty_master_desc">算杀凌厉</string>
+    <string name="gomoku_select_color">选择先手</string>
+    <string name="gomoku_play_black">执黑（先手）</string>
+    <string name="gomoku_play_white">执白（后手）</string>
+    <string name="gomoku_start_game">开始游戏</string>
+    <string name="gomoku_tutorial">新手教程</string>
+    <string name="gomoku_hint">提示</string>
+    <string name="gomoku_resign">认输</string>
+    <string name="gomoku_resign_title">认输</string>
+    <string name="gomoku_resign_message">确定要认输吗？将记录为AI获胜。</string>
+    <string name="gomoku_resign_confirm">确定认输</string>
+    <string name="gomoku_resign_cancel">继续对局</string>
+    <string name="gomoku_restart_title">重新开始</string>
+    <string name="gomoku_restart_message">确定要重新开始当前对局吗？</string>
+    <string name="gomoku_exit_title">退出对局</string>
+    <string name="gomoku_exit_message">当前对局尚未结束，确定要退出吗？</string>
+    <string name="gomoku_exit_confirm">退出</string>
+    <string name="gomoku_exit_restart">重新开始</string>
+    <string name="gomoku_exit_continue">继续对局</string>
+    <string name="gomoku_turn_format">第 %1$d 回合</string>
+    <string name="gomoku_black_turn">黑方回合</string>
+    <string name="gomoku_white_turn">白方回合</string>
+    <string name="gomoku_ai_thinking">AI思考中…</string>
+    <string name="gomoku_game_over">对局结束</string>
+    <string name="gomoku_draw">平局!</string>
+    <string name="gomoku_black_win">黑方胜利!</string>
+    <string name="gomoku_white_win">白方胜利!</string>
+    <string name="gomoku_final_moves">最终回合数: %1$d</string>
+    <string name="gomoku_timer_format">%02d:%02d</string>
     <string name="rules">规则</string>
     <string name="tutorial">教程</string>
     <string name="pause">暂停</string>
@@ -246,7 +287,8 @@
     <string name="settings_source_auto">自动</string>
     <string name="settings_source_auto_recommended">自动（推荐）</string>
     <string name="settings_source_hk_vps">香港 VPS</string>
-    <string name="settings_source_us_vps">美国 VPS</string>
+    <!-- 2026-06-19: 美国 VPS 已下线，此字符串保留向后兼容（无代码引用），后续可删除 -->
+    <string name="settings_source_us_vps">美国 VPS（已废弃）</string>
     <string name="settings_source_github">GitHub Releases</string>
 
     <!-- 成就系统 -->
@@ -334,13 +376,30 @@
     <string name="settings_appearance">外观设置</string>
     <string name="settings_update">更新与版本</string>
     <string name="settings_more">更多</string>
+    <string name="settings_audio_feedback">声音与反馈</string>
+    <string name="settings_sfx_master">音效总开关</string>
+    <string name="settings_sfx_master_desc">控制所有音频播放，关闭后应用完全静音</string>
+    <string name="settings_game_sound">游戏音效</string>
+    <string name="settings_game_sound_desc">游戏中的落子、发牌、胜利等音效</string>
+    <string name="settings_vibration">振动反馈</string>
+    <string name="settings_vibration_desc">游戏操作时的振动触感反馈</string>
+    <string name="settings_theme_mode">主题模式</string>
+    <string name="settings_color_scheme">配色方案</string>
+    <string name="settings_scheme_default">紫韵</string>
+    <string name="settings_language">应用语言</string>
+    <string name="settings_select_language">选择应用语言</string>
+    <string name="settings_select_theme">选择主题模式</string>
+    <string name="settings_update_detail">更新源、自动下载、Beta 通道</string>
+    <string name="settings_game_stats">游戏战绩</string>
+    <string name="settings_game_stats_desc">查看游戏统计与成就</string>
+    <string name="settings_feedback">帮助与反馈</string>
     <string name="apply">应用</string>
     <string name="theme_light">浅色模式</string>
     <string name="theme_dark">深色模式</string>
     <string name="theme_system">跟随系统</string>
     <string name="language_auto">跟随系统</string>
-    <string name="language_zh">简体中文</string>
-    <string name="language_en">English</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
     <string name="ai_typing">AI 正在输入…</string>
     <string name="sending">发送中…</string>
     <string name="install">安装</string>
@@ -356,4 +415,29 @@
     <string name="downloading">正在下载…</string>
     <string name="check_update">检查更新</string>
     <string name="update">更新</string>
+
+    <!-- ===== 中国象棋 ===== -->
+    <string name="chinese_chess_title">中国象棋</string>
+    <string name="chinese_chess_subtitle">楚河汉界，将帅对弈</string>
+    <string name="chinese_chess_difficulty_easy">简单</string>
+    <string name="chinese_chess_difficulty_normal">普通</string>
+    <string name="chinese_chess_difficulty_hard">困难</string>
+    <string name="chinese_chess_difficulty_master">大师</string>
+    <string name="chinese_chess_difficulty_easy_desc">搜索深度 2，适合新手</string>
+    <string name="chinese_chess_difficulty_normal_desc">搜索深度 4，均衡挑战</string>
+    <string name="chinese_chess_difficulty_hard_desc">搜索深度 6，高手对决</string>
+    <string name="chinese_chess_difficulty_master_desc">搜索深度 8，终极挑战</string>
+    <string name="chinese_chess_start">开始对弈</string>
+    <string name="chinese_chess_restart">重新开始</string>
+    <string name="chinese_chess_undo">悔棋</string>
+    <string name="chinese_chess_back">返回</string>
+    <string name="chinese_chess_ai_thinking">AI 思考中…</string>
+    <string name="chinese_chess_win">恭喜获胜！</string>
+    <string name="chinese_chess_lose">本局负，再接再厉</string>
+    <string name="chinese_chess_difficulty_changed">难度已切换为：%1$s</string>
+    <string name="chinese_chess_select_difficulty">请先选择难度</string>
+    <string name="chinese_chess_exit_confirm">确定要退出当前对局吗？</string>
+    <string name="chinese_chess_exit_yes">退出</string>
+    <string name="chinese_chess_exit_no">继续对局</string>
+    <string name="chinese_chess_undo_unavailable">当前无法悔棋</string>
 </resources>

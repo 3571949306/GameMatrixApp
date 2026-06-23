@@ -103,6 +103,24 @@
     <color name="gomoku_line">#643C14</color>
     <color name="gomoku_black_piece">#141414</color>
     <color name="gomoku_white_piece">#F0F0F0</color>
+    <!-- 五子棋主页配色（浅色木纹卡片风格） -->
+    <color name="gomoku_main_bg">#F5EFE6</color>
+    <color name="gomoku_main_bg_end">#E8DCC8</color>
+    <color name="gomoku_card_bg">#DEB887</color>
+    <color name="gomoku_card_bg_end">#D2A679</color>
+    <color name="gomoku_card_border">#8B5A2B</color>
+    <color name="gomoku_title_text">#3E2723</color>
+    <color name="gomoku_subtitle_text">#6D4C41</color>
+    <color name="gomoku_accent">#6D4C41</color>
+    <color name="gomoku_accent_light">#D7CCC8</color>
+    <color name="gomoku_difficulty_selected">#6D4C41</color>
+    <color name="gomoku_difficulty_selected_text">#FFFFFF</color>
+    <color name="gomoku_difficulty_unselected">#3E2723</color>
+    <color name="gomoku_difficulty_unselected_bg">#BCAAA4</color>
+    <color name="gomoku_start_btn_start">#5D4037</color>
+    <color name="gomoku_start_btn_end">#3E2723</color>
+    <color name="gomoku_star_filled">#FFC107</color>
+    <color name="gomoku_star_empty">#9E9E9E</color>
     <color name="chess_bg">#F9E4B7</color>
     <color name="chess_line">#8B5A2B</color>
     <color name="chess_red">#C80000</color>
@@ -138,4 +156,37 @@
     <color name="ai_message_star">#FBBF24</color>
     <color name="status_update_available">#22C55E</color>
     <color name="status_update_available_container">#DCFCE7</color>
+
+    <!-- ===== 中国象棋配色（浅色主题） ===== -->
+    <color name="chinese_chess_board_bg">#F5E6C8</color>
+    <color name="chinese_chess_line">#8B5A2B</color>
+    <color name="chinese_chess_river_text">#6B4423</color>
+    <color name="chinese_chess_coord">#8B5A2B</color>
+    <color name="chinese_chess_red">#E53935</color>
+    <color name="chinese_chess_black">#1A1A1A</color>
+    <color name="chinese_chess_piece_bg_start">#FFF8E1</color>
+    <color name="chinese_chess_piece_bg_end">#E8D9B0</color>
+    <color name="chinese_chess_selected">#4400D9FF</color>
+    <color name="chinese_chess_hint">#6600C853</color>
+    <color name="chinese_chess_last_move">#99FF0000</color>
+    <color name="chinese_chess_ai_thinking">#FFA500</color>
+
+    <!-- ===== 中国象棋主页配色（浅色主题，木纹卡片风格） ===== -->
+    <color name="chess_main_bg">#F5EFE6</color>
+    <color name="chess_main_bg_end">#E8DCC8</color>
+    <color name="chess_card_bg">#DEB887</color>
+    <color name="chess_card_bg_end">#D2A679</color>
+    <color name="chess_card_border">#8B5A2B</color>
+    <color name="chess_title_text">#3E2723</color>
+    <color name="chess_subtitle_text">#6D4C41</color>
+    <color name="chess_difficulty_selected">#6D4C41</color>
+    <color name="chess_difficulty_selected_text">#FFFFFF</color>
+    <color name="chess_difficulty_unselected">#3E2723</color>
+    <color name="chess_difficulty_unselected_bg">#BCAAA4</color>
+    <color name="chess_start_btn_start">#5D4037</color>
+    <color name="chess_start_btn_end">#3E2723</color>
+    <color name="chess_star_filled">#FFC107</color>
+    <color name="chess_star_empty">#9E9E9E</color>
+    <color name="chess_control_btn_bg">#5D4037</color>
+    <color name="chess_control_btn_text">#FFFFFF</color>
 </resources>
