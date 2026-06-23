@@ -1,0 +1,54 @@
+# gitleaks configuration for GameMatrixApp
+# 防止 API key / token / keystore 密码被 commit 到 git
+title = "GameMatrixApp gitleaks config"
+
+[extend]
+# Use the default gitleaks ruleset as a baseline
+useDefault = true
+
+# Allow-list: explicitly permit files that legitimately contain test patterns
+[allowlist]
+paths = [
+  # Test fixtures that contain fake/example keys
+  '''app/src/test/.*\.kt$''',
+  '''app/src/test/.*\.java$''',
+  '''.*/test/.*\.kt$''',
+  '''.*/test/.*\.java$''',
+  # Reference docs
+  '''README\.md$''',
+  '''CHANGELOG\.md$''',
+  '''CHANGELOG\.txt$''',
+  '''docs/.*\.md$''',
+  # Build outputs
+  '''build/.*$''',
+  '''.*/build/.*$''',
+  '''.*\.apk$''',
+  '''.*\.jks$''',
+  '''.*\.keystore$''',
+  # Local config (should be gitignored anyway, but be safe)
+  '''local\.properties$''',
+  '''keystore\.properties$''',
+]
+
+# Custom rules for project-specific patterns
+[[rules]]
+id = "gamematrix-mimo-api-key"
+description = "MiMo TTS API key (sk- prefix, 50+ chars)"
+regex = '''sk-[a-zA-Z0-9]{40,}'''
+tags = ["secret", "api-key"]
+keywords = ["sk-"]
+
+[[rules]]
+id = "gamematrix-android-keystore-pass"
+description = "Android keystore default passwords"
+# Catches: storePassword = "android" / keyPassword = "android" inside build.gradle
+regex = '''(?i)(storePassword|keyPassword)\s*=\s*["']android["']'''
+path = '''.*build\.gradle(\.kts)?$'''
+tags = ["secret", "keystore"]
+
+[[rules]]
+id = "gamematrix-absolute-path-secret"
+description = "Hardcoded server URL or fallback with credentials"
+# Catches URLs with embedded user:pass@
+regex = '''https?://[a-zA-Z0-9_]+:[a-zA-Z0-9_]+@[a-zA-Z0-9.-]+'''
+tags = ["secret", "url-credentials"]

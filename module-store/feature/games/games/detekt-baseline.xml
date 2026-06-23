@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CognitiveComplexMethod:MineSweeperView.kt$MineSweeperView$private fun calculateAdjacent()</ID>
+    <ID>CognitiveComplexMethod:RelayHostHelper.kt$RelayHostHelper$private fun startRelayPolling()</ID>
+    <ID>LongMethod:MineSweeperActivity.kt$MineSweeperActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>LoopWithTooManyJumpStatements:RelayHostHelper.kt$RelayHostHelper$for</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$10</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$16</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$18f</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$24</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$30</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$4</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$40</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$8</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$9</ID>
+    <ID>MagicNumber:MineSweeperActivity.kt$MineSweeperActivity$99</ID>
+    <ID>MagicNumber:MineSweeperModule.kt$MineSweeperModule$10</ID>
+    <ID>MagicNumber:MineSweeperModule.kt$MineSweeperModule$9</ID>
+    <ID>MagicNumber:MineSweeperView.kt$MineSweeperView$0.55f</ID>
+    <ID>MagicNumber:MineSweeperView.kt$MineSweeperView$0.6f</ID>
+    <ID>MagicNumber:MineSweeperView.kt$MineSweeperView$3</ID>
+    <ID>MagicNumber:RelayHostHelper.kt$RelayHostHelper$10000</ID>
+    <ID>MagicNumber:RelayHostHelper.kt$RelayHostHelper$1500L</ID>
+    <ID>MagicNumber:RelayHostHelper.kt$RelayHostHelper$35000</ID>
+    <ID>MagicNumber:RelayHostHelper.kt$RelayHostHelper$5000</ID>
+    <ID>MagicNumber:WebSocketClientHelper.kt$WebSocketClientHelper$6</ID>
+    <ID>NestedBlockDepth:MineSweeperView.kt$MineSweeperView$override fun onDraw(canvas: Canvas)</ID>
+    <ID>NestedBlockDepth:MineSweeperView.kt$MineSweeperView$private fun calculateAdjacent()</ID>
+    <ID>NestedBlockDepth:MineSweeperView.kt$MineSweeperView$private fun floodReveal(r: Int, c: Int)</ID>
+    <ID>SwallowedException:WebSocketClientHelper.kt$WebSocketClientHelper$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:RelayHostHelper.kt$RelayHostHelper$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:WebSocketClientHelper.kt$WebSocketClientHelper$e: Exception</ID>
+    <ID>WildcardImport:RelayHostHelper.kt$import kotlinx.coroutines.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

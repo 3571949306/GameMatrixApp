@@ -1,0 +1,64 @@
+// app/tasks.gradle
+// Phase 1.4: 从 app/build.gradle 拆出 — 自定义 task (version 生成 + 发布脚本)
+// 集中维护发布相关 task, 不跟 main build.gradle 混
+
+ext.registerPublishingTasks = { project ->
+    def rootDir = project.rootDir
+    def buildDir = project.buildDir
+    def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
+    def generatedVersionAssetDir = file("${buildDir}/generated/assets/version")
+
+    def changelogFile = file("${rootDir}/CHANGELOG.md")
+    def legacyChangelogFile = file("${rootDir}/changelog.txt")
+
+    project.task('generateBundledVersionJson') {
+        inputs.property("versionCode", project.currentVersionCode)
+        inputs.property("versionName", project.currentVersionName)
+        inputs.property("versionChannel", project.currentVersionChannel)
+        inputs.property("lastStableVersionCode", project.lastStableVersionCode)
+        inputs.property("lastStableVersionName", project.lastStableVersionName)
+        inputs.property("changelogText", project.readChangelogText())
+        outputs.file(new File(generatedVersionAssetDir, "version.json"))
+        doLast {
+            generatedVersionAssetDir.mkdirs()
+            new File(generatedVersionAssetDir, "version.json").setText(project.buildVersionJsonText(), "UTF-8")
+            println "Generated bundled version.json: vc=${project.currentVersionCode}, channel=${project.currentVersionChannel}"
+        }
+    }
+
+    project.task('generateVersionJson') {
+        dependsOn 'generateBundledVersionJson'
+        doLast {
+            def debugApkDir = file("${buildDir}/outputs/apk/debug")
+            def releaseApkDir = file("${buildDir}/outputs/apk/release")
+            debugApkDir.mkdirs()
+            releaseApkDir.mkdirs()
+            new File(debugApkDir, "version.json").setText(project.buildVersionJsonText(), "UTF-8")
+            new File(releaseApkDir, "version.json").setText(project.buildVersionJsonText(), "UTF-8")
+            println "Generated version.json: vc=${project.currentVersionCode}"
+        }
+    }
+
+    project.task('bumpVersion') {
+        doLast {
+            def propsFile = file("${rootDir}/version.properties")
+            def nextCode = android.defaultConfig.versionCode + 1
+            def curName = android.defaultConfig.versionName
+            propsFile.setText("# versionCode：内部测试版本号\n" +
+                    "versionCode=${nextCode}\n" +
+                    "versionName=${curName}\n" +
+                    "lastStableVersionCode=${project.lastStableVersionCode}\n" +
+                    "lastStableVersionName=${project.lastStableVersionName}\n" +
+                    "betaNoticeVersionGap=3\n", "UTF-8")
+            println "Version bumped: ${android.defaultConfig.versionCode} -> ${nextCode}"
+        }
+    }
+
+    project.task('packageAppClasses', type: Jar) {
+        dependsOn 'compileDebugJavaWithJavac', 'compileDebugKotlin'
+        archiveFileName = "app-classes.jar"
+        destinationDirectory = file("${buildDir}/libs")
+        from("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+        from("${buildDir}/tmp/kotlin-classes/debug")
+    }
+}

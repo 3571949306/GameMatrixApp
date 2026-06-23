@@ -18,9 +18,6 @@
 # 主更新源（推荐使用 HTTPS）
 server.url=https://hk-update.<YOUR_DOMAIN>
 
-# 备用更新源（主更新源失败时自动切换）
-server.url.fallback=https://<YOUR_FALLBACK_DOMAIN>:1443
-
 # HTTP Relay 服务（斗地主云联机）
 relay.url=https://hk-relay.<YOUR_DOMAIN>/api/ddz-relay
 
@@ -29,6 +26,11 @@ ws.url=wss://hk-ws.<YOUR_DOMAIN>/ddz-ws
 
 # 用户反馈服务
 feedback.url=https://<YOUR_DOMAIN>/api/feedback
+
+# ============ 分发渠道说明（2026-06-19 更新）============
+# App 分发渠道已精简为两级：香港 VPS（主源）→ GitHub Releases（备用源）
+# 已移除美国 VPS 备用源。server.url.fallback 配置项已废弃，保留空值向后兼容。
+# 旧版本 App 仍可能请求美国 VPS URL，服务器端可配置 301 重定向到香港 VPS。
 
 # ============ GitHub Releases 配置 ============
 # 发布正式版时自动上传 APK 到 GitHub Releases
