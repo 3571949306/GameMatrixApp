@@ -61,6 +61,15 @@ public class ModuleLoaderV2Test {
         context = RuntimeEnvironment.getApplication();
         assertNotNull("Context 不应为 null", context);
 
+        // 重置单例，确保每个测试使用独立的 ModuleLoaderV2 实例
+        try {
+            java.lang.reflect.Field instanceField = ModuleLoaderV2.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);
+        } catch (Exception e) {
+            // 忽略反射失败
+        }
+
         // 获取 ModuleLoaderV2 实例
         moduleLoader = ModuleLoaderV2.getInstance(context);
         assertNotNull("ModuleLoaderV2 实例不应为 null", moduleLoader);

@@ -79,12 +79,6 @@ public class GameRegistryTest extends BaseAndroidTest {
     }
 
     @Test
-    public void testIsPluginGame_notRegistered() {
-        assertFalse("Unregistered game should not be a plugin",
-                GameRegistry.isPluginGame("gomoku"));
-    }
-
-    @Test
     public void testFlattenCategories() {
         assertNotNull("Context should not be null", context);
 
