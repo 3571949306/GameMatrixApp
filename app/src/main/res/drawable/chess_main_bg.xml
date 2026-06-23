@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 中国象棋主页背景：浅米色渐变 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="@color/chess_main_bg"
+        android:endColor="@color/chess_main_bg_end"
+        android:angle="180" />
+</shape>

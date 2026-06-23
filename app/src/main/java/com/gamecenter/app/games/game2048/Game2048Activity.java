@@ -1,11 +1,13 @@
 package com.gamecenter.app.games.game2048;
 
+import android.media.SoundPool;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
@@ -46,6 +48,12 @@ public class Game2048Activity extends BaseGameActivity {
     /** 已合成的最大数字 */
     private int maxTileValue = 0;
 
+    /** 音效播放器，用于滑动和合并音效 */
+    private SoundPool soundPool;
+
+    /** 加载的音效资源 ID（复用 R.raw.ui_turn） */
+    private int gameSoundId = 0;
+
     // ==================== BaseGameActivity 实现 ====================
 
     @NonNull
@@ -69,6 +77,15 @@ public class Game2048Activity extends BaseGameActivity {
     @Override
     protected void initGame() {
         game2048View = new Game2048View(this);
+
+        // 初始化音效：复用现有的 R.raw.ui_turn 资源
+        try {
+            soundPool = new SoundPool.Builder().setMaxStreams(2).build();
+            gameSoundId = soundPool.load(this, R.raw.ui_turn, 1);
+            game2048View.setSoundPool(soundPool, gameSoundId);
+        } catch (Exception ignored) {
+            // 音效加载失败不影响游戏进行
+        }
 
         // 设置游戏事件监听
         game2048View.setOnScoreChangeListener(score -> {
@@ -124,6 +141,15 @@ public class Game2048Activity extends BaseGameActivity {
     protected void endGame() {
         isGameRunning = false;
         game2048View.stopGame();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (soundPool != null) {
+            soundPool.release();
+            soundPool = null;
+        }
     }
 
     @Override

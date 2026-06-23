@@ -1,9 +1,8 @@
 package com.gamecenter.app.games.gomoku;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Random;
 
 /**
  * 五子棋AI引擎，基于Minimax搜索 + Alpha-Beta剪枝。
@@ -15,9 +14,12 @@ import java.util.Set;
  * <ul>
  *   <li>4个难度等级对应独立AI配置（低 / 中 / 高 / 大师）</li>
  *   <li>使用威胁评估（{@link Threat}）进行着法排序和局面评估</li>
- *   <li>防御评分乘以1.18/1.25的权重偏置，使AI更重视防守</li>
+ *   <li>防御评分按难度乘以1.12~1.40的权重偏置，难度越低越重防守</li>
  *   <li>候选着法仅考虑已有棋子周围2格范围内的空位，大幅减少搜索空间</li>
  * <li>强制着法检测：优先处理立即获胜、阻挡对手获胜、应对重大威胁</li>
+ * <li>低难度有概率随机选择前3评分着法，新手更容易获胜</li>
+ * <li>大师难度启用VCF（连续冲四算杀）浅层搜索，提升攻击力</li>
+ * <li>评估函数识别"跳活三"和"跳冲四"等间隔棋型</li>
  * </ul>
  *
  * 【初学者指南】
@@ -45,11 +47,32 @@ public class GomokuAI {
     // 获胜评分基准值：分数高到这个程度就意味着赢了
     private static final int WIN_SCORE = 10_000_000;
 
+    // VCF算杀的最大搜索深度（6层=3个回合）
+    private static final int VCF_MAX_DEPTH = 6;
+
+    // VCF搜索占用最大搜索时间的比例（40%）
+    private static final double VCF_TIME_RATIO = 0.4;
+
+    // 低难度随机走子：从评分前N名中随机选
+    private static final int RANDOM_TOP_N = 3;
+
     /** 当前难度对应的最大搜索时间 */
     private final int maxTimeMs;
 
     /** 当前难度对应的最大搜索深度 */
     private final int maxDepth;
+
+    /** 当前难度等级（1~4） */
+    private final int level;
+
+    /** 防守偏置：人类方评分乘以该权重，难度越低越重防守 */
+    private final double defenseBias;
+
+    /** 随机数生成器，用于低难度随机走子和开局首手偏移 */
+    private final Random random;
+
+    /** VCF算杀开关（feature flag）：仅大师难度启用 */
+    private final boolean vcfEnabled;
 
     /** 搜索开始时间戳 */
     private long searchStartMs;
@@ -70,6 +93,33 @@ public class GomokuAI {
         DifficultyProfile profile = DIFFICULTY_PROFILES[idx];
         this.maxTimeMs = profile.maxTimeMs;
         this.maxDepth = profile.maxDepth;
+        this.level = idx + 1;
+        // 防守偏置按难度递减：低难度重防守（保守易破），高难度重进攻（激进）
+        this.defenseBias = defenseBiasForLevel(this.level);
+        this.random = new Random();
+        // VCF算杀仅大师难度启用
+        this.vcfEnabled = (this.level == 4);
+    }
+
+    /**
+     * 根据难度等级返回防守偏置。
+     * <p>
+     * 难度1（低）：1.40，最保守，重防守，新手容易找到突破口
+     * 难度2（中）：1.25
+     * 难度3（高）：1.18
+     * 难度4（大师）：1.12，最激进，重进攻
+     *
+     * @param level 难度等级（1~4）
+     * @return 防守偏置
+     */
+    private static double defenseBiasForLevel(int level) {
+        switch (level) {
+            case 1: return 1.40;
+            case 2: return 1.25;
+            case 3: return 1.18;
+            case 4: return 1.12;
+            default: return 1.18;
+        }
     }
 
     private static class DifficultyProfile {
@@ -105,6 +155,9 @@ public class GomokuAI {
      * 在四个方向上扫描所有包含该位置的5格窗口，
      * 统计窗口内的己方棋子数、空位数和开放端数，
      * 并据此计算威胁评分。
+     * <p>
+     * 此外通过 {@link #evaluateGapPatterns} 额外扫描6格窗口，
+     * 识别"跳活三"和"跳冲四"等间隔棋型（连续窗口扫描无法识别）。
      *
      * @param x      横坐标
      * @param y      纵坐标
@@ -158,11 +211,105 @@ public class GomokuAI {
             }
         }
 
+        // 额外扫描6格窗口识别间隔棋型（跳活三、跳冲四）
+        // 连续5格窗口扫描无法识别中间带空位的棋型，需用6格窗口补充
+        evaluateGapPatterns(threat, x, y, player, board);
+
         // 组合威胁加成：活四、双四、双活三
         if (threat.openFours > 0) threat.score += 1_500_000;
         if (threat.fours >= 2) threat.score += 1_200_000;
         if (threat.openThrees >= 2) threat.score += 120_000;
         return threat;
+    }
+
+    /**
+     * 扫描6格窗口识别间隔棋型（跳活三、跳冲四）。
+     * <p>
+     * 连续5格窗口扫描（{@link #addWindowScore}）只能识别紧密相连的棋型，
+     * 无法识别中间带空位的"跳"棋型。本方法对每个方向扫描以 (x,y) 为基准的
+     * 6格窗口（offset 从 -5 到 0），统计窗口内棋子数、空位数和首末棋子间
+     * 是否存在空位（gap），据此识别：
+     * <ul>
+     *   <li>跳活三：6格窗口内3子且首末棋子间有空位，两端开放，评分 25,000
+     *       （介于活三35,000和眠三4,000之间，因为是潜在活三）</li>
+     *   <li>跳冲四：6格窗口内4子且首末棋子间有空位，一端被堵，评分 120,000
+     *       （介于冲四180,000和活三35,000之间）</li>
+     * </ul>
+     * 注意：本方法只识别有 gap 的棋型，连续棋型由 {@link #addWindowScore} 处理，
+     * 不会重复识别。
+     *
+     * @param threat 威胁对象（累加评分）
+     * @param x      基准横坐标
+     * @param y      基准纵坐标
+     * @param player 评估方
+     * @param board  棋盘数组
+     */
+    private void evaluateGapPatterns(Threat threat, int x, int y, int player, int[][] board) {
+        for (int[] dir : GomokuGame.DIRECTIONS) {
+            // 遍历以(x,y)为基准的6个可能的6格窗口
+            for (int offset = -5; offset <= 0; offset++) {
+                int startX = x + dir[0] * offset;
+                int startY = y + dir[1] * offset;
+
+                int stones = 0;
+                int firstStonePos = -1;
+                int lastStonePos = -1;
+                boolean blocked = false;
+
+                // 扫描6格窗口，记录棋子数及首末棋子位置
+                for (int i = 0; i < 6; i++) {
+                    int cx = startX + dir[0] * i;
+                    int cy = startY + dir[1] * i;
+                    if (!isInside(cx, cy)) {
+                        blocked = true;
+                        break;
+                    }
+                    int cell = board[cy][cx];
+                    if (cell == player) {
+                        stones++;
+                        if (firstStonePos == -1) firstStonePos = i;
+                        lastStonePos = i;
+                    } else if (cell != GomokuGame.EMPTY) {
+                        // 窗口内含对方棋子，无效
+                        blocked = true;
+                        break;
+                    }
+                }
+
+                if (blocked) continue;
+                // 首末棋子间至少要有一个空位才算"跳"棋型
+                if (lastStonePos <= firstStonePos + 1) continue;
+
+                // 检查首末棋子之间是否存在空位（gap）
+                boolean hasGap = false;
+                for (int i = firstStonePos + 1; i < lastStonePos; i++) {
+                    int cx = startX + dir[0] * i;
+                    int cy = startY + dir[1] * i;
+                    if (board[cy][cx] == GomokuGame.EMPTY) {
+                        hasGap = true;
+                        break;
+                    }
+                }
+                if (!hasGap) continue; // 连续棋型，交给 addWindowScore 处理
+
+                // 计算窗口两端的开放性
+                int beforeX = startX - dir[0];
+                int beforeY = startY - dir[1];
+                int afterX = startX + dir[0] * 6;
+                int afterY = startY + dir[1] * 6;
+                int openEnds = (isEmpty(board, beforeX, beforeY) ? 1 : 0)
+                        + (isEmpty(board, afterX, afterY) ? 1 : 0);
+
+                // 跳活三：3子，两端开放
+                if (stones == 3 && openEnds == 2) {
+                    threat.score += 25_000;
+                }
+                // 跳冲四：4子，一端被堵（openEnds == 1）
+                else if (stones == 4 && openEnds == 1) {
+                    threat.score += 120_000;
+                }
+            }
+        }
     }
 
     /**
@@ -231,7 +378,8 @@ public class GomokuAI {
      * 全局局面评估函数。
      * <p>
      * 遍历棋盘上所有棋子，累加AI方评分并减去人类方评分。
-     * 人类方评分乘以1.18的偏置，使评估更重视防守。
+     * 人类方评分乘以 {@link #defenseBias} 的偏置，使评估更重视防守。
+     * 难度越低偏置越大（越保守），难度越高偏置越小（越激进）。
      *
      * @param board    棋盘数组
      * @param aiPlayer AI方颜色
@@ -246,7 +394,7 @@ public class GomokuAI {
                     score += evaluatePosition(x, y, aiPlayer, board);
                 } else if (board[y][x] == humanPlayer) {
                     // 防守偏置：人类方评分权重更高
-                    score -= (int) (evaluatePosition(x, y, humanPlayer, board) * 1.18);
+                    score -= (int) (evaluatePosition(x, y, humanPlayer, board) * defenseBias);
                 }
             }
         }
@@ -257,14 +405,16 @@ public class GomokuAI {
      * 获取候选着法列表。
      * <p>
      * 仅考虑已有棋子周围2格范围内的空位，大幅减少搜索空间。
-     * 使用Set去重。若棋盘无棋子，返回中心点。
+     * 使用Set去重。若棋盘无棋子，从天元及其相邻6个位置中随机选一个，
+     * 增加开局多样性。
      *
      * @param board 棋盘数组
      * @return 候选着法坐标列表
      */
     private List<int[]> getCandidateMoves(int[][] board) {
         List<int[]> moves = new ArrayList<>();
-        Set<Long> seen = new HashSet<>();
+        // 使用二维布尔数组去重，避免 HashSet 自动装箱的潜在 NPE 问题
+        boolean[][] seen = new boolean[GomokuGame.BOARD_SIZE][GomokuGame.BOARD_SIZE];
         boolean hasPiece = false;
 
         for (int y = 0; y < GomokuGame.BOARD_SIZE; y++) {
@@ -276,21 +426,29 @@ public class GomokuAI {
                     for (int dx = -2; dx <= 2; dx++) {
                         int nx = x + dx;
                         int ny = y + dy;
-                        if (isInside(nx, ny) && board[ny][nx] == GomokuGame.EMPTY) {
-                            // 使用坐标组合的long值去重
-                            long key = ((long) ny << 32) | (nx & 0xFFFFFFFFL);
-                            if (seen.add(key)) {
-                                moves.add(new int[]{nx, ny});
-                            }
+                        if (isInside(nx, ny) && board[ny][nx] == GomokuGame.EMPTY && !seen[ny][nx]) {
+                            seen[ny][nx] = true;
+                            moves.add(new int[]{nx, ny});
                         }
                     }
                 }
             }
         }
 
-        // 棋盘为空时下天元
+        // 棋盘为空时从天元及周围6个候选位置随机选一个，增加开局多样性
         if (!hasPiece) {
-            moves.add(new int[]{GomokuGame.BOARD_SIZE / 2, GomokuGame.BOARD_SIZE / 2});
+            int center = GomokuGame.BOARD_SIZE / 2;
+            int[][] openCandidates = {
+                    {center, center},       // 天元 (7,7)
+                    {center - 1, center - 1}, // (6,6)
+                    {center - 1, center},     // (6,7)
+                    {center, center - 1},     // (7,6)
+                    {center, center + 1},     // (7,8)
+                    {center + 1, center},     // (8,7)
+                    {center + 1, center + 1}  // (8,8)
+            };
+            int[] pick = openCandidates[random.nextInt(openCandidates.length)];
+            moves.add(new int[]{pick[0], pick[1]});
         }
         return moves;
     }
@@ -436,7 +594,7 @@ public class GomokuAI {
     /**
      * 评估某位置对某方的着法评分（用于着法排序）。
      * <p>
-     * 同时计算进攻评分和防守评分，防守评分乘以1.25的偏置。
+     * 同时计算进攻评分和防守评分，防守评分乘以 {@link #defenseBias} 的偏置。
      * 还考虑立即获胜、阻挡对手获胜、活四/双四/双活三等威胁。
      *
      * @param x      横坐标
@@ -460,7 +618,7 @@ public class GomokuAI {
         boolean blocksWin = checkWinAt(x, y, opponent, board);
         board[y][x] = GomokuGame.EMPTY;
 
-        int score = attack.score + (int) (defense.score * 1.25) + centerBias(x, y);
+        int score = attack.score + (int) (defense.score * defenseBias) + centerBias(x, y);
         if (winsNow) score += WIN_SCORE;
         if (blocksWin) score += WIN_SCORE / 2;
         if (attack.openFours > 0 || attack.fours >= 2) score += 1_000_000;
@@ -477,9 +635,11 @@ public class GomokuAI {
      * <ol>
      *   <li>获取候选着法</li>
      *   <li>检查强制着法（立即获胜、阻挡对手获胜、应对重大威胁）</li>
+     *   <li>大师难度启用VCF算杀：尝试连续冲四必胜路径，找到则直接返回首手</li>
      *   <li>对候选着法评分排序</li>
      *   <li>迭代加深Minimax搜索：从深度1逐步增加到当前难度配置的上限</li>
      *   <li>每次迭代保留最佳着法，超时后返回上一轮完成的结果</li>
+     *   <li>低难度按概率从评分前3中随机选一个，增加新手友好度</li>
      * </ol>
      *
      * @param game     五子棋游戏对象
@@ -509,6 +669,15 @@ public class GomokuAI {
 
         forcedMove = findMajorThreat(moves, board, aiPlayer);
         if (forcedMove != null) return forcedMove;
+
+        // 大师难度VCF算杀：在迭代加深前尝试连续冲四必胜路径
+        // VCF占用最大搜索时间的40%，超时则放弃转正常搜索
+        if (vcfEnabled) {
+            int[] vcfMove = findVcfMove(board, aiPlayer);
+            if (vcfMove != null) return vcfMove;
+            // VCF超时后重置超时标志，让后续迭代加深搜索有完整预算
+            timedOut = false;
+        }
 
         // 迭代加深搜索
         List<int[]> orderedMoves = scoreAndSortMoves(moves, board, aiPlayer, moves.size());
@@ -541,7 +710,175 @@ public class GomokuAI {
             }
         }
 
+        // 低难度随机走子：按概率从评分前3中随机选一个，新手更容易获胜
+        // 难度3/4始终选最优，不随机
+        bestMove = maybePickRandomFromTop(bestMove, orderedMoves);
+
         return bestMove;
+    }
+
+    /**
+     * 低难度随机走子：按难度概率从评分前N名中随机选一个。
+     * <p>
+     * 难度1（低）：30%概率选评分前3的随机走子
+     * 难度2（中）：15%概率选评分前3的随机走子
+     * 难度3/4：不随机，始终选最优
+     * <p>
+     * 这样低难度AI偶尔会走次优着法，让新手有获胜机会。
+     *
+     * @param bestMove      当前最优着法
+     * @param orderedMoves  按评分降序排列的候选着法列表
+     * @return 最终着法
+     */
+    private int[] maybePickRandomFromTop(int[] bestMove, List<int[]> orderedMoves) {
+        double probability;
+        if (level == 1) {
+            probability = 0.30;
+        } else if (level == 2) {
+            probability = 0.15;
+        } else {
+            // 难度3/4不随机
+            return bestMove;
+        }
+
+        if (orderedMoves.size() <= 1) return bestMove;
+        if (random.nextDouble() >= probability) return bestMove;
+
+        int topN = Math.min(RANDOM_TOP_N, orderedMoves.size());
+        return orderedMoves.get(random.nextInt(topN));
+    }
+
+    /**
+     * VCF（Victory by Continuous Four）算杀入口。
+     * <p>
+     * 仅大师难度启用。在迭代加深搜索前尝试寻找连续冲四必胜路径。
+     * VCF搜索总时间不超过最大搜索时间的 {@link #VCF_TIME_RATIO}（40%）。
+     *
+     * @param board    棋盘数组
+     * @param aiPlayer AI方颜色
+     * @return VCF必胜路径首手 [x, y]，未找到返回null
+     */
+    private int[] findVcfMove(int[][] board, int aiPlayer) {
+        long vcfDeadline = searchStartMs + (long) (maxTimeMs * VCF_TIME_RATIO);
+        int[] bestMove = new int[]{-1, -1};
+        boolean found = vcfSearch(board, aiPlayer, 0, VCF_MAX_DEPTH, vcfDeadline, bestMove);
+        if (found && bestMove[0] >= 0) {
+            return bestMove;
+        }
+        return null;
+    }
+
+    /**
+     * VCF递归搜索：仅考虑能形成"冲四"的着法，寻找连续进攻必胜路径。
+     * <p>
+     * 每层只生成冲四着法（{@link Threat#fours} > 0 且 {@link Threat#openFours} == 0），
+     * 若形成五连则胜利。对手防守时取评分前5的着法递归验证，
+     * 只有对手所有防守都失败才算必胜。
+     * <p>
+     * 【初学者提示】VCF是什么？
+     * 想象AI不断"将军"（冲四迫使对手防守），一路进攻直到五连获胜。
+     * 因为每步都是冲四，对手只能被动防守，没有反击机会。
+     * 如果存在这样一条必胜路径，AI就直接走第一步。
+     *
+     * @param board     棋盘数组（搜索中直接修改，回溯时还原）
+     * @param attacker  进攻方（AI）
+     * @param depth     当前搜索深度
+     * @param maxDepth  最大搜索深度
+     * @param deadline  VCF搜索截止时间戳
+     * @param bestMove  输出参数，记录首手坐标 [x, y]
+     * @return 找到必胜路径返回true
+     */
+    private boolean vcfSearch(int[][] board, int attacker, int depth, int maxDepth,
+                              long deadline, int[] bestMove) {
+        // 超时检查
+        if (System.currentTimeMillis() > deadline) return false;
+        if (depth >= maxDepth) return false;
+
+        int defender = getOpponent(attacker);
+        List<int[]> fourMoves = generateFourMoves(board, attacker);
+        if (fourMoves.isEmpty()) return false;
+
+        for (int[] move : fourMoves) {
+            if (System.currentTimeMillis() > deadline) return false;
+
+            board[move[1]][move[0]] = attacker;
+
+            // 检查是否形成五连（直接获胜）
+            if (checkWinAt(move[0], move[1], attacker, board)) {
+                board[move[1]][move[0]] = GomokuGame.EMPTY;
+                if (depth == 0) {
+                    bestMove[0] = move[0];
+                    bestMove[1] = move[1];
+                }
+                return true;
+            }
+
+            // 对手防守：取评分前5的防守着法，所有防守都失败才算必胜
+            List<int[]> defenseMoves = scoreAndSortMoves(
+                    getCandidateMoves(board), board, defender, 5);
+            boolean allDefensesFail = true;
+
+            if (defenseMoves.isEmpty()) {
+                // 对手无着法（棋盘满），AI获胜
+                allDefensesFail = true;
+            } else {
+                for (int[] defMove : defenseMoves) {
+                    if (System.currentTimeMillis() > deadline) {
+                        allDefensesFail = false;
+                        break;
+                    }
+                    board[defMove[1]][defMove[0]] = defender;
+                    boolean win = vcfSearch(board, attacker, depth + 1, maxDepth, deadline, bestMove);
+                    board[defMove[1]][defMove[0]] = GomokuGame.EMPTY;
+                    if (!win) {
+                        // 对手有防守能避免失败，当前进攻着法不是必胜
+                        allDefensesFail = false;
+                        break;
+                    }
+                }
+            }
+
+            board[move[1]][move[0]] = GomokuGame.EMPTY;
+
+            if (allDefensesFail) {
+                if (depth == 0) {
+                    bestMove[0] = move[0];
+                    bestMove[1] = move[1];
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 生成冲四着法（含五连着法）。
+     * <p>
+     * 遍历候选着法，筛选下子后能形成五连或冲四（{@link Threat#fours} > 0
+     * 且 {@link Threat#openFours} == 0）的着法，按着法评分降序排列。
+     * 活四不纳入VCF（VCF只考虑冲四这种"迫使防守"的着法）。
+     *
+     * @param board  棋盘数组
+     * @param player 进攻方
+     * @return 冲四着法列表（按评分降序）
+     */
+    private List<int[]> generateFourMoves(int[][] board, int player) {
+        List<int[]> moves = new ArrayList<>();
+        for (int[] move : getCandidateMoves(board)) {
+            board[move[1]][move[0]] = player;
+            boolean wins = checkWinAt(move[0], move[1], player, board);
+            Threat threat = evaluateMoveThreat(move[0], move[1], player, board);
+            board[move[1]][move[0]] = GomokuGame.EMPTY;
+            // 五连或冲四（不含活四）
+            if (wins || (threat.fours > 0 && threat.openFours == 0)) {
+                moves.add(move);
+            }
+        }
+        // 按着法评分降序排列，优先尝试高分着法
+        moves.sort((a, b) -> Integer.compare(
+                scoreMoveForPlayer(b[0], b[1], player, board),
+                scoreMoveForPlayer(a[0], a[1], player, board)));
+        return moves;
     }
 
     /**
