@@ -1,3 +1,6 @@
+// Root build.gradle for GameMatrixApp
+// 添加: 静态分析 (detekt + ktlint) 应用于所有子项目
+
 buildscript {
     repositories {
         google()
@@ -11,6 +14,12 @@ buildscript {
         classpath 'org.jetbrains.kotlin:kotlin-reflect:2.0.21'
         classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.21-1.0.25'
         classpath 'com.google.dagger:hilt-android-gradle-plugin:2.57.2'
+        // Phase 1.1: 静态分析
+        classpath 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.7'
+        classpath 'org.jlleitschuh.gradle:ktlint-gradle:12.1.2'
+        // Phase 1.2: 覆盖率
+        classpath 'org.jacoco:org.jacoco.core:0.8.12'
+        classpath 'org.jacoco:org.jacoco.report:0.8.12'
     }
 
     configurations.classpath {
@@ -51,7 +60,7 @@ allprojects {
         mavenCentral()
         gradlePluginPortal()
     }
-    
+
     configurations.configureEach {
         resolutionStrategy {
             force 'com.google.guava:guava:33.4.0-jre'
@@ -84,4 +93,46 @@ allprojects {
             force 'org.jdom:jdom2:2.0.6.1'
         }
     }
+
+    // Phase 1.1: 对所有 Kotlin/Java 子项目启用 ktlint
+    afterEvaluate {
+        if (plugins.hasPlugin("org.jetbrains.kotlin.android") || plugins.hasPlugin("org.jetbrains.kotlin.jvm")) {
+            apply plugin: "org.jlleitschuh.gradle.ktlint"
+        }
+    }
 }
+
+// Phase 1.1: detekt 全局配置
+// 在子项目里再 apply detekt 才能跑 detekt 任务
+subprojects {
+    afterEvaluate { project ->
+        def isAndroidModule = project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")
+        def hasKotlinSources = project.file("src/main/java").exists() ||
+                               project.file("src/main/kotlin").exists() ||
+                               project.file("src/test/java").exists() ||
+                               project.file("src/test/kotlin").exists()
+
+        if (isAndroidModule && hasKotlinSources) {
+            println "[detekt] Applying detekt to ${project.path}"
+            project.apply plugin: "io.gitlab.arturbosch.detekt"
+
+            project.detekt {
+                config.setFrom(project.files("$rootDir/config/detekt/detekt.yml"))
+                buildUponDefaultConfig = true
+                autoCorrect = false
+                ignoreFailures = true  // 第一次用 baseline, 不让老项目挂
+                allRules = false
+            }
+
+            project.tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
+                jvmTarget = "17"
+            }
+            project.tasks.withType(io.gitlab.arturbosch.detekt.DetektCreateBaselineTask).configureEach {
+                jvmTarget = "17"
+            }
+        }
+    }
+}
+
+// Phase 1.2: 单元测试覆盖率 (JaCoCo)
+apply from: "build-logic/jacoco.gradle"
