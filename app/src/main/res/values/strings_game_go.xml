@@ -61,4 +61,9 @@
     <string name="game_go_diff_2_desc">贪心算法</string>
     <string name="game_go_diff_3_desc">Minimax-2 步</string>
     <string name="game_go_diff_4_desc">Minimax-3 步</string>
+
+    <!-- 2026-06-23: AI 思考提示带难度 + 大师成就 -->
+    <string name="game_go_ai_thinking_with_difficulty">AI 思考中…（%1$s）</string>
+    <string name="game_go_ach_master_win">棋道巅峰</string>
+    <string name="game_go_ach_master_win_desc">在大师难度下战胜 AI</string>
 </resources>

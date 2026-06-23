@@ -255,15 +255,27 @@ public class GoActivity extends BaseGameActivity {
 
         // AI 回合
         currentPlayer = WHITE;
-        tvStatus.setText(R.string.game_go_ai_thinking);
+        // 2026-06-23: 显示当前难度（"AI 思考中...（困难）"）
+        tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty,
+                getDifficultyName(aiDifficulty)));
+        // 2026-06-23: 性能监控 — 记录思考开始时间
+        aiThinkStartMs = System.currentTimeMillis();
         handler.postDelayed(this::aiMove, 300 + random.nextInt(500));
     }
+
+    /** AI 思考开始时间（用于耗时统计） */
+    private long aiThinkStartMs = 0L;
 
     /**
      * AI 落子
      */
     private void aiMove() {
         if (gameOver) return;
+
+        // 2026-06-23: 性能监控 — 记录 AI 思考耗时
+        long thinkMs = System.currentTimeMillis() - aiThinkStartMs;
+        android.util.Log.i("GoAI", "难度=" + aiDifficulty + " (" + getDifficultyName(aiDifficulty) + ")"
+                + " 思考耗时=" + thinkMs + "ms");
 
         // 简单 AI：基于领地评估选择落子
         int[] bestMove = findBestAiMove();
@@ -281,6 +293,13 @@ public class GoActivity extends BaseGameActivity {
 
             goView.setBoard(board);
             goView.setLastMove(bestMove[0], bestMove[1]);
+
+            // 2026-06-23: 大师难度显示思考时长（替代进度条）
+            if (aiDifficulty >= 4 && thinkMs > 100) {
+                android.widget.Toast.makeText(this,
+                        "AI 思考 " + thinkMs + "ms",
+                        android.widget.Toast.LENGTH_SHORT).show();
+            }
         }
 
         // 检查终局
@@ -675,7 +694,13 @@ public class GoActivity extends BaseGameActivity {
             if (capturedByBlack > 0) {
                 checkAchievement("special", true);
             }
-            updateScore(currentScore + 300);
+            // 2026-06-23: 大师难度专用成就（"棋道巅峰"）
+            if (aiDifficulty == 4) {
+                checkAchievement("master_win", 1);
+                updateScore(currentScore + 500); // 大师难度奖励更高
+            } else {
+                updateScore(currentScore + 300);
+            }
         } else {
             winStreak = 0;
             tvStatus.setText(getString(R.string.game_go_ai_wins,
