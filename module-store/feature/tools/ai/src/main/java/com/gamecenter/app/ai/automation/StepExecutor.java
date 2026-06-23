@@ -112,10 +112,61 @@ public class StepExecutor {
         }
     }
 
-    /**
+/**
      * 释放资源。
      */
     public void shutdown() {
         // 清理资源
+    }
+
+    /**
+     * 执行步骤定义（嵌套类）。用于在 AutomationManagerCoroutine / TaskPlannerCoroutine
+     * 和 StepExecutorCoroutine.executeStep 中传递结构化的步骤描述。
+     *
+     * 字段说明（2026-06-23 扩展：合并 StepExecutorCoroutine.Step 的所有字段）：
+     * - type: 步骤类型字符串（CLICK / LONG_CLICK / INPUT / SCROLL / WAIT / BACK / HOME）
+     * - x, y: 点击/滑动起始坐标
+     * - endX, endY: 滑动结束坐标
+     * - text: 输入文本
+     * - waitMs: 等待时长（毫秒）
+     * - durationMs: 滑动持续时间
+     * - data: 额外数据（JSON 字符串，由具体 step type 解析）
+     */
+    public static class Step {
+        public final String type;
+        public final int x;
+        public final int y;
+        public final int endX;
+        public final int endY;
+        public final String text;
+        public final long waitMs;
+        public final long durationMs;
+        public final String data;
+
+        public Step(String type, int x, int y, int endX, int endY,
+                    String text, long waitMs, long durationMs, String data) {
+            this.type = type;
+            this.x = x;
+            this.y = y;
+            this.endX = endX;
+            this.endY = endY;
+            this.text = text;
+            this.waitMs = waitMs;
+            this.durationMs = durationMs;
+            this.data = data;
+        }
+
+        // 简化构造器（向后兼容旧调用点）
+        public Step(String type, long waitMs, String data) {
+            this(type, 0, 0, 0, 0, "", waitMs, 0L, data);
+        }
+
+        public Step(String type, long waitMs) {
+            this(type, 0L, "");
+        }
+
+        public Step(String type) {
+            this(type, 0L, "");
+        }
     }
 }

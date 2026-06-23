@@ -41,4 +41,13 @@
     <string name="game_go_ach_perfect_desc">未被AI吃子的情况下获胜</string>
     <string name="game_go_ach_streak5">棋道连胜</string>
     <string name="game_go_ach_streak5_desc">连胜5局围棋</string>
+
+    <!-- 2026-06-23: 游戏结束 Dialog -->
+    <string name="game_go_end_title">本局结束</string>
+    <string name="game_go_end_win">🎉 执黑获胜</string>
+    <string name="game_go_end_lose">本局告负</string>
+    <string name="game_go_end_moves">总步数</string>
+    <string name="game_go_end_duration">用时</string>
+    <string name="game_go_end_restart">再来一局</string>
+    <string name="game_go_back_home">返回主菜单</string>
 </resources>

@@ -64,6 +64,8 @@ public class GoActivity extends BaseGameActivity {
     private int totalWins = 0;
     private int winStreak = 0;
     private boolean gameOver = false;
+    // 2026-06-23: 步数统计（玩家落子数，用于游戏结束 Dialog）
+    private int moveCount = 0;
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Random random = new Random();
@@ -229,6 +231,7 @@ public class GoActivity extends BaseGameActivity {
 
         // 落子
         board[row][col] = BLACK;
+        moveCount++;
         consecutivePasses = 0;
 
         // 提子
@@ -487,6 +490,10 @@ public class GoActivity extends BaseGameActivity {
         if (gameStartTime > 0) {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
+        // 2026-06-23: 认输也弹 Dialog（用当前领地估算分数）
+        int blackT = countTerritory(BLACK) + capturedByBlack;
+        int whiteT = countTerritory(WHITE) + capturedByWhite + (int) KOMI;
+        showGameEndDialog(false, blackT, whiteT);
     }
 
     /**
@@ -531,6 +538,37 @@ public class GoActivity extends BaseGameActivity {
         if (gameStartTime > 0) {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
+
+        // 2026-06-23: 弹出游戏结束总结 Dialog
+        showGameEndDialog(playerWins, (int) blackTerritory, (int) whiteTerritory);
+    }
+
+    /**
+     * 2026-06-23：游戏结束 Dialog（围棋终局后显示战绩）。
+     * 含步数、用时、双方领地、胜负结果。
+     */
+    private void showGameEndDialog(boolean playerWins, int blackTerritory, int whiteTerritory) {
+        long elapsed = gameStartTime > 0 ? (System.currentTimeMillis() - gameStartTime) : 0L;
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle(R.string.game_go_end_title);
+        String winnerText = playerWins
+                ? getString(R.string.game_go_end_win)
+                : getString(R.string.game_go_end_lose);
+        builder.setMessage(
+                winnerText + "\n\n" +
+                getString(R.string.game_go_end_moves) + ": " + moveCount + "\n" +
+                getString(R.string.game_go_end_duration) + ": " + formatDuration(elapsed) + "\n" +
+                "黑方(你): " + blackTerritory + "  |  白方(AI): " + whiteTerritory);
+        builder.setPositiveButton(R.string.game_go_end_restart, (d, w) -> startNewGame());
+        builder.setNegativeButton(R.string.game_go_back_home, (d, w) -> finish());
+        builder.setCancelable(false);
+        builder.show();
+    }
+
+    /** 格式化毫秒为 mm:ss */
+    private String formatDuration(long ms) {
+        long sec = ms / 1000L;
+        return String.format("%02d:%02d", sec / 60L, sec % 60L);
     }
 
     /**
