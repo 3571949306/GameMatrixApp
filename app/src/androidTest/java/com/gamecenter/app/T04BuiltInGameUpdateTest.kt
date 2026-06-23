@@ -8,7 +8,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import com.gamecenter.app.games.GameRegistry
-import com.gamecenter.app.modulestore.ModuleVersionChecker
+import com.gamecenter.app.modules.ModuleVersionChecker
+import com.gamecenter.app.modules.ModuleManifest
 import com.gamecenter.app.models.ModuleInfo
 import android.content.Context
 
@@ -198,11 +199,19 @@ class T04BuiltInGameUpdateTest {
      */
     @Test
     fun testShouldLoadExternal_true() {
-        val manifest = com.gamecenter.app.modulestore.ModuleManifest().apply {
-            id = "test_module"
-            versionCode = 201
-        }
-        
+        val manifest = ModuleManifest(
+            id = "test_module",
+            name = "Test Module",
+            description = "",
+            versionName = "2.0",
+            versionCode = 201,
+            entryClass = "",
+            fileName = "",
+            fileSize = 0L,
+            sha256 = "",
+            downloadUrl = ""
+        )
+
         val result = ModuleVersionChecker.shouldLoadExternal(100, manifest)
         assertTrue("Should load external module when store version is higher", result)
         println("✓ shouldLoadExternal(100, 201) = $result")
@@ -213,11 +222,19 @@ class T04BuiltInGameUpdateTest {
      */
     @Test
     fun testShouldLoadExternal_false() {
-        val manifest = com.gamecenter.app.modulestore.ModuleManifest().apply {
-            id = "test_module"
-            versionCode = 100
-        }
-        
+        val manifest = ModuleManifest(
+            id = "test_module",
+            name = "Test Module",
+            description = "",
+            versionName = "1.0",
+            versionCode = 100,
+            entryClass = "",
+            fileName = "",
+            fileSize = 0L,
+            sha256 = "",
+            downloadUrl = ""
+        )
+
         val result = ModuleVersionChecker.shouldLoadExternal(201, manifest)
         assertFalse("Should not load external module when built-in version is higher", result)
         println("✓ shouldLoadExternal(201, 100) = $result")
