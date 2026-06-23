@@ -388,6 +388,10 @@ public class ChineseChessActivity extends BaseGameActivity {
             int idx = Math.max(0, Math.min(aiDifficulty - 1, AI_MIN_RESPONSE_DELAYS_MS.length - 1));
             long delay = Math.max(AI_MIN_RESPONSE_DELAYS_MS[idx] - elapsed, 0L);
 
+            // 2026-06-23: 性能监控 + 大师/困难难度 Toast 提示
+            android.util.Log.i("ChineseChessAI",
+                    "难度=" + aiDifficulty + " 思考耗时=" + elapsed + "ms");
+
             Runnable applyMove = () -> {
                 if (currentGen != aiGeneration) return;
                 if (bestMove != null && bestMove.length >= 4) {
@@ -398,6 +402,12 @@ public class ChineseChessActivity extends BaseGameActivity {
                 }
                 aiThinking = false;
                 chessView.setAiThinking(false);
+                // 大师难度显示思考时长
+                if (aiDifficulty >= 4 && elapsed > 200) {
+                    android.widget.Toast.makeText(this,
+                            "AI 思考 " + elapsed + "ms",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
             };
 
             if (delay > 0L) {

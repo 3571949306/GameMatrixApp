@@ -175,11 +175,20 @@ public class KlotskiActivity extends BaseGameActivity {
 
         isHintSearching = true;
         tvStatus.setText("正在计算最优解...");
+        hintStartMs = System.currentTimeMillis();  // 2026-06-23: 性能监控起点
 
         new Thread(() -> {
             KlotskiGame.HintResult hint = game.getHint();
             mainHandler.post(() -> {
                 isHintSearching = false;
+                // 2026-06-23: 性能监控 + Toast 提示（华容道 BFS 搜索）
+                long hintMs = System.currentTimeMillis() - hintStartMs;
+                android.util.Log.i("KlotskiAI", "提示搜索耗时=" + hintMs + "ms");
+                if (hintMs > 500) {
+                    android.widget.Toast.makeText(this,
+                            "提示搜索 " + hintMs + "ms",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
                 if (hint != null) {
                     klotskiView.showHint(hint);
                     tvStatus.setText("提示: " + hint.totalSteps + "步可通关");
@@ -189,6 +198,9 @@ public class KlotskiActivity extends BaseGameActivity {
             });
         }).start();
     }
+
+    /** 2026-06-23: 提示搜索开始时间 */
+    private long hintStartMs = 0L;
 
     /**
      * 2026-06-23：游戏结束 Dialog（华容道通关后显示战绩）。
@@ -207,8 +219,73 @@ public class KlotskiActivity extends BaseGameActivity {
         builder.setMessage(content.toString());
         builder.setPositiveButton("再来一局", (d, w) -> startNewGame());
         builder.setNegativeButton("返回主菜单", (d, w) -> finish());
+        builder.setNeutralButton("排行榜", (d, w) -> showLeaderboard());
         builder.setCancelable(false);
         builder.show();
+
+        // 2026-06-23: 通关时保存记录到排行榜
+        if (won) {
+            saveLeaderboardRecord(moves, elapsed);
+        }
+    }
+
+    /**
+     * 2026-06-23: 华容道步数排行榜（本地 SharedPreferences 存储）。
+     * 保存最少 5 条记录（按步数升序）。
+     */
+    private void saveLeaderboardRecord(int moves, long elapsedMs) {
+        android.content.SharedPreferences prefs = getSharedPreferences("klotski_leaderboard", MODE_PRIVATE);
+        String existing = prefs.getString("records", "");
+        java.util.List<String> records = new java.util.ArrayList<>();
+        if (!existing.isEmpty()) {
+            for (String line : existing.split("\\|")) {
+                if (!line.isEmpty()) records.add(line);
+            }
+        }
+        String newRecord = moves + "," + elapsedMs;
+        records.add(newRecord);
+        // 按步数升序
+        records.sort((a, b) -> {
+            int am = Integer.parseInt(a.split(",")[0]);
+            int bm = Integer.parseInt(b.split(",")[0]);
+            return Integer.compare(am, bm);
+        });
+        // 保留前 5
+        if (records.size() > 5) records = records.subList(0, 5);
+        StringBuilder sb = new StringBuilder();
+        for (String r : records) {
+            if (sb.length() > 0) sb.append("|");
+            sb.append(r);
+        }
+        prefs.edit().putString("records", sb.toString()).apply();
+    }
+
+    /**
+     * 2026-06-23: 显示华容道步数排行榜。
+     */
+    private void showLeaderboard() {
+        android.content.SharedPreferences prefs = getSharedPreferences("klotski_leaderboard", MODE_PRIVATE);
+        String existing = prefs.getString("records", "");
+        StringBuilder content = new StringBuilder("最少步数通关记录（前 5）：\n\n");
+        if (existing.isEmpty()) {
+            content.append("暂无记录，赶快通关吧！");
+        } else {
+            int rank = 1;
+            for (String line : existing.split("\\|")) {
+                if (line.isEmpty()) continue;
+                String[] parts = line.split(",");
+                int moves = Integer.parseInt(parts[0]);
+                long ms = Long.parseLong(parts[1]);
+                content.append("#").append(rank++).append("  ")
+                        .append(moves).append(" 步 / ")
+                        .append(formatDuration(ms)).append("\n");
+            }
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("🏆 华容道排行榜")
+                .setMessage(content.toString())
+                .setPositiveButton("关闭", null)
+                .show();
     }
 
     /** 格式化毫秒为 mm:ss */

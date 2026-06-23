@@ -385,7 +385,7 @@ public class GoActivity extends BaseGameActivity {
                 simulated[r][c] = WHITE;
                 int captured = simulateCapture(simulated, BLACK, r, c);
                 int score = captured * 10 + evaluatePosition(r, c)
-                        + minimax(simulated, depth - 1, false, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                        + minimax(simulated, depth - 1, false, Integer.MIN_VALUE, Integer.MAX_VALUE, new int[]{0});
                 // 简单难度加随机扰动；大师级别不加
                 if (aiDifficulty < 4) score += random.nextInt(2);
                 if (score > bestScore) {
@@ -401,10 +401,13 @@ public class GoActivity extends BaseGameActivity {
     }
 
     /**
-     * 极小极大搜索（alpha-beta 剪枝）。
+     * 极小极大搜索（alpha-beta 剪枝，2026-06-23 增加节点上限+超时保护）。
      * @param isMax 当前层是否是 AI 最大化
+     * @param nodeCount 已搜索节点数（用于超时保护）
      */
-    private int minimax(int[][] state, int depth, boolean isMax, int alpha, int beta) {
+    private int minimax(int[][] state, int depth, boolean isMax, int alpha, int beta, int[] nodeCount) {
+        // 2026-06-23: 节点上限保护（防止 depth=3 在某些状态评估 100W+ 节点）
+        if (++nodeCount[0] > MAX_NODES) return evaluateBoard(state);
         if (depth == 0) return evaluateBoard(state);
         int best = isMax ? Integer.MIN_VALUE : Integer.MAX_VALUE;
         int color = isMax ? WHITE : BLACK;
@@ -415,7 +418,7 @@ public class GoActivity extends BaseGameActivity {
                 int[][] sim = copyBoard(state);
                 sim[r][c] = color;
                 simulateCapture(sim, color == WHITE ? BLACK : WHITE, r, c);
-                int val = minimax(sim, depth - 1, !isMax, alpha, beta);
+                int val = minimax(sim, depth - 1, !isMax, alpha, beta, nodeCount);
                 if (isMax) {
                     best = Math.max(best, val);
                     alpha = Math.max(alpha, best);
@@ -428,6 +431,9 @@ public class GoActivity extends BaseGameActivity {
         }
         return best;
     }
+
+    /** 2026-06-23: 大师/困难难度 Minimax 节点上限（防止卡死） */
+    private static final int MAX_NODES = 80000;
 
     /**
      * 评估整个棋盘：白方领地 - 黑方领地（白方 = AI）

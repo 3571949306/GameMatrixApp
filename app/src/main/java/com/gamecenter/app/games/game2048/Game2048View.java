@@ -85,6 +85,10 @@ public class Game2048View extends View {
     private float difficultyFactor = 0.5f;
     private final Random random = new Random();
 
+    // 2026-06-23: 撤销历史栈（每次移动前 deep copy 入栈，撤销时弹出恢复）
+    private final java.util.Deque<int[][]> history = new java.util.ArrayDeque<>();
+    private static final int MAX_HISTORY = 50;
+
     // ==================== 工具 ====================
 
     private GestureDetector gestureDetector;
@@ -201,12 +205,47 @@ public class Game2048View extends View {
     public void resumeGame() { /* 事件驱动，无需恢复 */ }
     public void stopGame() { gameOver = true; }
 
+    /** 2026-06-23: 获取当前分数（撤销时用） */
+    public int getScore() { return score; }
+
     // ==================== 移动逻辑 ====================
 
-    private void moveLeft() { if (canMove()) { boolean moved = slideLeft(); if (moved) afterMove(); } }
-    private void moveRight() { if (canMove()) { rotateGrid(2); boolean moved = slideLeft(); rotateGrid(2); if (moved) afterMove(); } }
-    private void moveUp() { if (canMove()) { rotateGrid(1); boolean moved = slideLeft(); rotateGrid(3); if (moved) afterMove(); } }
-    private void moveDown() { if (canMove()) { rotateGrid(3); boolean moved = slideLeft(); rotateGrid(1); if (moved) afterMove(); } }
+    private void moveLeft() { if (canMove()) { saveSnapshot(); boolean moved = slideLeft(); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveRight() { if (canMove()) { saveSnapshot(); rotateGrid(2); boolean moved = slideLeft(); rotateGrid(2); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveUp() { if (canMove()) { saveSnapshot(); rotateGrid(1); boolean moved = slideLeft(); rotateGrid(3); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveDown() { if (canMove()) { saveSnapshot(); rotateGrid(3); boolean moved = slideLeft(); rotateGrid(1); if (moved) afterMove(); else history.pollLast(); } }
+
+    /**
+     * 2026-06-23: 保存当前 grid 到历史栈（撤销用）。
+     * 限制最大 50 步历史，避免内存爆炸。
+     */
+    private void saveSnapshot() {
+        if (history.size() >= MAX_HISTORY) {
+            history.pollFirst();
+        }
+        int[][] copy = new int[GRID_SIZE][GRID_SIZE];
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(grid[r], 0, copy[r], 0, GRID_SIZE);
+        }
+        history.addLast(copy);
+    }
+
+    /**
+     * 2026-06-23: 撤销上一步。返回 true 表示成功撤销，false 表示无可撤销的历史。
+     */
+    public boolean undo() {
+        if (history.isEmpty()) return false;
+        int[][] prev = history.pollLast();
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(prev[r], 0, grid[r], 0, GRID_SIZE);
+        }
+        // 撤销后让玩家可以继续（重置 gameOver 但保留新生成的方块）
+        gameOver = false;
+        won = false;
+        canContinue = false;
+        invalidate();
+        return true;
+    }
 
     private boolean canMove() { return !gameOver || canContinue; }
 

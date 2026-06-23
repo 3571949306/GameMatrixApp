@@ -114,6 +114,33 @@ public class Game2048Activity extends BaseGameActivity {
         if (gameContentContainer != null) {
             ((android.widget.FrameLayout) gameContentContainer).addView(game2048View);
         }
+
+        // 2026-06-23: 撤销按钮（悬浮在右上角，点击撤销上一步）
+        if (gameContentContainer instanceof android.widget.FrameLayout) {
+            com.google.android.material.button.MaterialButton btnUndo =
+                    new com.google.android.material.button.MaterialButton(this);
+            btnUndo.setText("↶ 撤销");
+            btnUndo.setTextSize(12f);
+            btnUndo.setMinWidth(0);
+            btnUndo.setPadding(16, 6, 16, 6);
+            android.widget.FrameLayout.LayoutParams lp =
+                    new android.widget.FrameLayout.LayoutParams(
+                            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
+            lp.gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+            lp.setMargins(0, 24, 16, 0);
+            btnUndo.setLayoutParams(lp);
+            btnUndo.setOnClickListener(v -> {
+                if (game2048View.undo()) {
+                    updateScore(game2048View.getScore() - 10);
+                    android.widget.Toast.makeText(this, "已撤销", android.widget.Toast.LENGTH_SHORT).show();
+                } else {
+                    android.widget.Toast.makeText(this, "已无历史可撤销",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+            ((android.widget.FrameLayout) gameContentContainer).addView(btnUndo);
+        }
     }
 
     @Override
