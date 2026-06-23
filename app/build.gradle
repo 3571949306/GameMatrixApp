@@ -265,9 +265,9 @@ android {
 
     lint {
         baseline = file("lint-baseline.xml")
-        // Phase 1.5: 宽松策略 — 不让 lint 阻塞 CI, 但保持运行
-        // 等 P0/P1 都清完后再调回 abortOnError true
-        abortOnError false
+        // 2026-06-23: WIP 收尾后启用严格模式，baseline 锁定历史问题
+        // 新引入的 lint 错误会阻塞 CI；warningsAsErrors 仍 false 避免噪音
+        abortOnError true
         checkReleaseBuilds !shouldSkipReleaseLint
         warningsAsErrors false
         // 关闭噪音类检查, 集中精力修可执行项
