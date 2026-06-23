@@ -14,7 +14,7 @@
 1. **AI 助手是一个独立的 dynamic-feature APK**, 不在 host app 源码里。
    - 入口: `com.gamecenter.app.modules.AiModuleEntryPoint`
    - 产物: `feature_ai_v100.apk` (916946 bytes, sha256=`0d727b70dc...d87e7d`)
-   - 下载地址: `https://hk-update.tcp0053.shop/modules/feature_ai_v100.apk`
+   - 下载地址: `https://hk-update.example.com/modules/feature_ai_v100.apk`
    - 注册在 `app/src/main/assets/modules.json` 中, `builtIn=false`, `isBaseFramework=true`
 2. **Host app 内只有 AI 的"壳"**:
    - 导航占位: `app/src/main/res/navigation/mobile_navigation.xml` (id=`navigation_ai`, 默认 `module_id="ai"`)
@@ -154,7 +154,7 @@ MainActivity (com.gamecenter.app.MainActivity)
   "entryClass": "com.gamecenter.app.modules.AiModuleEntryPoint",
   "builtIn": false,
   "isBaseFramework": true,
-  "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_ai_v100.apk",
+  "downloadUrl": "https://hk-update.example.com/modules/feature_ai_v100.apk",
   "fileSize": 916946,
   "sha256": "0d727b70dc279f72b9b04da6cf1b78f5bc3980760d9ec2383632f903f7d87e7d"
 }
