@@ -13,6 +13,16 @@
 - **更新卡住问题**：CDN缓存的version.json导致版本比较失败
 - **VPS路径修复**：更新 `/var/www/update/app/version-release.json`（update_server读这个）
 - **软链接创建**：nginx现在可以通过软链接访问version.json和APK
+- **FileUriExposedException 修复**：`UpdateInstaller.openDownloadDirectory()` 打开下载目录时改用 FileProvider 提供 content:// URI（Android 7.0+），避免 file:// URI 暴露崩溃，功能不再降级到 Toast 提示
+
+### 🧪 自动化测试（功能模块）
+- 新增 5 个功能模块 UI 自动化测试文件（位于 `app/src/androidTest/java/com/gamecenter/app/tests/features/`）
+  - `SettingsTest.kt`：设置模块（10 个用例）
+  - `ToolBoxTest.kt`：工具箱模块（3 个用例，模块未安装时优雅跳过）
+  - `AiAssistantTest.kt`：AI 助手模块（3 个用例，模块未安装时优雅跳过）
+  - `BrowserTest.kt`：浏览器模块（3 个用例，模块未安装时优雅跳过）
+  - `ModuleStoreTest.kt`：模块商店（8 个用例）
+- 所有测试继承 `EmulatorTestBase`，使用 `GameTestHelper` 辅助方法
 
 ### 📦 版本信息
 - `versionCode`: 466

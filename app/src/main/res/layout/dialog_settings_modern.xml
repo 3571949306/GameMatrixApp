@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 现代设置对话框：分组卡片 + 图标 + 主题切换动画占位 -->
+<!-- 现代设置对话框：分组卡片 + 图标 + 开关控件
+     重做版本：新增声音/音效/振动开关分组，统一资源引用，支持深浅主题 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/settings_container"
@@ -144,7 +145,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_select_color_scheme"
+                            android:text="@string/settings_theme_mode"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="15sp" />
 
@@ -166,11 +167,11 @@
                 </LinearLayout>
 
                 <!-- 分割线 -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="66dp"
-            android:background="?attr/colorOutline" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="66dp"
+                    android:background="?attr/colorOutline" />
 
                 <!-- 配色方案 -->
                 <LinearLayout
@@ -222,7 +223,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_select_color_scheme"
+                            android:text="@string/settings_color_scheme"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="15sp" />
 
@@ -230,7 +231,7 @@
                             android:id="@+id/tv_scheme_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="紫韵"
+                            android:text="@string/settings_scheme_default"
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -244,11 +245,11 @@
                 </LinearLayout>
 
                 <!-- 分割线 -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="66dp"
-            android:background="?attr/colorOutline" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="66dp"
+                    android:background="?attr/colorOutline" />
 
                 <!-- 应用语言 -->
                 <LinearLayout
@@ -286,7 +287,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/language_auto"
+                            android:text="@string/settings_language"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="15sp" />
 
@@ -305,6 +306,209 @@
                         android:src="@drawable/ic_chevron_right"
                         app:tint="?attr/colorOnSurfaceVariant"
                         android:alpha="0.5" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ===== 分组标题：声音与反馈 ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/settings_audio_feedback"
+            android:textAllCaps="true"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_audio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="?attr/colorOutline"
+            app:cardBackgroundColor="?attr/colorSurface">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <!-- 音效总开关 -->
+                <LinearLayout
+                    android:id="@+id/ll_sfx_master"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_tool_icon_circle">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@android:drawable/ic_media_play"
+                            app:tint="@color/white" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_sfx_master"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_sfx_master_desc"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_sfx_master"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="66dp"
+                    android:background="?attr/colorOutline" />
+
+                <!-- 游戏音效开关 -->
+                <LinearLayout
+                    android:id="@+id/ll_sound"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_tool_icon_circle">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@android:drawable/ic_lock_silent_mode_off"
+                            app:tint="@color/white" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_game_sound"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_game_sound_desc"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_sound"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
+                </LinearLayout>
+
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="66dp"
+                    android:background="?attr/colorOutline" />
+
+                <!-- 振动反馈开关 -->
+                <LinearLayout
+                    android:id="@+id/ll_vibration"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_tool_icon_circle">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@android:drawable/ic_menu_sort_by_size"
+                            app:tint="@color/white" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_vibration"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_vibration_desc"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_vibration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -383,7 +587,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="更新源、自动下载、Beta 通道"
+                            android:text="@string/settings_update_detail"
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -397,11 +601,11 @@
                 </LinearLayout>
 
                 <!-- 分割线 -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="66dp"
-            android:background="?attr/colorOutline" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="66dp"
+                    android:background="?attr/colorOutline" />
 
                 <!-- 检查更新 -->
                 <LinearLayout
@@ -521,14 +725,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/feedback"
+                            android:text="@string/settings_game_stats"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="15sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/feedback_title"
+                            android:text="@string/settings_game_stats_desc"
                             android:textColor="?attr/colorOnSurfaceVariant"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -542,11 +746,11 @@
                 </LinearLayout>
 
                 <!-- 分割线 -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="66dp"
-            android:background="?attr/colorOutline" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="66dp"
+                    android:background="?attr/colorOutline" />
 
                 <!-- 帮助与反馈 -->
                 <LinearLayout
