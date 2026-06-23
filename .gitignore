@@ -141,3 +141,9 @@ Thumbs.db
 .mcp/
 .zcode/
 mcp.json
+build_temp*.xml
+build_output*.txt
+ui_test*.xml
+test*-launch.png
+test*-module-store.png
+home_nav*.png

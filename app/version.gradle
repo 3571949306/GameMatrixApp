@@ -1,0 +1,114 @@
+// app/version.gradle
+// Phase 1.4: 从 app/build.gradle 拆出 — 读 local.properties + version.properties
+// 暴露: configuredXxx 变量, currentVersionCode, currentVersionName, currentVersionChannel 等
+
+ext.versionConfig = { ->
+    def versionPropsFile = file("${rootDir}/version.properties")
+    def versionFileVersionCode = 1
+    def versionFileVersionName = "1.0"
+    def configuredLastStableVersionCode = 0
+    def configuredLastStableVersionName = ""
+    def configuredBetaNoticeVersionGap = 3
+
+    def localPropsFile = file("${rootDir}/local.properties")
+    def configuredServerUrl = ""
+    def configuredServerUrlFallback = ""
+    def configuredRelayUrl = ""
+    def configuredWsUrl = ""
+    def configuredFeedbackUrl = ""
+    def configuredMimoApiKey = ""
+
+    if (localPropsFile.exists()) {
+        localPropsFile.withReader("UTF-8") { reader ->
+            reader.eachLine { line ->
+                line = line.trim()
+                if (line.isEmpty() || line.startsWith("#")) return
+                def eq = line.indexOf('=')
+                if (eq > 0) {
+                    def key = line.substring(0, eq).trim()
+                    def val = line.substring(eq + 1).trim()
+                    if (key == "server.url") configuredServerUrl = val
+                    if (key == "server.url.fallback") configuredServerUrlFallback = val
+                    if (key == "relay.url") configuredRelayUrl = val
+                    if (key == "ws.url") configuredWsUrl = val
+                    if (key == "feedback.url") configuredFeedbackUrl = val
+                    if (key == "mimo.api.key") configuredMimoApiKey = val
+                }
+            }
+        }
+    }
+
+    if (versionPropsFile.exists()) {
+        versionPropsFile.withReader("UTF-8") { reader ->
+            reader.eachLine { line ->
+                line = line.trim()
+                if (line.isEmpty() || line.startsWith("#")) return
+                def eq = line.indexOf('=')
+                if (eq > 0) {
+                    def key = line.substring(0, eq).trim()
+                    def val = line.substring(eq + 1).trim()
+                    if (key == "versionCode") versionFileVersionCode = val.toInteger()
+                    if (key == "versionName") versionFileVersionName = val
+                    if (key == "lastStableVersionCode") configuredLastStableVersionCode = val.toInteger()
+                    if (key == "lastStableVersionName") configuredLastStableVersionName = val
+                    if (key == "betaNoticeVersionGap") configuredBetaNoticeVersionGap = val.toInteger()
+                }
+            }
+        }
+    }
+
+    return [
+        versionCode          : versionFileVersionCode,
+        versionName          : versionFileVersionName,
+        lastStableVersionCode: configuredLastStableVersionCode,
+        lastStableVersionName: configuredLastStableVersionName,
+        betaNoticeVersionGap : configuredBetaNoticeVersionGap,
+        serverUrl            : configuredServerUrl,
+        serverUrlFallback    : configuredServerUrlFallback,
+        relayUrl             : configuredRelayUrl,
+        wsUrl                : configuredWsUrl,
+        feedbackUrl          : configuredFeedbackUrl,
+        mimoApiKey           : configuredMimoApiKey
+    ]
+}
+
+ext.channelHelpers = { ->
+    def requestedVersionChannel = (project.findProperty("updateChannel") ?: "beta").toString().trim().toLowerCase()
+    def normalizeVersionChannel = { String raw, String versionName ->
+        if (["stable", "release", "formal", "prod", "production"].contains(raw)) return "stable"
+        if (["beta", "test", "debug", "internal"].contains(raw)) return "beta"
+        return "beta"
+    }
+    return [
+        channel   : normalizeVersionChannel(requestedVersionChannel, "1.0"),
+        autoUpload: (project.findProperty("autoUploadVps") ?: "false").toString().toBoolean(),
+        dryRun    : (project.findProperty("uploadDryRun") ?: "false").toString().toBoolean(),
+        skipVerify: (project.findProperty("skipUploadVerify") ?: "false").toString().toBoolean(),
+        skipLint  : (project.findProperty("skipReleaseLint") ?: "false").toString().toBoolean(),
+        publishGH : (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean(),
+        pythonExe : (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
+    ]
+}
+
+ext.toJavaStringLiteral = { String value ->
+    return "\"" + value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "")
+            .replace("\n", "\\n") + "\""
+}
+
+ext.toJsonString = { String value ->
+    return value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\r", "")
+            .replace("\n", "\\n")
+}
+
+ext.readChangelogText = {
+    def changelogFile = file("${rootDir}/CHANGELOG.md")
+    def legacyChangelogFile = file("${rootDir}/changelog.txt")
+    def source = changelogFile.exists() ? changelogFile : legacyChangelogFile
+    return source.exists() ? source.getText("UTF-8").trim() : ""
+}

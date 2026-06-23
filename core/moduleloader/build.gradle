@@ -21,6 +21,10 @@ android {
         jvmTarget = '17'
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     sourceSets {
         main {
             java.srcDirs = ['src/main/java', 'src/main/kotlin']
@@ -28,6 +32,9 @@ android {
         }
         test {
             java.srcDirs = ['src/test/java', 'src/test/kotlin']
+        }
+        androidTest {
+            java.srcDirs = ['src/androidTest/java', 'src/androidTest/kotlin']
         }
     }
 }
@@ -42,4 +49,11 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:5.15.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test:2.0.21'
+
+    // Phase 3.4: 动态模块加载测试依赖
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
 }

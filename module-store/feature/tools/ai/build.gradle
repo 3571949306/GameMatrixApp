@@ -46,6 +46,13 @@ dependencies {
     compileOnly 'androidx.security:security-crypto:1.0.0'
     compileOnly 'com.google.code.gson:gson:2.11.0'
     compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // Kotlin 协程
+    compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1'
+    compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+
+    // Phase 1: MiMo TTS 能力 SDK（AI 助手朗读）
+    compileOnly project(':modules:capabilities:mimo-tts')
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {

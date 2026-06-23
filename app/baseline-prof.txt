@@ -1,0 +1,67 @@
+#
+# Baseline Profile for GameMatrixApp
+# Phase 2.1: 启动加速 20-30% (减少冷启动 JIT 编译 + 类加载)
+#
+# 这个文件由 MacroBenchmark 模块生成 (见 :benchmark 模块)
+# 或手工维护 (本次提交, 用基础规则)
+# 详细文档: https://developer.android.com/topic/performance/baselineprofiles
+#
+# 格式: HSL <method_pattern>  (Hot, Startup, Light)
+#       HS <class_pattern>     (Hot, Startup) - class-level rule
+#
+# 启动热路径规则 (按 :app 实际启动流程):
+# 1. Application.onCreate
+# 2. MainActivity.onCreate
+# 3. Hilt 注入初始化
+# 4. Room DB 初始化
+# 5. OkHttp client 初始化
+# 6. Module store 启动加载
+# 7. BuildConfig 字段读取
+
+# === 启动热路径 (Hot Startup) ===
+HSL com/gamecenter/app/GameMatrixApp;-><init>
+HSL com/gamecenter/app/GameMatrixApp;->onCreate
+HSL com/gamecenter/app/MainActivity;-><init>
+HSL com/gamecenter/app/MainActivity;->onCreate
+HSL com/gamecenter/app/MainActivity;->onResume
+
+# === Hilt 注入初始化 ===
+HSL dagger/hilt/android/internal/managers/ApplicationComponentManager;-><init>
+HSL dagger/hilt/android/internal/builtins/InstanceComponentManager
+
+# === Room / SQLite ===
+HSL androidx/room/RoomDatabase;-><init>
+HSL androidx/sqlite/db/framework/FrameworkSQLiteDatabase;-><init>
+HSL androidx/sqlite/db/framework/FrameworkSQLiteOpenHelper;-><init>
+
+# === OkHttp 客户端初始化 ===
+HSL okhttp3/OkHttpClient;-><init>
+HSL okhttp3/internal/connection/RealConnection;->connect
+HSL okio/Buffer;-><init>
+
+# === Module 加载框架 (Phase 2 系统) ===
+HSL com/gamecenter/app/core/moduleloader/ModuleLoader;-><init>
+HSL com/gamecenter/app/core/modulestore/ModuleStore;-><init>
+HSL com/gamecenter/app/core/modulehost/ModuleHost;-><init>
+HSL dalvik/system/DexClassLoader;-><init>
+HSL dalvik/system/PathClassLoader;-><init>
+
+# === Material Design 组件 (UI 渲染热路径) ===
+HSL com/google/android/material/appbar/AppBarLayout;-><init>
+HSL androidx/appcompat/widget/AppCompatImageView;-><init>
+HSL androidx/recyclerview/widget/RecyclerView;-><init>
+
+# === 通用工具类 ===
+HSL com/google/gson/Gson;-><init>
+HSL com/google/gson/reflect/TypeToken;-><init>
+
+# === 核心 module 业务类 ===
+# (Phase 2.1 启动, Phase 2+ 用 MacroBenchmark 收集后覆盖)
+HSL com/gamecenter/app/core/common/**;-><init>
+HSL com/gamecenter/app/core/network/HttpClientProvider;-><init>
+HSL com/gamecenter/app/core/update/UpdateManager;-><init>
+HSL com/gamecenter/app/core/security/SecureOkHttpFactory;-><init>
+
+# === GameRegistry / 路由 ===
+HSL com/gamecenter/app/games/GameRegistry;-><init>
+HSL com/gamecenter/app/router/ModuleRouter;-><init>
