@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.splashscreen.SplashScreen;
 import com.gamecenter.app.R;
 
 /**
@@ -30,6 +31,9 @@ public class SplashActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        // 接入 AndroidX SplashScreen API：必须在 super.onCreate 之前调用，
+        // 以正确处理 Android 12+ 系统启动屏到应用主题的过渡，避免双启动屏闪烁。
+        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
         playEnterAnimation();

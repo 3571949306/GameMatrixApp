@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.activity.EdgeToEdge;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -108,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Android 15+ 适配：启用 Edge-to-Edge 显示，内容延伸到状态栏/导航栏下方
+        EdgeToEdge.enable(this);
         if (CrashDetector.INSTANCE.shouldLaunchRecovery(this)) {
             startActivity(new android.content.Intent(this, com.gamecenter.app.recovery.RecoveryActivity.class));
             finish();
