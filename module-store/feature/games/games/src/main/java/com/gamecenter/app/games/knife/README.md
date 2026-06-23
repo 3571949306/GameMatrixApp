@@ -41,7 +41,7 @@
     "fileName": "game_knife_v100.zip",
     "fileSize": 185,
     "sha256": "c3c8e5a8c1c7b5c2d2e5f0e6e2c3e4c3a7d5b6c3a8c0c2c6e8a4a6a8a0a0a",
-    "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_knife_v100.zip",
+    "downloadUrl": "https://hk-update.example.com/modules/game_knife_v100.zip",
     "category": "reaction",
     "minAppVersion": 288,
     "type": "game",
