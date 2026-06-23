@@ -1,293 +1,458 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 中国象棋主布局 v2.0（2026-06-23 UI 升级）：
+     新增：玩家信息栏（顶+底）、走法历史面板、计时器、将/帅将军提示、认输/求和 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/chess_main_bg"
-    android:paddingTop="28dp">
+    android:fitsSystemWindows="true">
 
-    <!-- 棋盘视图（游戏中可见） -->
-    <com.gamecenter.app.games.chinesechess.ChineseChessView
-        android:id="@+id/chess_view"
+    <!-- 黑方（AI）信息栏 -->
+    <LinearLayout
+        android:id="@+id/bar_black_player"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:visibility="gone" />
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/chess_player_bar_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp">
 
-    <!-- 难度选择主面板：中央卡片样式（初始可见） -->
-    <ScrollView
-        android:id="@+id/difficulty_panel"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true"
-        android:scrollbars="none"
-        android:visibility="visible">
+        <View
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@android:color/black" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="20dp">
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <!-- 中央卡片：包裹标题+难度+开始按钮 -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/tv_black_name"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/chess_main_card_bg"
-                android:elevation="6dp"
-                android:padding="20dp">
+                android:text="@string/chinese_chess_black_player"
+                android:textColor="@color/chess_player_bar_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
-                <!-- 标题区 -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/chinese_chess_title"
-                    android:textColor="@color/chess_title_text"
-                    android:textSize="30sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/chinese_chess_subtitle"
-                    android:textColor="@color/chess_subtitle_text"
-                    android:textSize="13sp" />
-
-                <!-- 分隔线 -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="14dp"
-                    android:layout_marginBottom="14dp"
-                    android:background="@color/chess_card_border"
-                    android:alpha="0.4" />
-
-                <!-- 难度标签 -->
-                <TextView
-                    android:id="@+id/tv_difficulty_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/chinese_chess_select_difficulty"
-                    android:textColor="@color/chess_subtitle_text"
-                    android:textSize="14sp" />
-
-                <!-- 难度2×2宫格 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:id="@+id/btn_difficulty_1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:background="@drawable/chess_difficulty_selector"
-                            android:padding="10dp"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="12dp"
-                                android:src="@drawable/chess_stars_1"
-                                android:contentDescription="@string/chinese_chess_difficulty_easy" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="@string/chinese_chess_difficulty_easy"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/chinese_chess_difficulty_easy_desc"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:alpha="0.7"
-                                android:textSize="11sp" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/btn_difficulty_2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="6dp"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:background="@drawable/chess_difficulty_selector"
-                            android:padding="10dp"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="12dp"
-                                android:src="@drawable/chess_stars_2"
-                                android:contentDescription="@string/chinese_chess_difficulty_normal" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="@string/chinese_chess_difficulty_normal"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/chinese_chess_difficulty_normal_desc"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:alpha="0.7"
-                                android:textSize="11sp" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:id="@+id/btn_difficulty_3"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:background="@drawable/chess_difficulty_selector"
-                            android:padding="10dp"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="12dp"
-                                android:src="@drawable/chess_stars_3"
-                                android:contentDescription="@string/chinese_chess_difficulty_hard" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="@string/chinese_chess_difficulty_hard"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/chinese_chess_difficulty_hard_desc"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:alpha="0.7"
-                                android:textSize="11sp" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/btn_difficulty_4"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="6dp"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:background="@drawable/chess_difficulty_selector"
-                            android:padding="10dp"
-                            android:clickable="true"
-                            android:focusable="true">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="12dp"
-                                android:src="@drawable/chess_stars_4"
-                                android:contentDescription="@string/chinese_chess_difficulty_master" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:text="@string/chinese_chess_difficulty_master"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="@string/chinese_chess_difficulty_master_desc"
-                                android:textColor="@color/chess_difficulty_unselected"
-                                android:alpha="0.7"
-                                android:textSize="11sp" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- 开始游戏按钮 -->
-                <TextView
-                    android:id="@+id/btn_start_game"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:layout_marginTop="18dp"
-                    android:background="@drawable/chess_start_btn_bg"
-                    android:gravity="center"
-                    android:text="@string/chinese_chess_start"
-                    android:textColor="#FFFFFF"
-                    android:textSize="17sp"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:elevation="4dp" />
-
-            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/black_captured_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:orientation="horizontal" />
 
         </LinearLayout>
 
-    </ScrollView>
+        <TextView
+            android:id="@+id/tv_black_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="10:00"
+            android:textColor="@color/chess_timer_normal"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
-    <!-- 游戏控制面板（仅游戏中可见） -->
+    </LinearLayout>
+
+    <!-- 中间区域：棋盘 + 走法历史（横屏并排，竖屏上下） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
+
+        <!-- 棋盘视图（游戏中可见） -->
+        <com.gamecenter.app.games.chinesechess.ChineseChessView
+            android:id="@+id/chess_view"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:visibility="gone" />
+
+        <!-- 走法历史面板（游戏中可见） -->
+        <LinearLayout
+            android:id="@+id/history_panel"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/chess_history_bg"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/chinese_chess_move_history"
+                android:textColor="@color/chess_history_text"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="4dp"
+                android:background="@color/chess_card_border"
+                android:alpha="0.3" />
+
+            <ScrollView
+                android:id="@+id/history_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:fillViewport="true"
+                android:scrollbars="none">
+
+                <TextView
+                    android:id="@+id/tv_move_history"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/chinese_chess_no_moves"
+                    android:textColor="@color/chess_history_subtext"
+                    android:textSize="11sp" />
+
+            </ScrollView>
+
+        </LinearLayout>
+
+        <!-- 难度选择主面板（初始可见） -->
+        <ScrollView
+            android:id="@+id/difficulty_panel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:scrollbars="none"
+            android:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/chess_main_card_bg"
+                    android:elevation="6dp"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:text="@string/chinese_chess_title"
+                        android:textColor="@color/chess_title_text"
+                        android:textSize="30sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/chinese_chess_subtitle"
+                        android:textColor="@color/chess_subtitle_text"
+                        android:textSize="13sp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_marginBottom="14dp"
+                        android:alpha="0.4"
+                        android:background="@color/chess_card_border" />
+
+                    <TextView
+                        android:id="@+id/tv_difficulty_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:text="@string/chinese_chess_select_difficulty"
+                        android:textColor="@color/chess_subtitle_text"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/btn_difficulty_1"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chess_difficulty_selector"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="10dp">
+
+                                <ImageView
+                                    android:layout_width="48dp"
+                                    android:layout_height="12dp"
+                                    android:contentDescription="@string/chinese_chess_difficulty_easy"
+                                    android:src="@drawable/chess_stars_1" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="@string/chinese_chess_difficulty_easy"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:alpha="0.7"
+                                    android:text="@string/chinese_chess_difficulty_easy_desc"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="11sp" />
+
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/btn_difficulty_2"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chess_difficulty_selector"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="10dp">
+
+                                <ImageView
+                                    android:layout_width="48dp"
+                                    android:layout_height="12dp"
+                                    android:contentDescription="@string/chinese_chess_difficulty_normal"
+                                    android:src="@drawable/chess_stars_2" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="@string/chinese_chess_difficulty_normal"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:alpha="0.7"
+                                    android:text="@string/chinese_chess_difficulty_normal_desc"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="11sp" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:id="@+id/btn_difficulty_3"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chess_difficulty_selector"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="10dp">
+
+                                <ImageView
+                                    android:layout_width="48dp"
+                                    android:layout_height="12dp"
+                                    android:contentDescription="@string/chinese_chess_difficulty_hard"
+                                    android:src="@drawable/chess_stars_3" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="@string/chinese_chess_difficulty_hard"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:alpha="0.7"
+                                    android:text="@string/chinese_chess_difficulty_hard_desc"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="11sp" />
+
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/btn_difficulty_4"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/chess_difficulty_selector"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:padding="10dp">
+
+                                <ImageView
+                                    android:layout_width="48dp"
+                                    android:layout_height="12dp"
+                                    android:contentDescription="@string/chinese_chess_difficulty_master"
+                                    android:src="@drawable/chess_stars_4" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="6dp"
+                                    android:text="@string/chinese_chess_difficulty_master"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:alpha="0.7"
+                                    android:text="@string/chinese_chess_difficulty_master_desc"
+                                    android:textColor="@color/chess_difficulty_unselected"
+                                    android:textSize="11sp" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/btn_start_game"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@drawable/chess_start_btn_bg"
+                        android:clickable="true"
+                        android:elevation="4dp"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="@string/chinese_chess_start"
+                        android:textColor="#FFFFFF"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+    <!-- 红方（玩家）信息栏 -->
+    <LinearLayout
+        android:id="@+id/bar_red_player"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/chess_player_bar_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp">
+
+        <View
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@color/chinese_chess_red" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_red_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chinese_chess_red_player"
+                android:textColor="@color/chess_player_bar_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/red_captured_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:orientation="horizontal" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_red_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="10:00"
+            android:textColor="@color/chess_timer_normal"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- 游戏控制面板（仅游戏中可见）：悔棋 / 认输 / 求和 / 重新开始 -->
     <LinearLayout
         android:id="@+id/control_panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"
         android:orientation="horizontal"
         android:visibility="gone">
@@ -295,34 +460,66 @@
         <TextView
             android:id="@+id/btn_undo"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:layout_marginEnd="6dp"
             android:background="@drawable/chess_control_btn_bg"
+            android:clickable="true"
+            android:elevation="2dp"
+            android:focusable="true"
             android:gravity="center"
             android:text="@string/chinese_chess_undo"
             android:textColor="@color/chess_control_btn_text"
-            android:textSize="14sp"
-            android:textStyle="bold"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_draw"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/chess_resign_btn_bg"
             android:clickable="true"
+            android:elevation="2dp"
             android:focusable="true"
-            android:elevation="2dp" />
+            android:gravity="center"
+            android:text="@string/chinese_chess_draw"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_resign"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/chess_resign_btn_bg"
+            android:clickable="true"
+            android:elevation="2dp"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/chinese_chess_resign"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/btn_restart"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
             android:background="@drawable/chess_control_btn_bg"
+            android:clickable="true"
+            android:elevation="2dp"
+            android:focusable="true"
             android:gravity="center"
             android:text="@string/chinese_chess_restart"
             android:textColor="@color/chess_control_btn_text"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:clickable="true"
-            android:focusable="true"
-            android:elevation="2dp" />
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
     </LinearLayout>
 

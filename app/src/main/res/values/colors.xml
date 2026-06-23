@@ -189,4 +189,19 @@
     <color name="chess_star_empty">#9E9E9E</color>
     <color name="chess_control_btn_bg">#5D4037</color>
     <color name="chess_control_btn_text">#FFFFFF</color>
+
+    <!-- 2026-06-23 UI 升级：玩家信息栏 / 走法记录 / 计时器 / 结束面板 -->
+    <color name="chess_player_bar_bg">#3E2723</color>
+    <color name="chess_player_bar_text">#FFFFFF</color>
+    <color name="chess_player_bar_subtext">#BCAAA4</color>
+    <color name="chess_timer_normal">#FFFFFF</color>
+    <color name="chess_timer_warning">#FF6E40</color>
+    <color name="chess_timer_critical">#E53935</color>
+    <color name="chess_history_bg">#EFEBE9</color>
+    <color name="chess_history_text">#3E2723</color>
+    <color name="chess_history_subtext">#8D6E63</color>
+    <color name="chess_move_red">#C62828</color>
+    <color name="chess_move_black">#212121</color>
+    <color name="chess_dialog_bg">#FFFFFF</color>
+    <color name="chess_captured_piece_bg">#BCAAA4</color>
 </resources>
