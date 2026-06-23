@@ -50,4 +50,15 @@
     <string name="game_go_end_duration">用时</string>
     <string name="game_go_end_restart">再来一局</string>
     <string name="game_go_back_home">返回主菜单</string>
+
+    <!-- 2026-06-23: AI 难度选择 -->
+    <string name="game_go_difficulty_label">AI 难度</string>
+    <string name="game_go_diff_1">简单</string>
+    <string name="game_go_diff_2">普通</string>
+    <string name="game_go_diff_3">困难</string>
+    <string name="game_go_diff_4">大师</string>
+    <string name="game_go_diff_1_desc">随机落子</string>
+    <string name="game_go_diff_2_desc">贪心算法</string>
+    <string name="game_go_diff_3_desc">Minimax-2 步</string>
+    <string name="game_go_diff_4_desc">Minimax-3 步</string>
 </resources>
