@@ -440,4 +440,35 @@
     <string name="chinese_chess_exit_yes">退出</string>
     <string name="chinese_chess_exit_no">继续对局</string>
     <string name="chinese_chess_undo_unavailable">当前无法悔棋</string>
+    <!-- 2026-06-23 UI 升级：新增加的功能显示 -->
+    <string name="chinese_chess_red_player">红方（你）</string>
+    <string name="chinese_chess_black_player">黑方（AI）</string>
+    <string name="chinese_chess_check_alert">将军！</string>
+    <string name="chinese_chess_resign">认输</string>
+    <string name="chinese_chess_draw">求和</string>
+    <string name="chinese_chess_draw_offer">对方请求和棋，是否同意？</string>
+    <string name="chinese_chess_draw_accept">同意</string>
+    <string name="chinese_chess_draw_reject">拒绝</string>
+    <string name="chinese_chess_move_history">走法记录</string>
+    <string name="chinese_chess_no_moves">尚无走棋</string>
+    <string name="chinese_chess_game_over_title">本局结束</string>
+    <string name="chinese_chess_game_over_win">红方获胜</string>
+    <string name="chinese_chess_game_over_lose">黑方获胜</string>
+    <string name="chinese_chess_game_over_draw">和棋</string>
+    <string name="chinese_chess_stat_moves">总走法</string>
+    <string name="chinese_chess_stat_captures">吃子数</string>
+    <string name="chinese_chess_stat_duration">用时</string>
+    <string name="chinese_chess_stat_score">得分</string>
+    <string name="chinese_chess_stat_red_captures">红方吃子</string>
+    <string name="chinese_chess_stat_black_captures">黑方吃子</string>
+    <string name="chinese_chess_resign_confirm">确定要认输吗？</string>
+    <string name="chinese_chess_resigned">你已认输</string>
+    <string name="chinese_chess_draw_confirm">请求和棋，等待对方回应…</string>
+    <string name="chinese_chess_draw_rejected">对方拒绝和棋</string>
+    <string name="chinese_chess_play_again">再来一局</string>
+    <string name="chinese_chess_back_home">返回主菜单</string>
+    <string name="chinese_chess_captured_label">已吃</string>
+    <string name="chinese_chess_turn_red">红方走棋</string>
+    <string name="chinese_chess_turn_black">黑方走棋</string>
+    <string name="chinese_chess_default_player_name">玩家</string>
 </resources>
