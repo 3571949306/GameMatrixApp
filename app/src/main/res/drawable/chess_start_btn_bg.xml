@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 中国象棋开始游戏按钮：深棕渐变 + 圆角 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="@color/chess_start_btn_start"
+        android:endColor="@color/chess_start_btn_end"
+        android:angle="180" />
+    <corners android:radius="14dp" />
+</shape>

@@ -100,7 +100,9 @@ public class App extends Application {
         applyTheme();
 
         // 注入实际服务器域名到安全模块（从 BuildConfig 读取，避免源码中硬编码服务器地址）
-        SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, BuildConfig.MODULE_FALLBACK_HOST);
+        // 2026-06-19: 美国 VPS 已下线，仅保留主源域名
+        // Release 构建启用证书绑定（防中间人攻击），Debug 构建禁用（兼容模拟器）
+        SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, !BuildConfig.DEBUG);
 
         // OkHttpClient 改为 App Startup 延迟初始化
         // 不在 onCreate 中同步初始化，避免阻塞启动

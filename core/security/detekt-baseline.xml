@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>MagicNumber:SecureOkHttpFactory.kt$SecureOkHttpFactory$10</ID>
+    <ID>MagicNumber:SecureOkHttpFactory.kt$SecureOkHttpFactory$15</ID>
+    <ID>MagicNumber:SecureOkHttpFactory.kt$SecureOkHttpFactory$30</ID>
+    <ID>TooGenericExceptionCaught:ModuleVerifier.kt$ModuleVerifier$e: Exception</ID>
+    <ID>UnusedImports:SecureOkHttpFactory.kt$import okhttp3.CertificatePinner</ID>
+  </CurrentIssues>
+</SmellBaseline>

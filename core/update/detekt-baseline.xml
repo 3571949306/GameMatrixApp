@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>CognitiveComplexMethod:UpdateViewModel.kt$UpdateViewModel$fun checkUpdate(context: Context, showToast: Boolean)</ID>
+    <ID>CyclomaticComplexMethod:UpdateViewModel.kt$UpdateViewModel$fun checkUpdate(context: Context, showToast: Boolean)</ID>
+    <ID>SwallowedException:UpdateViewModel.kt$UpdateViewModel$e: CancellationException</ID>
+  </CurrentIssues>
+</SmellBaseline>

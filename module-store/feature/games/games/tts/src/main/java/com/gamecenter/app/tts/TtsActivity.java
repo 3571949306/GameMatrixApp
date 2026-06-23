@@ -38,6 +38,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import com.gamecenter.app.BuildConfig;
 
 /**
  * TTS 语音合成实验室 — 小米 MiMo TTS 全功能客户端。
@@ -56,9 +57,8 @@ public class TtsActivity extends AppCompatActivity {
     private static final String TAG = "TtsActivity";
 
     // ═══════════════════════════════════════════════════════
-    //  小米 MiMo API 配置（测试专用）
+    //  小米 MiMo API 配置（从 local.properties 经 BuildConfig 注入）
     // ═══════════════════════════════════════════════════════
-    private static final String API_KEY = "sk-cq6d3s1j5bcbxxt162woa1xw79a8baye9idgx2bxpwlf9t2y";
     private static final String API_URL = "https://api.xiaomimimo.com/v1/chat/completions";
 
     // 录音参数
@@ -771,7 +771,7 @@ public class TtsActivity extends AppCompatActivity {
                 body.toString(), MediaType.parse("application/json"));
         Request request = new Request.Builder()
                 .url(API_URL)
-                .addHeader("Authorization", "Bearer " + API_KEY)
+                .addHeader("Authorization", "Bearer " + BuildConfig.MIMO_API_KEY)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
                 .post(reqBody)

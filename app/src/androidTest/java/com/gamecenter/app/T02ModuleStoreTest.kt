@@ -7,7 +7,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.*
 import com.gamecenter.app.modules.ModuleDownloadManager
 import com.gamecenter.app.modules.ModuleVersionChecker
 import com.gamecenter.app.modules.ModuleManifest
@@ -74,25 +73,41 @@ class T02ModuleStoreTest {
      */
     @Test
     fun testShouldLoadExternal_true() {
-        val manifest = ModuleManifest().apply {
-            id = "test_module"
-            versionCode = 201
-        }
-        
+        val manifest = ModuleManifest(
+            id = "test_module",
+            name = "Test Module",
+            description = "",
+            versionName = "2.0",
+            versionCode = 201,
+            entryClass = "",
+            fileName = "",
+            fileSize = 0L,
+            sha256 = "",
+            downloadUrl = ""
+        )
+
         val result = ModuleVersionChecker.shouldLoadExternal(100, manifest)
         assertTrue("Should load external module when store version is higher", result)
     }
-    
+
     /**
      * TC-MV-005: 验证 shouldLoadExternal() - 不应该加载外部模块
      */
     @Test
     fun testShouldLoadExternal_false() {
-        val manifest = ModuleManifest().apply {
-            id = "test_module"
-            versionCode = 100
-        }
-        
+        val manifest = ModuleManifest(
+            id = "test_module",
+            name = "Test Module",
+            description = "",
+            versionName = "1.0",
+            versionCode = 100,
+            entryClass = "",
+            fileName = "",
+            fileSize = 0L,
+            sha256 = "",
+            downloadUrl = ""
+        )
+
         val result = ModuleVersionChecker.shouldLoadExternal(201, manifest)
         assertFalse("Should not load external module when built-in version is higher", result)
     }
@@ -140,12 +155,19 @@ class T02ModuleStoreTest {
      */
     @Test
     fun testIsModuleDownloaded_fileNotExists() {
-        val manifest = ModuleManifest().apply {
-            id = "test_module"
-            fileName = "test_module.apk"
-            sha256 = "dummy"
-        }
-        
+        val manifest = ModuleManifest(
+            id = "test_module",
+            name = "Test Module",
+            description = "",
+            versionName = "1.0",
+            versionCode = 1,
+            entryClass = "",
+            fileName = "test_module.apk",
+            fileSize = 0L,
+            sha256 = "dummy",
+            downloadUrl = ""
+        )
+
         val result = ModuleDownloadManager.isModuleDownloaded(context, manifest)
         assertFalse("Module should not be downloaded", result)
         println("✓ isModuleDownloaded() returns false for non-existent file")
@@ -170,11 +192,19 @@ class T02ModuleStoreTest {
      */
     @Test
     fun testDeleteDownloadedModule_notExists() {
-        val manifest = ModuleManifest().apply {
-            id = "test_module"
-            fileName = "test_module.apk"
-        }
-        
+        val manifest = ModuleManifest(
+            id = "test_module",
+            name = "Test Module",
+            description = "",
+            versionName = "1.0",
+            versionCode = 1,
+            entryClass = "",
+            fileName = "test_module.apk",
+            fileSize = 0L,
+            sha256 = "",
+            downloadUrl = ""
+        )
+
         val result = ModuleDownloadManager.deleteDownloadedModule(context, manifest)
         assertFalse("Should return false when file does not exist", result)
         println("✓ deleteDownloadedModule() returns false for non-existent file")

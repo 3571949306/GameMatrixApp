@@ -18,16 +18,17 @@ object RecoveryDownloader {
     private const val READ_TIMEOUT = 300_000
     private const val BUFFER_SIZE = 8192
 
+    /**
+     * 恢复模式 APK 下载源列表。
+     *
+     * 2026-06-19: 已移除美国 VPS 备用源，仅保留 HK VPS + GitHub 两级分发。
+     * 顺序：香港 VPS（主源）→ GitHub Releases（备用源）
+     */
     private val DOWNLOAD_SOURCES: List<String> get() {
-        val sources = mutableListOf(
+        return listOf(
             BuildConfig.SERVER_URL + "/app-stable.apk",
             BuildConfig.GITHUB_RELEASES_URL + "/latest/download/app-release.apk"
         )
-        val fallback = BuildConfig.SERVER_URL_FALLBACK
-        if (fallback.isNotEmpty()) {
-            sources.add(1, "$fallback/app-stable.apk")
-        }
-        return sources
     }
 
     interface Callback {

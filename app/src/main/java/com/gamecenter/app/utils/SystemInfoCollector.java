@@ -367,8 +367,15 @@ public class SystemInfoCollector {
     private void getBatteryInfo_static() {
         appendSection("电池(静态信息)");
         // 传入 null 作为 BroadcastReceiver，立即获取最近的粘性广播，无需注册监听
-        Intent batteryIntent = context.registerReceiver(null,
-                new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        // Android 14+ (API 34) 要求 registerReceiver 显式指定 export 标志
+        Intent batteryIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            batteryIntent = context.registerReceiver(null,
+                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            batteryIntent = context.registerReceiver(null,
+                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        }
         if (batteryIntent != null) {
             int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
             int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
@@ -577,7 +584,10 @@ public class SystemInfoCollector {
                     String version = drm.getPropertyString(MediaDrm.PROPERTY_VERSION);
                     if (i == 0) {
                         // Widevine 额外显示安全级别
-                        appendKV(drmNames[i], "L" + getWidevineLevel(drm) + " | " + desc,
+                        // getWidevineLevel 在低于 API 28 的设备上返回 -1（不支持）
+                        int level = getWidevineLevel(drm);
+                        String levelStr = level > 0 ? "L" + level : "不支持";
+                        appendKV(drmNames[i], levelStr + " | " + desc,
                                 "Widevine安全级别: L1(硬件级最高)/L2(硬件级加密)/L3(软件级)，影响Netflix等高清播放");
                         appendKV("  供应商", vendor, "");
                         appendKV("  版本", version, "");
@@ -601,10 +611,19 @@ public class SystemInfoCollector {
     /**
      * 获取 Widevine DRM 的安全级别。
      *
+     * <p><b>注意：{@link MediaDrm#getSecurityLevel} 需要 API 28+ (Build.VERSION_CODES.P)，
+     * 而本项目 minSdk 为 24，因此必须做版本判断。</b>
+     * 低于 API 28 的设备无法获取安全级别，返回 -1 表示不支持。</p>
+     *
      * @param drm MediaDrm 实例
-     * @return 安全级别（1/2/3），获取失败时返回 -1
+     * @return 安全级别（1/2/3），获取失败或不支持时返回 -1
      */
     private int getWidevineLevel(MediaDrm drm) {
+        // MediaDrm#getSecurityLevel 需要 API 28+ (Build.VERSION_CODES.P)，
+        // 低于 API 28 的设备调用会抛出 NoSuchMethodError，因此先做版本判断。
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return -1;
+        }
         try {
             return drm.getSecurityLevel(drm.openSession());
         } catch (Exception e) {
@@ -891,19 +910,31 @@ public class SystemInfoCollector {
      * 通过反射调用 {@code android.os.SystemProperties.get(key, def)} 获取系统属性。
      *
      * <p>SystemProperties 是 Android 内部 @hide API，无法在应用层直接引用，
-     * 因此通过反射绕过访问限制。
+     * 因此通过反射绕过访问限制。</p>
+     *
+     * <p><b>注意：这是私有 API，未来 Android 版本可能封禁此类反射访问。</b>
+     * 自 Android P (API 28) 起系统对非 SDK 接口的反射做了限制，目前 SystemProperties
+     * 仍在灰名单中可用，但在更新的版本中可能被完全屏蔽。本方法已做优雅降级处理：
+     * 反射失败时返回空字符串，不影响整体采集流程。</p>
      *
      * @param key 属性名（如 "ro.build.version.sdk"）
-     * @return 属性值，获取失败返回空字符串
+     * @return 属性值，获取失败或反射被禁用时返回空字符串
      */
     private String getSystemProperty(String key) {
         try {
             // 反射就像"走后门"——SystemProperties 是 Android 系统内部隐藏的类，
-            // 普通应用不让直接用，但通过反射可以绕过这个限制来调用它
+            // 普通应用不让直接用，但通过反射可以绕过这个限制来调用它。
+            // 注意：这是私有 @hide API，未来 Android 版本可能封禁此类反射访问，
+            // 届时本调用将抛出 NoSuchMethodException/InvocationTargetException 等，
+            // 由下方 catch 块统一降级为返回空字符串。
             return (String) Class.forName("android.os.SystemProperties")
                     .getMethod("get", String.class, String.class)
                     .invoke(null, key, "");
         } catch (Exception e) {
+            // 反射失败可能由以下原因导致：未来 Android 版本封禁了非 SDK 接口反射、
+            // SystemProperties 类被重命名/移除、安全策略阻止反射访问等。
+            // 优雅降级：记录日志并返回空字符串，不影响其他采集项。
+            Log.w(TAG, "SystemProperties reflect failed for [" + key + "]: " + e.getMessage());
             return "";
         }
     }

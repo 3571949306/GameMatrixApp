@@ -4,7 +4,6 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.gamecenter.app.database.AppDatabase
-import com.gamecenter.app.database.entity.AiMessageEntity
 import com.gamecenter.app.database.entity.GameStatsEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -29,32 +28,8 @@ class RoomDatabaseIntegrationTest {
         database.close()
     }
 
-    @Test
-    fun testInsertAndQueryAiMessage() = runTest {
-        val dao = database.aiMessageDao()
-        val entity = AiMessageEntity(
-            sessionId = "test-session",
-            role = "user",
-            content = "Hello AI"
-        )
-        val id = dao.insert(entity)
-        assertTrue(id > 0)
-
-        val messages = dao.getBySessionId("test-session")
-        assertEquals(1, messages.size)
-        assertEquals("Hello AI", messages[0].content)
-        assertEquals("user", messages[0].role)
-    }
-
-    @Test
-    fun testDeleteAiMessagesBySessionId() = runTest {
-        val dao = database.aiMessageDao()
-        dao.insert(AiMessageEntity(sessionId = "s1", role = "user", content = "msg1"))
-        dao.insert(AiMessageEntity(sessionId = "s2", role = "user", content = "msg2"))
-        dao.deleteBySessionId("s1")
-        assertEquals(0, dao.getBySessionId("s1").size)
-        assertEquals(1, dao.getBySessionId("s2").size)
-    }
+    // 注意：AiMessage 相关测试已移除，因为 AiMessageEntity 和 aiMessageDao()
+    // 定义在 AI 模块中，不在 app 模块的 AppDatabase 里。
 
     @Test
     fun testInsertAndQueryGameStats() = runTest {
@@ -67,7 +42,7 @@ class RoomDatabaseIntegrationTest {
         val id = dao.insert(entity)
         assertTrue(id > 0)
 
-        val stats = dao.getByGameType("doudizhu")
+        val stats = dao.getByGameTypeSync("doudizhu")
         assertEquals(1, stats.size)
         assertEquals("win", stats[0].result)
     }

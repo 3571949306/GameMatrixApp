@@ -2,7 +2,7 @@ package com.gamecenter.app.modules;
 
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
-import com.gamecenter.app.models.ModuleManifest;
+import com.gamecenter.app.core.common.ModuleInterface;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +11,11 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
+import java.io.File;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -169,7 +173,8 @@ public class ModuleManagerTest {
      */
     @Test
     public void testGetInstalledModuleIds() {
-        List<String> ids = ModuleManager.INSTANCE.getInstalledModuleIds(context);
+        // 2026-06-19: getInstalledModuleIds 返回 Set<String>（与 ModuleManager.kt 实际签名一致）
+        Set<String> ids = ModuleManager.INSTANCE.getInstalledModuleIds(context);
 
         assertNotNull("已安装模块 ID 列表不应为 null", ids);
         // 初始状态可能没有已安装模块
@@ -203,24 +208,8 @@ public class ModuleManagerTest {
         }
     }
 
-    /**
-     * 测试加载游戏模块。
-     */
-    @Test
-    public void testLoadGameModule() {
-        boolean result = ModuleManager.INSTANCE.loadGameModule(context, "nonExistentGame");
-
-        assertFalse("加载不存在的游戏模块应该返回 false", result);
-    }
-
-    /**
-     * 测试获取内置游戏版本号。
-     */
-    @Test
-    public void testGetBuiltInVersion() {
-        int version = ModuleManager.INSTANCE.getBuiltInVersion(context, "nonExistentGame");
-
-        // 应该返回默认值 1
-        assertEquals("不存在的游戏应该返回默认版本号 1", 1, version);
-    }
+    // 2026-06-19: 以下测试方法已移除（ModuleManager 中不存在对应 API）：
+    //   - testLoadGameModule: loadGameModule(Context, String) 方法不存在
+    //   - testGetBuiltInVersion: getBuiltInVersion(Context, String) 方法不存在
+    // 如需恢复，请先在 ModuleManager 中实现这些 API，或改用 GameRegistry 等其他入口。
 }

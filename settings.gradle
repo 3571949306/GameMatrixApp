@@ -37,6 +37,10 @@ include ':core:modulestore'
 // Phase 3: 联机公共模块（WebSocket Relay + 房间管理 + 消息协议）
 include ':core:online'
 
+// Phase 1: MiMo TTS 能力 SDK（注入 AI 助手）
+include ':modules:capabilities:mimo-tts'
+project(':modules:capabilities:mimo-tts').projectDir = file('d:/GameMatrixWorkspace/capabilities/mimo-tts')
+
 // 模块商店功能模块（英文路径）
 include ':feature:games'
 include ':module-store:feature:tools:vpn'

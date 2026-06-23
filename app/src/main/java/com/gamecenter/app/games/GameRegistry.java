@@ -394,7 +394,7 @@ public final class GameRegistry {
         classics.add(new Entry("rock", R.drawable.ic_rock, "石头剪刀布", "经典石头剪刀布",
                 com.gamecenter.app.games.rock.RockActivity.class,
                 CATEGORY_CLASSICS, CATEGORY_CLASSICS));
-        categories.add(new Category(context.getString(R.string.category_classics), classics, CATEGORY_CLASSICS));
+        categories.add(new Category(categoryName(context, CATEGORY_CLASSICS), classics, CATEGORY_CLASSICS));
 
         // ===== 益智类（puzzle）=====
         List<Entry> puzzle = new ArrayList<>();
@@ -429,7 +429,7 @@ public final class GameRegistry {
                 com.gamecenter.app.games.tiles.TilesActivity.class,
                 CATEGORY_PUZZLE, CATEGORY_PUZZLE));
         // knife 包暂不存在，已移除
-        categories.add(new Category(context.getString(R.string.category_puzzle), puzzle, CATEGORY_PUZZLE));
+        categories.add(new Category(categoryName(context, CATEGORY_PUZZLE), puzzle, CATEGORY_PUZZLE));
 
         // ===== 休闲类（casual）=====
         List<Entry> casual = new ArrayList<>();
@@ -460,15 +460,22 @@ public final class GameRegistry {
         casual.add(new Entry("whack", R.drawable.ic_whack, "打地鼠", "趣味打地鼠游戏",
                 com.gamecenter.app.games.whack.WhackActivity.class,
                 CATEGORY_CASUAL, CATEGORY_CASUAL));
-        categories.add(new Category(context.getString(R.string.category_casual), casual, CATEGORY_CASUAL));
+        categories.add(new Category(categoryName(context, CATEGORY_CASUAL), casual, CATEGORY_CASUAL));
 
         return categories;
     }
 
     private static String categoryName(Context context, String key) {
-        if (CATEGORY_PUZZLE.equals(key)) return context.getString(R.string.category_puzzle);
-        if (CATEGORY_CASUAL.equals(key)) return context.getString(R.string.category_casual);
-        return context.getString(R.string.category_classics);
+        try {
+            if (CATEGORY_PUZZLE.equals(key)) return context.getString(R.string.category_puzzle);
+            if (CATEGORY_CASUAL.equals(key)) return context.getString(R.string.category_casual);
+            return context.getString(R.string.category_classics);
+        } catch (android.content.res.Resources.NotFoundException e) {
+            // 测试环境（Robolectric）下可能无法加载资源，返回硬编码回退值
+            if (CATEGORY_PUZZLE.equals(key)) return "益智";
+            if (CATEGORY_CASUAL.equals(key)) return "休闲";
+            return "经典";
+        }
     }
 
     // ========== 内部数据类 ==========

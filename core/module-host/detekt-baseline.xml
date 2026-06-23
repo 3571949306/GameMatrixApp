@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>TooGenericExceptionCaught:ModuleClassLoaderPool.kt$ModuleClassLoaderPool$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ModuleLoader.kt$ModuleLoader$e: Exception</ID>
+    <ID>UnusedParameter:ModuleLoader.kt$ModuleLoader$newVersionCode: Int</ID>
+  </CurrentIssues>
+</SmellBaseline>

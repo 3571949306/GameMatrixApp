@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 五子棋先手选择按钮selector：选中深棕边框+浅色填充 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/gomoku_accent_light" />
+            <corners android:radius="12dp" />
+            <stroke android:width="2dp" android:color="@color/gomoku_accent" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/gomoku_difficulty_unselected_bg" />
+            <corners android:radius="12dp" />
+            <stroke android:width="1dp" android:color="@color/gomoku_card_border" />
+        </shape>
+    </item>
+</selector>
