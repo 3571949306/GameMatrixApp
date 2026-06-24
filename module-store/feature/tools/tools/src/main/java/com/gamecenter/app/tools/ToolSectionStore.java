@@ -138,6 +138,63 @@ public final class ToolSectionStore {
         getPrefs().edit().putString(KEY_ORDER, builder.toString()).apply();
     }
 
+    // 2026-06-23: 使用次数统计（"热度"排序支持）
+    private static final String KEY_USAGE_COUNT = "tool_usage_count";  // 格式: id1:n1,id2:n2,...
+
+    /**
+     * 记录工具使用次数（每次工具被打开 +1）
+     */
+    public void incrementUsage(String toolId) {
+        String existing = getPrefs().getString(KEY_USAGE_COUNT, "");
+        java.util.Map<String, Integer> counts = parseUsageCounts(existing);
+        counts.put(toolId, counts.getOrDefault(toolId, 0) + 1);
+        saveUsageCounts(counts);
+    }
+
+    /**
+     * 获取工具使用次数
+     */
+    public int getUsageCount(String toolId) {
+        return parseUsageCounts(getPrefs().getString(KEY_USAGE_COUNT, "")).getOrDefault(toolId, 0);
+    }
+
+    /**
+     * 获取按使用次数降序排列的工具 ID 列表
+     */
+    public java.util.List<String> getTopUsedTools(int limit) {
+        java.util.Map<String, Integer> counts = parseUsageCounts(getPrefs().getString(KEY_USAGE_COUNT, ""));
+        java.util.List<java.util.Map.Entry<String, Integer>> entries = new java.util.ArrayList<>(counts.entrySet());
+        entries.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.min(limit, entries.size()); i++) {
+            result.add(entries.get(i).getKey());
+        }
+        return result;
+    }
+
+    private java.util.Map<String, Integer> parseUsageCounts(String raw) {
+        java.util.Map<String, Integer> map = new java.util.HashMap<>();
+        if (raw == null || raw.isEmpty()) return map;
+        for (String pair : raw.split(",")) {
+            String[] parts = pair.split(":");
+            if (parts.length == 2) {
+                try {
+                    map.put(parts[0], Integer.parseInt(parts[1]));
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return map;
+    }
+
+    private void saveUsageCounts(java.util.Map<String, Integer> counts) {
+        StringBuilder builder = new StringBuilder();
+        for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+            if (builder.length() > 0) builder.append(",");
+            builder.append(e.getKey()).append(":").append(e.getValue());
+        }
+        getPrefs().edit().putString(KEY_USAGE_COUNT, builder.toString()).apply();
+    }
+
     /**
      * 保存工具卡片的可见性配置到 SharedPreferences。
      * <p>仅保存可见工具的 ID 集合，不可见的工具不在集合中。</p>
@@ -295,32 +352,41 @@ public final class ToolSectionStore {
      */
     private List<ToolSection> defaultSections() {
         List<ToolSection> sections = new ArrayList<>();
-        sections.add(new ToolSection("network_diagnosis", "一键网络体检", R.layout.item_tool_network_diagnosis, true));
-        sections.add(new ToolSection("diagnostic_report", "诊断报告导出", R.layout.item_tool_diagnostic_report, true));
-        sections.add(new ToolSection("dns_lookup", "DNS查询", R.layout.item_tool_dns_lookup, true));
-        sections.add(new ToolSection("lan_scan", "局域网设备扫描", R.layout.item_tool_lan_scan, true));
-        sections.add(new ToolSection("text_codec", "编码/时间戳/JSON", R.layout.item_tool_text_codec, true));
-        sections.add(new ToolSection("file_hash", "文件哈希", R.layout.item_tool_file_hash, true));
-        sections.add(new ToolSection("qr_plus", "二维码增强", R.layout.item_tool_qr_plus, true));
-        sections.add(new ToolSection("color_plus", "颜色增强", R.layout.item_tool_color_plus, true));
-        sections.add(new ToolSection("permission_privacy", "权限与隐私说明", R.layout.item_tool_permission_privacy, true));
-        sections.add(new ToolSection("ip", "IP地址信息", R.layout.item_tool_ip, true));
-        sections.add(new ToolSection("dns", "DNS服务器", R.layout.item_tool_dns, true));
-        sections.add(new ToolSection("wifi", "WiFi信号", R.layout.item_tool_wifi, true));
-        sections.add(new ToolSection("speedtest", "网络测速", R.layout.item_tool_speedtest, true));
-        sections.add(new ToolSection("portscan", "端口扫描", R.layout.item_tool_portscan, true));
-        sections.add(new ToolSection("qr", "二维码工具", R.layout.item_tool_qr, true));
-        sections.add(new ToolSection("battery", "电池信息", R.layout.item_tool_battery, true));
-        sections.add(new ToolSection("device", "设备信息", R.layout.item_tool_device, true));
-        sections.add(new ToolSection("ping", "Ping工具", R.layout.item_tool_ping, true));
-        sections.add(new ToolSection("traceroute", "路由追踪", R.layout.item_tool_traceroute, true));
-        sections.add(new ToolSection("subnet", "子网计算器", R.layout.item_tool_subnet, true));
-        sections.add(new ToolSection("screen", "屏幕信息", R.layout.item_tool_screen, true));
-        sections.add(new ToolSection("sensor", "传感器信息", R.layout.item_tool_sensor, true));
-        sections.add(new ToolSection("hash", "哈希计算器", R.layout.item_tool_hash, true));
-        sections.add(new ToolSection("clipboard", "剪贴板工具", R.layout.item_tool_clipboard, true));
-        sections.add(new ToolSection("color", "颜色取色器", R.layout.item_tool_color, true));
-        sections.add(new ToolSection("sysinfo", "手机系统详细信息", R.layout.item_tool_sysinfo, true));
+        sections.add(new ToolSection("network_diagnosis", "一键网络体检", R.layout.item_tool_network_diagnosis, true, "network", ""));
+        sections.add(new ToolSection("diagnostic_report", "诊断报告导出", R.layout.item_tool_diagnostic_report, true, "network", ""));
+        sections.add(new ToolSection("dns_lookup", "DNS查询", R.layout.item_tool_dns_lookup, true, "network", ""));
+        sections.add(new ToolSection("lan_scan", "局域网设备扫描", R.layout.item_tool_lan_scan, true, "network", ""));
+        sections.add(new ToolSection("text_codec", "编码/时间戳/JSON", R.layout.item_tool_text_codec, true, "tool", ""));
+        sections.add(new ToolSection("file_hash", "文件哈希", R.layout.item_tool_file_hash, true, "tool", ""));
+        sections.add(new ToolSection("qr_plus", "二维码增强", R.layout.item_tool_qr_plus, true, "tool", ""));
+        sections.add(new ToolSection("color_plus", "颜色增强", R.layout.item_tool_color_plus, true, "tool", ""));
+        sections.add(new ToolSection("permission_privacy", "权限与隐私说明", R.layout.item_tool_permission_privacy, true, "tool", ""));
+        sections.add(new ToolSection("ip", "IP地址信息", R.layout.item_tool_ip, true, "network", ""));
+        sections.add(new ToolSection("dns", "DNS服务器", R.layout.item_tool_dns, true, "network", ""));
+        sections.add(new ToolSection("wifi", "WiFi信号", R.layout.item_tool_wifi, true, "network", ""));
+        sections.add(new ToolSection("speedtest", "网络测速", R.layout.item_tool_speedtest, true, "network", ""));
+        sections.add(new ToolSection("portscan", "端口扫描", R.layout.item_tool_portscan, true, "network", ""));
+        sections.add(new ToolSection("qr", "二维码工具", R.layout.item_tool_qr, true, "tool", ""));
+        sections.add(new ToolSection("battery", "电池信息", R.layout.item_tool_battery, true, "device", ""));
+        sections.add(new ToolSection("device", "设备信息", R.layout.item_tool_device, true, "device", ""));
+        sections.add(new ToolSection("ping", "Ping工具", R.layout.item_tool_ping, true, "network", ""));
+        sections.add(new ToolSection("traceroute", "路由追踪", R.layout.item_tool_traceroute, true, "network", ""));
+        sections.add(new ToolSection("subnet", "子网计算器", R.layout.item_tool_subnet, true, "network", ""));
+        sections.add(new ToolSection("screen", "屏幕信息", R.layout.item_tool_screen, true, "device", ""));
+        sections.add(new ToolSection("sensor", "传感器信息", R.layout.item_tool_sensor, true, "device", ""));
+        sections.add(new ToolSection("hash", "哈希计算器", R.layout.item_tool_hash, true, "tool", ""));
+        sections.add(new ToolSection("clipboard", "剪贴板工具", R.layout.item_tool_clipboard, true, "network", ""));
+        sections.add(new ToolSection("color", "颜色取色器", R.layout.item_tool_color, true, "tool", ""));
+        sections.add(new ToolSection("sysinfo", "手机系统详细信息", R.layout.item_tool_sysinfo, true, "device", ""));
+        // 2026-06-23: 新增 4 个工具（URL/正则/JSON/Base64）
+        sections.add(new ToolSection("url_encode", "URL编解码", R.layout.item_tool_text_transform,
+                true, "tool", "URL 编码/解码（长按切换）"));
+        sections.add(new ToolSection("regex_test", "正则测试", R.layout.item_tool_text_transform,
+                true, "tool", "正则表达式测试（第一行 regex，第二行文本）"));
+        sections.add(new ToolSection("json_format", "JSON格式化", R.layout.item_tool_text_transform,
+                true, "tool", "JSON 美化/校验（缩进显示）"));
+        sections.add(new ToolSection("base64", "Base64编解码", R.layout.item_tool_text_transform,
+                true, "tool", "Base64 编码/解码（长按切换）"));
         return sections;
     }
 
