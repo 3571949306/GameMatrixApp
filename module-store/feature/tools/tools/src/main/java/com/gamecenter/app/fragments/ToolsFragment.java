@@ -49,6 +49,10 @@ import com.gamecenter.app.tools.SpeedTestToolBinder;
 import com.gamecenter.app.tools.SubnetToolBinder;
 import com.gamecenter.app.tools.SystemInfoToolBinder;
 import com.gamecenter.app.tools.TextCodecToolBinder;
+import com.gamecenter.app.tools.UrlEncodeToolBinder;
+import com.gamecenter.app.tools.RegexTestToolBinder;
+import com.gamecenter.app.tools.JsonFormatToolBinder;
+import com.gamecenter.app.tools.Base64ToolBinder;
 import com.gamecenter.app.tools.ToolBinder;
 import com.gamecenter.app.tools.ToolHelper;
 import com.gamecenter.app.tools.ToolSection;
@@ -154,6 +158,11 @@ public class ToolsFragment extends Fragment {
         binders.put("clipboard", new ClipboardToolBinder());
         binders.put("color", new ColorPickerToolBinder());
         binders.put("sysinfo", new SystemInfoToolBinder());
+        // 2026-06-23: 新增 4 个工具
+        binders.put("url_encode", new UrlEncodeToolBinder());
+        binders.put("regex_test", new RegexTestToolBinder());
+        binders.put("json_format", new JsonFormatToolBinder());
+        binders.put("base64", new Base64ToolBinder());
     }
 
     @Nullable
@@ -432,7 +441,11 @@ public class ToolsFragment extends Fragment {
             ToolBinder binder = binders.get(section.id);
             if (binder != null) {
                 Context ctx = getContext();
-                if (ctx != null) binder.bind(ctx, contentView, executor);
+                if (ctx != null) {
+                    binder.bind(ctx, contentView, executor);
+                    // 2026-06-23: 记录使用次数（用于按热度排序）
+                    if (store != null) store.incrementUsage(section.id);
+                }
             }
         }
 
