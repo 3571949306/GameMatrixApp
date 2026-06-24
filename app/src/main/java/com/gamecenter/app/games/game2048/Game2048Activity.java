@@ -140,6 +140,31 @@ public class Game2048Activity extends BaseGameActivity {
                 }
             });
             ((android.widget.FrameLayout) gameContentContainer).addView(btnUndo);
+
+            // 2026-06-23: 重做按钮（undo 的反向，还原撤销前的状态）
+            com.google.android.material.button.MaterialButton btnRedo =
+                    new com.google.android.material.button.MaterialButton(this);
+            btnRedo.setText("↷ 重做");
+            btnRedo.setTextSize(12f);
+            btnRedo.setMinWidth(0);
+            btnRedo.setPadding(16, 6, 16, 6);
+            android.widget.FrameLayout.LayoutParams lpRedo =
+                    new android.widget.FrameLayout.LayoutParams(
+                            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
+            lpRedo.gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+            lpRedo.setMargins(0, 24, 100, 0);  // 偏左，避免和撤销按钮重叠
+            btnRedo.setLayoutParams(lpRedo);
+            btnRedo.setOnClickListener(v -> {
+                if (game2048View.redo()) {
+                    updateScore(game2048View.getScore() + 10);
+                    android.widget.Toast.makeText(this, "已重做", android.widget.Toast.LENGTH_SHORT).show();
+                } else {
+                    android.widget.Toast.makeText(this, "已无可重做",
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+            ((android.widget.FrameLayout) gameContentContainer).addView(btnRedo);
         }
     }
 
