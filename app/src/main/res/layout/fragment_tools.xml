@@ -119,6 +119,35 @@
             android:layout_height="wrap_content"
             android:text="最近" />
 
+        <!-- 2026-06-23: 分类筛选 chip -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_network"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="网络" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_device"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_tool"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="工具" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_filter_hot"
+            style="@style/Widget.GameMatrix.Chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="最热" />
+
     </com.google.android.material.chip.ChipGroup>
 
     <androidx.recyclerview.widget.RecyclerView

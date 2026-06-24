@@ -35,18 +35,28 @@ public final class ToolSection {
     /** 工具卡片是否在界面上可见，可由用户在设置中切换 */
     public boolean visible;
 
+    /** 2026-06-23: 工具分类（network/device/tool/utility），用于分类筛选 chip */
+    public final String category;
+
+    /** 2026-06-23: 工具描述（用于搜索匹配和卡片副标题） */
+    public final String description;
+
     /**
      * 构造一个工具分区实例。
-     *
-     * @param id              唯一标识符，用于持久化排序和可见性配置
-     * @param title           显示标题
-     * @param contentLayoutId 内容布局资源 ID
-     * @param visible         初始可见性状态
      */
     public ToolSection(String id, String title, int contentLayoutId, boolean visible) {
+        this(id, title, contentLayoutId, visible, "tool", "");
+    }
+
+    /**
+     * 2026-06-23: 完整构造函数（带分类和描述）。
+     */
+    public ToolSection(String id, String title, int contentLayoutId, boolean visible, String category, String description) {
         this.id = id;
         this.title = title;
         this.contentLayoutId = contentLayoutId;
         this.visible = visible;
+        this.category = category;
+        this.description = description;
     }
 }
