@@ -210,10 +210,10 @@ public class Game2048View extends View {
 
     // ==================== 移动逻辑 ====================
 
-    private void moveLeft() { if (canMove()) { saveSnapshot(); boolean moved = slideLeft(); if (moved) afterMove(); else history.pollLast(); } }
-    private void moveRight() { if (canMove()) { saveSnapshot(); rotateGrid(2); boolean moved = slideLeft(); rotateGrid(2); if (moved) afterMove(); else history.pollLast(); } }
-    private void moveUp() { if (canMove()) { saveSnapshot(); rotateGrid(1); boolean moved = slideLeft(); rotateGrid(3); if (moved) afterMove(); else history.pollLast(); } }
-    private void moveDown() { if (canMove()) { saveSnapshot(); rotateGrid(3); boolean moved = slideLeft(); rotateGrid(1); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveLeft() { if (canMove()) { saveSnapshot(); clearRedoStack(); boolean moved = slideLeft(); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveRight() { if (canMove()) { saveSnapshot(); clearRedoStack(); rotateGrid(2); boolean moved = slideLeft(); rotateGrid(2); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveUp() { if (canMove()) { saveSnapshot(); clearRedoStack(); rotateGrid(1); boolean moved = slideLeft(); rotateGrid(3); if (moved) afterMove(); else history.pollLast(); } }
+    private void moveDown() { if (canMove()) { saveSnapshot(); clearRedoStack(); rotateGrid(3); boolean moved = slideLeft(); rotateGrid(1); if (moved) afterMove(); else history.pollLast(); } }
 
     /**
      * 2026-06-23: 保存当前 grid 到历史栈（撤销用）。
@@ -235,16 +235,52 @@ public class Game2048View extends View {
      */
     public boolean undo() {
         if (history.isEmpty()) return false;
+        int[][] current = new int[GRID_SIZE][GRID_SIZE];
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(grid[r], 0, current[r], 0, GRID_SIZE);
+        }
+        redoStack.addLast(current);  // 2026-06-23: 保存当前状态到 redo 栈
+
         int[][] prev = history.pollLast();
         for (int r = 0; r < GRID_SIZE; r++) {
             System.arraycopy(prev[r], 0, grid[r], 0, GRID_SIZE);
         }
-        // 撤销后让玩家可以继续（重置 gameOver 但保留新生成的方块）
         gameOver = false;
         won = false;
         canContinue = false;
         invalidate();
         return true;
+    }
+
+    /**
+     * 2026-06-23: 重做（redo）上一步撤销。返回 true 表示成功。
+     */
+    private final java.util.Deque<int[][]> redoStack = new java.util.ArrayDeque<>();
+
+    public boolean redo() {
+        if (redoStack.isEmpty()) return false;
+        int[][] current = new int[GRID_SIZE][GRID_SIZE];
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(grid[r], 0, current[r], 0, GRID_SIZE);
+        }
+        history.addLast(current);
+
+        int[][] next = redoStack.pollLast();
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(next[r], 0, grid[r], 0, GRID_SIZE);
+        }
+        gameOver = false;
+        won = false;
+        canContinue = false;
+        invalidate();
+        return true;
+    }
+
+    /**
+     * 撤销后进行新移动时清空 redo 栈。
+     */
+    private void clearRedoStack() {
+        redoStack.clear();
     }
 
     private boolean canMove() { return !gameOver || canContinue; }

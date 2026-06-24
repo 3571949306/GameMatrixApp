@@ -58,11 +58,15 @@ import com.gamecenter.app.tools.ToolHelper;
 import com.gamecenter.app.tools.ToolSection;
 import com.gamecenter.app.tools.ToolSectionStore;
 import com.gamecenter.app.tools.TracerouteToolBinder;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.textfield.TextInputEditText;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import com.gamecenter.app.tools.WifiToolBinder;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -98,6 +102,8 @@ public class ToolsFragment extends Fragment {
     private ToolSectionStore store;
     /** 当前加载的工具分区列表 */
     private List<ToolSection> sections;
+    // 2026-06-23: 原始完整列表（用于搜索/分类过滤还原）
+    private List<ToolSection> allSections;
     /** 布局模式：0=单列，1=双列 */
     private int layoutMode;
 
@@ -194,6 +200,7 @@ public class ToolsFragment extends Fragment {
 
         recyclerView = view.findViewById(R.id.rv_tools);
         sections = store.loadSections();
+        allSections = new ArrayList<>(sections);  // 备份原始列表用于过滤
         adapter = new ToolsAdapter();
         applyLayoutManager();
         attachTouchHelper();
@@ -201,6 +208,122 @@ public class ToolsFragment extends Fragment {
         recyclerView.addItemDecoration(new SimpleDividerItemDecoration(requireContext(), 16));
 
         applyColorScheme();
+
+        // 2026-06-23: 搜索框 + Chip 筛选
+        setupSearchAndFilter(view);
+    }
+
+    /**
+     * 2026-06-23: 设置搜索框 + 分类 Chip 筛选逻辑。
+     * - 搜索框实时过滤工具标题/描述
+     * - Chip 单选切换：全部/收藏/最近/网络/设备/工具/最热
+     */
+    private void setupSearchAndFilter(View view) {
+        // 搜索框
+        TextInputEditText etSearch = view.findViewById(R.id.et_tool_search);
+        if (etSearch != null) {
+            etSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    String keyword = s == null ? "" : s.toString().trim();
+                    applyFilter(keyword, currentChipFilter);
+                }
+                @Override public void afterTextChanged(android.text.Editable s) {}
+            });
+        }
+
+        // Chip 筛选
+        ChipGroup chipGroup = view.findViewById(R.id.tool_filter_chips);
+        if (chipGroup != null) {
+            chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
+                if (checkedIds.isEmpty()) return;
+                int checkedId = checkedIds.get(0);
+                String chipKey = resolveChipKey(checkedId);
+                currentChipFilter = chipKey;
+                String keyword = etSearch != null ? etSearch.getText().toString().trim() : "";
+                applyFilter(keyword, chipKey);
+            });
+        }
+    }
+
+    private String currentChipFilter = "all";
+
+    private String resolveChipKey(int viewId) {
+        if (viewId == R.id.chip_filter_all) return "all";
+        if (viewId == R.id.chip_filter_favorites) return "favorites";
+        if (viewId == R.id.chip_filter_recent) return "recent";
+        if (viewId == R.id.chip_filter_network) return "network";
+        if (viewId == R.id.chip_filter_device) return "device";
+        if (viewId == R.id.chip_filter_tool) return "tool";
+        if (viewId == R.id.chip_filter_hot) return "hot";
+        return "all";
+    }
+
+    /**
+     * 应用搜索 + 分类过滤：更新 sections 并刷新 adapter。
+     */
+    private void applyFilter(String keyword, String chipKey) {
+        List<ToolSection> base;
+        switch (chipKey) {
+            case "favorites":
+                Set<String> favIds = store.getFavoriteIds();
+                base = new ArrayList<>();
+                for (ToolSection s : allSections) {
+                    if (favIds.contains(s.id)) base.add(s);
+                }
+                break;
+            case "recent":
+                List<String> recentIds = store.getRecentIds();
+                base = new ArrayList<>();
+                for (String rid : recentIds) {
+                    ToolSection s = findById(allSections, rid);
+                    if (s != null && s.visible) base.add(s);
+                }
+                break;
+            case "network":
+            case "device":
+            case "tool":
+                base = new ArrayList<>();
+                for (ToolSection s : allSections) {
+                    if (chipKey.equals(s.category) && s.visible) base.add(s);
+                }
+                break;
+            case "hot":
+                List<String> topIds = store.getTopUsedTools(allSections.size());
+                base = new ArrayList<>();
+                for (String tid : topIds) {
+                    ToolSection s = findById(allSections, tid);
+                    if (s != null && s.visible) base.add(s);
+                }
+                break;
+            default:
+                base = new ArrayList<>(allSections);
+                break;
+        }
+
+        // 搜索过滤
+        if (keyword != null && !keyword.isEmpty()) {
+            List<ToolSection> filtered = new ArrayList<>();
+            for (ToolSection s : base) {
+                if (s.title.toLowerCase().contains(keyword.toLowerCase())
+                        || s.id.toLowerCase().contains(keyword.toLowerCase())
+                        || s.description.toLowerCase().contains(keyword.toLowerCase())) {
+                    filtered.add(s);
+                }
+            }
+            base = filtered;
+        }
+
+        sections.clear();
+        sections.addAll(base);
+        adapter.notifyDataSetChanged();
+    }
+
+    private ToolSection findById(List<ToolSection> list, String id) {
+        for (ToolSection s : list) {
+            if (s.id.equals(id)) return s;
+        }
+        return null;
     }
 
     /**

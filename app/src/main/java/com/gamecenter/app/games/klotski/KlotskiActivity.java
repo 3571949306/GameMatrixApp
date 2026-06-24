@@ -131,6 +131,22 @@ public class KlotskiActivity extends BaseGameActivity {
         btnHint.setOnClickListener(v -> showHint());
         btnRow.addView(btnHint);
 
+        // 2026-06-23: 撤销按钮
+        MaterialButton btnUndo = new MaterialButton(this);
+        btnUndo.setText("↶ 撤销");
+        btnUndo.setTextSize(13f);
+        btnUndo.setLayoutParams(btnParams);
+        btnUndo.setOnClickListener(v -> {
+            if (game != null && game.undoMove()) {
+                klotskiView.invalidate();
+                if (tvMoves != null) tvMoves.setText("步数: " + game.getMoves());
+                tvStatus.setText("已撤销");
+            } else {
+                Toast.makeText(this, "无可撤销", Toast.LENGTH_SHORT).show();
+            }
+        });
+        btnRow.addView(btnUndo);
+
         root.addView(btnRow);
 
         return root;
