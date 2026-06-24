@@ -1,4 +1,5 @@
 package com.gamecenter.app.games.go;
+import android.util.Log;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -324,7 +325,7 @@ public class GoActivity extends BaseGameActivity {
         return switch (aiDifficulty) {
             case 1 -> findRandomAiMove();
             case 3 -> findMinimaxAiMove(2);
-            case 4 -> findMinimaxAiMove(3);
+            case 4 -> mctsMove();  // 2026-06-23: 大师难度使用 MCTS（比 minimax-3 强很多）
             default -> findGreedyAiMove();
         };
     }
@@ -449,6 +450,184 @@ public class GoActivity extends BaseGameActivity {
         return whiteScore - blackScore;
     }
 
+    // ==================== MCTS 蒙特卡洛树搜索（2026-06-23 大师难度） ====================
+
+    /** MCTS 时间上限（ms） */
+    private static final long MCTS_TIME_LIMIT_MS = 1500;
+    /** MCTS 每次随机模拟最大步数（防无限循环） */
+    private static final int MCTS_PLAYOUT_MAX_MOVES = 162;
+
+    /**
+     * MCTS 节点：记录访问次数、总收益、子节点映射。
+     */
+    private static class MctsNode {
+        final int[][] state;
+        final int player;  // 本节点走棋方（BLACK 或 WHITE）
+        int visits = 0;
+        double totalReward = 0.0;
+        int moveRow = -1, moveCol = -1;
+        final java.util.List<MctsNode> children = new java.util.ArrayList<>();
+        final java.util.List<int[]> untriedMoves;
+
+        MctsNode(int[][] state, int player, java.util.List<int[]> untriedMoves) {
+            this.state = state;
+            this.player = player;
+            this.untriedMoves = untriedMoves;
+        }
+    }
+
+    /**
+     * 大师难度入口：MCTS 蒙特卡洛树搜索。
+     * 在 MCTS_TIME_LIMIT_MS 内不断模拟对局，选择胜率最高的走法。
+     */
+    private int[] mctsMove() {
+        int[][] rootState = copyBoard(board);
+        java.util.List<int[]> rootMoves = new java.util.ArrayList<>();
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (rootState[r][c] == EMPTY && isValidMove(rootState, r, c, WHITE)) {
+                    rootMoves.add(new int[]{r, c});
+                }
+            }
+        }
+        if (rootMoves.isEmpty()) return null;
+
+        MctsNode root = new MctsNode(rootState, WHITE, rootMoves);
+        long startMs = System.currentTimeMillis();
+        int simulations = 0;
+
+        while (System.currentTimeMillis() - startMs < MCTS_TIME_LIMIT_MS) {
+            // Selection
+            MctsNode node = root;
+            while (node.untriedMoves.isEmpty() && !node.children.isEmpty()) {
+                node = selectChild(node);
+            }
+            // Expansion
+            if (!node.untriedMoves.isEmpty()) {
+                int[] move = node.untriedMoves.remove(random.nextInt(node.untriedMoves.size()));
+                int[][] childState = copyBoard(node.state);
+                int childPlayer = node.player == WHITE ? BLACK : WHITE;
+                childState[move[0]][move[1]] = node.player;
+                java.util.List<int[]> childMoves = getValidMoves(childState, childPlayer);
+                MctsNode child = new MctsNode(childState, childPlayer, childMoves);
+                child.moveRow = move[0];
+                child.moveCol = move[1];
+                node.children.add(child);
+                node = child;
+            }
+            // Simulation
+            double result = playout(node.state, node.player);
+            // Backpropagation
+            while (node != null) {
+                node.visits++;
+                // 从白方视角累加（白方=AIl = AI）：白方胜 1.0，白方负 0.0，平 0.5
+                node.totalReward += (node.player == WHITE) ? result : (1.0 - result);
+                node = getParent(root, node);
+            }
+            simulations++;
+        }
+
+        // 选择访问次数最多的走法（最稳健的选择）
+        MctsNode bestChild = null;
+        int bestVisits = -1;
+        for (MctsNode child : root.children) {
+            if (child.visits > bestVisits) {
+                bestVisits = child.visits;
+                bestChild = child;
+            }
+        }
+
+        Log.i("GoMCTS", "模拟=" + simulations + " 耗时=" + (System.currentTimeMillis() - startMs) + "ms");
+        return (bestChild != null) ? new int[]{bestChild.moveRow, bestChild.moveCol} : null;
+    }
+
+    /**
+     * UCT 选择：选取 UCT 值最高的子节点。
+     */
+    private MctsNode selectChild(MctsNode node) {
+        MctsNode best = null;
+        double bestValue = Double.NEGATIVE_INFINITY;
+        for (MctsNode child : node.children) {
+            if (child.visits == 0) {
+                best = child;
+                break;
+            }
+            double uct = child.totalReward / child.visits
+                    + 1.41 * Math.sqrt(Math.log(node.visits) / child.visits);
+            if (uct > bestValue) {
+                bestValue = uct;
+                best = child;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * 随机对局模拟（从当前状态开始双方随机走棋直到终局）。
+     * 返回值：1.0 = 白方（AI）胜，0.0 = 黑方（玩家）胜，0.5 = 平局。
+     */
+    private double playout(int[][] state, int currentPlayer) {
+        int passCount = 0;
+        int moveCount = 0;
+        while (moveCount < MCTS_PLAYOUT_MAX_MOVES && passCount < 2) {
+            java.util.List<int[]> moves = getValidMoves(state, currentPlayer);
+            if (moves.isEmpty()) {
+                passCount++;
+                currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
+                moveCount++;
+                continue;
+            }
+            int[] move = moves.get(random.nextInt(moves.size()));
+            state[move[0]][move[1]] = currentPlayer;
+            simulateCapture(state, currentPlayer == WHITE ? BLACK : WHITE, move[0], move[1]);
+            passCount = 0;
+            currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
+            moveCount++;
+        }
+        // 简化评估：数子（White子数 vs Black子数）
+        int white = 0, black = 0;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (state[r][c] == WHITE) white++;
+                else if (state[r][c] == BLACK) black++;
+            }
+        }
+        if (white + KOMI > black) return 1.0;
+        if (white + KOMI < black) return 0.0;
+        return 0.5;
+    }
+
+    /**
+     * 获取指定方的所有合法走法。
+     */
+    private java.util.List<int[]> getValidMoves(int[][] state, int color) {
+        java.util.List<int[]> moves = new java.util.ArrayList<>();
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (state[r][c] == EMPTY && isValidMove(state, r, c, color)) {
+                    moves.add(new int[]{r, c});
+                }
+            }
+        }
+        return moves;
+    }
+
+    /**
+     * 获取父节点（MCTS 回溯用）。
+     */
+    private MctsNode getParent(MctsNode root, MctsNode target) {
+        return findParentDfs(root, target);
+    }
+
+    private MctsNode findParentDfs(MctsNode node, MctsNode target) {
+        for (MctsNode child : node.children) {
+            if (child == target) return node;
+            MctsNode found = findParentDfs(child, target);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
     /**
      * 设置 AI 难度（1-4），游戏中切换立即生效。
      */
@@ -472,7 +651,7 @@ public class GoActivity extends BaseGameActivity {
             case 1: return "简单（随机）";
             case 2: return "普通（贪心）";
             case 3: return "困难（Minimax-2）";
-            case 4: return "大师（Minimax-3）";
+            case 4: return "大师（MCTS）";
             default: return "未知";
         }
     }

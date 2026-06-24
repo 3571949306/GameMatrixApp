@@ -232,10 +232,54 @@ public class KlotskiGame {
         if (!canMove(block, dx, dy)) {
             return false;
         }
+        // 2026-06-23: 记录走法历史（撤销用）
+        moveHistory.push(new UndoRecord(block.id, block.x, block.y, dx, dy));
         block.x += dx;
         block.y += dy;
         moves++;
         return true;
+    }
+
+    // 2026-06-23: 撤销历史栈
+    private final java.util.Deque<UndoRecord> moveHistory = new java.util.ArrayDeque<>();
+
+    private static class UndoRecord {
+        final int blockId;
+        final int fromX;
+        final int fromY;
+        final int dx;
+        final int dy;
+        UndoRecord(int blockId, int fromX, int fromY, int dx, int dy) {
+            this.blockId = blockId;
+            this.fromX = fromX;
+            this.fromY = fromY;
+            this.dx = dx;
+            this.dy = dy;
+        }
+    }
+
+    /**
+     * 2026-06-23: 撤销上一步。返回 true 表示成功撤销，false 无可撤销。
+     */
+    public boolean undoMove() {
+        if (moveHistory.isEmpty()) return false;
+        UndoRecord record = moveHistory.pop();
+        Block block = findBlockById(record.blockId);
+        if (block == null) return false;
+        block.x = record.fromX;
+        block.y = record.fromY;
+        moves = Math.max(0, moves - 1);
+        return true;
+    }
+
+    /**
+     * 查找指定 id 的方块。
+     */
+    private Block findBlockById(int id) {
+        for (Block b : blocks) {
+            if (b.id == id) return b;
+        }
+        return null;
     }
 
     /**
