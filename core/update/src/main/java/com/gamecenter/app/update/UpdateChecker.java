@@ -634,7 +634,8 @@ public class UpdateChecker {
      */
     public LocalVersion readBundledVersion(Context context) {
         LocalVersion version = new LocalVersion();
-        // 先用编译时写入的版本号作为默认值
+        // 2026-06-24 Bug 修复：用 BuildConfig 作为权威源（APK 包内 versionCode）
+        // 之前 assets/version.json 可能因增量构建缓存导致 stale，覆盖后引发"更新后仍提示更新"bug
         version.versionCode = BuildConfig.VERSION_CODE;
         version.versionName = BuildConfig.VERSION_NAME;
         version.channel = BuildConfig.VERSION_CHANNEL;
@@ -647,14 +648,22 @@ public class UpdateChecker {
             }
             reader.close();
             JSONObject json = new JSONObject(sb.toString());
-            // version.json 中的值覆盖 BuildConfig 的默认值
-            version.versionCode = json.optInt("versionCode", version.versionCode);
-            version.versionName = json.optString("versionName", version.versionName);
+            // version.json 只用于补全 channel 字段（BuildConfig 中可能为空）
+            // 不再覆盖 versionCode/versionName，避免与实际 APK 不一致
+            int jsonVersionCode = json.optInt("versionCode", 0);
+            if (jsonVersionCode > 0 && jsonVersionCode != version.versionCode) {
+                Log.w(TAG, "Bundled version.json (" + jsonVersionCode
+                        + ") != BuildConfig (" + version.versionCode
+                        + "), using BuildConfig. Consider regenerating assets/version.json.");
+            }
             String channel = json.optString("channel", "").trim().toLowerCase();
-            // 若未指定渠道，根据版本名推断
-            version.channel = channel.isEmpty()
-                    ? (isBeta("", version.versionName) ? "beta" : "stable")
-                    : channel;
+            if (!channel.isEmpty()) {
+                version.channel = channel;
+            } else if (isBeta("", version.versionName)) {
+                version.channel = "beta";
+            } else {
+                version.channel = "stable";
+            }
         } catch (Exception e) {
             // assets 中没有 version.json，就用 BuildConfig 的默认值
             Log.d(TAG, "Bundled version.json unavailable, use BuildConfig");
