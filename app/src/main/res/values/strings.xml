@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">GameMatrix</string>
+    <string name="app_name">夹层</string>
     <string name="nav_browser">网页浏览</string>
     <string name="nav_games">游戏大厅</string>
     <string name="nav_tools">工具箱</string>
