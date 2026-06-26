@@ -160,6 +160,14 @@ public class ModuleDependencyDownloader {
                     callback.onError(moduleId, message);
                 }
             }
+
+            @Override
+            public void onError(String moduleId, int errorCode, String message) {
+                Log.e(TAG, "依赖下载失败: " + moduleId + ", code=" + errorCode + ", error=" + message);
+                if (callback != null) {
+                    callback.onError(moduleId, errorCode, message);
+                }
+            }
             
             @Override
             public void onSourceSwitch(String moduleId, int sourceIndex, String url) {
@@ -221,6 +229,14 @@ public class ModuleDependencyDownloader {
                 Log.e(TAG, "依赖下载失败: " + moduleId + ", error=" + message);
                 if (callback != null) {
                     callback.onError(moduleId, message);
+                }
+            }
+
+            @Override
+            public void onError(String moduleId, int errorCode, String message) {
+                Log.e(TAG, "依赖下载失败: " + moduleId + ", code=" + errorCode + ", error=" + message);
+                if (callback != null) {
+                    callback.onError(moduleId, errorCode, message);
                 }
             }
             

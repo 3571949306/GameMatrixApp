@@ -1,5 +1,6 @@
 package com.gamecenter.app.modules
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -80,7 +81,7 @@ class InstalledModuleAdapter(
         holder.categoryChip.text = categoryLabel
         holder.categoryChip.visibility = View.VISIBLE
 
-        val iconRes = CATEGORY_ICONS[module.storeCategory] ?: android.R.drawable.ic_menu_gallery
+        val iconRes = resolveIconRes(holder.itemView.context, module)
         holder.icon.setImageResource(iconRes)
 
         holder.builtInChip.visibility = if (module.builtIn) View.VISIBLE else View.GONE
@@ -134,6 +135,22 @@ class InstalledModuleAdapter(
     }
 
     override fun getItemCount() = modules.size
+
+    /**
+     * 解析模块图标资源 ID。
+     * 优先级：ic_<gameId> → ic_game_<gameId> → 分类图标 → 系统默认。
+     */
+    private fun resolveIconRes(context: Context, module: ModuleManifest): Int {
+        val gameId = module.gameId.ifEmpty { module.id }
+        if (gameId.isNotEmpty()) {
+            val pkg = context.packageName
+            val direct = context.resources.getIdentifier("ic_$gameId", "drawable", pkg)
+            if (direct != 0) return direct
+            val prefixed = context.resources.getIdentifier("ic_game_$gameId", "drawable", pkg)
+            if (prefixed != 0) return prefixed
+        }
+        return CATEGORY_ICONS[module.storeCategory] ?: android.R.drawable.ic_menu_gallery
+    }
 
     fun updateInstalledModules(newModules: List<ModuleManifest>) {
         modules = newModules
