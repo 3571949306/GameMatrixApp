@@ -212,3 +212,7 @@ To support this project you can:
 - `.gitignore` 的 `data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/gamecenter/app/ai/data/` 源码。
 - 最新 GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆和 服务器部署/GitHub Release 发布仍以本机发布流程为准。
 
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
