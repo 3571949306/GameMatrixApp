@@ -1070,3 +1070,7 @@ Keep new cross-feature dependencies out of `:core:*` unless they are genuinely r
 - 浏览�?工具�?AI拆分为基础框架+扩展功能
 
 
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
