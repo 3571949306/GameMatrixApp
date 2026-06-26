@@ -245,6 +245,11 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         @Override
+                        public void onError(String id, int errorCode, String message) {
+                            onError(id, message);
+                        }
+
+                        @Override
                         public void onSourceSwitch(String id, int sourceIndex, String url) {}
                     });
                 }, 1000);
@@ -300,6 +305,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        BottomNavigationView navView = findViewById(R.id.nav_view);
+        if (navView != null) {
+            setupDynamicNavigation(navView);
+        }
         handleNavTabIntent();
     }
 
