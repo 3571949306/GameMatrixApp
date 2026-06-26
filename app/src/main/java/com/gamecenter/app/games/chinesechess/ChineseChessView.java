@@ -3,6 +3,7 @@ package com.gamecenter.app.games.chinesechess;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
@@ -75,6 +76,12 @@ public class ChineseChessView extends View {
 
     /** 选中的棋子位置 */
     private int selectedRow = -1, selectedCol = -1;
+    
+    private int aiCheckRow = -1;
+    private int aiCheckCol = -1;
+
+    /** 当前提示走法 [fromR, fromC, toR, toC] */
+    private int[] hintMove;
 
     /** 游戏是否结束 */
     private boolean gameOver = false;
@@ -162,6 +169,10 @@ public class ChineseChessView extends View {
     public void setAiThinking(boolean thinking) {
         this.aiThinking = thinking;
         invalidate();
+    }
+    
+    public int getCurrentSide() {
+        return currentSide;
     }
 
     /**
@@ -514,6 +525,26 @@ public class ChineseChessView extends View {
             canvas.drawText(thinkText, w / 2f, textY, paintAiThinking);
             paintAiThinking.setFakeBoldText(false);
         }
+
+        // 绘制提示路径
+        if (hintMove != null && hintMove.length == 4) {
+            Paint paintHint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paintHint.setColor(Color.argb(180, 76, 175, 80)); // 绿色透明
+            paintHint.setStyle(Paint.Style.STROKE);
+            paintHint.setStrokeWidth(cellSize * 0.1f);
+            
+            float startX = offsetX + hintMove[1] * cellSize;
+            float startY = offsetY + hintMove[0] * cellSize;
+            float endX = offsetX + hintMove[3] * cellSize;
+            float endY = offsetY + hintMove[2] * cellSize;
+            
+            canvas.drawLine(startX, startY, endX, endY, paintHint);
+            
+            // 终点画个圆环
+            paintHint.setStyle(Paint.Style.STROKE);
+            paintHint.setStrokeWidth(cellSize * 0.08f);
+            canvas.drawCircle(endX, endY, cellSize * 0.4f, paintHint);
+        }
     }
 
     /**
@@ -675,7 +706,9 @@ public class ChineseChessView extends View {
                     invalidate();
 
                     // 通知玩家走棋完成，触发 AI
-                    if (playerMoveListener != null) playerMoveListener.onPlayerMove();
+                    if (playerMoveListener != null) {
+                        playerMoveListener.onPlayerMove();
+                    }
                 } else {
                     selectedRow = -1;
                     selectedCol = -1;
@@ -1119,5 +1152,15 @@ public class ChineseChessView extends View {
         if (moveHistory.isEmpty()) return false;
         // 这里需要重新模拟每步棋的状态，开销大；跳过实现
         return false;
+    }
+    
+    /**
+     * 设置提示走法
+     *
+     * @param move [fromR, fromC, toR, toC]
+     */
+    public void setHintMove(int[] move) {
+        this.hintMove = move;
+        invalidate();
     }
 }
