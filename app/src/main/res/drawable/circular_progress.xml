@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<rotate xmlns:android="http://schemas.android.com/apk/res/android"
-    android:fromDegrees="270"
-    android:toDegrees="270">
-    <shape
-        android:innerRadiusRatio="2.5"
-        android:shape="ring"
-        android:thickness="3dp"
-        android:useLevel="true">
-        <gradient
-            android:startColor="?attr/colorPrimary"
-            android:endColor="?attr/colorSecondary"
-            android:type="sweep" />
-    </shape>
-</rotate>
+<!-- 圆形进度条 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 背景轨道 -->
+    <item android:id="@android:id/background">
+        <shape android:shape="ring"
+            android:innerRadiusRatio="3"
+            android:thicknessRatio="8"
+            android:useLevel="false">
+            <solid android:color="#E8EAED" />
+        </shape>
+    </item>
+    <!-- 进度 -->
+    <item android:id="@android:id/progress">
+        <shape android:shape="ring"
+            android:innerRadiusRatio="3"
+            android:thicknessRatio="8"
+            android:useLevel="true">
+            <solid android:color="#1A73E8" />
+        </shape>
+    </item>
+</layer-list>

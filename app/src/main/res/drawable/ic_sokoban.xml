@@ -4,32 +4,28 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#8D6E63"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 目标点 -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M30,10h6v6h-6z" />
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
     <!-- 箱子 -->
     <path
-        android:fillColor="#FF9800"
-        android:strokeColor="#E65100"
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,18h12v12h-12z" />
+    <!-- 箱子十字 -->
+    <path
+        android:strokeColor="#137333"
         android:strokeWidth="1"
-        android:pathData="M20,16h8v8h-8z" />
+        android:pathData="M26,18v12M20,24h12" />
+    <!-- 人物（简化的圆+身体） -->
     <path
-        android:fillColor="#E65100"
-        android:pathData="M22,18h4v4h-4z" />
-    <!-- 工人 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M14,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M9,16h6v8h-6z" />
+    <!-- 目标点 -->
     <path
-        android:fillColor="#1976D2"
-        android:pathData="M12,15h4v5h-4z" />
-    <!-- 墙壁 -->
-    <path
-        android:fillColor="#5D4037"
-        android:pathData="M4,4h40v4h-40zM4,40h40v4h-40zM4,4h4v40h-4zM40,4h4v40h-4z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,34m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 </vector>

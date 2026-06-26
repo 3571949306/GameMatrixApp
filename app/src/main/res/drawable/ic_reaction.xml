@@ -4,29 +4,12 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#FFF3E0"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 外圈计时环 -->
+        android:fillColor="#C5221F"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 闪电 -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FF9800"
-        android:strokeWidth="3"
-        android:pathData="M24,24m-16,0a16,16 0,1 1,32 0a16,16 0,1 1,-32 0" />
-    <!-- 进度弧 -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#F44336"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:pathData="M24,8a16,16 0,0 1,16 16" />
-    <!-- 中央闪电 -->
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M22,14l-4,10h6l-2,10l8,-12h-6l4,-8z" />
-    <!-- 中心点 -->
-    <path
-        android:fillColor="#F44336"
-        android:pathData="M24,24m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,8l-10,16h6l-4,16l10,-16h-6z" />
 </vector>

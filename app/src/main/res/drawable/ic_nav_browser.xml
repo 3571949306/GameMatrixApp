@@ -4,15 +4,13 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- 浏览器图标：圆角矩形 + 地球 -->
+    <!-- 地球/浏览器图标 -->
     <path
-        android:fillColor="@color/nav_icon_tint"
-        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z M12,20
-                       c-4.41,0 -8,-3.59 -8,-8s3.59,-8 8,-8 8,3.59 8,8 -3.59,8 -8,8z" />
-    <path
-        android:fillColor="@color/nav_icon_tint"
-        android:pathData="M12,2v20C6.48,22 2,17.52 2,12S6.48,2 12,2z M12,4v16C7.58,20 4,16.42 4,12S7.58,4 12,4z" />
-    <path
-        android:fillColor="@color/nav_icon_tint"
-        android:pathData="M12,2c-2.05,0 -4.02,0.48 -5.8,1.33L12,12l5.8,-8.67C16.02,2.48 14.05,2 12,2z" />
+        android:fillColor="?attr/colorOnSurfaceVariant"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10s10,-4.48 10,-10S17.52,2 12,2zM4,12
+                       c0,-0.85 0.15,-1.67 0.42,-2.43L8,12l0,2.83c-0.91,0.91 -1.33,2.34 -0.56,3.67
+                       C5.72,16.56 4,14.48 4,12zM12,20c-1.1,0 -2.13,-0.29 -3.03,-0.79L12,16l3.03,3.21
+                       C14.13,19.71 13.1,20 12,20zM12,14l-4,-4l4,-4l4,4L12,14zM20,12
+                       c0,2.48 -1.72,4.56 -4.03,5.13c0.77,-1.33 0.35,-2.76 -0.56,-3.67L16,12l3.58,-2.43
+                       C19.85,10.33 20,11.15 20,12z" />
 </vector>

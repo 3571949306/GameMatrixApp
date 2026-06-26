@@ -4,33 +4,23 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 绿色赌桌背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#2E7D32"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 牌1: A -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#E0E0E0"
-        android:strokeWidth="1"
-        android:pathData="M10,8h10v14h-10z" />
-    <path
-        android:fillColor="#E53935"
-        android:pathData="M12,11h3v3h-3z" />
-    <!-- 牌2: J -->
+        android:fillColor="#7B5800"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 扑克牌 -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#E0E0E0"
-        android:strokeWidth="1"
-        android:pathData="M19,10h10v14h-10z" />
+        android:pathData="M12,8h24v32h-24z" />
+    <!-- 21文字 -->
     <path
-        android:fillColor="#1E88E5"
-        android:pathData="M22,13h3v3h-3z" />
-    <!-- 21点文字 -->
+        android:fillColor="#7B5800"
+        android:pathData="M18,16h2v8h-2z" />
     <path
-        android:fillColor="#FFD700"
-        android:pathData="M16,32h16v4h-16z" />
+        android:fillColor="#7B5800"
+        android:pathData="M28,16h2v8h-2z" />
+    <!-- 花色（黑桃） -->
     <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M18,33h2v2h-2zM22,33h2v2h-2z" />
+        android:fillColor="#7B5800"
+        android:pathData="M24,30c-3,-3 -6,-5 -6,-7.5c0,-2 1.3,-3.5 3,-3.5c1.2,0 2.2,0.7 3,2c0.8,-1.3 1.8,-2 3,-2c1.7,0 3,1.5 3,3.5c0,2.5 -3,4.5 -6,7.5z" />
 </vector>

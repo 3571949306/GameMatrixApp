@@ -4,36 +4,29 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#BBADA0"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 方块2 (蓝色) -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 2048方块 -->
+    <!-- 左上小方块 -->
     <path
-        android:fillColor="#EEE4DA"
-        android:pathData="M6,6h17v17h-17z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10h8v8h-8z" />
+    <!-- 右上大方块（2048） -->
     <path
-        android:fillColor="#776E65"
-        android:pathData="M12,12h5v5h-5z" />
-    <!-- 方块0 (绿色) -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,10h16v16h-16z" />
+    <!-- 左下中方块 -->
     <path
-        android:fillColor="#EEE4DA"
-        android:pathData="M25,6h17v17h-17z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,22h16v16h-16z" />
+    <!-- 右下小方块 -->
     <path
-        android:fillColor="#776E65"
-        android:pathData="M31,12h5v5h-5z" />
-    <!-- 方块4 (橙色) -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,30h8v8h-8z" />
+    <!-- 2048文字（简化） -->
     <path
-        android:fillColor="#EDE0C8"
-        android:pathData="M6,25h17v17h-17z" />
-    <path
-        android:fillColor="#776E65"
-        android:pathData="M12,31h5v5h-5z" />
-    <!-- 方块8 (紫色) -->
-    <path
-        android:fillColor="#F2B179"
-        android:pathData="M25,25h17v17h-17z" />
-    <path
-        android:fillColor="#F9F6F2"
-        android:pathData="M31,31h5v5h-5z" />
+        android:fillColor="#137333"
+        android:pathData="M25,14h1v2h-1zM27,14h1v2h-1zM29,14h1v2h-1zM31,14h1v2h-1zM33,14h1v2h-1zM25,18h1v2h-1zM27,18h1v2h-1zM29,18h1v2h-1zM31,18h1v2h-1zM33,18h1v2h-1zM25,22h1v2h-1zM27,22h1v2h-1zM29,22h1v2h-1zM31,22h1v2h-1zM33,22h1v2h-1z" />
 </vector>

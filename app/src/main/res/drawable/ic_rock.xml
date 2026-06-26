@@ -4,32 +4,31 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#FFF8E1"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 石头 -->
+        android:fillColor="#7B5800"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 剪刀手势 -->
+    <!-- 剪刀两刃 -->
     <path
-        android:fillColor="#9E9E9E"
-        android:strokeColor="#757575"
-        android:strokeWidth="1"
-        android:pathData="M10,28c0,-4 3,-8 7,-8s7,4 7,8v4h-14v-4z" />
-    <!-- 剪刀 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,12L24,22L16,32" />
     <path
-        android:fillColor="#FF9800"
-        android:strokeColor="#F57C00"
-        android:strokeWidth="1"
-        android:pathData="M28,12l4,8l-4,8l-4,-8z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,12L24,22L32,32" />
+    <!-- 手指环 -->
     <path
-        android:fillColor="#FF9800"
-        android:pathData="M24,20h8v2h-8z" />
-    <!-- 布 -->
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M16,32m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path
-        android:fillColor="#4CAF50"
-        android:strokeColor="#388E3C"
-        android:strokeWidth="1"
-        android:pathData="M32,28c0,-3 2,-5 5,-5s5,2 5,5v6h-10v-6z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M32,32m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <!-- 铰接点 -->
     <path
-        android:fillColor="#4CAF50"
-        android:pathData="M34,23h6v2h-6z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,22m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0" />
 </vector>

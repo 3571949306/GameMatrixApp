@@ -4,49 +4,22 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#C8E6C9"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 网格 -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 地雷主体 -->
     <path
-        android:strokeColor="#81C784"
-        android:strokeWidth="0.5"
-        android:pathData="M10,4v40M18,4v40M26,4v40M34,4v40M4,10h40M4,18h40M4,26h40M4,34h40" />
-    <!-- 已翻开格子 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,26m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+    <!-- 地雷刺 -->
     <path
-        android:fillColor="#E8F5E9"
-        android:pathData="M10,10h8v8h-8z" />
-    <!-- 数字1 -->
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M24,14v4M24,34v4M12,26h4M32,26h4M15,17l3,3M30,32l3,3M33,17l-3,3M18,32l-3,3" />
+    <!-- 地雷高光 -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M13,13h2v2h-2z" />
-    <!-- 已翻开格子 -->
-    <path
-        android:fillColor="#E8F5E9"
-        android:pathData="M18,10h8v8h-8z" />
-    <!-- 数字2 -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M21,13h2v2h-2z" />
-    <!-- 未翻开格子 -->
-    <path
-        android:fillColor="#A5D6A7"
-        android:strokeColor="#81C784"
-        android:strokeWidth="1"
-        android:pathData="M26,10h8v8h-8z" />
-    <!-- 红旗标记 -->
-    <path
-        android:fillColor="#F44336"
-        android:pathData="M28,12l4,2l-4,2z" />
-    <path
-        android:fillColor="#8D6E63"
-        android:pathData="M28,14v4" />
-    <!-- 地雷爆炸 -->
-    <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M22,26m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M22,20v2M22,30v2M16,26h2M26,26h2M17,21l1.5,1.5M25.5,29.5l1.5,1.5M17,31l1.5,-1.5M25.5,22.5l1.5,-1.5" />
+        android:fillColor="#137333"
+        android:pathData="M21,23m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 </vector>
