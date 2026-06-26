@@ -804,3 +804,7 @@ interface ToolActionProvider {
 ---
 
 **文档结束 / End of Document**
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

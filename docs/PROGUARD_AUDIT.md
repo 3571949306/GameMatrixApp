@@ -128,3 +128,7 @@ dependencies {
 - https://developer.android.com/build/shrink-code
 - https://r8.googlesource.com/r8
 - 项目内 `app/proguard-rules.pro` 完整源码
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

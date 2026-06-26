@@ -464,3 +464,7 @@ MainActivity (com.gamecenter.app.MainActivity)
 
 **最后更新**: 2026-06-04 16:18
 **下一步**: 把本文档同步给 track-architecture, 触发 dead-code 清理 + Material 3 lint baseline 协同; 把 P0-1/P0-3/P0-5 三个能立刻动工的派单.
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

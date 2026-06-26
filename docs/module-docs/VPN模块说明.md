@@ -106,3 +106,7 @@ VPN 模块是当前唯一已实现的动态加载模块，其架构可作为游�
 - VPN 模块无资源文件（纯代码），游戏模块有大量布局、图片和音频资源
 - VPN 模块通过 Fragment 加载，游戏模块需要直接启动 Activity
 - 游戏模块的资源加载需要额外的 `AssetManager` 合并处理
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

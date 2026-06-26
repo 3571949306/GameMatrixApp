@@ -143,3 +143,7 @@ style:
 
 - 项目内 `AppError.kt` / `NetworkResult.kt` / `AppResult.kt` 完整源码
 - https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result.html
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
