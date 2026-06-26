@@ -49,3 +49,7 @@ IModuleEntry.onLoad() (模块启动)
 
 - Phase 1 设计笔记见 `docs/项目改进建议书.md`
 - 模块商店 metadata 格式: `modules.json` schema (VPS 同步)
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
