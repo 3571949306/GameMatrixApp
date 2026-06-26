@@ -4,46 +4,28 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#E8EAF6"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 大脑轮廓 -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#5C6BC0"
-        android:strokeWidth="2"
-        android:pathData="M24,8c-6,0 -12,4 -12,10c0,4 2,8 6,10c0,3 -2,6 -4,8c4,0 8,-2 10,-4c2,2 6,4 10,4c-2,-2 -4,-5 -4,-8c4,-2 6,-6 6,-10c0,-6 -6,-10 -12,-10z" />
-    <!-- 大脑纹理 -->
-    <path
-        android:strokeColor="#7986CB"
-        android:strokeWidth="1"
-        android:pathData="M18,14c2,0 4,2 4,4M26,14c-2,0 -4,2 -4,4M20,22c2,0 3,2 3,3M28,22c-2,0 -3,2 -3,3" />
-    <!-- 卡片1 -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 左牌（正面朝上） -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#3949AB"
-        android:strokeWidth="1"
-        android:pathData="M12,30h8v10h-8z" />
+        android:pathData="M8,12h14v24h-14z" />
+    <!-- 左牌图案（问号） -->
     <path
-        android:fillColor="#E53935"
-        android:pathData="M14,33h4v4h-4z" />
-    <!-- 卡片2 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#3949AB"
-        android:strokeWidth="1"
-        android:pathData="M22,30h8v10h-8z" />
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M24,33h4v4h-4z" />
-    <!-- 卡片3 -->
+        android:fillColor="#137333"
+        android:pathData="M12,18h2v1h-2zM12,20h2v1h-2zM14,22h2v1h-2zM12,24h2v1h-2z" />
+    <!-- 右牌（背面） -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#3949AB"
-        android:strokeWidth="1"
-        android:pathData="M32,30h8v10h-8z" />
+        android:pathData="M26,12h14v24h-14z" />
+    <!-- 右牌背面图案 -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M34,33h4v4h-4z" />
+        android:strokeColor="#137333"
+        android:strokeWidth="0.8"
+        android:pathData="M29,15h8v18h-8z" />
+    <path
+        android:fillColor="#137333"
+        android:pathData="M30,17h1v1h-1zM32,17h1v1h-1zM34,17h1v1h-1zM30,19h1v1h-1zM32,19h1v1h-1zM34,19h1v1h-1zM30,21h1v1h-1zM32,21h1v1h-1zM34,21h1v1h-1z" />
 </vector>

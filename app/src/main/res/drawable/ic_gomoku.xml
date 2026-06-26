@@ -4,34 +4,28 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 棋盘背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#DEB887"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 棋盘边框 -->
+        android:fillColor="#7B5800"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 棋盘网格 -->
     <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1"
         android:fillColor="@android:color/transparent"
-        android:strokeColor="#8B4513"
-        android:strokeWidth="1.5"
-        android:pathData="M6,6h36v36h-36z" />
-    <!-- 横线 -->
+        android:pathData="M10,10h28v28h-28z" />
     <path
-        android:strokeColor="#8B4513"
-        android:strokeWidth="0.8"
-        android:pathData="M6,12h36M6,18h36M6,24h36M6,30h36M6,36h36" />
-    <!-- 竖线 -->
-    <path
-        android:strokeColor="#8B4513"
-        android:strokeWidth="0.8"
-        android:pathData="M12,6v36M18,6v36M24,6v36M30,6v36M36,6v36" />
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.6"
+        android:pathData="M10,18.5h28M10,27h28M18.5,10v28M27,10v28" />
     <!-- 黑子 -->
     <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M18,18m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
-    <!-- 白子 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M18.5,18.5m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <!-- 白子（空心圆） -->
     <path
-        android:fillColor="#f0f0f0"
-        android:strokeColor="#cccccc"
-        android:strokeWidth="0.5"
-        android:pathData="M30,30m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M27,27m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
 </vector>

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 卡片涟漪效果 -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="?attr/colorPrimaryContainer">
+    android:color="#1A73E8">
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <solid android:color="@android:color/white" />
-            <corners android:radius="20dp" />
+            <corners android:radius="12dp" />
+            <solid android:color="#FFFFFF" />
         </shape>
     </item>
 </ripple>

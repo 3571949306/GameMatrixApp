@@ -1,24 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <!-- 顶部渐变 -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#80000000"
-                android:endColor="#00000000"
-                android:angle="90" />
-        </shape>
-    </item>
-
-    <!-- 底部渐变 -->
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#00000000"
-                android:endColor="#CC000000"
-                android:angle="270" />
-        </shape>
-    </item>
-
-</layer-list>
+<!-- 渐变遮罩 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#00000000"
+        android:endColor="#1A000000"
+        android:type="linear" />
+</shape>

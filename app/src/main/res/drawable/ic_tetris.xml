@@ -4,36 +4,19 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- I型方块 (青色) -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- L型方块 -->
     <path
-        android:fillColor="#00BCD4"
-        android:pathData="M8,6h24v4h-24z" />
-    <!-- O型方块 (黄色) -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,10h8v8h-8zM14,18h8v8h-8zM14,26h8v8h-8zM22,26h8v8h-8z" />
+    <!-- 下落的方块（小方块散落） -->
     <path
-        android:fillColor="#FFEB3B"
-        android:pathData="M34,6h8v8h-8z" />
-    <!-- T型方块 (紫色) -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,10h6v6h-6z" />
     <path
-        android:fillColor="#9C27B0"
-        android:pathData="M8,14h12v4h-12zM12,18h4v4h-4z" />
-    <!-- L型方块 (橙色) -->
-    <path
-        android:fillColor="#FF9800"
-        android:pathData="M26,14h4v12h-4zM30,22h4v4h-4z" />
-    <!-- J型方块 (蓝色) -->
-    <path
-        android:fillColor="#2196F3"
-        android:pathData="M8,26h4v12h-4zM12,34h4v4h-4z" />
-    <!-- S型方块 (绿色) -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M18,26h8v4h-8zM14,30h8v4h-8z" />
-    <!-- Z型方块 (红色) -->
-    <path
-        android:fillColor="#F44336"
-        android:pathData="M30,30h8v4h-8zM34,26h8v4h-8z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,34h6v6h-6z" />
 </vector>

@@ -4,64 +4,25 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 第1行 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M6,6h8v8h-8z" />
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 拼图块 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M16,6h8v8h-8z" />
+        android:pathData="M10,10h10v6h4v-6h10v10h-6v4h6v10h-10v-6h-4v6h-10v-10h6v-4h-6z" />
+    <!-- 拼图凸起 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M26,6h8v8h-8z" />
+        android:pathData="M20,10c0,-2 2,-4 4,-4c2,0 4,2 4,4" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M36,6h8v8h-8z" />
-    <!-- 第2行 (黑块) -->
-    <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M6,16h8v8h-8z" />
+        android:pathData="M34,20c2,0 4,2 4,4c0,2 -2,4 -4,4" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M16,16h8v8h-8z" />
-    <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M26,16h8v8h-8z" />
+        android:pathData="M20,34c0,2 2,4 4,4c2,0 4,-2 4,-4" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M36,16h8v8h-8z" />
-    <!-- 第3行 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M6,26h8v8h-8z" />
-    <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M16,26h8v8h-8z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M26,26h8v8h-8z" />
-    <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M36,26h8v8h-8z" />
-    <!-- 第4行 -->
-    <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M6,36h8v8h-8z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M16,36h8v8h-8z" />
-    <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M26,36h8v8h-8z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M36,36h8v8h-8z" />
-    <!-- 点击指示 -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M8,18h4v4h-4z" />
+        android:pathData="M10,20c-2,0 -4,2 -4,4c0,2 2,4 4,4" />
 </vector>

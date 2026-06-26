@@ -61,32 +61,61 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <!-- 标题行：名称 + 分类标签 -->
-            <LinearLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:layout_height="wrap_content">
 
                 <TextView
                     android:id="@+id/moduleItemName"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold"
                     android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    app:layout_constrainedWidth="true"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintHorizontal_chainStyle="packed"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/moduleItemCategoryChip"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/moduleItemCategoryChip"
                     style="@style/Widget.Material3.Chip.Assist"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="22dp"
                     android:layout_marginStart="8dp"
                     android:textSize="10sp"
-                    android:visibility="gone" />
-            </LinearLayout>
+                    android:visibility="gone"
+                    app:chipCornerRadius="4dp"
+                    app:chipMinHeight="20dp"
+                    app:textEndPadding="6dp"
+                    app:textStartPadding="6dp"
+                    app:layout_constraintStart_toEndOf="@+id/moduleItemName"
+                    app:layout_constraintEnd_toStartOf="@+id/moduleItemBuiltInChip"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/moduleItemBuiltInChip"
+                    style="@style/Widget.Material3.Chip.Assist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="22dp"
+                    android:layout_marginStart="6dp"
+                    android:text="内置"
+                    android:textSize="10sp"
+                    android:visibility="gone"
+                    app:chipCornerRadius="4dp"
+                    app:chipMinHeight="20dp"
+                    app:textEndPadding="6dp"
+                    app:textStartPadding="6dp"
+                    app:layout_constraintStart_toEndOf="@+id/moduleItemCategoryChip"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- 作者信息 -->
             <TextView
@@ -241,19 +270,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- 内置标签（如果适用） -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/moduleItemBuiltInChip"
-            style="@style/Widget.Material3.Chip.Assist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="内置"
-            android:textSize="10sp"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="@id/moduleIconContainer"
-            app:layout_constraintTop_toBottomOf="@id/moduleIconContainer"
-            app:layout_constraintTop_toTopOf="@id/moduleIconContainer"
-            app:layout_constraintBottom_toBottomOf="@id/moduleIconContainer" />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

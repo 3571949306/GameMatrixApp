@@ -4,45 +4,28 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#E8EAF6"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 卡片1 (背面) -->
-    <path
-        android:fillColor="#5C6BC0"
-        android:strokeColor="#3949AB"
-        android:strokeWidth="1"
-        android:pathData="M6,8h14v18h-14z" />
-    <path
-        android:fillColor="#3949AB"
-        android:pathData="M10,12h6v2h-6zM10,16h6v2h-6z" />
-    <!-- 卡片2 (翻开 - 星星) -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 三个彩色圆（用白色轮廓+不同填充方式表现） -->
+    <!-- 左圆 -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#E0E0E0"
-        android:strokeWidth="1"
-        android:pathData="M22,8h14v18h-14z" />
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M29,14l1.5,3l3,0.5l-2.5,2l1,3l-2.5,-1.5l-2.5,1.5l1,-3l-2.5,-2l3,-0.5z" />
-    <!-- 卡片3 (背面) -->
-    <path
-        android:fillColor="#5C6BC0"
-        android:strokeColor="#3949AB"
-        android:strokeWidth="1"
-        android:pathData="M6,26h14v18h-14z" />
-    <!-- 卡片4 (翻开 - 星星，配对成功) -->
+        android:pathData="M14,24m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+    <!-- 右上圆 -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#4CAF50"
-        android:strokeWidth="2"
-        android:pathData="M22,26h14v18h-14z" />
+        android:pathData="M30,18m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <!-- 右下圆 -->
     <path
-        android:fillColor="#FFD700"
-        android:pathData="M29,32l1.5,3l3,0.5l-2.5,2l1,3l-2.5,-1.5l-2.5,1.5l1,-3l-2.5,-2l3,-0.5z" />
-    <!-- 配对标记 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,32m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <!-- 消除效果（小星星） -->
     <path
-        android:fillColor="#4CAF50"
-        android:pathData="M38,20l2,2l4,-4l-1,-1l-3,3l-1,-1z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,12l0.5,1.5l1.5,0.5l-1.5,0.5l-0.5,1.5l-0.5,-1.5l-1.5,-0.5l1.5,-0.5z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,24l0.5,1.5l1.5,0.5l-1.5,0.5l-0.5,1.5l-0.5,-1.5l-1.5,-0.5l1.5,-0.5z" />
 </vector>

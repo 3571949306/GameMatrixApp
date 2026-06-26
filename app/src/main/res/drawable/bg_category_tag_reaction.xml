@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 反应类标签背景 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <gradient
-        android:angle="135"
-        android:startColor="#F472B6"
-        android:endColor="#A855F7"
-        android:type="linear" />
-    <corners android:radius="20dp" />
+    <solid android:color="#7B1FA2" />
+    <corners android:radius="8dp" />
 </shape>

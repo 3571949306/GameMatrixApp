@@ -4,38 +4,35 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#FFF3E0"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 网格线 -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 华容道框架 -->
     <path
-        android:strokeColor="#8D6E63"
-        android:strokeWidth="0.5"
-        android:pathData="M12,4v40M20,4v40M28,4v40M36,4v40M4,12h40M4,20h40M4,28h40M4,36h40" />
-    <!-- 曹操大方块 (2x2) -->
-    <path
-        android:fillColor="#F44336"
-        android:strokeColor="#B71C1C"
-        android:strokeWidth="1"
-        android:pathData="M12,12h16v16h-16z" />
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M8,8h32v32h-32z" />
+    <!-- 大滑块（曹操 - 2x2） -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M18,18h4v4h-4z" />
-    <!-- 小方块1 -->
+        android:pathData="M10,10h14v14h-14z" />
+    <!-- 中滑块（竖向） -->
     <path
-        android:fillColor="#4CAF50"
-        android:strokeColor="#388E3C"
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,10h6v14h-6z" />
+    <!-- 小滑块（横向） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,26h14v6h-14z" />
+    <!-- 小方块 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,26h6v6h-6z" />
+    <!-- 出口示意 -->
+    <path
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="1"
-        android:pathData="M28,12h8v8h-8z" />
-    <!-- 小方块2 -->
-    <path
-        android:fillColor="#2196F3"
-        android:strokeColor="#1976D2"
-        android:strokeWidth="1"
-        android:pathData="M12,28h8v8h-8z" />
-    <!-- 出口标记 -->
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M16,36h16v4h-16z" />
+        android:pathData="M34,32h4M34,34h4M34,36h4" />
 </vector>
