@@ -1352,3 +1352,7 @@ jarsigner -verify app-release.apk
 - `CrashHandler` remains in `:app` because it still directly calls app-owned `ErrorReporter`.
 - Local Gradle verification is currently blocked before compilation by a Windows socket/buffer resource error in Gradle file lock startup.
 
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

@@ -206,3 +206,7 @@ adb shell pm grant com.gamecenter.app android.permission.CAMERA
 如有问题，请查看项目文档：
 - `docs/AUTO_TESTING.md` - 详细测试文档
 - `test-reports/` - 历史测试报告
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
