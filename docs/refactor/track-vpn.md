@@ -401,3 +401,7 @@ vpn 从"工具"升级为"网络基础能力"。`core:network` 抽 `ProxyStatePro
 > 完成时间: 2026-06-04 16:30 (Asia/Shanghai)
 > 评审建议: 与维护者/产品对一下 D-01（sing-box vs v2rayNG）决策后即可进入短期待办
 > 同步位置: `Y:\GameMatrixApp\docs\refactor\track-vpn.md`
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

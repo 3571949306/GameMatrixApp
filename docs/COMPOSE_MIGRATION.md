@@ -134,3 +134,7 @@ class HallViewModel @Inject constructor(
 - https://developer.android.com/jetpack/compose
 - https://developer.android.com/jetpack/compose/migration
 - 项目内 TTS module 的 `TtsActivity.kt` 是生产代码样板
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

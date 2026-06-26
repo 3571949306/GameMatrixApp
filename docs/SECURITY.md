@@ -34,3 +34,7 @@ This project uses the following convention for secrets and API keys:
 If you accidentally commit a secret, rotate the secret **immediately** and
 follow GitHub's guide to remove the secret from git history:
 https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

@@ -1176,3 +1176,7 @@ M6 (M5 末-M6 末)  Baseline Profile + APK v3.1 + 审计
 **文档结束**
 
 > 本计划是 4 个 track 调研的合成产物, 严格遵守 `DONT_DO_THIS.md` 14 条硬约束, 回应用户原始 5 点要求 + 3 项执行约束。任何与 4 个 track 报告不一致的决策, 以本计划为准 (因为本计划经过二次综合判断); 任何与 DONT_DO_THIS.md 冲突的决策, 以 DONT_DO_THIS.md 为准 (硬约束)。
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

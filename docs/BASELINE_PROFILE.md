@@ -101,3 +101,7 @@ fun startup() = benchmarkRule.measureRepeated(
 
 - https://developer.android.com/topic/performance/baselineprofiles
 - https://android-developers.googleblog.com/2022/01/baseline-profiles-OTA.html
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

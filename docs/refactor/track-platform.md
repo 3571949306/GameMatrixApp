@@ -469,3 +469,7 @@ app/build.gradle (2026-05-19 状态):
 - [x] 标注 Compose 试点边界（不整屏迁）
 
 > 文档结束 — 待用户/Mavis 评审后定稿。
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
