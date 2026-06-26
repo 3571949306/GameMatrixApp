@@ -59,3 +59,7 @@ sealed class AppError(val code: Int, val message: String, val cause: Throwable?)
 ## 参考
 
 - 详细规范: `docs/ERROR_HANDLING.md`
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

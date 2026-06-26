@@ -34,6 +34,14 @@ public class ModuleVerifier {
     /** 缓冲区大小：8KB */
     private static final int BUFFER_SIZE = 8192;
     
+    /** 开发者公钥证书的 SHA-256 指纹白名单 */
+    private static final String[] TRUSTED_SIGNATURE_PINS = {
+        // 在线上发布前，请替换为真实的开发者证书签名指纹
+        "REPLACE_WITH_YOUR_RELEASE_KEY_FINGERPRINT",
+        // 预留的测试证书指纹（仅做测试用，实际生产须移除）
+        "a1b2c3d4e5f60708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
+    };
+    
     /** 签名验证结果：成功 */
     public static final int VERIFY_SUCCESS = 0;
     
@@ -177,8 +185,26 @@ public class ModuleVerifier {
                         "APK 未签名或签名无效");
             }
             
-            // 验证签名有效性（简化实现：检查是否有签名）
-            // 实际生产环境应验证证书链、颁发者等
+            // 安全加固：比对签名公钥的 SHA-256 指纹
+            boolean isTrusted = false;
+            for (android.content.pm.Signature signature : packageInfo.signatures) {
+                String sha256Fingerprint = calculateSha256(signature.toByteArray());
+                if (sha256Fingerprint != null) {
+                    for (String pin : TRUSTED_SIGNATURE_PINS) {
+                        if (pin.equalsIgnoreCase(sha256Fingerprint)) {
+                            isTrusted = true;
+                            break;
+                        }
+                    }
+                }
+                if (isTrusted) break;
+            }
+
+            if (!isTrusted) {
+                Log.e(TAG, "签名校验失败: 模块被未知的密钥签名！" + apkFile.getName());
+                return VerifyResult.failure(VERIFY_ERROR_SIGNATURE_FAILED, "签名校验失败，非官方受信任的模块");
+            }
+            
             Log.d(TAG, "签名验证通过: " + apkFile.getName() 
                     + ", 签名数量=" + packageInfo.signatures.length);
             return VerifyResult.success();
@@ -259,6 +285,24 @@ public class ModuleVerifier {
         
         byte[] hashBytes = digest.digest();
         return bytesToHex(hashBytes);
+    }
+    
+    /**
+     * 计算字节数组的 SHA-256 哈希值。
+     * 
+     * @param bytes 待计算的字节数组
+     * @return SHA-256 哈希值（十六进制字符串），计算失败返回 null
+     */
+    @Nullable
+    private static String calculateSha256(@NonNull byte[] bytes) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(ALGORITHM_SHA256);
+            byte[] hashBytes = digest.digest(bytes);
+            return bytesToHex(hashBytes);
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "SHA-256 算法不可用", e);
+            return null;
+        }
     }
     
     /**

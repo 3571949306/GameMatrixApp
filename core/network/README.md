@@ -70,3 +70,7 @@ ws.url=wss://your-server.example.com/ws
 
 - 详细架构: `docs/NETWORK_LAYER.md`
 - 10 个散落 OkHttpClient.Builder 待迁移点见 NET work_LAYER.md
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
