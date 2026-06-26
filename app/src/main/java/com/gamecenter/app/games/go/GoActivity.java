@@ -1,14 +1,16 @@
 package com.gamecenter.app.games.go;
-import android.util.Log;
 
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 
@@ -18,76 +20,33 @@ import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
-/**
- * 围棋游戏 Activity（简化版 9×9）。
- *
- * <p>支持简化围棋规则：落子、提子、禁入、领地评估。
- * 使用简单 AI 对手。</p>
- *
- * <p>成就系统：
- * <ul>
- *   <li>首次胜利</li>
- *   <li>领地超过 50%</li>
- *   <li>吃子 10 目</li>
- *   <li>无失误胜利</li>
- *   <li>连胜 5 局</li>
- * </ul>
- * </p>
- *
- * @author Kou Dou Ma (Alex)
- * @version 1.0
- * @since 2026-06-20
- */
 public class GoActivity extends BaseGameActivity {
 
-    private static final int BOARD_SIZE = 9;
-    private static final int EMPTY = GoView.EMPTY;
-    private static final int BLACK = GoView.BLACK;
-    private static final int WHITE = GoView.WHITE;
-    private static final int PASS_MOVE = -1;
+    private GoGame game;
+    private GoAI ai;
 
-    /** 最大连续虚着（双方都 pass）次数，达到则终局 */
-    private static final int MAX_CONSECUTIVE_PASSES = 2;
-
-    /** 贴目 */
-    private static final float KOMI = 6.5f;
-
-    // 游戏状态
-    private int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
-    private int[][] previousBoard = null; // 用于劫争判断
-    private int currentPlayer = BLACK; // 黑先
-    private int capturedByBlack = 0; // 黑方提子数
-    private int capturedByWhite = 0; // 白方提子数
-    private int consecutivePasses = 0;
-    private int totalCaptures = 0;
     private int totalWins = 0;
     private int winStreak = 0;
-    private boolean gameOver = false;
-    // 2026-06-23: 步数统计（玩家落子数，用于游戏结束 Dialog）
     private int moveCount = 0;
-    // 2026-06-23: AI 难度选择（1=简单/2=普通/3=困难/4=大师）
-    private int aiDifficulty = 2;
-    // 难度按钮列表（用于切换选中状态）
-    private final java.util.List<com.google.android.material.button.MaterialButton> difficultyButtons = new java.util.ArrayList<>();
 
     private Handler handler = new Handler(Looper.getMainLooper());
-    private Random random = new Random();
 
-    // UI 组件
     private GoView goView;
     private TextView tvStatus;
     private TextView tvScore;
     private LinearLayout gamePanel;
     private LinearLayout menuPanel;
 
+    private final List<MaterialButton> difficultyButtons = new ArrayList<>();
+    private long aiThinkStartMs = 0L;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        game = new GoGame();
+        ai = new GoAI();
     }
-
-    // ==================== BaseGameActivity 抽象方法实现 ====================
 
     @NonNull
     @Override
@@ -127,12 +86,10 @@ public class GoActivity extends BaseGameActivity {
         tvScore.setTextColor(0xFF5B8A72);
         tvScore.setPadding(0, 4, 0, 16);
 
-        // 菜单面板
         menuPanel = new LinearLayout(this);
         menuPanel.setOrientation(LinearLayout.VERTICAL);
         menuPanel.setGravity(Gravity.CENTER);
 
-        // 2026-06-23: 难度选择 2x2 网格
         addDifficultyButtonsTo(menuPanel);
 
         MaterialButton btnStart = new MaterialButton(this);
@@ -141,7 +98,6 @@ public class GoActivity extends BaseGameActivity {
         btnStart.setOnClickListener(v -> startNewGame());
         menuPanel.addView(btnStart);
 
-        // 游戏面板
         gamePanel = new LinearLayout(this);
         gamePanel.setOrientation(LinearLayout.VERTICAL);
         gamePanel.setGravity(Gravity.CENTER);
@@ -152,7 +108,6 @@ public class GoActivity extends BaseGameActivity {
         goView.setLayoutParams(new FrameLayout.LayoutParams(viewWidth, viewWidth));
         goView.setOnCellClickListener(this::onCellClick);
 
-        // 2026-06-23: 游戏中难度切换条
         addDifficultyButtonsTo(gamePanel);
 
         LinearLayout btnRow = new LinearLayout(this);
@@ -202,17 +157,9 @@ public class GoActivity extends BaseGameActivity {
         goView.hideTerritory();
     }
 
-    /**
-     * 开始新游戏
-     */
     private void startNewGame() {
-        board = new int[BOARD_SIZE][BOARD_SIZE];
-        previousBoard = null;
-        currentPlayer = BLACK;
-        capturedByBlack = 0;
-        capturedByWhite = 0;
-        consecutivePasses = 0;
-        gameOver = false;
+        game.startNewGame();
+        moveCount = 0;
 
         menuPanel.setVisibility(View.GONE);
         gamePanel.setVisibility(View.VISIBLE);
@@ -220,621 +167,71 @@ public class GoActivity extends BaseGameActivity {
         updateScoreDisplay();
 
         goView.hideTerritory();
-        goView.setBoard(board);
+        goView.setBoard(game.getBoard());
 
         isGameRunning = true;
         gameStartTime = System.currentTimeMillis();
     }
 
-    /**
-     * 处理落子
-     */
     private void onCellClick(int row, int col) {
-        if (gameOver || !isGameRunning) return;
-        if (currentPlayer != BLACK) return;
-        if (board[row][col] != EMPTY) return;
+        if (game.isGameOver() || !isGameRunning) return;
+        if (game.getCurrentPlayer() != GoGame.BLACK) return;
 
-        // 检查合法性（禁入规则）
-        if (!isValidMove(row, col, BLACK)) return;
+        if (game.playMove(row, col)) {
+            moveCount++;
+            goView.setBoard(game.getBoard());
+            goView.setLastMove(row, col);
+            updateScoreDisplay();
 
-        // 保存当前棋盘用于劫争判断
-        previousBoard = copyBoard(board);
-
-        // 落子
-        board[row][col] = BLACK;
-        moveCount++;
-        consecutivePasses = 0;
-
-        // 提子
-        int captured = removeCapturedStones(WHITE, row, col);
-        capturedByBlack += captured;
-        totalCaptures += captured;
-
-        goView.setBoard(board);
-        goView.setLastMove(row, col);
-        updateScoreDisplay();
-
-        // AI 回合
-        currentPlayer = WHITE;
-        // 2026-06-23: 显示当前难度（"AI 思考中...（困难）"）
-        tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty,
-                getDifficultyName(aiDifficulty)));
-        // 2026-06-23: 性能监控 — 记录思考开始时间
-        aiThinkStartMs = System.currentTimeMillis();
-        handler.postDelayed(this::aiMove, 300 + random.nextInt(500));
+            tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty, getDifficultyName(ai.getDifficulty())));
+            aiThinkStartMs = System.currentTimeMillis();
+            handler.postDelayed(this::aiMove, 300);
+        }
     }
 
-    /** AI 思考开始时间（用于耗时统计） */
-    private long aiThinkStartMs = 0L;
-
-    /**
-     * AI 落子
-     */
     private void aiMove() {
-        if (gameOver) return;
+        if (game.isGameOver()) return;
 
-        // 2026-06-23: 性能监控 — 记录 AI 思考耗时
         long thinkMs = System.currentTimeMillis() - aiThinkStartMs;
-        android.util.Log.i("GoAI", "难度=" + aiDifficulty + " (" + getDifficultyName(aiDifficulty) + ")"
-                + " 思考耗时=" + thinkMs + "ms");
+        Log.i("GoAI", "难度=" + ai.getDifficulty() + " 思考耗时=" + thinkMs + "ms");
 
-        // 简单 AI：基于领地评估选择落子
-        int[] bestMove = findBestAiMove();
+        int[] bestMove = ai.findBestAiMove(game);
         if (bestMove == null) {
-            // AI pass
-            consecutivePasses++;
+            game.passMove();
             tvStatus.setText(R.string.game_go_ai_passed);
         } else {
-            previousBoard = copyBoard(board);
-            board[bestMove[0]][bestMove[1]] = WHITE;
-            consecutivePasses = 0;
-
-            int captured = removeCapturedStones(BLACK, bestMove[0], bestMove[1]);
-            capturedByWhite += captured;
-
-            goView.setBoard(board);
+            game.playMove(bestMove[0], bestMove[1]);
+            goView.setBoard(game.getBoard());
             goView.setLastMove(bestMove[0], bestMove[1]);
 
-            // 2026-06-23: 大师难度显示思考时长（替代进度条）
-            if (aiDifficulty >= 4 && thinkMs > 100) {
-                android.widget.Toast.makeText(this,
-                        "AI 思考 " + thinkMs + "ms",
-                        android.widget.Toast.LENGTH_SHORT).show();
+            if (ai.getDifficulty() >= 4 && thinkMs > 100) {
+                Toast.makeText(this, "AI 思考 " + thinkMs + "ms", Toast.LENGTH_SHORT).show();
             }
         }
 
-        // 检查终局
-        if (consecutivePasses >= MAX_CONSECUTIVE_PASSES) {
+        if (game.isGameOver()) {
             onGameEnd();
             return;
         }
 
-        currentPlayer = BLACK;
         tvStatus.setText(R.string.game_go_your_turn);
         updateScoreDisplay();
     }
 
-    /**
-     * AI 找到最佳落子位置（4 档难度，2026-06-23 新增）。
-     * - 1 (简单): 纯随机合法位置
-     * - 2 (普通): 贪心 capture + 位置评估 + 随机扰动
-     * - 3 (困难): 贪心 + Minimax depth=2（看对手反应）
-     * - 4 (大师): 贪心 + Minimax depth=3 + 领地评估
-     */
-    private int[] findBestAiMove() {
-        return switch (aiDifficulty) {
-            case 1 -> findRandomAiMove();
-            case 3 -> findMinimaxAiMove(2);
-            case 4 -> mctsMove();  // 2026-06-23: 大师难度使用 MCTS（比 minimax-3 强很多）
-            default -> findGreedyAiMove();
-        };
-    }
-
-    /**
-     * 简单：纯随机合法位置
-     */
-    private int[] findRandomAiMove() {
-        List<int[]> candidates = new ArrayList<>();
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (board[r][c] == EMPTY && isValidMove(r, c, WHITE)) {
-                    candidates.add(new int[]{r, c});
-                }
-            }
-        }
-        if (candidates.isEmpty()) return null;
-        // 10% 概率 pass
-        if (random.nextInt(10) == 0 && consecutivePasses == 0) return null;
-        return candidates.get(random.nextInt(candidates.size()));
-    }
-
-    /**
-     * 普通：贪心 capture*10 + 位置评估 + 随机扰动
-     */
-    private int[] findGreedyAiMove() {
-        int bestScore = Integer.MIN_VALUE;
-        int[] bestMove = null;
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (board[r][c] == EMPTY && isValidMove(r, c, WHITE)) {
-                    int[][] simulated = copyBoard(board);
-                    simulated[r][c] = WHITE;
-                    int captured = simulateCapture(simulated, BLACK, r, c);
-                    int score = captured * 10 + evaluatePosition(r, c) + random.nextInt(3);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = new int[]{r, c};
-                    }
-                }
-            }
-        }
-        if (bestMove != null && random.nextInt(10) < 2 && consecutivePasses == 0) return null;
-        return bestMove;
-    }
-
-    /**
-     * 困难/大师：Minimax 深度搜索。
-     * depth=2 看自己+对手反应；depth=3 多看一步。
-     */
-    private int[] findMinimaxAiMove(int depth) {
-        int bestScore = Integer.MIN_VALUE;
-        int[] bestMove = null;
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (board[r][c] != EMPTY || !isValidMove(r, c, WHITE)) continue;
-                int[][] simulated = copyBoard(board);
-                simulated[r][c] = WHITE;
-                int captured = simulateCapture(simulated, BLACK, r, c);
-                int score = captured * 10 + evaluatePosition(r, c)
-                        + minimax(simulated, depth - 1, false, Integer.MIN_VALUE, Integer.MAX_VALUE, new int[]{0});
-                // 简单难度加随机扰动；大师级别不加
-                if (aiDifficulty < 4) score += random.nextInt(2);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = new int[]{r, c};
-                }
-            }
-        }
-        if (bestMove != null && aiDifficulty < 4 && random.nextInt(10) < 2 && consecutivePasses == 0) {
-            return null;
-        }
-        return bestMove;
-    }
-
-    /**
-     * 极小极大搜索（alpha-beta 剪枝，2026-06-23 增加节点上限+超时保护）。
-     * @param isMax 当前层是否是 AI 最大化
-     * @param nodeCount 已搜索节点数（用于超时保护）
-     */
-    private int minimax(int[][] state, int depth, boolean isMax, int alpha, int beta, int[] nodeCount) {
-        // 2026-06-23: 节点上限保护（防止 depth=3 在某些状态评估 100W+ 节点）
-        if (++nodeCount[0] > MAX_NODES) return evaluateBoard(state);
-        if (depth == 0) return evaluateBoard(state);
-        int best = isMax ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-        int color = isMax ? WHITE : BLACK;
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (state[r][c] != EMPTY) continue;
-                if (!isValidMove(state, r, c, color)) continue;
-                int[][] sim = copyBoard(state);
-                sim[r][c] = color;
-                simulateCapture(sim, color == WHITE ? BLACK : WHITE, r, c);
-                int val = minimax(sim, depth - 1, !isMax, alpha, beta, nodeCount);
-                if (isMax) {
-                    best = Math.max(best, val);
-                    alpha = Math.max(alpha, best);
-                } else {
-                    best = Math.min(best, val);
-                    beta = Math.min(beta, best);
-                }
-                if (beta <= alpha) return best;
-            }
-        }
-        return best;
-    }
-
-    /** 2026-06-23: 大师/困难难度 Minimax 节点上限（防止卡死） */
-    private static final int MAX_NODES = 80000;
-
-    /**
-     * 评估整个棋盘：白方领地 - 黑方领地（白方 = AI）
-     */
-    private int evaluateBoard(int[][] state) {
-        int whiteScore = 0, blackScore = 0;
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (state[r][c] == WHITE) whiteScore += 10;
-                else if (state[r][c] == BLACK) blackScore += 10;
-            }
-        }
-        return whiteScore - blackScore;
-    }
-
-    // ==================== MCTS 蒙特卡洛树搜索（2026-06-23 大师难度） ====================
-
-    /** MCTS 时间上限（ms） */
-    private static final long MCTS_TIME_LIMIT_MS = 1500;
-    /** MCTS 每次随机模拟最大步数（防无限循环） */
-    private static final int MCTS_PLAYOUT_MAX_MOVES = 162;
-
-    /**
-     * MCTS 节点：记录访问次数、总收益、子节点映射。
-     */
-    private static class MctsNode {
-        final int[][] state;
-        final int player;  // 本节点走棋方（BLACK 或 WHITE）
-        int visits = 0;
-        double totalReward = 0.0;
-        int moveRow = -1, moveCol = -1;
-        final java.util.List<MctsNode> children = new java.util.ArrayList<>();
-        final java.util.List<int[]> untriedMoves;
-
-        MctsNode(int[][] state, int player, java.util.List<int[]> untriedMoves) {
-            this.state = state;
-            this.player = player;
-            this.untriedMoves = untriedMoves;
-        }
-    }
-
-    /**
-     * 大师难度入口：MCTS 蒙特卡洛树搜索。
-     * 在 MCTS_TIME_LIMIT_MS 内不断模拟对局，选择胜率最高的走法。
-     */
-    private int[] mctsMove() {
-        int[][] rootState = copyBoard(board);
-        java.util.List<int[]> rootMoves = new java.util.ArrayList<>();
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (rootState[r][c] == EMPTY && isValidMove(rootState, r, c, WHITE)) {
-                    rootMoves.add(new int[]{r, c});
-                }
-            }
-        }
-        if (rootMoves.isEmpty()) return null;
-
-        MctsNode root = new MctsNode(rootState, WHITE, rootMoves);
-        long startMs = System.currentTimeMillis();
-        int simulations = 0;
-
-        while (System.currentTimeMillis() - startMs < MCTS_TIME_LIMIT_MS) {
-            // Selection
-            MctsNode node = root;
-            while (node.untriedMoves.isEmpty() && !node.children.isEmpty()) {
-                node = selectChild(node);
-            }
-            // Expansion
-            if (!node.untriedMoves.isEmpty()) {
-                int[] move = node.untriedMoves.remove(random.nextInt(node.untriedMoves.size()));
-                int[][] childState = copyBoard(node.state);
-                int childPlayer = node.player == WHITE ? BLACK : WHITE;
-                childState[move[0]][move[1]] = node.player;
-                java.util.List<int[]> childMoves = getValidMoves(childState, childPlayer);
-                MctsNode child = new MctsNode(childState, childPlayer, childMoves);
-                child.moveRow = move[0];
-                child.moveCol = move[1];
-                node.children.add(child);
-                node = child;
-            }
-            // Simulation
-            double result = playout(node.state, node.player);
-            // Backpropagation
-            while (node != null) {
-                node.visits++;
-                // 从白方视角累加（白方=AIl = AI）：白方胜 1.0，白方负 0.0，平 0.5
-                node.totalReward += (node.player == WHITE) ? result : (1.0 - result);
-                node = getParent(root, node);
-            }
-            simulations++;
-        }
-
-        // 选择访问次数最多的走法（最稳健的选择）
-        MctsNode bestChild = null;
-        int bestVisits = -1;
-        for (MctsNode child : root.children) {
-            if (child.visits > bestVisits) {
-                bestVisits = child.visits;
-                bestChild = child;
-            }
-        }
-
-        Log.i("GoMCTS", "模拟=" + simulations + " 耗时=" + (System.currentTimeMillis() - startMs) + "ms");
-        return (bestChild != null) ? new int[]{bestChild.moveRow, bestChild.moveCol} : null;
-    }
-
-    /**
-     * UCT 选择：选取 UCT 值最高的子节点。
-     */
-    private MctsNode selectChild(MctsNode node) {
-        MctsNode best = null;
-        double bestValue = Double.NEGATIVE_INFINITY;
-        for (MctsNode child : node.children) {
-            if (child.visits == 0) {
-                best = child;
-                break;
-            }
-            double uct = child.totalReward / child.visits
-                    + 1.41 * Math.sqrt(Math.log(node.visits) / child.visits);
-            if (uct > bestValue) {
-                bestValue = uct;
-                best = child;
-            }
-        }
-        return best;
-    }
-
-    /**
-     * 随机对局模拟（从当前状态开始双方随机走棋直到终局）。
-     * 返回值：1.0 = 白方（AI）胜，0.0 = 黑方（玩家）胜，0.5 = 平局。
-     */
-    private double playout(int[][] state, int currentPlayer) {
-        int passCount = 0;
-        int moveCount = 0;
-        while (moveCount < MCTS_PLAYOUT_MAX_MOVES && passCount < 2) {
-            java.util.List<int[]> moves = getValidMoves(state, currentPlayer);
-            if (moves.isEmpty()) {
-                passCount++;
-                currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
-                moveCount++;
-                continue;
-            }
-            int[] move = moves.get(random.nextInt(moves.size()));
-            state[move[0]][move[1]] = currentPlayer;
-            simulateCapture(state, currentPlayer == WHITE ? BLACK : WHITE, move[0], move[1]);
-            passCount = 0;
-            currentPlayer = (currentPlayer == WHITE) ? BLACK : WHITE;
-            moveCount++;
-        }
-        // 简化评估：数子（White子数 vs Black子数）
-        int white = 0, black = 0;
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (state[r][c] == WHITE) white++;
-                else if (state[r][c] == BLACK) black++;
-            }
-        }
-        if (white + KOMI > black) return 1.0;
-        if (white + KOMI < black) return 0.0;
-        return 0.5;
-    }
-
-    /**
-     * 获取指定方的所有合法走法。
-     */
-    private java.util.List<int[]> getValidMoves(int[][] state, int color) {
-        java.util.List<int[]> moves = new java.util.ArrayList<>();
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (state[r][c] == EMPTY && isValidMove(state, r, c, color)) {
-                    moves.add(new int[]{r, c});
-                }
-            }
-        }
-        return moves;
-    }
-
-    /**
-     * 获取父节点（MCTS 回溯用）。
-     */
-    private MctsNode getParent(MctsNode root, MctsNode target) {
-        return findParentDfs(root, target);
-    }
-
-    private MctsNode findParentDfs(MctsNode node, MctsNode target) {
-        for (MctsNode child : node.children) {
-            if (child == target) return node;
-            MctsNode found = findParentDfs(child, target);
-            if (found != null) return found;
-        }
-        return null;
-    }
-
-    /**
-     * 设置 AI 难度（1-4），游戏中切换立即生效。
-     */
-    public void setAiDifficulty(int level) {
-        if (level < 1 || level > 4) return;
-        this.aiDifficulty = level;
-        // 更新按钮选中状态
-        int[] colorActive = {0xFF5B8A72, 0xFFFFA726, 0xFFEF5350, 0xFF8E24AA};
-        int colorInactive = 0xFF9E9E9E;
-        for (int i = 0; i < difficultyButtons.size(); i++) {
-            difficultyButtons.get(i).setBackgroundColor(
-                    i + 1 == level ? colorActive[i] : colorInactive);
-        }
-        android.widget.Toast.makeText(this,
-                "AI 难度: " + getDifficultyName(level),
-                android.widget.Toast.LENGTH_SHORT).show();
-    }
-
-    private String getDifficultyName(int level) {
-        switch (level) {
-            case 1: return "简单（随机）";
-            case 2: return "普通（贪心）";
-            case 3: return "困难（Minimax-2）";
-            case 4: return "大师（MCTS）";
-            default: return "未知";
-        }
-    }
-
-    /**
-     * 评估位置价值
-     */
-    private int evaluatePosition(int row, int col) {
-        int score = 0;
-        // 中心位置价值更高
-        int centerDist = Math.abs(row - 4) + Math.abs(col - 4);
-        score += (8 - centerDist) * 2;
-
-        // 边角位置价值较低
-        if (row == 0 || row == BOARD_SIZE - 1) score -= 3;
-        if (col == 0 || col == BOARD_SIZE - 1) score -= 3;
-
-        // 相邻已有己方棋子加分
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            int nr = row + d[0];
-            int nc = col + d[1];
-            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
-                if (board[nr][nc] == WHITE) score += 2;
-            }
-        }
-
-        return score;
-    }
-
-    /**
-     * 检查落子是否合法
-     */
-    private boolean isValidMove(int row, int col, int color) {
-        if (board[row][col] != EMPTY) return false;
-
-        // 模拟落子
-        int[][] simulated = copyBoard(board);
-        simulated[row][col] = color;
-
-        // 检查是否有气
-        int opponent = color == BLACK ? WHITE : BLACK;
-        int captured = simulateCapture(simulated, opponent, row, col);
-
-        // 落子后自身是否有气
-        if (countLiberties(simulated, row, col) == 0 && captured == 0) {
-            return false; // 自杀
-        }
-
-        // 劫争检查
-        if (previousBoard != null && boardsEqual(simulated, previousBoard)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * 2026-06-23: 接收 board 参数的 isValidMove（用于 Minimax 搜索中的模拟棋盘）
-     * 劫争检查不适用模拟过程（previousBoard 是 main 的状态）
-     */
-    private boolean isValidMove(int[][] state, int row, int col, int color) {
-        if (state[row][col] != EMPTY) return false;
-        int[][] simulated = copyBoard(state);
-        simulated[row][col] = color;
-        int opponent = color == BLACK ? WHITE : BLACK;
-        int captured = simulateCapture(simulated, opponent, row, col);
-        if (countLiberties(simulated, row, col) == 0 && captured == 0) return false;
-        return true;
-    }
-
-    /**
-     * 模拟提子并返回提子数
-     */
-    private int simulateCapture(int[][] sim, int opponent, int row, int col) {
-        int totalCaptured = 0;
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            int nr = row + d[0];
-            int nc = col + d[1];
-            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE
-                    && sim[nr][nc] == opponent) {
-                if (countLiberties(sim, nr, nc) == 0) {
-                    totalCaptured += removeGroup(sim, nr, nc);
-                }
-            }
-        }
-        return totalCaptured;
-    }
-
-    /**
-     * 移除被吃掉的棋子（实际棋盘）
-     */
-    private int removeCapturedStones(int opponent, int row, int col) {
-        int totalCaptured = 0;
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            int nr = row + d[0];
-            int nc = col + d[1];
-            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE
-                    && board[nr][nc] == opponent) {
-                if (countLiberties(board, nr, nc) == 0) {
-                    totalCaptured += removeGroup(board, nr, nc);
-                }
-            }
-        }
-        return totalCaptured;
-    }
-
-    /**
-     * 计算棋子（组）的气数
-     */
-    private int countLiberties(int[][] grid, int row, int col) {
-        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
-        int[] liberties = {0};
-        countLibertiesDFS(grid, row, col, grid[row][col], visited, liberties);
-        return liberties[0];
-    }
-
-    private void countLibertiesDFS(int[][] grid, int row, int col, int color,
-                                   boolean[][] visited, int[] liberties) {
-        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
-        if (visited[row][col]) return;
-        if (grid[row][col] != color && grid[row][col] != EMPTY) return;
-
-        if (grid[row][col] == EMPTY) {
-            liberties[0]++;
-            return;
-        }
-
-        visited[row][col] = true;
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            countLibertiesDFS(grid, row + d[0], col + d[1], color, visited, liberties);
-        }
-    }
-
-    /**
-     * 移除一个棋子组
-     */
-    private int removeGroup(int[][] grid, int row, int col) {
-        int color = grid[row][col];
-        if (color == EMPTY) return 0;
-        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
-        return removeGroupDFS(grid, row, col, color, visited);
-    }
-
-    private int removeGroupDFS(int[][] grid, int row, int col, int color, boolean[][] visited) {
-        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return 0;
-        if (visited[row][col] || grid[row][col] != color) return 0;
-
-        visited[row][col] = true;
-        grid[row][col] = EMPTY;
-        int count = 1;
-
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            count += removeGroupDFS(grid, row + d[0], col + d[1], color, visited);
-        }
-        return count;
-    }
-
-    /**
-     * Pass
-     */
     private void passMove() {
-        if (gameOver || !isGameRunning) return;
-        consecutivePasses++;
-        if (consecutivePasses >= MAX_CONSECUTIVE_PASSES) {
+        if (game.isGameOver() || !isGameRunning) return;
+        game.passMove();
+        if (game.isGameOver()) {
             onGameEnd();
             return;
         }
-        currentPlayer = WHITE;
         tvStatus.setText(R.string.game_go_ai_thinking);
         handler.postDelayed(this::aiMove, 300);
     }
 
-    /**
-     * 认输
-     */
     private void resign() {
-        if (gameOver) return;
-        gameOver = true;
+        if (game.isGameOver()) return;
+        game.setGameOver(true);
         isGameRunning = false;
         tvStatus.setText(R.string.game_go_you_resigned);
         winStreak = 0;
@@ -842,54 +239,45 @@ public class GoActivity extends BaseGameActivity {
         if (gameStartTime > 0) {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
-        // 2026-06-23: 认输也弹 Dialog（用当前领地估算分数）
-        int blackT = countTerritory(BLACK) + capturedByBlack;
-        int whiteT = countTerritory(WHITE) + capturedByWhite + (int) KOMI;
+        
+        int blackT = game.countTerritory(GoGame.BLACK) + game.getCapturedByBlack();
+        int whiteT = game.countTerritory(GoGame.WHITE) + game.getCapturedByWhite() + (int) GoGame.KOMI;
         showGameEndDialog(false, blackT, whiteT);
     }
 
-    /**
-     * 终局处理
-     */
     private void onGameEnd() {
-        gameOver = true;
         isGameRunning = false;
 
-        // 简化计分：统计领地
-        float blackTerritory = countTerritory(BLACK) + capturedByBlack;
-        float whiteTerritory = countTerritory(WHITE) + capturedByWhite + KOMI;
+        float blackTerritory = game.countTerritory(GoGame.BLACK) + game.getCapturedByBlack();
+        float whiteTerritory = game.countTerritory(GoGame.WHITE) + game.getCapturedByWhite() + GoGame.KOMI;
 
-        // 显示领地
-        float[][] territory = calculateTerritory();
+        float[][] territory = game.calculateTerritory();
         goView.showTerritory(territory);
 
         boolean playerWins = blackTerritory > whiteTerritory;
-        float blackPercent = blackTerritory / (BOARD_SIZE * BOARD_SIZE) * 100;
+        float blackPercent = blackTerritory / (GoGame.BOARD_SIZE * GoGame.BOARD_SIZE) * 100;
 
         if (playerWins) {
             totalWins++;
             winStreak++;
-            tvStatus.setText(getString(R.string.game_go_you_win,
-                    (int) blackTerritory, (int) whiteTerritory));
+            tvStatus.setText(getString(R.string.game_go_you_win, (int) blackTerritory, (int) whiteTerritory));
             usageStore.recordWin(getGameId());
 
             checkAchievement("win", totalWins);
             checkAchievement("score", (int) blackPercent);
             checkAchievement("streak", winStreak);
-            if (capturedByBlack > 0) {
+            if (game.getCapturedByBlack() > 0) {
                 checkAchievement("special", true);
             }
-            // 2026-06-23: 大师难度专用成就（"棋道巅峰"）
-            if (aiDifficulty == 4) {
+            if (ai.getDifficulty() == 4) {
                 checkAchievement("master_win", 1);
-                updateScore(currentScore + 500); // 大师难度奖励更高
+                updateScore(currentScore + 500);
             } else {
                 updateScore(currentScore + 300);
             }
         } else {
             winStreak = 0;
-            tvStatus.setText(getString(R.string.game_go_ai_wins,
-                    (int) blackTerritory, (int) whiteTerritory));
+            tvStatus.setText(getString(R.string.game_go_ai_wins, (int) blackTerritory, (int) whiteTerritory));
             usageStore.recordLoss(getGameId());
         }
 
@@ -897,21 +285,14 @@ public class GoActivity extends BaseGameActivity {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
 
-        // 2026-06-23: 弹出游戏结束总结 Dialog
         showGameEndDialog(playerWins, (int) blackTerritory, (int) whiteTerritory);
     }
 
-    /**
-     * 2026-06-23：游戏结束 Dialog（围棋终局后显示战绩）。
-     * 含步数、用时、双方领地、胜负结果。
-     */
     private void showGameEndDialog(boolean playerWins, int blackTerritory, int whiteTerritory) {
         long elapsed = gameStartTime > 0 ? (System.currentTimeMillis() - gameStartTime) : 0L;
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.game_go_end_title);
-        String winnerText = playerWins
-                ? getString(R.string.game_go_end_win)
-                : getString(R.string.game_go_end_lose);
+        String winnerText = playerWins ? getString(R.string.game_go_end_win) : getString(R.string.game_go_end_lose);
         builder.setMessage(
                 winnerText + "\n\n" +
                 getString(R.string.game_go_end_moves) + ": " + moveCount + "\n" +
@@ -923,17 +304,11 @@ public class GoActivity extends BaseGameActivity {
         builder.show();
     }
 
-    /** 格式化毫秒为 mm:ss */
     private String formatDuration(long ms) {
         long sec = ms / 1000L;
         return String.format("%02d:%02d", sec / 60L, sec % 60L);
     }
 
-    /**
-     * 2026-06-23: 添加 4 个 AI 难度选择按钮到指定容器。
-     * 2x2 网格布局，选中状态用不同背景色。
-     * 同一组按钮共享 difficultyButtons 列表，实现选中状态联动。
-     */
     private void addDifficultyButtonsTo(LinearLayout parent) {
         TextView label = new TextView(this);
         label.setText(R.string.game_go_difficulty_label);
@@ -961,11 +336,11 @@ public class GoActivity extends BaseGameActivity {
             rowLayout.setGravity(Gravity.CENTER);
             rowLayout.setPadding(0, 0, 0, 6);
             for (int col = 0; col < 2; col++) {
-                int idx = row * 2 + col + 1; // 1-4
+                int idx = row * 2 + col + 1;
                 MaterialButton btn = new MaterialButton(this);
                 btn.setText(names[idx - 1]);
                 btn.setTextSize(12f);
-                btn.setBackgroundColor(idx == aiDifficulty ? colorActive[idx - 1] : colorInactive);
+                btn.setBackgroundColor(idx == ai.getDifficulty() ? colorActive[idx - 1] : colorInactive);
                 btn.setTextColor(0xFFFFFFFF);
                 btn.setMinWidth(0);
                 btn.setPadding(24, 8, 24, 8);
@@ -983,90 +358,30 @@ public class GoActivity extends BaseGameActivity {
         parent.addView(grid);
     }
 
-    /**
-     * 简化领地计算
-     */
-    private int countTerritory(int color) {
-        int count = 0;
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (board[r][c] == color) count++;
-            }
+    public void setAiDifficulty(int level) {
+        ai.setDifficulty(level);
+        int[] colorActive = {0xFF5B8A72, 0xFFFFA726, 0xFFEF5350, 0xFF8E24AA};
+        int colorInactive = 0xFF9E9E9E;
+        for (int i = 0; i < difficultyButtons.size(); i++) {
+            difficultyButtons.get(i).setBackgroundColor(
+                    i + 1 == level ? colorActive[i] : colorInactive);
         }
-        return count;
+        Toast.makeText(this, "AI 难度: " + getDifficultyName(level), Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * 计算领地标记
-     */
-    private float[][] calculateTerritory() {
-        float[][] territory = new float[BOARD_SIZE][BOARD_SIZE];
-        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
-
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (board[r][c] == EMPTY && !visited[r][c]) {
-                    List<int[]> region = new ArrayList<>();
-                    int borderBlack = 0;
-                    int borderWhite = 0;
-                    floodFill(r, c, visited, region, new int[]{0, 0});
-
-                    for (int[] cell : region) {
-                        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-                        for (int[] d : dirs) {
-                            int nr = cell[0] + d[0];
-                            int nc = cell[1] + d[1];
-                            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
-                                if (board[nr][nc] == BLACK) borderBlack = 1;
-                                if (board[nr][nc] == WHITE) borderWhite = 1;
-                            }
-                        }
-                    }
-
-                    float owner = 0;
-                    if (borderBlack > 0 && borderWhite == 0) owner = -1;
-                    if (borderWhite > 0 && borderBlack == 0) owner = 1;
-
-                    for (int[] cell : region) {
-                        territory[cell[0]][cell[1]] = owner;
-                    }
-                }
-            }
-        }
-        return territory;
-    }
-
-    private void floodFill(int r, int c, boolean[][] visited, List<int[]> region, int[] count) {
-        if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return;
-        if (visited[r][c] || board[r][c] != EMPTY) return;
-        visited[r][c] = true;
-        region.add(new int[]{r, c});
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            floodFill(r + d[0], c + d[1], visited, region, count);
+    private String getDifficultyName(int level) {
+        switch (level) {
+            case 1: return "简单（随机）";
+            case 2: return "普通（贪心）";
+            case 3: return "困难（Minimax-2）";
+            case 4: return "大师（MCTS）";
+            default: return "未知";
         }
     }
 
     private void updateScoreDisplay() {
         tvScore.setText(getString(R.string.game_go_score_display,
-                capturedByBlack, capturedByWhite, currentPlayer == BLACK ? "●" : "○"));
-    }
-
-    private int[][] copyBoard(int[][] src) {
-        int[][] dst = new int[BOARD_SIZE][BOARD_SIZE];
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            System.arraycopy(src[r], 0, dst[r], 0, BOARD_SIZE);
-        }
-        return dst;
-    }
-
-    private boolean boardsEqual(int[][] a, int[][] b) {
-        for (int r = 0; r < BOARD_SIZE; r++) {
-            for (int c = 0; c < BOARD_SIZE; c++) {
-                if (a[r][c] != b[r][c]) return false;
-            }
-        }
-        return true;
+                game.getCapturedByBlack(), game.getCapturedByWhite(), game.getCurrentPlayer() == GoGame.BLACK ? "●" : "○"));
     }
 
     @Override

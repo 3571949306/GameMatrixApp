@@ -994,6 +994,43 @@ public class GomokuAI {
 
     // 威胁评估结果，用于着法评分和局面评估。
     // 可以理解为"体检报告"：记录了这个位置的各种"健康指标"
+    /**
+     * 获取指定着法的教育性分析
+     */
+    public String getEducationalAnalysis(GomokuGame game, int x, int y, int player) {
+        int[][] tempBoard = new int[15][15];
+        for (int i = 0; i < 15; i++) {
+            System.arraycopy(game.getBoard()[i], 0, tempBoard[i], 0, 15);
+        }
+        int opponent = (player == GomokuGame.BLACK) ? GomokuGame.WHITE : GomokuGame.BLACK;
+        
+        // 评估防守（如果不走这里，对手走这里的威胁）
+        tempBoard[y][x] = opponent;
+        Threat defense = evaluateMoveThreat(x, y, opponent, tempBoard);
+        
+        // 评估进攻（走这里的威胁）
+        tempBoard[y][x] = player;
+        Threat attack = evaluateMoveThreat(x, y, player, tempBoard);
+        
+        if (attack.wins > 0) return "形成连五，直接获胜！";
+        if (defense.wins > 0) return "阻止对手连五，关键防守！";
+        
+        if (attack.openFours > 0) return "形成活四，必胜之局！";
+        if (defense.openFours > 0 || defense.fours > 0) return "阻挡对手的四子威胁！";
+        
+        if (attack.fours >= 2) return "形成双冲四，双杀！";
+        if (attack.fours > 0 && attack.openThrees > 0) return "形成冲四活三，强力攻击！";
+        if (attack.openThrees >= 2) return "形成双活三，对手难以兼顾！";
+        
+        if (defense.openThrees >= 2) return "化解对手的双活三危机！";
+        if (defense.openThrees > 0) return "破坏对手的活三攻势。";
+        
+        if (attack.openThrees > 0) return "形成活三，开始组织进攻。";
+        if (attack.fours > 0) return "形成冲四，迫使对手防守。";
+        
+        return "占据要点，拓展我方发展空间。";
+    }
+
     private static class Threat {
         /** 综合威胁评分（分数越高越有利） */
         int score;

@@ -319,8 +319,10 @@ public final class GameRegistry {
         List<Category> staticCategories = buildStaticCategories(context);
         Map<String, List<Entry>> merged = new LinkedHashMap<>();
         Map<String, String> names = new LinkedHashMap<>();
+        List<Entry> allStaticGames = new ArrayList<>();
 
         for (Category category : staticCategories) {
+            allStaticGames.addAll(category.games);
             merged.put(category.categoryKey, new ArrayList<>(category.games));
             names.put(category.categoryKey, category.name);
         }
@@ -334,7 +336,18 @@ public final class GameRegistry {
                     merged.put(key, target);
                     names.put(key, categoryName(context, key));
                 }
-                target.addAll(entry.getValue());
+                for (Entry dynamicEntry : entry.getValue()) {
+                    boolean exists = false;
+                    for (Entry staticEntry : allStaticGames) {
+                        if (staticEntry.id.equals(dynamicEntry.id)) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        target.add(dynamicEntry);
+                    }
+                }
             }
         }
 
