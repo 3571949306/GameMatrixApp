@@ -80,12 +80,12 @@ public class App extends Application {
     }
 
     /**
-     * 2026-06-23 模块预装：把 assets/modules/ 中的预装 APK 提取到 cacheDir/modules/。
+     * 2026-06-23 模块预装：把 assets/modules/ 中的预装 APK 提取到 filesDir/modules/。
      * <p>
      * 提取逻辑：
      * <ol>
      *   <li>遍历 assets/modules/ 下的所有 .apk 文件</li>
-     *   <li>检查 cacheDir/modules/ 中是否已存在同名 APK（避免重复提取）</li>
+     *   <li>检查 filesDir/modules/ 中是否已存在同名 APK（避免重复提取）</li>
      *   <li>不存在则复制 APK；写 SharedPreferences 标记已安装</li>
      * </ol>
      * ModuleManager 后续会通过 modules.json 中的 fileName/sha256 识别已安装模块；
@@ -95,7 +95,7 @@ public class App extends Application {
      * ai 模块本轮因编译错误跳过预装（待 Step import 单独修复后纳入）。
      */
     private void extractPreinstalledModules() {
-        java.io.File modulesDir = new java.io.File(getCacheDir(), "modules");
+        java.io.File modulesDir = new java.io.File(getFilesDir(), "modules");
         if (!modulesDir.exists() && !modulesDir.mkdirs()) {
             Log.w("App", "[preinstall] 无法创建 modules 目录: " + modulesDir.getAbsolutePath());
             return;
@@ -164,7 +164,7 @@ public class App extends Application {
         // 主题设置立即应用（影响 UI）
         applyTheme();
 
-        // 2026-06-23 模块预装：把 assets/modules/ 中的预装 APK 提取到 cacheDir/modules/
+        // 2026-06-23 模块预装：把 assets/modules/ 中的预装 APK 提取到 filesDir/modules/
         // 保留 VPS 更新通道：modules.json 中 versionCode > pref 中版本时，ModuleManager 会下载覆盖
         extractPreinstalledModules();
 
