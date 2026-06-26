@@ -4,42 +4,27 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#8D6E63"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 草地 -->
+        android:fillColor="#C5221F"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 锤子柄 -->
     <path
-        android:fillColor="#4CAF50"
-        android:pathData="M4,30h40v14h-40z" />
-    <!-- 地洞1 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,24h4v16h-4z" />
+    <!-- 锤子头 -->
     <path
-        android:fillColor="#3E2723"
-        android:pathData="M10,32h8v4h-8z" />
-    <!-- 地洞2 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,16h20v8h-20z" />
+    <!-- 锤子头高光 -->
     <path
-        android:fillColor="#3E2723"
-        android:pathData="M24,32h8v4h-8z" />
-    <!-- 地洞3 -->
+        android:fillColor="#C5221F"
+        android:pathData="M16,18h4v4h-4z" />
+    <!-- 击打效果（星星） -->
     <path
-        android:fillColor="#3E2723"
-        android:pathData="M34,32h8v4h-8z" />
-    <!-- 地鼠 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10l1,3l3,1l-3,1l-1,3l-1,-3l-3,-1l3,-1z" />
     <path
-        android:fillColor="#8D6E63"
-        android:pathData="M26,24m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
-    <path
-        android:fillColor="#FFAB91"
-        android:pathData="M26,22m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
-    <!-- 眼睛 -->
-    <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M25,21h1v1h-1zM27,21h1v1h-1z" />
-    <!-- 锤子 -->
-    <path
-        android:fillColor="#FF9800"
-        android:pathData="M36,16l-4,4l2,2l4,-4z" />
-    <path
-        android:fillColor="#8D6E63"
-        android:pathData="M34,18l-6,6l2,2l6,-6z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,12l0.8,2.4l2.4,0.8l-2.4,0.8l-0.8,2.4l-0.8,-2.4l-2.4,-0.8l2.4,-0.8z" />
 </vector>

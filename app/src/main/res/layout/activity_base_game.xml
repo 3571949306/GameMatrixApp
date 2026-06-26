@@ -5,28 +5,30 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background_color">
+    android:background="?android:attr/colorBackground">
 
     <!-- 标题栏 -->
     <LinearLayout
         android:id="@+id/title_bar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="@dimen/spacing_48"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:background="@color/card_background"
-        android:elevation="4dp">
+        android:paddingHorizontal="@dimen/spacing_16"
+        android:background="?attr/colorSurface"
+        android:elevation="1dp">
 
         <!-- 返回按钮 -->
-        <ImageView
+        <ImageButton
             android:id="@+id/iv_back"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
             android:src="@drawable/ic_back"
             android:contentDescription="@string/back"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true"
+            app:tint="?attr/colorOnSurface" />
 
         <!-- 游戏标题 -->
         <TextView
@@ -34,10 +36,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="16dp"
-            android:textSize="18sp"
-            android:textColor="@color/text_color"
+            android:layout_marginStart="@dimen/spacing_12"
+            android:textSize="16sp"
             android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
             android:ellipsize="end"
             android:maxLines="1"
             tools:text="五子棋" />
@@ -47,43 +49,43 @@
             android:id="@+id/tv_score"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            android:textSize="16sp"
-            android:textColor="@color/primary_color"
+            android:layout_marginEnd="@dimen/spacing_12"
+            android:textSize="14sp"
+            android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
             tools:text="0" />
 
         <!-- 难度按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_difficulty"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.GameMatrix.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/difficulty"
             android:textSize="12sp"
-            android:textColor="@color/primary_color"
+            android:textColor="?attr/colorPrimary"
             android:visibility="gone"
             tools:visibility="visible" />
 
         <!-- 规则按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_rules"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.GameMatrix.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/rules"
             android:textSize="12sp"
-            android:textColor="@color/primary_color" />
+            android:textColor="?attr/colorPrimary" />
 
         <!-- 教程按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_tutorial"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.GameMatrix.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/tutorial"
             android:textSize="12sp"
-            android:textColor="@color/primary_color"
+            android:textColor="?attr/colorPrimary"
             android:visibility="gone"
             tools:visibility="visible" />
     </LinearLayout>
@@ -94,7 +96,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/background_color">
+        android:background="?android:attr/colorBackground">
 
         <!-- 游戏内容将在这里动态添加 -->
     </FrameLayout>
@@ -103,44 +105,44 @@
     <LinearLayout
         android:id="@+id/bottom_control_bar"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="@dimen/spacing_48"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:background="@color/card_background"
-        android:elevation="4dp">
+        android:paddingHorizontal="@dimen/spacing_16"
+        android:background="?attr/colorSurface"
+        android:elevation="1dp">
 
         <!-- 暂停按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_pause"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.GameMatrix.Button.Text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/pause"
-            android:textSize="14sp"
-            android:textColor="@color/text_color" />
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant" />
 
         <!-- 重新开始按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_restart"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.GameMatrix.Button.Text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/restart"
-            android:textSize="14sp"
-            android:textColor="@color/text_color" />
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant" />
 
         <!-- 设置按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_settings"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.GameMatrix.Button.Text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/settings"
-            android:textSize="14sp"
-            android:textColor="@color/text_color" />
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 </LinearLayout>

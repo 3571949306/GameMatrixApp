@@ -4,32 +4,24 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#1A1A2E"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 网格 -->
-    <path
-        android:strokeColor="#2A2A4E"
-        android:strokeWidth="0.5"
-        android:pathData="M12,4v40M20,4v40M28,4v40M36,4v40M4,12h40M4,20h40M4,28h40M4,36h40" />
-    <!-- 蛇身体 -->
-    <path
-        android:fillColor="#81C784"
-        android:pathData="M8,12h8v8h-8zM16,12h8v8h-8zM24,12h8v8h-8z" />
-    <!-- 蛇头 -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M32,12h8v8h-8z" />
-    <!-- 蛇眼睛 -->
+        android:fillColor="#C5221F"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 蛇身（由方块组成） -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M34,14h1.5v1.5h-1.5zM37,14h1.5v1.5h-1.5z" />
-    <!-- 苹果食物 -->
+        android:pathData="M10,24h6v6h-6zM16,24h6v6h-6zM22,24h6v6h-6zM28,18h6v6h-6z" />
+    <!-- 蛇头 -->
     <path
-        android:fillColor="#F44336"
-        android:pathData="M20,28m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,12h6v6h-6z" />
+    <!-- 蛇眼 -->
     <path
-        android:fillColor="#4CAF50"
-        android:pathData="M20,24v2" />
+        android:fillColor="#C5221F"
+        android:pathData="M31,14m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <!-- 食物（小圆点） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,30m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 </vector>

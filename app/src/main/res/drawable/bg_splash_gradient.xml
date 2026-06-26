@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 启动屏渐变背景（暖色调深色） -->
+<!-- 启动屏背景 - 纯色浅色模式友好 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <gradient
-        android:angle="135"
-        android:startColor="#2D2A26"
-        android:endColor="#1A1714"
-        android:type="linear" />
+    <solid android:color="#FAFAFA" />
 </shape>

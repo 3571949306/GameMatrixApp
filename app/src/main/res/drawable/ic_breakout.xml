@@ -4,26 +4,20 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#1a1a2e"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 砖块墙 -->
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 砖块行 -->
     <path
-        android:fillColor="#E53935"
-        android:pathData="M6,6h8v4h-8zM16,6h8v4h-8zM26,6h8v4h-8zM36,6h8v4h-8z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,8h12v5h-12zM22,8h12v5h-12zM8,15h6v5h-6zM16,15h12v5h-12zM30,15h6v5h-6zM8,22h12v5h-12zM22,22h12v5h-12z" />
+    <!-- 挡板 -->
     <path
-        android:fillColor="#FF9800"
-        android:pathData="M6,12h8v4h-8zM16,12h8v4h-8zM26,12h8v4h-8zM36,12h8v4h-8z" />
-    <path
-        android:fillColor="#FFEB3B"
-        android:pathData="M6,18h8v4h-8zM16,18h8v4h-8zM26,18h8v4h-8zM36,18h8v4h-8z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,38h16v3h-16z" />
     <!-- 球 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M24,28m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
-    <!-- 挡板 -->
-    <path
-        android:fillColor="#4CAF50"
-        android:pathData="M16,38h16v3h-16z" />
+        android:pathData="M24,32m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
 </vector>

@@ -4,45 +4,36 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 圆形木色棋盘 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#DEB887"
-        android:pathData="M24,24m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
-    <!-- 棋盘边框 -->
+        android:fillColor="#7B5800"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 棋盘网格 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M10,10h28v28h-28z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M10,17.1h28M10,24.3h28M10,31.4h28M17.1,10v28M24.3,10v28M31.4,10v28" />
+    <!-- 散落的黑子 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M17.1,17.1m-2.2,0a2.2,2.2 0,1 1,4.4 0a2.2,2.2 0,1 1,-4.4 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M31.4,24.3m-2.2,0a2.2,2.2 0,1 1,4.4 0a2.2,2.2 0,1 1,-4.4 0" />
+    <!-- 散落的白子（空心） -->
     <path
         android:fillColor="@android:color/transparent"
-        android:strokeColor="#8B4513"
-        android:strokeWidth="1.5"
-        android:pathData="M24,24m-18,0a18,18 0,1 1,36 0a18,18 0,1 1,-36 0" />
-    <!-- 网格线 -->
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M24.3,17.1m-2.2,0a2.2,2.2 0,1 1,4.4 0a2.2,2.2 0,1 1,-4.4 0" />
     <path
-        android:strokeColor="#8B4513"
-        android:strokeWidth="0.6"
-        android:pathData="M12,24h24M24,12v24M16,16l16,16M16,32l16,-16" />
-    <!-- 星位点 -->
-    <path
-        android:fillColor="#8B4513"
-        android:pathData="M18,18m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-    <path
-        android:fillColor="#8B4513"
-        android:pathData="M30,18m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-    <path
-        android:fillColor="#8B4513"
-        android:pathData="M24,24m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-    <path
-        android:fillColor="#8B4513"
-        android:pathData="M18,30m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-    <path
-        android:fillColor="#8B4513"
-        android:pathData="M30,30m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-    <!-- 黑子 -->
-    <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M20,20m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
-    <!-- 白子 -->
-    <path
-        android:fillColor="#f0f0f0"
-        android:strokeColor="#cccccc"
-        android:strokeWidth="0.5"
-        android:pathData="M28,28m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M17.1,31.4m-2.2,0a2.2,2.2 0,1 1,4.4 0a2.2,2.2 0,1 1,-4.4 0" />
 </vector>

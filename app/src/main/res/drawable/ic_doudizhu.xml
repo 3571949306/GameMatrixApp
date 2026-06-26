@@ -4,44 +4,42 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#4CAF50"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 扑克牌1 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#E0E0E0"
-        android:strokeWidth="1"
-        android:pathData="M10,8h10v14h-10z" />
-    <!-- 扑克牌2 (大王) -->
+        android:fillColor="#7B5800"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 三张扑克牌 -->
+    <!-- 左牌 -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#E0E0E0"
-        android:strokeWidth="1"
-        android:pathData="M19,10h10v14h-10z" />
-    <!-- 大王红色装饰 -->
-    <path
-        android:fillColor="#E53935"
-        android:pathData="M22,13h4v2h-4zM22,17h4v2h-4z" />
-    <!-- 扑克牌3 -->
+        android:pathData="M10,12h10v24h-10z" />
+    <!-- 中牌 -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#E0E0E0"
-        android:strokeWidth="1"
-        android:pathData="M28,8h10v14h-10z" />
-    <!-- 牌面数字 -->
-    <path
-        android:fillColor="#E53935"
-        android:pathData="M12,11h2v2h-2z" />
-    <path
-        android:fillColor="#1E88E5"
-        android:pathData="M30,11h2v2h-2z" />
-    <!-- 底部文字区域 -->
-    <path
-        android:fillColor="#2E7D32"
-        android:pathData="M4,32h40v12h-40z" />
+        android:pathData="M19,10h10v24h-10z" />
+    <!-- 右牌 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M18,38h12v2h-12z" />
+        android:pathData="M28,12h10v24h-10z" />
+    <!-- 左牌花色（简化A） -->
+    <path
+        android:fillColor="#7B5800"
+        android:pathData="M15,18l-1.5,-2l1.5,-2l1.5,2z" />
+    <path
+        android:fillColor="#7B5800"
+        android:pathData="M15,30l-1.5,2l1.5,2l1.5,-2z" />
+    <!-- 中牌花色（简化K） -->
+    <path
+        android:fillColor="#7B5800"
+        android:pathData="M24,17v2h3v-2z" />
+    <path
+        android:fillColor="#7B5800"
+        android:pathData="M24,30l1.5,-2l1.5,2l-1.5,2z" />
+    <!-- 右牌花色（简化Q） -->
+    <path
+        android:fillColor="#7B5800"
+        android:pathData="M33,17v2h3v-2z" />
+    <path
+        android:fillColor="#7B5800"
+        android:pathData="M33,30l-1.5,-2l1.5,-2l1.5,2z" />
 </vector>

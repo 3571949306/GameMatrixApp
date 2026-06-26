@@ -4,36 +4,32 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 背景 -->
+    <!-- 圆角矩形背景 -->
+    <path
+        android:fillColor="#137333"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 九宫格外框 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M8,8h32v32h-32z" />
+    <!-- 内部网格线 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1"
+        android:pathData="M18.7,8v32M29.3,8v32M8,18.7h32M8,29.3h32" />
+    <!-- 数字示意（部分格子填数字） -->
+    <!-- 简化数字5 -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 外边框 -->
+        android:pathData="M11,11h2v1h-2zM11,13h2v1h-2zM11,15h2v1h-2zM13,14h2v1h-2zM11,17h2v1h-2z" />
+    <!-- 简化数字9 -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#333333"
-        android:strokeWidth="2"
-        android:pathData="M6,6h36v36h-36z" />
-    <!-- 粗线分隔 (3x3宫格) -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,11h2v1h-2zM24,11h2v1h-2zM26,11h2v1h-2zM26,13h2v1h-2zM26,15h2v1h-2zM24,15h2v1h-2zM22,15h2v1h-2zM22,13h2v1h-2z" />
+    <!-- 简化数字1 -->
     <path
-        android:strokeColor="#333333"
-        android:strokeWidth="1.5"
-        android:pathData="M18,6v36M30,6v36M6,18h36M6,30h36" />
-    <!-- 细线分隔 -->
-    <path
-        android:strokeColor="#999999"
-        android:strokeWidth="0.5"
-        android:pathData="M12,6v36M24,6v36M36,6v36M6,12h36M6,24h36M6,36h36" />
-    <!-- 数字1 -->
-    <path
-        android:fillColor="#1E88E5"
-        android:pathData="M10,10h4v4h-4z" />
-    <!-- 数字5 -->
-    <path
-        android:fillColor="#E53935"
-        android:pathData="M22,22h4v4h-4z" />
-    <!-- 数字9 -->
-    <path
-        android:fillColor="#43A047"
-        android:pathData="M34,34h4v4h-4z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,11h2v7h-2z" />
 </vector>

@@ -4,7 +4,8 @@
     <!-- 微量间距 -->
     <dimen name="spacing_2">2dp</dimen>
     <dimen name="spacing_4">4dp</dimen>
-    
+    <dimen name="spacing_6">6dp</dimen>
+
     <!-- 小间距 -->
     <dimen name="spacing_8">8dp</dimen>
     <dimen name="spacing_12">12dp</dimen>

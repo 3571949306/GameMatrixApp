@@ -474,6 +474,22 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/btn_hint"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/chess_control_btn_bg"
+            android:clickable="true"
+            android:elevation="2dp"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="提示"
+            android:textColor="@color/chess_control_btn_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:id="@+id/btn_draw"
             android:layout_width="0dp"
             android:layout_height="40dp"

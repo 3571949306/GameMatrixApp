@@ -4,38 +4,19 @@
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 棋盘背景 -->
+    <!-- 圆角矩形背景 -->
     <path
-        android:fillColor="#8B4513"
-        android:pathData="M4,4h40v40h-40z" />
-    <!-- 棋盘格子 (浅色) -->
+        android:fillColor="#7B5800"
+        android:pathData="M4,0h40c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H4c-2.2,0 -4,-1.8 -4,-4V4c0,-2.2 1.8,-4 4,-4z" />
+    <!-- 棋盘格子 -->
     <path
-        android:fillColor="#DEB887"
-        android:pathData="M4,4h10v10h-10zM24,4h10v10h-10zM14,14h10v10h-10zM34,14h10v10h-10zM4,24h10v10h-10zM24,24h10v10h-10zM14,34h10v10h-10zM34,34h10v10h-10z" />
-    <!-- 黑棋子 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,10h7v7h-7zM24,10h7v7h-7zM17,17h7v7h-7zM31,17h7v7h-7zM10,24h7v7h-7zM24,24h7v7h-7zM17,31h7v7h-7zM31,31h7v7h-7z" />
+    <!-- 跳棋子（圆形） -->
     <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M9,9m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        android:fillColor="#7B5800"
+        android:pathData="M13.5,13.5m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
     <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M29,9m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
-    <path
-        android:fillColor="#1a1a1a"
-        android:pathData="M19,19m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
-    <!-- 白棋子 -->
-    <path
-        android:fillColor="#f0f0f0"
-        android:strokeColor="#cccccc"
-        android:strokeWidth="0.5"
-        android:pathData="M19,29m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
-    <path
-        android:fillColor="#f0f0f0"
-        android:strokeColor="#cccccc"
-        android:strokeWidth="0.5"
-        android:pathData="M39,29m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
-    <path
-        android:fillColor="#f0f0f0"
-        android:strokeColor="#cccccc"
-        android:strokeWidth="0.5"
-        android:pathData="M29,39m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        android:fillColor="#7B5800"
+        android:pathData="M27.5,27.5m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
 </vector>

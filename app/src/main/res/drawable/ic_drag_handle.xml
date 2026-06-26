@@ -3,24 +3,9 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="?attr/colorOnSurfaceVariant">
+    android:viewportHeight="24">
+    <!-- 拖拽手柄 -->
     <path
-        android:fillColor="?attr/colorOnSurfaceVariant"
-        android:pathData="M9,5a1.5,1.5 0,1 1,0 -0.01z" />
-    <path
-        android:fillColor="?attr/colorOnSurfaceVariant"
-        android:pathData="M15,5a1.5,1.5 0,1 1,0 -0.01z" />
-    <path
-        android:fillColor="?attr/colorOnSurfaceVariant"
-        android:pathData="M9,12a1.5,1.5 0,1 1,0 -0.01z" />
-    <path
-        android:fillColor="?attr/colorOnSurfaceVariant"
-        android:pathData="M15,12a1.5,1.5 0,1 1,0 -0.01z" />
-    <path
-        android:fillColor="?attr/colorOnSurfaceVariant"
-        android:pathData="M9,19a1.5,1.5 0,1 1,0 -0.01z" />
-    <path
-        android:fillColor="?attr/colorOnSurfaceVariant"
-        android:pathData="M15,19a1.5,1.5 0,1 1,0 -0.01z" />
+        android:fillColor="#5F6368"
+        android:pathData="M20,9H4v2h16V9zM20,13H4v2h16V13z" />
 </vector>

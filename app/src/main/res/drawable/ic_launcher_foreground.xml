@@ -4,42 +4,19 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 主圆形背景 -->
+    <!-- 蓝色圆形背景 -->
     <path
-        android:fillColor="#6750A4"
+        android:fillColor="#1A73E8"
         android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
-    
-    <!-- 内部装饰圆环 -->
+    <!-- G字母 -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#7C6CBF"
-        android:strokeWidth="2"
-        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
-    
-    <!-- G字母 - 左侧弧线 -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,38c-8.28,0 -15,7.16 -15,16s6.72,16 15,16c5.52,0 10.35,-3.12 13,-7.84
+                       L44.5,56.8c-1.72,3.08 -4.2,5.2 -6.5,5.2c-4.14,0 -7.5,-3.58 -7.5,-8
+                       s3.36,-8 7.5,-8c2.3,0 4.78,2.12 6.5,5.2L51,46.84
+                       C48.35,42.12 43.52,38 38,38z" />
+    <!-- M字母 -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:pathData="M38,36c-8,0 -14,8 -14,18s6,18 14,18c6,0 10,-3 12,-7" />
-    
-    <!-- M字母 - 右侧折线 -->
-    <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M54,36v18l8,-10l8,10v-18" />
-    
-    <!-- 播放按钮三角 - 融合在GM中 -->
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M68,48l10,6l-10,6z" />
-    
-    <!-- 底部小星星装饰 -->
-    <path
-        android:fillColor="#FFD700"
-        android:pathData="M54,82l1.5,3l3,0.5l-2.5,2l1,3l-2.5,-1.5l-2.5,1.5l1,-3l-2.5,-2l3,-0.5z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M56,38v32h6V52l6,8l6,-8v18h6V38h-6l-6,10l-6,-10H56z" />
 </vector>

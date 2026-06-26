@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 工具图标圆形背景 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
-    <gradient
-        android:startColor="#00D9FF"
-        android:endColor="#A855F7"
-        android:angle="45" />
+    <solid android:color="#E8F0FE" />
+    <size android:width="48dp" android:height="48dp" />
 </shape>

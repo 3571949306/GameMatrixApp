@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 金色渐变按钮背景 -->
+<!-- 蓝色按钮（原金色按钮） -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 按下状态 -->
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <gradient
-                android:angle="135"
-                android:startColor="#FFA000"
-                android:endColor="#FF8F00"
-                android:type="linear" />
-            <corners android:radius="24dp" />
+            <solid android:color="#1557B0" />
+            <corners android:radius="20dp" />
         </shape>
     </item>
-    <!-- 默认状态 -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#1557B0" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <item android:state_enabled="false">
+        <shape android:shape="rectangle">
+            <solid android:color="#B4C6E7" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
     <item>
         <shape android:shape="rectangle">
-            <gradient
-                android:angle="135"
-                android:startColor="#FFD700"
-                android:endColor="#FFA000"
-                android:type="linear" />
-            <corners android:radius="24dp" />
+            <solid android:color="#1A73E8" />
+            <corners android:radius="20dp" />
         </shape>
     </item>
 </selector>

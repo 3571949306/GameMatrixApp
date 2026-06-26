@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 中国象棋控制按钮：深棕填充 + 圆角 -->
+<!-- 中国象棋控制按钮（悔棋/重新开始）：Google Play 简约风格 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/chess_control_btn_bg" />
-    <corners android:radius="10dp" />
+    <solid android:color="#F1F3F4" />
+    <corners android:radius="20dp" />
 </shape>
