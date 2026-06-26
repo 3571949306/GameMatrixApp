@@ -88,11 +88,12 @@ public class ModuleResourceLoader {
                 return null;
             }
             
-            // 创建新的 Resources
+            // 创建新的 Resources (使用复制的 Configuration 避免污染宿主全局配置)
+            android.content.res.Configuration config = new android.content.res.Configuration(mainResources.getConfiguration());
             Resources moduleResources = new Resources(
                     assetManager,
                     mainResources.getDisplayMetrics(),
-                    mainResources.getConfiguration()
+                    config
             );
             
             // 缓存
