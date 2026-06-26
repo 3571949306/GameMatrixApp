@@ -853,3 +853,7 @@ cp local.properties.template local.properties 2>/dev/null || true
 - [ ] 更新 `CHANGELOG.md`
 - [ ] 不要把 `local.properties` / `*.jks` / `keystore.properties` 提交（已被 `.gitignore` 排除）
 
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
