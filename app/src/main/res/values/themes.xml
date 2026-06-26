@@ -2,41 +2,41 @@
 <resources>
     <style name="Theme.GameMatrixApp" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- 主色 -->
-        <item name="colorPrimary">@color/md_theme_light_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_light_on_primary</item>
-        <item name="colorPrimaryContainer">@color/md_theme_light_primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/md_theme_light_on_primary_container</item>
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_on_primary_container</item>
 
         <!-- 次色 -->
-        <item name="colorSecondary">@color/md_theme_light_secondary</item>
-        <item name="colorOnSecondary">@color/md_theme_light_on_secondary</item>
-        <item name="colorSecondaryContainer">@color/md_theme_light_secondary_container</item>
-        <item name="colorOnSecondaryContainer">@color/md_theme_light_on_secondary_container</item>
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_on_secondary_container</item>
 
         <!-- 第三色 -->
-        <item name="colorTertiary">@color/md_theme_light_tertiary</item>
-        <item name="colorOnTertiary">@color/md_theme_light_on_tertiary</item>
-        <item name="colorTertiaryContainer">@color/md_theme_light_tertiary_container</item>
-        <item name="colorOnTertiaryContainer">@color/md_theme_light_on_tertiary_container</item>
+        <item name="colorTertiary">@color/md_theme_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_on_tertiary_container</item>
 
         <!-- 表面 -->
-        <item name="colorSurface">@color/md_theme_light_surface</item>
-        <item name="colorOnSurface">@color/md_theme_light_on_surface</item>
-        <item name="colorSurfaceVariant">@color/md_theme_light_surface_variant</item>
-        <item name="colorOnSurfaceVariant">@color/md_theme_light_on_surface_variant</item>
-        <item name="android:colorBackground">@color/md_theme_light_background</item>
-        <item name="colorOnBackground">@color/md_theme_light_on_background</item>
-        <item name="colorOutline">@color/md_theme_light_outline</item>
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_on_surface_variant</item>
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="colorOnBackground">@color/md_theme_on_background</item>
+        <item name="colorOutline">@color/md_theme_outline</item>
 
         <!-- 错误 -->
-        <item name="colorError">@color/md_theme_light_error</item>
-        <item name="colorOnError">@color/md_theme_light_on_error</item>
-        <item name="colorErrorContainer">@color/md_theme_light_error_container</item>
-        <item name="colorOnErrorContainer">@color/md_theme_light_on_error_container</item>
+        <item name="colorError">@color/md_theme_error</item>
+        <item name="colorOnError">@color/md_theme_on_error</item>
+        <item name="colorErrorContainer">@color/md_theme_error_container</item>
+        <item name="colorOnErrorContainer">@color/md_theme_on_error_container</item>
 
-        <!-- 状态栏/导航栏 -->
-        <item name="android:statusBarColor">@color/md_theme_light_surface</item>
-        <item name="android:navigationBarColor">@color/md_theme_light_surface</item>
+        <!-- 状态栏/导航栏：跟随背景色，无边框感 -->
+        <item name="android:statusBarColor">@color/md_theme_surface</item>
+        <item name="android:navigationBarColor">@color/md_theme_surface</item>
         <item name="android:windowLightStatusBar">true</item>
 
         <!-- 默认按钮样式 -->
@@ -77,14 +77,12 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <!-- 启动屏专用主题：接入 AndroidX SplashScreen API，适配 Android 12+ 双启动屏 -->
+    <!-- 启动屏专用主题 -->
     <style name="Theme.GameMatrixApp.Splash" parent="Theme.SplashScreen">
-        <!-- SplashScreen API 配置 -->
-        <item name="windowSplashScreenBackground">#2D2A26</item>
+        <item name="windowSplashScreenBackground">@color/md_theme_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="postSplashScreenTheme">@style/Theme.GameMatrixApp</item>
 
-        <!-- 全屏 + 透明系统栏（保持原有启动屏视觉） -->
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
