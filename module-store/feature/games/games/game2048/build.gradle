@@ -28,9 +28,14 @@ android {
 
 dependencies {
     compileOnly project(':core:common')
-    compileOnly project(':module-store:feature:games:games')
+    compileOnly files("${project.rootDir}/app/build/libs/app-classes.jar")
+    compileOnly files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
 
     compileOnly 'androidx.appcompat:appcompat:1.6.1'
     compileOnly 'com.google.android.material:material:1.9.0'
     compileOnly 'androidx.fragment:fragment:1.5.0'
+}
+
+tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {
+    dependsOn(":app:packageAppClasses", ":app:processDebugResources")
 }

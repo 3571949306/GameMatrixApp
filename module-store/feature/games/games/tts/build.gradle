@@ -34,7 +34,6 @@ android {
 dependencies {
     compileOnly project(':core:common')
     compileOnly project(':core:network')
-    compileOnly project(':module-store:feature:games:games')
     compileOnly files("${project.rootDir}/app/build/libs/app-classes.jar")
     compileOnly files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
     compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
