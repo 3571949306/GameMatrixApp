@@ -103,6 +103,7 @@ public class ChineseChessActivity extends BaseGameActivity {
     // ==================== AI 组件 ====================
 
     private ChineseChessAI ai;
+    private ChineseChessAI masterAi;
     private int aiDifficulty = 2;
 
     // ==================== 线程管理 ====================
@@ -169,6 +170,7 @@ public class ChineseChessActivity extends BaseGameActivity {
         }
 
         ai = new ChineseChessAI(aiDifficulty);
+        masterAi = new ChineseChessAI(4); // 大师级提示专用
         aiExecutor = Executors.newSingleThreadExecutor();
 
         chessView.setOnPlayerMoveListener(this::handlePlayerMove);
@@ -182,6 +184,7 @@ public class ChineseChessActivity extends BaseGameActivity {
         findViewById(R.id.btn_restart).setOnClickListener(v -> handleRestart());
         findViewById(R.id.btn_resign).setOnClickListener(v -> handleResign());
         findViewById(R.id.btn_draw).setOnClickListener(v -> handleOfferDraw());
+        findViewById(R.id.btn_hint).setOnClickListener(v -> handleHint());
 
         updateTimerDisplay(1);
         updateTimerDisplay(2);
@@ -647,6 +650,100 @@ public class ChineseChessActivity extends BaseGameActivity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    private void handleHint() {
+        if (chessView.isGameOver() || aiThinking || chessView.getCurrentSide() != 1) return;
+        
+        Toast.makeText(this, "大师思考中...", Toast.LENGTH_SHORT).show();
+        final long currentGen = aiGeneration;
+        
+        aiExecutor.execute(() -> {
+            int[][] boardCopy = new int[10][9];
+            int[][] originalBoard = chessView.getBoardState();
+            // 翻转棋盘，让AI以为自己在下黑方（因为AI内部硬编码了为黑方寻优）
+            for (int r = 0; r < 10; r++) {
+                for (int c = 0; c < 9; c++) {
+                    boardCopy[r][c] = -originalBoard[9 - r][8 - c];
+                }
+            }
+            
+            // 使用大师级AI计算最佳走法 (难度4)
+            int[] aiMove = masterAi.getBestMove(boardCopy, 4);
+            int[] bestMove = null;
+            if (aiMove != null && aiMove.length >= 4) {
+                // 将结果翻转回真实的红方视角
+                bestMove = new int[]{
+                    9 - aiMove[0],
+                    8 - aiMove[1],
+                    9 - aiMove[2],
+                    8 - aiMove[3]
+                };
+            }
+            
+            final int[] finalBestMove = bestMove;
+            mainHandler.post(() -> {
+                if (currentGen != aiGeneration) return;
+                if (finalBestMove != null && finalBestMove.length >= 4) {
+                    // 显示走法箭头
+                    chessView.setHintMove(finalBestMove);
+                    
+                    // 将坐标转为象棋术语
+                    String notation = getNotation(originalBoard, finalBestMove, 1);
+                    Toast.makeText(ChineseChessActivity.this, "💡 提示：" + notation + "（大师建议）", Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+    }
+
+    /**
+     * 将棋盘坐标转换为标准的象棋记谱法
+     */
+    private String getNotation(int[][] board, int[] move, int side) {
+        int r1 = move[0], c1 = move[1], r2 = move[2], c2 = move[3];
+        int piece = board[r1][c1];
+        if (piece == 0) return "建议走法";
+        
+        // 棋子名称
+        String[] blackNames = {"", "將", "士", "象", "馬", "車", "砲", "卒"};
+        String[] redNames = {"", "帥", "仕", "相", "傌", "俥", "炮", "兵"};
+        int type = piece;
+        boolean isRed = side == 1; // 假设1为红方，根据实际调整
+        String name = isRed ? redNames[type] : blackNames[type];
+        
+        // 坐标转换 (红方九~一从右到左，黑方1~9从右到左)
+        int startCol = isRed ? (9 - c1) : (c1 + 1);
+        int endCol = isRed ? (9 - c2) : (c2 + 1);
+        
+        // 动作：进、退、平
+        String action;
+        int num;
+        if (r1 == r2) {
+            action = "平";
+            num = endCol;
+        } else {
+            // 红方在下(行号大)，向上走(行号减小)为进。黑方在上，向下走为进。
+            boolean isAdvance = isRed ? (r2 < r1) : (r2 > r1);
+            action = isAdvance ? "进" : "退";
+            // 马相仕等斜走棋子，以及直走棋子的差异
+            if (type == 2 || type == 3 || type == 4) {
+                num = endCol; // 斜走看终点列
+            } else {
+                num = Math.abs(r2 - r1); // 直走看格数
+            }
+        }
+        
+        // 数字转中文(红方用汉字，黑方用阿拉伯)
+        String[] cnNums = {"", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
+        String startStr = isRed ? cnNums[startCol] : String.valueOf(startCol);
+        String numStr = isRed ? cnNums[num] : String.valueOf(num);
+        if (type == 2 || type == 3 || type == 4) {
+            // 斜走（马相士）红黑都直接用坐标列
+            if (!isRed) numStr = String.valueOf(endCol);
+            else numStr = cnNums[endCol];
+        }
+        
+        return name + startStr + action + numStr;
     }
 
     private void handleOfferDraw() {

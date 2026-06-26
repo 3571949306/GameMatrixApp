@@ -97,6 +97,9 @@ public class GomokuActivity extends AppCompatActivity {
 
     /** AI决策引擎 */
     private GomokuAI ai;
+    
+    /** 大师级AI专门用于提示 */
+    private GomokuAI masterAi;
 
     /** AI执子颜色 */
     private int aiPlayer = GomokuGame.WHITE;
@@ -176,6 +179,7 @@ public class GomokuActivity extends AppCompatActivity {
         // 创建游戏逻辑对象和AI引擎
         game = new GomokuGame();
         ai = new GomokuAI(aiDifficulty);
+        masterAi = new GomokuAI(4); // 难度4（大师级）专门用于提示
         gomokuView.setGame(game);
         // 初始未开始游戏，禁止棋盘交互并隐藏棋盘，让难度选择面板获得充足显示空间
         gomokuView.setInteractive(false);
@@ -450,14 +454,30 @@ public class GomokuActivity extends AppCompatActivity {
         if (game.isGameOver() || aiThinking || game.getCurrentPlayer() != playerColor) return;
         gomokuView.clearHint();
         final long currentGen = aiGeneration;
+        
+        // 显示提示加载中
+        Toast.makeText(this, "大师思考中...", Toast.LENGTH_SHORT).show();
+        
         aiExecutor.execute(() -> {
-            int[] hint = ai.getBestMove(game, playerColor);
-            mainHandler.post(() -> {
-                if (currentGen != aiGeneration) return;
-                if (hint != null && !game.isGameOver() && game.getCurrentPlayer() == playerColor) {
-                    gomokuView.showHint(hint[0], hint[1]);
-                }
-            });
+            // 使用大师级 AI 获取最佳走法
+            int[] hint = masterAi.getBestMove(game, playerColor);
+            
+            if (hint != null) {
+                // 获取教育性分析文本
+                String analysis = masterAi.getEducationalAnalysis(game, hint[0], hint[1], playerColor);
+                
+                mainHandler.post(() -> {
+                    if (currentGen != aiGeneration) return;
+                    if (!game.isGameOver() && game.getCurrentPlayer() == playerColor) {
+                        gomokuView.showHint(hint[0], hint[1]);
+                        // 将坐标 (x,y) 转换为棋盘标记，例如 A1, H8
+                        char colLabel = (char) ('A' + hint[0]);
+                        int rowLabel = 15 - hint[1];
+                        String message = String.format("💡 大师建议: %c%d\n%s", colLabel, rowLabel, analysis);
+                        Toast.makeText(GomokuActivity.this, message, Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
         });
     }
 

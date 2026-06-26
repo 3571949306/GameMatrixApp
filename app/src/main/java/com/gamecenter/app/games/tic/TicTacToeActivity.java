@@ -15,10 +15,6 @@ import androidx.annotation.NonNull;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
-import com.gamecenter.app.games.model.AchievementDef;
-import com.gamecenter.app.games.model.DifficultyLevel;
-import com.gamecenter.app.games.model.enums.AchievementLevel;
-import com.gamecenter.app.games.model.enums.ConditionType;
 
 import java.util.ArrayList;
 import java.util.List;
