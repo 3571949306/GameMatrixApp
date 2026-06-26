@@ -78,6 +78,12 @@ public class ModuleManagerTest {
             }
 
             @Override
+            public void onError(String moduleId, int errorCode, String message) {
+                onErrorCalled[0] = true;
+                latch.countDown();
+            }
+
+            @Override
             public void onSourceSwitch(String moduleId, int sourceIndex, String url) {
                 // 可能不会被调用
             }
