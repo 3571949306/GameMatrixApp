@@ -23,14 +23,14 @@ object ModuleDownloader {
         activeDownloads[moduleId] = false
         val cb = activeCallbacks.remove(moduleId)
         if (cb != null) {
-            mainHandler.post { cb.onError(moduleId, "下载已取消") }
+            mainHandler.post { cb.onError(moduleId, ErrorCodes.ERROR_CANCELED, "下载已取消") }
         }
     }
 
     fun cancelAll() {
         Log.d(TAG, "cancelAll() called")
         for ((moduleId, cb) in activeCallbacks) {
-            mainHandler.post { cb.onError(moduleId, "下载已取消") }
+            mainHandler.post { cb.onError(moduleId, ErrorCodes.ERROR_CANCELED, "下载已取消") }
         }
         activeDownloads.clear()
         activeCallbacks.clear()
@@ -40,7 +40,20 @@ object ModuleDownloader {
         fun onProgress(moduleId: String, downloaded: Long, total: Long, speedKbps: Long)
         fun onComplete(moduleId: String, file: File)
         fun onError(moduleId: String, message: String)
+        fun onError(moduleId: String, errorCode: Int, message: String) {
+            // Default implementation delegates to old signature for backwards compatibility
+            onError(moduleId, message)
+        }
         fun onSourceSwitch(moduleId: String, sourceIndex: Int, url: String)
+    }
+
+    object ErrorCodes {
+        const val ERROR_CANCELED = 1001
+        const val ERROR_NO_URL = 1002
+        const val ERROR_CHECKSUM_FAILED = 1003
+        const val ERROR_NETWORK = 1004
+        const val ERROR_CONFIG = 1005
+        const val ERROR_UNKNOWN = 1099
     }
 
     fun downloadModule(
@@ -53,7 +66,7 @@ object ModuleDownloader {
 
         if (activeDownloads[moduleId] == true) {
             Log.w(TAG, "模块 $moduleId 已在下载中，跳过")
-            callback?.onError(moduleId, "该模块正在下载中")
+            callback?.onError(moduleId, ErrorCodes.ERROR_UNKNOWN, "该模块正在下载中")
             return
         }
 
@@ -68,11 +81,11 @@ object ModuleDownloader {
                 doDownload(appContext, manifest, moduleId)
             } catch (e: Exception) {
                 Log.e(TAG, "模块 $moduleId 下载线程异常: ${e.message}", e)
-                notifyError(moduleId, "下载异常: ${e.message}")
+                notifyError(moduleId, ErrorCodes.ERROR_UNKNOWN, "下载异常: ${e.message}")
                 cleanup(moduleId)
             } catch (e: Error) {
                 Log.e(TAG, "模块 $moduleId 下载线程严重错误: ${e.message}", e)
-                notifyError(moduleId, "下载错误: ${e.message}")
+                notifyError(moduleId, ErrorCodes.ERROR_UNKNOWN, "下载错误: ${e.message}")
                 cleanup(moduleId)
             }
         }, "ModuleDL-$moduleId").start()
@@ -97,7 +110,7 @@ object ModuleDownloader {
 
         if (urls.isEmpty() || urls.all { it.isEmpty() }) {
             Log.e(TAG, "模块 $moduleId 没有有效的下载URL")
-            notifyError(moduleId, "没有有效的下载地址")
+            notifyError(moduleId, ErrorCodes.ERROR_NO_URL, "没有有效的下载地址")
             cleanup(moduleId)
             return
         }
@@ -108,9 +121,15 @@ object ModuleDownloader {
                 continue
             }
 
+            // 安全加固：强制要求使用 HTTPS 协议，防止中间人拦截和篡改下载链路
+            if (!url.startsWith("https://", ignoreCase = true)) {
+                Log.e(TAG, "安全警告：模块 $moduleId 尝试使用不安全的 HTTP 连接下载，已强制拒绝: $url")
+                continue
+            }
+
             if (activeDownloads[moduleId] != true) {
                 Log.d(TAG, "模块 $moduleId 下载已取消(进入循环检查)")
-                notifyError(moduleId, "下载已取消")
+                notifyError(moduleId, ErrorCodes.ERROR_CANCELED, "下载已取消")
                 cleanup(moduleId)
                 return
             }
@@ -131,7 +150,7 @@ object ModuleDownloader {
                     if (manifest.sha256.isEmpty()) {
                         Log.e(TAG, "模块 $moduleId 安全校验配置错误：manifest 中 sha256 为空，拒绝安装")
                         file.delete()
-                        notifyError(moduleId, "模块安全配置错误：sha256 不能为空")
+                        notifyError(moduleId, ErrorCodes.ERROR_CONFIG, "模块安全配置错误：sha256 不能为空")
                         cleanup(moduleId)
                         return
                     }
@@ -139,7 +158,7 @@ object ModuleDownloader {
                     if (!actualSha256.equals(manifest.sha256, ignoreCase = true)) {
                         Log.w(TAG, "模块 $moduleId SHA-256 校验失败: expected=${manifest.sha256}, actual=$actualSha256")
                         file.delete()
-                        notifyError(moduleId, "SHA-256 校验失败，尝试下一个源")
+                        notifyError(moduleId, ErrorCodes.ERROR_CHECKSUM_FAILED, "SHA-256 校验失败，尝试下一个源")
                         continue
                     }
                     Log.d(TAG, "模块 $moduleId 下载完成: ${file.absolutePath}")
@@ -152,13 +171,13 @@ object ModuleDownloader {
             } catch (e: Exception) {
                 Log.w(TAG, "模块 $moduleId 源 ${index + 1} 失败: ${e.message}", e)
                 if (index >= urls.size - 1) {
-                    notifyError(moduleId, "所有下载源均失败: ${e.message}")
+                    notifyError(moduleId, ErrorCodes.ERROR_NETWORK, "所有下载源均失败: ${e.message}")
                 }
             }
         }
 
         if (activeCallbacks.containsKey(moduleId)) {
-            notifyError(moduleId, "所有下载源均失败")
+            notifyError(moduleId, ErrorCodes.ERROR_NETWORK, "所有下载源均失败")
         }
         cleanup(moduleId)
     }
@@ -187,13 +206,13 @@ object ModuleDownloader {
         mainHandler.post { cb.onComplete(moduleId, file) }
     }
 
-    private fun notifyError(moduleId: String, message: String) {
+    private fun notifyError(moduleId: String, errorCode: Int, message: String) {
         val cb = activeCallbacks[moduleId]
         if (cb == null) {
             Log.w(TAG, "notifyError: callback for $moduleId is null, message=$message")
             return
         }
-        mainHandler.post { cb.onError(moduleId, message) }
+        mainHandler.post { cb.onError(moduleId, errorCode, message) }
     }
 
     private fun notifySourceSwitch(moduleId: String, sourceIndex: Int, url: String) {
@@ -306,7 +325,12 @@ object ModuleDownloader {
     fun getModuleFile(context: Context, manifest: ModuleManifest): File {
         val dir = File(context.filesDir, "modules")
         if (!dir.exists()) dir.mkdirs()
-        return File(dir, manifest.fileName)
+        // 防御路径穿越漏洞，同时兼容预装模块的文件名
+        var safeFileName = File(manifest.fileName).name
+        if (safeFileName.isEmpty() || !safeFileName.endsWith(".apk")) {
+            safeFileName = "${manifest.id}.apk"
+        }
+        return File(dir, safeFileName)
     }
 
     fun getModuleDir(context: Context): File {
