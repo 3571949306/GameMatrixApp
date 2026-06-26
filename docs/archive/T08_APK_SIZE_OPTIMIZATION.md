@@ -139,3 +139,7 @@ ls -lh app/build/outputs/apk/release/app-release.apk
 - [ ] 运行 Lint 并删除未使用资源
 - [ ] 构建并检查 APK 大小（目标 ≤15 MB）
 - [ ] 如果超过 15 MB，考虑 MediaPipe 模块化
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

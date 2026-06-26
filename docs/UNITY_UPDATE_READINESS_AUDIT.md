@@ -285,3 +285,7 @@ Use this rule:
 ## Worktree Note
 
 The main app worktree currently has many modified and untracked files. Avoid source edits until those changes are committed, stashed, or intentionally separated into a dedicated branch for Unity integration.
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

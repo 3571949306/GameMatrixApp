@@ -72,3 +72,7 @@ Phase 1.1 故意配 true（baseline 模式）。改回 false 老项目立刻挂�
 - JDK 路径: `C:\Users\Administrator\.jdks\ms-17.0.19`
 - Android SDK: `C:\Users\Administrator\AppData\Local\Android\Sdk`
 - 实际 build 前要查环境, 不要写死
+
+
+---
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

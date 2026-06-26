@@ -1,67 +1,82 @@
-# GameMatrixApp 文档索引
+# GameMatrixApp 全局文档索引
 
-最后更新: 2026-05-28
+项目全部文档的中枢链接。最后更新：2026-06-25。
 
-## 核心文档 (根目录)
+## 根目录 (Root)
 
-| 文档 | 用途 |
-|------|------|
-| `README.md` | 项目主说明: 功能、架构、构建、部署 |
-| `PROJECT_CONTEXT.md` | 项目上下文 & 维护者交接文档 |
-| `CODE_WIKI.md` | 代码结构参考 & Java/Kotlin 混合规范 |
-| `CHANGELOG.md` | 版本更新日志 |
-| `项目改进建议书.md` | 改进建议书 & 进度跟踪 |
-| `game_center_app_ai_roadmap.md` | AI 功能路线图 |
-| `AI_CONTEXT.md` | AI 助手上手说明 |
-| `AI_ONBOARDING.md` | AI 开发者上手指南 |
+| 文档 | 描述 |
+|---|---|
+| [README.md](/README.md) | 项目总览、功能介绍 |
+| [CHANGELOG.md](/CHANGELOG.md) | 版本更新日志 |
+| [CODE_WIKI.md](/CODE_WIKI.md) | 详细代码架构说明 |
+| [CLOUD-BUILD.md](/CLOUD-BUILD.md) | 云编译 & VPS 部署指南 |
+| [修改记录.md](/修改记录.md) | 16 轮修复循环的完整变更历史 |
 
-## 文档/ 目录
+## docs/ — 主文档
 
-| 文档 | 用途 |
-|------|------|
-| `PUBLISH_GUIDE.md` | 发布指南 |
-| `LOCAL_GITHUB_NETWORK.md` | GitHub 网络配置 |
-| `MODULE_STORE_POLICY.md` | 模块商店策略 |
-| `MODULAR_ARCHITECTURE_DESIGN.md` | 模块化架构设计 |
-| `MODULE_DEVELOPMENT_GUIDE.md` | 模块开发指南 |
-| `模块变更日志/游戏模块变更日志.md` | 游戏模块变更 |
-| `模块变更日志/浏览器模块变更日志.md` | 浏览器模块变更 |
-| `模块变更日志/工具箱模块变更日志.md` | 工具箱模块变更 |
-| `模块变更日志/AI助手模块变更日志.md` | AI 模块变更 |
-| `模块变更日志/VPN模块变更日志.md` | VPN 模块变更 |
+| 文档 | 描述 |
+|---|---|
+| [AI_CONTEXT.md](/docs/AI_CONTEXT.md) | AI 上下文文档（合并自 4 个文档，供 AI 助手和新开发者阅读） |
+| [PROJECT_STATUS.md](/docs/PROJECT_STATUS.md) | 项目状态总览（合并自 7 个审计文档，包含问题/规划/测试/报告） |
+| [DOCUMENTATION_INDEX.md](/docs/DOCUMENTATION_INDEX.md) | 本文档 — 全局文档索引 |
+| [项目改进建议书.md](/docs/项目改进建议书.md) | 项目改进建议书 v7 |
+| [game_center_app_ai_roadmap.md](/docs/game_center_app_ai_roadmap.md) | AI 开发路线图 |
+| [DONT_DO_THIS.md](/docs/DONT_DO_THIS.md) | 写给 AI / 协作者：不要做 |
+| [PUBLISH_GUIDE.md](/docs/PUBLISH_GUIDE.md) | 发布指南 |
+| [SECURITY.md](/docs/SECURITY.md) | 安全策略 |
+| [NETWORK_LAYER.md](/docs/NETWORK_LAYER.md) | 网络层架构 |
+| [ERROR_HANDLING.md](/docs/ERROR_HANDLING.md) | 错误处理 & Result 类型 |
+| [PROGUARD_AUDIT.md](/docs/PROGUARD_AUDIT.md) | ProGuard / R8 审计 |
+| [GRADLE_BUILD_CACHE.md](/docs/GRADLE_BUILD_CACHE.md) | Gradle Build Cache 配置 |
+| [BASELINE_PROFILE.md](/docs/BASELINE_PROFILE.md) | Baseline Profile (启动加速) |
+| [COMPOSE_MIGRATION.md](/docs/COMPOSE_MIGRATION.md) | Compose 迁移指南 |
+| [ROOM_MIGRATION.md](/docs/ROOM_MIGRATION.md) | Room 数据库迁移 |
+| [UNITY_UPDATE_READINESS_AUDIT.md](/docs/UNITY_UPDATE_READINESS_AUDIT.md) | Unity Update Readiness Audit |
 
-## docs/ 目录
+## docs/module-docs — 模块说明
 
-| 文档 | 用途 |
-|------|------|
-| `PUBLISH_GUIDE.md` | 发布指南 |
+| 文档 | 描述 |
+|---|---|
+| [游戏模块说明.md](/docs/module-docs/游戏模块说明.md) | 游戏模块说明 |
+| [浏览器模块说明.md](/docs/module-docs/浏览器模块说明.md) | 浏览器模块说明 |
+| [工具箱模块说明.md](/docs/module-docs/工具箱模块说明.md) | 工具箱模块说明 |
+| [VPN模块说明.md](/docs/module-docs/VPN模块说明.md) | VPN 模块说明 |
+| [games_split_summary.md](/docs/module-docs/games_split_summary.md) | 小游戏拆分剥离项目总结 |
 
-## 归档文档
+## docs/modules — 模块商店
 
-历史文档已归档到 `archive_docs/` 目录，包括:
-- 构建 & 发布修复记录
-- 性能优化文档
-- 网络迁移文档
-- 架构设计文档
-- 测试报告
-- 历史发布记录
-- 其他临时文档
+| 文档 | 描述 |
+|---|---|
+| [MODULE_DEVELOPMENT_GUIDE.md](/docs/modules/MODULE_DEVELOPMENT_GUIDE.md) | 模块开发指南 |
+| [MODULE_STORE_POLICY.md](/docs/modules/MODULE_STORE_POLICY.md) | 模块商店策略 |
+| [MODULE_STORE_REDESIGN_PLAN.md](/docs/modules/MODULE_STORE_REDESIGN_PLAN.md) | 模块商店重新设计计划 |
+| [PUBLISH_GUIDE.md](/docs/modules/PUBLISH_GUIDE.md) | 模块发布指南 |
+| [模块变更日志/](/docs/modules/模块变更日志/) | 各模块变更日志（游戏/浏览器/工具箱/AI/VPN） |
 
-## 模块文档
+## docs/refactor — 重构计划
 
-| 位置 | 用途 |
-|------|------|
-| `模块商店/功能模块/.../knife/README.md` | 飞刀模块说明 |
-| `模块商店/功能模块/.../klotski/README_优化说明.md` | 华容道优化说明 |
-| `服务器部署/README.md` | VPS 部署说明 |
-| `工具/network/README.md` | 网络工具说明 |
-| `工具/jadx/README.md` | 反编译工具说明 |
-| `core/update/.../README_SSL.md` | SSL 证书说明 |
+| 文档 | 描述 |
+|---|---|
+| [MASTER-REFACTOR-PLAN.md](/docs/refactor/MASTER-REFACTOR-PLAN.md) | 完整改造计划 |
+| [track-ai.md](/docs/refactor/track-ai.md) | AI 助手模块改造设计 |
+| [track-platform.md](/docs/refactor/track-platform.md) | 模块化架构 + UI 主题改造 |
+| [track-tools.md](/docs/refactor/track-tools.md) | 工具箱模块化改造设计 |
+| [track-vpn.md](/docs/refactor/track-vpn.md) | VPN 模块改造设计 |
 
-## 文档维护原则
+## docs/audits — 审计记录
 
-1. **单一事实源**: 版本号以 `version.properties` 为准
-2. **核心文档**: 仅保留 8 个核心文档在根目录
-3. **模块文档**: 各模块文档放在对应模块目录
-4. **历史归档**: 非活跃文档归档到 `archive_docs/`
-5. **定期清理**: 每季度审查文档必要性
+| 文档 | 描述 |
+|---|---|
+| [2026-06-25/](/docs/audits/2026-06-25/) | 安全审查、漏洞修复、模块重构总结 |
+
+## docs/archive — 历史归档（44 个文档）
+
+历史版本的发布说明、架构设计、测试报告等。内容较旧，仅供参考。
+
+## 其他位置
+
+| 文档 | 描述 |
+|---|---|
+| [项目审计_2026-06-19/](/项目审计_2026-06-19/) | 2026-06-19 审计快照（10 个文档） |
+| [scripts/automated_test/README.md](/scripts/automated_test/README.md) | 自动化测试系统说明 |
+| [docs/superpowers/specs/](/docs/superpowers/specs/) | Modular Shell APK 设计规范 |
