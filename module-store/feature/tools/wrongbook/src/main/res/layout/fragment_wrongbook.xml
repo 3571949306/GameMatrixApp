@@ -3,72 +3,139 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFBFE"
+    android:background="@color/wrongbook_background"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/toolbarTitle"
+    <!-- Header bar -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:gravity="center_vertical"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/wrongbook_title"
-        android:textColor="#1C1B1F"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:paddingEnd="16dp">
 
-    <LinearLayout
-        android:id="@+id/tabContainer"
+        <TextView
+            android:id="@+id/toolbarTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="@string/wrongbook_title"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentEnd="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Search Icon -->
+            <ImageView
+                android:id="@+id/btnSearch"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_menu_search"
+                android:tint="@color/wrongbook_primary" />
+
+            <!-- Subjects Manage Icon -->
+            <ImageView
+                android:id="@+id/btnSubjectManage"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_menu_manage"
+                android:tint="@color/wrongbook_primary" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Custom Tabs Container -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
+        android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/tabQuestions"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/wrongbook_tab_questions"
-            android:textColor="#6750A4"
-            android:textSize="14sp" />
+        <LinearLayout
+            android:id="@+id/tabContainer"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
 
-        <TextView
-            android:id="@+id/tabDashboard"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/wrongbook_tab_dashboard"
-            android:textColor="#49454F"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/tabQuestions"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/wrongbook_tab_questions"
+                android:textColor="@color/wrongbook_tab_selected_text"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:background="@drawable/wrongbook_tab_selected"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <TextView
-            android:id="@+id/tabReview"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/wrongbook_tab_review"
-            android:textColor="#49454F"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/tabDashboard"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/wrongbook_tab_dashboard"
+                android:textColor="@color/wrongbook_tab_unselected_text"
+                android:textSize="15sp"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:clickable="true"
+                android:focusable="true" />
 
-        <TextView
-            android:id="@+id/tabSettings"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/wrongbook_tab_settings"
-            android:textColor="#49454F"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/tabReview"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/wrongbook_tab_review"
+                android:textColor="@color/wrongbook_tab_unselected_text"
+                android:textSize="15sp"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:clickable="true"
+                android:focusable="true" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tabSettings"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/wrongbook_tab_settings"
+                android:textColor="@color/wrongbook_tab_unselected_text"
+                android:textSize="15sp"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:clickable="true"
+                android:focusable="true" />
 
+        </LinearLayout>
+
+        <!-- Custom sliding tab indicator at the bottom of selected tab -->
+        <View
+            android:id="@+id/tabIndicator"
+            android:layout_width="40dp"
+            android:layout_height="3dp"
+            android:layout_gravity="bottom"
+            android:background="@color/wrongbook_primary" />
+    </FrameLayout>
+
+    <!-- ViewPager content -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -79,19 +146,26 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <Button
+        <!-- Custom FAB (ImageView + ripple) -->
+        <FrameLayout
             android:id="@+id/btnAdd"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:layout_gravity="end|bottom"
-            android:layout_margin="16dp"
-            android:background="@drawable/wrongbook_button_primary"
-            android:contentDescription="@string/wrongbook_add_question"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:text="+"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp" />
+            android:layout_margin="24dp"
+            android:background="@drawable/wrongbook_fab_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="6dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@android:drawable/ic_input_add"
+                android:tint="@color/wrongbook_on_primary"
+                android:contentDescription="@string/wrongbook_add_question" />
+        </FrameLayout>
 
     </FrameLayout>
 

@@ -29,5 +29,8 @@ data class QuestionEntity(
     val imagePath: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val mastery: Int = 0
+    val mastery: Int = 0,
+    val isFavorite: Boolean = false,
+    val sortOrder: Int = 0,
+    val tags: String = ""
 )

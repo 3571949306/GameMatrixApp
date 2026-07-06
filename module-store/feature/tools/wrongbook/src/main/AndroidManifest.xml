@@ -4,26 +4,6 @@
 
     <application
         android:allowBackup="false"
-        android:supportsRtl="true">
-
-        <activity
-            android:name=".ui.WrongBookActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GameMatrixApp"
-            android:screenOrientation="portrait" />
-
-        <activity
-            android:name=".ui.CaptureActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GameMatrixApp"
-            android:screenOrientation="portrait" />
-
-        <activity
-            android:name=".ui.AnalysisActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GameMatrixApp"
-            android:screenOrientation="portrait" />
-
-    </application>
+        android:supportsRtl="true" />
 
 </manifest>

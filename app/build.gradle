@@ -305,9 +305,6 @@ android {
         viewBinding = true
     }
 
-    // Phase 2.2: Room schema 导出到 schemas/ 目录
-    // (跟 exportSchema = true 配合使用, KSP 会在 build 时输出 JSON)
-
     sourceSets {
         main {
             java.srcDirs = ['src/main/java', 'src/main/kotlin']
@@ -318,130 +315,113 @@ android {
     }
 }
 
-// ============================================================
-// Section 4: Dependencies
-// ============================================================
-
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation project(':core:common')
     implementation project(':core:network')
     implementation project(':core:update')
-    // Phase 1: 安全加固模块
     implementation project(':core:security')
-    // Phase 2: 模块宿主框架
     implementation project(':core:module-host')
-    // Phase 2: 模块加载引擎
     implementation project(':core:moduleloader')
-    // Phase 2: 模块商店
     implementation project(':core:modulestore')
-    // 联机模块
     implementation project(':core:online')
-    // Phase 1: MiMo TTS 能力 SDK（AI 助手朗读）
-    // 仅当 settings.gradle 中通过 mimo.tts.dir 包含该模块时启用
     if (rootProject.findProject(':modules:capabilities:mimo-tts') != null) {
         implementation project(':modules:capabilities:mimo-tts')
     }
-    // 2026-06-23 模块预装策略（修订版）：
-    // 模块 APK 文件打包到 assets/modules/，首次启动提取到 cacheDir/modules_opt/。
-    // 原因：模块代码依赖主 app 的类（R.jar/app-classes.jar），直接 compileOnly 会循环依赖。
-    // 通过 APK 预装既保留开箱即用，又支持 VPS 热更新（versionCode 升级时下载覆盖）。
-    // 注意：VPN 模块保持动态下载（不预装到 APK，避免合规/分发问题）。
 
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.13.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    implementation 'androidx.navigation:navigation-fragment:2.8.9'
-    implementation 'androidx.navigation:navigation-ui:2.8.9'
-    implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'androidx.startup:startup-runtime:1.2.0'
+    implementation libs.androidx.appcompat
+    implementation libs.google.material
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.androidx.navigation.fragment
+    implementation libs.androidx.navigation.ui
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.startup
     // AndroidX SplashScreen API: 适配 Android 12+ 双启动屏问题
-    implementation 'androidx.core:core-splashscreen:1.0.1'
-    implementation 'androidx.security:security-crypto:1.0.0'
-    implementation 'com.google.zxing:core:3.5.3'
-    implementation 'com.google.code.gson:gson:2.13.1'
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'com.github.bumptech.glide:glide:4.16.0'
-    implementation 'com.google.mediapipe:tasks-genai:0.10.27'
+    implementation libs.androidx.splashscreen
+    implementation libs.androidx.security.crypto
+    implementation libs.zxing
+    implementation libs.gson
+    implementation libs.okhttp
+    implementation libs.glide
+    implementation libs.mediapipe.genai
     // Phase 1.3: Glide compiler (kapt) 已删除 - 项目里没用 GlideApp 或 @GlideModule
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.json:json:20250107'
-    testImplementation 'org.mockito:mockito-core:5.15.2'
+    testImplementation libs.junit
+    testImplementation libs.json.test
+    testImplementation libs.mockito.core
     // Robolectric for Android unit tests
-    testImplementation 'org.robolectric:robolectric:4.16.1'
-    testImplementation 'org.mockito.kotlin:mockito-kotlin:5.4.0'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.0.21'
-    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation libs.robolectric
+    testImplementation libs.mockito.kotlin
+    testImplementation libs.kotlin.test
+    testImplementation libs.kotlinx.coroutines.test
+    testImplementation libs.okhttp.mockwebserver
     // AndroidX Test frameworks (for @SmallTest, @MediumTest, @LargeTest)
-    testImplementation 'androidx.test:runner:1.6.2'
+    testImplementation libs.androidx.test.runner
     // 2026-06-19: 添加 androidx.test:core 提供 ApplicationProvider (单元测试需要)
-    testImplementation 'androidx.test:core:1.6.1'
+    testImplementation libs.androidx.test.core
     
     // AndroidX Test and Espresso
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.6.1'
-    androidTestImplementation 'androidx.test:rules:1.6.1'
-    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.espresso.core
+    androidTestImplementation libs.espresso.intents
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.runner
     // UiAutomator - 用于模拟器 UI 自动化测试
-    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+    androidTestImplementation libs.uiautomator
     // Room 测试支持
-    androidTestImplementation 'androidx.room:room-testing:2.7.1'
-    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
-    androidTestImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1'
+    androidTestImplementation libs.room.testing
+    androidTestImplementation libs.okhttp.mockwebserver
+    androidTestImplementation libs.kotlinx.coroutines.test
     
     // Kotlin
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
-    implementation 'org.jetbrains.kotlin:kotlin-reflect:2.0.21'
-    implementation 'androidx.core:core-ktx:1.15.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1'
+    implementation libs.kotlin.stdlib
+    implementation libs.kotlin.reflect
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.kotlinx.coroutines.core
     
     // Hilt Dependency Injection (Phase 1.3: 切到 KSP)
-    implementation 'com.google.dagger:hilt-android:2.57.2'
-    ksp 'com.google.dagger:hilt-compiler:2.57.2'
-
+    implementation libs.hilt.android
+    ksp libs.hilt.compiler
+ 
     // Room Database (Phase 1.3: 切到 KSP)
-    implementation "androidx.room:room-runtime:2.7.1"
-    implementation "androidx.room:room-ktx:2.7.1"
-    ksp "androidx.room:room-compiler:2.7.1"
-
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    ksp libs.room.compiler
+ 
     // Phase 2.1: Baseline Profile (启动加速)
-    implementation "androidx.profileinstaller:profileinstaller:1.4.1"
+    implementation libs.profileinstaller
     
     // LeakCanary for debug builds only
     // 通过 -PleakCanary=true 启用，默认关闭以避免蓝叠模拟器崩溃
-    // 蓝叠模拟器的 ucrtbase.dll 在解析 LeakLauncherActivity 时会触发栈缓冲区溢出 (0xC0000409)
     if (project.hasProperty('leakCanary') && project.property('leakCanary').toBoolean()) {
-        debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
+        debugImplementation libs.leakcanary
     }
     
     // Force secure versions of transitive dependencies (fix Dependabot CVEs)
     constraints {
-        implementation('com.google.guava:guava:33.4.0-jre') {
+        implementation(libs.guava) {
             because 'CVE-2023-2976 and others - force latest Guava'
         }
-        implementation('com.squareup.okio:okio:3.10.2') {
+        implementation(libs.okio) {
             because 'CVE-2023-3635 - force latest Okio'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib:2.0.21') {
+        implementation(libs.kotlin.stdlib) {
             because 'CVE-2020-29582 fixed since 1.4.30; align with project Kotlin version'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.0.21') {
+        implementation(libs.kotlin.stdlib) {
             because 'align with kotlin-stdlib 2.0.21'
         }
-        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21') {
+        implementation(libs.kotlin.stdlib) {
             because 'align with kotlin-stdlib 2.0.21'
         }
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1') {
+        implementation(libs.kotlinx.coroutines.core) {
             because 'fix known coroutines vulnerabilities'
         }
-        implementation('org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1') {
+        implementation(libs.kotlinx.coroutines.android) {
             because 'align with coroutines-core 1.10.1'
         }
     }

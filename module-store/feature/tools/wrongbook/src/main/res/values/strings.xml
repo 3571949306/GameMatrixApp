@@ -65,4 +65,75 @@
     <string name="wrongbook_error">错误</string>
     <string name="wrongbook_retry">重试</string>
     <string name="wrongbook_no_api_config">请先配置 AI 接口信息</string>
+
+    <!-- 阶段 1 新增空态与 UI 升级文案 -->
+    <string name="wrongbook_empty_dashboard">看板空空如也，添加错题后自动生成分析图表</string>
+    <string name="wrongbook_empty_dashboard_cta">去添加第一道错题</string>
+    <string name="wrongbook_empty_review_cta">查看全部错题</string>
+    <string name="wrongbook_mastery_title">掌握度</string>
+    <string name="wrongbook_favorite_title">收藏</string>
+    
+    <!-- 阶段 2 新增页面文案 -->
+    <!-- 详情与编辑 -->
+    <string name="wrongbook_detail_title">错题详情</string>
+    <string name="wrongbook_edit_title">编辑错题</string>
+    <string name="wrongbook_detail_image_hint">点击查看高清原图</string>
+    <string name="wrongbook_detail_tags">标签（用逗号或空格分隔）</string>
+    <string name="wrongbook_detail_mastery_level">当前掌握度：%1$d%%</string>
+    
+    <!-- 科目管理 -->
+    <string name="wrongbook_subject_manage_title">科目管理</string>
+    <string name="wrongbook_subject_add">新增科目</string>
+    <string name="wrongbook_subject_name_hint">输入科目名称，例如：物理</string>
+    <string name="wrongbook_subject_delete_confirm">确定要删除该科目吗？此操作不会删除已有错题，但会将其归类至通用科目。</string>
+    <string name="wrongbook_subject_exists">该科目名称已存在</string>
+    <string name="wrongbook_subject_drag_hint">长按列表项可拖拽调整排序</string>
+    
+    <!-- 搜索与筛选 -->
+    <string name="wrongbook_search_title">错题搜索</string>
+    <string name="wrongbook_search_hint">搜索题目、知识点、标签或解析…</string>
+    <string name="wrongbook_filter_sort_time">按时间</string>
+    <string name="wrongbook_filter_sort_difficulty">按难度</string>
+    <string name="wrongbook_filter_sort_mastery">按掌握度</string>
+    <string name="wrongbook_filter_only_favorites">只看收藏</string>
+    <string name="wrongbook_search_no_result">未找到匹配的错题，换个关键词试试？</string>
+    
+    <!-- 批量操作 -->
+    <string name="wrongbook_batch_title">批量操作</string>
+    <string name="wrongbook_batch_selected_count">已选择 %1$d 项</string>
+    <string name="wrongbook_batch_delete_confirm">确定要删除选中的 %1$d 道错题吗？该操作不可撤销！</string>
+    <string name="wrongbook_batch_move_subject">批量移动科目</string>
+    <string name="wrongbook_batch_favorite">批量收藏</string>
+    <string name="wrongbook_batch_unfavorite">取消收藏</string>
+    <string name="wrongbook_select_all">全选</string>
+    <string name="wrongbook_deselect_all">取消全选</string>
+    
+    <!-- 导入导出 -->
+    <string name="wrongbook_settings_backup">数据备份与恢复</string>
+    <string name="wrongbook_export_db">导出错题本 (JSON)</string>
+    <string name="wrongbook_import_db">导入错题本 (JSON)</string>
+    <string name="wrongbook_export_success">成功导出数据至：%1$s</string>
+    <string name="wrongbook_export_fail">导出失败，请检查磁盘空间或权限</string>
+    <string name="wrongbook_import_success">成功导入错题和科目数据</string>
+    <string name="wrongbook_import_fail">导入失败，请检查 JSON 格式是否正确</string>
+    
+    <!-- 阶段 3 新增优化文案 -->
+    <string name="wrongbook_undo">撤销</string>
+    <string name="wrongbook_question_deleted">错题已删除</string>
+    <string name="wrongbook_undo_success">已恢复被删除的错题</string>
+    <string name="wrongbook_review_celebration">🎉 恭喜！今日的错题已经全部复习完啦！</string>
+    <string name="wrongbook_review_flip_show">显示解析与答案</string>
+    <string name="wrongbook_review_flip_hide">隐藏解析与答案</string>
+    
+    <!-- 步骤引导 -->
+    <string name="wrongbook_step_format">步骤 %1$d / %2$d</string>
+    <string name="wrongbook_step_1">选择题目来源</string>
+    <string name="wrongbook_step_2">识别文字</string>
+    <string name="wrongbook_step_3">编辑题目</string>
+    <string name="wrongbook_step_4">AI 智能解析</string>
+    <string name="wrongbook_step_5">效果预览并保存</string>
+    <string name="wrongbook_export_cloud">云端备份到香港 VPS</string>
+    <string name="wrongbook_import_cloud">从香港 VPS 恢复备份</string>
+    <string name="wrongbook_cloud_export_success">成功备份数据至云端 VPS</string>
+    <string name="wrongbook_cloud_import_success">成功从云端恢复错题数据</string>
 </resources>

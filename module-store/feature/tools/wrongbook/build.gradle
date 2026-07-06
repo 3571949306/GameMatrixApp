@@ -40,31 +40,32 @@ android {
 dependencies {
     compileOnly project(':core:common')
     compileOnly project(':core:network')
+    compileOnly project(':core:moduleloader')
     compileOnly files("${project.rootDir}/app/build/libs/app-classes.jar")
     compileOnly files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
 
     // 错题本 UI 使用 Material3 主题属性，需要资源在模块构建时可见。
     // 这些 AndroidX 库在运行时由模块独立加载，与宿主隔离；
     // 相比 compileOnly 可确保模块 APK 资源自包含、能独立链接。
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.13.0'
-    implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'androidx.fragment:fragment-ktx:1.5.0'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
-    implementation 'androidx.room:room-runtime:2.7.1'
-    implementation 'androidx.room:room-ktx:2.7.1'
-    compileOnly 'com.google.code.gson:gson:2.11.0'
-    compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation libs.androidx.appcompat
+    implementation libs.google.material
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.fragment.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    compileOnly libs.gson
+    compileOnly libs.okhttp
 
     // ML Kit 本地 OCR（本地模式）
-    compileOnly 'com.google.mlkit:text-recognition:16.0.1'
+    compileOnly libs.mlkit.text.recognition
 
     // Kotlin 协程（与宿主版本对齐）
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android
 
-    ksp 'androidx.room:room-compiler:2.7.1'
+    ksp libs.room.compiler
 }
 
 tasks.matching {

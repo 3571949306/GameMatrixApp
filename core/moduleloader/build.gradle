@@ -42,18 +42,17 @@ android {
 dependencies {
     implementation project(':core:common')
 
-    implementation 'androidx.annotation:annotation:1.9.1'
-    implementation 'androidx.core:core-ktx:1.15.0'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
+    implementation libs.androidx.core.ktx
+    implementation libs.kotlin.stdlib
 
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.mockito:mockito-core:5.15.2'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.0.21'
+    testImplementation libs.junit
+    testImplementation libs.mockito.core
+    testImplementation libs.kotlin.test
 
     // Phase 3.4: 动态模块加载测试依赖
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test:runner:1.6.2'
-    androidTestImplementation 'androidx.test:core:1.6.1'
-    androidTestImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.junit
+    androidTestImplementation libs.kotlin.stdlib
 }

@@ -35,12 +35,12 @@ android {
 
 dependencies {
     implementation 'androidx.annotation:annotation:1.9.1'
-    implementation 'androidx.core:core-ktx:1.15.0'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
-    implementation 'com.google.dagger:hilt-android:2.57.2'
-    ksp 'com.google.dagger:hilt-compiler:2.57.2'
+    implementation libs.androidx.core.ktx
+    implementation libs.kotlin.stdlib
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.hilt.android
+    ksp libs.hilt.compiler
 
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test:2.0.21'
+    testImplementation libs.junit
+    testImplementation libs.kotlin.test
 }
