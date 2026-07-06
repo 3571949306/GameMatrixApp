@@ -36,7 +36,7 @@ dependencies {
     compileOnly project(':core:network')
     compileOnly files("${project.rootDir}/app/build/libs/app-classes.jar")
     compileOnly files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
-    compileOnly 'androidx.room:room-runtime:2.6.1'
+    compileOnly 'androidx.room:room-runtime:2.8.4'
 
     compileOnly 'androidx.appcompat:appcompat:1.7.1'
     compileOnly 'com.google.android.material:material:1.12.0'
