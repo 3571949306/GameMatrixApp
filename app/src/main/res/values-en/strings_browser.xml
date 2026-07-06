@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Browser actions -->
+    <string name="browser_back">"Back"</string>
+    <string name="browser_forward">"Forward"</string>
+    <string name="browser_refresh">"Refresh"</string>
+    <string name="browser_stop">"Stop"</string>
+    <string name="browser_home">"Home"</string>
+    <string name="browser_bookmark">"Bookmark"</string>
+    <string name="browser_tabs">"Tabs"</string>
+    <string name="browser_download">"Download"</string>
+    <string name="browser_menu">"Menu"</string>
+    <string name="browser_more">"More"</string>
+
+    <!-- Address bar -->
+    <string name="browser_url_hint">"Search or enter URL"</string>
+
+    <!-- Error page -->
+    <string name="browser_error_title">"Cannot access this page"</string>
+    <string name="browser_error_message">"Please check your network connection and try again"</string>
+    <string name="browser_retry">"Retry"</string>
+
+    <!-- Menu items -->
+    <string name="browser_menu_new_tab">"New tab"</string>
+    <string name="browser_menu_incognito">"Incognito"</string>
+    <string name="browser_menu_desktop">"Desktop mode"</string>
+    <string name="browser_menu_desktop_on">"Desktop mode (ON)"</string>
+    <string name="browser_menu_share">"Share link"</string>
+    <string name="browser_copy_url_done">"Link copied"</string>
+    <string name="browser_open_external_failed">"Unable to open in another browser"</string>
+    <string name="browser_menu_copy">"Copy link"</string>
+    <string name="browser_menu_open_external">"Open in another browser"</string>
+    <string name="browser_menu_history">"History"</string>
+    <string name="browser_menu_bookmarks">"Bookmarks"</string>
+    <string name="browser_menu_downloads">"Downloads"</string>
+    <string name="browser_menu_settings">"Settings"</string>
+
+    <!-- Bookmarks -->
+    <string name="browser_bookmark_title">"Bookmarks"</string>
+    <string name="browser_bookmark_search_hint">"Search bookmarks"</string>
+    <string name="browser_bookmark_empty">"No bookmarks yet"</string>
+    <string name="browser_bookmark_empty_hint">"Tap the button below to add a bookmark"</string>
+    <string name="browser_bookmark_add">"Add bookmark"</string>
+    <string name="browser_bookmark_added">"Bookmark added"</string>
+    <string name="browser_bookmark_already_exists">"Already bookmarked"</string>
+    <string name="browser_bookmark_no_url">"Cannot bookmark current page"</string>
+    <string name="browser_bookmark_icon_desc">"Bookmark icon"</string>
+    <string name="browser_bookmark_delete">"Delete"</string>
+    <string name="browser_bookmark_delete_title">"Delete bookmark"</string>
+    <string name="browser_bookmark_delete_message">"Are you sure you want to delete this bookmark?"</string>
+    <string name="browser_bookmark_deleted">"Bookmark deleted"</string>
+    <string name="browser_bookmark_clear_title">"Clear bookmarks"</string>
+    <string name="browser_bookmark_clear_message">"Are you sure you want to clear all bookmarks? This action cannot be undone."</string>
+    <string name="browser_bookmark_clear_all">"Clear bookmarks"</string>
+    <string name="browser_bookmark_cleared">"Bookmarks cleared"</string>
+    <string name="browser_bookmark_dialog_title">"Add bookmark"</string>
+    <string name="browser_bookmark_dialog_title_hint">"Bookmark title"</string>
+    <string name="browser_bookmark_dialog_url_hint">"URL"</string>
+    <string name="browser_bookmark_dialog_confirm">"Save"</string>
+
+    <!-- Downloads -->
+    <string name="browser_download_title">"Downloads"</string>
+    <string name="browser_download_empty">"No downloads"</string>
+
+    <!-- Tab management (Stage 8) -->
+    <string name="browser_tab_manager_title">"Tab manager"</string>
+    <string name="browser_tab_new">"New tab"</string>
+    <string name="browser_tab_close_all">"Close all"</string>
+    <string name="browser_tab_close">"Close"</string>
+    <string name="browser_tab_close_current">"Close current"</string>
+    <string name="browser_tab_count">"%d tabs"</string>
+    <string name="browser_tab_empty">"No open tabs"</string>
+    <string name="browser_tab_max_reached">"Maximum tabs reached"</string>
+
+    <!-- Incognito mode (Stage 9) -->
+    <string name="browser_incognito_on">"Incognito mode enabled"</string>
+    <string name="browser_incognito_off">"Incognito mode disabled"</string>
+    <string name="browser_incognito_indicator">"Incognito"</string>
+
+    <!-- Permissions (Stage 10) -->
+    <string name="browser_permission_location_title">"Location permission request"</string>
+    <string name="browser_permission_location_message">"%s requests access to your location"</string>
+    <string name="browser_permission_media_title">"Media permission request"</string>
+    <string name="browser_permission_media_message">"The page requests the following permissions:"</string>
+    <string name="browser_permission_camera">"Camera"</string>
+    <string name="browser_permission_microphone">"Microphone"</string>
+    <string name="browser_permission_allow">"Allow"</string>
+    <string name="browser_permission_deny">"Deny"</string>
+    <string name="browser_file_chooser_error">"Unable to open file chooser"</string>
+
+    <!-- Bottom toolbar -->
+    <string name="browser_btn_bookmark_add">"Bookmarked"</string>
+    <string name="browser_btn_bookmark_remove">"Bookmark removed"</string>
+    <string name="browser_btn_tabs_coming_soon">"Tab manager"</string>
+    <string name="browser_btn_download_open">"Downloads"</string>
+
+    <!-- URL/Security -->
+    <string name="browser_url_dangerous">"This type of link is not allowed"</string>
+    <string name="browser_ssl_error">"SSL certificate error; loading blocked"</string>
+    <string name="browser_security_external_title">"External link"</string>
+    <string name="browser_security_external_message">"The page wants to open an external app: %s\nAllow?"</string>
+    <string name="browser_security_external_confirm">"Allow"</string>
+    <string name="browser_security_external_deny">"Deny"</string>
+    <string name="browser_security_blocked">"This link has been blocked by security policy"</string>
+
+    <!-- Download file open -->
+    <string name="browser_download_file_not_complete">"Download not complete"</string>
+    <string name="browser_download_file_not_found">"File not found"</string>
+    <string name="browser_download_file_open_failed">"Cannot open file"</string>
+    <string name="browser_download_delete_title">"Delete download record"</string>
+    <string name="browser_download_delete_message">"Also delete the local file?"</string>
+    <string name="browser_download_delete_record_and_file">"Delete record and file"</string>
+    <string name="browser_download_delete_record_only">"Delete record only"</string>
+
+    <!-- Downloads (additional) -->
+    <string name="browser_download_dangerous_title">"Dangerous file"</string>
+    <string name="browser_download_dangerous_message">"This file type may pose a security risk (%s). Download anyway?"</string>
+    <string name="browser_download_dangerous_confirm">"Download anyway"</string>
+    <string name="browser_download_started">"Downloading: %s"</string>
+    <string name="browser_download_description">"Downloading…"</string>
+    <string name="browser_download_clear_title">"Clear download records"</string>
+    <string name="browser_download_clear_message">"Are you sure you want to clear all download records?"</string>
+    <string name="browser_download_clear_all">"Clear records"</string>
+    <string name="browser_download_clear_all_with_file">"Clear and delete files"</string>
+    <string name="browser_download_cleared">"Download records cleared"</string>
+
+    <!-- Settings page -->
+    <string name="browser_settings_title">"Browser settings"</string>
+    <string name="browser_settings_changed_title">"Settings changed"</string>
+    <string name="browser_settings_changed_message">"Some settings require a page refresh to take effect. Refresh now?"</string>
+    <string name="browser_settings_changed_refresh">"Refresh"</string>
+    <string name="browser_settings_changed_later">"Later"</string>
+    <string name="browser_settings_general">"General"</string>
+    <string name="browser_settings_javascript">"Enable JavaScript"</string>
+    <string name="browser_settings_cookie">"Enable cookies"</string>
+    <string name="browser_settings_third_party_cookie">"Allow third-party cookies"</string>
+    <string name="browser_settings_load_images">"Load images"</string>
+    <string name="browser_settings_auto_play_media">"Auto-play media"</string>
+    <string name="browser_settings_home_url">"Home page URL"</string>
+    <string name="browser_settings_search_engine">"Default search engine"</string>
+    <string name="browser_settings_security">"Security"</string>
+    <string name="browser_settings_ad_block">"Ad blocker"</string>
+    <string name="browser_settings_safe_browsing">"Safe browsing"</string>
+    <string name="browser_settings_webview_debug">"Enable WebView debugging (debug only)"</string>
+    <string name="browser_settings_clear">"Data cleanup"</string>
+    <string name="browser_settings_clear_history">"Clear history"</string>
+    <string name="browser_settings_clear_search_history">"Clear search history"</string>
+    <string name="browser_settings_clear_bookmarks">"Clear bookmarks"</string>
+    <string name="browser_settings_clear_cache">"Clear cache"</string>
+    <string name="browser_settings_clear_downloads">"Clear download records"</string>
+    <string name="browser_settings_reset">"Reset browser settings"</string>
+    <string name="browser_settings_reset_message">"Are you sure you want to reset all browser settings? This action cannot be undone."</string>
+    <string name="browser_settings_reset_confirm">"Reset"</string>
+    <string name="browser_settings_reset_done">"Browser settings reset"</string>
+    <string name="browser_settings_whitelist">"Ad blocker whitelist"</string>
+
+    <string name="browser_cache_clear_title">"Clear cache"</string>
+    <string name="browser_cache_clear_message">"Clear browser cache? (History, bookmarks and download records will not be deleted.)"</string>
+    <string name="browser_cache_clear">"Clear"</string>
+    <string name="browser_cache_cleared">"Cache cleared"</string>
+
+    <!-- History -->
+    <string name="browser_history_title">"History"</string>
+    <string name="browser_history_search_hint">"Search history"</string>
+    <string name="browser_history_empty">"No history yet"</string>
+    <string name="browser_history_empty_hint">"History will be recorded automatically as you browse"</string>
+    <string name="browser_history_clear_all">"Clear history"</string>
+    <string name="browser_history_clear_title">"Clear history"</string>
+    <string name="browser_history_clear_message">"Are you sure you want to clear all history? This action cannot be undone."</string>
+    <string name="browser_history_cleared">"History cleared"</string>
+    <string name="browser_history_delete_title">"Delete record"</string>
+    <string name="browser_history_delete_message">"Are you sure you want to delete this history record?"</string>
+    <string name="browser_history_delete">"Delete"</string>
+    <string name="browser_history_icon_desc">"Website icon"</string>
+
+    <!-- Tab item -->
+    <string name="browser_tab_icon_desc">"Tab icon"</string>
+</resources>

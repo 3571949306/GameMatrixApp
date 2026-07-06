@@ -5,7 +5,6 @@ import android.os.Process
 import android.util.Log
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.util.concurrent.ThreadFactory
 
 object CrashHandler : Thread.UncaughtExceptionHandler {
     
@@ -51,38 +50,6 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         } else {
             trace
         }
-    }
-}
-
-class NamedThreadFactory(private val name: String) : ThreadFactory {
-    private var counter = 0
-    
-    override fun newThread(r: Runnable): Thread {
-        val thread = Thread(r, "$name-${counter++}")
-        thread.isDaemon = false
-        thread.priority = Thread.NORM_PRIORITY
-        return thread
-    }
-}
-
-object ThreadPools {
-    private val ioThreads = NamedThreadFactory("IO")
-    private val networkThreads = NamedThreadFactory("Network")
-    private val gameThreads = NamedThreadFactory("Game")
-    
-    @JvmStatic
-    fun ioThread(block: () -> Unit) {
-        Thread(ioThreads.newThread(block)).start()
-    }
-    
-    @JvmStatic
-    fun networkThread(block: () -> Unit) {
-        Thread(networkThreads.newThread(block)).start()
-    }
-    
-    @JvmStatic
-    fun gameThread(block: () -> Unit) {
-        Thread(gameThreads.newThread(block)).start()
     }
 }
 

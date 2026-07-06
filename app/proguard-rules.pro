@@ -11,8 +11,6 @@
 -keep public class * extends android.app.backup.BackupAgentHelper
 -keep public class * extends android.preference.Preference
 -keep public class org.xmlpull.v1.XmlPullParser
--keep public class android.*
--keep public class androidx.**
 
 # ============ 序列化 ============
 
@@ -76,8 +74,9 @@
     public *[] newArray(int);
 }
 
-# ModuleInfo、ModuleVersion 等
--keep class com.gamecenter.app.models.* { *; }
+# ModuleInfo、ModuleVersion 等 — 按需添加具体模型类
+# -keep class com.gamecenter.app.models.ModuleInfo { *; }
+# -keep class com.gamecenter.app.models.ModuleVersion { *; }
 
 # ============ WebSockets ============
 
@@ -126,33 +125,9 @@
 
 # ============ 房间模块 ============
 
-# 保留房间模块中的关键类
--keep class com.gamecenter.app.room.** { *; }
-
-# ============ 网络模块 ============
-
-# 保留网络模块中的关键类
--keep class com.gamecenter.app.network.** { *; }
-
-# ============ 更新模块 ============
-
-# 保留更新模块中的关键类
--keep class com.gamecenter.app.update.** { *; }
-
-# ============ 设置模块 ============
-
-# 保留设置模块中的关键类
--keep class com.gamecenter.app.settings.** { *; }
-
-# ============ 工具类 ============
-
-# 保留工具类中的关键类
--keep class com.gamecenter.app.utils.** { *; }
-
-# ============ 数据模型 ============
-
-# 保留数据模型类
--keep class com.gamecenter.app.models.** { *; }
+# 保留房间模块中的 WebSocket 和消息类
+-keep class com.gamecenter.app.room.*Socket* { *; }
+-keep class com.gamecenter.app.room.*Message* { *; }
 
 # ============ 枚举类 ============
 
@@ -160,23 +135,6 @@
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
-}
-
-# ============ 注解 ============
-
-# 保留注解
--keep class * extends java.lang.annotation.Annotation { *; }
-
-# ============ 序列化 ============
-
-# 保留序列化相关类
--keepclassmembers class * implements java.io.Serializable {
-    static final long serialVersionUID;
-    private static final java.io.ObjectStreamField[] serialPersistentFields;
-    private void writeObject(java.io.ObjectOutputStream);
-    private void readObject(java.io.ObjectInputStream);
-    java.lang.Object writeReplace();
-    java.lang.Object readResolve();
 }
 
 # R8 missing classes

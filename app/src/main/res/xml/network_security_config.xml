@@ -8,8 +8,12 @@
 
     <!-- 模块服务器域名 — 启用证书固定（pin-set）防止中间人攻击 -->
     <!-- 部署时替换为实际服务器域名，或从 local.properties 生成 -->
+    <!-- 在 build.gradle 中通过 buildConfigField 注入实际域名后，取消注释以下配置 -->
     <!-- <domain-config>
-        <domain includeSubdomains="true">your-server.example.com</domain>
+        <domain includeSubdomains="true">YOUR_ACTUAL_SERVER_DOMAIN</domain>
+        <pin-set>
+            <pin digest="SHA-256">YOUR_ACTUAL_PIN_HASH</pin>
+        </pin-set>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

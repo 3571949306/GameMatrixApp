@@ -1,6 +1,7 @@
 package com.gamecenter.app.games.snake;
 
 import android.media.SoundPool;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -41,6 +42,7 @@ public class SnakeActivity extends BaseGameActivity {
 
     private static final String GAME_ID_VALUE = "snake";
     private static final String GAME_NAME_VALUE = "贪吃蛇";
+    private static final String TAG = "SnakeActivity";
 
     // ==================== 游戏组件 ====================
 
@@ -124,8 +126,8 @@ public class SnakeActivity extends BaseGameActivity {
             soundPool = new SoundPool.Builder().setMaxStreams(2).build();
             eatSoundId = soundPool.load(this, R.raw.ui_turn, 1);
             deathSoundId = soundPool.load(this, R.raw.ui_turn, 1);
-        } catch (Exception ignored) {
-            // 加载失败时保持 ID 为 0，播放方法会自动跳过
+        } catch (Exception e) {
+            Log.w(TAG, "音效操作失败", e);
         }
     }
 
@@ -139,7 +141,8 @@ public class SnakeActivity extends BaseGameActivity {
         if (soundPool == null || eatSoundId == 0) return;
         try {
             soundPool.play(eatSoundId, 0.6f, 0.6f, 1, 0, 1.0f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "音效操作失败", e);
         }
     }
 
@@ -153,7 +156,8 @@ public class SnakeActivity extends BaseGameActivity {
         if (soundPool == null || deathSoundId == 0) return;
         try {
             soundPool.play(deathSoundId, 0.8f, 0.8f, 1, 0, 0.6f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "音效操作失败", e);
         }
     }
 
@@ -224,7 +228,7 @@ public class SnakeActivity extends BaseGameActivity {
     @Override
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
-        snakeView.setSpeedFactor(newLevel.difficultyFactor);
+        if (snakeView != null) snakeView.setSpeedFactor(newLevel.difficultyFactor);
         Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
     }
 

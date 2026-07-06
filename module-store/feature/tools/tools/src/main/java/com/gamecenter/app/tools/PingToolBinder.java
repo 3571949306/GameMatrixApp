@@ -22,6 +22,9 @@ import java.util.concurrent.ExecutorService;
  */
 public final class PingToolBinder implements ToolBinder {
 
+    /** 默认 Ping 目标（腾讯公共 DNS） */
+    private static final String DEFAULT_PING_HOST = "119.29.29.29";
+
     /**
      * 绑定 Ping 工具的视图和交互逻辑。
      * <p>
@@ -65,9 +68,9 @@ public final class PingToolBinder implements ToolBinder {
         // 找到输入框和结果显示区域
         EditText etHost = contentView.findViewById(R.id.et_ping_host);
         TextView tvResult = contentView.findViewById(R.id.tv_ping_result);
-        String host = etHost != null ? etHost.getText().toString().trim() : "119.29.29.29";
+        String host = etHost != null ? etHost.getText().toString().trim() : DEFAULT_PING_HOST;
         // 输入为空时使用默认 DNS 地址（腾讯公共DNS）
-        if (host.isEmpty()) host = "119.29.29.29";
+        if (host.isEmpty()) host = DEFAULT_PING_HOST;
 
         final String fHost = host;
         // 在后台线程执行Ping操作

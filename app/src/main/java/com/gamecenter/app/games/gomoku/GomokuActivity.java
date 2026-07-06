@@ -10,6 +10,7 @@ import android.os.SystemClock;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -61,6 +62,7 @@ import java.util.concurrent.Executors;
  */
 public class GomokuActivity extends AppCompatActivity {
 
+    private static final String TAG = "GomokuActivity";
     private static final long[] AI_MIN_RESPONSE_DELAYS_MS = {80L, 120L, 170L, 230L};
 
     /** 游戏标识，用于胜负统计 */
@@ -258,7 +260,8 @@ public class GomokuActivity extends AppCompatActivity {
         if (!SettingsManager.getInstance(this).shouldPlayGameSound() || soundPool == null || pieceSoundId == 0) return;
         try {
             soundPool.play(pieceSoundId, 0.6f, 0.6f, 1, 0, 1.0f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "落子音效播放失败", e);
         }
     }
 
@@ -273,7 +276,8 @@ public class GomokuActivity extends AppCompatActivity {
             } else {
                 vibrator.vibrate(20);
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "震动反馈失败", e);
         }
     }
 
@@ -648,7 +652,8 @@ public class GomokuActivity extends AppCompatActivity {
             java.lang.reflect.Field fCount = GomokuGame.class.getDeclaredField("moveCount");
             fCount.setAccessible(true);
             fCount.setInt(game, state.getInt(STATE_MOVE_COUNT, 0));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "恢复游戏状态失败", e);
         }
         // 恢复最后一手
         if (histX != null && histX.length > 0) {
@@ -656,7 +661,8 @@ public class GomokuActivity extends AppCompatActivity {
                 java.lang.reflect.Field fLast = GomokuGame.class.getDeclaredField("lastMove");
                 fLast.setAccessible(true);
                 fLast.set(game, new int[]{histX[histX.length - 1], histY[histY.length - 1]});
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                Log.w(TAG, "恢复最后一手失败", e);
             }
         }
         // 恢复难度和先手
@@ -683,6 +689,7 @@ public class GomokuActivity extends AppCompatActivity {
      */
     @Override
     protected void onDestroy() {
+        mainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
         stopTimer();
         aiExecutor.shutdownNow();

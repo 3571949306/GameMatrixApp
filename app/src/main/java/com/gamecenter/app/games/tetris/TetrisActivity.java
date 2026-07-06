@@ -224,7 +224,7 @@ public class TetrisActivity extends BaseGameActivity {
     @Override
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
-        tetrisView.setSpeedFactor(newLevel.difficultyFactor);
+        if (tetrisView != null) tetrisView.setSpeedFactor(newLevel.difficultyFactor);
         Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
     }
 }

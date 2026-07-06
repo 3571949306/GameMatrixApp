@@ -1,6 +1,7 @@
 package com.gamecenter.app.games.game2048;
 
 import android.media.SoundPool;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -39,6 +40,7 @@ public class Game2048Activity extends BaseGameActivity {
 
     private static final String GAME_ID_VALUE = "game2048";
     private static final String GAME_NAME_VALUE = "2048";
+    private static final String TAG = "Game2048Activity";
 
     // ==================== 游戏组件 ====================
 
@@ -83,8 +85,8 @@ public class Game2048Activity extends BaseGameActivity {
             soundPool = new SoundPool.Builder().setMaxStreams(2).build();
             gameSoundId = soundPool.load(this, R.raw.ui_turn, 1);
             game2048View.setSoundPool(soundPool, gameSoundId);
-        } catch (Exception ignored) {
-            // 音效加载失败不影响游戏进行
+        } catch (Exception e) {
+            Log.w(TAG, "SoundPool 初始化失败", e);
         }
 
         // 设置游戏事件监听
@@ -244,7 +246,9 @@ public class Game2048Activity extends BaseGameActivity {
     @Override
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
-        game2048View.setDifficultyFactor(newLevel.difficultyFactor);
+        if (game2048View != null) {
+            game2048View.setDifficultyFactor(newLevel.difficultyFactor);
+        }
         Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
     }
 }

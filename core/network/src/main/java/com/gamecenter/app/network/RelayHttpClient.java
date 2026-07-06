@@ -45,7 +45,43 @@ public final class RelayHttpClient {
     /** WebSocket 服务路径 */
     private static final String WS_PATH = "/ddz-ws";
 
+    /** 默认超时时间（毫秒） */
+    private static final int DEFAULT_TIMEOUT_MS = 15_000;
+
+    /** 共享 HTTP 客户端（默认超时），避免每次请求创建新实例 */
+    private static volatile OkHttpClient sharedClient;
+
     private RelayHttpClient() {
+    }
+
+    /**
+     * 获取或创建共享 OkHttpClient（双重检查锁定）。
+     */
+    private static OkHttpClient getSharedClient() {
+        if (sharedClient == null) {
+            synchronized (RelayHttpClient.class) {
+                if (sharedClient == null) {
+                    sharedClient = new OkHttpClient.Builder()
+                            .connectTimeout(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                            .readTimeout(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                            .writeTimeout(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                            .retryOnConnectionFailure(true)
+                            .build();
+                }
+            }
+        }
+        return sharedClient;
+    }
+
+    /**
+     * 关闭共享客户端（应用退出时调用）。
+     */
+    public static void shutdown() {
+        if (sharedClient != null) {
+            sharedClient.dispatcher().executorService().shutdown();
+            sharedClient.connectionPool().evictAll();
+            sharedClient = null;
+        }
     }
 
     /**
@@ -223,11 +259,16 @@ public final class RelayHttpClient {
             root = root.substring(0, root.length() - 1);
         }
 
-        // 为每次请求创建独立客户端，支持自定义超时
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                .build();
+        // 复用共享客户端，仅在超时配置不同时创建新实例
+        OkHttpClient client;
+        if (timeoutMs == DEFAULT_TIMEOUT_MS) {
+            client = getSharedClient();
+        } else {
+            client = getSharedClient().newBuilder()
+                    .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .build();
+        }
 
         RequestBody requestBody = RequestBody.create(
                 body != null ? body.toString() : "{}",

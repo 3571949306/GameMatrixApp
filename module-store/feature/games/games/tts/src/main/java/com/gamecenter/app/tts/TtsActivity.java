@@ -59,7 +59,7 @@ public class TtsActivity extends AppCompatActivity {
     // ═══════════════════════════════════════════════════════
     //  小米 MiMo API 配置（从 local.properties 经 BuildConfig 注入）
     // ═══════════════════════════════════════════════════════
-    private static final String API_URL = "https://api.xiaomimimo.com/v1/chat/completions";
+    private static final String API_URL = BuildConfig.MIMO_API_URL;
 
     // 录音参数
     private static final int SAMPLE_RATE  = 16000;
