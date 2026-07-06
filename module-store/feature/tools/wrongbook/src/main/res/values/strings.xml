@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wrongbook_title">错题本</string>
+    <string name="wrongbook_description">AI 错题整理与复习工具</string>
+
+    <!-- 底部标签 -->
+    <string name="wrongbook_tab_questions">错题</string>
+    <string name="wrongbook_tab_dashboard">看板</string>
+    <string name="wrongbook_tab_review">复习</string>
+    <string name="wrongbook_tab_settings">设置</string>
+
+    <!-- 错题列表 -->
+    <string name="wrongbook_empty_questions">暂无错题，点击右下角添加</string>
+    <string name="wrongbook_add_question">添加错题</string>
+    <string name="wrongbook_take_photo">拍照</string>
+    <string name="wrongbook_pick_image">从相册选择</string>
+    <string name="wrongbook_manual_input">手动输入</string>
+    <string name="wrongbook_subject_filter">筛选</string>
+    <string name="wrongbook_subject_all">全部科目</string>
+    <string name="wrongbook_delete">删除</string>
+    <string name="wrongbook_delete_confirm">确定删除这道错题吗？</string>
+    <string name="wrongbook_difficulty">难度</string>
+    <string name="wrongbook_knowledge_points">知识点</string>
+    <string name="wrongbook_analysis">解析</string>
+
+    <!-- 拍照/识别 -->
+    <string name="wrongbook_capture_title">拍照识题</string>
+    <string name="wrongbook_recognize">识别文字</string>
+    <string name="wrongbook_recognizing">正在识别…</string>
+    <string name="wrongbook_analyzing">AI 正在分析…</string>
+    <string name="wrongbook_save_question">保存错题</string>
+    <string name="wrongbook_question_content">题目内容</string>
+
+    <!-- 看板 -->
+    <string name="wrongbook_total_questions">总错题数</string>
+    <string name="wrongbook_today_reviews">今日待复习</string>
+    <string name="wrongbook_weak_topics">薄弱知识点</string>
+    <string name="wrongbook_average_mastery">平均掌握度</string>
+    <string name="wrongbook_no_weak_topics">暂无薄弱知识点，继续保持！</string>
+
+    <!-- 复习 -->
+    <string name="wrongbook_review_empty">今天没有待复习的错题</string>
+    <string name="wrongbook_review_complete">完成复习</string>
+    <string name="wrongbook_review_skip">跳过</string>
+    <string name="wrongbook_review_stage_format">第 %1$d 轮复习</string>
+
+    <!-- 设置 -->
+    <string name="wrongbook_settings_title">错题本设置</string>
+    <string name="wrongbook_ocr_engine">OCR 引擎</string>
+    <string name="wrongbook_ocr_local">本地 ML Kit（默认）</string>
+    <string name="wrongbook_ocr_cloud">云端 OCR（Scnet）</string>
+    <string name="wrongbook_ai_mode">AI 模式</string>
+    <string name="wrongbook_ai_cloud">云端 AI</string>
+    <string name="wrongbook_ai_local">本地 AI（预留）</string>
+    <string name="wrongbook_ai_base_url">API 地址</string>
+    <string name="wrongbook_ai_api_key">API Key</string>
+    <string name="wrongbook_ai_model">模型名称</string>
+    <string name="wrongbook_save_settings">保存设置</string>
+    <string name="wrongbook_settings_saved">设置已保存</string>
+
+    <!-- 通用 -->
+    <string name="wrongbook_cancel">取消</string>
+    <string name="wrongbook_confirm">确定</string>
+    <string name="wrongbook_save">保存</string>
+    <string name="wrongbook_error">错误</string>
+    <string name="wrongbook_retry">重试</string>
+    <string name="wrongbook_no_api_config">请先配置 AI 接口信息</string>
+</resources>

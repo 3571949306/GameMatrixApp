@@ -31,4 +31,10 @@
         android:icon="@drawable/ic_nav_vpn"
         app:showAsAction="ifRoom"
         android:title="@string/nav_vpn" />
+
+    <item
+        android:id="@+id/navigation_wrongbook"
+        android:icon="@drawable/ic_nav_wrongbook"
+        app:showAsAction="ifRoom"
+        android:title="@string/nav_wrongbook" />
 </menu>

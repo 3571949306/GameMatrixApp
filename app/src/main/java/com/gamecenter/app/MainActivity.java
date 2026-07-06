@@ -23,6 +23,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.gamecenter.app.modules.ModuleManager;
 import com.gamecenter.app.modules.ModuleStoreActivity;
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.recovery.CrashDetector;
 import com.gamecenter.app.update.DownloadState;
 import com.gamecenter.app.update.UpdateCheckState;
@@ -203,6 +204,11 @@ public class MainActivity extends AppCompatActivity {
                     .setIcon(R.drawable.ic_vpn);
         }
 
+        if (BuildConfig.ENABLE_WRONGBOOK && installedIds.contains("wrongbook")) {
+            menu.add(Menu.NONE, R.id.navigation_wrongbook, Menu.NONE, R.string.nav_wrongbook)
+                    .setIcon(R.drawable.ic_nav_wrongbook);
+        }
+
         navView.setOnItemSelectedListener(item -> {
             if (navController != null) {
                 navController.navigate(item.getItemId());
@@ -278,6 +284,9 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case "vpn":
                 destId = R.id.navigation_vpn;
+                break;
+            case "wrongbook":
+                destId = R.id.navigation_wrongbook;
                 break;
             default:
                 return;

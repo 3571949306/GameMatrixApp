@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFBFE"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/wrongbook_ocr_engine"
+            android:textColor="#1C1B1F"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgOcrEngine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/wrongbook_card_bg"
+            android:padding="12dp">
+
+            <RadioButton
+                android:id="@+id/rbOcrLocal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/wrongbook_ocr_local"
+                android:textColor="#1C1B1F" />
+
+            <RadioButton
+                android:id="@+id/rbOcrCloud"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:text="@string/wrongbook_ocr_cloud"
+                android:textColor="#1C1B1F" />
+
+        </RadioGroup>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/wrongbook_ai_mode"
+            android:textColor="#1C1B1F"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgAiMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/wrongbook_card_bg"
+            android:padding="12dp">
+
+            <RadioButton
+                android:id="@+id/rbAiCloud"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/wrongbook_ai_cloud"
+                android:textColor="#1C1B1F" />
+
+            <RadioButton
+                android:id="@+id/rbAiLocal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/wrongbook_ai_local"
+                android:textColor="#1C1B1F" />
+
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/etAiBaseUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="@string/wrongbook_ai_base_url"
+            android:inputType="textUri"
+            android:textColor="#1C1B1F"
+            android:textColorHint="#49454F" />
+
+        <EditText
+            android:id="@+id/etAiApiKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/wrongbook_ai_api_key"
+            android:inputType="textPassword"
+            android:textColor="#1C1B1F"
+            android:textColorHint="#49454F" />
+
+        <EditText
+            android:id="@+id/etAiModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="@string/wrongbook_ai_model"
+            android:inputType="text"
+            android:textColor="#1C1B1F"
+            android:textColorHint="#49454F" />
+
+        <Button
+            android:id="@+id/btnSaveSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/wrongbook_button_primary"
+            android:text="@string/wrongbook_save_settings"
+            android:textColor="#FFFFFF" />
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

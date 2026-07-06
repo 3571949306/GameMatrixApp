@@ -18,7 +18,8 @@
     <string name="update_channel_label">类型: %s</string>
     <string name="update_version_code">内部版本号: %d</string>
     <string name="update_last_stable_default">上一个正式版</string>
-    <string name="update_beta_only_msg">服务器当前最新版是测试版 %1$s（内部版本号 %2$d）。</string>
+    <string name="update_beta_only_msg">服务器当前最新版是测试版 %1$s（内部版本号 %2$d）。
+你当前安装的是内部版本号 %3$d，距离上一个正式版 %4$s</string>
     <string name="update_beta_only_stable_code">（内部版本号 %d）</string>
     <string name="update_beta_only_hint"> 已经相差较大。可开启测试版更新，或等待下一个正式版。</string>
     <string name="update_auto_downloading">更新安装包正在后台下载</string>

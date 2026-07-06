@@ -118,19 +118,29 @@ public class ModuleResourceLoader {
     private AssetManager createAssetManager(@NonNull String apkPath) {
         try {
             AssetManager assetManager = AssetManager.class.newInstance();
-            
+
             // 调用 addAssetPath(String path)
             Method addAssetPath = AssetManager.class.getMethod("addAssetPath", String.class);
+
+            // 先添加宿主 APK，确保主题属性（colorSurface 等）能正确解析
+            String hostApkPath = context.getPackageResourcePath();
+            if (hostApkPath != null) {
+                int hostResult = (int) addAssetPath.invoke(assetManager, hostApkPath);
+                if (hostResult == 0) {
+                    Log.w(TAG, "addAssetPath 宿主失败: " + hostApkPath);
+                }
+            }
+
+            // 再添加模块 APK，模块 R.id/R.layout 与宿主不冲突
             int result = (int) addAssetPath.invoke(assetManager, apkPath);
-            
             if (result == 0) {
                 Log.e(TAG, "addAssetPath 失败: " + apkPath);
                 return null;
             }
-            
-            Log.d(TAG, "AssetManager 创建成功，已添加路径: " + apkPath);
+
+            Log.d(TAG, "AssetManager 创建成功，已添加路径: host=" + hostApkPath + ", module=" + apkPath);
             return assetManager;
-            
+
         } catch (Exception e) {
             Log.e(TAG, "创建 AssetManager 失败", e);
             return null;

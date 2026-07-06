@@ -463,7 +463,10 @@ public class PerfMonitorTest {
         mPerfMonitor.startMonitoring(mApplication);
         assertTrue("步骤 1 失败：监控应已启动", mPerfMonitor.isMonitoring());
         System.out.println("  步骤 1: ✅ 监控已启动");
-        
+
+        // 等待一小段时间，确保冷启动时间 > 0，避免快速机器上断言失败
+        Thread.sleep(50);
+
         // 步骤 2: 记录首帧
         android.view.View mockView = mock(android.view.View.class);
         mPerfMonitor.recordFirstFrame(mockView);

@@ -1,28 +1,22 @@
-// Phase 1.2: 单元测试覆盖率 (JaCoCo)
-// 集成到子项目, 跑 :app:testDebugUnitTest 自动产出 coverage 报告
+// Phase 1.2: 单元测试与 Android 测试覆盖率 (JaCoCo)
+// 集成到子项目, 跑 :app:testDebugUnitTest / :app:connectedDebugAndroidTest 自动产出 coverage 报告
 // 阈值先放开 (只生成报告, 不强制), 等覆盖率提升后再开 verify
 
-// 强制 jacoco 插件应用到每个子项目 (Android plugin 自带 jacoco 配置支持)
 subprojects {
     afterEvaluate { project ->
         if (project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")) {
-            project.android {
-                testCoverage {
-                    jacocoVersion = libs.versions.jacoco.get()
-                }
-            }
-        }
-    }
-}
-
-// 启用每个 Android 子项目的 debug 单元测试覆盖率, 强制输出 HTML + XML
-subprojects {
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")) {
+            // AGP 8.x: testCoverage DSL 已移除，通过 buildTypes 启用覆盖率
             project.android.buildTypes.all { buildType ->
                 if (buildType.name == "debug") {
-                    // AGP 8.x: 启用单元测试覆盖率, 会在 testDebugUnitTest 跑时同时生成 jacoco.exec
                     buildType.enableUnitTestCoverage = true
+                    buildType.enableAndroidTestCoverage = true
+                }
+            }
+
+            // AGP 8.x: jacoco 版本通过 jacoco 插件 toolVersion 配置
+            project.plugins.withType(JacocoPlugin) {
+                project.jacoco {
+                    toolVersion = rootProject.libs.versions.jacoco.get()
                 }
             }
         }

@@ -150,3 +150,16 @@ test*-launch.png
 test*-module-store.png
 home_nav*.png
 build_output*.txt
+
+# ============================================================
+# AI 调试临时文件（循环20 清理时新增）
+# 截图、window dump、logcat 中间产物、APK 解包目录与压缩包
+# 不应进入仓库，提交前必须清理
+# ============================================================
+screen_*.png
+window*.xml
+logcat_*.txt
+*_extracted/
+base_installed.zip
+base_new.zip
+wrongbook_module.zip

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wrongbook_title">WrongBook</string>
+    <string name="wrongbook_description">AI-powered wrong question organizer and review planner</string>
+
+    <string name="wrongbook_tab_questions">Questions</string>
+    <string name="wrongbook_tab_dashboard">Dashboard</string>
+    <string name="wrongbook_tab_review">Review</string>
+    <string name="wrongbook_tab_settings">Settings</string>
+
+    <string name="wrongbook_empty_questions">No questions yet. Tap + to add one.</string>
+    <string name="wrongbook_add_question">Add Question</string>
+    <string name="wrongbook_take_photo">Take Photo</string>
+    <string name="wrongbook_pick_image">Pick from Gallery</string>
+    <string name="wrongbook_manual_input">Manual Input</string>
+    <string name="wrongbook_subject_filter">Filter</string>
+    <string name="wrongbook_subject_all">All Subjects</string>
+    <string name="wrongbook_delete">Delete</string>
+    <string name="wrongbook_delete_confirm">Delete this question?</string>
+    <string name="wrongbook_difficulty">Difficulty</string>
+    <string name="wrongbook_knowledge_points">Knowledge Points</string>
+    <string name="wrongbook_analysis">Analysis</string>
+
+    <string name="wrongbook_capture_title">Capture Question</string>
+    <string name="wrongbook_recognize">Recognize Text</string>
+    <string name="wrongbook_recognizing">Recognizing…</string>
+    <string name="wrongbook_analyzing">AI is analyzing…</string>
+    <string name="wrongbook_save_question">Save Question</string>
+    <string name="wrongbook_question_content">Question Content</string>
+
+    <string name="wrongbook_total_questions">Total Questions</string>
+    <string name="wrongbook_today_reviews">Reviews Today</string>
+    <string name="wrongbook_weak_topics">Weak Topics</string>
+    <string name="wrongbook_average_mastery">Average Mastery</string>
+    <string name="wrongbook_no_weak_topics">No weak topics. Keep it up!</string>
+
+    <string name="wrongbook_review_empty">No questions to review today</string>
+    <string name="wrongbook_review_complete">Complete</string>
+    <string name="wrongbook_review_skip">Skip</string>
+    <string name="wrongbook_review_stage_format">Review round %1$d</string>
+
+    <string name="wrongbook_settings_title">WrongBook Settings</string>
+    <string name="wrongbook_ocr_engine">OCR Engine</string>
+    <string name="wrongbook_ocr_local">Local ML Kit (default)</string>
+    <string name="wrongbook_ocr_cloud">Cloud OCR (Scnet)</string>
+    <string name="wrongbook_ai_mode">AI Mode</string>
+    <string name="wrongbook_ai_cloud">Cloud AI</string>
+    <string name="wrongbook_ai_local">Local AI (reserved)</string>
+    <string name="wrongbook_ai_base_url">API Base URL</string>
+    <string name="wrongbook_ai_api_key">API Key</string>
+    <string name="wrongbook_ai_model">Model Name</string>
+    <string name="wrongbook_save_settings">Save Settings</string>
+    <string name="wrongbook_settings_saved">Settings saved</string>
+
+    <string name="wrongbook_cancel">Cancel</string>
+    <string name="wrongbook_confirm">OK</string>
+    <string name="wrongbook_save">Save</string>
+    <string name="wrongbook_error">Error</string>
+    <string name="wrongbook_retry">Retry</string>
+    <string name="wrongbook_no_api_config">Please configure AI API settings first</string>
+</resources>
