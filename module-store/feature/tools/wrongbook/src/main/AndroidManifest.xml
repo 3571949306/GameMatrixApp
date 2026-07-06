@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.gamecenter.app.wrongbook">
+
+    <application
+        android:allowBackup="false"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".ui.WrongBookActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".ui.CaptureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".ui.AnalysisActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+    </application>
+
+</manifest>

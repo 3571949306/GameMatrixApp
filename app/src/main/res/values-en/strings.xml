@@ -1363,4 +1363,5 @@
 <string name="chinese_chess_exit_yes">"Exit"</string>
 <string name="chinese_chess_exit_no">"Continue"</string>
 <string name="chinese_chess_undo_unavailable">"Cannot undo now"</string>
+<string name="nav_wrongbook">"WrongBook"</string>
 </resources>

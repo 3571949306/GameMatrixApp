@@ -5,6 +5,7 @@
     <string name="nav_tools">工具箱</string>
     <string name="nav_ai">AI 助手</string>
     <string name="nav_vpn">科学上网</string>
+    <string name="nav_wrongbook">错题本</string>
     <string name="ai_assistant">AI 智能助手</string>
     <string name="ai_task_chat">聊天</string>
     <string name="ai_task_ocr_clean">OCR 清洗</string>

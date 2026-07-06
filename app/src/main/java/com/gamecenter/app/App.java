@@ -117,16 +117,36 @@ public class App extends Application {
         for (String assetName : assetFiles) {
             if (!assetName.endsWith(".apk")) continue;
             java.io.File targetFile = new java.io.File(modulesDir, assetName);
-            if (targetFile.exists()) {
-                Log.d("App", "[preinstall] 已存在: " + assetName + "，跳过提取");
-                continue;
-            }
-            try (java.io.InputStream in = getAssets().open("modules/" + assetName);
-                 java.io.OutputStream out = new java.io.FileOutputStream(targetFile)) {
-                byte[] buf = new byte[8192];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
+            java.io.File tempFile = new java.io.File(modulesDir, assetName + ".tmp");
+            try (java.io.InputStream in = getAssets().open("modules/" + assetName)) {
+                int assetSize = in.available();
+                if (targetFile.exists() && targetFile.length() == assetSize) {
+                    Log.d("App", "[preinstall] 已存在且大小一致: " + assetName + "，跳过提取");
+                    continue;
+                }
+                if (targetFile.exists()) {
+                    if (!targetFile.canWrite()) {
+                        targetFile.setWritable(true, true);
+                    }
+                    if (!targetFile.delete()) {
+                        Log.w("App", "[preinstall] 无法删除旧模块: " + targetFile.getAbsolutePath());
+                        continue;
+                    }
+                }
+                if (tempFile.exists() && !tempFile.delete()) {
+                    Log.w("App", "[preinstall] 无法删除旧临时文件: " + tempFile.getAbsolutePath());
+                    continue;
+                }
+                try (java.io.OutputStream out = new java.io.FileOutputStream(tempFile)) {
+                    byte[] buf = new byte[8192];
+                    int len;
+                    while ((len = in.read(buf)) > 0) {
+                        out.write(buf, 0, len);
+                    }
+                }
+                if (!tempFile.renameTo(targetFile)) {
+                    Log.w("App", "[preinstall] 无法替换模块: " + assetName);
+                    continue;
                 }
                 extractedCount++;
                 Log.i("App", "[preinstall] 提取成功: " + assetName + " ("

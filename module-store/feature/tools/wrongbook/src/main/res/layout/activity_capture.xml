@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFBFE"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/toolbarTitle"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="@string/wrongbook_capture_title"
+        android:textColor="#1C1B1F"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/ivPreview"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:background="#F4EFF4"
+                android:contentDescription="@string/wrongbook_capture_title"
+                android:scaleType="centerInside" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnTakePhoto"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/wrongbook_button_outline"
+                    android:text="@string/wrongbook_take_photo"
+                    android:textColor="#6750A4" />
+
+                <Button
+                    android:id="@+id/btnPickImage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/wrongbook_button_outline"
+                    android:text="@string/wrongbook_pick_image"
+                    android:textColor="#6750A4" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnRecognize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/wrongbook_button_primary"
+                android:text="@string/wrongbook_recognize"
+                android:textColor="#FFFFFF" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/etQuestion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="top"
+                android:hint="@string/wrongbook_question_content"
+                android:inputType="textMultiLine"
+                android:minLines="5"
+                android:textColor="#1C1B1F"
+                android:textColorHint="#49454F" />
+
+            <Button
+                android:id="@+id/btnAnalyze"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/wrongbook_button_primary"
+                android:text="@string/wrongbook_analyzing"
+                android:textColor="#FFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/cardAnalysis"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/wrongbook_card_bg"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wrongbook_subject_all"
+                    android:textColor="#49454F"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvAnalysisSubject"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#1C1B1F"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/wrongbook_knowledge_points"
+                    android:textColor="#49454F"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvAnalysisKnowledge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#1C1B1F"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/wrongbook_analysis"
+                    android:textColor="#49454F"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvAnalysisText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#1C1B1F"
+                    android:textSize="15sp" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="32dp"
+                android:background="@drawable/wrongbook_button_primary"
+                android:text="@string/wrongbook_save_question"
+                android:textColor="#FFFFFF" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

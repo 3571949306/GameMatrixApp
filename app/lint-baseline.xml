@@ -1200,22 +1200,6 @@
     </issue>
 
     <issue
-        id="StringFormatMatches"
-        message="Wrong argument count, format string `update_beta_only_msg` requires `2` but format call supplies `4`"
-        errorLine1="        message.append(getString(R.string.update_beta_only_msg,"
-        errorLine2="                       ^">
-        <location
-            file="src/main/java/com/gamecenter/app/MainActivity.java"
-            line="620"
-            column="24"/>
-        <location
-            file="${:core:update*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
-            line="21"
-            column="5"
-            message="This definition requires 2 arguments"/>
-    </issue>
-
-    <issue
         id="ExtraTranslation"
         message="&quot;abc_action_bar_home_description&quot; is translated here but not found in default locale"
         errorLine1="&lt;string name=&quot;abc_action_bar_home_description&quot;>&quot;Browse home&quot;&lt;/string>"
