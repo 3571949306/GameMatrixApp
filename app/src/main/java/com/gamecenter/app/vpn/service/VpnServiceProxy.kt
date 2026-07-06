@@ -32,6 +32,9 @@ class VpnServiceProxy : VpnService() {
     private var tunnel: VpnDelegate.Tunnel? = null
     private var delegate: VpnDelegate? = null
     @Volatile private var running = false
+    private var iface: android.os.ParcelFileDescriptor? = null
+    private var tunIn: FileInputStream? = null
+    private var tunOut: FileOutputStream? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Android 14+ 要求前台服务必须先 startForeground 再执行业务逻辑
@@ -89,28 +92,33 @@ class VpnServiceProxy : VpnService() {
 
     private fun establishAndForward() {
         val t = tunnel ?: return
-        val iface = Builder()
+        val fd = Builder()
             .setSession("科学上网")
             .addRoute("0.0.0.0", 0).addRoute("::", 0)
-            .addDnsServer("8.8.8.8").addDnsServer("8.8.4.4")
+            .addDnsServer(PRIMARY_DNS).addDnsServer(SECONDARY_DNS)
             .establish() ?: return
 
+        iface = fd
         running = true
-        val tunIn = FileInputStream(iface.fileDescriptor)
-        val tunOut = FileOutputStream(iface.fileDescriptor)
+        tunIn = FileInputStream(fd.fileDescriptor)
+        tunOut = FileOutputStream(fd.fileDescriptor)
 
         // 线程1: 远端 → TUN
         Thread {
-            val buf = ByteArray(4096)
-            try { while (running) { val n = t.input.read(buf); if (n > 0) tunOut.write(buf, 0, n) } }
-            catch (_: Exception) {}
+            val buf = ByteArray(TUN_BUFFER_SIZE)
+            try { while (running) { val n = t.input.read(buf); if (n > 0) tunOut?.write(buf, 0, n) } }
+            catch (e: Exception) {
+                if (running) Log.e(TAG, "Remote→TUN 转发异常: ${e.message}", e)
+            }
         }.start()
 
         // 线程2: TUN → 远端
         Thread {
-            val buf = ByteArray(4096)
-            try { while (running) { val n = tunIn.read(buf); if (n > 0) t.output.write(buf, 0, n) } }
-            catch (_: Exception) {}
+            val buf = ByteArray(TUN_BUFFER_SIZE)
+            try { while (running) { val n = tunIn?.read(buf) ?: -1; if (n > 0) t.output.write(buf, 0, n) } }
+            catch (e: Exception) {
+                if (running) Log.e(TAG, "TUN→Remote 转发异常: ${e.message}", e)
+            }
         }.start()
     }
 
@@ -119,12 +127,25 @@ class VpnServiceProxy : VpnService() {
     override fun onDestroy() {
         running = false
         delegate?.disconnect()
+        try { tunIn?.close() } catch (_: Exception) {}
+        try { tunOut?.close() } catch (_: Exception) {}
+        try {
+            iface?.close()
+            iface = null
+        } catch (e: Exception) {
+            Log.w(TAG, "关闭 VPN 接口失败: ${e.message}")
+        }
+        tunIn = null
+        tunOut = null
         super.onDestroy()
     }
 
     companion object {
         private const val TAG = "VpnServiceProxy"
         private const val NOTIFICATION_ID = 1001
+        private const val TUN_BUFFER_SIZE = 4096
+        private const val PRIMARY_DNS = "8.8.8.8"
+        private const val SECONDARY_DNS = "8.8.4.4"
         const val ACTION_CONNECT = "com.gamecenter.app.vpn.CONNECT"
         const val ACTION_DISCONNECT = "com.gamecenter.app.vpn.DISCONNECT"
         const val EXTRA_NODE_JSON = "node_json"

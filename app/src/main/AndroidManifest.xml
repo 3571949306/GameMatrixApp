@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -125,6 +126,14 @@
         <activity android:name=".games.chinesechess.ChineseChessActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <activity android:name=".games.game2048.Game2048Activity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
 
+        <!-- 浏览器模块 -->
+        <activity android:name=".browser.ui.BrowserActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="unspecified" />
+        <activity android:name=".browser.ui.HistoryActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".browser.ui.BookmarkActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".browser.ui.DownloadActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".browser.ui.TabManagerActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".browser.ui.BrowserSettingsActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+
         <activity
             android:name=".recovery.RecoveryActivity"
             android:exported="false"
@@ -157,7 +166,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.update.fileprovider"
+            android:authorities="${applicationId}.browser.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

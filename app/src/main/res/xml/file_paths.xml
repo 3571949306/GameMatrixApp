@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- 公共 Download 目录，用于存放用户可直接访问的 APK -->
-    <external-path
-        name="public_downloads"
-        path="Download/" />
-    
-    <!-- 应用私有外部 Download 目录 -->
-    <external-files-path
-        name="external_downloads"
-        path="Download/update/" />
-
-    <!-- 内部存储目录 -->
-    <files-path
-        name="internal_downloads"
-        path="update/" />
-
-    <!-- 缓存目录 -->
-    <cache-path
-        name="cache"
-        path="/" />
+    <external-path name="public_downloads" path="Download/" />
+    <external-files-path name="app_downloads" path="Download/" />
+    <files-path name="files" path="." />
+    <cache-path name="cache" path="." />
 </paths>

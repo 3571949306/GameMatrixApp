@@ -30,6 +30,7 @@ def configuredRelayUrl = ""
 def configuredWsUrl = ""
 def configuredFeedbackUrl = ""
 def configuredMimoApiKey = ""
+def configuredMimoApiUrl = ""
 
 if (localPropsFile.exists()) {
     localPropsFile.withReader("UTF-8") { reader ->
@@ -45,6 +46,7 @@ if (localPropsFile.exists()) {
                 if (key == "ws.url") configuredWsUrl = val
                 if (key == "feedback.url") configuredFeedbackUrl = val
                 if (key == "mimo.api.key") configuredMimoApiKey = val
+                if (key == "mimo.api.url") configuredMimoApiUrl = val
             }
         }
     }
@@ -157,7 +159,7 @@ def buildVersionJsonText = {
 
 android {
     namespace "com.gamecenter.app"
-    compileSdk 35
+    compileSdk 36
 
     signingConfigs {
         release {
@@ -199,6 +201,11 @@ android {
         // 五子棋增强功能开关：界面优化、AI增强、先手选择、计时、音效等
         buildConfigField "boolean", "GOMOKU_ENHANCED", "true"
 
+        // 浏览器模块功能开关
+        buildConfigField "boolean", "BROWSER_SECURITY_POLICY", "true"
+        buildConfigField "boolean", "BROWSER_JS_BRIDGE_ENABLED", "false"
+        buildConfigField "boolean", "BROWSER_WEBVIEW_DEBUG", "false"
+
         buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
@@ -206,6 +213,7 @@ android {
         buildConfigField "String", "WS_URL", toJavaStringLiteral(configuredWsUrl ?: "")
         buildConfigField "String", "FEEDBACK_URL", toJavaStringLiteral(configuredFeedbackUrl ?: "https://your-server.example.com/api/feedback")
         buildConfigField "String", "MIMO_API_KEY", toJavaStringLiteral(configuredMimoApiKey ?: "")
+        buildConfigField "String", "MIMO_API_URL", toJavaStringLiteral(configuredMimoApiUrl ?: "https://api.xiaomimimo.com/v1/chat/completions")
 
         // Derived from SERVER_URL — eliminates hardcoded server URLs in source code
         def _serverBase = configuredServerUrl ?: "https://your-server.example.com"
@@ -237,6 +245,8 @@ android {
         debug {
             // Debug 包默认开启测试模式：跳过权限说明弹窗、关闭自动更新检查等
             buildConfigField "boolean", "TEST_MODE", "true"
+            // Debug 包允许开启 WebView 远程调试（通过设置页开关控制）
+            buildConfigField "boolean", "BROWSER_WEBVIEW_DEBUG", "true"
             // Debug 包关闭 ABI 拆分，确保模拟器(x86_64)也能直接安装
             splits.abi.enable = false
         }
@@ -636,7 +646,7 @@ task bundlePreinstalledModules() {
 
     def moduleMappings = [
         // [模块项目路径, 源APK名, 目标文件名（与 modules.json 中 fileName 一致）]
-        [':module-store:feature:tools:browser',    'browser-debug.apk', 'feature_browser_v100.apk']
+        // 浏览器模块已删除，等待重建方案
     ]
 
     doLast {

@@ -17,9 +17,7 @@
     <ID>CyclomaticComplexMethod:RecoveryDownloader.kt$RecoveryDownloader$private fun downloadFromUrl( urlStr: String, targetFile: File, tempFile: File, callback: Callback? ): File?</ID>
     <ID>EmptyFunctionBlock:InstalledModulesActivity.kt$InstalledModulesActivity.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:ModuleStoreActivity.kt$ModuleStoreActivity.&lt;no name provided&gt;${}</ID>
-    <ID>EmptyFunctionBlock:RecoveryDownloader.kt$RecoveryDownloader.TrustAllX509TrustManager${}</ID>
     <ID>ForbiddenComment:ModuleDownloadManager.kt$ModuleDownloadManager$// TODO: 从 ModuleDownloader 获取实时进度</ID>
-    <ID>ForbiddenComment:RePluginModuleLoader.kt$RePluginModuleLoader$// TODO: T02 启用 RePlugin 时需要取消注释以下代码</ID>
     <ID>FunctionOnlyReturningConstant:SmartModuleLoader.kt$SmartModuleLoader$private fun createBuiltInFragment(moduleId: String): Fragment?</ID>
     <ID>LongMethod:ModuleAdapter.kt$ModuleAdapter$override fun onBindViewHolder(holder: ViewHolder, position: Int)</ID>
     <ID>LongMethod:ModuleDownloader.kt$ModuleDownloader$private suspend fun performDownload( moduleInfo: ModuleInfo, existingDownloadedSize: Long, onProgress: suspend (DownloadProgress) -&gt; Unit ): DownloadResult</ID>
@@ -75,17 +73,12 @@
     <ID>SwallowedException:ModuleShellFragment.kt$ModuleShellFragment$e: Exception</ID>
     <ID>ThrowsCount:ModuleDownloader.kt$ModuleDownloader$private suspend fun performDownload( moduleInfo: ModuleInfo, existingDownloadedSize: Long, onProgress: suspend (DownloadProgress) -&gt; Unit ): DownloadResult</ID>
     <ID>TooGenericExceptionCaught:CrashHandler.kt$CrashHandler$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:CrashHandler.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ModuleDownloader.kt$ModuleDownloader$e: Error</ID>
     <ID>TooGenericExceptionCaught:ModuleDownloader.kt$ModuleDownloader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ModuleLoader.kt$ModuleLoader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ModuleManager.kt$ModuleManager$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:ModuleResourceLoader.kt$ModuleResourceLoader$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:ModuleResourceLoader.kt$ModuleResourceLoader.ModuleResources$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ModuleShellFragment.kt$ModuleShellFragment$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ModuleStoreActivity.kt$ModuleStoreActivity$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:ModuleVersionChecker.kt$ModuleVersionChecker$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:RePluginModuleLoader.kt$RePluginModuleLoader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:RecoveryDownloader.kt$RecoveryDownloader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:RecoveryInstaller.kt$RecoveryInstaller$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VpnServiceProxy.kt$VpnServiceProxy$e: Exception</ID>
@@ -97,14 +90,12 @@
     <ID>UnusedImports:ModuleDownloadManager.kt$import okhttp3.Request</ID>
     <ID>UnusedImports:ModuleStoreActivity.kt$import android.widget.ProgressBar</ID>
     <ID>UnusedImports:ModuleVersionChecker.kt$import org.json.JSONArray</ID>
-    <ID>UnusedImports:RePluginModuleLoader.kt$import android.content.Context</ID>
     <ID>UnusedImports:VpnServiceProxy.kt$import java.io.InputStream</ID>
     <ID>UnusedImports:VpnServiceProxy.kt$import java.io.OutputStream</ID>
     <ID>UnusedParameter:ModuleCacheManager.kt$ModuleCacheManager$versionCode: Int</ID>
     <ID>UnusedParameter:ModuleDownloadManager.kt$ModuleDownloadManager$moduleId: String</ID>
     <ID>UnusedParameter:ModuleManager.kt$ModuleManager$context: Context</ID>
     <ID>UnusedParameter:ModuleVersionChecker.kt$ModuleVersionChecker$context: Context</ID>
-    <ID>UnusedParameter:RePluginModuleLoader.kt$RePluginModuleLoader$intent: android.content.Intent? = null</ID>
     <ID>UnusedParameter:SmartModuleLoader.kt$SmartModuleLoader$context: Context</ID>
     <ID>UnusedParameter:SmartModuleLoader.kt$SmartModuleLoader$moduleId: String</ID>
     <ID>UnusedPrivateProperty:CrashHandler.kt$CrashHandler$private const val TAG = "CrashHandler"</ID>

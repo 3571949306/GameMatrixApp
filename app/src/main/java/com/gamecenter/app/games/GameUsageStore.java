@@ -46,6 +46,17 @@ public final class GameUsageStore {
         prefs.edit().putLong("play_time_" + gameId, totalMs).apply();
     }
 
+    public void recordScore(String gameId, int score) {
+        int currentHigh = getHighScore(gameId);
+        if (score > currentHigh) {
+            prefs.edit().putInt("high_score_" + gameId, score).apply();
+        }
+    }
+
+    public int getHighScore(String gameId) {
+        return prefs.getInt("high_score_" + gameId, 0);
+    }
+
     public long getTotalPlayTimeMs(String gameId) {
         return prefs.getLong("play_time_" + gameId, 0L);
     }

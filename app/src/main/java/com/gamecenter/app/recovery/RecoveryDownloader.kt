@@ -9,7 +9,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import javax.net.ssl.HttpsURLConnection
+
 
 object RecoveryDownloader {
 
@@ -106,16 +106,7 @@ object RecoveryDownloader {
             setRequestProperty("User-Agent", "GameMatrixApp-Recovery/1.0")
         }
 
-        if (conn is HttpsURLConnection) {
-            try {
-                val sslContext = javax.net.ssl.SSLContext.getInstance("TLS")
-                sslContext.init(null, arrayOf(TrustAllX509TrustManager), java.security.SecureRandom())
-                conn.sslSocketFactory = sslContext.socketFactory
-                conn.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
-            } catch (e: Exception) {
-                Log.w(TAG, "SSL setup failed: ${e.message}")
-            }
-        }
+        // 使用系统默认 SSL 证书验证（已移除 TrustAll 绕过以防止 MITM 攻击）
 
         val existingBytes = if (tempFile.exists()) tempFile.length() else 0L
         if (existingBytes > 0) {
@@ -192,9 +183,5 @@ object RecoveryDownloader {
         return File(dir, "GameCenter_stable_recovery.apk")
     }
 
-    private object TrustAllX509TrustManager : javax.net.ssl.X509TrustManager {
-        override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-        override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-        override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-    }
+    // TrustAllX509TrustManager 已移除 — 使用系统默认 SSL 验证链防止 MITM 攻击
 }

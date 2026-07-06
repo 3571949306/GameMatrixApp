@@ -57,7 +57,6 @@ if (mimoTtsDir) {
 // 模块商店功能模块（英文路径）
 include ':module-store:feature:tools:vpn'
 include ':module-store:feature:games:games:game2048'
-include ':module-store:feature:tools:browser'
 include ':module-store:feature:tools:tools'
 include ':module-store:feature:tools:ai'
 include ':module-store:feature:games:games:hall'

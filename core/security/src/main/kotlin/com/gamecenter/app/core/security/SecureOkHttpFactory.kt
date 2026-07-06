@@ -48,7 +48,7 @@ object SecureOkHttpFactory {
      */
     @JvmStatic
     @JvmOverloads
-    fun setHosts(moduleHost: String, enablePinning: Boolean = false) {
+    fun setHosts(moduleHost: String, enablePinning: Boolean = true) {
         MODULE_HOST = moduleHost
         enableCertificatePinning = enablePinning
     }
