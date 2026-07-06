@@ -2,8 +2,9 @@
 
 > 本文档合并了原 `AI_CONTEXT.md`、`PROJECT_CONTEXT.md`、`AI_ONBOARDING.md`、`项目AI接手说明.md` 四个文档，供 AI 编程助手和新开发者阅读。
 
-**最后更新**: 2026-06-25  
-**当前版本**: versionCode=500, versionName=1.4.1
+**最后更新**: 2026-07-06  
+**当前版本**: versionCode=567, versionName=1.4.1
+**上次稳定版**: versionCode=465, versionName=1.4.0
 
 ---
 
@@ -14,13 +15,14 @@
 | 名称 | GameMatrixApp（夹层） |
 | 类型 | Android 游戏中心应用 |
 | 包名 | `com.gamecenter.app` |
-| 语言 | Java 17 (60%) + Kotlin 2.0.21 (40%) |
+| 语言 | Java 17 (约 55%) + Kotlin 2.0.21 (约 45%，循环23宿主 Kotlin 迁移后) |
 | 构建 | Gradle 8.13 + AGP 8.13.2 |
 | SDK | minSdk 24, targetSdk 35, compileSdk 35 |
 | DI | Hilt 2.57.2 |
-| 数据库 | Room 2.7.1 |
+| 数据库 | Room 2.7.1（浏览器模块 v2 schema 4 张表） |
 | 网络 | OkHttp 4.12.0 |
-| GitHub | `https://github.com/3571949306/GameMatrixApp.git` (main 分支) |
+| GitHub | `https://github.com/3571949306/GameMatrixApp.git` (main 分支，工作区干净) |
+| 最新 commit | `f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞` |
 
 ### 核心功能
 - 28 款内置经典游戏（经典/益智/休闲三大类）
@@ -30,7 +32,7 @@
 
 ---
 
-## 2. 当前状态（2026-06-25）
+## 2. 当前状态（2026-07-06）
 
 ### 构建状态
 ```
@@ -39,7 +41,15 @@
 ✅ ABI splits: arm64-v8a
 ✅ Lint 严格模式（abortOnError true）
 ✅ 证书绑定: Release 启用
+✅ 工作区干净，main 与 origin/main 同步
 ```
+
+### 循环 17-24 维护记录（2026-07-06）
+- **循环 17-19**：浏览器循环19重构为原生实现，新增 `browser/{bridge,core,data,security,ui}/` 包结构，Room 数据库（4 张表），AdBlocker/DomainTrustManager/JsBridgePolicy 安全模块
+- **循环 20**：wrongbook 模块预装集成（`assets/modules/feature_wrongbook_v100.apk`）
+- **循环 21-22**：错题本全面推进（Room v2 schema、自定义图表 View、科目管理、复习计划、数据导入导出）
+- **循环 23**：宿主 Kotlin 迁移完成（`App.java`/`MainActivity.java`/`GameRegistry.java` → `.kt`，位于 `app/src/main/kotlin/com/gamecenter/app/`）；新增 `core/moduleloader/.../ModuleContextHelper.kt`；新增 `.github/workflows/android_ci.yml` 和 `.github/dependabot.yml`
+- **循环 24**：Netty 4.1.134.Final → 4.1.135.Final，修复 7 个 CVE（3 high + 4 medium），GitHub Dependabot 0 open / 7 dismissed
 
 ### 适配状态
 ```
@@ -128,8 +138,8 @@ GameMatrixApp/
 
 | 文件 | 职责 |
 |------|------|
-| `App.java` | Application 入口，全局初始化 |
-| `MainActivity.java` | 主界面，底部导航 + 更新检查 |
+| `App.kt` | Application 入口，全局初始化（循环23由 `App.java` 迁移至 Kotlin，路径 `app/src/main/kotlin/com/gamecenter/app/App.kt`） |
+| `MainActivity.kt` | 主界面，底部导航 + 更新检查（循环23由 `MainActivity.java` 迁移至 Kotlin） |
 | `SplashActivity.java` | 启动页（已适配 SplashScreen API） |
 | `SettingsManager.java` | SharedPreferences 封装 |
 | `PermissionHelper.java` | 权限管理（含 POST_NOTIFICATIONS） |
@@ -138,7 +148,7 @@ GameMatrixApp/
 
 | 文件 | 职责 |
 |------|------|
-| `GameRegistry.java` | 游戏注册中心（静态 + @GameEntry + 动态） |
+| `GameRegistry.kt` | 游戏注册中心（静态 + @GameEntry + 动态，循环23由 `GameRegistry.java` 迁移至 Kotlin，路径 `app/src/main/kotlin/com/gamecenter/app/games/GameRegistry.kt`） |
 | `BaseGameActivity.java` | 游戏基类（屏幕方向锁定） |
 | `games/gomoku/` | 五子棋（UI/AI/音效/状态保存） |
 | `games/doudizhu/` | 斗地主（单机 + 三模联机） |
@@ -154,8 +164,23 @@ GameMatrixApp/
 | `ModuleDownloader.kt` | 模块下载器（多源/SHA-256 校验） |
 | `ModuleResourceLoader.kt` | 模块资源加载（反射私有 API） |
 | `ModuleStoreActivity.kt` | 模块商店界面 |
+| `ModuleContextHelper.kt` | 模块上下文辅助（循环23新增，位于 `core/moduleloader/`） |
 
-### 5.4 更新系统
+### 5.4 动态模块（共 9 个，循环 20 起）
+
+| 模块 | 路径 | 说明 |
+|------|------|------|
+| hall | `module-store/feature/games/games/hall` | 游戏大厅容器 |
+| chinesechess | `module-store/feature/games/games/chinesechess` | 中国象棋 |
+| game2048 | `module-store/feature/games/games/game2048` | 2048 |
+| klotski | `module-store/feature/games/games/klotski` | 华容道 |
+| tts | `module-store/feature/games/games/tts` | TTS 语音合成 |
+| ai | `module-store/feature/tools/ai` | AI 智能助手 |
+| tools | `module-store/feature/tools/tools` | 工具箱 |
+| vpn | `module-store/feature/tools/vpn` | 科学上网 VPN |
+| wrongbook | `module-store/feature/tools/wrongbook` | 错题本（循环20预装集成，`assets/modules/feature_wrongbook_v100.apk`） |
+
+### 5.5 更新系统
 
 | 文件 | 职责 |
 |------|------|
@@ -164,14 +189,17 @@ GameMatrixApp/
 | `UpdateInstaller.java` | APK 安装器（FileProvider URI） |
 | `UpdateViewModel.kt` | 更新 ViewModel（@HiltViewModel） |
 
-### 5.5 安全模块
+### 5.6 安全模块
 
 | 文件 | 职责 |
 |------|------|
 | `SecureOkHttpFactory.kt` | 证书绑定开关（Release 启用） |
 | `SSLHelper.java` | SSL 信任管理 |
+| `browser/security/AdBlocker` | 浏览器广告拦截（循环19新增） |
+| `browser/security/DomainTrustManager` | 域名信任管理（循环19新增） |
+| `browser/security/JsBridgePolicy` | JS Bridge 安全策略（循环19新增） |
 
-### 5.6 联机模块
+### 5.7 联机模块
 
 | 文件 | 职责 |
 |------|------|
@@ -252,7 +280,7 @@ python tools/upload_to_github_release.py --apk app/build/outputs/apk/release/app
 
 ### 8.1 version.properties
 ```properties
-versionCode=500          # 内部版本号（每次构建自动递增）
+versionCode=567          # 内部版本号（每次构建自动递增）
 versionName=1.4.1        # 展示版本号
 lastStableVersionCode=465
 lastStableVersionName=1.4.0
@@ -304,7 +332,7 @@ feedback.url=https://<DOMAIN>/api/feedback
 | `README.md` | 项目总览、功能介绍 |
 | `CHANGELOG.md` | 版本更新历史 |
 | `CODE_WIKI.md` | 详细代码架构说明 |
-| `修改记录.md` | 16 轮修复循环的完整变更历史 |
+| `修改记录.md` | 24 轮修复循环的完整变更历史 |
 | `docs/PROJECT_STATUS.md` | 项目当前状态总览（合并自 7 个审计文档） |
 | `docs/DOCUMENTATION_INDEX.md` | 文档统一索引 |
 | `docs/PUBLISH_GUIDE.md` | 发布指南 |

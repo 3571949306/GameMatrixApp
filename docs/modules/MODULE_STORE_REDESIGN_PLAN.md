@@ -1,6 +1,9 @@
 # Module Store Redesign Plan
 
 Date: 2026-06-25
+Last updated: 2026-07-06 (cycles 19-24 review)
+Current version: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+Project root: d:\Developmment\GameMatrixApp
 
 Scope: redesign the GameMatrixApp module store so app functionality can evolve independently from the host APK.
 
@@ -233,12 +236,14 @@ Supported module kinds should be explicit:
 
 | Kind | Use | Loader |
 | --- | --- | --- |
-| `feature-apk` | Browser, tools, AI, VPN UI, game modules | DexClassLoader/module-host |
+| `feature-apk` | Browser, tools, AI, VPN UI, wrongbook, game modules | DexClassLoader/module-host |
 | `asset-pack` | images, audio, rules, level data, model files | file/resource resolver |
 | `config-pack` | feature flags, balance, remote config | config registry |
 | `web-bundle` | HTML/JS/CSS app surface | WebView sandbox |
 | `unity-content` | Unity Addressables/AssetBundles/catalogs | Unity content updater |
 | `host-update` | main APK update advertised in store | Android PackageInstaller |
+
+> **2026-07-06 review**: `wrongbook` (cycle 20) is a `feature-apk` preinstalled under `module-store/feature/tools/wrongbook/`, controlled by `ENABLE_WRONGBOOK` feature flag. It joins the existing 9 dynamic APK modules (games/{hall,chinesechess,game2048,klotski,tts} + tools/{ai,browser,tools,vpn}).
 
 The store can show all of them, but the install path must differ by `kind`.
 
@@ -355,6 +360,8 @@ Goal:
 
 ### P5: Convert Existing Features To Store-Owned Modules
 
+> **2026-07-06 review**: `wrongbook` (cycle 20) is inserted into the migration order as a new tools-family module. It is already preinstalled as a `feature-apk` under `module-store/feature/tools/wrongbook/`.
+
 Order:
 
 1. Browser
@@ -362,9 +369,10 @@ Order:
 3. AI assistant
 4. TTS
 5. VPN UI
-6. Games hall
-7. Individual games
-8. Optional settings/help/onboarding surfaces
+6. **wrongbook** (cycle 20 added; preinstalled, controlled by `ENABLE_WRONGBOOK` feature flag)
+7. Games hall
+8. Individual games
+9. Optional settings/help/onboarding surfaces
 
 Each conversion must define:
 
@@ -436,6 +444,52 @@ The redesign is successful when:
 8. Implement signed catalog verification before expanding executable module delivery outside the internal VPS-controlled flow.
 9. Move UI routing to module contributions after install transactions are reliable.
 10. Only then migrate games and large Unity content.
+
+## Implementation Progress (2026-07-06 review, cycles 19-24)
+
+> This section records actual progress against the P0–P6 phases after cycles 19-24.
+
+### Infrastructure already in place
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `core/common` ModuleInterface / FeatureModule / IModule | ✅ exists | Four conceptually similar interfaces still coexist (see `track-platform` P0-2); consolidation is MT-2, not started |
+| `core/module-host` ClassLoader pool | ✅ exists | Used by production path |
+| `core/moduleloader` DexClassLoader + AssetManager.addAssetPath | ✅ exists | v2 candidate (`ModuleLoaderV2`) written but not wired into business code (see `track-platform` §1.4) |
+| `core/modulestore` installer/downloader concepts | ✅ exists | Reusable for new store runtime |
+| `ModuleContextHelper` (cross-APK resource access) | ✅ exists | Wraps `AssetManager.addAssetPath()` + ContextWrapper; used by modules to resolve layout/drawable/string across APK boundaries |
+| `ModuleShellFragment` (host-owned Fragment shell) | ✅ exists | Hosts module-declared Fragments without relying on module APK Activity routing |
+| GitHub Actions CI (`.github/workflows/android_ci.yml`) | ✅ online (cycle 23) | lint + test + debug build + gitleaks; JDK 17 |
+| Dependabot (`.github/dependabot.yml`) | ✅ online (cycle 23) | Weekly Gradle + GitHub Actions scan; 0 open alerts after cycle 24 Netty fix |
+
+### P0–P6 phase status
+
+| Phase | Description | Status | Notes |
+|-------|-------------|--------|-------|
+| P0 | Freeze the contract (ModuleManifest v3, module API, install state, signing policy, navigation contribution) | ⚠️ Not started | `ModuleManifest` still has three models (app/core:common/core:module-host); signing policy is SHA-256 only (no signer check) |
+| P1 | Shell infrastructure + seed modules | 🔄 Partial | Existing `core/module-*` blocks reused; `ModuleEntryPoint` / `ModuleMetadata` / `IntentResult` / `ModuleCategory` not yet extended in `core/common` |
+| P2 | Split catalog from APK fallback | ⚠️ Not started | `assets/modules.json` still treated as current; remote signed catalog not implemented |
+| P3 | Transactional installer (`staging/current/last_good`) | ⚠️ Not started | Current install path is download → verify SHA-256 → install directly, no `last_good` rollback |
+| P4 | Host UI module-declared | ⚠️ Not started | Bottom navigation still hardcoded in `MainActivity.kt`; wrongbook tab added via `ENABLE_WRONGBOOK` flag but not module-driven |
+| P5 | Convert existing features to store-owned modules | 🔄 Partial | 9 dynamic APK modules exist and are preinstalled (including cycle-20 `wrongbook`); store-owned update/rollback not yet possible |
+| P6 | Unity + large content packs | ⚠️ Not started | Out of scope for cycles 19-24 |
+
+### Cycle 19-24 deltas relevant to this plan
+
+| Cycle | Delta | Impact on plan |
+|-------|-------|----------------|
+| 19 | Browser native refactor | P5 step 1 (Browser) effectively advanced |
+| 20 | `wrongbook` module preinstalled | P5 list extended; `ENABLE_WRONGBOOK` feature flag pattern should become the default for new preinstalled modules |
+| 21-22 | Host Kotlin migration (App / MainActivity / GameRegistry) | P4 prerequisite: when host UI becomes module-declared, Kotlin migration reduces churn |
+| 23 | CI online (android_ci.yml + dependabot.yml) | P0/P3 verification work can lean on CI; new install-path tests should be added to `lint-and-test` job |
+| 24 | Netty 4.1.134 → 4.1.135.Final (7 CVE) | Transitive dependency only; no runtime impact on APK, but validates Dependabot workflow |
+
+### Recommended next actions (revised)
+
+1. **P0 first**: collapse `ModuleManifest` to one model before adding any new module-level fields. The wrongbook preinstall added metadata in the existing 25-field model, which is fine short-term but increases the debt if P0 keeps slipping.
+2. **Codify the `ENABLE_*` feature flag pattern** as part of P1: every preinstalled module should have one (wrongbook sets the example).
+3. **Add install-transaction tests to CI**: when P3 starts, the `lint-and-test` job should cover download → verify → promote → launch → rollback.
+4. **Wire `ModuleContextHelper` + `ModuleShellFragment` into the docs**: they are the supported cross-APK boundary helpers; new modules should use them instead of hand-rolled `AssetManager.addAssetPath()` calls.
 
 
 ---

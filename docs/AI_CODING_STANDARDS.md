@@ -40,6 +40,17 @@
 - 新 Activity 必须声明在宿主 `AndroidManifest.xml`，动态 APK 内 manifest 不会自动并入已安装宿主。
 - 崩溃恢复模式可能因为之前崩溃计数进入 `RecoveryActivity`，测试时可用 `adb shell pm clear com.gamecenter.app` 清干净状态。
 
+### 2.1.1 宿主 Kotlin 迁移后的文件放置规则
+
+循环23 已完成宿主 Kotlin 迁移，`App.kt` / `MainActivity.kt` / `GameRegistry.kt` 已是 Kotlin 文件（详见 `docs/DONT_DO_THIS.md`，不要改回 Java）。
+
+新增 Kotlin 文件放置规则：
+
+- 宿主 Kotlin 源码统一放在 `app/src/main/kotlin/com/gamecenter/app/` 目录下。
+- 不要把新的 `.kt` 文件放到 `app/src/main/java/` 下混用（虽然 Gradle 允许，但本项目约定走 kotlin 目录）。
+- 如果新文件和已迁移的 `App.kt` / `MainActivity.kt` / `GameRegistry.kt` 同包，直接放在同目录即可。
+- 不要为了"统一"把现有 Java 文件批量迁 Kotlin，迁移是逐文件、按循环推进的。
+
 ### 2.2 Dynamic Modules
 
 动态模块主要在 `module-store/feature/` 下。它们不是普通 app 内代码，必须遵守以下规则：
@@ -154,6 +165,18 @@ $zip.Dispose()
 - 改 lint baseline 前先确认对应文件是否还存在。
 - 不要为了过构建随意删除有效 lint 项。
 
+### 4.4 Netty 安全版本约束
+
+循环24（commit `f978f06`）已把 Netty 从 `4.1.134.Final` 升级到 `4.1.135.Final`，修复 7 个 CVE。
+
+约束：
+
+- **不要降级 Netty** 到 4.1.134.Final 及以下。降级会重新触发 7 个 GitHub Dependabot 告警，并让构建链路重新引入已知漏洞。
+- 如果需要调整 Netty 版本，只能用 `4.1.135.Final` 或更高。
+- Netty 是 Gradle / MediaPipe / Robolectric 的传递依赖，**不进入 APK runtime**，但仍需保持版本合规以维护构建链路安全。
+- 不要为了"消除告警"而 dismiss 新出现的 Netty 告警，必须先确认是否已升级到修复版本。
+- 详见 `docs/SECURITY.md`、`docs/NETWORK_LAYER.md` 和 `docs/DONT_DO_THIS.md`。
+
 ## 5. 模拟器验证规则
 
 ### 5.1 设备选择
@@ -214,6 +237,13 @@ module-store/feature/tools/wrongbook/
 - `CaptureActivity` 不能作为动态模块 Activity 直接启动，除非宿主 manifest/代理 Activity 支持。
 - 加号入口必须防崩；如果要完整可用，需要进一步做宿主代理或 Fragment 化。
 - 修改错题本后必须确认 `feature_wrongbook_v100.apk` 已进入宿主 APK 的 `assets/modules/`。
+
+### 6.1 预装与推进状态
+
+- **循环20**：错题本预装已完成。`feature_wrongbook_v100.apk` 已进入宿主 APK 的 `assets/modules/`，新版本发布后用户首次安装即可用，无需额外下载。
+- **循环21-23**：错题本全面推进已完成。包括宿主代理接入、Fragment 化路径、tab 切换稳定性、加号入口防崩等。
+- **当前状态**：错题本处于"预装 + 全面推进"完成后的稳定维护阶段。后续改动按正常动态模块流程处理，不需要再走预装初始化或全面推进的特殊流程。
+- **验证要求**：改错题本后仍需按 3.1 / 3.2 重新构建预置模块并验证 `assets/modules/feature_wrongbook_v100.apk` 的大小/SHA-256。
 
 错题本最小验收：
 
