@@ -201,6 +201,9 @@ android {
         // 五子棋增强功能开关：界面优化、AI增强、先手选择、计时、音效等
         buildConfigField "boolean", "GOMOKU_ENHANCED", "true"
 
+        // Phase 2: AI 错题本模块开关（预装）
+        buildConfigField "boolean", "ENABLE_WRONGBOOK", "true"
+
         // 浏览器模块功能开关
         buildConfigField "boolean", "BROWSER_SECURITY_POLICY", "true"
         buildConfigField "boolean", "BROWSER_JS_BRIDGE_ENABLED", "false"
@@ -646,7 +649,7 @@ task bundlePreinstalledModules() {
 
     def moduleMappings = [
         // [模块项目路径, 源APK名, 目标文件名（与 modules.json 中 fileName 一致）]
-        // 浏览器模块已删除，等待重建方案
+        [':module-store:feature:tools:wrongbook', 'wrongbook-debug.apk', 'feature_wrongbook_v100.apk']
     ]
 
     doLast {
@@ -685,6 +688,7 @@ afterEvaluate {
         ':module-store:feature:tools:browser:assembleDebug',
         ':module-store:feature:tools:tools:assembleDebug',
         ':module-store:feature:tools:ai:assembleDebug',
+        ':module-store:feature:tools:wrongbook:assembleDebug',
         ':module-store:feature:games:games:tts:assembleDebug'
     ]
 

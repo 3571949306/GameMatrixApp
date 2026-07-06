@@ -49,4 +49,14 @@
             android:defaultValue="vpn" />
     </keep_state_fragment>
 
+    <keep_state_fragment
+        android:id="@+id/navigation_wrongbook"
+        android:name="com.gamecenter.app.features.ModuleShellFragment"
+        android:label="@string/nav_wrongbook">
+        <argument
+            android:name="module_id"
+            app:argType="string"
+            android:defaultValue="wrongbook" />
+    </keep_state_fragment>
+
 </navigation>

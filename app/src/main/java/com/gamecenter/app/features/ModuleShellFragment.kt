@@ -135,6 +135,7 @@ class ModuleShellFragment : Fragment() {
             "fragment-${R.id.navigation_tools}" -> "tools"
             "fragment-${R.id.navigation_ai}" -> "ai"
             "fragment-${R.id.navigation_vpn}" -> "vpn"
+            "fragment-${R.id.navigation_wrongbook}" -> "wrongbook"
             else -> null
         }
     }
