@@ -11,6 +11,48 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ---
 
+## 2026-07-06 v1.4.1 循环 17-24 维护版
+
+### 🌐 循环 17-19：浏览器循环19重构为原生实现
+- **包结构重组**：`app/src/main/java/com/gamecenter/app/browser/{bridge,core,data,security,ui}/`
+- **Room 数据库**：4 张表（浏览历史/书签/下载/cookie）
+- **安全模块**：AdBlocker、DomainTrustManager、JsBridgePolicy
+- **卸载第三方 WebView 依赖**，使用原生 Android WebView 实现
+
+### 📚 循环 20：wrongbook 模块预装集成
+- **错题本模块**：`module-store/feature/tools/wrongbook`
+- **预装 APK**：`assets/modules/feature_wrongbook_v100.apk`
+- 支持科目管理、复习计划、数据导入导出
+
+### 📖 循环 21-22：错题本全面推进
+- Room v2 schema 升级
+- 自定义图表 View（科目统计/复习进度）
+- 科目管理、复习计划、数据导入导出
+
+### 🔧 循环 23：宿主 Kotlin 迁移完成
+- `App.java`/`MainActivity.java`/`GameRegistry.java` → `.kt`
+- 路径：`app/src/main/kotlin/com/gamecenter/app/{App.kt, MainActivity.kt, games/GameRegistry.kt}`
+- 新增 `core/moduleloader/.../ModuleContextHelper.kt`
+- 新增 `.github/workflows/android_ci.yml`、`.github/dependabot.yml`
+- 语言比例：Java 约 55% + Kotlin 约 45%
+
+### 🔒 循环 24：Netty 安全漏洞修复
+- Netty 4.1.134.Final → 4.1.135.Final
+- 修复 7 个 CVE（3 high + 4 medium）：
+  - High: CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249
+  - Medium: CVE-2026-50560 / CVE-2026-50020 / CVE-2026-48043 / CVE-2026-47244
+- GitHub Dependabot：0 open / 7 dismissed
+- 最新 commit：`f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
+
+### 📦 版本信息
+- `versionCode`: 567
+- `versionName`: 1.4.1
+- 上次稳定版: 465 / 1.4.0
+- 包名: `com.gamecenter.app`
+- 分发: HK VPS（主）+ GitHub Releases（备）
+
+---
+
 ## 2026-06-22 v1.4.1 更新逻辑优化版
 
 ### 🚀 更新逻辑优化
@@ -155,16 +197,21 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ### 🧩 扩展游戏与独立功能模块（市场下载） / Market Downloads
 
+> 循环 20 起共 9 个动态模块（5 游戏 + 4 工具），wrongbook 通过 `assets/modules/feature_wrongbook_v100.apk` 预装集成。
+
 | 模块名 | 模块类型 | 加载格式 | 动态注册大厅/Tab |
 |------|:-------:|:------:|:------:|
+| 游戏大厅 hall | 独立功能模块 (APK) | APK 动态插件 | ✅ 大厅容器模块 |
 | 中国象棋 Chinese Chess | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅且支持云联机 |
+| 2048 | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅 |
 | 华容道 Klotski | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅 |
-| 飞刀大师 Knife | 独立功能模块 (APK) | APK 动态插件 | ✅ 注册回大厅 |
-| 浏览器 Browser | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增“浏览器”导航 Tab |
-| 工具箱 Tools | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增“工具箱”导航 Tab |
-| AI 智能助手 AI | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增“AI助手”导航 Tab |
+| TTS 语音合成 | 独立功能模块 (APK) | APK 动态插件 | ✅ 提供语音合成能力 |
+| 浏览器 Browser | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增"浏览器"导航 Tab（循环19原生重构） |
+| 工具箱 Tools | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增"工具箱"导航 Tab |
+| AI 智能助手 AI | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后新增"AI助手"导航 Tab |
 | 科学上网 VPN | 独立功能模块 (APK) | APK 动态插件 | ✅ 启用后提供全局 VPN 服务支持 |
-| 2048 等 23 款益智/休闲游戏 | 扩展小游戏 (ZIP) | ZIP 压缩资源包 | ✅ 自动解压并加载注册至大厅 |
+| 错题本 wrongbook | 独立功能模块 (APK) | APK 动态插件（预装） | ✅ 循环20预装集成（assets/modules/feature_wrongbook_v100.apk） |
+| 23 款益智/休闲游戏 | 扩展小游戏 (ZIP) | ZIP 压缩资源包 | ✅ 自动解压并加载注册至大厅 |
 
 > **联机说明 / Multiplayer Note**：**斗地主、五子棋、围棋、中国象棋、石头剪刀布** 均支持 WebSocket 云联机对战，联机游戏支持内联聊天功能。其余游戏均为单机模式。
 
@@ -245,7 +292,7 @@ App 下载更新时自动尝试以下下载源，优先级从高到低：
 ### 自动换源机制 / Auto-Switch Mechanism
 
 - **速度检测**：下载开始后 3 秒检测下载速度
-- **换源阈值**：低于 50 KB/s 自动切换到下一个下载源
+- **换源阈值**：低于 30 KB/s 自动切换到下一个下载源（v1.4.1 起从 50 KB/s 下调）
 - **无缝切换**：切换时自动删除不完整的临时文件
 
 ### 版本分发策略 / Version Distribution Strategy
@@ -507,10 +554,15 @@ GameMatrixApp/
 │   └── src/main/
 │       ├── AndroidManifest.xml               # 应用清单
 │       ├── assets/
-│       │   └── version.json                  # 内置版本信息（自动生成）
-│       ├── java/com/GameMatrix/app/
-│       │   ├── App.java                      # 应用入口，全局初始化
-│       │   ├── MainActivity.java             # 主界面（底部导航 + 更新检查）
+│       │   ├── version.json                  # 内置版本信息（自动生成）
+│       │   └── modules/                      # 预装动态模块 APK（如 feature_wrongbook_v100.apk）
+│       ├── java/com/gamecenter/app/          # Java 源码（约 55%）
+│       │   ├── browser/                      # 浏览器模块（循环19原生重构）
+│       │   │   ├── bridge/                   # JS Bridge
+│       │   │   ├── core/                     # 浏览器核心
+│       │   │   ├── data/                     # Room 数据库（4 张表）
+│       │   │   ├── security/                 # AdBlocker/DomainTrustManager/JsBridgePolicy
+│       │   │   └── ui/                       # 浏览器 UI
 │       │   ├── ColorSchemeManager.java       # 主题配色管理
 │       │   ├── PermissionManager.java        # 权限管理（位置/相机/存储权限）
 │       │   ├── fragments/                    # 三个主页面 Fragment
@@ -524,23 +576,31 @@ GameMatrixApp/
 │       │   │   ├── LANManager.java           # 局域网服务发现
 │       │   │   └── WebSocket*Helper.java     # WebSocket 联机辅助
 │       │   ├── games/                        # 26 款游戏模块
-│       │   │   ├── GameRegistry.java         # 游戏注册中心（双轨制：静态+@GameEntry+动态注册）
 │       │   │   ├── GameEntry.java            # @GameEntry 注解（游戏自声明元数据）
 │       │   │   ├── GameUsageStore.java       # 使用记录存储
 │       │   │   ├── GameTutorialHelper.java   # 教程弹窗管理
 │       │   │   ├── doudizhu/                 # 斗地主（三模联机）
 │       │   │   ├── rock/                     # 石头剪刀布 + RockOnlineActivity
 │       │   │   ├── gomoku/                   # 五子棋 + GomokuOnlineActivity
-│       │   │   ├── chinesechess/              # 中国象棋 + ChineseChessOnlineActivity
+│       │   │   ├── chinesechess/             # 中国象棋 + ChineseChessOnlineActivity
 │       │   │   ├── go/                       # 围棋 + GoOnlineActivity
 │       │   │   └── [其他 23 款单机游戏]
 │       │   ├── tools/                        # 工具箱实现（26+ 工具）
 │       │   │   ├── ToolSectionStore.java     # 工具分类与排序
 │       │   │   ├── AdvancedToolBinders.java  # 高级工具绑定
-│       │   │   └── *ToolBinder.java         # 各种工具绑定器
+│       │   │   └── *ToolBinder.java          # 各种工具绑定器
 │       │   ├── utils/                        # 通用工具
 │       │   ├── views/                        # 自定义 View
 │       │   └── settings/                     # 设置弹窗
+│       ├── kotlin/com/gamecenter/app/        # Kotlin 源码（约 45%，循环23宿主 Kotlin 迁移后）
+│       │   ├── App.kt                        # 应用入口，全局初始化（由 App.java 迁移）
+│       │   ├── MainActivity.kt               # 主界面（底部导航 + 更新检查，由 .java 迁移）
+│       │   ├── games/
+│       │   │   └── GameRegistry.kt           # 游戏注册中心（双轨制：静态+@GameEntry+动态注册，由 .java 迁移）
+│       │   ├── database/                     # Room 数据库
+│       │   ├── di/                           # Hilt 依赖注入
+│       │   ├── update/                       # 更新子系统（UpdateViewModel.kt 等）
+│       │   └── util/                         # Kotlin 工具
 │       ├── res/                              # 资源文件
 │       │   ├── layout/                       # 布局文件
 │       │   ├── drawable/                     # 图标与形状
@@ -551,15 +611,17 @@ GameMatrixApp/
 ├── core/
 │   ├── common/                               # 通用基础模块
 │   │   └── src/main/
-│   │       ├── java/com/GameMatrix/app/
+│   │       ├── java/com/gamecenter/app/
 │   │       │   └── SettingsManager.java      # 设置管理（SharedPreferences）
-│   │       └── kotlin/com/GameMatrix/app/util/
+│   │       └── kotlin/com/gamecenter/app/util/
 │   │           ├── AppResult.kt              # 通用结果模型
 │   │           ├── AppError.kt               # 错误模型
 │   │           ├── NetworkResult.kt          # 网络结果模型
 │   │           └── Extensions/Lazy/Memory/Accessibility helpers
+│   ├── moduleloader/                         # 模块加载引擎
+│   │   └── .../ModuleContextHelper.kt        # 循环23新增
 │   ├── network/                              # 基础网络模块
-│   │   └── src/main/java/com/GameMatrix/app/
+│   │   └── src/main/java/com/gamecenter/app/
 │   │       ├── network/
 │   │       │   ├── OkHttpClientProvider.java # HTTP/WebSocket 客户端
 │   │       │   ├── RelayHttpClient.java      # Relay HTTP + WebSocket URL
@@ -568,20 +630,32 @@ GameMatrixApp/
 │   │       └── utils/NetworkErrorHandler.java
 │   └── update/                               # 更新子系统模块
 │       └── src/main/
-│           ├── java/com/GameMatrix/app/update/
+│           ├── java/com/gamecenter/app/update/
 │           │   ├── UpdateManager.java        # 更新检查、下载、安装入口
 │           │   ├── UpdateChecker.java        # 版本检查策略
 │           │   ├── UpdateDownloader.java     # APK 下载与校验
 │           │   ├── UpdateInstaller.java      # 安装与目录打开
 │           │   └── UpdateInfo.java           # 版本信息数据模型
-│           └── kotlin/com/GameMatrix/app/update/
+│           └── kotlin/com/gamecenter/app/update/
 │               └── UpdateViewModel.kt        # 生命周期安全的更新 ViewModel
+├── module-store/feature/                     # 动态功能模块（共 9 个）
+│   ├── games/games/                          # 游戏动态模块（5 个）
+│   │   ├── hall/                             # 游戏大厅模块
+│   │   ├── chinesechess/                     # 中国象棋
+│   │   ├── game2048/                         # 2048
+│   │   ├── klotski/                          # 华容道
+│   │   └── tts/                              # TTS 语音合成
+│   └── tools/                                # 工具动态模块（4 个）
+│       ├── ai/                               # AI 智能助手
+│       ├── tools/                            # 工具箱
+│       ├── vpn/                              # 科学上网 VPN
+│       └── wrongbook/                        # 错题本（循环20预装集成）
 ├── tools/
 │   ├── upload_to_vps.py                      # 上传 APK 到 VPS
 │   ├── upload_to_github_release.py           # 上传 APK 到 GitHub Releases
 │   ├── check_vps_nginx.py                    # VPS nginx 配置检查
 │   ├── verify_vps.py                         # VPS 验证脚本
-│   ├── publish-all.py                         # 一键发布脚本
+│   ├── publish-all.py                        # 一键发布脚本
 │   └── archive/                              # 临时脚本存档
 ├── vps/                                      # VPS 部署模板
 │   ├── var_www_update/                       # 更新服务模板
@@ -590,9 +664,11 @@ GameMatrixApp/
 │   │   └── ddz_relay/                        # Relay 服务模板
 │   ├── ddz_ws_relay/                         # WebSocket Relay 服务
 │   └── nginx/                                # nginx 配置模板
+├── .github/
+│   ├── workflows/android_ci.yml              # GitHub Actions CI/CD（循环23新增）
+│   └── dependabot.yml                        # Dependabot 配置（循环23新增）
 ├── gradle/wrapper/                           # Gradle Wrapper
 ├── docs/                                     # 技术文档
-├── .github/workflows/                        # GitHub Actions CI/CD
 ├── .gitignore                                # Git 忽略规则
 ├── local.properties.template                 # 本地配置模板
 ├── .editorconfig                             # 编辑器配置
@@ -717,7 +793,8 @@ jarsigner -verify app-release.apk
 
 | 版本 | 日期 | 类型 | 主要更新 |
 |------|------|------|----------|
-| v500 (1.4.1) | 2026-06-22 | Stable | 更新逻辑优化：缓存/重试/MD5预检查、超时优化、新增功能模块UI测试 |
+| v567 (1.4.1) | 2026-07-06 | Stable | 循环17-24：浏览器原生重构、wrongbook 模块预装、错题本全面推进、宿主 Kotlin 迁移、Netty 安全漏洞修复 |
+| v466 (1.4.1) | 2026-06-22 | Stable | 更新逻辑优化：缓存/重试/MD5预检查、超时优化、新增功能模块UI测试 |
 | v465 (1.4.0) | 2026-06-21 | Stable | 28个游戏内嵌、线程架构优化(-77%)、UI优化、成就系统、模块化重构 |
 | v341 (1.4.0) | 2026-05-26 | Stable | modules.json v11：23款新游戏模块、证书绑定临时关闭、R8 Debug关闭、SHA-256校验修复 |
 | v224 (1.3.19) | 2026-05-12 | Stable | 双版本分发架构重构、版本检查问题修复、自定义更新源切换修复 |

@@ -15,6 +15,7 @@ VPN 模块是 GameCenter 的可下载功能模块，提供多协议科学上网�
 | 模块商店分类 | vpn |
 | 是否内置 | 否（需从模块商店下载） |
 | 当前状态 | 独立 APK 模块，已实现动态加载 |
+| 模块路径 | `module-store/feature/tools/vpn/` |
 
 ## 架构
 
@@ -30,7 +31,7 @@ VPN 模块是 GameCenter 的可下载功能模块，提供多协议科学上网�
 |----|------|------|
 | `VpnModuleEntryPoint` | `com.gamecenter.app.vpn` | 模块入口点，实现 `ModuleInterface` 和 `FeatureModule` |
 | `VpnFragment` | `com.gamecenter.app.vpn` | VPN 主界面 Fragment，展示连接状态和控制按钮 |
-| `VpnServiceProxy` | `com.gamecenter.app.vpn.service`（在 :app 中） | VPN 服务代理，处理 VpnService 生命周期 |
+| `VpnServiceProxy` | `com.gamecenter.app.vpn.service`（在 :app 中，已 Kotlin 化为 `VpnServiceProxy.kt`） | VPN 服务代理，处理 VpnService 生命周期 |
 
 ### 协议支持
 
@@ -102,10 +103,11 @@ dependencies {
 
 ## 参考价值
 
-VPN 模块是当前唯一已实现的动态加载模块，其架构可作为游戏模块化的参考模板。关键差异：
+VPN 是早期动态加载模块的代表，其架构可作为游戏与工具模块化的参考模板。项目现已扩展至 9 个动态模块（games/{hall,chinesechess,game2048,klotski,tts} + tools/{ai,tools,vpn,wrongbook}），VPN 模块的实践为后续模块奠定了基础。关键差异：
 - VPN 模块无资源文件（纯代码），游戏模块有大量布局、图片和音频资源
 - VPN 模块通过 Fragment 加载，游戏模块需要直接启动 Activity
 - 游戏模块的资源加载需要额外的 `AssetManager` 合并处理
+- 后续工具模块（tools / ai / wrongbook）沿用了 VPN 的 `compileOnly` + `FeatureModule.createFragment()` 模式
 
 
 ---

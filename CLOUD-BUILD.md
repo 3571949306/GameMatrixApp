@@ -2,6 +2,8 @@
 
 > **本项目** : GameMatrixApp — Android 多模块游戏中心，含 DDZ、WebSocket Relay、模块化（ClassLoader + DexClassLoader）框架
 > **本指南** : 用 GitHub Actions 在云端编译 APK，再用 openclaw / VPS 接收 artifact
+> **最后更新** : 2026-07-06 (循环 19-24 复核)
+> **当前版本** : versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
 
 ---
 
@@ -33,7 +35,9 @@
 
 ## 3. GitHub Actions 云编译 (本项目已配)
 
-`.github/workflows/ci.yml` **已经包含** 3 个 job：
+> **2026-07-06 循环 23 复核**：主 CI workflow 已切换到 `.github/workflows/android_ci.yml`（原 `ci.yml` 的职责由其承担）。cloud-build.yml 继续承担云编译专用职责。
+
+`.github/workflows/android_ci.yml` **已经包含** 3 个 job：
 
 | Job | 内容 | 触发 |
 |---|---|---|
@@ -67,7 +71,7 @@ gh pr create --base main --head your-branch --title "feat: ..."
 
 ```bash
 # 列出最近 build
-gh run list --workflow=ci.yml --limit=5
+gh run list --workflow=android_ci.yml --limit=5
 
 # 下载最新 debug APK
 gh run download --name app-debug
@@ -209,12 +213,32 @@ signed-release:
 
 ## 5. 工作流文件说明
 
+> **2026-07-06 循环 23 复核**：新增 `android_ci.yml` 作为主 CI workflow，新增 `dependabot.yml` 做依赖周扫描。
+
 | 文件 | 用途 |
 |---|---|
-| `.github/workflows/ci.yml` | 主 CI（lint + test + debug build + gitleaks）— 已存在 |
-| `.github/workflows/cloud-build.yml` | 云编译专用 workflow（debug + release artifact 上传）— 本次新增 |
+| `.github/workflows/android_ci.yml` | 主 CI（lint + test + debug build + gitleaks）— 2026-07-06 循环 23 上线 |
+| `.github/workflows/cloud-build.yml` | 云编译专用 workflow（debug + release artifact 上传）— 已存在 |
+| `.github/workflows/ci.yml` | 旧 CI workflow（已被 android_ci.yml 替代职责，文件状态以仓库实际为准） |
+| `.github/dependabot.yml` | 依赖周扫描配置（Gradle + GitHub Actions）— 2026-07-06 循环 23 上线 |
 | `.gitleaks.toml` | gitleaks 配置 — 已存在 |
 | `CLOUD-BUILD.md` | 本文件 |
+
+### 5.1 Dependabot 配置详情
+
+`.github/dependabot.yml` 已配置：
+
+- **Gradle 依赖**：每周扫描，自动开 PR 升级
+- **GitHub Actions 版本**：每周扫描，自动开 PR 升级
+- **当前状态**：0 open alerts（7 个历史 alerts 已在循环 24 Netty 4.1.134 → 4.1.135 升级后 dismissed）
+
+### 5.2 循环 24 Netty 安全修复对 CI 的影响
+
+- **变更**：Netty 4.1.134.Final → 4.1.135.Final（7 个 CVE 修复：3 高 4 中）
+- **影响范围**：Netty 是 Gradle 插件、MediaPipe、Robolectric 的传递依赖，**不影响 APK 运行时**
+- **CI 影响**：Dependabot 自动检测到 CVE 并开 alert，修复后 CI 重跑通过，commit f978f06 已推送
+- **验证**：GitHub 显示 0 open alerts，7 个历史 alerts 已 dismissed
+- **后续**：`dependabot.yml` 每周自动扫描，新 CVE 会自动开 PR
 
 ---
 
@@ -292,7 +316,9 @@ GitHub Actions 公共仓库 **每月 2000 分钟免费** (private 看 plan)。
 
 - GitHub 仓库: https://github.com/3571949306/GameMatrixApp
 - GitHub Actions 文档: https://docs.github.com/en/actions
-- 现有 workflow: `.github/workflows/ci.yml`
+- 现有 workflow: `.github/workflows/android_ci.yml`（主 CI，2026-07-06 循环 23 上线）
+- 云编译 workflow: `.github/workflows/cloud-build.yml`
+- 依赖扫描: `.github/dependabot.yml`（2026-07-06 循环 23 上线）
 - 本指南: `CLOUD-BUILD.md` (本文件)
 
 

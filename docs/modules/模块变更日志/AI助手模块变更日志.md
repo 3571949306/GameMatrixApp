@@ -10,8 +10,8 @@
 | 入口方式 | 底部导航"AI"Tab → AiFragment |
 | 模块商店分类 | ai |
 | 是否内置 | 是（builtIn=true, isBaseFramework=true） |
-| 当前版本 | v1.0.0 |
-| 代码位置 | `app/src/main/java/com/gamecenter/app/ai/ui/AiFragment.java` |
+| 当前版本 | v1.1.0 |
+| 代码位置 | `module-store/feature/tools/ai/src/main/java/com/gamecenter/app/ai/ui/AiFragment.java` |
 
 ## 功能概述
 
@@ -32,6 +32,18 @@
 | 零一万物 | OpenAI兼容 | 可选 |
 | OpenAI | OpenAI原生 | 可选 |
 | Gemma本地 | MediaPipe LLM | 下载后本地优先路由 |
+
+---
+
+## v1.1.0 — 2026-06-25
+
+### 模块迁移
+- AI 模块从 `:app` 主包迁移至 `module-store/feature/tools/ai/` 作为独立 APK 动态模块
+- 代码位置由 `app/src/main/java/com/gamecenter/app/ai/` 迁移至 `module-store/feature/tools/ai/src/main/java/com/gamecenter/app/ai/`
+- 入口类 `AiModuleEntryPoint` 迁移至 `module-store/feature/tools/ai/src/main/java/com/gamecenter/app/modules/`
+- 沿用 `compileOnly` 依赖宿主接口，运行时由主 APK ClassLoader 提供
+- 数据库（AiMessageDao / AiMessageEntity）随之迁移至模块工程
+- 模块商店分发与预装接入
 
 ---
 

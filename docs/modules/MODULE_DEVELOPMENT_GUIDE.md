@@ -1,8 +1,11 @@
 # 模块开发指南 / Module Development Guide
 
-> **文档版本**: v1.0  
+> **文档版本**: v1.1  
 > **创建日期**: 2026-05-26  
-> **维护者**: GameCenterApp Team
+> **最后更新**: 2026-07-06 (循环 19-24 复核)  
+> **维护者**: GameCenterApp Team  
+> **当前版本**: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)  
+> **项目根**: d:\Developmment\GameMatrixApp
 
 ---
 
@@ -145,14 +148,62 @@ Get-FileHash game_2048.zip -Algorithm SHA256
 
 ### 步骤 1：创建模块项目
 
-在 `模块商店/功能模块/` 目录下创建模块文件夹：
+> **2026-07-06 复核**：模块源码目录已统一到英文路径 `module-store/feature/`（不再使用中文路径 `模块商店/功能模块/`）。当前实际目录结构：
+> - `module-store/feature/games/games/{hall,chinesechess,game2048,klotski,tts}`
+> - `module-store/feature/tools/{ai,browser,tools,vpn,wrongbook}`
+
+在 `module-store/feature/tools/` 或 `module-store/feature/games/games/` 目录下创建模块文件夹：
 
 ```bash
-mkdir -p "模块商店/功能模块/my_module"
-cd "模块商店/功能模块/my_module"
+# 示例：创建新的 tools 子模块
+mkdir -p module-store/feature/tools/my_module
+cd module-store/feature/tools/my_module
 ```
 
 ### 步骤 2：创建模块入口类
+
+> **2026-07-06 复核**：模块入口接口有两套并存：
+> - **`IModule`**（`com.gamecenter.app.interfaces.IModule`）：旧接口，Java 友好，本指南原始示例使用
+> - **`ModuleInterface` + `FeatureModule`**（`com.gamecenter.app.core.common`）：新接口，Kotlin 友好，推荐新模块使用
+> 
+> 当前 9 个动态 APK 模块均使用 `ModuleInterface + FeatureModule` 模式（如 `ToolsModuleEntryPoint : ModuleInterface, FeatureModule`）。新模块**强烈推荐**使用 Kotlin + 新接口。
+
+#### 2a. Kotlin 推荐写法（ModuleInterface + FeatureModule）
+
+```kotlin
+package com.gamecenter.app.modules.my_module
+
+import android.content.Context
+import com.gamecenter.app.core.common.ModuleInterface
+import com.gamecenter.app.core.common.FeatureModule
+
+class MyModuleEntryPoint : ModuleInterface, FeatureModule {
+    override val moduleId: String = "my_module"
+    override val versionName: String = "1.0.0"
+    override val versionCode: Int = 100
+
+    private var loaded: Boolean = false
+
+    override fun onLoad(context: Context) {
+        loaded = true
+        // 初始化模块
+    }
+
+    override fun onUnload() {
+        loaded = false
+        // 清理资源
+    }
+
+    /**
+     * FeatureModule: 返回模块主 Fragment 的全限定类名
+     * 宿主用 DynamicGameActivity 承载此 Fragment
+     */
+    override fun createFragmentClassName(): String? =
+        "com.gamecenter.app.modules.my_module.MyModuleFragment"
+}
+```
+
+#### 2b. Java 兼容写法（IModule，旧接口）
 
 创建 `MyModule.java`（实现 `IModule` 接口）：
 
@@ -295,12 +346,23 @@ dependencies {
 
 ### 步骤 6：构建模块 APK
 
+> **2026-07-06 复核**：构建命令需使用 `module-store:feature:tools:<module>` 或 `module-store:feature:games:games:<module>` 格式（与 `settings.gradle` 中的 include 一致）。
+
 ```bash
-# 构建 Release APK
-./gradlew :modules:my_module:assembleRelease
+# 构建 tools 子模块 Release APK
+.\gradlew.bat :module-store:feature:tools:my_module:assembleRelease
+
+# 构建 games 子模块 Release APK
+.\gradlew.bat :module-store:feature:games:games:my_module:assembleRelease
+
+# 预安装模块场景（需同时重建宿主 APK）
+.\gradlew.bat :module-store:feature:tools:wrongbook:assembleDebug -PautoBumpVersion=false --stacktrace
+.\gradlew.bat :app:bundlePreinstalledModules -PautoBumpVersion=false --stacktrace
+.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
 
 # APK 输出路径
-# app/build/outputs/apk/release/my_module-release.apk
+# module-store/feature/tools/my_module/build/outputs/apk/release/my_module-release.apk
+# 或预安装到 app/src/main/assets/modules/feature_my_module_v100.apk
 ```
 
 ---
@@ -494,30 +556,58 @@ EventBus.getInstance().post(new MyEvent());
 
 ### A. 模块 ID 命名规范
 
+> **2026-07-06 复核**：当前实际模块 ID 已扩展，新增 `hall`/`tts`/`wrongbook` 等不带前缀的 ID（与 `modules.json` 实际字段一致）。
+
 | 类型 | 前缀 | 示例 |
 |------|------|------|
-| 游戏 | `game_` | `game_2048`、`game_snake` |
-| 工具 | `tool_` | `tool_qrcode`、`tool_hash` |
-| 浏览器 | `browser_` | `browser_main` |
-| AI | `ai_` | `ai_assistant` |
-| VPN | `vpn_` | `vpn_core` |
+| 游戏大厅 | `games_hall` 或 `hall` | `games_hall`（动态 APK）/ `hall`（模块 ID） |
+| 游戏 | `game_` 或无前缀 | `game_2048`、`game_snake`、`chinesechess`、`klotski`、`game2048` |
+| TTS 语音 | `tts` | `tts` |
+| 工具 | `tool_` 或 `tools` | `tool_qrcode`、`tool_hash`、`tools`（整包） |
+| 浏览器 | `browser` | `browser` |
+| AI | `ai` | `ai` |
+| VPN | `vpn` | `vpn` |
+| 错题本 | `wrongbook` | `wrongbook`（循环 20 新增） |
 
 ### B. 目录结构参考
 
+> **2026-07-06 复核**：模块源码目录已统一到英文路径 `module-store/feature/`，预安装模块 APK 位于 `app/src/main/assets/modules/`。
+
 ```
-GameCenterApp/
-├── 模块商店/
-│   ├── 压缩模块/              # ZIP 格式游戏模块
-│   │   ├── game_2048.zip
-│   │   └── game_snake.zip
-│   └── 功能模块/              # APK 格式功能模块源码
-│       ├── games/
-│       │   ├── game_2048/
-│       │   └── game_snake/
-│       ├── browser/
-│       ├── tools/
-│       ├── ai/
-│       └── vpn/
+GameMatrixApp/
+├── module-store/feature/        # 动态 APK 模块源码（2026-07-06 实际结构）
+│   ├── games/games/             # 游戏模块
+│   │   ├── hall/                # 游戏大厅
+│   │   ├── chinesechess/        # 中国象棋
+│   │   ├── game2048/            # 2048
+│   │   ├── klotski/             # 华容道
+│   │   └── tts/                 # TTS 语音合成
+│   └── tools/                   # 工具模块
+│       ├── ai/                  # AI 助手
+│       ├── browser/             # 浏览器
+│       ├── tools/               # 工具箱
+│       ├── vpn/                 # VPN
+│       └── wrongbook/           # 错题本（循环 20 新增）
+├── app/src/main/assets/modules/ # 预安装模块 APK
+│   ├── feature_games_hall_v100.apk
+│   ├── feature_chinesechess_v200.apk
+│   ├── feature_game2048_v100.apk
+│   ├── feature_klotski_v200.apk
+│   ├── feature_tts_v100.apk
+│   ├── feature_ai_v100.apk
+│   ├── feature_browser_v100.apk
+│   ├── feature_tools_v100.apk
+│   ├── feature_vpn_v100.apk
+│   └── feature_wrongbook_v100.apk  # 循环 20 新增
+├── core/                        # 核心库模块
+│   ├── common/                  # 通用库（ModuleInterface / FeatureModule / IModule）
+│   ├── moduleloader/            # 模块加载器（DexClassLoader + AssetManager.addAssetPath）
+│   ├── module-host/             # ClassLoader 池
+│   ├── modulestore/             # 模块商店
+│   ├── network/                 # 网络库
+│   ├── update/                  # 更新库
+│   └── security/                # 安全库
+└── app/src/main/assets/modules.json  # 兜底模块清单
 ```
 
 ### C. 参考资料
@@ -525,6 +615,138 @@ GameCenterApp/
 1. [Android Dynamic Feature Modules 官方文档](https://developer.android.com/studio/projects/dynamic-delivery)
 2. [DexClassLoader 官方文档](https://developer.android.com/reference/dalvik/system/DexClassLoader)
 3. [OkHttp 官方文档](https://square.github.io/okhttp/)
+
+---
+
+## D. ModuleContextHelper 与 ModuleShellFragment (2026-07-06 新增)
+
+> **循环 19-24 复核**：宿主提供了 `ModuleContextHelper` 与 `ModuleShellFragment` 两个工具类，模块开发者应优先复用，避免重复造轮子。
+
+### D.1 ModuleContextHelper
+
+位于 `core/moduleloader/src/main/java/com/gamecenter/app/moduleloader/ModuleContextHelper.kt`（或 `core/module-host`，以实际仓库为准）。
+
+**职责**：
+
+- 包装模块 Context（通过 `AssetManager.addAssetPath()` 反射 + `ContextWrapper`）
+- 提供模块资源访问入口（`getDrawable` / `getString` / `getLayout` / `getIdentifier`）
+- 解决跨 APK 边界的 R 类引用问题（模块不能用宿主 `R.layout.xx` 引用宿主资源）
+
+**使用示例**：
+
+```kotlin
+// 在模块入口类中
+val moduleContext = ModuleContextHelper.createModuleContext(hostContext, apkFile)
+val layoutId = moduleContext.resources.getIdentifier(
+    "activity_my_module", "layout", moduleContext.packageName
+)
+val view = LayoutInflater.from(moduleContext).inflate(layoutId, null)
+```
+
+### D.2 ModuleShellFragment
+
+宿主提供的 `ModuleShellFragment` 用于承载模块 Fragment，解决动态 APK 内 Fragment 无法直接通过 `FragmentManager` 加载的问题。
+
+**使用示例**：
+
+```kotlin
+// 宿主侧：加载模块 Fragment
+val fragmentClassName = moduleEntryPoint.createFragmentClassName()
+val fragment = ModuleShellFragment.instantiate(hostContext, fragmentClassName, apkFile)
+supportFragmentManager.beginTransaction()
+    .replace(R.id.container, fragment)
+    .commit()
+```
+
+---
+
+## E. 预安装模块流程 (2026-07-06 新增)
+
+> **循环 20 引入 wrongbook 模块后**，预安装模块流程需要规范化。预安装模块 = 动态 APK 编译后拷贝到 `app/src/main/assets/modules/`，随宿主 APK 一起分发。
+
+### E.1 何时使用预安装
+
+- 模块需要在首次启动时立即可用（不依赖网络下载）
+- 模块作为基础框架的一部分（`isBaseFramework: true`）
+- 模块作为核心入口（如 games_hall、tools、ai）
+
+### E.2 预安装构建命令
+
+```powershell
+# 1. 构建动态模块 APK
+.\gradlew.bat :module-store:feature:tools:wrongbook:assembleDebug -PautoBumpVersion=false --stacktrace
+
+# 2. 同步到 app assets（bundlePreinstalledModules 任务会拷贝并重命名）
+.\gradlew.bat :app:bundlePreinstalledModules -PautoBumpVersion=false --stacktrace
+
+# 3. 重建宿主 APK（必须，否则 assets 不会更新）
+.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
+```
+
+### E.3 Feature Flag 控制
+
+预安装模块应在 `app/build.gradle` 中添加 feature flag，便于紧急禁用：
+
+```groovy
+android {
+    defaultConfig {
+        buildConfigField "boolean", "ENABLE_WRONGBOOK", "true"
+    }
+}
+```
+
+宿主代码通过 `BuildConfig.ENABLE_WRONGBOOK` 判断是否注册模块入口与显示导航 tab。
+
+### E.4 验证清单
+
+- [ ] 模块 APK 已生成到 `module-store/feature/tools/<module>/build/outputs/apk/debug/`
+- [ ] 模块 APK 已同步到 `app/src/main/assets/modules/feature_<module>_v<version>.apk`
+- [ ] `app/src/main/assets/modules.json` 中模块元数据正确（`sha256` / `fileSize` / `versionCode`）
+- [ ] 宿主 APK 已重建（`app-debug.apk` 中包含最新 assets）
+- [ ] Feature Flag 已配置（如需要）
+- [ ] 浅色/深色主题下 UI 正常
+- [ ] 中英文环境下字符串正常显示
+
+---
+
+## F. Feature Flag / 主题适配 / 本地化 / 资源构建链路 (2026-07-06 新增)
+
+> **循环 19-24 复核**：新增模块必须遵守以下规范，避免破坏宿主一致性。
+
+### F.1 Feature Flag 规范
+
+- 所有新增功能**必须**有 feature flag（用户规则 #17）
+- 在 `app/build.gradle` 的 `defaultConfig.buildConfigField` 中声明
+- 命名：`ENABLE_<MODULE_NAME>`（如 `ENABLE_WRONGBOOK`、`GOMOKU_ENHANCED`）
+- 默认值为 `"true"`，发布前可根据测试结果调整
+- 宿主代码通过 `BuildConfig.ENABLE_XXX` 引用
+
+### F.2 主题适配规范
+
+- 所有新增 UI **必须**支持浅色和深色主题（用户规则 #18）
+- 颜色资源放 `app/src/main/res/values/colors.xml`（浅色）+ `values-night/colors.xml`（深色）
+- 优先使用 Material 3 token：`?attr/colorPrimary`、`?attr/colorSurface`、`?attr/colorOnSurface` 等
+- 避免硬编码颜色（如 `0xFF9E9E9E`），改用 `?attr/colorSurfaceVariant`
+- 圆角/间距/字号使用 `dimens.xml` token：`@dimen/spacing_*`、`@dimen/corner_radius_*`、`@dimen/font_size_*`
+- 启用 Edge-to-Edge：`EdgeToEdge.enable()`（硬约束）
+
+### F.3 本地化规范
+
+- 所有新增字符串**必须**考虑本地化（用户规则 #19）
+- 默认中文：`app/src/main/res/values/strings.xml`
+- 英文翻译：`app/src/main/res/values-en/strings.xml`
+- 命名：`<module>_<feature>_<purpose>`（如 `wrongbook_ocr_recognizing`）
+- 避免硬编码文本到 layout XML，统一走 strings.xml
+- 游戏专用字符串可放 `values/strings_game_<game>.xml` + `values-en/strings_game_<game>.xml`
+
+### F.4 资源构建链路规范
+
+- 所有新增资源**必须**进入正确的资源构建链路（用户规则 #20）
+- 模块内资源放 `module-store/feature/<category>/<module>/src/main/res/`
+- 宿主共享资源放 `app/src/main/res/` 或 `core/common/src/main/res/`
+- 命名规范：`activity_*`、`fragment_*`、`dialog_*`、`item_*`、`ic_*`、`bg_*`
+- 图标优先用 vector drawable（`ic_*.xml`），启动器图标用 `mipmap-anydpi-v26`
+- 新增 drawable 需检查 `app/build.gradle` 的 `resConfigs "zh-rCN", "en"` 是否影响密度拆分
 
 ---
 

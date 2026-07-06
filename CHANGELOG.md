@@ -1,5 +1,52 @@
 # GameMatrixApp - 版本更新日志
 
+## [v1.4.1] - 2026-07-06（循环 17-24：浏览器原生重构 + wrongbook 模块 + 宿主 Kotlin 迁移 + Netty 安全修复）
+
+### 🌐 循环 17-19：浏览器循环19重构为原生实现
+- **包结构重组**：`app/src/main/java/com/gamecenter/app/browser/{bridge,core,data,security,ui}/`
+- **Room 数据库**：4 张表（浏览历史/书签/下载/cookie）
+- **安全模块**：AdBlocker、DomainTrustManager、JsBridgePolicy
+- **卸载第三方 WebView 依赖**，使用原生 Android WebView 实现
+
+### 📚 循环 20：wrongbook 模块预装集成
+- **错题本模块**：`module-store/feature/tools/wrongbook`
+- **预装 APK**：`assets/modules/feature_wrongbook_v100.apk`
+- 支持科目管理、复习计划、数据导入导出
+
+### 📖 循环 21-22：错题本全面推进
+- Room v2 schema 升级
+- 自定义图表 View（科目统计/复习进度）
+- 科目管理、复习计划、数据导入导出
+
+### 🔧 循环 23：宿主 Kotlin 迁移完成
+- `App.java` / `MainActivity.java` / `GameRegistry.java` → `.kt`
+- 路径：`app/src/main/kotlin/com/gamecenter/app/{App.kt, MainActivity.kt, games/GameRegistry.kt}`
+- 新增 `core/moduleloader/.../ModuleContextHelper.kt`
+- 新增 `.github/workflows/android_ci.yml`（GitHub Actions CI/CD）
+- 新增 `.github/dependabot.yml`（Dependabot 配置）
+- 语言比例：Java 约 55% + Kotlin 约 45%
+
+### 🔒 循环 24：Netty 安全漏洞修复
+- Netty 4.1.134.Final → 4.1.135.Final
+- 修复 7 个 CVE（3 high + 4 medium）：
+  - High: CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249
+  - Medium: CVE-2026-50560 / CVE-2026-50020 / CVE-2026-48043 / CVE-2026-47244
+- GitHub Dependabot：0 open / 7 dismissed
+- 最新 commit：`f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
+
+### 📦 版本信息
+- `versionCode`: 567
+- `versionName`: 1.4.1
+- 上次稳定版: 1.4.0 (vc=465)
+- 包名: `com.gamecenter.app`
+- 工作区状态：干净，main 与 origin/main 同步
+
+### 🗂 动态模块（共 9 个）
+- 游戏（5 个）：`module-store/feature/games/games/{hall,chinesechess,game2048,klotski,tts}`
+- 工具（4 个）：`module-store/feature/tools/{ai,tools,vpn,wrongbook}`
+
+---
+
 ## [v1.4.1] - 2026-06-22（更新逻辑优化）
 
 ### 🚀 更新逻辑优化

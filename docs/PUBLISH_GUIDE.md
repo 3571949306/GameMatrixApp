@@ -1,8 +1,9 @@
 # GameCenterApp 发布指南
 
-> **文档版本**: v1.0.0  
-> **最后更�?*: 2026-05-26  
-> **维护�?*: GameCenterApp 开发团�?
+> **文档版本**: v1.1.0  
+> **最后更新**: 2026-07-06  
+> **维护者**: GameCenterApp 开发团队  
+
 ---
 
 ## 目录
@@ -14,9 +15,10 @@
 5. [签名配置](#签名配置)
 6. [上传部署](#上传部署)
 7. [模块商店更新](#模块商店更新)
-8. [测试检查清单](#测试检查清�?
-9. [回滚计划](#回滚计划)
-10. [常见问题](#常见问题)
+8. [GitHub Actions CI/CD](#github-actions-cicd)
+9. [测试检查清单](#测试检查清单)
+10. [回滚计划](#回滚计划)
+11. [常见问题](#常见问题)
 
 ---
 
@@ -88,34 +90,45 @@ feedback.url=https://your-server.example.com/api/feedback
 
 ## 版本管理
 
-GameCenterApp 使用 **双版本号系统**�?
-| 版本�?| 用�?| 示例 | 文件位置 |
+GameCenterApp 使用 **双版本号系统**：
+
+| 版本号 | 用途 | 示例 | 文件位置 |
 |---------|------|------|---------|
-| **versionCode** | 内部版本号（整数，递增�?| `341` | `version.properties` |
-| **versionName** | 用户展示版本号（语义化版本） | `1.4.0` | `version.properties` |
+| **versionCode** | 内部版本号（整数，递增） | `567` | `version.properties` |
+| **versionName** | 用户展示版本号（语义化版本） | `1.4.1` | `version.properties` |
+
+> **2026-07-06 复核**：当前实际版本 `versionCode=567 / versionName=1.4.1`，`lastStableVersionCode=465 / lastStableVersionName=1.4.0`。
 
 ### version.properties 格式
 
 ```properties
 # version.properties
-versionCode=341
-versionName=1.4.0
-lastStableVersionCode=340
-lastStableVersionName=1.3.30
+versionCode=567
+versionName=1.4.1
+lastStableVersionCode=465
+lastStableVersionName=1.4.0
 betaNoticeVersionGap=3
 ```
 
-### 更新版本�?
-**Beta 版本**（默认）�?```bash
-# 自动递增 versionCode（不改变 versionName�?.\gradlew.bat :app:bumpVersion
+### 更新版本号
+
+**Beta 版本**（默认）：
+
+```bash
+# 自动递增 versionCode（不改变 versionName）
+.\gradlew.bat :app:bumpVersion
 ```
 
-**Stable 版本**�?```bash
+**Stable 版本**：
+
+```bash
 # 1. 手动更新 version.properties
-#    - versionName=2.0.0（例如）
-#    - versionCode=350（例如）
-#    - lastStableVersionCode=341（上一个正式版 versionCode�?#    - lastStableVersionName=1.4.0（上一个正式版 versionName�?
-# 2. 构建并上�?.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
+#    - versionName=1.4.2（例如）
+#    - versionCode=600（例如）
+#    - lastStableVersionCode=567（上一个正式版 versionCode）
+#    - lastStableVersionName=1.4.1（上一个正式版 versionName）
+# 2. 构建并上传
+.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
 ```
 
 ---
@@ -335,7 +348,73 @@ scp 模块商店/功能模块/游戏/games/build/outputs/apk/release/*.apk user@
 
 ---
 
-## 测试检查清�?
+## GitHub Actions CI/CD
+
+> **2026-07-06 复核**：循环 23 上线 `.github/workflows/android_ci.yml` + `.github/dependabot.yml`，CI/CD 流程已就位。
+
+### 1. CI Workflow 文件
+
+| 文件 | 用途 | 触发 |
+|------|------|------|
+| `.github/workflows/android_ci.yml` | 主 CI（lint + test + debug build + gitleaks） | push / PR |
+| `.github/workflows/cloud-build.yml` | 云编译专用（debug + release artifact 上传） | push / PR |
+| `.github/dependabot.yml` | 依赖周扫描（Gradle + GitHub Actions） | 每周自动 |
+| `.gitleaks.toml` | secret 扫描配置 | 由 CI 调用 |
+
+### 2. CI Job 说明
+
+`android_ci.yml` 包含 3 个 job：
+
+| Job | 内容 | 触发 |
+|-----|------|------|
+| `lint-and-test` | detekt + ktlint + 单元测试 + JaCoCo 覆盖率 | push / PR |
+| `build` | `:app:assembleDebug` + `:app:assembleRelease` (unsigned) | push / PR |
+| `gitleaks` | secret 扫描（基于 `.gitleaks.toml`） | push / PR |
+
+### 3. Artifact 保留策略
+
+- `app-debug` APK：保留 7 天
+- `coverage-report`：保留 14 天
+- release APK：未上传（CI 不签名，签名流程见 [签名配置](#签名配置)）
+
+### 4. 触发云编译
+
+任一即可：
+
+```bash
+# 1. 推到 main 分支（自动触发）
+git push origin main
+
+# 2. 在 GitHub 网页手动触发
+#    → Actions 页面 → "CI" workflow → "Run workflow"
+
+# 3. 提 PR
+gh pr create --base main --head your-branch --title "feat: ..."
+```
+
+### 5. 下载编译产物
+
+```bash
+# 列出最近 build
+gh run list --workflow=android_ci.yml --limit=5
+
+# 下载最新 debug APK
+gh run download --name app-debug
+```
+
+### 6. Dependabot 配置
+
+`.github/dependabot.yml` 已配置：
+
+- Gradle 依赖：每周扫描，自动开 PR 升级
+- GitHub Actions：每周扫描，自动开 PR 升级
+- 当前状态：0 open alerts（7 个历史 alerts 已在循环 24 Netty 4.1.134 → 4.1.135 升级后 dismissed）
+
+> 详细 CI/CD 配置与 VPS 协同流程见 [`CLOUD-BUILD.md`](../CLOUD-BUILD.md)。
+
+---
+
+## 测试检查清单
 ### 1. 单元测试
 
 ```bash
@@ -366,8 +445,8 @@ scp 模块商店/功能模块/游戏/games/build/outputs/apk/release/*.apk user@
 
 ```bash
 # 1. 恢复上一个版本的 APK �?version.json
-#    （在 VPS 服务器上�?cp /var/www/update/backup/app-release-v1.3.30.apk /var/www/update/app-release.apk
-cp /var/www/update/backup/version-v1.3.30.json /var/www/update/version.json
+#    （在 VPS 服务器上�?cp /var/www/update/backup/app-release-v1.4.0.apk /var/www/update/app-release.apk
+cp /var/www/update/backup/version-v1.4.0.json /var/www/update/version.json
 
 # 2. 重启 VPS 服务器（如果需要）
 sudo systemctl restart nginx
@@ -375,17 +454,20 @@ sudo systemctl restart nginx
 
 ### 2. 紧急修复版�?
 ```bash
-# 1. 创建紧急修复分�?git checkout -b hotfix/v1.4.1
+# 1. 创建紧急修复分支
+git checkout -b hotfix/v1.4.2
 
 # 2. 修复 Bug
 #    （修改代码）
 
-# 3. 更新版本�?#    （修�?version.properties：versionCode=342, versionName=1.4.1�?
-# 4. 构建并上�?.\gradlew.bat :app:buildAndUploadDebugToVps
+# 3. 更新版本号
+#    （修改 version.properties：versionCode=568, versionName=1.4.2）
+# 4. 构建并上传
+.\gradlew.bat :app:buildAndUploadDebugToVps
 
-# 5. 合并�?main 分支
+# 5. 合并到 main 分支
 git checkout main
-git merge hotfix/v1.4.1
+git merge hotfix/v1.4.2
 git push origin main
 ```
 
@@ -438,19 +520,40 @@ git push origin main
 
 ```
 GameCenterApp/
-├── app/                          # 主应用模�?�?  ├── build.gradle               # 构建配置（签名、混淆、ABI 拆分�?�?  ├── proguard-rules.pro        # ProGuard 混淆规则
-�?  └── src/main/
-�?      ├── assets/               # 内置资源（pkgInfo.txt、modules.json�?�?      └── res/                 # 应用资源
-├── core/                        # 核心库模�?�?  ├── common/                  # 通用库（数据模型、接口）
-�?  ├── moduleloader/            # 模块加载�?�?  ├── modulestore/            # 模块商店
-�?  ├── network/                 # 网络�?�?  ├── update/                  # 更新�?�?  └── security/                # 安全�?├── modules/                     # 独立功能模块
-�?  └── online-core/            # 联机核心模块
-├── 模块商店/                    # 模块商店目录
-�?  ├── 压缩模块/               # 游戏模块压缩包（ZIP�?�?  ├── 功能模块/               # 独立功能模块源代�?�?  └── modules.json            # 模块市场清单文件
-├── keystore.properties          # 签名密钥配置（不要提交到 Git�?├── local.properties            # 服务器配置（不要提交�?Git�?├── version.properties          # 版本号配�?├── gamecenter.keystore        # 签名密钥（不要提交到 Git�?├── CHANGELOG.md              # 版本更新日志
+├── app/                          # 主应用模块
+│   ├── build.gradle               # 构建配置（签名、混淆、ABI 拆分）
+│   ├── proguard-rules.pro        # ProGuard 混淆规则
+│   └── src/main/
+│       ├── assets/               # 内置资源（pkgInfo.txt、modules.json、预装模块 APK）
+│       └── res/                 # 应用资源
+├── core/                        # 核心库模块
+│   ├── common/                  # 通用库（数据模型、接口）
+│   ├── moduleloader/            # 模块加载器
+│   ├── modulestore/            # 模块商店
+│   ├── network/                 # 网络库
+│   ├── update/                  # 更新库
+│   └── security/                # 安全库
+├── modules/                     # 独立功能模块
+│   └── online-core/            # 联机核心模块
+├── module-store/feature/        # 动态 APK 模块源码
+│   ├── games/games/             # 游戏模块（hall/chinesechess/game2048/klotski/tts）
+│   └── tools/                   # 工具模块（ai/browser/tools/vpn/wrongbook）
+├── .github/                     # GitHub 配置（2026-07-06 循环 23 上线）
+│   ├── workflows/
+│   │   ├── android_ci.yml       # 主 CI workflow
+│   │   └── cloud-build.yml      # 云编译专用 workflow
+│   ├── dependabot.yml           # 依赖周扫描配置
+│   └── gitleaks.toml            # secret 扫描配置
+├── keystore.properties          # 签名密钥配置（不要提交到 Git）
+├── local.properties            # 服务器配置（不要提交到 Git）
+├── version.properties          # 版本号配置（单一事实源）
+├── gamecenter.keystore        # 签名密钥（不要提交到 Git）
+├── CHANGELOG.md              # 版本更新日志
 ├── README.md                  # 项目说明文档
+├── CLOUD-BUILD.md             # 云编译 & VPS 部署指南
 └── docs/
-    └── PUBLISH_GUIDE.md     # 本文档（发布指南�?```
+    └── PUBLISH_GUIDE.md     # 本文档（发布指南）
+```
 
 ### C. 参考文�?
 - [模块化架构设计文档](文档/MODULAR_ARCHITECTURE_DESIGN.md)

@@ -73,6 +73,44 @@ Phase 1.1 故意配 true（baseline 模式）。改回 false 老项目立刻挂�
 - Android SDK: `C:\Users\Administrator\AppData\Local\Android\Sdk`
 - 实际 build 前要查环境, 不要写死
 
+## ❌ 不要把已迁移的 Kotlin 文件改回 Java
+
+循环23 已完成宿主 Kotlin 迁移，以下文件**不要改回 Java**：
+
+- `app/src/main/kotlin/com/gamecenter/app/App.kt`
+- `app/src/main/kotlin/com/gamecenter/app/MainActivity.kt`
+- `app/src/main/kotlin/com/gamecenter/app/GameRegistry.kt`
+
+原因：
+
+- 迁移是单向的，回退会丢掉 Kotlin 的空安全、协程、Hilt 集成等收益
+- 回退会破坏现有 Gradle 配置（Kotlin plugin 已配置）和依赖关系
+- 如果要改这些文件的行为，继续用 Kotlin 编辑，不要换语言
+
+## ❌ 不要降级 Netty 到 4.1.134.Final 及以下
+
+循环24（commit `f978f06`）已把 Netty 从 `4.1.134.Final` 升级到 `4.1.135.Final`，修复 7 个 CVE：
+
+- CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249（high）
+- CVE-2026-50560 / CVE-2026-50020 / CVE-2026-48043 / CVE-2026-47244（medium）
+
+降级会：
+
+- 重新触发 7 个 GitHub Dependabot 告警
+- 让构建链路重新引入已知漏洞
+- 详见 `docs/SECURITY.md` 和 `docs/NETWORK_LAYER.md`
+
+注意：Netty 是 Gradle / MediaPipe / Robolectric 的传递依赖，不进入 APK runtime，但仍需保持版本合规。
+
+## ❌ 不要重新打开已 dismissed 的 GitHub Dependabot 告警
+
+循环24 已 dismiss 7 个 Netty 相关 Dependabot 告警，dismiss reason = `fix_started`（已通过升级到 4.1.135.Final 修复）。
+
+- 当前状态：0 open alerts / 7 dismissed
+- 不要把这些告警 reopen
+- 如果 Dependabot 又报新告警，那是新问题，按新流程处理（先看是否影响 APK runtime，再决定修复或 dismiss）
+- 详见 `docs/SECURITY.md`
+
 
 ---
 [🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

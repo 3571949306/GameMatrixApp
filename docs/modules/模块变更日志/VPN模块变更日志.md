@@ -10,8 +10,8 @@
 | 入口方式 | 底部导航"VPN"Tab → ModuleShellFragment → VpnFragment |
 | 模块商店分类 | vpn |
 | 是否内置 | 否（builtIn=false） |
-| 当前版本 | v1.0.0 |
-| 代码位置 | `feature/vpn/src/main/java/com/gamecenter/app/vpn/` |
+| 当前版本 | v1.0.2 |
+| 代码位置 | `module-store/feature/tools/vpn/src/main/java/com/gamecenter/app/vpn/` |
 | APK文件 | `feature_vpn_v100_v2.apk` |
 | 文件大小 | 662KB |
 
@@ -66,10 +66,23 @@ VPN 模块 APK（feature/vpn）
 - 修复模块 ID 不一致：统一为 "vpn"（原 modules.json 为 "vpn_basic"，MainActivity 检查 "vpn"）
 - 修复 CloudFlare CDN 缓存旧响应：APK 文件改名为 feature_vpn_v100_v2.apk
 
+---
+
 ## v1.0.1 — 2026-06-23
 
 ### 修复记录
 - 修复 Android 14+ 后台启动服务限制：VpnFragment.connectToNode 中将 `startService` 改为 `ContextCompat.startForegroundService`，避免在后台启动服务时抛 `IllegalStateException`。VpnServiceProxy.onStartCommand 已调用 `startForeground`，使用 `startForegroundService` 安全。添加 try-catch 兜底，失败时 Toast 提示用户保持应用在前台重试。
+
+---
+
+## v1.0.2 — 2026-06-25
+
+### 模块路径迁移
+- VPN 模块代码路径由 `feature/vpn/` 迁移至 `module-store/feature/tools/vpn/`，统一纳入 module-store 动态模块体系
+- 代码位置由 `feature/vpn/src/main/java/com/gamecenter/app/vpn/` 变更为 `module-store/feature/tools/vpn/src/main/java/com/gamecenter/app/vpn/`
+- 入口类 `VpnModuleEntryPoint`、`VpnFragment`、协议模块、数据层均随之迁移
+- 桥接类 `VpnServiceProxy` 仍保留在 `:app`（`app/src/main/java/com/gamecenter/app/vpn/service/VpnServiceProxy.kt`），已 Kotlin 化
+- 模块工程结构与其它工具模块（tools / ai / wrongbook）保持一致
 
 
 ---

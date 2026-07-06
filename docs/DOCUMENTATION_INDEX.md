@@ -1,6 +1,6 @@
 # GameMatrixApp 全局文档索引
 
-项目全部文档的中枢链接。最后更新：2026-06-25。
+项目全部文档的中枢链接。最后更新：2026-07-06。
 
 ## 根目录 (Root)
 
@@ -10,7 +10,7 @@
 | [CHANGELOG.md](/CHANGELOG.md) | 版本更新日志 |
 | [CODE_WIKI.md](/CODE_WIKI.md) | 详细代码架构说明 |
 | [CLOUD-BUILD.md](/CLOUD-BUILD.md) | 云编译 & VPS 部署指南 |
-| [修改记录.md](/修改记录.md) | 16 轮修复循环的完整变更历史 |
+| [修改记录.md](/修改记录.md) | 24 轮修复循环的完整变更历史 |
 
 ## docs/ — 主文档
 
@@ -37,10 +37,11 @@
 
 | 文档 | 描述 |
 |---|---|
-| [游戏模块说明.md](/docs/module-docs/游戏模块说明.md) | 游戏模块说明 |
-| [浏览器模块说明.md](/docs/module-docs/浏览器模块说明.md) | 浏览器模块说明 |
+| [游戏模块说明.md](/docs/module-docs/游戏模块说明.md) | 游戏模块说明（含 hall/chinesechess/game2048/klotski/tts 等动态游戏模块） |
+| [浏览器模块说明.md](/docs/module-docs/浏览器模块说明.md) | 浏览器模块说明（循环19原生重构：bridge/core/data/security/ui） |
 | [工具箱模块说明.md](/docs/module-docs/工具箱模块说明.md) | 工具箱模块说明 |
 | [VPN模块说明.md](/docs/module-docs/VPN模块说明.md) | VPN 模块说明 |
+| [错题本模块说明.md](/docs/module-docs/错题本模块说明.md) | 错题本（wrongbook）模块说明（循环20预装集成，循环21-22全面推进） |
 | [games_split_summary.md](/docs/module-docs/games_split_summary.md) | 小游戏拆分剥离项目总结 |
 
 ## docs/modules — 模块商店

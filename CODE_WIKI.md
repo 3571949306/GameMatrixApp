@@ -1,5 +1,15 @@
 # GameMatrixApp — Code Wiki
 
+## 2026-07-06 Maintenance Notes (循环 17-24)
+
+- **循环 17-19：浏览器循环19重构为原生实现**：新增 `app/src/main/java/com/gamecenter/app/browser/{bridge,core,data,security,ui}/` 包结构；Room 数据库（4 张表：浏览历史/书签/下载/cookie）；安全模块 AdBlocker/DomainTrustManager/JsBridgePolicy；卸载第三方 WebView 依赖。
+- **循环 20：wrongbook 模块预装集成**：新增 `module-store/feature/tools/wrongbook`；预装 APK 路径 `assets/modules/feature_wrongbook_v100.apk`；支持科目管理、复习计划、数据导入导出。
+- **循环 21-22：错题本全面推进**：Room v2 schema 升级；自定义图表 View（科目统计/复习进度）；科目管理、复习计划、数据导入导出。
+- **循环 23：宿主 Kotlin 迁移完成**：`App.java`/`MainActivity.java`/`GameRegistry.java` 迁移至 `.kt`，路径 `app/src/main/kotlin/com/gamecenter/app/{App.kt, MainActivity.kt, games/GameRegistry.kt}`；新增 `core/moduleloader/.../ModuleContextHelper.kt`；新增 `.github/workflows/android_ci.yml` 和 `.github/dependabot.yml`；语言比例变为 Java 约 55% + Kotlin 约 45%。
+- **循环 24：Netty 安全漏洞修复**：Netty 4.1.134.Final → 4.1.135.Final；修复 7 个 CVE（3 high + 4 medium：CVE-2026-50010/45416/44249 high，CVE-2026-50560/50020/48043/47244 medium）；GitHub Dependabot 状态 0 open / 7 dismissed；最新 commit `f978f06`。
+- **当前版本**：versionCode=567, versionName=1.4.1，lastStable=465/1.4.0；工作区干净，main 与 origin/main 同步。
+- **动态模块（共 9 个）**：`module-store/feature/games/games/{hall,chinesechess,game2048,klotski,tts}` + `module-store/feature/tools/{ai,tools,vpn,wrongbook}`。
+
 ## 2026-05-25 Maintenance Notes (Module Framework Fix)
 
 - **ModuleLoader 版本感知重加载**：`loadModule` 不再无条件返回缓存实例，而是对比 `getInstalledVersionCode` 与 `manifest.versionCode`。版本变更时自动卸载旧实例（`unloadModule`）、清除 DEX 优化缓存（`clearOptimizedDex`）后重新加载。
@@ -42,13 +52,15 @@
 - New helper: `工具/network/Configure-GitHubProxy.ps1`.
 
 > **项目名称**: GameMatrixApp  
-> **包名**: `com.GameMatrix.app`  
-> **当前版本**: 1.3.30-beta.1 (versionCode 268)
+> **包名**: `com.gamecenter.app`  
+> **当前版本**: 1.4.1 (versionCode 567)
+> **上次稳定版**: 1.4.0 (versionCode 465)
 > **最低 SDK**: 24 (Android 7.0) | **目标 SDK**: 35  
-> **语言**: Java (主体) + Kotlin (数据层、工具层)  
+> **语言**: Java 约 55% + Kotlin 约 45%（循环23宿主 Kotlin 迁移后）
 > **构建系统**: Gradle 8.13.2 + AGP 8.13.2  
 > **依赖注入**: Hilt (Dagger)  
-> **数据库**: Room  
+> **数据库**: Room（浏览器模块 v2 schema 4 张表）  
+> **GitHub**: `https://github.com/3571949306/GameMatrixApp`（main 分支，工作区干净）
 
 ---
 
@@ -131,9 +143,9 @@ GameMatrixApp/
 ├  ── app/                              # Android 应用模块
 │  ├─  ─ src/
 │  │  ├  ── main/
-│  │  │  ├─  ─ java/com/GameMatrix/app/
-│  │  │  │  ├  ── App.java                   # Application 入口
-│  │  │  │  ├  ── MainActivity.java          # 主 Activity（使用 UpdateViewModel）│  │  │  │  ├  ── ColorSchemeManager.java    # 配色方案管理
+│  │  │  ├─  ─ java/com/gamecenter/app/      # Java 源码（约 55%）
+│  │  │  │  ├  ── browser/                   # 浏览器模块（循环19原生重构：bridge/core/data/security/ui）
+│  │  │  │  ├  ── ColorSchemeManager.java    # 配色方案管理
 │  │  │  │  ├  ── SettingsManager.java       # 设置管理器（@Inject 构造函数）
 │  │  │  │  ├  ── SaveManager.java           # 存档管理器│  │  │  │  ├  ── PermissionHelper.java      # 权限辅助
 │  │  │  │  ├  ── ai/                        # AI 模块
@@ -150,7 +162,7 @@ GameMatrixApp/
 │  │  │  │  │  ├─  ─ KeepStateNavigator.kt      # 自定义导航器（add/show/hide策略）
 │  │  │  │  ├  ── games/                     # 游戏模块
 │  │  │  │  │  ├─  ─ BaseGameActivity.java  # 游戏基类
-│  │  │  │  │  ├─  ─ GameRegistry.java      # 游戏注册中心（双轨制：静态+动态注册）
+│  │  │  │  │  ├─  ─ GameRegistry.java      # 游戏注册中心（双轨制：静态+动态注册，Kotlin 版见 kotlin/ 目录）
 │  │  │  │  │  ├─  ─ GameEntry.java         # @GameEntry 注解（自声明游戏元数据）
 │  │  │  │  │  ├─  ─ GameStats.java
 │  │  │  │  │  ├─  ─ GameUsageStore.java
@@ -187,7 +199,11 @@ GameMatrixApp/
 │  │  │  │      ├  ── ColorAlphaBar.java
 │  │  │  │      ├  ── ColorHueBar.java
 │  │  │  │      └  ── ColorSVPanel.java
-│  │  │  ├─  ─ kotlin/com/GameMatrix/app/
+│  │  │  ├─  ─ kotlin/com/gamecenter/app/     # Kotlin 源码（约 45%，循环23宿主 Kotlin 迁移后）
+│  │  │  │  ├  ── App.kt                     # Application 入口（循环23由 App.java 迁移）
+│  │  │  │  ├  ── MainActivity.kt            # 主 Activity（循环23由 MainActivity.java 迁移，使用 UpdateViewModel）
+│  │  │  │  ├  ── games/
+│  │  │  │  │  └─  ─ GameRegistry.kt        # 游戏注册中心（循环23由 .java 迁移，双轨制：静态+动态注册）
 │  │  │  │  ├  ── database/                  # Room 数据库│  │  │  │  │  ├─  ─ AppDatabase.kt
 │  │  │  │  │  ├─  ─ dao/
 │  │  │  │  │  └─  ─ entity/
@@ -224,9 +240,9 @@ GameMatrixApp/
 ## 4. 核心模块详解
 
 ### 4.1 应用入口层
-#### [App.java](app/src/main/java/com/GameMatrix/app/App.java)
+#### [App.kt](app/src/main/kotlin/com/gamecenter/app/App.kt)
 
-应用全局入口类，标注 `@HiltAndroidApp`，负责：
+应用全局入口类（循环23由 `App.java` 迁移至 Kotlin），标注 `@HiltAndroidApp`，负责：
 
 | 职责 | 实现方式 |
 |------|---------|
@@ -237,9 +253,9 @@ GameMatrixApp/
 
 **关键方法**:
 - `applyTheme()` �?根据 SettingsManager 读取主题模式，同步更新 `isDarkMode`arkMode` 状态。- `applypplyColorScheme(Activity)` �?为每个 Activityty 应用用户选择的配色方案。- `refreshefreshColorScheme(Activity)` �?静态方法，供设置页面在更改配色后立即刷新
-#### [MainActivity.java](app/src/main/java/com/GameMatrix/app/MainActivity.java)
+#### [MainActivity.kt](app/src/main/kotlin/com/gamecenter/app/MainActivity.kt)
 
-主界面 Activity，标注 `@AndroidEntryPoint`，作为所有 Fragmentment 的宿主：
+主界面 Activity（循环23由 `MainActivity.java` 迁移至 Kotlin），标注 `@AndroidEntryPoint`，作为所有 Fragment 的宿主：
 
 | 职责 | 实现方式 |
 |------|---------|
@@ -252,9 +268,9 @@ GameMatrixApp/
 
 ### 4.2 游戏模块
 
-#### [GameRegistry.java](app/src/main/java/com/GameMatrix/app/games/GameRegistry.java)
+#### [GameRegistry.kt](app/src/main/kotlin/com/gamecenter/app/games/GameRegistry.kt)
 
-游戏注册中心（final 工具类），采用**双轨制**管理游戏注册信息
+游戏注册中心（循环23由 `GameRegistry.java` 迁移至 Kotlin，final 工具类），采用**双轨制**管理游戏注册信息
 **注册方式**:
 
 | 方式 | 说明 | 适用场景 |
@@ -883,9 +899,10 @@ AppModule (Hilt DI)
 
 版本信息存储`version.properties`�?
 ```properties
-versionCode=268          # 内部版本号，每次构建自动递增
-versionName=1.3.30-beta.1# 展示版本号lastStableVersionCode=267
-lastStableVersionName=1.3.29
+versionCode=567          # 内部版本号，每次构建自动递增
+versionName=1.4.1        # 展示版本号
+lastStableVersionCode=465
+lastStableVersionName=1.4.0
 betaNoticeVersionGap=3
 ```
 
@@ -1085,8 +1102,44 @@ Keep new cross-feature dependencies out of `:core:*` unless they are genuinely r
 - ModuleManifest新增storeCategory和isBaseFramework字段
 - 浏览�?工具层AI拆分为基础框架+扩展功能
 
+## 2026-07-06 文档同步：循环 17-24 维护笔记
 
+### 循环 17-19：浏览器循环19重构为原生实现
+- 新增 `app/src/main/java/com/gamecenter/app/browser/{bridge,core,data,security,ui}/` 包结构
+- Room 数据库（4 张表：浏览历史/书签/下载/cookie）
+- 安全模块：AdBlocker、DomainTrustManager、JsBridgePolicy
+- 卸载第三方 WebView 依赖，使用原生 Android WebView 实现
 
+### 循环 20：wrongbook 模块预装集成
+- 新增 `module-store/feature/tools/wrongbook` 错题本模块
+- 预装 APK 路径：`assets/modules/feature_wrongbook_v100.apk`
+- 支持科目管理、复习计划、数据导入导出
+
+### 循环 21-22：错题本全面推进
+- Room v2 schema 升级
+- 自定义图表 View（科目统计/复习进度）
+- 科目管理、复习计划、数据导入导出
+
+### 循环 23：宿主 Kotlin 迁移完成
+- `App.java` / `MainActivity.java` / `GameRegistry.java` 迁移至 `.kt`
+- 新路径：`app/src/main/kotlin/com/gamecenter/app/{App.kt, MainActivity.kt, games/GameRegistry.kt}`
+- 新增 `core/moduleloader/.../ModuleContextHelper.kt`
+- 新增 `.github/workflows/android_ci.yml`（GitHub Actions CI/CD）
+- 新增 `.github/dependabot.yml`（Dependabot 配置）
+- 语言比例：Java 约 55% + Kotlin 约 45%
+
+### 循环 24：Netty 安全漏洞修复
+- Netty 4.1.134.Final → 4.1.135.Final
+- 修复 7 个 CVE（3 high + 4 medium）：
+  - High: CVE-2026-50010 / CVE-2026-45416 / CVE-2026-44249
+  - Medium: CVE-2026-50560 / CVE-2026-50020 / CVE-2026-48043 / CVE-2026-47244
+- GitHub Dependabot：0 open / 7 dismissed
+- 最新 commit：`f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
+
+### 当前状态
+- versionCode=567 / versionName=1.4.1（lastStable=465/1.4.0）
+- 工作区干净，main 与 origin/main 同步
+- 动态模块（共 9 个）：`module-store/feature/games/games/{hall,chinesechess,game2048,klotski,tts}` + `module-store/feature/tools/{ai,tools,vpn,wrongbook}`
 
 ---
 [🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
