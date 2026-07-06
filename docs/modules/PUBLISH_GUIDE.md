@@ -1,46 +1,76 @@
 # GameMatrixApp 发布指南
 
-## 2026-05-20 GitHub 上传网络说明
+> **文档版本**: v1.12.0
+> **最后更新**: 2026-07-06
+> **维护者**: GameMatrixApp 开发团队
+> **当前版本**: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+> **项目根**: d:\Developmment\GameMatrixApp
 
-- 本机已配�?GitHub-only Git 代理：`git config --global http.https://github.com.proxy http://127.0.0.1:10808`�?- 该配置只影响 `https://github.com`，用于在不开�?xray TUN/虚拟网卡模式时完�?`git push` �?GitHub Release 上传前的 Git 操作�?- 如本地代理端口变化，运行 `powershell -ExecutionPolicy Bypass -File 工具\\network\Configure-GitHubProxy.ps1 -Apply` 重新检测并写入配置�?
-本文档说明如何将 GameMatrixApp APK 自动发布到所有更新源�?
-## 重要更新�?026-05-12�?
+---
 
-### 双版本分发架构重�?🎯
+## 目录
 
-�?v1.3.19 开始，发布系统已重构为**双版本分发架�?*�?
+1. [重要更新](#重要更新)
+2. [更新源列表](#更新源列表)
+3. [前置准备](#前置准备)
+4. [发布方式](#发布方式)
+5. [发布流程](#发布流程)
+6. [验证发布](#验证发布)
+7. [预安装模块发布流程](#预安装模块发布流程)
+8. [GitHub Actions CI/CD](#github-actions-cicd)
+9. [常见问题](#常见问题)
+10. [发布记录](#发布记录)
 
-#### 核心变化
-- **测试版和正式版完全分�?*：VPS 上同时维�?`app-beta.apk` �?`app-release.apk`
-- **上传脚本修复**：`upload_to_vps.py` �?`cleanup_remote` 函数现在保护两个通道的文�?
-- **更新逻辑优化**�?
-  - 用户开�?接收测试�? �?检�?version-beta.json
-  - 用户关闭"接收测试�? �?只检�?version-release.json
-  - 旧版 APP 使用 /api/update/check API 自动兼容
+---
+
+## 重要更新
+
+### 2026-07-06 循环 19-24 复核更新
+
+- **版本号**: `versionCode=567 / versionName=1.4.1`，`lastStableVersionCode=465 / lastStableVersionName=1.4.0`
+- **CI/CD**: 循环 23 上线 `.github/workflows/android_ci.yml`（主 CI）+ `.github/dependabot.yml`（依赖周扫描）
+- **安全修复**: 循环 24 Netty 4.1.134.Final → 4.1.135.Final，修复 7 个 CVE（3 高 4 中），Dependabot 当前 0 open alerts
+- **分发架构**: HK VPS 主分发，美国 VPS 已于 2026-06-19 下线，`server.url.fallback` 字段保留空值向后兼容
+- **新模块**: 循环 20 新增 `tools/wrongbook` 错题本模块，预装到 `app/src/main/assets/modules/feature_wrongbook_v100.apk`，由 `ENABLE_WRONGBOOK` feature flag 控制
+- **宿主 Kotlin 迁移**: 循环 21-22 完成 App.kt / MainActivity.kt / games/GameRegistry.kt 迁移
+
+### 双版本分发架构重构
+
+自 v1.3.19 起，发布系统采用**双版本分发架构**：
+
+- **测试版和正式版完全分离**：VPS 上同时维护 `app-beta.apk` 和 `app-release.apk`
+- **上传脚本修复**：`upload_to_vps.py` 的 `cleanup_remote` 函数现在保护两个通道的文件
+- **更新逻辑优化**：
+  - 用户开启"接收测试版" → 检查 `version-beta.json`
+  - 用户关闭"接收测试版" → 只检查 `version-release.json`
+  - 旧版 APP 使用 `/api/update/check` API 自动兼容
 
 #### 发布命令
 
-**发布测试�?*�?
+**发布测试版**：
+
 ```bash
 python 工具/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.apk \
     --version app/build/outputs/apk/release/version.json --channel beta
 ```
 
-**发布正式�?*�?
+**发布正式版**：
+
 ```bash
 python 工具/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.apk \
     --version app/build/outputs/apk/release/version.json --channel release
 ```
 
-### APK 签名问题已修�?
+### APK 签名问题已修复
 
-之前的版本存�?APK 签名配置问题，导致安装包提示"开发者签名异�?。现已修复：
+之前的版本存在 APK 签名配置问题，导致安装包提示"开发者签名异常"。现已修复：
 
 1. **修复 keystore 路径错误**
    - 错误：`storeFile file(props['STORE_FILE'])`
    - 正确：`storeFile rootProject.file(props['STORE_FILE'])`
 
-2. **启用 V1 �?V2 签名方案**
+2. **启用 V1 和 V2 签名方案**
+
    ```groovy
    signingConfigs {
        release {
@@ -51,10 +81,11 @@ python 工具/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.a
    ```
 
 3. **验证签名**
+
    ```bash
    cd app\build\outputs\apk\release
    jarsigner -verify app-release.apk
-   # 输出：jar 已验�?�?
+   # 输出：jar 已验证。
    ```
 
 ### VPS 文件结构
@@ -69,13 +100,16 @@ python 工具/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.a
 
 ---
 
-## 更新源列�?
+## 更新源列表
 
-| 序号 | 更新�?| URL | 类型 | 用�?|
+| 序号 | 更新源 | URL | 类型 | 用途 |
 |------|--------|-----|------|------|
-| 1 | 香港 VPS | https://your-server.example.com | SFTP | 主要更新源，低延�?|
-| 2 | 美国 VPS | https://your-server.example.com:1443 | SFTP | 备用更新�?|
-| 3 | GitHub Releases | https://github.com/3571949306/GameMatrixApp/releases | HTTPS API | 公开分发 |
+| 1 | 香港 VPS | https://your-server.example.com | SFTP | 主要更新源，低延迟 |
+| 2 | GitHub Releases | https://github.com/3571949306/GameMatrixApp/releases | HTTPS API | 公开分发 |
+
+> **2026-07-06 复核**：美国 VPS 已于 2026-06-19 下线，从更新源列表移除。HK VPS 现为唯一 SFTP 更新源。
+
+---
 
 ## 前置准备
 
@@ -88,7 +122,7 @@ pip install paramiko requests
 
 ### 2. 配置签名
 
-在项目根目录创建 `keystore.properties` 文件�?
+在项目根目录创建 `keystore.properties` 文件（不要提交到 Git）：
 
 ```properties
 # GameMatrixApp 签名配置
@@ -98,16 +132,15 @@ KEY_ALIAS=GameMatrix
 KEY_PASSWORD=<your-key-password>
 ```
 
-确保 `GameMatrix.keystore` 文件存在于项目根目录�?
+确保 `GameMatrix.keystore` 文件存在于项目根目录。
 
 ### 3. 配置 VPS 凭证
 
-VPS 配置文件位于 `local_private/服务器部�?` 目录（已排除在版本控制外）：
+VPS 配置文件位于 `local_private/服务器部署/` 目录（已排除在版本控制外）：
 
 - `upload_config_hk.json` - 香港 VPS 配置
-- `upload_config_hk.json` - 美国 VPS 配置
 
-配置示例�?
+配置示例：
 
 ```json
 {
@@ -127,33 +160,35 @@ VPS 配置文件位于 `local_private/服务器部�?` 目录（已排除在版�
 ### 4. 获取 GitHub Token
 
 1. 访问 https://github.com/settings/tokens
-2. 创建�?Token，勾�?`repo` 权限
+2. 创建新 Token，勾选 `repo` 权限
 3. 复制 Token 并保存（只显示一次）
+
+---
 
 ## 发布方式
 
-### 方式一：一键发布脚本（推荐�?
+### 方式一：一键发布脚本（推荐）
 
-#### Windows (批处�?
+#### Windows (批处理)
 
 ```bash
-# 发布 Beta �?
+# 发布 Beta 版
 publish-all.bat beta
 
-# 发布正式�?
+# 发布正式版
 publish-all.bat release
 ```
 
-#### Python 脚本（跨平台�?
+#### Python 脚本（跨平台）
 
 ```bash
-# 发布 Beta �?
+# 发布 Beta 版
 python 工具/publish-all.py --channel beta --github-token YOUR_GITHUB_TOKEN
 
-# 发布正式�?
+# 发布正式版
 python 工具/publish-all.py --channel release --github-token YOUR_GITHUB_TOKEN
 
-# 只上传到特定更新�?
+# 只上传到特定更新源
 python 工具/publish-all.py --channel beta --github-token YOUR_TOKEN --sources hk_vps github
 
 # 跳过验证
@@ -172,7 +207,7 @@ gradlew assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 gradlew assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 ```
 
-**注意**：现�?APK 会自动签名，无需手动签名步骤�?
+**注意**：现在 APK 会自动签名，无需手动签名步骤。
 
 #### 步骤 2: 生成 version.json
 
@@ -180,7 +215,8 @@ gradlew assembleRelease -x lintVitalReportRelease -x lintVitalRelease
 gradlew generateVersionJson
 ```
 
-version.json 会自动生成到�?
+version.json 会自动生成到：
+
 - `app/build/outputs/apk/debug/version.json`
 - `app/build/outputs/apk/release/version.json`
 
@@ -189,27 +225,29 @@ version.json 会自动生成到�?
 ```bash
 cd app/build/outputs/apk/release
 jarsigner -verify app-release.apk
-# 输出：jar 已验�?�?
+# 输出：jar 已验证。
 ```
 
-#### 步骤 4: 上传�?VPS
+#### 步骤 4: 上传到 VPS
 
 ```bash
-# 上传到香�?VPS + 美国 VPS
+# 上传到香港 VPS
 python 工具/upload_to_vps.py --apk app/build/outputs/apk/release/app-release.apk \
     --version app/build/outputs/apk/release/version.json \
     --channel beta
 ```
 
-**注意**：现在使用已签名�?`app-release.apk`，而非 `app-release-unsigned.apk`�?
+**注意**：现在使用已签名的 `app-release.apk`，而非 `app-release-unsigned.apk`。
 
-#### 步骤 5: 上传�?GitHub Releases
+#### 步骤 5: 上传到 GitHub Releases
 
 ```bash
 python 工具/upload_to_github_release.py \
     app/build/outputs/apk/release/app-release.apk \
-    "v1.3.17"
+    "v1.4.1"
 ```
+
+---
 
 ## 发布流程
 
@@ -219,97 +257,203 @@ graph TD
     B --> C[编译 Release APK]
     C --> D[生成 version.json]
     D --> E{选择发布渠道}
-    E -->|Beta| F[上传�?HK VPS]
+    E -->|Beta| F[上传到 HK VPS]
     E -->|Release| F
-    F --> G[上传�?US VPS]
-    G --> H[上传�?GitHub Releases]
-    H --> I[验证所有更新源]
-    I --> J[发布完成]
+    F --> G[上传到 GitHub Releases]
+    G --> H[验证所有更新源]
+    H --> I[发布完成]
 ```
+
+> **2026-07-06 复核**：发布流程图中"上传到 US VPS"步骤已移除（美国 VPS 下线）。
+
+---
 
 ## 验证发布
 
-### 1. 检�?VPS 更新�?
+### 1. 检查 VPS 更新源
 
 访问以下 URL 确认文件已上传：
 
 - 香港 VPS: https://your-server.example.com/version-beta.json
-- 美国 VPS: https://your-server.example.com:1443/version-beta.json
 
-### 2. 检�?GitHub Releases
+### 2. 检查 GitHub Releases
 
 访问：https://github.com/3571949306/GameMatrixApp/releases
 
-### 3. 应用内检查更�?
+### 3. 应用内检查更新
 
-在应用设置中切换到对应更新源，点�?检查更�?�?
+在应用设置中切换到对应更新源，点击"检查更新"。
+
+---
+
+## 预安装模块发布流程
+
+> **2026-07-06 新增**：循环 20 引入 `tools/wrongbook` 错题本模块后，预安装模块发布流程需要规范化。
+
+### 1. 预安装模块清单
+
+当前预安装到 `app/src/main/assets/modules/` 的动态 APK：
+
+| 模块 ID | 文件名 | 版本 | Feature Flag | 说明 |
+|---------|--------|------|--------------|------|
+| `games_hall` | `feature_games_hall_v100.apk` | v1.0.0 | — | 游戏大厅 |
+| `chinesechess` | `feature_chinesechess_v200.apk` | v2.0.0 | — | 中国象棋 |
+| `game2048` | `feature_game2048_v100.apk` | v1.0.0 | — | 2048 |
+| `klotski` | `feature_klotski_v200.apk` | v2.0.0 | — | 华容道 |
+| `tts` | `feature_tts_v100.apk` | v1.0.0 | — | TTS 语音合成 |
+| `ai` | `feature_ai_v100.apk` | v1.0.0 | — | AI 助手 |
+| `browser` | `feature_browser_v100.apk` | v1.0.0 | — | 浏览器 |
+| `tools` | `feature_tools_v100.apk` | v1.0.0 | — | 工具箱 |
+| `vpn` | `feature_vpn_v100.apk` | v1.0.0 | — | VPN |
+| `wrongbook` | `feature_wrongbook_v100.apk` | v1.0.0 | `ENABLE_WRONGBOOK` | 错题本（循环 20 新增） |
+
+### 2. 构建预安装模块
+
+当某个预安装模块源码变更时，需要重新构建模块 APK 并同步到 `app/src/main/assets/modules/`：
+
+```powershell
+# 示例：重建 wrongbook 模块
+.\gradlew.bat :module-store:feature:tools:wrongbook:assembleDebug -PautoBumpVersion=false --stacktrace
+
+# 同步到 app assets
+.\gradlew.bat :app:bundlePreinstalledModules -PautoBumpVersion=false --stacktrace
+
+# 重建宿主 APK
+.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
+```
+
+### 3. 验证预安装模块
+
+```powershell
+# 验证 assets/modules/ 下 APK 文件大小与 SHA-256
+Get-ChildItem app\src\main\assets\modules\*.apk | ForEach-Object {
+    "$($_.Name) - $($_.Length) bytes - $((Get-FileHash $_.FullName -Algorithm SHA256).Hash)"
+}
+```
+
+### 4. Feature Flag 控制
+
+新增预安装模块应在 `app/build.gradle` 中添加 feature flag：
+
+```groovy
+buildConfigField "boolean", "ENABLE_WRONGBOOK", "true"
+```
+
+宿主代码通过 `BuildConfig.ENABLE_WRONGBOOK` 判断是否显示模块入口。发布时可通过修改此值快速禁用有问题的模块。
+
+---
+
+## GitHub Actions CI/CD
+
+> **2026-07-06 循环 23 上线**：CI/CD 流程已就位，详见 `CLOUD-BUILD.md`。
+
+### 1. CI Workflow 文件
+
+| 文件 | 用途 | 触发 |
+|------|------|------|
+| `.github/workflows/android_ci.yml` | 主 CI（lint + test + debug build + gitleaks） | push / PR |
+| `.github/workflows/cloud-build.yml` | 云编译专用（debug + release artifact 上传） | push / PR |
+| `.github/dependabot.yml` | 依赖周扫描（Gradle + GitHub Actions） | 每周自动 |
+| `.gitleaks.toml` | secret 扫描配置 | 由 CI 调用 |
+
+### 2. Dependabot 状态
+
+- **当前状态**: 0 open alerts（7 个历史 alerts 已在循环 24 Netty 升级后 dismissed）
+- **扫描范围**: Gradle 依赖 + GitHub Actions 版本
+- **频率**: 每周自动扫描，自动开 PR 升级
+
+### 3. CI 触发
+
+```bash
+# 推到 main 分支自动触发
+git push origin main
+
+# 或在 GitHub 网页手动触发
+# Actions 页面 → "CI" workflow → "Run workflow"
+```
+
+> **注意**：CI 默认出 unsigned release APK。要签正式版 release APK，需配置 GitHub Secrets（`KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`），详见 `CLOUD-BUILD.md` §4。
+
+---
 
 ## 常见问题
 
-### Q: 上传�?VPS 失败
+### Q: 上传到 VPS 失败
 
 **A:** 检查以下项目：
-1. VPS 配置文件是否存在且正�?
+
+1. VPS 配置文件是否存在且正确
 2. 网络连接是否正常
-3. VPS �?SSH 服务是否运行
-4. 防火墙是否允�?SSH 连接
+3. VPS 的 SSH 服务是否运行
+4. 防火墙是否允许 SSH 连接
 
 ### Q: GitHub Releases 上传失败
 
-**A:** 确认�?
+**A:** 确认：
+
 1. GitHub Token 是否有效
-2. Token 是否�?`repo` 权限
+2. Token 是否有 `repo` 权限
 3. 仓库名称是否正确
 
 ### Q: 版本号不匹配
 
-**A:** 确保�?
+**A:** 确保：
+
 1. `version.properties` 中的版本号已更新
-2. 使用正确�?`-PupdateChannel` 参数
-3. 清理旧的构建文件后重新编�?
+2. 使用正确的 `-PupdateChannel` 参数
+3. 清理旧的构建文件后重新编译
 
-## 自动化发布（CI/CD�?
+### Q: 预安装模块未生效
 
-项目已配�?GitHub Actions 工作�?(`.github/workflows/ci.yml`)，推送代码时自动构建和上传�?
+**A:** 检查：
 
-如需手动触发发布，可以使用：
+1. 模块 APK 是否已同步到 `app/src/main/assets/modules/`
+2. 宿主 APK 是否已重新构建（`bundlePreinstalledModules` + `assembleDebug`）
+3. Feature Flag 是否启用（如 `ENABLE_WRONGBOOK`）
+4. `modules.json` 中模块元数据是否正确
 
-```bash
-# 本地一键发�?
-python 工具/publish-all.py --channel beta --github-token ${{ secrets.GITHUB_TOKEN }}
-```
+---
 
 ## 发布记录
 
-发布记录会自动更新到 `CHANGELOG.md` �?`RELEASE_NOTES_*.md` 文件�?
+发布记录会自动更新到 `CHANGELOG.md` 和 `RELEASE_NOTES_*.md` 文件。
+
+### 2026-07-06 循环 19-24 变更摘要
+
+- **循环 19**: 浏览器原生重构
+- **循环 20**: wrongbook 模块预装，由 `ENABLE_WRONGBOOK` feature flag 控制
+- **循环 21-22**: 错题本推进 + 宿主 Kotlin 迁移（App.kt / MainActivity.kt / GameRegistry.kt）
+- **循环 23**: CI 配置（`.github/workflows/android_ci.yml` + `.github/dependabot.yml`）
+- **循环 24**: Netty 4.1.134.Final → 4.1.135.Final 安全修复（7 CVE），commit f978f06 已推送
+
+### 历史发布记录
+
+- **2026-05-24 文档同步**：
+  - 底部导航切换闪退修复：创建 KeepStateNavigator 自定义导航器，使用 add/show/hide 策略替代 Navigation 默认 replace 策略
+  - 模块下载修复：ModuleDownloader 全面重写，添加全局异常捕获、降低超时、增加日志
+  - 内存泄漏全面修复：移除 WeakReference callback、Fragment 回调安全检查、视图引用彻底清理
+  - 压力测试通过：10轮快速Tab切换无崩溃
+  - 游戏美化+中国象棋提示改进+华容道/中国象棋模块商店上架：四个游戏视觉美化；中国象棋提示改为棋盘可视化；华容道和中国象棋创建独立APK模块 v2.0.0 上架模块商店
+
+- **2026-05-19 Modularization Note**：
+  - 构建现已包含 `:core:common`、`:core:network`、`:core:update`。Release 和 upload 命令应继续指向 `:app` 任务，但维护者在向 `local.properties` 或 `version.properties` 添加新 release 字段时，必须保持模块级 BuildConfig 生成同步。
+
+- **2026-05-15 文档同步：Dependabot 与 CI 修复**：
+  - Dependabot 安全告警已处理：升级 Android Gradle Plugin 到 8.13.2、Gradle Wrapper 到 8.13、Kotlin 到 2.2.21、Hilt 到 2.57.2
+  - 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1
+  - GitHub Actions 已改为验证型 CI：使用 JDK 17，执行 debug 构建与单元测试，不在云端构建 release 包
+  - CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修改 `version.properties`
+
+- **2026-05-14 文档同步：文字适配与应用语言**：
+  - 新增全局按钮文字适配样式，统一提升 MaterialButton 与平台 Button 的最小高度、内边距和两行显示能力
+  - 设置弹窗新增应用语言选项：跟随系统、中文、English
+  - AI 任务下拉改为资源字符串，切换 English 后可显示英文选项
+  - 发布前检查需覆盖中文/英文两种语言、深色/浅色主题
 
 ---
 
-**最后更�?*: 2026-05-11  
-**版本**: v1.11.0
+**最后更新**: 2026-07-06
+**版本**: v1.12.0
+
 ---
-
-## 2026-05-14 文档同步：文字适配与应用语言
-
-- 新增全局按钮文字适配样式，统一提升 MaterialButton 与平�?Button 的最小高度、内边距和两行显示能力，减少“进入游戏”“发送”等按钮文字被裁切的问题�?
-- 设置弹窗新增应用语言选项：跟随系统、中文、English；应用启动时会恢复已选择语言�?
-- AI 任务下拉改为资源字符串，切换 English 后可显示 Chat、Summary、Translate 等英文选项�?
-- 发布前检查需覆盖中文/英文两种语言、深�?浅色主题、游戏大厅卡片按钮、AI 发送按钮、工具箱小按钮和斗地主操作按钮�?
-## 2026-05-15 文档同步：Dependabot �?CI 修复
-
-- Dependabot 安全告警已处理：升级 Android Gradle Plugin �?8.13.2、Gradle Wrapper �?8.13、Kotlin �?2.2.21、Hilt �?2.57.2�?
-- 构建 classpath 已强制解析到安全版本：Netty 4.1.133.Final、BouncyCastle 1.84、commons-compress 1.26.0、jose4j 0.9.6、jdom2 2.0.6.1�?
-- GitHub Actions 已改为验证型 CI：使�?JDK 21，执�?debug 构建与单元测试，不在云端构建 release 包，避免暴露或依�?release 签名文件�?
-- CI 命令统一添加 `-PautoBumpVersion=false`，避免自动修�?`version.properties`�?
-- `.gitignore` �?`data/` 规则已收窄为 `/data/`，防止误忽略 `app/src/main/java/com/GameMatrix/app/ai/data/` 源码�?
-- 最�?GitHub Actions `CI/CD Pipeline` 已通过；正式签名、R8 混淆�?服务器部�?GitHub Release 发布仍以本机发布流程为准�?
-
-## 2026-05-19 Modularization Note
-
-The build now includes `:core:common`, `:core:network`, and `:core:update`. Release and upload commands should continue to target `:app` tasks, but maintainers must keep module-level BuildConfig generation in sync when adding new release fields to `local.properties` or `version.properties`.
-
-## 2026-05-24 文档同步
-- 底部导航切换闪退修复：创�?KeepStateNavigator 自定义导航器，使�?add/show/hide 策略替代 Navigation 默认 replace 策略
-- 模块下载修复：ModuleDownloader 全面重写，添加全局异常捕获、降低超时、增加日�?- 内存泄漏全面修复：移�?WeakReference callback、Fragment 回调安全检查、视图引用彻底清�?- 压力测试通过�?0轮快速Tab切换无崩�?
-
-- 2026-05-24 游戏美化+中国象棋提示改进+华容�?中国象棋模块商店上架：四个游戏视觉美化（斗地主径向渐变桌�?五子棋木�?D棋子/华容道深色渐变金色边�?中国象棋木纹角标波浪线）；中国象棋提示改为棋盘可视化（蓝色脉冲光�?箭头指引�?中文棋谱描述；华容道和中国象棋创建独立APK模块（feature/games/klotski、feature/games/chinesechess）v2.0.0上架模块商店
+[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)

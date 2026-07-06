@@ -16,15 +16,21 @@
 
 ### 0.2 项目现状快照
 
-| 维度 | 现状 | 期望 | 缺口 |
+> **更新于 2026-07-06 (v1.4.1 / vc=567)**：循环 19-24 已完成浏览器原生重构、wrongbook 模块预装、宿主 Kotlin 迁移、Netty 安全修复。下表反映 v1.4.1 实际状态。
+
+| 维度 | 现状 (v1.4.1 / vc=567) | 期望 | 缺口 |
 |------|------|------|------|
-| **模块化粒度** | 10 个 dynamic APK + 29 个游戏 ZIP | 完整 dynamic 化 | 工具箱内部仍是硬编码 Map；模块框架 v1/v2 双层并存 |
+| **版本/构建** | versionCode=567 / versionName=1.4.1；lastStable=465/1.4.0；最新 commit `f978f06` (循环24 Netty 修复) | 持续迭代 | 无 |
+| **模块化粒度** | 9 个 dynamic APK (`games/games/{hall,chinesechess,game2048,klotski,tts}` + `tools/{ai,tools,vpn,wrongbook}`) + 游戏 ZIP | 完整 dynamic 化 | 工具箱内部仍是硬编码 Map；模块框架 v1/v2 双层并存 |
 | **AI 助手** | 独立 APK (`feature_ai_v100.apk`, 916KB)，响应**非流式** | 流式 + 多模态 + Function calling | 缺 SSE/分块、缺 Markdown 渲染、缺 Tool 协议 |
 | **VPN 模块** | 独立 APK，4 协议**全为 Socket 桩**，Intent 目标类不存在 | sing-box 接入 + 真实 VpnService | 缺 sing-box AAR、缺 GameVpnService、缺 BIND_VPN_SERVICE |
-| **工具箱** | 独立 APK + 27 个内置工具，**硬编码注册** | 标准化 ToolCapability + fractal 拆 | initBinders() 27 行 put 写死，布局在宿主 res |
+| **工具箱** | 独立 APK + 27 个内置工具，**硬编码注册**；新增 wrongbook 模块（循环20-23 已预装集成） | 标准化 ToolCapability + fractal 拆 | initBinders() 27 行 put 写死，布局在宿主 res |
 | **UI 主题** | Material 3 DayNight，**dark/light 调色盘冲突** (绿→青→紫跳变) | 品牌色连续过渡 | colors.xml 与 values-night/colors.xml 重复定义 |
 | **国际/视觉** | 英文漏覆盖 ~300 条；dimens token 覆盖率 ~20% | 100% 覆盖 + 全 token 化 | 80% layout 仍硬编码 `16dp` |
-| **网络层** | OkHttpClientProvider 已统一，但**4 处违规源**仍自 new OkHttpClient.Builder | 零违规 | NETWORK_LAYER.md §已知问题待修 |
+| **网络层** | OkHttpClientProvider 已统一，但**4 处违规源**仍自 new OkHttpClient.Builder；Netty 已升级至 4.1.135.Final (循环24) | 零违规 | NETWORK_LAYER.md §已知问题待修 |
+| **宿主 Kotlin 化** | 循环23 已迁移 `App.kt` / `MainActivity.kt` / `games/GameRegistry.kt` 到 Kotlin | 继续推进 | 部分模块仍为 Java |
+| **CI/CD** | 循环23 新增 `.github/workflows/android_ci.yml` + `.github/dependabot.yml`；GitHub Dependabot 0 open / 7 dismissed | 持续运行 | release 签名仍以本地为主 |
+| **分发架构** | HK VPS 主分发；美国 VPS 已下线 (2026-06-19) | 单源稳定 | 无 fallback VPS |
 | **构建** | JDK 17 + AGP + KSP 已就位 | 本地可出 APK | 缺依赖可走 fallback；APK 落桌面 |
 
 ### 0.3 4 个 track 输出的关键发现串联
@@ -348,7 +354,7 @@ git --version    # 2.30+
 ```bash
 # 主 APK 编译 (关掉自动 bump)
 $env:JAVA_HOME = "C:\Users\Administrator\.jdks\ms-17.0.19"
-cd Y:\GameMatrixApp
+cd d:\Developmment\GameMatrixApp
 .\gradlew.bat :app:assembleDebug -PautoBumpVersion=false
 # 输出: app\build\outputs\apk\debug\app-debug.apk → 复制到桌面
 
@@ -477,7 +483,7 @@ def can_build(target: str) -> bool:
 ```bash
 # 编译 dynamic APK
 $env:JAVA_HOME = "C:\Users\Administrator\.jdks\ms-17.0.19"
-cd Y:\GameMatrixApp
+cd d:\Developmment\GameMatrixApp
 .\gradlew.bat :module-store:feature:tools:ai:assembleDebug
 
 # 跑单测
@@ -497,7 +503,7 @@ cd Y:\GameMatrixApp
 # sing-box AAR 单独下载 (fallback 准备)
 $ProgressPreference = 'SilentlyContinue'
 Invoke-WebRequest -Uri "https://github.com/SagerNet/sing-box/releases/download/v1.8.0/libbox.aar" `
-    -OutFile "Y:\GameMatrixApp\module-store\feature\tools\vpn\libs\libbox.aar"
+    -OutFile "d:\Developmment\GameMatrixApp\module-store\feature\tools\vpn\libs\libbox.aar"
 ```
 
 #### 3.3.3 工具箱 (feature_tools)
@@ -540,7 +546,7 @@ $env:JAVA_HOME = "C:\Users\Administrator\.jdks\ms-17.0.19"
 $Desktop = [Environment]::GetFolderPath("Desktop")
 
 # 1. 编主 APK
-Set-Location Y:\GameMatrixApp
+Set-Location d:\Developmment\GameMatrixApp
 .\gradlew.bat :app:assembleDebug -PautoBumpVersion=false
 
 # 2. 编 4 个核心 dynamic APK
@@ -761,7 +767,7 @@ Get-ChildItem $Desktop -Filter "*-$Sprint-$Date.apk" | Format-Table Name, Length
 
 ### M1 (W2 末) — Sprint 1 完成, 3 个 P0 修
 
-**日期**: 2026-06-18 (预计)
+**日期**: 2026-06-18 (预计) / **实际更新**: 2026-07-06 (v1.4.1 / vc=567)
 **交付物**:
 - 桌面 `app-debug-v1.4.0-rc1-2026-06-18.apk` (主 APK)
 - 桌面 `feature_ai-v101-2026-06-18.apk` (流式输出 + 错误细化)
@@ -783,9 +789,18 @@ Get-ChildItem $Desktop -Filter "*-$Sprint-$Date.apk" | Format-Table Name, Length
 
 **风险**: R-01 (sing-box 不兼容) / R-28 (盲改) / R-34 (超时)
 
+**实际完成情况 (2026-07-06 复核, 循环 19-24)**:
+- ✅ **循环19 浏览器原生重构**：browser 模块从 WebView 桩重构为原生实现，AI/VPN/Tools 仍在 Sprint 1 范围内推进
+- ✅ **循环20 wrongbook 模块预装集成**：错题本模块作为 dynamic APK 预装，构建链路 `:module-store:feature:tools:wrongbook:assembleDebug` + `:app:bundlePreinstalledModules`
+- ✅ **循环21-22 错题本全面推进**：UI/数据/分类/搜索/导入导出全链路打通，支持浅色/深色主题、本地化
+- ✅ **循环23 宿主 Kotlin 迁移 + CI 配置**：`app/src/main/kotlin/com/gamecenter/app/{App.kt, MainActivity.kt, games/GameRegistry.kt}` 迁移完成；新增 `.github/workflows/android_ci.yml`（lint+test+build 三 job）+ `.github/dependabot.yml`
+- ✅ **循环24 Netty 安全修复**：Netty 4.1.134 → 4.1.135.Final，修复 7 CVE（CVE-2026-50010/45416/44249 高危 + CVE-2026-50560/50020/48043/47244 中危）；GitHub Dependabot 当前 0 open / 7 dismissed
+- ⚠️ **未完成项**：S1-01 AI 流式输出、S1-02 sing-box 接入、S1-04 GameVpnService 仍待推进；dark/light 调色盘冲突 (S1-03) 仍在路线图上
+- 📌 **新增 ModuleContextHelper**：`core/moduleloader/.../ModuleContextHelper.kt` 提供模块上下文注入辅助，便于动态模块获取 host 资源与 ClassLoader
+
 ### M2 (W4 末) — Sprint 2 完成, 标准化工程
 
-**日期**: 2026-07-02 (预计)
+**日期**: 2026-07-02 (预计) / **实际更新**: 2026-07-06 (v1.4.1 / vc=567)
 **交付物**:
 - `core:common` 升级: ToolCapability / ToolRegistry / ToolServiceLoader / ToolAction 接口
 - 桌面 `app-debug-v1.4.0-rc2-2026-07-02.apk`
@@ -806,6 +821,11 @@ Get-ChildItem $Desktop -Filter "*-$Sprint-$Date.apk" | Format-Table Name, Length
 - [ ] 6 个 dynamic APK + 1 个主 APK 桌面装包全绿
 
 **风险**: R-13 (27 binder 一次性迁移崩) / R-14 (META-INF 被 R8 干掉) / R-08 (调色盘跳变)
+
+**实际完成情况 (2026-07-06 复核)**:
+- ⚠️ **Sprint 2 工程标准化整体延后**：循环 19-24 主要聚焦于浏览器原生重构、wrongbook 模块预装、宿主 Kotlin 迁移、Netty 安全修复等 P0/工程治理项，ToolCapability 接口落地与 6 个 P0 工具迁移尚未启动
+- 📌 **已落地的相关基础**：`core/moduleloader/.../ModuleContextHelper.kt` 为后续 ToolCapability / ToolRegistry 跨模块注入提供了上下文桥；`android_ci.yml` 提供了 detekt + 单测 + debug build 验证链路；`dependabot.yml` 持续监控依赖 CVE
+- 📌 **下一步建议**：循环 25+ 启动 S2-01 ToolCapability 接口落地（200 行 Kotlin），优先迁 6 个 P0 工具（text_codec/clipboard/qr/qr_plus/color/color_plus）跑通 LegacyAdapter 兼容路径
 
 ### M3 (M2 末) — 智能 + 联动 + 模块化落地
 
@@ -989,7 +1009,7 @@ M6 (M5 末-M6 末)  Baseline Profile + APK v3.1 + 审计
 
 ### 7.1 track-ai 报告 (35KB, 466 行, 调研人 coder mvs_d2beeb3e0e7c4752b0e128ff08f65ca6)
 
-**位置**: `Y:\GameMatrixApp\docs\refactor\track-ai.md`
+**位置**: `d:\Developmment\GameMatrixApp\docs\refactor\track-ai.md`
 **关键章节**:
 - §1 现状: AI 助手**实际是 dynamic APK** (不是 host 内代码)
 - §2 P0/P1/P2: 共 28 条问题清单
@@ -1010,7 +1030,7 @@ M6 (M5 末-M6 末)  Baseline Profile + APK v3.1 + 审计
 
 ### 7.2 track-vpn 报告 (18KB, 403 行, 调研人 coder)
 
-**位置**: `Y:\GameMatrixApp\docs\refactor\track-vpn.md`
+**位置**: `d:\Developmment\GameMatrixApp\docs\refactor\track-vpn.md`
 **关键章节**:
 - §1 现状: 4 协议**全为 Socket 桩**, VpnServiceProxy 类不存在, x-ui 集成 0
 - §2 用户痛点: P-01~15 共 15 条
@@ -1033,7 +1053,7 @@ M6 (M5 末-M6 末)  Baseline Profile + APK v3.1 + 审计
 
 ### 7.3 track-tools 报告 (38KB, 806 行, 调研人 coder)
 
-**位置**: `Y:\GameMatrixApp\docs\refactor\track-tools.md`
+**位置**: `d:\Developmment\GameMatrixApp\docs\refactor\track-tools.md`
 **关键章节**:
 - §1 现状: feature_tools **已是 dynamic APK**, 27 个工具, 硬编码注册
 - §1.5 P0/P1/P2: 8 条核心问题
@@ -1056,7 +1076,7 @@ M6 (M5 末-M6 末)  Baseline Profile + APK v3.1 + 审计
 
 ### 7.4 track-platform 报告 (35KB, 471 行, 调研人 coder)
 
-**位置**: `Y:\GameMatrixApp\docs\refactor\track-platform.md`
+**位置**: `d:\Developmment\GameMatrixApp\docs\refactor\track-platform.md`
 **关键章节**:
 - §1 模块化架构现状: 11 模块 Gradle 拓扑 + v1/v2 双层框架
 - §2 主题/UI 现状: 7 个 bug (dark/light 调色盘冲突为 P0)
@@ -1163,13 +1183,21 @@ M6 (M5 末-M6 末)  Baseline Profile + APK v3.1 + 审计
 
 | 字段 | 值 |
 |------|-----|
-| 文档版本 | v1.0 |
+| 文档版本 | v1.1 |
 | 创建日期 | 2026-06-04 16:42 |
+| 最后更新 | 2026-07-06 |
 | 创建人 | general (Mavis orchestrator) |
 | 输入 | 4 个 track 报告 (合计 126KB) + DONT_DO_THIS.md + plan.yaml |
 | 维护规则 | 每次 Sprint 结束更新 "状态" 列; 重大决策变化 (D-01 选型等) 必须更新 |
 | 回滚规则 | 用户/PM 一句话可回滚到 v0.9 (4 track 报告独立保留) |
-| 下次 review | 2026-06-18 (Sprint 1 末) |
+| 下次 review | 2026-07-20 (循环 25+ 阶段) |
+
+### 版本更新记录
+
+| 版本 | 日期 | 主要变更 |
+|------|------|----------|
+| v1.0 | 2026-06-04 | 初始版本，4 个 track 调研合成，规划 6 个月 6 milestone |
+| v1.1 | 2026-07-06 | 同步循环 19-24 实际完成情况：浏览器原生重构（循环19）、wrongbook 模块预装集成（循环20）、错题本全面推进（循环21-22）、宿主 Kotlin 迁移 + CI 配置（循环23）、Netty 4.1.135 安全升级修复 7 CVE（循环24）；项目路径修正为 `d:\Developmment\GameMatrixApp`；版本号更新至 vc=567 / v1.4.1；新增 GitHub Actions `android_ci.yml` 与 `dependabot.yml`；HK VPS 主分发，美国 VPS 已下线 |
 
 ---
 

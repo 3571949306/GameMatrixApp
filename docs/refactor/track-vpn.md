@@ -3,7 +3,8 @@
 > Track: track-vpn  
 > 状态: 调研完成 / 改造设计 v1  
 > 日期: 2026-06-04  
-> 完整版: `Y:\GameMatrixApp\docs\refactor\track-vpn.md`
+> 最后更新: 2026-07-06 (循环24 Netty 安全修复复核)  
+> 完整版: `d:\Developmment\GameMatrixApp\docs\refactor\track-vpn.md`
 
 ## TL;DR
 
@@ -18,10 +19,32 @@ VPN 模块目前**只有 UI 骨架 + 协议桩**，端到端**不可用**：
 
 ## P0 必修
 
-1. 实现真正的 `VpnService` (管 tun/DNS/路由)
-2. 接入 sing-box / v2rayNG 替换 4 个桩
-3. AndroidManifest 补 `<service>` + BIND_VPN_SERVICE
-4. Intent 目标改到 `com.gamecenter.app.vpn.service.GameVpnService`（新类）
+> **2026-07-06 实际进度复核**：以下 4 项 P0 在循环 19-24 期间**均未启动**，VPN 模块仍为桩实现。循环 24 仅完成宿主侧 Netty 4.1.135 安全升级（见下文「Netty 升级影响评估」），未触及 `module-store/feature/tools/vpn/` 内部代码。
+
+1. 实现真正的 `VpnService` (管 tun/DNS/路由) — ⚠️ **未启动**
+2. 接入 sing-box / v2rayNG 替换 4 个桩 — ⚠️ **未启动**（D-01 决策待用户确认）
+3. AndroidManifest 补 `<service>` + BIND_VPN_SERVICE — ⚠️ **未启动**
+4. Intent 目标改到 `com.gamecenter.app.vpn.service.GameVpnService`（新类） — ⚠️ **未启动**
+
+### Netty 4.1.135 升级对 VPN 模块的影响评估 (2026-07-06 / 循环24)
+
+循环 24 完成宿主侧 Netty 4.1.134 → 4.1.135.Final 升级，修复 7 CVE：
+
+| CVE | 严重度 | 与 VPN 模块相关性 |
+|-----|--------|------------------|
+| CVE-2026-50010 | High | 间接相关 — sing-box outbound 未来若走 Netty 链路可受益 |
+| CVE-2026-45416 | High | 间接相关 — 同上 |
+| CVE-2026-44249 | High | 间接相关 — 同上 |
+| CVE-2026-50560 | Medium | 间接相关 — 同上 |
+| CVE-2026-50020 | Medium | 间接相关 — 同上 |
+| CVE-2026-48043 | Medium | 间接相关 — 同上 |
+| CVE-2026-47244 | Medium | 间接相关 — 同上 |
+
+**结论**：
+- VPN 模块当前 4 个协议桩（`Socket(host, port)` 裸 TCP）**不依赖 Netty**，本次升级对 VPN 模块运行时行为无直接影响
+- 但 sing-box 接入后（D-01 决策落地），若 sing-box outbound 走 Netty 网络栈，则受益于本次升级
+- 宿主侧 `OkHttpClientProvider` 与 WebSocket Relay 已受益于 Netty 升级，VPN Per-App 路由（P-15）未来跨模块感知 VPN 状态时网络链路更稳
+- GitHub Dependabot 当前 0 open / 7 dismissed，VPN 模块依赖（含 sing-box AAR 引入后）应纳入 Dependabot 持续监控
 
 ## 改造阶段
 
@@ -29,7 +52,7 @@ VPN 模块目前**只有 UI 骨架 + 协议桩**，端到端**不可用**：
 - 中期 (1-2 月): 智能选路 / 订阅管理 / Per-App 路由 / EncryptedSharedPrefs
 - 长期 (3-6 月): Reality / Hysteria2 / 中转 / AI 选路
 
-详细全文见同目录其他文档（`Y:\GameMatrixApp\docs\refactor\track-vpn.md`）。
+详细全文见同目录其他文档（`d:\Developmment\GameMatrixApp\docs\refactor\track-vpn.md`）。
 
 ---
 
@@ -38,7 +61,7 @@ VPN 模块目前**只有 UI 骨架 + 协议桩**，端到端**不可用**：
 ### 1.1 模块位置与定位
 
 ```
-Y:\GameMatrixApp\module-store\feature\tools\vpn
+d:\Developmment\GameMatrixApp\module-store\feature\tools\vpn
 ├── build.gradle                       (独立 applicationId com.gamecenter.app.vpn)
 ├── AndroidManifest.xml                (极简，无 service / permission)
 ├── detekt-baseline.xml
@@ -386,11 +409,11 @@ vpn 从"工具"升级为"网络基础能力"。`core:network` 抽 `ProxyStatePro
 
 ## 7. 参考
 
-- `Y:\GameMatrixApp\module-store\feature\tools\vpn\src\main\java\com\gamecenter\app\vpn\**` (11 文件)
-- `Y:\GameMatrixApp\module-store\feature\tools\vpn\build.gradle`
-- `Y:\GameMatrixApp\module-store\feature\tools\vpn\src\main\AndroidManifest.xml`
-- `Y:\GameMatrixApp\docs\PROJECT_CONTEXT.md` §1.1
-- `Y:\GameMatrixApp\docs\NETWORK_LAYER.md`
+- `d:\Developmment\GameMatrixApp\module-store\feature\tools\vpn\src\main\java\com\gamecenter\app\vpn\**` (11 文件)
+- `d:\Developmment\GameMatrixApp\module-store\feature\tools\vpn\build.gradle`
+- `d:\Developmment\GameMatrixApp\module-store\feature\tools\vpn\src\main\AndroidManifest.xml`
+- `d:\Developmment\GameMatrixApp\docs\PROJECT_CONTEXT.md` §1.1
+- `d:\Developmment\GameMatrixApp\docs\NETWORK_LAYER.md`
 - sing-box Android 集成: https://sing-box.sagernet.org/integration/
 - v2rayNG Parser 参考: https://github.com/2dust/v2rayNG
 - VpnService 官方文档: https://developer.android.com/reference/android/net/VpnService
@@ -400,7 +423,7 @@ vpn 从"工具"升级为"网络基础能力"。`core:network` 抽 `ProxyStatePro
 > 调研人: coder
 > 完成时间: 2026-06-04 16:30 (Asia/Shanghai)
 > 评审建议: 与维护者/产品对一下 D-01（sing-box vs v2rayNG）决策后即可进入短期待办
-> 同步位置: `Y:\GameMatrixApp\docs\refactor\track-vpn.md`
+> 同步位置: `d:\Developmment\GameMatrixApp\docs\refactor\track-vpn.md`
 
 
 ---

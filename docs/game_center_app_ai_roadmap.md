@@ -1,11 +1,14 @@
 # GameMatrixApp 改造详细计划（Detailed Plan）
 
-> **当前进度 (2026-06-22)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ 模块市场 ✅ 阶段5 本地模型 ✅ 阶段5.5 游戏内嵌 ✅ 阶段5.6 线程优化 ✅ 阶段5.7 UI优化 ✅ 阶段5.8 更新逻辑优化 ✅ | 下一阶段：阶段6 扩展自动化
+> **当前进度 (2026-07-06)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ 模块市场 ✅ 阶段5 本地模型 ✅ 阶段5.5 游戏内嵌 ✅ 阶段5.6 线程优化 ✅ 阶段5.7 UI优化 ✅ 阶段5.8 更新逻辑优化 ✅ 阶段5.9 浏览器原生重构 ✅ 阶段5.10 wrongbook 模块 ✅ 阶段5.11 宿主 Kotlin 迁移 ✅ 阶段5.12 Netty 安全修复 ✅ | 下一阶段：阶段6 扩展自动化
 >
-> 当前版本: **v1.4.1** (vc=466)
+> 当前版本: **v1.4.1** (vc=567)
+> 上次稳定版: 1.4.0 (vc=465)
 > APK 已发布到 HK VPS（beta channel）和 GitHub Releases；2026-06-19 起 US VPS 已下线
 > 包名: `com.gamecenter.app`
 > Gradle 工具链: AGP 8.13.2, Kotlin 2.0.21, Hilt 2.57.2
+> 最新 commit: `f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
+> 工作区状态：干净，main 与 origin/main 同步
 >
 > | 阶段 | 状态 | 版本 | 说明 |
 > |------|------|------|------|
@@ -21,6 +24,10 @@
 | 阶段5.6：线程优化 | ✅ 已完成 | v1.4.0/vc465 | 统一线程管理器AppExecutors，OkHttp线程池64→8，总线程数75→17 |
 | 阶段5.7：UI优化 | ✅ 已完成 | v1.4.0/vc465 | 华容道UI升级，难度选择面板优化（休闲游戏直接启动） |
 | 阶段5.8：更新逻辑优化 | ✅ 已完成 | v1.4.1/vc466 | OptimizedUpdateManager（缓存+重试+MD5预检查），优化超时，占位符URL检测 |
+| 阶段5.9：浏览器原生重构 | ✅ 已完成 | v1.4.1/vc567 | 循环17-19：browser/{bridge,core,data,security,ui} 包结构，Room 4张表，AdBlocker/DomainTrustManager/JsBridgePolicy |
+| 阶段5.10：wrongbook 模块 | ✅ 已完成 | v1.4.1/vc567 | 循环20预装集成（assets/modules/feature_wrongbook_v100.apk），循环21-22全面推进（Room v2 schema、自定义图表 View、科目管理、复习计划、数据导入导出） |
+| 阶段5.11：宿主 Kotlin 迁移 | ✅ 已完成 | v1.4.1/vc567 | 循环23：App.java/MainActivity.java/GameRegistry.java → .kt，新增 ModuleContextHelper.kt，新增 .github/workflows/android_ci.yml 和 dependabot.yml，语言比例 Java 55% + Kotlin 45% |
+| 阶段5.12：Netty 安全修复 | ✅ 已完成 | v1.4.1/vc567 | 循环24：Netty 4.1.134.Final → 4.1.135.Final，修复 7 个 CVE（3 high + 4 medium），GitHub Dependabot 0 open / 7 dismissed |
 > | 阶段6：扩展自动化 | 📅 规划中 | — | 界面识别/任务规划 |
 
 ## 0. 文档目标

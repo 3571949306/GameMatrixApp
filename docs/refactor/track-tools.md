@@ -1,9 +1,11 @@
 # 工具箱模块化 + 改造设计
 
-> 文档版本: v1.0
+> 文档版本: v1.1
 > 调研日期: 2026-06-04
+> 最后更新: 2026-07-06 (循环 19-24 复核)
 > 调研者: coder (track-tools)
-> 项目根: Y:\GameMatrixApp
+> 项目根: d:\Developmment\GameMatrixApp
+> 当前版本: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
 
 ---
 
@@ -14,8 +16,19 @@
 3. **短期 demo 不需要抽 5 个 dynamic APK**——同进程内注册成 dynamic 子模块（fractal modularization）即可，宿主仍是 `feature_tools`；中期待 P2P 工具集稳定后再拆 APK。
 4. **接口标准化是最大收益**：`ToolBinder` 已经是单方法接口（`bind(ctx, view, executor)`），缺的是 manifest 描述（meta / 权限 / 分类 / 大小）、布局懒加载、统一的发现 API 和资源释放约定。
 5. **复用现有通道**：`modules.json` 已有 `tools`、`tts_voice`（`storeCategory: tools`），基础设施已就绪，缺的是"工具级"清单（tool-level manifest）和"工具商店" UI（工具级子目录）。
+6. **循环 20-23 新增 wrongbook 模块**：错题本作为新的 `tools/wrongbook` 动态 APK 已预装到宿主 `assets/modules/`，由 `ENABLE_WRONGBOOK` feature flag 控制，OCR/AI 接口已留好本地/云端双模式扩展点；本设计文档原先讨论的"工具即注册项"路径对 wrongbook 同样适用，wrongbook 内部各能力（拍照识别/OCR/AI 分析/错题列表/学科管理/掌握度仪表盘/复习计划）应按 `ToolCapability` 模式接入，而不是直接在 `ToolsFragment` 硬编码注册。
 
 ---
+
+## 0.1 循环 19-24 工具箱相关进展复核 (2026-07-06)
+
+| 循环 | 工具箱相关完成项 | 状态 | 说明 |
+|------|----------------|------|------|
+| 循环 19 | 浏览器原生重构 | ✅ | 浏览器模块已迁出 WebView 包装层，作为 `tools/browser` 动态 APK 重新组织；本设计中"工具商店 UI"应预留对 browser 的商店展示 |
+| 循环 20 | wrongbook 模块预装 | ✅ | 新增 `module-store/feature/tools/wrongbook`，作为动态 APK 预装到 `app/src/main/assets/modules/feature_wrongbook_v100.apk`；storeCategory 归属 `tools`，但入口通过 MainActivity 底部导航（受 `ENABLE_WRONGBOOK` 控制），不经过 `ToolsFragment` |
+| 循环 21-22 | 错题本推进 + 宿主 Kotlin 迁移 | 🔄 | App.kt / MainActivity.kt / games/GameRegistry.kt 已迁 Kotlin；ToolsFragment 仍是 Java，待 §2.1.1 中 `ToolCapability` Kotlin 接口落地后顺势迁移 |
+| 循环 23 | CI 配置 | ✅ | `.github/workflows/android_ci.yml` + `.github/dependabot.yml` 已上线，工具箱代码改动现在会自动跑 lint/test；本设计中"工具商店 CI"无需额外配置 |
+| 循环 24 | Netty 安全修复 | ✅ | Netty 4.1.134.Final → 4.1.135.Final，7 个 CVE 修复；工具箱无直接 Netty 依赖，仅作为传递依赖受益 |
 
 ## 1. 现状分析
 
@@ -772,6 +785,8 @@ interface ToolActionProvider {
 - [ ] `fragment_tools.xml` 加搜索框 + Tab
 - [ ] `ToolManagementActivity` 草稿
 
+> **2026-07-06 实际完成状态复核**：以上短期代码项**均未启动**。循环 19-24 期间主要精力投入在 wrongbook 模块预装（循环 20）、宿主 Kotlin 迁移（循环 21-22）、CI 配置（循环 23）、Netty 安全修复（循环 24），工具箱 fractal 拆分被延后。建议在 wrongbook 模块功能稳定后（预计循环 25+）再启动。
+
 ### 中期代码（M2 实施）
 - [ ] `modules.json` 工具级扩展字段
 - [ ] `ToolManagementActivity` 完整版
@@ -783,6 +798,13 @@ interface ToolActionProvider {
 - [ ] 工具评分系统
 - [ ] 工作流执行引擎
 - [ ] 工作流编辑器
+
+### 循环 19-24 已落地（与本 track 相关）
+- [x] wrongbook 模块作为 `tools/wrongbook` 动态 APK 预装（循环 20）
+- [x] `ENABLE_WRONGBOOK` feature flag 控制开关（循环 20）
+- [x] OCR/AI 接口双模式扩展点（本地/云端）（循环 21-22）
+- [x] CI 自动跑工具箱相关 lint/test（循环 23）
+- [x] Netty 传递依赖安全升级（循环 24）
 
 ---
 

@@ -1,10 +1,13 @@
 # Track: 整体模块化架构 + UI 主题改造
 
 > 调研日期: 2026-06-04
+> 最后更新: 2026-07-06 (循环 19-24 复核)
 > 负责人: Coder (track-platform)
 > 协作轨道: 横向支撑，覆盖 AI / VPN / Tools 之外的架构层
 > 受众: Mavis orchestrator + 后续 track-ai/track-vpn/track-tools 实施者
 > 状态: 调研完成，待用户评审
+> 当前版本: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+> 项目根: d:\Developmment\GameMatrixApp
 
 ---
 
@@ -64,10 +67,12 @@ GameMatrixApp/                                       (root, pluginManagement 集
 
 ### 1.2 宿主 / 动态 APK 数量分布
 
+> **2026-07-06 复核**: 动态 APK 数量已从 10 个调整为 9 个（循环 20 新增 wrongbook，部分原 games 子模块合并），详见循环 19-24 章节复核表。
+
 | 类别 | 数量 | 形态 | 加载方式 |
 |------|------|------|----------|
 | 宿主 APK | 1 (`app`) | `:app` 编译产物 | 系统安装 |
-| 核心动态 APK 模块 | 10 | `com.android.application` 独立 APK | DexClassLoader + AssetManager.addAssetPath |
+| 核心动态 APK 模块 | 9 (games/{hall,chinesechess,game2048,klotski,tts} + tools/{ai,tools,vpn,wrongbook}) | `com.android.application` 独立 APK | DexClassLoader + AssetManager.addAssetPath |
 | 游戏 ZIP 模块 | 25–29（按 modules.json v11） | ZIP 资源包 | 复用宿主游戏代码（见 §1.3） |
 | 内置游戏 Activity | 6+ | 宿主 `app/src/main/java/.../games/` 硬编码 | `GameRegistry` 注解 + 动态注册 |
 
@@ -264,8 +269,10 @@ app/build.gradle (2026-05-19 状态):
   - core:common, core:module-host 有 detekt-baseline.xml
   - ignoreFailures = true  ← Phase 1.1 故意（不要改回 false，见 DONT_DO）
 - 测试: testImplementation MockWebServer / Robolectric / Mockito
-- CI: .github/workflows/ci.yml (JDK 21, -PautoBumpVersion=false)
+- CI: .github/workflows/android_ci.yml (JDK 17, -PautoBumpVersion=false) ← 2026-07-06 循环 23 上线
 ```
+
+> **2026-07-06 循环 23 CI 配置复核**：新增 `.github/workflows/android_ci.yml` 作为主 CI workflow（替代原 `.github/workflows/ci.yml` 的职责），以及 `.github/dependabot.yml` 做依赖周扫描。Dependabot 当前 0 open alerts（7 个已 dismissed，循环 24 Netty 升级后清零）。详见 `CLOUD-BUILD.md` §3/§5。
 
 ---
 
@@ -467,6 +474,67 @@ app/build.gradle (2026-05-19 状态):
 - [x] 阅读 settings.gradle 确认 11 个模块声明
 - [x] 阅读 hall 模块的 build.gradle + HallScreen.kt 确认 Compose 样板
 - [x] 标注 Compose 试点边界（不整屏迁）
+
+---
+
+## 10. 循环 19-24 平台层进展复核 (2026-07-06)
+
+### 10.1 宿主 Kotlin 迁移进展
+
+循环 21-22 期间完成宿主层 Kotlin 迁移首批工作：
+
+| 文件 | 语言变化 | 状态 | 备注 |
+|------|---------|------|------|
+| `app/src/main/java/com/gamecenter/app/App.kt` | Java → Kotlin | ✅ 已迁移 | Application 入口，Hilt @HiltAndroidApp 注解保留 |
+| `app/src/main/java/com/gamecenter/app/MainActivity.kt` | Java → Kotlin | ✅ 已迁移 | 底部导航 + 模块注册逻辑，受 `ENABLE_WRONGBOOK` flag 控制 wrongbook tab 显示 |
+| `app/src/main/java/com/gamecenter/app/games/GameRegistry.kt` | Java → Kotlin | ✅ 已迁移 | 游戏注册表，动态注册/反注册 API 保持兼容 |
+| `app/src/main/java/com/gamecenter/app/modules/ModuleLoader.kt` | Kotlin (保持) | ✅ | v1 现行生产路径（参见 §1.4），未启动 v2 迁移 |
+| `ToolsFragment.java` | Java (保持) | 🔄 待迁移 | 等 track-tools §2.1.1 的 `ToolCapability` Kotlin 接口落地后顺势迁移 |
+| `ModuleStoreActivity.kt` | Kotlin (保持) | ✅ | ST-7 改版未启动 |
+
+### 10.2 CI/CD 配置进展
+
+循环 23 上线：
+
+| 配置文件 | 用途 | 状态 |
+|---------|------|------|
+| `.github/workflows/android_ci.yml` | 主 CI workflow（lint + test + debug build + gitleaks） | ✅ 已上线，JDK 17 |
+| `.github/dependabot.yml` | 依赖周扫描（Gradle + GitHub Actions） | ✅ 已上线 |
+| `.github/workflows/ci.yml` | 旧 CI workflow | 🔄 已被 android_ci.yml 替代职责，文件状态以仓库实际为准 |
+| `.github/workflows/cloud-build.yml` | 云编译专用 workflow（debug + release artifact） | ✅ 已存在 |
+
+### 10.3 分发架构变更
+
+- **HK VPS**：主分发节点，承担 beta + stable 通道
+- **美国 VPS**：2026-06-19 已下线，`server.url.fallback` 字段保留空值向后兼容
+- **GitHub Releases**：仅 stable 通道使用
+- **Dependabot 状态**：0 open alerts（7 个历史 alerts 已在循环 24 Netty 升级后 dismissed）
+
+### 10.4 循环 19-24 进展汇总
+
+| 循环 | 平台层相关完成项 | 对应本 track 任务 | 状态 |
+|------|----------------|------------------|------|
+| 循环 19 | 浏览器原生重构 | LT-1 全模块化（browser 模块化已先期完成） | ✅ |
+| 循环 20 | wrongbook 模块预装 | 新增 `tools/wrongbook` 动态 APK，扩展模块清单 | ✅ |
+| 循环 21-22 | 宿主 Kotlin 迁移（App/MainActivity/GameRegistry） | 部分对应 MT-1（v1/v2 框架收敛未启动） | 🔄 |
+| 循环 23 | CI 配置（android_ci.yml + dependabot.yml） | §2.6 已更新 | ✅ |
+| 循环 24 | Netty 4.1.134 → 4.1.135.Final（7 CVE 修复） | 平台层传递依赖，不影响 APK 运行时 | ✅ |
+
+### 10.5 平台层 P0/P1/P2 任务实际进度
+
+| 任务 | 原计划阶段 | 实际状态 (2026-07-06) | 备注 |
+|------|----------|---------------------|------|
+| P0-1 双层模块框架并存收敛 | MT-1 | ⚠️ 未启动 | v1 仍是生产路径，v2 未被业务调用 |
+| P0-2 模块类型/接口分裂统一 | MT-2 | ⚠️ 未启动 | IModule / ModuleInterface / FeatureModule / IModuleLoader 四套仍并存 |
+| P0-3 ModuleManifest 三套合并 | MT-2 | ⚠️ 未启动 | 三套模型仍分散 |
+| P0-4 资源加载器两套收敛 | MT-1 | ⚠️ 未启动 | app vs core 两套仍并存 |
+| P0-5 APK 签名未强校验 | MT-3 | ⚠️ 未启动 | 仅 SHA-256 校验，未校验签名者 |
+| P0-6 dark/light 调色盘冲突 | ST-1 | ⚠️ 未启动 | colors.xml 仍存在重复定义冲突 |
+| P1-1 dimens token 化覆盖率 | ST-2 | ⚠️ 未启动 | ~80% layout 仍硬编码 |
+| P1-2 国际化漏覆盖 | ST-3 | 🔄 部分推进 | wrongbook 模块新增字符串已按规范进 strings.xml + values-en/strings.xml |
+| 循环 19-24 新增项 | — | ✅ | CI 上线 + Netty 安全升级 + 宿主 Kotlin 迁移首批 + wrongbook 模块预装 |
+
+> **结论**：P0/P1 任务整体延后，循环 19-24 主要精力投入在功能扩展（wrongbook）和工程基础设施（CI / 安全 / Kotlin 迁移）上，与原 MT-1/MT-2/MT-3 的"收敛 v1/v2 框架"目标相比进度有限。建议在 wrongbook 模块稳定后（循环 25+）重新评估 MT-1 启动时机。
 
 > 文档结束 — 待用户/Mavis 评审后定稿。
 

@@ -1,8 +1,9 @@
 # AI 助手模块改造设计 (track-ai)
 
-> 适用版本: v1.4.0 (vc=400, beta channel)
-> 输出位置: `Y:\GameMatrixApp\docs\refactor\track-ai.md`
+> 适用版本: v1.4.1 (vc=567, beta channel) — 2026-07-06 复核更新
+> 输出位置: `d:\Developmment\GameMatrixApp\docs\refactor\track-ai.md`
 > 调研日期: 2026-06-04
+> 最后更新: 2026-07-06
 > 调研人: coder (mvs_d2beeb3e0e7c4752b0e128ff08f65ca6)
 
 ---
@@ -399,21 +400,21 @@ MainActivity (com.gamecenter.app.MainActivity)
 
 ### 6.1 已读 (带 .NET 绕开 GBK 编码)
 
-- ✅ `Y:\GameMatrixApp\docs\DONT_DO_THIS.md`
-- ✅ `Y:\GameMatrixApp\docs\AI_CONTEXT.md` (注意: §2.12 引用的 `com.GameMatrix.app.ai.model` 实际不存在, 是 Roadmap 计划但 feature 化后挪到 dynamic APK)
-- ✅ `Y:\GameMatrixApp\docs\game_center_app_ai_roadmap.md` (主要改造依据)
-- ✅ `Y:\GameMatrixApp\docs\NETWORK_LAYER.md` (OkHttp 治理基线)
-- ✅ `Y:\GameMatrixApp\app\src\main\res\layout\fragment_ai.xml` (255 行, host 端备用 UI)
-- ✅ `Y:\GameMatrixApp\app\src\main\res\layout\item_ai_message.xml`
-- ✅ `Y:\GameMatrixApp\app\src\main\res\layout\item_ai_message_modern.xml` (133 行)
-- ✅ `Y:\GameMatrixApp\app\src\main\res\layout\dialog_chat.xml` (110 行)
-- ✅ `Y:\GameMatrixApp\app\src\main\res\navigation\mobile_navigation.xml`
-- ✅ `Y:\GameMatrixApp\app\src\main\assets\modules.json` (AI 注册在 builtIn=false, sha256 已固定)
-- ✅ `Y:\GameMatrixApp\app\src\main\java\com\gamecenter\app\features\ModuleShellFragment.kt`
-- ✅ `Y:\GameMatrixApp\app\src\androidTest\java\com\gamecenter\app\AiIntegrationTest.kt` (仅 2 Espresso 用例)
-- ✅ `Y:\GameMatrixApp\app\build.gradle` (MediaPipe tasks-genai 0.10.27, OkHttp 4.12.0, KSP, Hilt, MediaPipe GenAI)
-- ✅ `Y:\GameMatrixApp\app\src\main\res\values\strings.xml` (25+ AI 字符串, 含 9 个 task type, 状态, 错误)
-- ⚠️ `Y:\GameMatrixApp\app\src\main\java\com\gamecenter\app\MainActivity.java` (用 `getId()` 引用 `R.id.navigation_ai` 但未触发 AI 子逻辑 — ModuleShellFragment 自承载, OK)
+- ✅ `d:\Developmment\GameMatrixApp\docs\DONT_DO_THIS.md`
+- ✅ `d:\Developmment\GameMatrixApp\docs\AI_CONTEXT.md` (注意: §2.12 引用的 `com.GameMatrix.app.ai.model` 实际不存在, 是 Roadmap 计划但 feature 化后挪到 dynamic APK)
+- ✅ `d:\Developmment\GameMatrixApp\docs\game_center_app_ai_roadmap.md` (主要改造依据)
+- ✅ `d:\Developmment\GameMatrixApp\docs\NETWORK_LAYER.md` (OkHttp 治理基线)
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\res\layout\fragment_ai.xml` (255 行, host 端备用 UI)
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\res\layout\item_ai_message.xml`
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\res\layout\item_ai_message_modern.xml` (133 行)
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\res\layout\dialog_chat.xml` (110 行)
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\res\navigation\mobile_navigation.xml`
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\assets\modules.json` (AI 注册在 builtIn=false, sha256 已固定)
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\java\com\gamecenter\app\features\ModuleShellFragment.kt`
+- ✅ `d:\Developmment\GameMatrixApp\app\src\androidTest\java\com\gamecenter\app\AiIntegrationTest.kt` (仅 2 Espresso 用例)
+- ✅ `d:\Developmment\GameMatrixApp\app\build.gradle` (MediaPipe tasks-genai 0.10.27, OkHttp 4.12.0, KSP, Hilt, MediaPipe GenAI)
+- ✅ `d:\Developmment\GameMatrixApp\app\src\main\res\values\strings.xml` (25+ AI 字符串, 含 9 个 task type, 状态, 错误)
+- ⚠️ `d:\Developmment\GameMatrixApp\app\src\main\java\com\gamecenter\app\MainActivity.java` (用 `getId()` 引用 `R.id.navigation_ai` 但未触发 AI 子逻辑 — ModuleShellFragment 自承载, OK)
 
 ### 6.2 未直接读 (受路径/格式限制)
 
@@ -462,7 +463,19 @@ MainActivity (com.gamecenter.app.MainActivity)
 
 ---
 
-**最后更新**: 2026-06-04 16:18
+**最后更新**: 2026-07-06
+**更新记录**:
+- 2026-06-04 16:18 初版调研产出
+- 2026-07-06 复核更新：版本号同步至 v1.4.1 / vc=567；项目路径修正为 `d:\Developmment\GameMatrixApp`
+
+**循环 19-24 对 AI 模块的影响评估 (2026-07-06 复核)**:
+- ✅ **循环19 浏览器原生重构**：browser 模块从 WebView 桩重构为原生实现，AI 模块未直接受影响，但 P1-5「AI 与 VPN 代理冲突」的代理策略可参考 browser 的网络层处理
+- ✅ **循环20-22 wrongbook 模块预装集成 + 全面推进**：wrongbook 作为新的 dynamic APK 加入 `tools/wrongbook`，验证了 `:app:bundlePreinstalledModules` 预装链路。AI 模块的 `feature_ai_v100.apk` 仍为 `builtIn=false` 远程下载，未来可考虑改为预装模式降低用户首次进入门槛
+- ✅ **循环23 宿主 Kotlin 迁移 + CI 配置**：宿主 `App.kt` / `MainActivity.kt` / `games/GameRegistry.kt` 迁移到 `app/src/main/kotlin/com/gamecenter/app/`；`ModuleShellFragment` 容器路径不变，AI 入口契约 `module_id="ai"` 仍生效。新增 `android_ci.yml` 含 detekt + 单测 + debug build 三 job，AI 模块的单测（P0-5）后续可纳入 CI；`dependabot.yml` 持续监控依赖 CVE
+- ✅ **循环24 Netty 安全修复**：Netty 4.1.134 → 4.1.135.Final，修复 7 CVE。AI 模块主要走 OkHttp（`AiApiClient`），未直接使用 Netty，但宿主网络层与 WebSocket Relay 受益于此次升级，AI Agent/Function calling（P1-2）未来跨模块调 VPN/tool 时网络链路更稳
+- ⚠️ **AI 模块自身未推进**：P0-1 流式输出、P0-3 OkHttp 治理、P0-4 错误码细化、P0-5 单测覆盖 60% 均未启动；feature_ai 仍为 v100 黑盒 APK
+- 📌 **下一步建议**：循环 25+ 启动 S1-01 流式输出改造，配合 P0-3 OkHttp 治理（4 处违规源之一即 `module-store/feature/tools/ai/AiApiClient.java`）
+
 **下一步**: 把本文档同步给 track-architecture, 触发 dead-code 清理 + Material 3 lint baseline 协同; 把 P0-1/P0-3/P0-5 三个能立刻动工的派单.
 
 

@@ -63,9 +63,9 @@ git grep "OkHttpClient\.Builder" -- '*.java' '*.kt'
 ### `HeaderInterceptor`
 
 统一管理:
-- `User-Agent: GameMatrixApp/1.4.0 (Android)`
+- `User-Agent: GameMatrixApp/1.4.1 (Android)`
 - `X-Client-Platform: android`
-- `X-Client-Version: 1.4.0`
+- `X-Client-Version: 1.4.1`
 
 调用方已设的 header 不会被覆盖（优先级：调用方 > interceptor）。
 
@@ -88,6 +88,45 @@ Phase 2.3+ 加 detekt 自定义规则，禁止在 `:app` / `:core` / `:module-st
 naming:
   # 让 OkHttpClient.Builder 引用报 warning, 引导走 Provider
 ```
+
+## 循环24：Netty 安全修复
+
+### 背景
+
+- **当前版本**：versionCode=567 / versionName=1.4.1
+- **关联 commit**：`f978f06` 循环24 修复 Netty 漏洞
+- **改动**：Netty `4.1.134.Final` → `4.1.135.Final`
+
+### 依赖性质
+
+Netty 在本项目里是**构建期/测试期传递依赖**，**不进入 APK runtime**：
+
+- 来自 Gradle 插件、MediaPipe、Robolectric 等链路
+- 不在 `dependencies` 里直接声明，也没有打包进 `app-debug.apk` / `app-release.apk`
+- 升级目的：消除 GitHub Dependabot 告警、保持构建链路合规
+
+### 修复的 CVE 列表（共 7 个）
+
+| CVE 编号 | 严重等级 | 受影响组件 | 摘要 |
+| --- | --- | --- | --- |
+| CVE-2026-50010 | high | netty-handler | 信任管理器绕过主机名验证 |
+| CVE-2026-45416 | high | netty-handler | SNI 处理器预分配 16MiB 内存 |
+| CVE-2026-44249 | high | netty-handler | IPv6 子网过滤器绕过 |
+| CVE-2026-50560 | medium | netty-codec-http2 | HTTP/2 Reset 攻击 |
+| CVE-2026-50020 | medium | netty-codec-http | HttpObjectDecoder 跳过控制字符 |
+| CVE-2026-48043 | medium | netty-codec-http2 | ByteBuf 引用计数泄漏 |
+| CVE-2026-47244 | medium | netty-codec-http2 | MAX_CONCURRENT_STREAMS 未强制 |
+
+### Dependabot 状态
+
+- 0 open alerts / 7 dismissed
+- 7 个 Netty 告警已 dismiss，reason = `fix_started`
+- 配置文件 `.github/dependabot.yml` 已加入仓库（每周一扫描 gradle / github-actions）
+
+### 约束
+
+- **不要降级 Netty** 到 4.1.134.Final 及以下（会重新触发 7 个 Dependabot 告警）
+- 详见 `docs/DONT_DO_THIS.md` 与 `docs/SECURITY.md`
 
 ## 参考
 
