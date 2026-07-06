@@ -37,7 +37,7 @@ dependencies {
     compileOnly files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
 
     compileOnly 'androidx.appcompat:appcompat:1.7.1'
-    compileOnly 'com.google.android.material:material:1.12.0'
+    compileOnly 'com.google.android.material:material:1.14.0'
     compileOnly 'androidx.recyclerview:recyclerview:1.4.0'
     compileOnly 'androidx.fragment:fragment-ktx:1.5.0'
     compileOnly 'com.google.zxing:core:3.5.3'
