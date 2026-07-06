@@ -1,176 +1,399 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFBFE"
+    android:background="@color/wrongbook_background"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/toolbarTitle"
+    <!-- Header / Title -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/wrongbook_capture_title"
-        android:textColor="#1C1B1F"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:background="@color/wrongbook_surface"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp">
 
-    <androidx.core.widget.NestedScrollView
+        <ImageView
+            android:id="@+id/btnToolbarBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="@color/wrongbook_primary"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:id="@+id/toolbarTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_toEndOf="@id/btnToolbarBack"
+            android:layout_marginStart="8dp"
+            android:gravity="center_vertical"
+            android:text="@string/wrongbook_capture_title"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+    <!-- Top Wizard Step Indicator -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="16dp">
+        android:layout_height="wrap_content"
+        android:background="@color/wrongbook_surface_variant"
+        android:orientation="vertical"
+        android:padding="12dp">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tvStepIndicator"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:gravity="center"
+            android:text="步骤 1 / 5: 选择题目来源"
+            android:textColor="@color/wrongbook_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
-            <ImageView
-                android:id="@+id/ivPreview"
-                android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:background="#F4EFF4"
-                android:contentDescription="@string/wrongbook_capture_title"
-                android:scaleType="centerInside" />
+        <ProgressBar
+            android:id="@+id/pbStepProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginTop="8dp"
+            android:max="5"
+            android:progress="1"
+            android:progressTint="@color/wrongbook_primary" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+    </LinearLayout>
 
-                <Button
-                    android:id="@+id/btnTakePhoto"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/wrongbook_button_outline"
-                    android:text="@string/wrongbook_take_photo"
-                    android:textColor="#6750A4" />
+    <!-- Main Wizard Content Frame -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-                <Button
-                    android:id="@+id/btnPickImage"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/wrongbook_button_outline"
-                    android:text="@string/wrongbook_pick_image"
-                    android:textColor="#6750A4" />
-
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btnRecognize"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/wrongbook_button_primary"
-                android:text="@string/wrongbook_recognize"
-                android:textColor="#FFFFFF" />
-
-            <ProgressBar
-                android:id="@+id/progressBar"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:indeterminate="true"
-                android:visibility="gone" />
-
-            <EditText
-                android:id="@+id/etQuestion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:gravity="top"
-                android:hint="@string/wrongbook_question_content"
-                android:inputType="textMultiLine"
-                android:minLines="5"
-                android:textColor="#1C1B1F"
-                android:textColorHint="#49454F" />
-
-            <Button
-                android:id="@+id/btnAnalyze"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/wrongbook_button_primary"
-                android:text="@string/wrongbook_analyzing"
-                android:textColor="#FFFFFF" />
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:fillViewport="true">
 
             <LinearLayout
-                android:id="@+id/cardAnalysis"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/wrongbook_card_bg"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:visibility="gone">
+                android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/wrongbook_subject_all"
-                    android:textColor="#49454F"
-                    android:textSize="13sp" />
+                <!-- STEP 1: Select image source -->
+                <LinearLayout
+                    android:id="@+id/layoutStep1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="visible">
 
-                <TextView
-                    android:id="@+id/tvAnalysisSubject"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#1C1B1F"
-                    android:textSize="15sp" />
+                    <ImageView
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:src="@android:drawable/ic_menu_camera"
+                        android:tint="@color/wrongbook_primary"
+                        android:contentDescription="Camera" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/wrongbook_knowledge_points"
-                    android:textColor="#49454F"
-                    android:textSize="13sp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="拍张错题照片，或者从相册中选择"
+                        android:textColor="@color/wrongbook_text_secondary"
+                        android:textSize="14sp"
+                        android:gravity="center" />
 
-                <TextView
-                    android:id="@+id/tvAnalysisKnowledge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#1C1B1F"
-                    android:textSize="15sp" />
+                    <Button
+                        android:id="@+id/btnStep1Camera"
+                        android:layout_width="200dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:background="@drawable/wrongbook_button_primary"
+                        android:text="@string/wrongbook_take_photo"
+                        android:textColor="@color/wrongbook_on_primary" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/wrongbook_analysis"
-                    android:textColor="#49454F"
-                    android:textSize="13sp" />
+                    <Button
+                        android:id="@+id/btnStep1Gallery"
+                        android:layout_width="200dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/wrongbook_button_outline"
+                        android:text="@string/wrongbook_pick_image"
+                        android:textColor="@color/wrongbook_primary" />
 
-                <TextView
-                    android:id="@+id/tvAnalysisText"
+                </LinearLayout>
+
+                <!-- STEP 2: Preview & Recognize -->
+                <LinearLayout
+                    android:id="@+id/layoutStep2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#1C1B1F"
-                    android:textSize="15sp" />
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="220dp"
+                        android:background="@drawable/wrongbook_card_background"
+                        android:padding="2dp">
+
+                        <ImageView
+                            android:id="@+id/ivStep2Preview"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerInside"
+                            android:contentDescription="Preview" />
+                    </FrameLayout>
+
+                    <Button
+                        android:id="@+id/btnStep2Recognize"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/wrongbook_button_primary"
+                        android:text="@string/wrongbook_recognize"
+                        android:textColor="@color/wrongbook_on_primary" />
+
+                    <ProgressBar
+                        android:id="@+id/pbStep2Ocr"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:indeterminate="true"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+                <!-- STEP 3: Edit OCR results -->
+                <LinearLayout
+                    android:id="@+id/layoutStep3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="请编辑或确认识别到的题目文字："
+                        android:textColor="@color/wrongbook_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/etStep3Content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/wrongbook_card_background"
+                        android:gravity="top"
+                        android:hint="@string/wrongbook_question_content"
+                        android:inputType="textMultiLine"
+                        android:minLines="8"
+                        android:padding="12dp"
+                        android:textColor="@color/wrongbook_text_primary"
+                        android:textSize="14sp"
+                        android:importantForAutofill="no" />
+
+                </LinearLayout>
+
+                <!-- STEP 4: AI Analysis -->
+                <LinearLayout
+                    android:id="@+id/layoutStep4"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <Button
+                        android:id="@+id/btnStep4Analyze"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/wrongbook_button_primary"
+                        android:text="生成 AI 智能分析"
+                        android:textColor="@color/wrongbook_on_primary" />
+
+                    <!-- Shimmer Loader inside AI Analysis -->
+                    <include
+                        android:id="@+id/shimmerAnalysis"
+                        layout="@layout/wrongbook_skeleton_questions" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutStep4Result"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/wrongbook_card_background"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="识别科目"
+                            android:textColor="@color/wrongbook_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvStep4Subject"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/wrongbook_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/wrongbook_knowledge_points"
+                            android:textColor="@color/wrongbook_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvStep4Knowledge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/wrongbook_text_primary"
+                            android:textSize="14sp"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="智能解析"
+                            android:textColor="@color/wrongbook_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvStep4Analysis"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/wrongbook_text_primary"
+                            android:textSize="14sp"
+                            android:layout_marginTop="4dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- STEP 5: Save & Preview -->
+                <LinearLayout
+                    android:id="@+id/layoutStep5"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="效果预览（最后一步，点击保存错题）："
+                        android:textColor="@color/wrongbook_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/wrongbook_card_background"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/tvStep5Subject"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/wrongbook_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvStep5Content"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:textColor="@color/wrongbook_text_primary"
+                            android:textSize="14sp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@color/wrongbook_divider" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="解析说明："
+                            android:textColor="@color/wrongbook_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvStep5Analysis"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/wrongbook_text_primary"
+                            android:textSize="13sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
             </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 
-            <Button
-                android:id="@+id/btnSave"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="32dp"
-                android:background="@drawable/wrongbook_button_primary"
-                android:text="@string/wrongbook_save_question"
-                android:textColor="#FFFFFF" />
+    <!-- Bottom Navigation Buttons -->
+    <LinearLayout
+        android:id="@+id/layoutNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@color/wrongbook_surface"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
-        </LinearLayout>
+        <Button
+            android:id="@+id/btnWizardPrev"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/wrongbook_button_outline"
+            android:text="上一步"
+            android:textColor="@color/wrongbook_primary"
+            android:visibility="gone" />
 
-    </androidx.core.widget.NestedScrollView>
+        <Button
+            android:id="@+id/btnWizardNext"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/wrongbook_button_primary"
+            android:text="下一步"
+            android:textColor="@color/wrongbook_on_primary"
+            android:visibility="gone" />
+
+    </LinearLayout>
 
 </LinearLayout>

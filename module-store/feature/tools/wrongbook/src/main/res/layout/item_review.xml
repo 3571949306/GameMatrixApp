@@ -1,67 +1,147 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    android:background="@drawable/wrongbook_card_bg"
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/wrongbook_card_background"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tvStage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#6750A4"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+    <!-- Header info (Stage & Subject) -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-    <TextView
-        android:id="@+id/tvSubject"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="#49454F"
-        android:textSize="13sp" />
+        <TextView
+            android:id="@+id/tvStage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/wrongbook_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/tvSubject"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:textColor="@color/wrongbook_text_secondary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <!-- Question Content -->
     <TextView
         android:id="@+id/tvContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:ellipsize="end"
-        android:maxLines="3"
-        android:textColor="#1C1B1F"
+        android:maxLines="4"
+        android:textColor="@color/wrongbook_text_primary"
         android:textSize="15sp" />
 
+    <!-- Image Thumbnail if exists -->
+    <FrameLayout
+        android:id="@+id/thumbnailContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/wrongbook_card_background"
+        android:padding="1dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/ivThumbnail"
+            android:layout_width="120dp"
+            android:layout_height="90dp"
+            android:scaleType="centerInside"
+            android:contentDescription="Review Image" />
+    </FrameLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:background="@color/wrongbook_divider" />
+
+    <!-- Mask/Answer Container (Initially GONE) -->
     <LinearLayout
+        android:id="@+id/layoutAnswer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="end"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:visibility="gone">
 
-        <Button
-            android:id="@+id/btnSkip"
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/wrongbook_button_outline"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:text="@string/wrongbook_review_skip"
-            android:textColor="#6750A4" />
+            android:layout_marginTop="12dp"
+            android:text="@string/wrongbook_analysis"
+            android:textColor="@color/wrongbook_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnComplete"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/tvAnalysis"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/wrongbook_button_primary"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:text="@string/wrongbook_review_complete"
-            android:textColor="#FFFFFF" />
-
+            android:layout_marginTop="6dp"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="14sp" />
     </LinearLayout>
+
+    <!-- Action Buttons (Toggle mask showing) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp">
+
+        <!-- Reveal Button -->
+        <Button
+            android:id="@+id/btnReveal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/wrongbook_button_outline"
+            android:text="@string/wrongbook_review_flip_show"
+            android:textColor="@color/wrongbook_primary"
+            android:minHeight="36dp" />
+
+        <!-- Double buttons (Skip & Complete) (Initially GONE) -->
+        <LinearLayout
+            android:id="@+id/layoutActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btnSkip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/wrongbook_button_outline"
+                android:text="@string/wrongbook_review_skip"
+                android:textColor="@color/wrongbook_primary"
+                android:minHeight="36dp" />
+
+            <Button
+                android:id="@+id/btnComplete"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/wrongbook_button_primary"
+                android:text="@string/wrongbook_review_complete"
+                android:textColor="@color/wrongbook_on_primary"
+                android:minHeight="36dp" />
+        </LinearLayout>
+
+    </FrameLayout>
 
 </LinearLayout>

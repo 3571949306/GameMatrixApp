@@ -1,27 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/android:colorBackground">
+    android:background="@color/wrongbook_background"
+    android:orientation="vertical">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- Progress header for reviews -->
+    <LinearLayout
+        android:id="@+id/layoutReviewProgress"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:padding="8dp" />
-
-    <TextView
-        android:id="@+id/emptyView"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:drawableTop="@android:drawable/ic_menu_recent_history"
-        android:drawableTint="?attr/colorOnSurfaceVariant"
-        android:gravity="center"
-        android:text="@string/wrongbook_review_empty"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="@color/wrongbook_surface"
+        android:visibility="gone">
 
-</FrameLayout>
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tvReviewProgressLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="今日复习进度"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvReviewProgressPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text="0/0"
+                android:textColor="@color/wrongbook_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </RelativeLayout>
+
+        <ProgressBar
+            android:id="@+id/pbReviewProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:progressDrawable="@android:drawable/progress_horizontal"
+            android:progressTint="@color/wrongbook_primary" />
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp" />
+
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/emptyView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:src="@android:drawable/ic_menu_recent_history"
+                android:tint="@color/wrongbook_primary"
+                android:contentDescription="Empty" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/wrongbook_review_empty"
+                android:textColor="@color/wrongbook_text_secondary"
+                android:textSize="14sp"
+                android:gravity="center" />
+
+            <Button
+                android:id="@+id/btnEmptyCta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/wrongbook_button_primary"
+                android:text="@string/wrongbook_empty_review_cta"
+                android:textColor="@color/wrongbook_on_primary"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:minHeight="36dp" />
+        </LinearLayout>
+
+        <!-- Confetti celebration overlay -->
+        <com.gamecenter.app.wrongbook.ui.CelebrationAnimationView
+            android:id="@+id/celebrationView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+</LinearLayout>

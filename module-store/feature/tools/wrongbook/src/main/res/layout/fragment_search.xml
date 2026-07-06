@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/wrongbook_background"
+    android:orientation="vertical">
+
+    <!-- Custom Search Toolbar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp"
+        android:background="@color/wrongbook_surface">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="@color/wrongbook_primary"
+            android:contentDescription="Back" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/wrongbook_card_background"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@android:drawable/ic_menu_search"
+                android:tint="@color/wrongbook_outline"
+                android:contentDescription="Search" />
+
+            <EditText
+                android:id="@+id/etSearch"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="@string/wrongbook_search_hint"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textColorHint="@color/wrongbook_text_tertiary"
+                android:textSize="14sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:importantForAutofill="no" />
+
+            <ImageView
+                android:id="@+id/btnClearSearch"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="@color/wrongbook_outline"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone"
+                android:contentDescription="Clear" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Filters Row -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/wrongbook_surface"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- Filter Subject Button -->
+            <TextView
+                android:id="@+id/btnFilterSubject"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/wrongbook_chip_background"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="@string/wrongbook_subject_all"
+                android:textColor="@color/wrongbook_chip_text"
+                android:textSize="12sp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Filter Sort Button -->
+            <TextView
+                android:id="@+id/btnFilterSort"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/wrongbook_chip_background"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="@string/wrongbook_filter_sort_time"
+                android:textColor="@color/wrongbook_chip_text"
+                android:textSize="12sp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Filter Favorites Toggle -->
+            <TextView
+                android:id="@+id/btnFilterFavorite"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/wrongbook_chip_background"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="@string/wrongbook_filter_only_favorites"
+                android:textColor="@color/wrongbook_chip_text"
+                android:textSize="12sp"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <!-- Search Results -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewResults"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp" />
+
+        <!-- Empty Search Result State -->
+        <LinearLayout
+            android:id="@+id/emptyResultView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@android:drawable/ic_menu_search"
+                android:tint="@color/wrongbook_text_tertiary"
+                android:contentDescription="No Result" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/wrongbook_search_no_result"
+                android:textColor="@color/wrongbook_text_secondary"
+                android:textSize="14sp"
+                android:gravity="center" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

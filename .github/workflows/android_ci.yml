@@ -1,0 +1,46 @@
+name: Android CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x gradlew
+
+      - name: Run Lint and Static Analysis
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Run Local Unit Tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Assemble Debug APK and Dynamic Modules
+        run: |
+          ./gradlew :module-store:feature:tools:wrongbook:assembleDebug
+          ./gradlew :app:bundlePreinstalledModules -PautoBumpVersion=false
+          ./gradlew :app:assembleDebug -PautoBumpVersion=false --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk

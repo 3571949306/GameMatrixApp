@@ -120,4 +120,164 @@ class WrongBookRepository(context: Context) {
             }
         }
     }
+
+    // ===== 新增查询、排序与批量操作 =====
+    suspend fun getFavoriteQuestions(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getFavoriteQuestions()
+    }
+
+    suspend fun getQuestionsFavoriteFirst(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsFavoriteFirst()
+    }
+
+    suspend fun getQuestionsSortedByTimeDesc(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsSortedByTimeDesc()
+    }
+
+    suspend fun getQuestionsSortedByTimeAsc(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsSortedByTimeAsc()
+    }
+
+    suspend fun getQuestionsSortedByDifficultyDesc(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsSortedByDifficultyDesc()
+    }
+
+    suspend fun getQuestionsSortedByDifficultyAsc(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsSortedByDifficultyAsc()
+    }
+
+    suspend fun getQuestionsSortedByMasteryDesc(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsSortedByMasteryDesc()
+    }
+
+    suspend fun getQuestionsSortedByMasteryAsc(): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.getQuestionsSortedByMasteryAsc()
+    }
+
+    suspend fun searchQuestions(query: String): List<QuestionEntity> = withContext(Dispatchers.IO) {
+        dao.searchQuestions("%$query%")
+    }
+
+    suspend fun deleteQuestionsByIds(ids: List<Long>) = withContext(Dispatchers.IO) {
+        ids.forEach { id ->
+            dao.deleteReviewPlansByQuestion(id)
+        }
+        dao.deleteQuestionsByIds(ids)
+    }
+
+    suspend fun batchUpdateFavorite(ids: List<Long>, isFavorite: Boolean) = withContext(Dispatchers.IO) {
+        dao.batchUpdateFavorite(ids, isFavorite)
+    }
+
+    suspend fun batchUpdateSubject(ids: List<Long>, subject: String) = withContext(Dispatchers.IO) {
+        dao.insertSubject(SubjectEntity(name = subject))
+        dao.batchUpdateSubject(ids, subject)
+    }
+
+    suspend fun updateSubject(entity: SubjectEntity) = withContext(Dispatchers.IO) {
+        dao.updateSubject(entity)
+    }
+
+    // ===== JSON 导入/导出 =====
+    suspend fun exportToJson(exportFile: java.io.File): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val questions = dao.getAllQuestions()
+            val subjects = dao.getAllSubjects()
+            
+            val root = org.json.JSONObject()
+            
+            val qArray = org.json.JSONArray()
+            questions.forEach { q ->
+                val obj = org.json.JSONObject()
+                obj.put("id", q.id)
+                obj.put("rawText", q.rawText)
+                obj.put("subject", q.subject)
+                obj.put("difficulty", q.difficulty)
+                obj.put("analysis", q.analysis)
+                obj.put("knowledgePoints", q.knowledgePoints)
+                obj.put("imagePath", q.imagePath)
+                obj.put("createdAt", q.createdAt)
+                obj.put("updatedAt", q.updatedAt)
+                obj.put("mastery", q.mastery)
+                obj.put("isFavorite", q.isFavorite)
+                obj.put("sortOrder", q.sortOrder)
+                obj.put("tags", q.tags)
+                qArray.put(obj)
+            }
+            root.put("questions", qArray)
+            
+            val sArray = org.json.JSONArray()
+            subjects.forEach { s ->
+                val obj = org.json.JSONObject()
+                obj.put("id", s.id)
+                obj.put("name", s.name)
+                obj.put("color", s.color)
+                obj.put("sortOrder", s.sortOrder)
+                sArray.put(obj)
+            }
+            root.put("subjects", sArray)
+            
+            exportFile.parentFile?.let { if (!it.exists()) it.mkdirs() }
+            exportFile.writeText(root.toString(4))
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun importFromJson(importFile: java.io.File): Boolean = withContext(Dispatchers.IO) {
+        try {
+            if (!importFile.exists()) return@withContext false
+            val text = importFile.readText()
+            val root = org.json.JSONObject(text)
+            
+            val sArray = root.optJSONArray("subjects")
+            if (sArray != null) {
+                for (i in 0 until sArray.length()) {
+                    val obj = sArray.getJSONObject(i)
+                    val name = obj.optString("name", "")
+                    if (name.isNotEmpty()) {
+                        dao.insertSubject(SubjectEntity(
+                            name = name,
+                            color = obj.optInt("color", 0),
+                            sortOrder = obj.optInt("sortOrder", 0)
+                        ))
+                    }
+                }
+            }
+            
+            val qArray = root.optJSONArray("questions")
+            if (qArray != null) {
+                for (i in 0 until qArray.length()) {
+                    val obj = qArray.getJSONObject(i)
+                    val rawText = obj.optString("rawText", "")
+                    if (rawText.isNotEmpty()) {
+                        val q = QuestionEntity(
+                            rawText = rawText,
+                            subject = obj.optString("subject", "通用"),
+                            difficulty = obj.optInt("difficulty", 3),
+                            analysis = obj.optString("analysis", ""),
+                            knowledgePoints = obj.optString("knowledgePoints", "[]"),
+                            imagePath = obj.optString("imagePath", ""),
+                            createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                            updatedAt = obj.optLong("updatedAt", System.currentTimeMillis()),
+                            mastery = obj.optInt("mastery", 0),
+                            isFavorite = obj.optBoolean("isFavorite", false),
+                            sortOrder = obj.optInt("sortOrder", 0),
+                            tags = obj.optString("tags", "")
+                        )
+                        val newId = dao.insertQuestion(q)
+                        if (dao.getReviewPlansByQuestion(newId).isEmpty()) {
+                            generateReviewPlans(newId)
+                        }
+                    }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 }

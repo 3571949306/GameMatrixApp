@@ -1,35 +1,157 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFBFE">
+    android:orientation="vertical"
+    android:background="@color/wrongbook_background">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- Batch header / select all bar -->
+    <LinearLayout
+        android:id="@+id/layoutBatchHeader"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:padding="8dp" />
+        android:layout_height="48dp"
+        android:background="@color/wrongbook_surface_variant"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone">
 
-    <TextView
-        android:id="@+id/emptyView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:drawableTop="@android:drawable/ic_menu_agenda"
-        android:drawableTint="?attr/colorOnSurfaceVariant"
-        android:gravity="center"
-        android:text="@string/wrongbook_empty_questions"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
+        <CheckBox
+            android:id="@+id/cbSelectAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/wrongbook_select_all"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="14sp" />
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminate="true"
-        android:visibility="gone" />
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
-</FrameLayout>
+        <TextView
+            android:id="@+id/btnExitBatch"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="@string/wrongbook_cancel"
+            android:textColor="@color/wrongbook_primary"
+            android:textSize="14sp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp" />
+
+        <!-- Shimmer Skeleton -->
+        <include
+            android:id="@+id/shimmerView"
+            layout="@layout/wrongbook_skeleton_questions" />
+
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/emptyView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:src="@android:drawable/ic_menu_agenda"
+                android:tint="@color/wrongbook_primary"
+                android:contentDescription="Empty" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/wrongbook_empty_questions"
+                android:textColor="@color/wrongbook_text_secondary"
+                android:textSize="14sp"
+                android:gravity="center" />
+
+            <Button
+                android:id="@+id/btnEmptyCta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/wrongbook_button_primary"
+                android:text="@string/wrongbook_add_question"
+                android:textColor="@color/wrongbook_on_primary"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:minHeight="36dp" />
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- Batch action bar at the bottom -->
+    <LinearLayout
+        android:id="@+id/layoutBatchActions"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/wrongbook_surface"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSelectedCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnBatchFavorite"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/wrongbook_favorite_title"
+            android:textColor="@color/wrongbook_primary"
+            android:minWidth="0dp" />
+
+        <Button
+            android:id="@+id/btnBatchMove"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/wrongbook_batch_move_subject"
+            android:textColor="@color/wrongbook_primary"
+            android:minWidth="0dp"
+            android:layout_marginStart="8dp" />
+
+        <Button
+            android:id="@+id/btnBatchDelete"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/wrongbook_delete"
+            android:textColor="@color/wrongbook_error"
+            android:minWidth="0dp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+</LinearLayout>

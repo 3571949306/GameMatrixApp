@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/wrongbook_card_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Drag Handle -->
+    <ImageView
+        android:id="@+id/ivDragHandle"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/wrongbook_drag_handle"
+        android:tint="@color/wrongbook_outline"
+        android:layout_marginEnd="12dp"
+        android:contentDescription="Drag" />
+
+    <!-- Subject Color Dot (for UI differentiation) -->
+    <View
+        android:id="@+id/viewColor"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@android:drawable/presence_online"
+        android:layout_marginEnd="12dp"
+        android:visibility="gone" />
+
+    <!-- Subject Name -->
+    <TextView
+        android:id="@+id/tvSubjectName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/wrongbook_text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <!-- Actions -->
+    <ImageView
+        android:id="@+id/btnEdit"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="8dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:tint="@color/wrongbook_primary"
+        android:contentDescription="Edit" />
+
+    <ImageView
+        android:id="@+id/btnDelete"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="8dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:tint="@color/wrongbook_error"
+        android:contentDescription="Delete" />
+
+</LinearLayout>
