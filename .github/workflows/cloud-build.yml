@@ -98,7 +98,7 @@ jobs:
       # 上传 artifact (核心 — VPS 拉的就是这些)
       # ============================================
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload release APK (unsigned)
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release-unsigned
           path: app/build/outputs/apk/release/*-unsigned*.apk
@@ -115,7 +115,7 @@ jobs:
           retention-days: 7
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: |
@@ -192,7 +192,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Upload signed release APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release-signed
           path: app/build/outputs/apk/release/*.apk
