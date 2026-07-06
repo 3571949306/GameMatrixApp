@@ -44,7 +44,13 @@ class ModuleShellFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         containerId = View.generateViewId()
-        return FrameLayout(requireContext()).apply { id = containerId }
+        return FrameLayout(requireContext()).apply {
+            id = containerId
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -85,13 +91,18 @@ class ModuleShellFragment : Fragment() {
         featureLoaded = true
         val ctx = context ?: return
         val child = feature.createFragment(ctx)
-        try {
-            childFragmentManager.beginTransaction()
-                .replace(container.id, child)
-                .commitNowAllowingStateLoss()
-        } catch (e: Exception) {
-            featureLoaded = false
-            showDownloadPrompt(container)
+        // 等待容器完成布局后再添加子 Fragment
+        // 解决 Flutter 视图宽度为零的问题
+        container.post {
+            if (!isAdded || isDestroyed) return@post
+            try {
+                childFragmentManager.beginTransaction()
+                    .replace(container.id, child)
+                    .commitAllowingStateLoss()
+            } catch (e: Exception) {
+                featureLoaded = false
+                showDownloadPrompt(container)
+            }
         }
     }
 

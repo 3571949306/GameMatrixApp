@@ -13,6 +13,9 @@ object ModuleDownloader {
 
     private const val TAG = "ModuleDownloader"
     private const val BUFFER_SIZE = 8192
+    private const val BYTES_PER_KB = 1024
+    private const val HTTP_OK = 200
+    private const val HTTP_PARTIAL_CONTENT = 206
 
     private val activeDownloads = mutableMapOf<String, Boolean>()
     private val activeCallbacks = mutableMapOf<String, Callback>()
@@ -245,12 +248,12 @@ object ModuleDownloader {
         val responseCode = response.code
         Log.d(TAG, "连接响应: $responseCode")
 
-        if (responseCode != 200 && responseCode != 206) {
+        if (responseCode != HTTP_OK && responseCode != HTTP_PARTIAL_CONTENT) {
             response.close()
             throw Exception("HTTP $responseCode")
         }
 
-        val appendMode = responseCode == 206 && existingBytes > 0
+        val appendMode = responseCode == HTTP_PARTIAL_CONTENT && existingBytes > 0
         val body = response.body ?: run {
             response.close()
             throw Exception("Empty response body")
@@ -292,7 +295,7 @@ object ModuleDownloader {
             if (now - lastReportTime >= 200) {
                 val elapsed = now - lastReportTime
                 val bytesDiff = downloaded - lastReportBytes
-                val speedKbps = if (elapsed > 0) (bytesDiff * 1000 / elapsed) / 1024 else 0
+                val speedKbps = if (elapsed > 0) (bytesDiff * 1000 / elapsed) / BYTES_PER_KB else 0
                 notifyProgress(moduleId, downloaded, totalFromServer, speedKbps)
                 lastReportTime = now
                 lastReportBytes = downloaded

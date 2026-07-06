@@ -1,0 +1,14 @@
+# Default owners for everything in the repo
+# 更多信息: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @3571949306
+
+# Build configuration
+*.gradle @3571949306
+/build-logic/ @3571949306
+
+# Core modules
+/core/ @3571949306
+
+# CI/CD
+/.github/ @3571949306

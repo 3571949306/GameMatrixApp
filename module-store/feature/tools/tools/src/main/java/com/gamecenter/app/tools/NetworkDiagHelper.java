@@ -27,6 +27,11 @@ public final class NetworkDiagHelper {
     // 日志标签，用于在Logcat中筛选这个类的日志信息
     private static final String TAG = "NetworkDiagHelper";
 
+    /** 国内公共 DNS 服务器 */
+    private static final String DNS_TENCENT = "119.29.29.29";
+    private static final String DNS_BAIDU = "180.76.76.76";
+    private static final String DNS_ALIBABA = "223.5.5.5";
+
     // 私有构造函数，防止外部创建实例（这个类只提供静态方法，不需要创建对象）
     private NetworkDiagHelper() {
     }
@@ -43,7 +48,7 @@ public final class NetworkDiagHelper {
      */
     public static long testPing() {
         // 三个国内公共DNS服务器，就像三个备选的"回音壁"
-        String[] PING_SERVERS = {"119.29.29.29", "180.76.76.76", "223.5.5.5"};
+        String[] PING_SERVERS = {DNS_TENCENT, DNS_BAIDU, DNS_ALIBABA};
         for (String host : PING_SERVERS) {
             try {
                 // 执行单次 Ping（-c 1），超时2秒（-W 2）

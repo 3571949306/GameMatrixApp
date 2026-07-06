@@ -5,6 +5,7 @@ import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -48,6 +49,7 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private static final String GAME_ID_VALUE = "chinesechess";
     private static final String GAME_NAME_VALUE = "中国象棋";
+    private static final String TAG = "ChineseChessActivity";
 
     /** AI 最小响应延迟（毫秒） */
     private static final long[] AI_MIN_RESPONSE_DELAYS_MS = {200L, 400L, 800L, 1500L};
@@ -819,7 +821,8 @@ public class ChineseChessActivity extends BaseGameActivity {
         if (!isSoundAllowed() || soundPool == null || soundIdMove == 0) return;
         try {
             soundPool.play(soundIdMove, 0.6f, 0.6f, 1, 0, 1.0f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "音效播放失败", e);
         }
     }
 
@@ -827,7 +830,8 @@ public class ChineseChessActivity extends BaseGameActivity {
         if (!isSoundAllowed() || soundPool == null || soundIdMove == 0) return;
         try {
             soundPool.play(soundIdMove, 1.0f, 1.0f, 1, 0, 1.0f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "音效播放失败", e);
         }
     }
 
@@ -835,12 +839,14 @@ public class ChineseChessActivity extends BaseGameActivity {
         if (!isSoundAllowed() || soundPool == null || soundIdMove == 0) return;
         try {
             soundPool.play(soundIdMove, 1.0f, 1.0f, 1, 0, 0.8f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "音效播放失败", e);
         }
     }
 
     @Override
     protected void onDestroy() {
+        mainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
         if (aiExecutor != null) {
             aiExecutor.shutdownNow();
@@ -849,6 +855,5 @@ public class ChineseChessActivity extends BaseGameActivity {
             soundPool.release();
             soundPool = null;
         }
-        mainHandler.removeCallbacks(timerRunnable);
     }
 }

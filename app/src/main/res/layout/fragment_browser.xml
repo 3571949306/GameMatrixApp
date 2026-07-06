@@ -1,261 +1,206 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingTop="24dp"
-    android:background="?android:attr/colorBackground">
+    android:layout_height="match_parent">
 
-    <!-- 标签栏 -->
-    <HorizontalScrollView
-        android:id="@+id/tab_scroll_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurfaceVariant"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:id="@+id/tab_container"
-            android:layout_width="wrap_content"
-            android:layout_height="44dp"
-            android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:gravity="center_vertical">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_new_tab"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:text="+"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:minWidth="0dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
-
-        </LinearLayout>
-    </HorizontalScrollView>
-
-    <!-- 搜索栏 - 胶囊形状 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp"
-        android:background="?android:attr/colorBackground"
-        android:gravity="center_vertical">
-
-        <ImageButton
-            android:id="@+id/btn_search_engine"
-            android:layout_width="36dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="搜索引擎"
-            android:src="@drawable/ic_search"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorPrimary" />
-
-        <EditText
-            android:id="@+id/et_url"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="@drawable/url_input_bg"
-            android:hint="搜索或输入网址"
-            android:imeOptions="actionGo"
-            android:inputType="textUri"
-            android:maxLines="1"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:textSize="14sp"
-            android:gravity="center_vertical"
-            android:textColor="?attr/colorOnSurface"
-            android:textColorHint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_bookmark"
-            android:layout_width="36dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="书签"
-            android:src="@drawable/ic_star_border"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_desktop_mode"
-            android:layout_width="36dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="桌面模式"
-            android:src="@drawable/ic_desktop"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_refresh"
-            android:layout_width="36dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="刷新"
-            android:src="@drawable/ic_refresh"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_history"
-            android:layout_width="36dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="历史记录"
-            android:src="@drawable/ic_history"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
-    </LinearLayout>
-
-    <!-- 搜索建议下拉 -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_suggestions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxHeight="200dp"
-        android:visibility="gone"
-        android:background="?android:attr/colorBackground" />
-
-    <ProgressBar
-        android:id="@+id/browser_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:indeterminateTint="?attr/colorPrimary"
-        android:progressTint="?attr/colorPrimary" />
-
-    <!-- WebView 区域 -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <WebView
-            android:id="@+id/webview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
         <LinearLayout
-            android:id="@+id/empty_state"
+            android:id="@+id/browser_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurface"
+            android:elevation="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_back"
+                android:src="@drawable/ic_browser_back"
+                app:tint="?attr/colorOnSurface" />
+
+            <ImageButton
+                android:id="@+id/btn_forward"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_forward"
+                android:src="@drawable/ic_browser_forward"
+                app:tint="?attr/colorOnSurface" />
+
+            <EditText
+                android:id="@+id/et_url"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_url_bar"
+                android:hint="@string/browser_url_hint"
+                android:imeOptions="actionGo"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/incognito_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:background="?attr/colorPrimaryContainer"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="@string/browser_incognito_indicator"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:textSize="11sp"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btn_refresh"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_refresh"
+                android:src="@drawable/ic_browser_refresh"
+                app:tint="?attr/colorOnSurface" />
+
+            <ImageButton
+                android:id="@+id/btn_more"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_more"
+                android:src="@drawable/ic_browser_more"
+                app:tint="?attr/colorOnSurface" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:max="100"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:id="@+id/webview_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:id="@+id/error_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
+            android:background="?attr/colorSurface"
             android:gravity="center"
-            android:visibility="gone"
-            android:background="?android:attr/colorBackground">
+            android:orientation="vertical"
+            android:visibility="gone">
 
             <ImageView
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:src="@drawable/ic_browser"
-                app:tint="?attr/colorOnSurfaceVariant"
-                android:alpha="0.3" />
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_browser_error"
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="点击上方标签页开始浏览"
-                android:textSize="16sp"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:text="@string/browser_error_title"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_error_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:text="@string/browser_error_message"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_retry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/browser_retry" />
         </LinearLayout>
 
-        <ProgressBar
-            android:id="@+id/loading_spinner"
-            android:layout_width="48dp"
+        <LinearLayout
+            android:id="@+id/browser_bottom_bar"
+            android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:indeterminateTint="?attr/colorPrimary"
-            android:visibility="gone" />
-    </FrameLayout>
+            android:background="?attr/colorSurface"
+            android:elevation="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-    <!-- 底部导航栏 - 毛玻璃效果 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:orientation="horizontal"
-        android:background="?attr/colorSurface"
-        android:elevation="8dp"
-        android:gravity="center"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+            <ImageButton
+                android:id="@+id/btn_home"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/browser_home"
+                android:src="@drawable/ic_browser_home"
+                app:tint="?attr/colorOnSurface" />
 
-        <ImageButton
-            android:id="@+id/btn_back"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="后退"
-            android:src="@drawable/ic_back"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_forward"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="前进"
-            android:src="@drawable/ic_forward"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_home"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="主页"
-            android:src="@drawable/ic_home"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorPrimary" />
-
-        <FrameLayout
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1">
+            <ImageButton
+                android:id="@+id/btn_bookmark"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/browser_bookmark"
+                android:src="@drawable/ic_browser_bookmark"
+                app:tint="?attr/colorOnSurface" />
 
             <ImageButton
                 android:id="@+id/btn_tabs"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="标签页"
-                android:src="@drawable/ic_tabs"
-                android:scaleType="centerInside"
-                app:tint="?attr/colorOnSurfaceVariant" />
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/browser_tabs"
+                android:src="@drawable/ic_browser_tabs"
+                app:tint="?attr/colorOnSurface" />
 
-            <TextView
-                android:id="@+id/tv_tab_count"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_gravity="top|center_horizontal"
-                android:layout_marginStart="12dp"
-                android:layout_marginTop="2dp"
-                android:background="@drawable/tab_count_bg"
-                android:gravity="center"
-                android:maxLines="1"
-                android:text="2"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </FrameLayout>
+            <ImageButton
+                android:id="@+id/btn_download"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/browser_download"
+                android:src="@drawable/ic_browser_download"
+                app:tint="?attr/colorOnSurface" />
 
+            <ImageButton
+                android:id="@+id/btn_menu"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@string/browser_menu"
+                android:src="@drawable/ic_browser_menu"
+                app:tint="?attr/colorOnSurface" />
+        </LinearLayout>
     </LinearLayout>
-
-</LinearLayout>
+</FrameLayout>

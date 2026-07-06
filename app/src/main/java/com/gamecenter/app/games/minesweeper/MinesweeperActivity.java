@@ -162,7 +162,7 @@ public class MinesweeperActivity extends BaseGameActivity {
     @Override
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
-        minesweeperView.setDifficulty(newLevel.level);
+        if (minesweeperView != null) minesweeperView.setDifficulty(newLevel.level);
         Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
     }
 }
