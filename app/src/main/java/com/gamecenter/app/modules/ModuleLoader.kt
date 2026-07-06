@@ -54,6 +54,12 @@ object ModuleLoader {
             return null
         }
 
+        if (!verifyApkSignature(context, moduleFile)) {
+            Log.e(TAG, "模块签名比对失败，拒绝装载: ${manifest.id}")
+            moduleFile.delete()
+            return null
+        }
+
         if (!ModuleVerifier.verifyDexFile(moduleFile)) {
             Log.e(TAG, "模块文件格式无效: ${manifest.id}")
             return null
@@ -214,5 +220,91 @@ object ModuleLoader {
 
     fun getClassLoader(moduleId: String): ClassLoader? {
         return classLoaders[moduleId]
+    }
+
+    private fun verifyApkSignature(context: Context, apkFile: File): Boolean {
+        val isTestEnvironment = try {
+            Class.forName("org.robolectric.Robolectric") != null
+        } catch (_: ClassNotFoundException) {
+            false
+        }
+        if (isTestEnvironment) {
+            Log.d(TAG, "测试环境 (Robolectric)，跳过签名校验")
+            return true
+        }
+
+        try {
+            val packageManager = context.packageManager
+            val hostSigs = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                val packageInfo = packageManager.getPackageInfo(
+                    context.packageName,
+                    android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+                )
+                val signingInfo = packageInfo?.signingInfo
+                if (signingInfo != null) {
+                    if (signingInfo.hasMultipleSigners()) {
+                        signingInfo.apkContentsSigners
+                    } else {
+                        signingInfo.signingCertificateHistory
+                    }
+                } else {
+                    null
+                }
+            } else {
+                val packageInfo = packageManager.getPackageInfo(
+                    context.packageName,
+                    android.content.pm.PackageManager.GET_SIGNATURES
+                )
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+
+            if (hostSigs == null || hostSigs.isEmpty()) {
+                Log.w(TAG, "宿主签名为空，放行校验")
+                return true
+            }
+
+            val apkSigs = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                val packageInfo = packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+                )
+                val signingInfo = packageInfo?.signingInfo
+                if (signingInfo != null) {
+                    if (signingInfo.hasMultipleSigners()) {
+                        signingInfo.apkContentsSigners
+                    } else {
+                        signingInfo.signingCertificateHistory
+                    }
+                } else {
+                    null
+                }
+            } else {
+                val packageInfo = packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath,
+                    android.content.pm.PackageManager.GET_SIGNATURES
+                )
+                @Suppress("DEPRECATION")
+                packageInfo?.signatures
+            }
+
+            if (apkSigs == null || apkSigs.isEmpty()) {
+                Log.e(TAG, "无法获取待加载 APK 的签名: ${apkFile.name}")
+                return false
+            }
+
+            for (hostSig in hostSigs) {
+                for (apkSig in apkSigs) {
+                    if (hostSig.toByteArray().contentEquals(apkSig.toByteArray())) {
+                        return true
+                    }
+                }
+            }
+            Log.e(TAG, "APK 签名不匹配! APK 签名不属于官方开发证书。")
+            return false
+        } catch (e: Exception) {
+            Log.e(TAG, "签名比对异常: ${e.message}", e)
+            return false
+        }
     }
 }

@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/wrongbook_background"
+    android:orientation="vertical">
+
+    <!-- Toolbar Header -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/wrongbook_surface"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="@color/wrongbook_primary"
+            android:contentDescription="Back" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_marginStart="8dp"
+            android:gravity="center_vertical"
+            android:text="@string/wrongbook_detail_title"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnEditSave"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:text="编辑"
+            android:textColor="@color/wrongbook_primary"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+    <!-- Scrollable content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Meta attributes row (Subject, Difficulty, Favorite) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="@drawable/wrongbook_card_background"
+                android:padding="12dp">
+
+                <View
+                    android:id="@+id/colorIndicator"
+                    android:layout_width="4dp"
+                    android:layout_height="20dp"
+                    android:background="@color/wrongbook_primary" />
+
+                <!-- Subject selector / text -->
+                <TextView
+                    android:id="@+id/tvSubject"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="@color/wrongbook_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- Spinner for Subject in Edit Mode (Hidden in View Mode) -->
+                <TextView
+                    android:id="@+id/btnChooseSubject"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/wrongbook_chip_background"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:textColor="@color/wrongbook_chip_text"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <!-- Favorite Toggle -->
+                <ImageView
+                    android:id="@+id/btnFavorite"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="4dp"
+                    android:src="@drawable/wrongbook_star_empty"
+                    android:contentDescription="Favorite" />
+
+            </LinearLayout>
+
+            <!-- Image thumbnail and hint -->
+            <LinearLayout
+                android:id="@+id/layoutImageArea"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/wrongbook_card_background"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/ivQuestionImage"
+                        android:layout_width="200dp"
+                        android:layout_height="150dp"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Question Image"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/wrongbook_detail_image_hint"
+                    android:textColor="@color/wrongbook_text_tertiary"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <!-- Question Raw Text Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/wrongbook_question_content"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/wrongbook_card_background"
+                android:padding="12dp">
+
+                <!-- Display Mode -->
+                <TextView
+                    android:id="@+id/tvQuestionContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/wrongbook_text_primary"
+                    android:textSize="14sp" />
+
+                <!-- Edit Mode -->
+                <EditText
+                    android:id="@+id/etQuestionContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@null"
+                    android:textColor="@color/wrongbook_text_primary"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    android:inputType="textMultiLine"
+                    android:importantForAutofill="no" />
+            </FrameLayout>
+
+            <!-- Difficulty Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/wrongbook_difficulty"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/layoutStars"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal" />
+
+            <!-- Custom Tags Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="标签与知识点"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Display Tags Container -->
+            <LinearLayout
+                android:id="@+id/tagsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal" />
+
+            <!-- Edit Tags Input -->
+            <EditText
+                android:id="@+id/etTagsInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/wrongbook_card_background"
+                android:padding="12dp"
+                android:hint="@string/wrongbook_detail_tags"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:inputType="text"
+                android:importantForAutofill="no" />
+
+            <!-- Mastery slider Section -->
+            <TextView
+                android:id="@+id/tvMasteryLevel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="掌握度"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/wrongbook_card_background"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/tvProgressPercent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textColor="@color/wrongbook_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                </RelativeLayout>
+
+                <!-- Mastery seekbar for edit mode, styled nicely -->
+                <SeekBar
+                    android:id="@+id/sbMastery"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:thumbTint="@color/wrongbook_primary"
+                    android:progressTint="@color/wrongbook_primary" />
+
+            </LinearLayout>
+
+            <!-- AI Analysis / Explanation Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/wrongbook_analysis"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="40dp"
+                android:background="@drawable/wrongbook_card_background"
+                android:padding="12dp">
+
+                <!-- Display Mode -->
+                <TextView
+                    android:id="@+id/tvAnalysis"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/wrongbook_text_primary"
+                    android:textSize="14sp" />
+
+                <!-- Edit Mode -->
+                <EditText
+                    android:id="@+id/etAnalysis"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@null"
+                    android:textColor="@color/wrongbook_text_primary"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    android:inputType="textMultiLine"
+                    android:importantForAutofill="no" />
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

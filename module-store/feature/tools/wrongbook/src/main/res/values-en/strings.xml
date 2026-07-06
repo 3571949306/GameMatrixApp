@@ -52,10 +52,82 @@
     <string name="wrongbook_save_settings">Save Settings</string>
     <string name="wrongbook_settings_saved">Settings saved</string>
 
+    <!-- Common -->
     <string name="wrongbook_cancel">Cancel</string>
     <string name="wrongbook_confirm">OK</string>
     <string name="wrongbook_save">Save</string>
     <string name="wrongbook_error">Error</string>
     <string name="wrongbook_retry">Retry</string>
     <string name="wrongbook_no_api_config">Please configure AI API settings first</string>
+
+    <!-- Stage 1 UI & Empty States -->
+    <string name="wrongbook_empty_dashboard">Dashboard is empty. Charts will be generated after adding questions.</string>
+    <string name="wrongbook_empty_dashboard_cta">Add your first question</string>
+    <string name="wrongbook_empty_review_cta">View All Questions</string>
+    <string name="wrongbook_mastery_title">Mastery</string>
+    <string name="wrongbook_favorite_title">Favorite</string>
+    
+    <!-- Stage 2 Screens -->
+    <!-- Details & Edit -->
+    <string name="wrongbook_detail_title">Question Details</string>
+    <string name="wrongbook_edit_title">Edit Question</string>
+    <string name="wrongbook_detail_image_hint">Tap to view full image</string>
+    <string name="wrongbook_detail_tags">Tags (separated by comma or space)</string>
+    <string name="wrongbook_detail_mastery_level">Current Mastery: %1$d%%</string>
+    
+    <!-- Subject Management -->
+    <string name="wrongbook_subject_manage_title">Subjects</string>
+    <string name="wrongbook_subject_add">Add Subject</string>
+    <string name="wrongbook_subject_name_hint">Enter subject name, e.g. Physics</string>
+    <string name="wrongbook_subject_delete_confirm">Are you sure you want to delete this subject? Existing questions will not be deleted but moved to General.</string>
+    <string name="wrongbook_subject_exists">Subject name already exists</string>
+    <string name="wrongbook_subject_drag_hint">Long press item to drag and reorder</string>
+    
+    <!-- Search & Filters -->
+    <string name="wrongbook_search_title">Search</string>
+    <string name="wrongbook_search_hint">Search questions, topics, tags or analysis…</string>
+    <string name="wrongbook_filter_sort_time">By Time</string>
+    <string name="wrongbook_filter_sort_difficulty">By Difficulty</string>
+    <string name="wrongbook_filter_sort_mastery">By Mastery</string>
+    <string name="wrongbook_filter_only_favorites">Favorites Only</string>
+    <string name="wrongbook_search_no_result">No matching questions found. Try another keyword?</string>
+    
+    <!-- Batch Operations -->
+    <string name="wrongbook_batch_title">Batch Action</string>
+    <string name="wrongbook_batch_selected_count">%1$d Selected</string>
+    <string name="wrongbook_batch_delete_confirm">Are you sure you want to delete the selected %1$d questions? This cannot be undone!</string>
+    <string name="wrongbook_batch_move_subject">Move Subject</string>
+    <string name="wrongbook_batch_favorite">Add to Favorites</string>
+    <string name="wrongbook_batch_unfavorite">Remove from Favorites</string>
+    <string name="wrongbook_select_all">Select All</string>
+    <string name="wrongbook_deselect_all">Deselect All</string>
+    
+    <!-- Import/Export -->
+    <string name="wrongbook_settings_backup">Backup &amp; Restore</string>
+    <string name="wrongbook_export_db">Export WrongBook (JSON)</string>
+    <string name="wrongbook_import_db">Import WrongBook (JSON)</string>
+    <string name="wrongbook_export_success">Data exported successfully to: %1$s</string>
+    <string name="wrongbook_export_fail">Export failed, check storage space or permissions</string>
+    <string name="wrongbook_import_success">Questions and subjects imported successfully</string>
+    <string name="wrongbook_import_fail">Import failed, check if the JSON format is correct</string>
+    
+    <!-- Stage 3 Polish -->
+    <string name="wrongbook_undo">Undo</string>
+    <string name="wrongbook_question_deleted">Question deleted</string>
+    <string name="wrongbook_undo_success">Restored deleted question</string>
+    <string name="wrongbook_review_celebration">🎉 Congratulations! You have finished all reviews today!</string>
+    <string name="wrongbook_review_flip_show">Reveal Answer &amp; Analysis</string>
+    <string name="wrongbook_review_flip_hide">Hide Answer &amp; Analysis</string>
+    
+    <!-- Wizard Steps -->
+    <string name="wrongbook_step_format">Step %1$d / %2$d</string>
+    <string name="wrongbook_step_1">Choose Source</string>
+    <string name="wrongbook_step_2">Recognize Text</string>
+    <string name="wrongbook_step_3">Edit Question</string>
+    <string name="wrongbook_step_4">AI Analysis</string>
+    <string name="wrongbook_step_5">Preview &amp; Save</string>
+    <string name="wrongbook_export_cloud">Cloud Backup to HK VPS</string>
+    <string name="wrongbook_import_cloud">Restore Backup from HK VPS</string>
+    <string name="wrongbook_cloud_export_success">Successfully backed up data to Cloud VPS</string>
+    <string name="wrongbook_cloud_import_success">Successfully restored data from Cloud VPS</string>
 </resources>

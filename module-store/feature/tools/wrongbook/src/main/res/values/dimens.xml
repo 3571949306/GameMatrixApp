@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spacing and margins -->
+    <dimen name="wrongbook_spacing_tiny">4dp</dimen>
+    <dimen name="wrongbook_spacing_small">8dp</dimen>
+    <dimen name="wrongbook_spacing_medium">12dp</dimen>
+    <dimen name="wrongbook_spacing_large">16dp</dimen>
+    <dimen name="wrongbook_spacing_xlarge">24dp</dimen>
+    <dimen name="wrongbook_spacing_xxlarge">32dp</dimen>
+    
+    <!-- Corner Radii -->
+    <dimen name="wrongbook_corner_small">4dp</dimen>
+    <dimen name="wrongbook_corner_medium">8dp</dimen>
+    <dimen name="wrongbook_corner_large">12dp</dimen>
+    <dimen name="wrongbook_corner_xlarge">16dp</dimen>
+    <dimen name="wrongbook_corner_pill">28dp</dimen>
+    
+    <!-- Typography Text Sizes -->
+    <dimen name="wrongbook_text_caption">12sp</dimen>
+    <dimen name="wrongbook_text_body_small">13sp</dimen>
+    <dimen name="wrongbook_text_body">14sp</dimen>
+    <dimen name="wrongbook_text_body_large">16sp</dimen>
+    <dimen name="wrongbook_text_title">18sp</dimen>
+    <dimen name="wrongbook_text_title_large">20sp</dimen>
+    <dimen name="wrongbook_text_display">24sp</dimen>
+    <dimen name="wrongbook_text_display_large">32sp</dimen>
+    
+    <!-- Elevation -->
+    <dimen name="wrongbook_elevation_low">1dp</dimen>
+    <dimen name="wrongbook_elevation_medium">2dp</dimen>
+    <dimen name="wrongbook_elevation_high">4dp</dimen>
+</resources>

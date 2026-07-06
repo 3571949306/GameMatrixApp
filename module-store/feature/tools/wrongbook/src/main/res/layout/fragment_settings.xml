@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFBFE"
+    android:background="@color/wrongbook_background"
     android:padding="16dp">
 
     <LinearLayout
@@ -11,20 +11,21 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- OCR Engine -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:text="@string/wrongbook_ocr_engine"
-            android:textColor="#1C1B1F"
-            android:textSize="18sp"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <RadioGroup
             android:id="@+id/rgOcrEngine"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/wrongbook_card_bg"
+            android:background="@drawable/wrongbook_card_background"
             android:padding="12dp">
 
             <RadioButton
@@ -33,7 +34,8 @@
                 android:layout_height="wrap_content"
                 android:checked="true"
                 android:text="@string/wrongbook_ocr_local"
-                android:textColor="#1C1B1F" />
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
 
             <RadioButton
                 android:id="@+id/rbOcrCloud"
@@ -41,25 +43,27 @@
                 android:layout_height="wrap_content"
                 android:enabled="false"
                 android:text="@string/wrongbook_ocr_cloud"
-                android:textColor="#1C1B1F" />
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
 
         </RadioGroup>
 
+        <!-- AI Mode -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="12dp"
             android:text="@string/wrongbook_ai_mode"
-            android:textColor="#1C1B1F"
-            android:textSize="18sp"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <RadioGroup
             android:id="@+id/rgAiMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/wrongbook_card_bg"
+            android:background="@drawable/wrongbook_card_background"
             android:padding="12dp">
 
             <RadioButton
@@ -68,46 +72,73 @@
                 android:layout_height="wrap_content"
                 android:checked="true"
                 android:text="@string/wrongbook_ai_cloud"
-                android:textColor="#1C1B1F" />
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
 
             <RadioButton
                 android:id="@+id/rbAiLocal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/wrongbook_ai_local"
-                android:textColor="#1C1B1F" />
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
 
         </RadioGroup>
 
-        <EditText
-            android:id="@+id/etAiBaseUrl"
+        <!-- Inputs container -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="@string/wrongbook_ai_base_url"
-            android:inputType="textUri"
-            android:textColor="#1C1B1F"
-            android:textColorHint="#49454F" />
+            android:background="@drawable/wrongbook_card_background"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <EditText
-            android:id="@+id/etAiApiKey"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/wrongbook_ai_api_key"
-            android:inputType="textPassword"
-            android:textColor="#1C1B1F"
-            android:textColorHint="#49454F" />
+            <EditText
+                android:id="@+id/etAiBaseUrl"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="@string/wrongbook_ai_base_url"
+                android:inputType="textUri"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textColorHint="@color/wrongbook_text_tertiary"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp"
+                android:importantForAutofill="no" />
 
-        <EditText
-            android:id="@+id/etAiModel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/wrongbook_ai_model"
-            android:inputType="text"
-            android:textColor="#1C1B1F"
-            android:textColorHint="#49454F" />
+            <EditText
+                android:id="@+id/etAiApiKey"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:hint="@string/wrongbook_ai_api_key"
+                android:inputType="textPassword"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textColorHint="@color/wrongbook_text_tertiary"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp"
+                android:importantForAutofill="no" />
+
+            <EditText
+                android:id="@+id/etAiModel"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:hint="@string/wrongbook_ai_model"
+                android:inputType="text"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textColorHint="@color/wrongbook_text_tertiary"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp"
+                android:importantForAutofill="no" />
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnSaveSettings"
@@ -116,7 +147,63 @@
             android:layout_marginTop="24dp"
             android:background="@drawable/wrongbook_button_primary"
             android:text="@string/wrongbook_save_settings"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/wrongbook_on_primary" />
+
+        <!-- Data Backup & Restore -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/wrongbook_settings_backup"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/wrongbook_card_background"
+            android:padding="16dp"
+            android:layout_marginBottom="40dp">
+
+            <Button
+                android:id="@+id/btnExport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/wrongbook_button_outline"
+                android:text="@string/wrongbook_export_db"
+                android:textColor="@color/wrongbook_primary" />
+
+            <Button
+                android:id="@+id/btnImport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/wrongbook_button_outline"
+                android:text="@string/wrongbook_import_db"
+                android:textColor="@color/wrongbook_primary" />
+
+            <Button
+                android:id="@+id/btnCloudExport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/wrongbook_button_outline"
+                android:text="@string/wrongbook_export_cloud"
+                android:textColor="@color/wrongbook_primary" />
+
+            <Button
+                android:id="@+id/btnCloudImport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/wrongbook_button_outline"
+                android:text="@string/wrongbook_import_cloud"
+                android:textColor="@color/wrongbook_primary" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="wrongbook_primary">#D0BCFF</color>
+    <color name="wrongbook_primary_variant">#CCC2DC</color>
+    <color name="wrongbook_on_primary">#381E72</color>
+    
+    <color name="wrongbook_secondary">#CCC2DC</color>
+    <color name="wrongbook_on_secondary">#332D41</color>
+    
+    <color name="wrongbook_background">#141218</color>
+    <color name="wrongbook_surface">#1D1B20</color>
+    <color name="wrongbook_surface_variant">#49454F</color>
+    
+    <color name="wrongbook_text_primary">#E6E1E9</color>
+    <color name="wrongbook_text_secondary">#CAC4D0</color>
+    <color name="wrongbook_text_tertiary">#938F99</color>
+    
+    <color name="wrongbook_error">#F2B8B5</color>
+    <color name="wrongbook_outline">#938F99</color>
+    <color name="wrongbook_divider">#49454F</color>
+    
+    <!-- Mastery and Difficulty Status -->
+    <color name="wrongbook_mastery_high">#B2F190</color>
+    <color name="wrongbook_mastery_mid">#FFC066</color>
+    <color name="wrongbook_mastery_low">#F2B8B5</color>
+    <color name="wrongbook_star_filled">#FFD066</color>
+    <color name="wrongbook_star_empty">#49454F</color>
+    
+    <!-- Shimmer Skeleton -->
+    <color name="wrongbook_shimmer_base">#2D2A33</color>
+    <color name="wrongbook_shimmer_highlight">#3D3A44</color>
+    
+    <!-- Card backgrounds and chip states -->
+    <color name="wrongbook_card_bg">#25232A</color>
+    <color name="wrongbook_card_stroke">#49454F</color>
+    <color name="wrongbook_chip_bg">#4F378B</color>
+    <color name="wrongbook_chip_text">#EADDFF</color>
+    <color name="wrongbook_chip_border">#49454F</color>
+
+    <color name="wrongbook_tab_selected_text">#D0BCFF</color>
+    <color name="wrongbook_tab_unselected_text">#E6E1E9</color>
+    <color name="wrongbook_tab_selected_bg">#4F378B</color>
+    <color name="wrongbook_tab_unselected_bg">#00000000</color>
+    
+    <color name="wrongbook_ripple_color">#20D0BCFF</color>
+</resources>

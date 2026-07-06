@@ -1,14 +1,15 @@
 package com.gamecenter.app.wrongbook.ui
 
 import android.content.Intent
-import android.app.AlertDialog
 import android.content.ActivityNotFoundException
-import android.widget.TextView
-import android.widget.Toast
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -61,24 +62,39 @@ class WrongBookFragment : BaseWrongBookFragment() {
                 updateSelectedTab(position)
             }
         })
-        updateSelectedTab(0)
+        
+        // 延迟初始化以确保 Tab 测量完毕
+        binding.tabContainer.post {
+            updateSelectedTab(0)
+        }
 
         binding.btnAdd.setOnClickListener {
-            try {
-                startActivity(Intent(requireContext(), CaptureActivity::class.java))
-            } catch (_: ActivityNotFoundException) {
-                Toast.makeText(
-                    requireContext(),
-                    moduleResources.getString(R.string.wrongbook_add_question),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            CaptureDialogFragment().show(parentFragmentManager, "CaptureDialogFragment")
+        }
+
+        // 搜索入口
+        binding.btnSearch.setOnClickListener {
+            val searchDialog = SearchFragment()
+            searchDialog.show(parentFragmentManager, "SearchFragment")
+        }
+
+        // 科目管理入口
+        binding.btnSubjectManage.setOnClickListener {
+            val subjectDialog = SubjectManagementFragment()
+            subjectDialog.show(parentFragmentManager, "SubjectManagementFragment")
         }
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
                 viewModel.clearError()
+            }
+        }
+
+        viewModel.selectTabEvent.observe(viewLifecycleOwner) { position ->
+            position?.let {
+                binding.viewPager.currentItem = it
+                viewModel.clearSelectTabEvent()
             }
         }
     }
@@ -89,25 +105,32 @@ class WrongBookFragment : BaseWrongBookFragment() {
             tab.setBackgroundResource(
                 if (selected) R.drawable.wrongbook_tab_selected else R.drawable.wrongbook_tab_unselected
             )
-            tab.setTextColor(if (selected) 0xFF6750A4.toInt() else 0xFF49454F.toInt())
+            tab.setTextColor(
+                ContextCompat.getColor(
+                    requireContext(),
+                    if (selected) R.color.wrongbook_tab_selected_text else R.color.wrongbook_tab_unselected_text
+                )
+            )
+            tab.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
         }
+        animateIndicator(position)
     }
 
-    private fun showSubjectFilterDialog() {
-        val subjects = viewModel.subjects.value ?: emptyList()
-        val items = mutableListOf(moduleResources.getString(R.string.wrongbook_subject_all))
-        items.addAll(subjects.map { it.name })
-        var selected = 0
-        AlertDialog.Builder(requireContext())
-            .setTitle(moduleResources.getString(R.string.wrongbook_subject_filter))
-            .setSingleChoiceItems(items.toTypedArray(), selected) { _, which ->
-                selected = which
-            }
-            .setPositiveButton(moduleResources.getString(R.string.wrongbook_confirm)) { _, _ ->
-                viewModel.setSubjectFilter(if (selected == 0) null else items[selected])
-            }
-            .setNegativeButton(moduleResources.getString(R.string.wrongbook_cancel), null)
-            .show()
+    private fun animateIndicator(position: Int) {
+        val targetTab = tabs[position]
+        binding.tabIndicator.post {
+            if (_binding == null) return@post
+            val width = targetTab.width
+            val x = targetTab.left + binding.tabContainer.left
+
+            val indicatorWidth = binding.tabIndicator.width
+            val targetX = x + (width - indicatorWidth) / 2
+
+            binding.tabIndicator.animate()
+                .translationX(targetX.toFloat())
+                .setDuration(200)
+                .start()
+        }
     }
 
     override fun onDestroyView() {
