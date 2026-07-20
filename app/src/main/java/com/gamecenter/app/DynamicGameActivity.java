@@ -14,7 +14,7 @@ import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.ui.GameLauncherHelper;
 import com.gamecenter.app.modules.ModuleLoader;
 import com.gamecenter.app.modules.ModuleManager;
-import com.gamecenter.app.modules.ModuleManifest;
+import com.gamecenter.app.core.common.ModuleManifest;
 import java.io.File;
 
 public class DynamicGameActivity extends AppCompatActivity {

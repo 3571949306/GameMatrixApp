@@ -1,6 +1,6 @@
 # GameMatrixApp 全局文档索引
 
-项目全部文档的中枢链接。最后更新：2026-07-19。
+项目全部文档的中枢链接。最后更新：2026-07-20。
 
 ## 根目录 (Root)
 
@@ -11,6 +11,9 @@
 | [CODE_WIKI.md](/CODE_WIKI.md) | 详细代码架构说明 |
 | [CLOUD-BUILD.md](/CLOUD-BUILD.md) | 云编译 & VPS 部署指南 |
 | [修改记录.md](/修改记录.md) | 24 轮修复循环的完整变更历史 |
+| [AGENTS.md](/AGENTS.md) | AI Coding 规则（必读） |
+| [待删除文件清单.md](/待删除文件清单.md) | 按规则 22 登记的待删除文件清单 |
+| [TEST_ISSUES_2026-06-27.md](/TEST_ISSUES_2026-06-27.md) | 2026-06-27 测试问题记录 |
 
 ## docs/ — 主文档
 
@@ -22,7 +25,7 @@
 | [项目改进建议书.md](/docs/项目改进建议书.md) | 项目改进建议书 v7 |
 | [game_center_app_ai_roadmap.md](/docs/game_center_app_ai_roadmap.md) | AI 开发路线图 |
 | [DONT_DO_THIS.md](/docs/DONT_DO_THIS.md) | 写给 AI / 协作者：不要做 |
-| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（47 个：基础设施 10 + 加法升级 37），含用途、引入版本、退役计划与治理规则 |
+| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（73 个：基础设施 10 + 加法升级 58 + 混合架构 5），含用途、引入版本、退役计划与治理规则 |
 | [PUBLISH_GUIDE.md](/docs/PUBLISH_GUIDE.md) | 发布指南 |
 | [SECURITY.md](/docs/SECURITY.md) | 安全策略 |
 | [NETWORK_LAYER.md](/docs/NETWORK_LAYER.md) | 网络层架构 |
@@ -33,6 +36,9 @@
 | [COMPOSE_MIGRATION.md](/docs/COMPOSE_MIGRATION.md) | Compose 迁移指南 |
 | [ROOM_MIGRATION.md](/docs/ROOM_MIGRATION.md) | Room 数据库迁移 |
 | [UNITY_UPDATE_READINESS_AUDIT.md](/docs/UNITY_UPDATE_READINESS_AUDIT.md) | Unity Update Readiness Audit |
+| [ADB_REAL_DEVICE_TEST_PLAN.md](/docs/ADB_REAL_DEVICE_TEST_PLAN.md) | ADB 真机全量测试计划（含 2026-07-20 小米 ares 测试记录） |
+| [FILES_TO_DELETE_BATCH21.md](/docs/FILES_TO_DELETE_BATCH21.md) | Batch 21 待删除文件清单（Hilt DI 引用暂不删除） |
+| [FILES_TO_REVIEW_HYBRID_STORE.md](/docs/FILES_TO_REVIEW_HYBRID_STORE.md) | 混合商店改造待 Review 文件清单 |
 
 ## docs/module-docs — 模块说明
 
@@ -52,6 +58,7 @@
 | [MODULE_DEVELOPMENT_GUIDE.md](/docs/modules/MODULE_DEVELOPMENT_GUIDE.md) | 模块开发指南 |
 | [MODULE_STORE_POLICY.md](/docs/modules/MODULE_STORE_POLICY.md) | 模块商店策略 |
 | [MODULE_STORE_REDESIGN_PLAN.md](/docs/modules/MODULE_STORE_REDESIGN_PLAN.md) | 模块商店重新设计计划 |
+| [P3_IMPLEMENTATION_PLAN.md](/docs/modules/P3_IMPLEMENTATION_PLAN.md) | P3 目录签名 + 事务安装实施计划（已完成） |
 | [PUBLISH_GUIDE.md](/docs/modules/PUBLISH_GUIDE.md) | 模块发布指南 |
 | [模块变更日志/](/docs/modules/模块变更日志/) | 各模块变更日志（游戏/浏览器/工具箱/AI/VPN） |
 

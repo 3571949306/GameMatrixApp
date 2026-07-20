@@ -105,7 +105,15 @@ class DefaultStoreCatalogRepository private constructor(
         Thread {
             val result = refreshInternal()
             mainHandler.post {
-                result.onSuccess { catalog -> notifyObservers(catalog) }
+                result.onSuccess { catalog ->
+                    // P2: 将目录同步到权威管理器（在通知观察者之前完成状态同步）
+                    try {
+                        RemoteCatalogAuthorityManager.synchronizeWithAuthority(appContext, catalog)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "目录权威同步失败: ${e.message}", e)
+                    }
+                    notifyObservers(catalog)
+                }
                 callback?.invoke(result)
             }
         }.start()
@@ -151,11 +159,23 @@ class DefaultStoreCatalogRepository private constructor(
             }
 
             val serverEtag = response.header("ETag")
+            val signature = response.header("X-Catalog-Signature")
             val body = response.body?.string() ?: run {
                 response.close()
                 return degradeToCacheOrFailure(RuntimeException("响应体为空"))
             }
             response.close()
+
+            // P3: 验证目录签名（如果启用）
+            if (BuildConfig.ENABLE_CATALOG_SIGNATURE) {
+                val verifyResult = CatalogSignatureVerifierManager.verify(body, signature, true)
+                if (verifyResult.isFailure) {
+                    Log.e(TAG, "目录签名验证失败: ${(verifyResult as CatalogSignatureVerifierManager.VerifyResult.Failure).reason}")
+                    return degradeToCacheOrFailure(RuntimeException("目录签名验证失败"))
+                } else if (verifyResult.isWarning) {
+                    Log.w(TAG, "目录签名验证警告: ${(verifyResult as CatalogSignatureVerifierManager.VerifyResult.Warning).reason}")
+                }
+            }
 
             // 1. 写入 tmp
             tmpFile.writeText(body, Charsets.UTF_8)

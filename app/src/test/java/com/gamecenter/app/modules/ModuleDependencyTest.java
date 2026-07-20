@@ -13,7 +13,7 @@ import org.robolectric.RuntimeEnvironment;
 
 import android.content.Context;
 
-import com.gamecenter.app.modules.ModuleManifest;
+import com.gamecenter.app.core.common.ModuleManifest;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;

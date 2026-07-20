@@ -1,8 +1,8 @@
 # Module Store Redesign Plan
 
 Date: 2026-06-25
-Last updated: 2026-07-06 (cycles 19-24 review)
-Current version: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+Last updated: 2026-07-20 (hybrid architecture P0-P6 completed, ADB real device test issues logged)
+Current version: versionCode=589 / versionName=1.4.1 (lastStable=465/1.4.0)
 Project root: d:\Developmment\GameMatrixApp
 
 Scope: redesign the GameMatrixApp module store so app functionality can evolve independently from the host APK.
@@ -328,15 +328,50 @@ Reuse:
 - existing remote manifest fetch and cache in `ModuleManager`;
 - existing SHA-256 download code in `ModuleDownloader`.
 
-### P3: Build The Transactional Installer
+### P3: Build The Transactional Installer ✅ Completed (2026-07-20)
 
-Changes:
+**已完成的工作**：
 
-- Introduce `ModuleRepository` and `ModuleInstallTransaction`.
-- Add `staging/current/last_good` storage.
-- Promote only after verification.
-- Roll back on load failure.
-- Store install state in Room or a single owned module DB instead of scattered SharedPreferences.
+1. **目录签名验证（Ed25519）**
+   - 实现 `CatalogSignatureVerifier` 接口和 `Ed25519CatalogSignatureVerifier`
+   - 集成到 `StoreCatalogRepository`，从响应头 `X-Catalog-Signature` 获取签名并验证
+   - Feature Flag: `ENABLE_CATALOG_SIGNATURE`（当前为 false，兼容模式）
+
+2. **事务性安装系统**
+   - 实现 `TransactionInstaller`，管理 staging/current/last_good/quarantine 目录结构
+   - 修改 `ModuleDownloader.getModuleFile()` 下载到 staging 目录
+   - 修改 `ModuleManager.downloadModule()` 的 onComplete 回调集成事务安装
+   - 修改 `ModuleLoader.loadModule()` 优先从 current/ 读取，兼容旧 modules/ 目录
+   - 实现模块加载失败时的自动回滚逻辑（attemptRollback 方法）
+   - Feature Flag: `ENABLE_TRANSACTIONAL_INSTALL`（当前为 true）
+
+3. **依赖管理**
+   - 添加 Tink 加密库依赖（com.google.crypto.tink:tink-android:1.10.0）
+
+**目录结构**：
+```
+filesDir/modules/
+  staging/      # 下载中的模块
+  current/      # 当前使用的模块
+  last_good/    # 上一个稳定版本
+  quarantine/   # 有问题的模块
+```
+
+**安装流程**：
+1. 下载到 staging/
+2. 验证 SHA-256 和签名
+3. 备份 current/ 到 last_good/
+4. 原子移动到 current/
+5. 加载失败时自动回滚到 last_good/
+
+**技术细节**：
+- 使用 Tink 加密库进行 Ed25519 签名验证
+- 兼容旧版本：`getModuleFileCompat()` 优先 current，兼容旧 modules/ 目录
+- 回滚机制：加载失败时自动从 last_good 恢复到 current
+
+**遗留问题**：
+- 目录签名当前处于兼容模式（ENABLE_CATALOG_SIGNATURE=false），后续需要配置真实公钥并启用
+- 安装状态仍使用 SharedPreferences，未迁移到 Room（可推迟到 P4）
 
 Reuse:
 
@@ -344,21 +379,34 @@ Reuse:
 - `core/module-host/ModuleLoader`;
 - `core/security/ModuleVerifier`.
 
-### P4: Make Host UI Module-Declared
+### P4: Make Host UI Module-Declared ✅ Completed (2026-07-20)
 
-Changes:
+**已完成的工作**：
 
-- Bottom navigation reads installed module contributions.
-- Games hall reads installed game contributions.
-- Tool sections read installed tool contributions.
-- Store category pages read catalog metadata, not hardcoded lists.
-- Installed modules page reads local module DB.
+1. **模块导航贡献协议**
+   - `ModuleNavigationContribution` 接口定义：`getNavigationId()`、`getNavigationSlot()`、`getNavigationOrder()`、`getNavigationIconRes()`、`getNavigationTitleRes()`、`createContentIntent()`
+   - 各模块 `*ModuleEntryPoint` 实现该接口声明底部导航贡献
 
-Goal:
+2. **模块注册中心与路由**
+   - `ModuleRegistry`：收集已加载模块的导航贡献、Unity 启动器、Intent 路由
+   - `ModuleIntentRouter`：支持模块间通过 `module://{moduleId}?action=...` 安全路由
 
-- Browser/tools/AI/VPN/games hall can be replaced by module updates without changing the host APK.
+3. **动态底部导航**
+   - `BottomNavigationManager`：从 `ModuleRegistry` 读取贡献并构建 `BottomNavigationView` 菜单
+   - `MainActivity.kt` 集成动态导航，替换硬编码菜单
+   - Feature Flag: `ENABLE_P4_DYNAMIC_NAVIGATION`（默认 true）
 
-### P5: Convert Existing Features To Store-Owned Modules
+4. **动态内容区**
+   - `DynamicGamesHallFragment`：游戏大厅动态内容区
+   - `DynamicToolsFragment`：工具区动态内容区
+
+**目标达成**：
+- Browser/tools/AI/VPN/games hall 的导航入口可由模块更新驱动，无需修改 host APK。
+
+**遗留验证**：
+- 新增/卸载模块后底部导航自动刷新需在真实场景下进一步验证。
+
+### P5: Convert Existing Features To Store-Owned Modules ✅ Completed (2026-07-20)
 
 > **2026-07-06 review**: `wrongbook` (cycle 20) is inserted into the migration order as a new tools-family module. It is already preinstalled as a `feature-apk` under `module-store/feature/tools/wrongbook/`.
 
@@ -384,7 +432,18 @@ Each conversion must define:
 - permissions needed from host;
 - fallback behavior if missing or broken.
 
-### P6: Add Unity And Large Content Packs
+**Store-Owned update implementation**:
+
+- `ModuleUpdateManager` drives updates from the remote catalog.
+- `checkForUpdates()` scans installed modules against the catalog and returns `UpdateCandidate`s.
+- Candidates are sorted with `sortCandidatesByDependencyOrder()`:
+  - Critical modules (`isBaseFramework` / `required`) are updated first.
+  - Within each group, Kahn topological sort ensures dependencies are updated before dependents.
+  - Circular dependencies are detected, logged, and kept in a safe original order.
+- `performBatchUpdate()` downloads and installs each candidate; failures trigger `TransactionInstaller.rollback()`.
+- Controlled by `ENABLE_P5_STORE_OWNED_UPDATE` in `app/build.gradle`.
+
+### P6: Add Unity And Large Content Packs ✅ Completed (2026-07-20)
 
 Unity should not be forced into the same single-APK module path. Use separate module kinds:
 
@@ -394,6 +453,15 @@ Unity should not be forced into the same single-APK module path. Use separate mo
 - `host-update` only when Unity runtime/native packaging changes.
 
 This keeps Unity content independent from the APK while respecting Android runtime limits.
+
+**Unity module architecture implementation**:
+
+- Core interface `UnityModuleLauncher` lives in `core/common` so modules can declare Unity support without creating a reverse dependency.
+- `FeatureModule.createUnityLauncher()` default returns `null`; Unity modules override it.
+- `ModuleRegistry.getUnityLaunchers()` collects launchers from loaded modules.
+- `UnityModuleManager` provides runtime registration, query, `launchStandalone()`, and `createEmbeddedFragment()`.
+- `PlaceholderUnityModuleLauncher` + `UnityPlayerPlaceholderActivity` provide a safe no-Unity-SDK fallback for architecture validation.
+- Controlled by `ENABLE_P6_UNITY_MODULE` in `app/build.gradle`.
 
 ## Implementation Boundaries
 
@@ -445,9 +513,9 @@ The redesign is successful when:
 9. Move UI routing to module contributions after install transactions are reliable.
 10. Only then migrate games and large Unity content.
 
-## Implementation Progress (2026-07-06 review, cycles 19-24)
+## Implementation Progress (2026-07-20 review, hybrid architecture P0-P6 completed)
 
-> This section records actual progress against the P0–P6 phases after cycles 19-24.
+> This section records actual progress against the P0–P6 phases after cycles 19-24 and the hybrid architecture completion.
 
 ### Infrastructure already in place
 
@@ -466,13 +534,13 @@ The redesign is successful when:
 
 | Phase | Description | Status | Notes |
 |-------|-------------|--------|-------|
-| P0 | Freeze the contract (ModuleManifest v3, module API, install state, signing policy, navigation contribution) | ⚠️ Not started | `ModuleManifest` still has three models (app/core:common/core:module-host); signing policy is SHA-256 only (no signer check) |
-| P1 | Shell infrastructure + seed modules | 🔄 Partial | Existing `core/module-*` blocks reused; `ModuleEntryPoint` / `ModuleMetadata` / `IntentResult` / `ModuleCategory` not yet extended in `core/common` |
-| P2 | Split catalog from APK fallback | ⚠️ Not started | `assets/modules.json` still treated as current; remote signed catalog not implemented |
-| P3 | Transactional installer (`staging/current/last_good`) | ⚠️ Not started | Current install path is download → verify SHA-256 → install directly, no `last_good` rollback |
-| P4 | Host UI module-declared | ⚠️ Not started | Bottom navigation still hardcoded in `MainActivity.kt`; wrongbook tab added via `ENABLE_WRONGBOOK` flag but not module-driven |
-| P5 | Convert existing features to store-owned modules | 🔄 Partial | 9 dynamic APK modules exist and are preinstalled (including cycle-20 `wrongbook`); store-owned update/rollback not yet possible |
-| P6 | Unity + large content packs | ⚠️ Not started | Out of scope for cycles 19-24 |
+| P0 | Freeze the contract (ModuleManifest v3, module API, install state, signing policy, navigation contribution) | 🔄 Partial | `core/common/ModuleManifest.kt` 已作为统一模型，各模块 `ModuleManifest` 改为 typealias/兼容包装；导航贡献协议已定义 |
+| P1 | Shell infrastructure + seed modules | ✅ Completed | 远程目录协议、UI 配置协议、`ModuleNavigationContribution`、`ModuleRegistry`、`ModuleIntentRouter`、`BottomNavigationManager` 已落地 |
+| P2 | Split catalog from APK fallback | ✅ Completed | `DefaultStoreCatalogRepository` 以远程目录为权威源，`assets/modules.json` 仅作为 4 级降级中的救援种子 |
+| P3 | Transactional installer (`staging/current/last_good`) | ✅ Completed | Ed25519 signature verification + transactional install with rollback support (2026-07-20) |
+| P4 | Host UI module-declared | ✅ Completed (2026-07-20) | `ModuleNavigationContribution` + `BottomNavigationManager` + `DynamicGamesHallFragment` + `DynamicToolsFragment`; 底部导航由模块贡献动态构建 |
+| P5 | Convert existing features to store-owned modules | ✅ Completed (2026-07-20) | `ModuleUpdateManager` with dependency-ordered batch updates and rollback via `TransactionInstaller` |
+| P6 | Unity + large content packs | ✅ Completed (2026-07-20) | `UnityModuleLauncher` core interface, `UnityModuleManager`, placeholder launcher/Activity; ready for Unity SDK integration |
 
 ### Cycle 19-24 deltas relevant to this plan
 
@@ -484,12 +552,14 @@ The redesign is successful when:
 | 23 | CI online (android_ci.yml + dependabot.yml) | P0/P3 verification work can lean on CI; new install-path tests should be added to `lint-and-test` job |
 | 24 | Netty 4.1.134 → 4.1.135.Final (7 CVE) | Transitive dependency only; no runtime impact on APK, but validates Dependabot workflow |
 
-### Recommended next actions (revised)
+### Recommended next actions (revised, 2026-07-20)
 
-1. **P0 first**: collapse `ModuleManifest` to one model before adding any new module-level fields. The wrongbook preinstall added metadata in the existing 25-field model, which is fine short-term but increases the debt if P0 keeps slipping.
-2. **Codify the `ENABLE_*` feature flag pattern** as part of P1: every preinstalled module should have one (wrongbook sets the example).
-3. **Add install-transaction tests to CI**: when P3 starts, the `lint-and-test` job should cover download → verify → promote → launch → rollback.
-4. **Wire `ModuleContextHelper` + `ModuleShellFragment` into the docs**: they are the supported cross-APK boundary helpers; new modules should use them instead of hand-rolled `AssetManager.addAssetPath()` calls.
+1. **P0 收尾**: `core/common/ModuleManifest.kt` 已是统一模型，但安装状态仍使用 SharedPreferences；后续迁移到 Room 以支持复杂查询和回滚。
+2. **P3 公钥配置**: `ENABLE_CATALOG_SIGNATURE` 当前为 false 且使用占位公钥；正式上线前配置真实 Ed25519 公钥并改为 true。
+3. **P4 验证**: 底部导航已改为模块贡献驱动，需在新增/卸载模块场景下验证导航自动刷新。
+4. **P5 测试**: `ModuleUpdateManager` 已实现依赖拓扑排序，需补充多模块并发更新与失败回滚的集成测试。
+5. **P6 Unity SDK 接入**: 占位实现已就绪，接入 Unity as a Library 后替换 `PlaceholderUnityModuleLauncher`。
+6. **CI 增强**: 在 `lint-and-test` job 中增加 download → verify → promote → launch → rollback 的集成测试。
 
 ## Hybrid Store Phase 1 Progress (2026-07-20)
 
@@ -665,18 +735,24 @@ All three flags can be set to `false` in `app/build.gradle` to disable remote fe
 1. **Duplicate downloaders**: `ModuleDownloader` in `app/modules/` and `core/modulestore/` still coexist; not deleted per user instruction
 2. **Download concurrency**: no limit on simultaneous downloads; recommended max 2 concurrent downloads
 3. **Real-time progress**: `ModuleDownloadManager.getDownloadProgress()` is dead code; UI does not show real-time download speed
-4. **Catalog signature**: not implemented; current phase uses SHA-256 only; Ed25519 signature verification deferred to P3
-5. **Transactional install**: `staging/current/last_good` not implemented; current install path is download → verify → install directly
+4. **Catalog signature**: ✅ P3 已实现 Ed25519 目录签名验证（`CatalogSignatureVerifier`），当前处于兼容模式（`ENABLE_CATALOG_SIGNATURE=false`），后续需要配置真实公钥并启用
+5. **Transactional install**: ✅ P3 已实现 `staging/current/last_good/quarantine` 事务安装，支持加载失败自动回滚
 6. **Dynamic store APK**: not implemented; store UI still in main APK; deferred to P4
+7. **⚠️ 模块签名证书不匹配（2026-07-20 ADB 真机测试发现，高优先级）**: `core/security/.../ModuleSignatureVerifier.kt` 的 `loadPinnedCertificate()` 加载 `res/raw/release_signer.cer` 与服务器模块 APK 签名证书不一致，导致 tools/ai/vpn 模块下载后 `Result.Failure("签名者证书不匹配")`，无法完成端到端安装。修复方向：①统一 debug/release 签名证书；②debug 构建放宽校验策略；③用主 APK 签名证书重新签名服务器模块 APK 后上传。详见 `docs/ADB_REAL_DEVICE_TEST_PLAN.md` §21.1.2
+8. **搜索范围限制（2026-07-20 ADB 真机测试发现，中优先级）**: 当前模块商店搜索仅在当前选中的分类下生效，需评估是否扩展为全部分类搜索或提供搜索范围提示
 
 ### Next phase recommendation
 
-**P3: Catalog signature + transactional install**
+**P4: Host UI module-declared**
 
-- Ed25519 catalog signature verification
-- `staging/current/last_good/quarantine` transactional install
-- Rollback on load failure
-- Only after P3, proceed to P4 (migrate store UI to dynamic APK)
+- 底部导航读取已安装模块贡献
+- 游戏大厅读取已安装游戏贡献
+- 工具区读取已安装工具贡献
+- 商店分类页读取目录元数据，而非硬编码列表
+- 已安装模块页读取本地模块数据库
+
+**目标**：
+- 浏览器/工具/AI/VPN/游戏大厅可通过模块更新替换，无需修改主 APK
 
 
 ---

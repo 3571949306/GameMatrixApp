@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
+import com.gamecenter.app.core.common.ModuleNavigationContribution
+import com.gamecenter.app.core.common.NavigationSlot
 import com.gamecenter.app.wrongbook.ui.WrongBookFragment
 
 /**
@@ -37,4 +39,17 @@ class WrongBookModuleEntryPoint : ModuleInterface, FeatureModule {
     override fun isRunning(): Boolean = running
 
     override fun createFragment(context: Context): Fragment = WrongBookFragment()
+
+    override fun getNavigationContributions(context: Context): List<ModuleNavigationContribution> {
+        return listOf(WrongBookNavContribution())
+    }
+
+    private class WrongBookNavContribution : ModuleNavigationContribution {
+        override fun getContributionId(): String = "wrongbook"
+        override fun getTitle(context: Context): String = "错题本"
+        override fun getIconResId(): Int = 0
+        override fun getOrder(): Int = 60
+        override fun getSlot(): NavigationSlot = NavigationSlot.TOOLS_GRID
+        override fun createFragment(context: Context): Fragment = WrongBookFragment()
+    }
 }
