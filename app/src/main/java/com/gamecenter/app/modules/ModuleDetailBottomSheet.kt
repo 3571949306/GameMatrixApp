@@ -190,9 +190,15 @@ class ModuleDetailBottomSheet : BottomSheetDialogFragment() {
     }
 
     /**
-     * Batch 21: 按 module 分类生成 mock 更新日志。
+     * P1.4: 更新日志优先级：
+     * 1. 服务器目录下发的 `module.changelog`（非空时直接使用）
+     * 2. 按 storeCategory 生成的本地 mock 数据（兜底）
      */
     private fun generateChangelog(module: ModuleManifest): String {
+        // 优先使用服务器下发的更新日志（catalog.json 中 module.changelog 字段）
+        if (module.changelog.isNotEmpty()) {
+            return module.changelog
+        }
         val sb = StringBuilder()
         sb.append("v${module.versionName} (build ${module.versionCode})\n")
         when (module.storeCategory) {
@@ -230,9 +236,30 @@ class ModuleDetailBottomSheet : BottomSheetDialogFragment() {
         return sb.toString()
     }
 
-    /** 按模块分类动态生成权限说明条目 */
+    /**
+     * P1.4: 权限说明优先级：
+     * 1. 服务器目录下发的 `module.permissionsDescription`（List<String>，非空时直接渲染）
+     * 2. 按 storeCategory 生成的本地默认权限（兜底）
+     */
     private fun bindPermissions(container: LinearLayout, module: ModuleManifest, context: android.content.Context) {
         container.removeAllViews()
+
+        // 服务器下发权限说明时直接渲染每条条目
+        if (module.permissionsDescription.isNotEmpty()) {
+            module.permissionsDescription.forEach { line ->
+                val item = TextView(context).apply {
+                    text = line
+                    setTextColor(ContextCompat.getColor(context, R.color.md_theme_on_surface_variant))
+                    textSize = 11f
+                    setPadding(0, context.resources.getDimensionPixelSize(R.dimen.gm_spacing_1), 0, 0)
+                    gravity = Gravity.START
+                }
+                container.addView(item)
+            }
+            return
+        }
+
+        // 兜底：按分类生成默认权限条目
         val permissions = mutableListOf<Int>()
         // 所有模块都需要网络权限
         permissions.add(R.string.module_detail_perm_internet)
