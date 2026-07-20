@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 模块商店主页（Batch 20/21: Hero Banner 轮播 + 三栏统计卡片+趋势 + 分类 tab 图标 + 详情入口） -->
+<!-- P2.4: 根容器 id=moduleStoreRootContainer 供 StoreSectionRendererRegistry.dispatchRender 使用 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/moduleStoreRootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
