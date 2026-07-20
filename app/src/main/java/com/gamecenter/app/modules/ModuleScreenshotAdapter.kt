@@ -8,20 +8,29 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.gamecenter.app.R
+import com.bumptech.glide.Glide
 
 /**
- * 模块详情截图适配器（Batch 21）。
+ * 模块详情截图适配器（Batch 21 + P1.4 远程化）。
  *
- * 因当前没有真实模块截图资源，使用分类渐变 + 模块图标作为占位。
- * 未来若有真实截图资源，可替换为 loadImageFromUrl(url)。
+ * P1.4 改造：
+ * - 优先使用 manifest.screenshots URL 列表（Glide 加载，失败回退占位）
+ * - URL 列表为空时回退到原 mock 逻辑（按 module.id hash 生成 3-5 张占位）
+ * - 截图 URL 无效时跳过该位置（不崩溃）
  */
 class ModuleScreenshotAdapter(
     private val context: Context,
     private val module: ModuleManifest
 ) : RecyclerView.Adapter<ModuleScreenshotAdapter.ScreenshotViewHolder>() {
 
-    /** 按 moduleId 稳定 hash 生成 3 ~ 5 张截图 */
-    private val count: Int = 3 + (Math.abs(module.id.hashCode()) % 3)
+    /** P1.4: 远程截图 URL 列表（来自 catalog.json 的 screenshots 字段） */
+    private val remoteUrls: List<String> = module.screenshots.filter { it.isNotEmpty() }
+
+    /** 兜底 mock 数量：按 moduleId 稳定 hash 生成 3 ~ 5 张 */
+    private val mockCount: Int = 3 + (Math.abs(module.id.hashCode()) % 3)
+
+    /** 总条目数：有远程 URL 时用 URL 数量，否则用 mock 数量 */
+    private val count: Int = if (remoteUrls.isNotEmpty()) remoteUrls.size else mockCount
 
     /** 渐变背景循环（与 ModuleStoreActivity 中的 Hero Banner 同套） */
     private val gradientRes = intArrayOf(
@@ -42,8 +51,17 @@ class ModuleScreenshotAdapter(
         val parent = holder.icon.parent as? View
         parent?.setBackgroundResource(gradient)
 
-        // 图标使用模块分类图标
-        holder.icon.setImageResource(resolveIconRes(module))
+        if (remoteUrls.isNotEmpty() && position < remoteUrls.size) {
+            // P1.4: 从 URL 加载截图，失败回退模块图标
+            Glide.with(context)
+                .load(remoteUrls[position])
+                .placeholder(resolveIconRes(module))
+                .error(resolveIconRes(module))
+                .into(holder.icon)
+        } else {
+            // Mock 模式：使用模块分类图标
+            holder.icon.setImageResource(resolveIconRes(module))
+        }
         holder.label.text = String.format("%02d", position + 1)
     }
 

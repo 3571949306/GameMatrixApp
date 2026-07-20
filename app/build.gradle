@@ -361,6 +361,12 @@ android {
         buildConfigField "boolean", "MODULE_STORE_SEARCH_HISTORY", "true"
         buildConfigField "boolean", "MODULE_STORE_DETAIL_ENHANCE", "true"
 
+        // ===== 混合架构 P1/P2：远程目录 + 远程 UI 配置 + 区块渲染器 =====
+        // 默认开启，关闭后商店退回旧 assets/modules.json + 硬编码布局
+        buildConfigField "boolean", "STORE_REMOTE_CATALOG", "true"
+        buildConfigField "boolean", "STORE_REMOTE_UI", "true"
+        buildConfigField "boolean", "STORE_SECTION_RENDERER", "false"
+
         buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
@@ -428,6 +434,17 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = false
+        }
+    }
+
+    // P2.8: 单元测试配置
+    // - returnDefaultValues=true: Android Log / Context 等未 mock 方法返回默认值（0/null/false）
+    //   而不是抛 RuntimeException，便于测试包含 Log.w 调用的代码路径（如 StoreActionRouter 拒绝分支）
+    // - includeAndroidResources=true: Robolectric 测试可读取资源
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
         }
     }
 
