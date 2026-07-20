@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 最小权限原则：限制 GITHUB_TOKEN 的默认权限，防止恶意 PR 滥用
+# 修复 GitHub Code Scanning alert #34 (actions/missing-workflow-permissions)
+permissions:
+  contents: read
+
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4g"
   ANDROID_HOME: ${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}
