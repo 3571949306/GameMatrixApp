@@ -19,6 +19,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.MainActivity
 import com.gamecenter.app.R
+import com.gamecenter.app.modules.store.DefaultStoreCatalogRepository
+import com.gamecenter.app.modules.store.DefaultStoreUiConfigRepository
+import com.gamecenter.app.modules.store.StoreActionRouter
+import com.gamecenter.app.modules.store.StoreRendererHost
+import com.gamecenter.app.modules.store.StoreSectionRendererRegistry
+import com.gamecenter.app.modules.store.StoreViewModel
+import com.gamecenter.app.modules.store.model.StoreCatalog
+import com.gamecenter.app.modules.store.model.StoreHeroBanner
+import com.gamecenter.app.modules.store.model.StoreUiConfig
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
@@ -30,8 +39,12 @@ import java.io.File
 
 /**
  * 模块商店主页（Batch 20: Hero Banner + 三栏统计 + 分类 tab 图标 + 详情 BottomSheet + 防抖搜索）。
+ *
+ * P2.6: 实现 [StoreRendererHost]，将区块渲染/动作路由委托给 [StoreSectionRendererRegistry] / [StoreActionRouter]。
+ * 当前阶段 Activity 仍持有大量业务逻辑（搜索/筛选/下载/安装），ViewModel 仅作为 Repository 协调器；
+ * 后续 P3/P4 会逐步把状态迁移到 [StoreViewModel]，Activity 变为薄层。
  */
-class ModuleStoreActivity : AppCompatActivity() {
+class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var skeletonContainer: LinearLayout
@@ -92,6 +105,30 @@ class ModuleStoreActivity : AppCompatActivity() {
     private var searchRunnable: Runnable? = null
     private var lastProgressUpdateMs: Long = 0
     private val subCategoryChips = mutableListOf<Chip>()
+
+    // P1.6/P1.2/P1.3: 远程目录仓库 — 驱动分类、Hero Banner、模块元数据
+    private lateinit var catalogRepository: DefaultStoreCatalogRepository
+    private var currentCatalog: StoreCatalog? = null
+    private val catalogObserver = { catalog: StoreCatalog ->
+        currentCatalog = catalog
+        // 重新渲染分类 tab 和 Hero Banner（保留当前搜索词与筛选状态）
+        rebuildCategoryTabs()
+        applyCategoryFilter()
+        updateHeroBanner()
+        updateStatsBar()
+    }
+
+    // P2.3/P2.6: 远程 UI 配置仓库 + ViewModel — 驱动区块显示/隐藏/顺序/列数
+    private lateinit var uiConfigRepository: DefaultStoreUiConfigRepository
+    private var currentUiConfig: StoreUiConfig? = null
+    private val uiConfigObserver = { config: StoreUiConfig ->
+        currentUiConfig = config
+        // P2.4: 当 STORE_SECTION_RENDERER 开启时，按远程配置重新渲染区块
+        if (BuildConfig.STORE_SECTION_RENDERER) {
+            applySectionRenderers()
+        }
+    }
+    private var storeViewModel: StoreViewModel? = null
 
     companion object {
         const val CATEGORY_GAMES = "game"
@@ -234,7 +271,215 @@ class ModuleStoreActivity : AppCompatActivity() {
 
         setupCategoryTabs()
         setupSubCategoryChips()
+
+        // P1.6: 初始化远程目录仓库并注册观察者（驱动分类、Banner、模块元数据）
+        catalogRepository = DefaultStoreCatalogRepository.getInstance(applicationContext)
+        catalogRepository.addObserver(catalogObserver)
+        // 立即应用一次缓存目录（如有），避免首次进入商店时分类/Banner 空白
+        catalogRepository.getCachedCatalog()?.let { catalogObserver(it) }
+
+        // P2.3/P2.6: 初始化远程 UI 配置仓库 + ViewModel
+        uiConfigRepository = DefaultStoreUiConfigRepository.getInstance(applicationContext)
+        uiConfigRepository.addObserver(uiConfigObserver)
+        storeViewModel = StoreViewModel(applicationContext).also { vm ->
+            vm.addObserver { state ->
+                // 当前阶段仅记录日志，状态迁移到 ViewModel 由后续 P3/P4 完成
+                Log.d("ModuleStoreActivity", "StorePageState updated: catalog=${state.catalog != null} uiConfig.pages=${state.uiConfig.pages.size}")
+            }
+        }
+        // 立即应用一次缓存 UI 配置（如有）
+        uiConfigRepository.getCachedConfig()?.let { uiConfigObserver(it) }
+
         refreshModules()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // P1.6: 注销目录观察者，避免内存泄漏
+        if (::catalogRepository.isInitialized) {
+            catalogRepository.removeObserver(catalogObserver)
+        }
+        // P2.3: 注销 UI 配置观察者
+        if (::uiConfigRepository.isInitialized) {
+            uiConfigRepository.removeObserver(uiConfigObserver)
+        }
+        // P2.6: 销毁 ViewModel
+        storeViewModel?.destroy()
+        storeViewModel = null
+        heroHandler.removeCallbacks(heroAutoScrollRunnable)
+    }
+
+    // ====== P2.4/P2.6: StoreRendererHost 实现 ======
+
+    override val hostContext: android.content.Context
+        get() = this
+
+    override fun currentModules(): List<ModuleManifest> = allModules
+
+    override fun installedModuleIds(): Set<String> = ModuleManager.getInstalledModuleIds(this)
+
+    /**
+     * P2.5: 动作路由入口。Renderer 不直接调用 Activity 的私有方法，
+     * 而是通过 [StoreActionRouter.dispatch] 白名单校验后回调到这里。
+     *
+     * 当前阶段：Activity 已有自己的点击处理逻辑（handleAction / handleItemBodyClick），
+     * 此方法主要用于未来 Renderer 主动触发动作的场景（如 notice 区块的"查看详情"按钮）。
+     */
+    override fun dispatchAction(action: String, params: Map<String, String>) {
+        Log.d("ModuleStoreActivity", "dispatchAction: $action params=$params")
+        when (action) {
+            StoreActionRouter.ACTION_OPEN_MODULE -> {
+                val moduleId = params["moduleId"] ?: return
+                allModules.firstOrNull { it.id == moduleId }?.let { openModule(it) }
+            }
+            StoreActionRouter.ACTION_OPEN_MODULE_DETAIL -> {
+                val moduleId = params["moduleId"] ?: return
+                allModules.firstOrNull { it.id == moduleId }?.let { handleItemBodyClick(it) }
+            }
+            StoreActionRouter.ACTION_OPEN_INSTALLED_MODULES -> {
+                // 切换到"已安装"分类 tab
+                val cats = getActiveCategories()
+                val index = cats.indexOfFirst { it.first == CATEGORY_INSTALLED }
+                if (index >= 0) categoryTabLayout.getTabAt(index)?.select()
+            }
+            StoreActionRouter.ACTION_REFRESH_CATALOG -> {
+                refreshModules()
+            }
+            StoreActionRouter.ACTION_SWITCH_CATEGORY -> {
+                val categoryId = params["categoryId"] ?: return
+                switchCategory(categoryId)
+            }
+            StoreActionRouter.ACTION_OPEN_UPDATE_LIST -> {
+                updateAllAvailable()
+            }
+            else -> {
+                Log.w("ModuleStoreActivity", "未知动作: $action")
+            }
+        }
+    }
+
+    override fun triggerRefresh() {
+        refreshModules()
+    }
+
+    override fun switchCategory(categoryId: String) {
+        val cats = getActiveCategories()
+        val index = cats.indexOfFirst { it.first == categoryId }
+        if (index >= 0) {
+            categoryTabLayout.getTabAt(index)?.select()
+        } else {
+            // 当前分类被服务器删除时，自动回到第一个
+            Log.w("ModuleStoreActivity", "分类 $categoryId 不存在，回到第一个")
+            if (categoryTabLayout.tabCount > 0) categoryTabLayout.getTabAt(0)?.select()
+        }
+    }
+
+    /**
+     * P2.4: 按当前 UI 配置渲染所有区块。
+     * 仅在 STORE_SECTION_RENDERER=true 时调用。
+     * sections 按 order 升序，仅渲染 enabled=true 的区块。
+     */
+    private fun applySectionRenderers() {
+        val config = currentUiConfig ?: return
+        val page = config.pages["store_home"] ?: return
+        val sortedSections = page.sections
+            .filter { it.enabled }
+            .sortedBy { it.order }
+        val container = findViewById<android.view.ViewGroup>(R.id.moduleStoreRootContainer) ?: return
+        StoreSectionRendererRegistry.dispatchRender(sortedSections, container, this)
+    }
+
+    /**
+     * P1.2: 获取当前生效的分类列表。
+     *
+     * 优先级：
+     * 1. 远程目录 catalog.categories（enabled=true，按 order 升序）
+     * 2. 硬编码 CATEGORIES（兜底）
+     *
+     * 始终追加 CATEGORY_INSTALLED 作为最后一个 tab（已安装管理入口，不受远程控制）。
+     * 未知分类的模块仍能显示在"其他"分类，由 applyCategoryFilter 处理。
+     */
+    private fun getActiveCategories(): List<Triple<String, Int, Int>> {
+        val catalogCats = currentCatalog?.categories
+            ?.filter { it.enabled }
+            ?.sortedBy { it.order }
+            ?.mapNotNull { cat ->
+                val stringRes = resolveCategoryStringRes(cat.id)
+                val iconRes = resolveCategoryIconRes(cat.id, cat.icon)
+                if (stringRes != 0 && iconRes != 0) {
+                    Triple(cat.id, stringRes, iconRes)
+                } else null
+            }
+        if (!catalogCats.isNullOrEmpty()) {
+            val result = catalogCats.toMutableList()
+            // 始终追加"已安装"入口（不受远程控制）
+            if (result.none { it.first == CATEGORY_INSTALLED }) {
+                result.add(Triple(CATEGORY_INSTALLED, R.string.module_category_installed, R.drawable.ic_checkin_calendar))
+            }
+            return result
+        }
+        // 兜底：硬编码
+        return CATEGORIES
+    }
+
+    /** 根据分类 ID 解析字符串资源（未知分类返回 0，调用方降级） */
+    private fun resolveCategoryStringRes(categoryId: String): Int = when (categoryId) {
+        CATEGORY_GAMES -> R.string.store_category_games
+        CATEGORY_BROWSER -> R.string.store_category_browser
+        CATEGORY_TOOLS -> R.string.store_category_tools
+        CATEGORY_AI -> R.string.store_category_ai
+        CATEGORY_VPN -> R.string.store_category_vpn
+        CATEGORY_INSTALLED -> R.string.module_category_installed
+        else -> 0
+    }
+
+    /** 根据分类 ID + 远程 icon 名称解析图标资源 */
+    private fun resolveCategoryIconRes(categoryId: String, iconHint: String): Int {
+        // 优先使用远程指定的 icon 资源名（如 "ic_games"）
+        if (iconHint.isNotEmpty()) {
+            val resId = resources.getIdentifier(iconHint, "drawable", packageName)
+            if (resId != 0) return resId
+        }
+        return when (categoryId) {
+            CATEGORY_GAMES -> R.drawable.ic_games
+            CATEGORY_BROWSER -> R.drawable.ic_browser
+            CATEGORY_TOOLS -> R.drawable.ic_tools
+            CATEGORY_AI -> R.drawable.ic_ai
+            CATEGORY_VPN -> R.drawable.ic_vpn
+            CATEGORY_INSTALLED -> R.drawable.ic_checkin_calendar
+            else -> 0
+        }
+    }
+
+    /**
+     * P1.2: 重建分类 tab（远程目录更新后调用）。
+     * 保留当前选中的分类（若仍存在），否则回到第一个分类。
+     */
+    private fun rebuildCategoryTabs() {
+        val preservedCategory = currentCategory
+        categoryTabLayout.removeAllTabs()
+        val cats = getActiveCategories()
+        cats.forEachIndexed { index, (key, stringRes, iconRes) ->
+            val tab = categoryTabLayout.newTab().apply {
+                tag = key
+                customView = layoutInflater.inflate(R.layout.tab_category_custom, categoryTabLayout, false).apply {
+                    findViewById<ImageView>(R.id.tabIcon).apply {
+                        setImageResource(iconRes)
+                        imageTintList = ContextCompat.getColorStateList(
+                            this@ModuleStoreActivity, R.color.tab_icon_tint_selector
+                        )
+                    }
+                    findViewById<TextView>(R.id.tabText).text = getString(stringRes)
+                }
+            }
+            categoryTabLayout.addTab(tab, false)
+        }
+        // 恢复选中状态：若 preservedCategory 仍在列表中则选中它，否则选中第一个
+        val targetIndex = cats.indexOfFirst { it.first == preservedCategory }.let { if (it >= 0) it else 0 }
+        if (categoryTabLayout.tabCount > targetIndex) {
+            categoryTabLayout.getTabAt(targetIndex)?.select()
+            currentCategory = cats[targetIndex].first
+        }
     }
 
     private fun applyLayoutManager() {
@@ -356,8 +601,9 @@ class ModuleStoreActivity : AppCompatActivity() {
     }
 
     private fun setupCategoryTabs() {
-        // Batch 21: 使用 customView 强制显示图标 + 文字（避免默认 tab.icon 在某些机型不渲染）
-        CATEGORIES.forEachIndexed { index, (key, stringRes, iconRes) ->
+        // P1.2: 优先使用远程目录分类，兜底硬编码 CATEGORIES
+        val cats = getActiveCategories()
+        cats.forEachIndexed { index, (key, stringRes, iconRes) ->
             val tab = categoryTabLayout.newTab().apply {
                 tag = key
                 customView = layoutInflater.inflate(R.layout.tab_category_custom, categoryTabLayout, false).apply {
@@ -721,6 +967,24 @@ class ModuleStoreActivity : AppCompatActivity() {
         errorContainer.visibility = View.GONE
         startSkeletonAnimation()
 
+        // P1.8: 同时触发远程目录刷新（驱动分类/Banner/模块元数据更新）
+        if (::catalogRepository.isInitialized) {
+            catalogRepository.refresh { result ->
+                result.onFailure { e ->
+                    Log.w("ModuleStoreActivity", "catalog refresh failed: ${e.message}")
+                }
+            }
+        }
+
+        // P2.3: 同时触发远程 UI 配置刷新（驱动区块显示/隐藏/顺序/列数）
+        if (::uiConfigRepository.isInitialized) {
+            uiConfigRepository.refresh { result ->
+                result.onFailure { e ->
+                    Log.w("ModuleStoreActivity", "ui config refresh failed: ${e.message}")
+                }
+            }
+        }
+
         var firstCallback = true
         ModuleManager.loadModuleList(applicationContext) { modules, error ->
             runOnUiThread {
@@ -733,7 +997,8 @@ class ModuleStoreActivity : AppCompatActivity() {
                 } else if (modules.isEmpty() && firstCallback) {
                     emptyContainer.visibility = View.VISIBLE
                 } else {
-                    allModules = sortModules(modules)
+                    // P1.4: 合并 catalog 中的扩展字段（changelog/screenshots/permissions 等）到 manifest
+                    allModules = sortModules(mergeCatalogModules(modules))
                     applyCategoryFilter()
                 }
                 firstCallback = false
@@ -741,6 +1006,44 @@ class ModuleStoreActivity : AppCompatActivity() {
                 updateHeroBanner()
             }
         }
+    }
+
+    /**
+     * P1.4: 将 catalog 中的扩展展示字段合并到 ModuleManifest 列表。
+     *
+     * catalog.modules 可能包含 modules.json 没有的字段（shortDescription、screenshots、
+     * changelog、permissionsDescription、tags、sortOrder、featured、enabled）。
+     * 按 id 匹配，将扩展字段拷贝到现有 ModuleManifest。
+     *
+     * catalog 中存在但 modules.json 不存在的模块（已下架但服务器仍列出）也会被加入列表，
+     * 由 applyCategoryFilter 进一步处理。
+     */
+    private fun mergeCatalogModules(modules: List<ModuleManifest>): List<ModuleManifest> {
+        val catalog = currentCatalog ?: return modules
+        val catalogById = catalog.modules.associateBy { it.id }
+        val merged = mutableListOf<ModuleManifest>()
+        val seen = mutableSetOf<String>()
+        for (m in modules) {
+            val s = catalogById[m.id]
+            if (s != null) {
+                merged.add(m.copy(
+                    shortDescription = s.shortDescription,
+                    screenshots = s.screenshots,
+                    changelog = s.changelog,
+                    permissionsDescription = s.permissionsDescription,
+                    tags = s.tags,
+                    sortOrder = s.sortOrder,
+                    featured = s.featured,
+                    enabled = s.enabled
+                ))
+            } else {
+                merged.add(m)
+            }
+            seen.add(m.id)
+        }
+        // catalog 中存在但 ModuleManager 未返回的模块（例如新增模块尚未同步到 modules.json）
+        // 不在此添加 — ModuleManager 仍是模块下载/加载的真实数据源
+        return merged
     }
 
     /** 三栏统计卡片：总数 / 已安装 / 有更新 */
@@ -790,52 +1093,39 @@ class ModuleStoreActivity : AppCompatActivity() {
     }
 
     /**
-     * Hero Banner 多卡片轮播（Batch 21）：
-     * 1. 优先选未安装的高版本模块
-     * 2. 其次选最新更新的模块
-     * 3. 最后按分类各取一个
-     * 最多展示 [HERO_MAX_ITEMS] 张
+     * Hero Banner 多卡片轮播（Batch 21 + P1.3 远程化）：
+     *
+     * P1.3 优先级：
+     * 1. 远程目录 catalog.heroBanners（enabled=true，按 order 升序）
+     *    - moduleId 无效的 Banner 跳过（不崩溃）
+     *    - 最多展示 [HERO_MAX_ITEMS] 张
+     * 2. 动态计算（兜底）：
+     *    a. 优先选未安装的高版本模块
+     *    b. 其次选最新更新的模块
+     *    c. 最后按分类各取一个
      */
     private fun updateHeroBanner() {
         // 停止旧轮播
         heroHandler.removeCallbacks(heroAutoScrollRunnable)
 
-        val candidates = allModules.filter { !it.isBaseFramework && it.storeCategory != "vpn" }
-        if (candidates.isEmpty()) {
-            heroBannerContainer.visibility = View.GONE
-            heroAdapter = null
-            return
+        // P1.3: 优先使用远程 Banner 配置
+        val remoteBanners = currentCatalog?.heroBanners
+            ?.filter { it.enabled }
+            ?.sortedBy { it.order }
+
+        val items: List<HeroBannerItem> = if (!remoteBanners.isNullOrEmpty()) {
+            val moduleById = allModules.associateBy { it.id }
+            remoteBanners.mapNotNull { banner ->
+                // moduleId 无效时跳过（不崩溃）
+                val module = moduleById[banner.moduleId]
+                if (module != null) HeroBannerItem(module = module, banner = banner) else null
+            }.take(HERO_MAX_ITEMS)
+        } else {
+            // 兜底：动态计算
+            computeDynamicHeroItems().map { HeroBannerItem(module = it, banner = null) }
         }
 
-        // 1. 未安装的高版本模块（最多 3 个，按版本号降序）
-        val notInstalled = candidates
-            .filter { !ModuleManager.isModuleInstalled(this, it.id) }
-            .sortedByDescending { it.versionCode }
-            .take(3)
-
-        // 2. 有更新的模块（Batch 21 修复：排除内置模块 + 要求 installedVersion > 0）
-        val hasUpdate = candidates.filter { module ->
-            !module.builtIn &&
-            ModuleManager.isModuleInstalled(this, module.id) &&
-            ModuleManager.getInstalledVersionCode(this, module.id).let { it > 0 && it < module.versionCode }
-        }
-
-        // 3. 各分类取一个已安装的代表（去重）
-        val seenCategories = mutableSetOf<String>()
-        val categoryReps = candidates
-            .filter { ModuleManager.isModuleInstalled(this, it.id) }
-            .sortedByDescending { it.versionCode }
-            .filter { seenCategories.add(it.storeCategory) }
-            .take(2)
-
-        // 合并去重（按 id），最多 HERO_MAX_ITEMS 张
-        val merged = LinkedHashSet<ModuleManifest>()
-        merged.addAll(notInstalled)
-        merged.addAll(hasUpdate)
-        merged.addAll(categoryReps)
-        val recommendedList = merged.toList().take(HERO_MAX_ITEMS)
-
-        if (recommendedList.isEmpty()) {
+        if (items.isEmpty()) {
             heroBannerContainer.visibility = View.GONE
             heroAdapter = null
             return
@@ -868,23 +1158,57 @@ class ModuleStoreActivity : AppCompatActivity() {
             // 注册页面变化回调（更新指示器 + 重启轮播计时）
             heroViewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
-                    updateHeroIndicator(position, recommendedList.size)
+                    updateHeroIndicator(position, items.size)
                     // 用户手动滑动后重启计时
                     heroHandler.removeCallbacks(heroAutoScrollRunnable)
-                    if (recommendedList.size > 1) {
+                    if (items.size > 1) {
                         heroHandler.postDelayed(heroAutoScrollRunnable, HERO_AUTO_SCROLL_INTERVAL_MS)
                     }
                 }
             })
         }
 
-        heroAdapter?.submit(recommendedList)
-        updateHeroIndicator(0, recommendedList.size)
+        heroAdapter?.submitItems(items)
+        updateHeroIndicator(0, items.size)
 
         // 启动自动轮播
-        if (recommendedList.size > 1) {
+        if (items.size > 1) {
             heroHandler.postDelayed(heroAutoScrollRunnable, HERO_AUTO_SCROLL_INTERVAL_MS)
         }
+    }
+
+    /** 兜底动态计算 Hero Banner 候选模块（当远程 Banner 配置缺失或全部无效时使用） */
+    private fun computeDynamicHeroItems(): List<ModuleManifest> {
+        val candidates = allModules.filter { !it.isBaseFramework && it.storeCategory != "vpn" }
+        if (candidates.isEmpty()) return emptyList()
+
+        // 1. 未安装的高版本模块（最多 3 个，按版本号降序）
+        val notInstalled = candidates
+            .filter { !ModuleManager.isModuleInstalled(this, it.id) }
+            .sortedByDescending { it.versionCode }
+            .take(3)
+
+        // 2. 有更新的模块（排除内置模块 + 要求 installedVersion > 0）
+        val hasUpdate = candidates.filter { module ->
+            !module.builtIn &&
+            ModuleManager.isModuleInstalled(this, module.id) &&
+            ModuleManager.getInstalledVersionCode(this, module.id).let { it > 0 && it < module.versionCode }
+        }
+
+        // 3. 各分类取一个已安装的代表（去重）
+        val seenCategories = mutableSetOf<String>()
+        val categoryReps = candidates
+            .filter { ModuleManager.isModuleInstalled(this, it.id) }
+            .sortedByDescending { it.versionCode }
+            .filter { seenCategories.add(it.storeCategory) }
+            .take(2)
+
+        // 合并去重（按 id），最多 HERO_MAX_ITEMS 张
+        val merged = LinkedHashSet<ModuleManifest>()
+        merged.addAll(notInstalled)
+        merged.addAll(hasUpdate)
+        merged.addAll(categoryReps)
+        return merged.toList().take(HERO_MAX_ITEMS)
     }
 
     /** 更新 Hero Banner 指示器圆点 */
@@ -907,11 +1231,6 @@ class ModuleStoreActivity : AppCompatActivity() {
             }
             heroIndicator.addView(dot)
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        heroHandler.removeCallbacks(heroAutoScrollRunnable)
     }
 
     override fun onPause() {
