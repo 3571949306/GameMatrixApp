@@ -491,6 +491,193 @@ The redesign is successful when:
 3. **Add install-transaction tests to CI**: when P3 starts, the `lint-and-test` job should cover download → verify → promote → launch → rollback.
 4. **Wire `ModuleContextHelper` + `ModuleShellFragment` into the docs**: they are the supported cross-APK boundary helpers; new modules should use them instead of hand-rolled `AssetManager.addAssetPath()` calls.
 
+## Hybrid Store Phase 1 Progress (2026-07-20)
+
+> This section records the hybrid store architecture implementation completed on 2026-07-20.
+
+### Overview
+
+Implemented P1 (remote catalog) and P2 (lightweight server-driven UI) phases of the hybrid store architecture. The goal is to make store content and UI layout server-controllable without requiring main APK updates.
+
+### P1: Remote Catalog Content
+
+**P1.1 catalog.json protocol (schemaVersion=2)**
+
+- Backward compatible with v1 `modules.json`
+- Top-level structure: `schemaVersion`, `catalogVersion`, `generatedAt`, `categories`, `heroBanners`, `modules`
+- New file: `app/src/main/assets/catalog.json`
+
+**P1.2 Remote categories**
+
+- `StoreCategory` model: `id`, `name`, `order`, `enabled`
+- Server controls category display order and visibility
+- Unknown categories fall back to "Other"
+- Empty categories show all modules
+
+**P1.3 Remote Hero Banner**
+
+- `StoreHeroBanner` model: `id`, `title`, `subtitle`, `moduleId`, `imageUrl`, `order`, `enabled`
+- Reuses existing `HeroBannerAdapter`
+- Image load failure shows local placeholder
+- Invalid `moduleId` does not crash
+
+**P1.4 Remote module details**
+
+- `StoreModule` model adds: `shortDescription`, `description`, `iconUrl`, `screenshots`, `changelog`, `permissionsDescription`, `tags`, `sortOrder`, `featured`, `enabled`, `storeCategory`
+- Reuses existing `ModuleDetailBottomSheet` and `ModuleScreenshotAdapter`
+- Invalid screenshot URLs are skipped
+- Empty changelog/permissions hide corresponding sections
+- `enabled=false` modules hidden from store but retained in installed management with "已下架" marker
+
+**P1.5 Remove hardcoded name overrides**
+
+- `ModuleManifest` extended with 10 new fields (total 35 fields)
+- Server-provided `name`/`description` take priority
+- Local fallback only when server fields are empty
+- `ModuleDetailBottomSheet` renders server-provided `changelog` and `permissionsDescription` first
+
+**P1.6 StoreCatalogRepository**
+
+- Interface: `getCachedCatalog()`, `refresh(callback)`, `addObserver()`, `removeObserver()`
+- Default implementation: `DefaultStoreCatalogRepository`
+- ETag negotiation + atomic cache replacement
+- 4-level fallback: remote → cache file → `assets/catalog.json` → `assets/modules.json` → `rescueCatalog()`
+- Feature flag `STORE_REMOTE_CATALOG` controls network requests
+
+**P1.7 Cache degradation**
+
+Priority:
+1. Latest valid remote catalog
+2. Last successful cache
+3. `assets/modules.json`
+4. Minimal hardcoded rescue catalog
+
+**P1.8 UI refresh**
+
+- Pull-to-refresh or FAB refresh triggers: catalog update → category recalculation → banner update → module list update → stats update
+- Current search keyword and filter state preserved
+- Category deleted by server auto-switches to "All"
+
+### P2: Lightweight Server-Driven UI
+
+**P2.1 store-ui.json**
+
+- New file: `app/src/main/assets/store-ui.json`
+- Schema: `schemaVersion=1`, `pageVersion=1`, `minHostVersionCode`, `pages.store_home.sections`
+- 9 section types: `hero_banner`, `search_bar`, `notice`, `category_tabs`, `section_title`, `module_list`, `module_grid`, `update_section`, `installed_section`
+
+**P2.2 StoreUiConfig model**
+
+- `StoreUiConfig`, `StorePage`, `StoreSection` data classes
+- `StoreSection.SUPPORTED_TYPES`: 9 whitelist types
+- `columns` valid range [1,4], invalid values clamp to 0 (caller uses DEFAULT_COLUMNS=2)
+- `params` parsed as `Map<String, String>`
+
+**P2.3 StoreUiConfigRepository**
+
+- ETag + atomic cache + `minHostVersionCode` validation
+- 4-level fallback: remote → cache → `assets/store-ui.json` → `defaultConfig()`
+- Feature flag `STORE_REMOTE_UI` controls network requests
+
+**P2.4 StoreSectionRenderer**
+
+- Interface: `supports(type)`, `render(section, container, host)`
+- `StoreRendererHost` callback interface: `hostContext()`, `currentModules()`, `installedModuleIds()`, `dispatchAction()`, `triggerRefresh()`, `switchCategory()`
+- `StoreSectionRendererRegistry.dispatchRender()`: renders sections in order, skips duplicate IDs, skips unknown types, try-catch per section
+- 9 renderers: `HeroBannerRenderer`, `SearchBarRenderer`, `NoticeRenderer`, `CategoryTabsRenderer`, `SectionTitleRenderer`, `ModuleListRenderer`, `ModuleGridRenderer`, `UpdateSectionRenderer`, `InstalledSectionRenderer`
+
+**P2.5 Action whitelist**
+
+- 6 allowed actions: `open_module`, `open_module_detail`, `open_installed_modules`, `refresh_catalog`, `switch_category`, `open_update_list`
+- Required params: `open_module`/`open_module_detail` need `moduleId`, `switch_category` needs `categoryId`
+- Parameter value blacklist regex: `[\"\\;`$|&<>\n\r]|\b(Intent|Activity|Class|Runtime|Process|exec|shell|javascript|intent)\b` (case-insensitive)
+- Prevents arbitrary Intent URI, class name, Shell command, JavaScript injection
+
+**P2.6 StoreViewModel + StorePageState**
+
+- `StorePageState`: immutable state data class (catalog, uiConfig, modules, currentCategory, searchKeyword, isLoading, error, installedModuleIds)
+- `StoreViewModel`: coordinates `StoreCatalogRepository` + `StoreUiConfigRepository`, thread-safe state via `AtomicReference`
+- `ModuleStoreActivity` implements `StoreRendererHost`, delegates section rendering to `StoreSectionRendererRegistry`
+
+### Testing
+
+**Unit tests (63 tests, all passing)**
+
+- `StoreCatalogTest` (20 tests): v1/v2 compatibility, missing fields, `enabled=false`, screenshot filtering, duplicate IDs, corrupted entries, `rescueCatalog`, `toJson` roundtrip
+- `StoreUiConfigTest` (18 tests): default layout, section order, disabled sections, list/grid switching, unknown components, columns range, schemaVersion, params parsing, `toJson` roundtrip
+- `StoreActionRouterTest` (25 tests): 6 whitelist actions, unknown action rejection, required params, parameter value blacklist (Intent/Activity/Runtime/exec/shell/javascript/semicolon/backtick/dollar/pipe/angle brackets)
+
+**Real device testing (Xiaomi ares M2012K10C)**
+
+- Module store opens successfully
+- Hero Banner, 3-column stats, category tabs, subcategories, search history, module cards all display correctly
+- Pull-to-refresh triggers `StorePageState updated: catalog=true uiConfig.pages=1`
+- Module detail BottomSheet shows screenshots, description, changelog, permissions
+- No FATAL EXCEPTION in logcat
+
+### Feature flags
+
+- `STORE_REMOTE_CATALOG`: controls remote catalog network requests
+- `STORE_REMOTE_UI`: controls remote UI config network requests
+- `STORE_SECTION_RENDERER`: controls section renderer dispatch
+
+All three flags can be set to `false` in `app/build.gradle` to disable remote features without affecting compilation.
+
+### Files modified
+
+**New files:**
+- `app/src/main/assets/catalog.json`
+- `app/src/main/assets/store-ui.json`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreCatalog.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreCategory.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreModule.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreHeroBanner.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreUiConfig.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreCatalogRepository.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreUiConfigRepository.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreSectionRenderer.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreActionRouter.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StorePageState.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreViewModel.kt`
+- `app/src/test/java/com/gamecenter/app/modules/store/StoreCatalogTest.kt`
+- `app/src/test/java/com/gamecenter/app/modules/store/StoreUiConfigTest.kt`
+- `app/src/test/java/com/gamecenter/app/modules/store/StoreActionRouterTest.kt`
+
+**Modified files:**
+- `app/build.gradle`: 3 feature flags + testOptions.returnDefaultValues=true
+- `app/src/main/java/com/gamecenter/app/modules/ModuleManifest.kt`: 10 new fields
+- `app/src/main/java/com/gamecenter/app/modules/HeroBannerAdapter.kt`: server-provided banner support
+- `app/src/main/java/com/gamecenter/app/modules/ModuleScreenshotAdapter.kt`: server-provided screenshots
+- `app/src/main/java/com/gamecenter/app/modules/ModuleDetailBottomSheet.kt`: server-provided changelog/permissions
+- `app/src/main/java/com/gamecenter/app/modules/ModuleStoreActivity.kt`: implements `StoreRendererHost`, integrates repositories
+- `app/src/main/res/layout/activity_module_store.xml`: root container id for renderer
+- `app/src/test/java/com/gamecenter/app/modules/ModuleDependencyTest.java`: adapt to 35-field ModuleManifest
+- `.gitignore`: exclude Gradle 8.13+ cache directories
+
+### Rollback methods
+
+- **Full rollback**: `git revert` the 4 commits in reverse order
+- **Disable remote features**: set 3 feature flags to `false` in `app/build.gradle`
+- **Delete new files**: remove `app/src/main/java/com/gamecenter/app/modules/store/` directory and `catalog.json`/`store-ui.json` assets
+
+### Remaining issues
+
+1. **Duplicate downloaders**: `ModuleDownloader` in `app/modules/` and `core/modulestore/` still coexist; not deleted per user instruction
+2. **Download concurrency**: no limit on simultaneous downloads; recommended max 2 concurrent downloads
+3. **Real-time progress**: `ModuleDownloadManager.getDownloadProgress()` is dead code; UI does not show real-time download speed
+4. **Catalog signature**: not implemented; current phase uses SHA-256 only; Ed25519 signature verification deferred to P3
+5. **Transactional install**: `staging/current/last_good` not implemented; current install path is download → verify → install directly
+6. **Dynamic store APK**: not implemented; store UI still in main APK; deferred to P4
+
+### Next phase recommendation
+
+**P3: Catalog signature + transactional install**
+
+- Ed25519 catalog signature verification
+- `staging/current/last_good/quarantine` transactional install
+- Rollback on load failure
+- Only after P3, proceed to P4 (migrate store UI to dynamic APK)
+
 
 ---
 [🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
