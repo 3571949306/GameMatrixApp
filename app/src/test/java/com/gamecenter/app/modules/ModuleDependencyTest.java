@@ -49,6 +49,9 @@ public class ModuleDependencyTest {
         manifests = new ConcurrentHashMap<>();
 
         // 创建基础模块（无依赖）
+        // 注意：P1.5 之后 ModuleManifest 新增 10 个字段（minAppVersionCode, required,
+        // shortDescription, screenshots, changelog, permissionsDescription, tags,
+        // sortOrder, featured, enabled）。Java 测试需显式传入全部参数。
         ModuleManifest coreCommon = new ModuleManifest(
                 "core_common",
                 "通用基础库",
@@ -65,7 +68,9 @@ public class ModuleDependencyTest {
                 "",
                 "other",
                 0,
+                0,
                 java.util.Collections.emptyList(),
+                false,
                 "module",
                 "",
                 "",
@@ -74,7 +79,15 @@ public class ModuleDependencyTest {
                 false,
                 "game",
                 false,
-                0
+                0,
+                "",
+                java.util.Collections.emptyList(),
+                "",
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                0,
+                false,
+                true
         );
         manifests.put("core_common", coreCommon);
 
@@ -95,7 +108,9 @@ public class ModuleDependencyTest {
                 "",
                 "other",
                 0,
+                0,
                 java.util.Arrays.asList("core_common"),
+                false,
                 "module",
                 "",
                 "",
@@ -104,7 +119,15 @@ public class ModuleDependencyTest {
                 false,
                 "game",
                 false,
-                0
+                0,
+                "",
+                java.util.Collections.emptyList(),
+                "",
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                0,
+                false,
+                true
         );
         manifests.put("core_network", coreNetwork);
 
@@ -125,7 +148,9 @@ public class ModuleDependencyTest {
                 "",
                 "game",
                 0,
+                0,
                 java.util.Arrays.asList("core_common", "core_network"),
+                false,
                 "game",
                 "",
                 "doudizhu",
@@ -134,7 +159,15 @@ public class ModuleDependencyTest {
                 false,
                 "game",
                 false,
-                0
+                0,
+                "",
+                java.util.Collections.emptyList(),
+                "",
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                0,
+                false,
+                true
         );
         manifests.put("game_doudizhu", gameDoudizhu);
 
@@ -155,7 +188,9 @@ public class ModuleDependencyTest {
                 "",
                 "other",
                 0,
+                0,
                 java.util.Arrays.asList("module_B"),
+                false,
                 "module",
                 "",
                 "",
@@ -164,7 +199,15 @@ public class ModuleDependencyTest {
                 false,
                 "game",
                 false,
-                0
+                0,
+                "",
+                java.util.Collections.emptyList(),
+                "",
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                0,
+                false,
+                true
         );
         manifests.put("module_A", moduleA);
 
@@ -185,7 +228,9 @@ public class ModuleDependencyTest {
                 "",
                 "other",
                 0,
+                0,
                 java.util.Arrays.asList("module_A"),
+                false,
                 "module",
                 "",
                 "",
@@ -194,7 +239,15 @@ public class ModuleDependencyTest {
                 false,
                 "game",
                 false,
-                0
+                0,
+                "",
+                java.util.Collections.emptyList(),
+                "",
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                0,
+                false,
+                true
         );
         manifests.put("module_B", moduleB);
 
@@ -390,7 +443,9 @@ public class ModuleDependencyTest {
                 "",
                 "other",
                 0,
+                0,
                 java.util.Arrays.asList("non_existent_dep"),
+                false,
                 "module",
                 "",
                 "",
@@ -399,7 +454,15 @@ public class ModuleDependencyTest {
                 false,
                 "game",
                 false,
-                0
+                0,
+                "",
+                java.util.Collections.emptyList(),
+                "",
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                0,
+                false,
+                true
         );
 
         // 不应该抛出异常（依赖不存在时跳过）
