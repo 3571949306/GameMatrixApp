@@ -9,10 +9,12 @@ import androidx.room.RoomDatabase;
 import com.gamecenter.app.browser.data.dao.BrowserBookmarkDao;
 import com.gamecenter.app.browser.data.dao.BrowserDownloadDao;
 import com.gamecenter.app.browser.data.dao.BrowserHistoryDao;
+import com.gamecenter.app.browser.data.dao.BrowserReadingListDao;
 import com.gamecenter.app.browser.data.dao.SearchHistoryDao;
 import com.gamecenter.app.browser.data.entity.BrowserBookmarkEntity;
 import com.gamecenter.app.browser.data.entity.BrowserDownloadEntity;
 import com.gamecenter.app.browser.data.entity.BrowserHistoryEntity;
+import com.gamecenter.app.browser.data.entity.BrowserReadingListEntity;
 import com.gamecenter.app.browser.data.entity.SearchHistoryEntity;
 
 import androidx.room.migration.Migration;
@@ -23,9 +25,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         BrowserHistoryEntity.class,
         BrowserBookmarkEntity.class,
         BrowserDownloadEntity.class,
-        SearchHistoryEntity.class
+        SearchHistoryEntity.class,
+        BrowserReadingListEntity.class
     },
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 public abstract class BrowserDatabase extends RoomDatabase {
@@ -36,6 +39,7 @@ public abstract class BrowserDatabase extends RoomDatabase {
     public abstract BrowserBookmarkDao bookmarkDao();
     public abstract BrowserDownloadDao downloadDao();
     public abstract SearchHistoryDao searchHistoryDao();
+    public abstract BrowserReadingListDao readingListDao();
 
     private static volatile BrowserDatabase INSTANCE;
 
@@ -43,6 +47,26 @@ public abstract class BrowserDatabase extends RoomDatabase {
         @Override
         public void migrate(SupportSQLiteDatabase database) {
             database.execSQL("ALTER TABLE browser_download ADD COLUMN systemDownloadId INTEGER NOT NULL DEFAULT -1");
+        }
+    };
+
+    /** v2 → v3：新增 browser_reading_list 表（P1-3 阅读列表） */
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS browser_reading_list (" +
+                            "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                            "url TEXT NOT NULL, " +
+                            "title TEXT NOT NULL, " +
+                            "summary TEXT NOT NULL DEFAULT '', " +
+                            "host TEXT NOT NULL DEFAULT '', " +
+                            "savedAt INTEGER NOT NULL DEFAULT 0, " +
+                            "read INTEGER NOT NULL DEFAULT 0)"
+            );
+            database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_browser_reading_list_url ON browser_reading_list(url)"
+            );
         }
     };
 
@@ -54,7 +78,9 @@ public abstract class BrowserDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             BrowserDatabase.class,
                             DATABASE_NAME
-                    ).addMigrations(MIGRATION_1_2).build();
+                    )
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .build();
                 }
             }
         }

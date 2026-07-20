@@ -27,6 +27,14 @@ jobs:
       - name: Grant Execute Permission to Gradlew
         run: chmod +x gradlew
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: i18n Consistency Check
+        run: python scripts/check_i18n.py
+
       - name: Run Lint and Static Analysis
         run: ./gradlew lintDebug --stacktrace
 

@@ -3,9 +3,13 @@ package com.gamecenter.app.games;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public final class GameUsageStore {
@@ -16,6 +20,8 @@ public final class GameUsageStore {
     private static final String KEY_LAST_PLAYED_PREFIX = "last_played_";
     private static final String KEY_WIN_PREFIX = "win_count_";
     private static final String KEY_LOSS_PREFIX = "loss_count_";
+    private static final String KEY_PLAY_TIME_PREFIX = "play_time_";
+    private static final String KEY_DAILY_PLAY_TIME_PREFIX = "daily_play_time_";
 
     private final SharedPreferences prefs;
 
@@ -42,8 +48,14 @@ public final class GameUsageStore {
     }
 
     public void recordPlayTime(String gameId, long durationMs) {
-        long totalMs = prefs.getLong("play_time_" + gameId, 0L) + durationMs;
-        prefs.edit().putLong("play_time_" + gameId, totalMs).apply();
+        long totalMs = prefs.getLong(KEY_PLAY_TIME_PREFIX + gameId, 0L) + durationMs;
+        // Batch 10-1 (HOME_QUICK_STATS_BAR): 同步累计今日时长（key 带日期后缀，每天独立）
+        String dailyKey = KEY_DAILY_PLAY_TIME_PREFIX + todayDateKey();
+        long dailyMs = prefs.getLong(dailyKey, 0L) + durationMs;
+        prefs.edit()
+                .putLong(KEY_PLAY_TIME_PREFIX + gameId, totalMs)
+                .putLong(dailyKey, dailyMs)
+                .apply();
     }
 
     public void recordScore(String gameId, int score) {
@@ -58,7 +70,33 @@ public final class GameUsageStore {
     }
 
     public long getTotalPlayTimeMs(String gameId) {
-        return prefs.getLong("play_time_" + gameId, 0L);
+        return prefs.getLong(KEY_PLAY_TIME_PREFIX + gameId, 0L);
+    }
+
+    /**
+     * Batch 10-1 (HOME_QUICK_STATS_BAR): 获取今日总游玩时长（毫秒）。
+     * 内部使用 "daily_play_time_yyyy-MM-dd" 作为 key，每天独立累计。
+     */
+    public long getTodayPlayTimeMs() {
+        return prefs.getLong(KEY_DAILY_PLAY_TIME_PREFIX + todayDateKey(), 0L);
+    }
+
+    /**
+     * Batch 10-1 (HOME_QUICK_STATS_BAR): 获取所有游戏的累计总时长（毫秒）。
+     */
+    public long getAllTotalPlayTimeMs() {
+        long total = 0L;
+        Map<String, ?> all = prefs.getAll();
+        for (Map.Entry<String, ?> entry : all.entrySet()) {
+            if (entry.getKey().startsWith(KEY_PLAY_TIME_PREFIX) && entry.getValue() instanceof Long) {
+                total += (Long) entry.getValue();
+            }
+        }
+        return total;
+    }
+
+    private String todayDateKey() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
     public int getPlayCount(String gameId) {

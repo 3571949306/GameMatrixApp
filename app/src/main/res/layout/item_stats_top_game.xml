@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature F (GAME_STATS_DASHBOARD): Top 5 最常玩游戏列表项 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="@dimen/spacing_8"
+    android:paddingBottom="@dimen/spacing_8">
+
+    <!-- 排名 -->
+    <TextView
+        android:id="@+id/tv_top_game_rank"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="44dp"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        tools:text="第 1 名" />
+
+    <!-- 游戏图标 -->
+    <ImageView
+        android:id="@+id/iv_top_game_icon"
+        android:layout_width="@dimen/icon_size_large"
+        android:layout_height="@dimen/icon_size_large"
+        android:layout_marginStart="@dimen/spacing_4"
+        android:padding="@dimen/spacing_6"
+        android:scaleType="centerInside"
+        android:background="@drawable/bg_game_icon_gradient_default"
+        tools:src="@drawable/ic_game" />
+
+    <!-- 名称 + 次数 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="@dimen/spacing_12"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_top_game_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="五子棋" />
+
+        <TextView
+            android:id="@+id/tv_top_game_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11sp"
+            tools:text="8 次" />
+    </LinearLayout>
+
+    <!-- 时长 -->
+    <TextView
+        android:id="@+id/tv_top_game_duration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_8"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="11sp"
+        tools:text="12 分钟" />
+</LinearLayout>

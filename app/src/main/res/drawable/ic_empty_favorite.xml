@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+    <!-- 心形外框 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:pathData="M80,120 C80,120 30,90 30,58 C30,42 42,30 56,30 C66,30 74,36 80,46 C86,36 94,30 104,30 C118,30 130,42 130,58 C130,90 80,120 80,120 Z" />
+    <!-- 心形内部小高光 -->
+    <path
+        android:fillColor="?attr/colorSecondaryContainer"
+        android:pathData="M62,46 C56,46 52,50 52,56 C52,60 56,64 62,68 L70,60 C66,52 64,48 62,46 Z" />
+    <!-- 装饰星星 -->
+    <path
+        android:fillColor="?attr/colorTertiary"
+        android:pathData="M120,40 L123,46 L129,47 L124.5,51.5 L126,57.5 L120,54.5 L114,57.5 L115.5,51.5 L111,47 L117,46 Z" />
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M30,100 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0" />
+    <path
+        android:fillColor="?attr/colorTertiary"
+        android:pathData="M130,110 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+</vector>

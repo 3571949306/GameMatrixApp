@@ -92,4 +92,7 @@
     <dimen name="list_item_height_single">48dp</dimen>
     <dimen name="list_item_height_two_line">64dp</dimen>
     <dimen name="list_item_height_three_line">88dp</dimen>
+
+    <!-- 首页游戏区域最小高度（fragment_games.xml 中保证游戏网格至少有可见区域） -->
+    <dimen name="home_game_grid_min_height">400dp</dimen>
 </resources>

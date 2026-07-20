@@ -3,6 +3,7 @@ package com.gamecenter.app.core.threading;
 import android.os.Handler;
 import android.os.Looper;
 
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -165,6 +166,7 @@ public final class AppExecutors {
      */
     public static String getStats() {
         return String.format(
+            Locale.ROOT,
             "IO: %d | Compute: %d | AI: 1 | Background: 1 | Total: ~8",
             4, 2
         );

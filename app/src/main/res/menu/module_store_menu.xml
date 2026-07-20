@@ -1,39 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 模块商店菜单（Batch 19: 删除死菜单 action_search/filter，新增视图切换 + 排序） -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_search"
-        android:icon="@android:drawable/ic_menu_search"
-        android:title="搜索"
-        app:showAsAction="ifRoom"
-        app:actionViewClass="androidx.appcompat.widget.SearchView" />
+        android:id="@+id/action_toggle_view"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="@string/module_grid_view"
+        app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_sort"
+        android:icon="@android:drawable/ic_menu_sort_alphabetically"
+        android:title="@string/module_sort_title"
+        app:showAsAction="ifRoom" />
+
+    <!-- Batch 21: 筛选 -->
+    <item
         android:id="@+id/action_filter"
-        android:icon="@android:drawable/ic_menu_sort_by_size"
-        android:title="筛选"
+        android:icon="@drawable/ic_filter"
+        android:title="@string/module_filter_title"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_refresh"
         android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="刷新"
+        android:title="@string/module_refresh"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_manage"
-        android:title="管理模块"
+        android:title="@string/module_update_all"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_installed_modules"
-        android:title="已安装模块"
+        android:title="@string/installed_modules_title"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_settings"
-        android:title="设置"
+        android:title="@string/module_settings_wip"
         app:showAsAction="never" />
 
 </menu>

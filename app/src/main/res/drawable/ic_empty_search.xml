@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+    <!-- 放大镜外圈 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M58,58 m-32,0 a32,32 0 1,0 64,0 a32,32 0 1,0 -64,0" />
+    <!-- 放大镜手柄 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M82,82 L108,108" />
+    <!-- 内部 X -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="?attr/colorOnSurfaceVariant"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M48,48 L70,70 M70,48 L48,70" />
+    <!-- 装饰小点 -->
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M120,40 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="?attr/colorTertiary"
+        android:pathData="M130,90 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0" />
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M38,120 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0" />
+</vector>

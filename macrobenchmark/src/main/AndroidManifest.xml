@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        :macrobenchmark 模块 manifest
+        仅用于生成 Baseline Profile，不打包进正式 APK。
+        targetPackage 由 com.android.baselineprofile 插件自动注入为 app applicationId。
+    -->
+
+    <application android:label="macrobenchmark" />
+</manifest>

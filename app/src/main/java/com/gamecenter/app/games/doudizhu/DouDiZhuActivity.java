@@ -194,6 +194,9 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /** 音效管理器 */
     private DouDiZhuSoundManager soundManager;
 
+    /** 新手引导序列（首次进入斗地主时弹出，4 步引导） */
+    private com.gamecenter.app.ui.onboarding.CoachmarkSequence onboardingSequence;
+
     // ============ 生命周期 ============
 
     /**
@@ -222,6 +225,16 @@ public class DouDiZhuActivity extends AppCompatActivity {
         if (soundManager != null && SettingsManager.getInstance(this).shouldPlayGameSound()) {
             soundManager.playBackgroundMusic();
         }
+
+        // 首次进入触发新手引导（Spec §6：U2 免登录上手）
+        // 延迟 900ms 是为了让 startNewGame 内的 showBidUI 先把 buttonContainer/topStatusBar 显示出来，
+        // 否则 CoachmarkSequence 找不到目标 View 的尺寸
+        onboardingSequence = new com.gamecenter.app.ui.onboarding.CoachmarkSequence(
+                this,
+                com.gamecenter.app.ui.onboarding.DoudizhuOnboarding.steps,
+                com.gamecenter.app.ui.onboarding.DoudizhuOnboarding.STORAGE_KEY
+        );
+        getWindow().getDecorView().postDelayed(() -> onboardingSequence.start(), 900L);
     }
 
     /**
@@ -234,6 +247,10 @@ public class DouDiZhuActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+        if (onboardingSequence != null) {
+            onboardingSequence.destroy();
+            onboardingSequence = null;
+        }
         if (soundManager != null) {
             soundManager.stopBackgroundMusic();
             soundManager.release();

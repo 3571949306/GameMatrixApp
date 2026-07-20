@@ -59,4 +59,9 @@
             android:defaultValue="wrongbook" />
     </keep_state_fragment>
 
+    <keep_state_fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.gamecenter.app.ProfileFragment"
+        android:label="@string/nav_profile" />
+
 </navigation>

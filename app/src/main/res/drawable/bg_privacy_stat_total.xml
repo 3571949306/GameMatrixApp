@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P1-2 隐私仪表盘：累计拦截卡片背景（使用 primaryContainer 渐变，浅色/深色自动适配） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="@color/md_theme_primary"
+        android:endColor="@color/md_theme_primary_container"
+        android:type="linear" />
+    <corners android:radius="16dp" />
+</shape>

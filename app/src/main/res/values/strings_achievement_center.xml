@@ -12,4 +12,21 @@
     <string name="achievement_center_no_progress">暂无成就进度，开始游戏吧！</string>
     <string name="achievement_center_explore">去探索</string>
     <string name="achievement_center_percent_format">%d%%</string>
+
+    <!-- ===== Batch 9-3: ACHIEVEMENT_DETAIL_PAGE 单游戏成就详情页 ===== -->
+    <string name="achievement_detail_title">成就详情</string>
+    <string name="achievement_detail_game_icon">游戏图标</string>
+    <string name="achievement_detail_filter_all">全部</string>
+    <string name="achievement_detail_filter_unlocked">已解锁</string>
+    <string name="achievement_detail_filter_locked">未解锁</string>
+    <string name="achievement_detail_empty">该游戏暂无成就配置</string>
+    <string name="achievement_detail_empty_filter">当前筛选下没有成就</string>
+    <string name="achievement_detail_percent_format">%1$d%%</string>
+    <string name="achievement_detail_unlocked_format">已解锁 %1$d / %2$d 项</string>
+    <string name="achievement_detail_unlock_date_format">解锁时间：%1$s</string>
+    <string name="achievement_detail_default_desc">完成指定条件即可解锁该成就</string>
+    <string name="achievement_rarity_bronze">青铜</string>
+    <string name="achievement_rarity_silver">白银</string>
+    <string name="achievement_rarity_gold">黄金</string>
+    <string name="achievement_rarity_platinum">铂金</string>
 </resources>

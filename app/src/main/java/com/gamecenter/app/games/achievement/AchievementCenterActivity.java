@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.config.GameConfigLoader;
@@ -57,6 +58,9 @@ public class AchievementCenterActivity extends AppCompatActivity {
     private ProgressBar progressTotal;
     private TextView tvGamesSummary;
     private RecyclerView rvAchievementGames;
+    // Batch 10-4 (ACHIEVEMENT_PROGRESS_RING): 圆环进度头部
+    private View ringProgressCard;
+    private com.gamecenter.app.ui.AchievementProgressRingView ringAchievementProgress;
 
     private GameConfigLoader configLoader;
     private SharedPreferences achievementPrefs;
@@ -84,6 +88,114 @@ public class AchievementCenterActivity extends AppCompatActivity {
         loadData();
         setupRecyclerView();
         updateSummary();
+
+        // Batch 10-4 (ACHIEVEMENT_PROGRESS_RING): 圆环进度头部
+        if (BuildConfig.ACHIEVEMENT_PROGRESS_RING) {
+            initRingProgress();
+        }
+
+        // Feature A (ACHIEVEMENT_V2): 每日挑战 + 连胜统计卡片
+        if (BuildConfig.ACHIEVEMENT_V2) {
+            initFeatureACards();
+        }
+    }
+
+    /**
+     * Batch 10-4 (ACHIEVEMENT_PROGRESS_RING): 初始化圆环进度头部。
+     * 在 loadData() 之后调用，根据 gameAchievementInfos 累计已解锁/总数并写入圆环 View。
+     */
+    private void initRingProgress() {
+        ringProgressCard = findViewById(R.id.ring_progress_card);
+        ringAchievementProgress = findViewById(R.id.ring_achievement_progress);
+        if (ringProgressCard == null || ringAchievementProgress == null) return;
+        ringProgressCard.setVisibility(View.VISIBLE);
+        int totalUnlocked = 0;
+        int totalAchievements = 0;
+        if (gameAchievementInfos != null) {
+            for (GameAchievementInfo info : gameAchievementInfos) {
+                totalUnlocked += info.unlockedCount;
+                totalAchievements += info.totalCount;
+            }
+        }
+        ringAchievementProgress.setUnlockedAndTotal(totalUnlocked, totalAchievements);
+    }
+
+    /**
+     * Feature A: 初始化每日挑战卡片 + 连胜概览卡片。
+     * <p>仅当 {@link BuildConfig#ACHIEVEMENT_V2} 为 true 时调用。</p>
+     */
+    private void initFeatureACards() {
+        View dailyChallengeCard = findViewById(R.id.card_daily_challenge_include);
+        View streakCard = findViewById(R.id.card_streak_summary_include);
+        if (dailyChallengeCard != null) {
+            dailyChallengeCard.setVisibility(View.VISIBLE);
+            fillDailyChallengeCard(dailyChallengeCard);
+        }
+        if (streakCard != null) {
+            streakCard.setVisibility(View.VISIBLE);
+            fillStreakCard(streakCard);
+        }
+    }
+
+    /** 填充每日挑战卡片数据。 */
+    private void fillDailyChallengeCard(@NonNull View card) {
+        DailyChallengeManager.Challenge c =
+                DailyChallengeManager.getInstance(this).getTodayChallenge();
+
+        TextView tvStatus = card.findViewById(R.id.tv_daily_challenge_status);
+        TextView tvDesc = card.findViewById(R.id.tv_daily_challenge_desc);
+        ProgressBar progressBar = card.findViewById(R.id.progress_daily_challenge);
+        TextView tvProgress = card.findViewById(R.id.tv_daily_challenge_progress);
+
+        // 拼接描述
+        String desc;
+        switch (c.type) {
+            case DailyChallengeManager.TYPE_WIN_ROUNDS:
+                desc = getString(R.string.daily_challenge_type_win,
+                        c.target, c.gameName);
+                break;
+            case DailyChallengeManager.TYPE_UNLOCK_ACHIEVEMENTS:
+                desc = getString(R.string.daily_challenge_type_unlock, c.target);
+                break;
+            case DailyChallengeManager.TYPE_PLAY_ROUNDS:
+            default:
+                desc = getString(R.string.daily_challenge_type_play,
+                        c.target, c.gameName);
+                break;
+        }
+        tvDesc.setText(desc);
+
+        // 进度
+        int percent = c.target > 0
+                ? (int) ((float) c.progress / c.target * 100)
+                : 0;
+        progressBar.setProgress(percent);
+        tvProgress.setText(getString(R.string.daily_challenge_progress, c.progress, c.target));
+
+        // 状态
+        tvStatus.setText(c.completed
+                ? R.string.daily_challenge_status_label_completed
+                : R.string.daily_challenge_status_label_not_completed);
+    }
+
+    /** 填充连胜概览卡片数据。 */
+    private void fillStreakCard(@NonNull View card) {
+        StreakTracker tracker = StreakTracker.getInstance(this);
+        int current = tracker.getCurrentStreak();
+        int best = tracker.getBestStreak();
+        int total = tracker.getTotalGames();
+
+        TextView tvCurrentTop = card.findViewById(R.id.tv_streak_current);
+        TextView tvCurrent = card.findViewById(R.id.tv_streak_current_value);
+        TextView tvBest = card.findViewById(R.id.tv_streak_best_value);
+        TextView tvTotal = card.findViewById(R.id.tv_streak_total_value);
+
+        if (tvCurrentTop != null) {
+            tvCurrentTop.setText(getString(R.string.streak_days_unit, current));
+        }
+        if (tvCurrent != null) tvCurrent.setText(String.valueOf(current));
+        if (tvBest != null) tvBest.setText(String.valueOf(best));
+        if (tvTotal != null) tvTotal.setText(String.valueOf(total));
     }
 
     /**
@@ -328,6 +440,14 @@ public class AchievementCenterActivity extends AppCompatActivity {
                             isExpanded ? View.VISIBLE : View.GONE);
                     ivExpandArrow.setRotation(isExpanded ? 180f : 0f);
                 });
+
+                // Batch 9-3 (ACHIEVEMENT_DETAIL_PAGE): 长按游戏卡片跳转到该游戏的成就详情页
+                if (BuildConfig.ACHIEVEMENT_DETAIL_PAGE) {
+                    itemView.setOnLongClickListener(v -> {
+                        AchievementDetailActivity.launch(v.getContext(), info.gameId);
+                        return true;
+                    });
+                }
             }
 
             /**

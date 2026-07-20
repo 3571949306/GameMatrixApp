@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+    <!-- 游戏手柄外框 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:pathData="M40,70 C30,70 24,80 26,92 L32,120 C34,130 42,134 50,130 L58,124 L102,124 L110,130 C118,134 126,130 128,120 L134,92 C136,80 130,70 120,70 Z" />
+    <!-- 左侧十字键 -->
+    <path
+        android:fillColor="?attr/colorOnSurfaceVariant"
+        android:pathData="M48,90 L58,90 L58,96 L64,96 L64,104 L58,104 L58,110 L48,110 L48,104 L42,104 L42,96 L48,96 Z" />
+    <!-- 右侧两个按钮 -->
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M104,96 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <path
+        android:fillColor="?attr/colorTertiary"
+        android:pathData="M116,108 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <!-- 装饰点 -->
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M30,40 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0" />
+    <path
+        android:fillColor="?attr/colorTertiary"
+        android:pathData="M130,40 m-2.5,0 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0" />
+</vector>

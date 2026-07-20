@@ -202,6 +202,20 @@ class WrongBookRepository(context: Context) {
                 obj.put("isFavorite", q.isFavorite)
                 obj.put("sortOrder", q.sortOrder)
                 obj.put("tags", q.tags)
+                // 第三阶段扩展字段
+                obj.put("questionType", q.questionType)
+                obj.put("question", q.question)
+                obj.put("optionsJson", q.optionsJson)
+                obj.put("answer", q.answer)
+                obj.put("wrongReason", q.wrongReason)
+                obj.put("reviewSuggestion", q.reviewSuggestion)
+                obj.put("confidence", q.confidence)
+                obj.put("ocrText", q.ocrText)
+                obj.put("correctedText", q.correctedText)
+                obj.put("sourceType", q.sourceType)
+                obj.put("ocrProvider", q.ocrProvider)
+                obj.put("aiProvider", q.aiProvider)
+                obj.put("aiModel", q.aiModel)
                 qArray.put(obj)
             }
             root.put("questions", qArray)
@@ -265,7 +279,21 @@ class WrongBookRepository(context: Context) {
                             mastery = obj.optInt("mastery", 0),
                             isFavorite = obj.optBoolean("isFavorite", false),
                             sortOrder = obj.optInt("sortOrder", 0),
-                            tags = obj.optString("tags", "")
+                            tags = obj.optString("tags", ""),
+                            // 第三阶段扩展字段（向后兼容：旧备份文件缺失时使用默认值）
+                            questionType = obj.optString("questionType", "unknown"),
+                            question = obj.optString("question", ""),
+                            optionsJson = obj.optString("optionsJson", "[]"),
+                            answer = obj.optString("answer", ""),
+                            wrongReason = obj.optString("wrongReason", ""),
+                            reviewSuggestion = obj.optString("reviewSuggestion", ""),
+                            confidence = obj.optDouble("confidence", 0.0),
+                            ocrText = obj.optString("ocrText", ""),
+                            correctedText = obj.optString("correctedText", ""),
+                            sourceType = obj.optString("sourceType", "manual"),
+                            ocrProvider = obj.optString("ocrProvider", ""),
+                            aiProvider = obj.optString("aiProvider", ""),
+                            aiModel = obj.optString("aiModel", "")
                         )
                         val newId = dao.insertQuestion(q)
                         if (dao.getReviewPlansByQuestion(newId).isEmpty()) {

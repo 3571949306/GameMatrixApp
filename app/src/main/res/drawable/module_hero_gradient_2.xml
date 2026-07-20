@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hero Banner 渐变 2（Batch 21: 蓝绿色系，用于轮播第二张） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:startColor="@color/module_hero_gradient_2_start"
+        android:centerColor="@color/module_hero_gradient_2_center"
+        android:endColor="@color/module_hero_gradient_2_end"
+        android:type="linear" />
+    <corners android:radius="@dimen/gm_radius_xl" />
+</shape>

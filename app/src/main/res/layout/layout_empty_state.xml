@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/empty_state_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="@dimen/spacing_32">
+
+    <!-- 插图 -->
+    <ImageView
+        android:id="@+id/iv_empty_icon"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:contentDescription="@string/empty_default_title"
+        android:scaleType="centerInside"
+        app:srcCompat="@drawable/ic_empty_default" />
+
+    <!-- 标题 -->
+    <TextView
+        android:id="@+id/tv_empty_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_20"
+        android:textAppearance="@style/TextAppearance.GameMatrix.CardTitle"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        tools:text="没有找到匹配的游戏" />
+
+    <!-- 副标题 -->
+    <TextView
+        android:id="@+id/tv_empty_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_8"
+        android:gravity="center"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp"
+        tools:text="试试其他关键词，或浏览全部分类" />
+
+    <!-- 操作按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_empty_action"
+        style="@style/Widget.GameMatrix.Button.Outlined"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_20"
+        android:paddingStart="@dimen/spacing_24"
+        android:paddingEnd="@dimen/spacing_24"
+        android:visibility="gone"
+        tools:text="清除筛选"
+        tools:visibility="visible" />
+
+</LinearLayout>

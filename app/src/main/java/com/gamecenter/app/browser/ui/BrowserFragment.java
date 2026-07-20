@@ -7,13 +7,18 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -29,12 +34,15 @@ import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -42,9 +50,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import com.gamecenter.app.browser.core.BrowserChromeClient;
 import com.gamecenter.app.browser.core.BrowserController;
+import com.gamecenter.app.browser.core.BrowserFindInPageHelper;
+import com.gamecenter.app.browser.core.BrowserGestureHelper;
+import com.gamecenter.app.browser.core.BrowserReaderModeHelper;
+import com.gamecenter.app.browser.core.BrowserScreenshotHelper;
 import com.gamecenter.app.browser.core.BrowserSettingsManager;
 import com.gamecenter.app.browser.core.BrowserTabManager;
 import com.gamecenter.app.browser.core.BrowserWebViewClient;
@@ -52,10 +65,13 @@ import com.gamecenter.app.browser.data.BrowserDatabase;
 import com.gamecenter.app.browser.data.BrowserDownloadManager;
 import com.gamecenter.app.browser.data.entity.BrowserBookmarkEntity;
 import com.gamecenter.app.browser.data.entity.BrowserHistoryEntity;
+import com.gamecenter.app.browser.data.entity.BrowserReadingListEntity;
 import com.gamecenter.app.browser.data.repository.SearchHistoryRepository;
 import com.gamecenter.app.browser.security.BrowserSecurityPolicy;
 import com.gamecenter.app.browser.util.UrlUtils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -81,9 +97,20 @@ public class BrowserFragment extends Fragment implements
         return fragment;
     }
 
+    /** P2-2 暴露给 BrowserActivity 用于音量键滚动 */
+    @Nullable
+    public WebView getControllerWebView() {
+        return controller != null ? controller.getWebView() : null;
+    }
+
     private BrowserController controller;
     private BrowserTabManager tabManager;
     private SearchHistoryRepository searchHistoryRepository;
+    private BrowserFindInPageHelper findInPageHelper;
+    private BrowserReaderModeHelper readerModeHelper;
+    private BrowserGestureHelper gestureHelper;
+    private com.gamecenter.app.browser.core.BrowserHomeHelper homeHelper;
+    private com.gamecenter.app.browser.core.UrlInputHelper urlInputHelper;
 
     private EditText etUrl;
     private ImageButton btnBack;
@@ -98,9 +125,23 @@ public class BrowserFragment extends Fragment implements
     private ProgressBar progressBar;
     private LinearLayout errorView;
     private FrameLayout webViewContainer;
+    private FrameLayout homeContainer;
+    private View skeletonOverlay;
     private LinearLayout topBar;
     private LinearLayout bottomBar;
     private TextView incognitoIndicator;
+
+    // Find In Page
+    private LinearLayout findInPageBar;
+    private EditText etFindQuery;
+    private TextView tvFindMatchCount;
+    private ImageButton btnFindPrev;
+    private ImageButton btnFindNext;
+    private ImageButton btnFindClose;
+
+    // Gesture indicators
+    private ImageView gestureLeftIndicator;
+    private ImageView gestureRightIndicator;
 
     private boolean isLoading = false;
     private boolean isDesktopMode = false;
@@ -113,6 +154,12 @@ public class BrowserFragment extends Fragment implements
     private boolean pendingRefreshPrompt = false;
     private long lastBookmarkClickTime = 0;
     private static final long BOOKMARK_CLICK_DEBOUNCE_MS = 600;
+
+    // P0-4 智能 URL Bar
+    private PopupWindow suggestionPopup;
+    private PopupWindow enginePopup;
+    private Runnable pendingSuggestionRunnable;
+    private static final long SUGGESTION_DEBOUNCE_MS = 300;
 
     // 文件上传（支持多选）
     @Nullable private ValueCallback<Uri[]> filePathCallback;
@@ -134,6 +181,56 @@ public class BrowserFragment extends Fragment implements
                     }
                     filePathCallback.onReceiveValue(results);
                     filePathCallback = null;
+                }
+            });
+
+    // P0-1 多 Tab：TabManagerActivity 结果回调
+    private static final int REQUEST_TAB_MANAGER = 0x1001;
+    private final ActivityResultLauncher<Intent> tabManagerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (controller == null || getContext() == null) return;
+                Intent data = result.getData();
+                // 1. 处理关闭 Tab（释放对应 WebView）
+                if (data != null && data.hasExtra(TabManagerActivity.EXTRA_CLOSED_TAB_ID)) {
+                    String closedId = data.getStringExtra(TabManagerActivity.EXTRA_CLOSED_TAB_ID);
+                    if ("__all__".equals(closedId)) {
+                        // 关闭全部：销毁池
+                        controller.destroy();
+                        // 重新初始化 pool
+                        if (webViewContainer != null) {
+                            controller.initWebView(getContext(), webViewContainer, this, this, this);
+                            setupChromeClientCallbacks();
+                        }
+                    } else if (closedId != null) {
+                        controller.closeTabWebView(closedId);
+                    }
+                }
+                // 2. 切换到目标 Tab（新建 Tab 也走这里）
+                if (data != null && data.hasExtra(TabManagerActivity.EXTRA_SELECTED_TAB_ID)) {
+                    String targetId = data.getStringExtra(TabManagerActivity.EXTRA_SELECTED_TAB_ID);
+                    if (targetId != null) {
+                        switchToTabById(targetId);
+                        if (result.getResultCode() == TabManagerActivity.RESULT_NEW_TAB) {
+                            // 新建 Tab：加载默认首页并显示起始页
+                            if (BuildConfig.BROWSER_HOME_PAGE) {
+                                showHomePage();
+                                etUrl.setText("");
+                            } else {
+                                String homeUrl = controller.getDefaultHomeUrl();
+                                controller.loadUrl(homeUrl);
+                                etUrl.setText(homeUrl);
+                            }
+                            Toast.makeText(getContext(), R.string.browser_tab_created, Toast.LENGTH_SHORT).show();
+                        } else if (tabManager != null) {
+                            BrowserTabManager.Tab tab = findTabById(targetId);
+                            if (tab != null) {
+                                Toast.makeText(getContext(),
+                                        getString(R.string.browser_tab_switched, tab.getTitle()),
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
                 }
             });
 
@@ -175,7 +272,26 @@ public class BrowserFragment extends Fragment implements
         }
         initViews(view);
         initWebView();
+        // P0-1 多 Tab：初始化 tabManager 并为当前 Tab 创建 WebView
+        if (BuildConfig.BROWSER_REAL_MULTI_TAB && getContext() != null) {
+            tabManager = BrowserTabManager.getInstance(getContext());
+            BrowserTabManager.Tab currentTab = tabManager.getCurrentTab();
+            if (currentTab == null) {
+                currentTab = tabManager.createTab(null);
+            }
+            if (currentTab != null && controller != null) {
+                // 切换到当前 Tab，按需创建 WebView（fallbackUrl 用 defaultHomeUrl）
+                controller.switchToTab(currentTab.getId(), controller.getDefaultHomeUrl());
+                // 重新绑定下载监听（新 WebView 需要）
+                controller.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) ->
+                        handleDownload(url, contentDisposition, mimetype, userAgent));
+            }
+        }
+        initBrowserHelpers();
+        initHomePage();
         setupListeners();
+        setupGestureNavigation(view);
+        setupBackPressHandler();
 
         String initialUrl = null;
         if (getArguments() != null) {
@@ -183,18 +299,281 @@ public class BrowserFragment extends Fragment implements
         }
         String homeUrl = getHomeUrl();
         if (initialUrl != null && !initialUrl.isEmpty()) {
-            controller.loadUrl(initialUrl);
-            etUrl.setText(initialUrl);
+            if (isHomePageUrl(initialUrl)) {
+                showHomePage();
+                etUrl.setText("");
+            } else {
+                controller.loadUrl(initialUrl);
+                etUrl.setText(initialUrl);
+            }
         } else {
-            controller.loadUrl(homeUrl);
-            etUrl.setText(homeUrl);
+            // 默认显示起始页而非加载 baidu.com
+            if (BuildConfig.BROWSER_HOME_PAGE) {
+                showHomePage();
+                etUrl.setText("");
+            } else {
+                controller.loadUrl(homeUrl);
+                etUrl.setText(homeUrl);
+            }
         }
 
         BrowserSettingsManager.getInstance(requireContext()).addListener(this);
     }
 
+    /** 初始化 Find In Page / Reader Mode 辅助类 */
+    private void initBrowserHelpers() {
+        if (controller == null || getContext() == null) return;
+        WebView webView = controller.getWebView();
+        if (webView == null) return;
+
+        // P0-4 智能 URL Bar
+        if (BuildConfig.BROWSER_SMART_URL_BAR) {
+            urlInputHelper = new com.gamecenter.app.browser.core.UrlInputHelper(getContext());
+        }
+
+        // Find In Page
+        if (BuildConfig.BROWSER_FIND_IN_PAGE) {
+            findInPageHelper = new BrowserFindInPageHelper();
+            findInPageHelper.bind(webView, etFindQuery, tvFindMatchCount,
+                    btnFindPrev, btnFindNext, btnFindClose,
+                    new BrowserFindInPageHelper.HostCallback() {
+                        @Override public void showFindBar() {
+                            if (findInPageBar != null) findInPageBar.setVisibility(View.VISIBLE);
+                        }
+                        @Override public void hideFindBar() {
+                            if (findInPageBar != null) findInPageBar.setVisibility(View.GONE);
+                            hideKeyboardFrom(findInPageBar);
+                        }
+                    });
+        }
+
+        // Reader Mode
+        if (BuildConfig.BROWSER_READER_MODE) {
+            readerModeHelper = new BrowserReaderModeHelper();
+            readerModeHelper.bind(webView, new BrowserReaderModeHelper.ReaderModeCallback() {
+                @Override public void onReaderModeEntered() {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.browser_reader_entered, Toast.LENGTH_SHORT).show();
+                    }
+                }
+                @Override public void onReaderModeExited() {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.browser_reader_exited, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+    }
+
+    /** 初始化浏览器起始页（Feature Flag: BROWSER_HOME_PAGE） */
+    private void initHomePage() {
+        if (!BuildConfig.BROWSER_HOME_PAGE || homeContainer == null || getContext() == null) return;
+        homeHelper = new com.gamecenter.app.browser.core.BrowserHomeHelper(getContext());
+        homeHelper.setCallback(new com.gamecenter.app.browser.core.BrowserHomeHelper.HomeCallback() {
+            @Override public void onSiteClicked(@NonNull String url) {
+                hideHomePage();
+                if (controller != null) controller.loadUrl(url);
+                etUrl.setText(url);
+            }
+            @Override public void onSearchClicked() {
+                // 聚焦 URL bar 让用户输入
+                etUrl.requestFocus();
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager)
+                        requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(etUrl, 0);
+            }
+            @Override public void onBookmarkClicked() {
+                startActivity(new android.content.Intent(getContext(), com.gamecenter.app.browser.ui.BookmarkActivity.class));
+            }
+            @Override public void onHistoryClicked() {
+                startActivity(new android.content.Intent(getContext(), com.gamecenter.app.browser.ui.HistoryActivity.class));
+            }
+            @Override public void onReadingListClicked() {
+                // TODO: P1-3 阅读列表实现后接入
+                Toast.makeText(getContext(), R.string.browser_reading_list_empty, Toast.LENGTH_SHORT).show();
+            }
+        });
+        View homeView = homeHelper.createHomeView(LayoutInflater.from(getContext()), homeContainer);
+        homeContainer.addView(homeView);
+    }
+
+    /** 显示起始页 */
+    private void showHomePage() {
+        if (homeContainer != null) {
+            homeContainer.setVisibility(View.VISIBLE);
+            if (homeHelper != null) homeHelper.loadTopSitesAsync();
+        }
+    }
+
+    /** 隐藏起始页 */
+    private void hideHomePage() {
+        if (homeContainer != null) homeContainer.setVisibility(View.GONE);
+    }
+
+    /**
+     * P3-5 统一交互反馈：Feature Flag 开启时使用 Snackbar，否则使用 Toast。
+     * Snackbar 锚定到 bottomBar 上方，避免被系统手势条遮挡。
+     */
+    private void showFeedback(int stringRes) {
+        showFeedback(getString(stringRes));
+    }
+
+    private void showFeedback(@NonNull CharSequence text) {
+        if (getView() == null) return;
+        if (com.gamecenter.app.BuildConfig.BROWSER_SNACKBAR_FEEDBACK) {
+            com.google.android.material.snackbar.Snackbar sb =
+                    com.google.android.material.snackbar.Snackbar.make(
+                            getView(), text, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT);
+            if (bottomBar != null) sb.setAnchorView(bottomBar);
+            sb.show();
+        } else {
+            if (getContext() != null) Toast.makeText(getContext(), text, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** 判断给定 URL 是否为起始页 */
+    private boolean isHomePageUrl(@Nullable String url) {
+        return url != null && (url.equalsIgnoreCase("about:home")
+                || url.equalsIgnoreCase("about:blank") && BuildConfig.BROWSER_HOME_PAGE);
+    }
+
+
+    private void setupGestureNavigation(@NonNull View view) {
+        if (!BuildConfig.BROWSER_GESTURE_NAV || controller == null) {
+            android.util.Log.w(TAG, "setupGestureNavigation skipped: flag=" + BuildConfig.BROWSER_GESTURE_NAV
+                    + " controller=" + (controller != null));
+            return;
+        }
+        WebView webView = controller.getWebView();
+        if (webView == null) {
+            android.util.Log.w(TAG, "setupGestureNavigation skipped: webView is null");
+            return;
+        }
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        android.util.Log.d(TAG, "setupGestureNavigation: screenWidth=" + screenWidth);
+        gestureHelper = new BrowserGestureHelper(requireContext(),
+                new BrowserGestureHelper.GestureActionCallback() {
+                    @Override public boolean canGoBack() { return controller != null && controller.canGoBack(); }
+                    @Override public boolean canGoForward() { return controller != null && controller.canGoForward(); }
+                    @Override public void onGoBack() {
+                        android.util.Log.d(TAG, "gesture onGoBack invoked");
+                        if (controller != null) controller.goBack();
+                    }
+                    @Override public void onGoForward() {
+                        android.util.Log.d(TAG, "gesture onGoForward invoked");
+                        if (controller != null) controller.goForward();
+                    }
+                    @Override public void onShowHistory() {
+                        // P0-3：长按 WebView 触发显示历史记录面板（复用 onHistoryClicked 逻辑）
+                        android.util.Log.d(TAG, "gesture onShowHistory invoked");
+                        if (getContext() == null) return;
+                        startActivity(new android.content.Intent(getContext(), com.gamecenter.app.browser.ui.HistoryActivity.class));
+                    }
+                },
+                screenWidth);
+        gestureHelper.bindIndicators(gestureLeftIndicator, gestureRightIndicator);
+        // P0-3：从设置读取双击前进 / 长按历史开关
+        BrowserSettingsManager settings = BrowserSettingsManager.getInstance(requireContext());
+        gestureHelper.setDoubleTapForwardEnabled(settings.isDoubleTapForwardEnabled());
+        gestureHelper.setLongPressHistoryEnabled(settings.isLongPressHistoryEnabled());
+
+        webView.setOnTouchListener((v, event) -> {
+            // 先让手势识别器处理；若手势未消费（return false），则交还 WebView 处理垂直滚动/点击
+            boolean consumed = gestureHelper.onTouch(event);
+            if (consumed) return true;
+            return false;
+        });
+        // 关键：Android 10+ 系统手势导航会拦截左右边缘滑动，必须声明 exclusion rect
+        // 让我们的自定义手势接管边缘区域，否则 GestureDetector 收不到边缘 swipe
+        // 同时在 WebView 和根 View 上声明，确保所有 UI 层级都生效
+        applySystemGestureExclusion(webView);
+        applySystemGestureExclusion(view);
+        android.util.Log.d(TAG, "setupGestureNavigation: listener set on webView");
+    }
+
+    /**
+     * Android 10+ 系统手势导航会从屏幕左右边缘拦截 swipe（用于全局 back/forward）。
+     * 我们的浏览器需要自己处理边缘 swipe 来执行 WebView 的 goBack/goForward，
+     * 因此在 WebView 上声明系统手势排除区域（每边最多 200dp 高度）。
+     *
+     * <p>排除区域使用 BrowserGestureHelper.EDGE_WIDTH_DP 同步宽度（32dp）。
+     * <p>API < 29 时此调用为空操作，自定义手势 Helper 在这些版本上天然可用。
+     */
+    private void applySystemGestureExclusion(@NonNull View view) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
+        view.post(() -> {
+            int w = view.getWidth();
+            int h = view.getHeight();
+            if (w <= 0 || h <= 0) return;
+            float density = getResources().getDisplayMetrics().density;
+            int edgePx = (int) (BrowserGestureHelper.EDGE_WIDTH_DP * density);
+            int exclusionHeight = (int) (200 * density); // 系统限制：每边最多 200dp
+            int top = Math.max(0, (h - exclusionHeight) / 2);
+            int bottom = Math.min(h, top + exclusionHeight);
+            List<Rect> rects = new ArrayList<>(2);
+            rects.add(new Rect(0, top, edgePx, bottom));
+            rects.add(new Rect(w - edgePx, top, w, bottom));
+            try {
+                view.setSystemGestureExclusionRects(rects);
+                android.util.Log.d(TAG, "applySystemGestureExclusion on " + view.getClass().getSimpleName()
+                        + ": left=0," + top + "," + edgePx + "," + bottom
+                        + " right=" + (w - edgePx) + "," + top + "," + w + "," + bottom);
+            } catch (Throwable t) {
+                android.util.Log.w(TAG, "setSystemGestureExclusionRects failed", t);
+            }
+        });
+    }
+
+    private void hideKeyboardFrom(@Nullable View view) {
+        if (view == null || getContext() == null) return;
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
+
+    /** 注册返回键回调：依次处理 Find Bar → Reader Mode → 全屏视频 → WebView 后退 → 默认 */
+    private void setupBackPressHandler() {
+        if (getView() == null || getActivity() == null) return;
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (controller == null) {
+                    setEnabled(false);
+                    requireActivity().onBackPressed();
+                    return;
+                }
+                // 1. 关闭查找栏
+                if (findInPageHelper != null && findInPageBar != null
+                        && findInPageBar.getVisibility() == View.VISIBLE) {
+                    findInPageHelper.hide();
+                    return;
+                }
+                // 2. 退出阅读模式
+                if (readerModeHelper != null && readerModeHelper.isActive()) {
+                    readerModeHelper.exitReaderMode();
+                    return;
+                }
+                // 3. 退出全屏视频
+                if (customView != null) {
+                    hideCustomView();
+                    return;
+                }
+                // 4. WebView 后退
+                if (controller.canGoBack()) {
+                    controller.goBack();
+                } else {
+                    setEnabled(false);
+                    requireActivity().onBackPressed();
+                }
+            }
+        };
+        requireActivity().getOnBackPressedDispatcher()
+                .addCallback(getViewLifecycleOwner(), callback);
+    }
+
     private void initViews(View view) {
         webViewContainer = view.findViewById(R.id.webview_container);
+        homeContainer = view.findViewById(R.id.browser_home_container);
+        skeletonOverlay = view.findViewById(R.id.skeleton_overlay);
         etUrl = view.findViewById(R.id.et_url);
         btnBack = view.findViewById(R.id.btn_back);
         btnForward = view.findViewById(R.id.btn_forward);
@@ -210,6 +589,19 @@ public class BrowserFragment extends Fragment implements
         topBar = view.findViewById(R.id.browser_top_bar);
         bottomBar = view.findViewById(R.id.browser_bottom_bar);
         incognitoIndicator = view.findViewById(R.id.incognito_indicator);
+
+        // Find In Page
+        findInPageBar = view.findViewById(R.id.find_in_page_bar);
+        etFindQuery = view.findViewById(R.id.et_find_query);
+        tvFindMatchCount = view.findViewById(R.id.tv_find_match_count);
+        btnFindPrev = view.findViewById(R.id.btn_find_prev);
+        btnFindNext = view.findViewById(R.id.btn_find_next);
+        btnFindClose = view.findViewById(R.id.btn_find_close);
+
+        // Gesture indicators
+        gestureLeftIndicator = view.findViewById(R.id.gesture_left_indicator);
+        gestureRightIndicator = view.findViewById(R.id.gesture_right_indicator);
+
         View btnRetry = view.findViewById(R.id.btn_retry);
         if (btnRetry != null) {
             btnRetry.setOnClickListener(v -> { if (controller != null) controller.reload(); });
@@ -259,10 +651,23 @@ public class BrowserFragment extends Fragment implements
     private void setupListeners() {
         btnBack.setOnClickListener(v -> {
             if (controller == null) return;
+            // 1. 先关闭 Find In Page 栏
+            if (findInPageHelper != null && findInPageBar != null
+                    && findInPageBar.getVisibility() == View.VISIBLE) {
+                findInPageHelper.hide();
+                return;
+            }
+            // 2. 退出阅读模式
+            if (readerModeHelper != null && readerModeHelper.isActive()) {
+                readerModeHelper.exitReaderMode();
+                return;
+            }
+            // 3. 退出全屏视频
             if (customView != null) {
                 hideCustomView();
                 return;
             }
+            // 4. WebView 后退
             if (!controller.goBack()) {
                 if (getActivity() != null) getActivity().finish();
             }
@@ -274,12 +679,26 @@ public class BrowserFragment extends Fragment implements
             else controller.reload();
         });
         btnHome.setOnClickListener(v -> {
-            String homeUrl = getHomeUrl();
-            if (controller != null) controller.loadUrl(homeUrl);
-            etUrl.setText(homeUrl);
+            // 优先显示起始页；若 Feature Flag 关闭则加载配置的 homeUrl
+            if (BuildConfig.BROWSER_HOME_PAGE) {
+                showHomePage();
+                etUrl.setText("");
+                hideKeyboardFrom(topBar);
+            } else {
+                String homeUrl = getHomeUrl();
+                if (controller != null) controller.loadUrl(homeUrl);
+                etUrl.setText(homeUrl);
+            }
         });
         btnBookmark.setOnClickListener(v -> toggleBookmark());
-        btnTabs.setOnClickListener(v -> showTabList());
+        btnTabs.setOnClickListener(v -> {
+            // P0-1 多 Tab：启动 TabManagerActivity 全屏切换器
+            if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                launchTabManager();
+            } else {
+                showTabList();
+            }
+        });
         btnDownload.setOnClickListener(v -> {
             if (getContext() != null) DownloadActivity.start(getContext());
         });
@@ -289,22 +708,223 @@ public class BrowserFragment extends Fragment implements
             if (actionId == EditorInfo.IME_ACTION_GO ||
                     (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
                 String input = etUrl.getText().toString().trim();
-                if (controller != null) controller.loadInput(input);
+                hideUrlSuggestions();
+                // 优先使用 UrlInputHelper（含 URL/搜索词识别 + 多搜索引擎支持）
+                if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null && getContext() != null) {
+                    String url = urlInputHelper.processInput(getContext(), input);
+                    if (controller != null) controller.loadUrl(url);
+                    etUrl.setText(url);
+                } else {
+                    if (controller != null) controller.loadInput(input);
+                    etUrl.setText(input);
+                }
                 saveSearchHistoryIfNeeded(input);
                 hideKeyboard();
+                hideHomePage();
                 return true;
             }
             return false;
         });
-        etUrl.setOnFocusChangeListener((v, hasFocus) -> { if (hasFocus) etUrl.selectAll(); });
+        etUrl.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                etUrl.selectAll();
+                // 获得焦点且有内容时立即查询建议
+                if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null) {
+                    String text = etUrl.getText().toString().trim();
+                    if (!text.isEmpty()) {
+                        scheduleSuggestionQuery(text);
+                    }
+                }
+            } else {
+                hideUrlSuggestions();
+            }
+        });
+
+        // P0-4 智能 URL Bar：实时输入建议
+        if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null) {
+            etUrl.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override
+                public void afterTextChanged(Editable s) {
+                    String text = s == null ? "" : s.toString().trim();
+                    if (text.isEmpty()) {
+                        hideUrlSuggestions();
+                    } else {
+                        scheduleSuggestionQuery(text);
+                    }
+                }
+            });
+
+            // 长按 URL Bar → 弹出搜索引擎选择 + 粘贴并前往
+            etUrl.setOnLongClickListener(v -> {
+                if (getContext() == null) return false;
+                showUrlLongClickMenu(v);
+                return true;
+            });
+        }
+    }
+
+    /** 调度建议查询（防抖 300ms） */
+    private void scheduleSuggestionQuery(@NonNull String keyword) {
+        if (urlInputHelper == null || getContext() == null) return;
+        if (pendingSuggestionRunnable != null) {
+            mainHandler.removeCallbacks(pendingSuggestionRunnable);
+        }
+        final String query = keyword;
+        pendingSuggestionRunnable = () -> {
+            if (urlInputHelper == null || getContext() == null) return;
+            urlInputHelper.querySuggestionsAsync(query, items ->
+                    mainHandler.post(() -> {
+                        if (getContext() == null) return;
+                        // 校验当前 EditText 内容仍然匹配（避免延迟导致显示过时建议）
+                        String current = etUrl.getText().toString().trim();
+                        if (!current.equalsIgnoreCase(query)) return;
+                        if (items.isEmpty()) {
+                            hideUrlSuggestions();
+                        } else {
+                            showUrlSuggestions(items);
+                        }
+                    }));
+        };
+        mainHandler.postDelayed(pendingSuggestionRunnable, SUGGESTION_DEBOUNCE_MS);
+    }
+
+    /** 显示 URL 建议下拉 */
+    private void showUrlSuggestions(@NonNull java.util.List<com.gamecenter.app.browser.core.UrlInputHelper.SuggestionItem> items) {
+        if (getContext() == null || urlInputHelper == null || etUrl == null) return;
+        hideUrlSuggestions();
+        suggestionPopup = urlInputHelper.showSuggestionsPopup(getContext(), etUrl, items,
+                (url, title) -> {
+                    if (getContext() == null) return;
+                    hideUrlSuggestions();
+                    if ("__clear__".equals(url)) {
+                        // 清除建议（清除 browser_history 表所有记录的 visitCount，但保留 URL 本身）
+                        clearUrlSuggestions();
+                        return;
+                    }
+                    // 选中建议项 → 直接加载
+                    if (controller != null) controller.loadUrl(url);
+                    etUrl.setText(url);
+                    hideHomePage();
+                    hideKeyboard();
+                });
+    }
+
+    /** 隐藏 URL 建议下拉 */
+    private void hideUrlSuggestions() {
+        if (suggestionPopup != null) {
+            suggestionPopup.dismiss();
+            suggestionPopup = null;
+        }
+    }
+
+    /** 清除 URL 建议（删除所有历史记录） */
+    private void clearUrlSuggestions() {
+        if (getContext() == null) return;
+        final Context ctx = getContext().getApplicationContext();
+        ioExecutor.execute(() -> {
+            try {
+                com.gamecenter.app.browser.data.BrowserDatabase.getInstance(ctx)
+                        .historyDao().deleteAll();
+                mainHandler.post(() ->
+                        Toast.makeText(getContext(), R.string.browser_url_suggestion_cleared, Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                mainHandler.post(() ->
+                        Toast.makeText(getContext(), R.string.browser_url_suggestion_clear_failed, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    /** URL Bar 长按菜单：搜索引擎选择 + 粘贴并前往 */
+    private void showUrlLongClickMenu(@NonNull View anchor) {
+        if (getContext() == null || urlInputHelper == null) return;
+        // 弹出 PopupMenu
+        PopupMenu popup = new PopupMenu(getContext(), anchor);
+        popup.getMenu().add(0, 1, 0, R.string.browser_url_search_engine);
+        // 检查剪贴板
+        ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        boolean hasClip = cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip() != null
+                && cm.getPrimaryClip().getItemCount() > 0;
+        if (hasClip) {
+            popup.getMenu().add(0, 2, 1, R.string.browser_url_paste_and_go);
+        }
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                showEngineSelector(anchor);
+                return true;
+            } else if (item.getItemId() == 2) {
+                pasteAndGo(cm);
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    /** 显示搜索引擎选择 */
+    private void showEngineSelector(@NonNull View anchor) {
+        if (getContext() == null || urlInputHelper == null) return;
+        enginePopup = urlInputHelper.showEngineSelector(getContext(), anchor, engine -> {
+            if (enginePopup != null) {
+                enginePopup.dismiss();
+                enginePopup = null;
+            }
+            if (getContext() != null) {
+                Toast.makeText(getContext(),
+                        getString(R.string.browser_url_engine_selected, engine.displayName),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /** 粘贴剪贴板内容并立即前往 */
+    private void pasteAndGo(@Nullable ClipboardManager cm) {
+        if (cm == null || cm.getPrimaryClip() == null || cm.getPrimaryClip().getItemCount() == 0) return;
+        CharSequence text = cm.getPrimaryClip().getItemAt(0).getText();
+        if (text == null) return;
+        String input = text.toString().trim();
+        if (input.isEmpty()) return;
+        etUrl.setText(input);
+        etUrl.setSelection(input.length());
+        if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null && getContext() != null) {
+            String url = urlInputHelper.processInput(getContext(), input);
+            if (controller != null) controller.loadUrl(url);
+            etUrl.setText(url);
+        } else {
+            if (controller != null) controller.loadInput(input);
+        }
+        saveSearchHistoryIfNeeded(input);
+        hideKeyboard();
+        hideHomePage();
+        hideUrlSuggestions();
     }
 
     private void saveSearchHistoryIfNeeded(@Nullable String input) {
         if (isIncognitoMode || input == null || input.isEmpty() || searchHistoryRepository == null) return;
-        String processed = UrlUtils.processInput(input);
-        if (processed != null && processed.startsWith(UrlUtils.SEARCH_ENGINE_URL)) {
+        // P0-4：用 UrlInputHelper 处理输入，支持多搜索引擎
+        if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null && getContext() != null) {
+            String processed = urlInputHelper.processInput(getContext(), input);
             String engine = BrowserSettingsManager.getInstance(requireContext()).getSearchEngine();
-            searchHistoryRepository.saveSearchHistory(input, engine);
+            // 判断是否走搜索引擎（任意一个前缀）
+            boolean isSearch = false;
+            for (com.gamecenter.app.browser.core.UrlInputHelper.SearchEngine e
+                    : com.gamecenter.app.browser.core.UrlInputHelper.SearchEngine.values()) {
+                if (processed != null && processed.startsWith(e.queryPrefix)) {
+                    isSearch = true;
+                    break;
+                }
+            }
+            if (isSearch) {
+                searchHistoryRepository.saveSearchHistory(input, engine);
+            }
+        } else {
+            // 旧逻辑 fallback
+            String processed = UrlUtils.processInput(input);
+            if (processed != null && processed.startsWith(UrlUtils.SEARCH_ENGINE_URL)) {
+                String engine = BrowserSettingsManager.getInstance(requireContext()).getSearchEngine();
+                searchHistoryRepository.saveSearchHistory(input, engine);
+            }
         }
     }
 
@@ -353,6 +973,99 @@ public class BrowserFragment extends Fragment implements
         });
     }
 
+    /**
+     * P1-3 阅读列表：将当前页面加入稍后阅读列表。
+     * 通过 evaluateJavascript 提取页面正文前 200 字作为摘要。
+     */
+    private void addToReadingList() {
+        if (controller == null || getContext() == null) return;
+        String url = controller.getCurrentUrl();
+        if (url == null || url.isEmpty() || isReaderModeUrl(url)) {
+            Toast.makeText(getContext(), R.string.browser_reading_list_no_url, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final String pageUrl = url;
+        final String pageTitle = currentTitle != null ? currentTitle : "";
+        final String pageHost;
+        try {
+            pageHost = android.net.Uri.parse(pageUrl).getHost() != null
+                    ? android.net.Uri.parse(pageUrl).getHost() : "";
+        } catch (Throwable t) {
+            return;
+        }
+        final Context ctx = getContext().getApplicationContext();
+        // 先检查是否已存在
+        ioExecutor.execute(() -> {
+            try {
+                int count = BrowserDatabase.getInstance(ctx).readingListDao().countByUrl(pageUrl);
+                if (count > 0) {
+                    mainHandler.post(() -> Toast.makeText(getContext(),
+                            R.string.browser_reading_list_already_exists, Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                // 在主线程调用 evaluateJavascript 提取摘要
+                mainHandler.post(() -> extractSummaryAndSave(pageUrl, pageTitle, pageHost));
+            } catch (Exception ignored) {}
+        });
+    }
+
+    /** 通过 evaluateJavascript 提取页面正文摘要，再异步落库 */
+    private void extractSummaryAndSave(String pageUrl, String pageTitle, String pageHost) {
+        if (controller == null || getContext() == null) return;
+        WebView webView = controller.getWebView();
+        if (webView == null) {
+            saveReadingListItem(pageUrl, pageTitle, "", pageHost);
+            return;
+        }
+        // 显示提取中提示
+        Toast.makeText(getContext(),
+                R.string.browser_reading_list_extracting, Toast.LENGTH_SHORT).show();
+        // 提取页面正文前 200 字符（兼容 paragraph / article / body）
+        final String js = "(function(){var t='';var sel=document.querySelectorAll('article p, article, main p, main, p, body');" +
+                "for(var i=0;i<sel.length && t.length<400;i++){var s=(sel[i].innerText||sel[i].textContent||'').trim();" +
+                "if(s.length>t.length)t=s;}return t.substring(0,200);})()";
+        try {
+            webView.evaluateJavascript(js, value -> {
+                String summary = parseJsString(value);
+                saveReadingListItem(pageUrl, pageTitle, summary, pageHost);
+            });
+        } catch (Throwable t) {
+            saveReadingListItem(pageUrl, pageTitle, "", pageHost);
+        }
+    }
+
+    /** 将 evaluateJavascript 返回值解析为普通 String（去除引号、null） */
+    private String parseJsString(String jsResult) {
+        if (jsResult == null || "null".equals(jsResult)) return "";
+        String s = jsResult.trim();
+        if (s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
+            s = s.substring(1, s.length() - 1);
+        }
+        // 反转义常见字符
+        s = s.replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
+        return s.trim();
+    }
+
+    /** 异步保存阅读列表项 */
+    private void saveReadingListItem(String url, String title, String summary, String host) {
+        if (getContext() == null) return;
+        final Context ctx = getContext().getApplicationContext();
+        final BrowserReadingListEntity entity = new BrowserReadingListEntity();
+        entity.setUrl(url);
+        entity.setTitle(title != null ? title : "");
+        entity.setSummary(summary != null ? summary : "");
+        entity.setHost(host != null ? host : "");
+        entity.setSavedAt(System.currentTimeMillis());
+        entity.setRead(0);
+        ioExecutor.execute(() -> {
+            try {
+                BrowserDatabase.getInstance(ctx).readingListDao().insert(entity);
+                mainHandler.post(() -> Toast.makeText(getContext(),
+                        R.string.browser_reading_list_added, Toast.LENGTH_SHORT).show());
+            } catch (Exception ignored) {}
+        });
+    }
+
     private void updateBookmarkIcon() {
         if (btnBookmark == null || getContext() == null || controller == null) return;
         String url = controller.getCurrentUrl();
@@ -386,10 +1099,40 @@ public class BrowserFragment extends Fragment implements
         if (getContext() == null) return;
         PopupMenu popup = new PopupMenu(getContext(), anchor);
         popup.getMenuInflater().inflate(R.menu.browser_more_menu, popup.getMenu());
+
+        // Feature Flag 控制菜单项可见性
+        MenuItem findItem = popup.getMenu().findItem(R.id.menu_find_in_page);
+        if (findItem != null) findItem.setVisible(BuildConfig.BROWSER_FIND_IN_PAGE);
+        MenuItem readerItem = popup.getMenu().findItem(R.id.menu_reader_mode);
+        if (readerItem != null) {
+            readerItem.setVisible(BuildConfig.BROWSER_READER_MODE);
+            readerItem.setTitle(readerModeHelper != null && readerModeHelper.isActive()
+                    ? R.string.browser_menu_reader_mode_exit : R.string.browser_menu_reader_mode);
+        }
+        MenuItem screenshotItem = popup.getMenu().findItem(R.id.menu_screenshot);
+        if (screenshotItem != null) screenshotItem.setVisible(BuildConfig.BROWSER_SCREENSHOT);
+
         MenuItem desktopItem = popup.getMenu().findItem(R.id.menu_desktop);
         if (desktopItem != null) {
             desktopItem.setTitle(isDesktopMode ? R.string.browser_menu_desktop_on : R.string.browser_menu_desktop);
         }
+        // P1-3 阅读列表：Feature Flag 控制菜单项可见性
+        MenuItem readingAddItem = popup.getMenu().findItem(R.id.menu_reading_list_add);
+        if (readingAddItem != null) readingAddItem.setVisible(BuildConfig.BROWSER_READING_LIST);
+        MenuItem readingListItem = popup.getMenu().findItem(R.id.menu_reading_list);
+        if (readingListItem != null) readingListItem.setVisible(BuildConfig.BROWSER_READING_LIST);
+        // P1-2 追踪保护：Feature Flag 控制菜单项可见性
+        MenuItem privacyItem = popup.getMenu().findItem(R.id.menu_privacy_dashboard);
+        if (privacyItem != null) privacyItem.setVisible(BuildConfig.BROWSER_TRACKER_PROTECTION);
+        // P1-4 离线缓存：Feature Flag 控制菜单项可见性
+        MenuItem offlineItem = popup.getMenu().findItem(R.id.menu_offline_cache);
+        if (offlineItem != null) offlineItem.setVisible(BuildConfig.BROWSER_OFFLINE_CACHE);
+        // P1-5 页面翻译：Feature Flag 控制菜单项可见性
+        MenuItem translateItem = popup.getMenu().findItem(R.id.menu_translate);
+        if (translateItem != null) translateItem.setVisible(BuildConfig.BROWSER_TRANSLATE);
+        // P3-3 底栏可定制：Feature Flag 控制菜单项可见性
+        MenuItem customizeBarItem = popup.getMenu().findItem(R.id.menu_customize_bottom_bar);
+        if (customizeBarItem != null) customizeBarItem.setVisible(BuildConfig.BROWSER_CUSTOM_BOTTOM_BAR);
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.menu_new_tab) {
@@ -398,14 +1141,44 @@ public class BrowserFragment extends Fragment implements
                 }
                 if (tabManager != null) {
                     BrowserTabManager.Tab newTab = tabManager.createTab(null);
-                    if (newTab != null && controller != null) {
-                        controller.loadUrl(controller.getDefaultHomeUrl());
-                        etUrl.setText(controller.getDefaultHomeUrl());
+                    if (newTab != null) {
+                        if (BuildConfig.BROWSER_REAL_MULTI_TAB && controller != null) {
+                            // 多 Tab 模式：为新 Tab 创建独立 WebView 并切换
+                            controller.switchToTab(newTab.getId(), controller.getDefaultHomeUrl());
+                            controller.setDownloadListener((url, ua, cd, mt, cl) ->
+                                    handleDownload(url, cd, mt, ua));
+                            if (BuildConfig.BROWSER_HOME_PAGE) {
+                                showHomePage();
+                                etUrl.setText("");
+                            } else {
+                                String homeUrl = controller.getDefaultHomeUrl();
+                                controller.loadUrl(homeUrl);
+                                etUrl.setText(homeUrl);
+                            }
+                        } else if (controller != null) {
+                            // 单 WebView 模式：直接加载首页
+                            controller.loadUrl(controller.getDefaultHomeUrl());
+                            etUrl.setText(controller.getDefaultHomeUrl());
+                        }
+                        Toast.makeText(getContext(), R.string.browser_tab_created, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), R.string.browser_tab_max_reached, Toast.LENGTH_SHORT).show();
                     }
                 }
                 return true;
             } else if (id == R.id.menu_incognito) {
                 toggleIncognitoMode();
+                return true;
+            } else if (id == R.id.menu_find_in_page) {
+                if (findInPageHelper != null) findInPageHelper.show();
+                return true;
+            } else if (id == R.id.menu_reader_mode) {
+                if (readerModeHelper != null && getContext() != null) {
+                    readerModeHelper.toggle(getContext());
+                }
+                return true;
+            } else if (id == R.id.menu_screenshot) {
+                takeScreenshot();
                 return true;
             } else if (id == R.id.menu_desktop) {
                 isDesktopMode = !isDesktopMode;
@@ -426,6 +1199,27 @@ public class BrowserFragment extends Fragment implements
             } else if (id == R.id.menu_bookmarks) {
                 if (getContext() != null) BookmarkActivity.start(getContext());
                 return true;
+            } else if (id == R.id.menu_reading_list_add) {
+                addToReadingList();
+                return true;
+            } else if (id == R.id.menu_reading_list) {
+                if (getContext() != null) ReadingListActivity.start(getContext());
+                return true;
+            } else if (id == R.id.menu_privacy_dashboard) {
+                if (getContext() != null) PrivacyDashboardActivity.start(getContext());
+                return true;
+            } else if (id == R.id.menu_offline_cache) {
+                if (getContext() != null) OfflineCacheActivity.start(getContext());
+                return true;
+            } else if (id == R.id.menu_translate) {
+                if (getContext() != null) {
+                    com.gamecenter.app.browser.core.BrowserTranslateHelper.showEngineDialog(
+                            getContext(), controller != null ? controller.getCurrentUrl() : null);
+                }
+                return true;
+            } else if (id == R.id.menu_customize_bottom_bar) {
+                if (getContext() != null) BottomBarCustomizeActivity.start(getContext());
+                return true;
             } else if (id == R.id.menu_downloads) {
                 if (getContext() != null) DownloadActivity.start(getContext());
                 return true;
@@ -436,6 +1230,14 @@ public class BrowserFragment extends Fragment implements
             return false;
         });
         popup.show();
+    }
+
+    /** 截取当前 WebView 可见区域并保存到相册 */
+    private void takeScreenshot() {
+        if (controller == null || getContext() == null) return;
+        WebView webView = controller.getWebView();
+        if (webView == null) return;
+        BrowserScreenshotHelper.captureAndSave(getContext(), webView, null);
     }
 
     private void shareCurrentUrl() {
@@ -515,6 +1317,55 @@ public class BrowserFragment extends Fragment implements
         Toast.makeText(getContext(),
             isIncognitoMode ? R.string.browser_incognito_on : R.string.browser_incognito_off,
             Toast.LENGTH_SHORT).show();
+    }
+
+    /** P0-1 多 Tab：启动 TabManagerActivity 全屏切换器（带结果回传）。 */
+    private void launchTabManager() {
+        if (getContext() == null) return;
+        if (tabManager == null) tabManager = BrowserTabManager.getInstance(getContext());
+        Intent intent = new Intent(getContext(), TabManagerActivity.class);
+        tabManagerLauncher.launch(intent);
+    }
+
+    /** P0-1 多 Tab：根据 tabId 切换 WebView，并同步 URL 栏。 */
+    private void switchToTabById(@NonNull String tabId) {
+        if (controller == null || tabManager == null) return;
+        BrowserTabManager.Tab tab = findTabById(tabId);
+        if (tab == null) return;
+        // fallbackUrl 用 tab 当前 URL（若 WebView 需重建时加载）
+        String fallback = tab.getUrl();
+        if (fallback == null || fallback.isEmpty()) fallback = controller.getDefaultHomeUrl();
+        WebView wv = controller.switchToTab(tabId, fallback);
+        if (wv == null) return;
+        // 同步 URL 栏和起始页显示状态
+        String currentUrl = controller.getCurrentUrl();
+        if (currentUrl != null && !currentUrl.isEmpty() && !isReaderModeUrl(currentUrl)) {
+            etUrl.setText(currentUrl);
+            hideHomePage();
+        } else if (BuildConfig.BROWSER_HOME_PAGE) {
+            // 空白页 → 显示起始页
+            showHomePage();
+            etUrl.setText("");
+        }
+        // 重新绑定手势监听（新 WebView 需要）
+        if (gestureHelper != null) {
+            try {
+                wv.setOnTouchListener((v, event) -> {
+                    boolean consumed = gestureHelper.onTouch(event);
+                    return consumed || false;
+                });
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    /** 根据 tabId 查找 Tab 对象。 */
+    @Nullable
+    private BrowserTabManager.Tab findTabById(@NonNull String tabId) {
+        if (tabManager == null) return null;
+        for (BrowserTabManager.Tab tab : tabManager.getTabList()) {
+            if (tab.getId().equals(tabId)) return tab;
+        }
+        return null;
     }
 
     private void showTabList() {
@@ -602,33 +1453,64 @@ public class BrowserFragment extends Fragment implements
     public void onPageStarted(String url, Bitmap favicon) {
         isLoading = true;
         hasPageError = false;
-        if (etUrl != null) etUrl.setText(url);
+        // 阅读模式时 about:blank 不更新地址栏
+        if (etUrl != null && !isReaderModeUrl(url)) {
+            etUrl.setText(url);
+        }
         if (progressBar != null) { progressBar.setVisibility(View.VISIBLE); progressBar.setProgress(0); }
         if (errorView != null) errorView.setVisibility(View.GONE);
+        // P3-4 骨架屏：Feature Flag 开启且非阅读模式时显示
+        if (BuildConfig.BROWSER_SKELETON_LOADING && skeletonOverlay != null
+                && !isReaderModeUrl(url)) {
+            skeletonOverlay.setVisibility(View.VISIBLE);
+            skeletonOverlay.bringToFront();
+        }
+        // 页面开始加载时隐藏起始页
+        hideHomePage();
         if (controller != null) controller.removeJsBridge();
     }
 
     @Override
     public void onPageFinished(String url) {
         isLoading = false;
-        if (etUrl != null) etUrl.setText(url);
+        if (etUrl != null && !isReaderModeUrl(url)) {
+            etUrl.setText(url);
+        }
         if (progressBar != null) progressBar.setVisibility(View.GONE);
+        // P3-4 骨架屏：页面加载完成时隐藏
+        if (skeletonOverlay != null) skeletonOverlay.setVisibility(View.GONE);
         if (controller != null) currentTitle = controller.getTitle();
-        saveHistoryIfNeeded(url);
+        // 阅读模式时不写历史记录
+        if (!isReaderModeUrl(url)) {
+            saveHistoryIfNeeded(url);
+            // 仅在可信域名下注入 JSBridge（阅读模式 about:blank 不注入）
+            if (controller != null && getContext() != null) {
+                controller.injectJsBridge(getContext(), url);
+            }
+            // P1-4 离线缓存：Feature Flag 开启时捕获页面 HTML
+            if (BuildConfig.BROWSER_OFFLINE_CACHE && controller != null && getContext() != null) {
+                WebView wv = controller.getWebView();
+                if (wv != null) {
+                    com.gamecenter.app.browser.core.BrowserOfflineCache.getInstance(getContext())
+                            .captureAsync(wv, url, currentTitle);
+                }
+            }
+        }
         updateBookmarkIcon();
 
         // 更新当前标签页信息
-        if (tabManager != null && controller != null) {
+        if (tabManager != null && controller != null && !isReaderModeUrl(url)) {
             BrowserTabManager.Tab currentTab = tabManager.getCurrentTab();
             if (currentTab != null && url != null) {
                 tabManager.updateTabInfo(currentTab.getId(), currentTitle, url);
             }
         }
+    }
 
-        // 仅在可信域名下注入 JSBridge
-        if (controller != null && getContext() != null) {
-            controller.injectJsBridge(getContext(), url);
-        }
+    /** 阅读模式触发 about:blank 加载时跳过历史/书签/JSBridge 处理 */
+    private boolean isReaderModeUrl(@Nullable String url) {
+        return readerModeHelper != null && readerModeHelper.isActive()
+                && (url == null || "about:blank".equals(url));
     }
 
     @Override
@@ -663,6 +1545,9 @@ public class BrowserFragment extends Fragment implements
         super.onResume();
         if (controller != null && getContext() != null) {
             controller.onResume(getContext());
+            // P1-1：onResume 时重新应用设置，确保系统夜间模式变化后
+            // 自动模式（DARK_MODE_AUTO）能正确刷新 WebView 的 forceDark 状态
+            controller.applySettings(getContext());
         } else if (controller != null) {
             controller.onResume(requireContext());
         }
@@ -679,6 +1564,17 @@ public class BrowserFragment extends Fragment implements
         if (getContext() != null) {
             BrowserSettingsManager.getInstance(getContext()).removeListener(this);
         }
+        // P0-4：清理 URL Bar 相关 popup 和防抖任务
+        if (pendingSuggestionRunnable != null) {
+            mainHandler.removeCallbacks(pendingSuggestionRunnable);
+            pendingSuggestionRunnable = null;
+        }
+        hideUrlSuggestions();
+        if (enginePopup != null) { enginePopup.dismiss(); enginePopup = null; }
+        if (findInPageHelper != null) { findInPageHelper.destroy(); findInPageHelper = null; }
+        if (readerModeHelper != null) { readerModeHelper.destroy(); readerModeHelper = null; }
+        gestureHelper = null;
+        urlInputHelper = null;
         if (controller != null) { controller.destroy(); controller = null; }
         super.onDestroyView();
     }

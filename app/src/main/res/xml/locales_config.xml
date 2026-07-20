@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Per-app language configuration for Android 13+ (API 33+)
+     声明应用支持的语音列表，配合 AppCompatDelegate.setApplicationLocales 使用。
+     与 resConfigs "zh-rCN", "en" 保持一致。 -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="zh-CN" />
+    <locale android:name="en" />
+</locale-config>

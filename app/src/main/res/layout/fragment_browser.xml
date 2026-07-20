@@ -13,8 +13,8 @@
             android:id="@+id/browser_top_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/colorSurface"
-            android:elevation="2dp"
+            android:background="?attr/colorSurfaceContainer"
+            android:elevation="3dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="8dp">
@@ -85,19 +85,108 @@
                 app:tint="?attr/colorOnSurface" />
         </LinearLayout>
 
+        <!-- ===== Find In Page Bar（默认隐藏） ===== -->
+        <LinearLayout
+            android:id="@+id/find_in_page_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurfaceContainer"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone">
+
+            <ImageButton
+                android:id="@+id/btn_find_close"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_find_close"
+                android:src="@drawable/ic_close"
+                app:tint="?attr/colorOnSurface" />
+
+            <EditText
+                android:id="@+id/et_find_query"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@android:color/transparent"
+                android:hint="@string/browser_find_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="?attr/colorOnSurface"
+                android:textColorHint="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_find_match_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="0/0"
+                android:textAlignment="center"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp" />
+
+            <ImageButton
+                android:id="@+id/btn_find_prev"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_find_prev"
+                android:src="@drawable/ic_browser_back"
+                app:tint="?attr/colorOnSurface" />
+
+            <ImageButton
+                android:id="@+id/btn_find_next"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_find_next"
+                android:src="@drawable/ic_browser_forward"
+                app:tint="?attr/colorOnSurface" />
+        </LinearLayout>
+
         <ProgressBar
             android:id="@+id/progress_bar"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="match_parent"
             android:layout_height="3dp"
             android:max="100"
+            android:progressTint="?attr/colorPrimary"
+            android:progressBackgroundTint="?attr/colorSurfaceVariant"
             android:visibility="gone" />
 
         <FrameLayout
             android:id="@+id/webview_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1">
+
+            <!-- 浏览器起始页（默认隐藏，新建标签或访问 about:home 时显示） -->
+            <FrameLayout
+                android:id="@+id/browser_home_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
+            <!-- P3-4 页面加载骨架屏（默认隐藏，加载中显示） -->
+            <include
+                android:id="@+id/skeleton_overlay"
+                layout="@layout/layout_browser_skeleton"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <LinearLayout
             android:id="@+id/error_view"
@@ -147,8 +236,8 @@
             android:id="@+id/browser_bottom_bar"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:background="?attr/colorSurface"
-            android:elevation="2dp"
+            android:background="?attr/colorSurfaceContainer"
+            android:elevation="3dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -203,4 +292,35 @@
                 app:tint="?attr/colorOnSurface" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- ===== 手势视觉反馈：左边缘箭头（默认隐藏） ===== -->
+    <ImageView
+        android:id="@+id/gesture_left_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|start"
+        android:layout_marginStart="24dp"
+        android:alpha="0"
+        android:background="@drawable/bg_gesture_indicator"
+        android:contentDescription="@string/browser_gesture_back_desc"
+        android:padding="12dp"
+        android:src="@drawable/ic_browser_back"
+        android:visibility="gone"
+        app:tint="?attr/colorOnPrimary" />
+
+    <!-- ===== 手势视觉反馈：右边缘箭头（默认隐藏） ===== -->
+    <ImageView
+        android:id="@+id/gesture_right_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:layout_marginEnd="24dp"
+        android:alpha="0"
+        android:background="@drawable/bg_gesture_indicator"
+        android:contentDescription="@string/browser_gesture_forward_desc"
+        android:padding="12dp"
+        android:src="@drawable/ic_browser_forward"
+        android:visibility="gone"
+        app:tint="?attr/colorOnPrimary" />
+
 </FrameLayout>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 手势视觉反馈指示器背景：圆形 + 半透明主题色 + 柔和阴影 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="?attr/colorPrimary" />
+    <size
+        android:width="48dp"
+        android:height="48dp" />
+</shape>

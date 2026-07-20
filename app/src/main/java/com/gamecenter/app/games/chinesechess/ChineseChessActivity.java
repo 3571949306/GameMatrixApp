@@ -2,6 +2,7 @@ package com.gamecenter.app.games.chinesechess;
 
 import android.app.AlertDialog;
 import android.media.SoundPool;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,7 +13,10 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -23,6 +27,7 @@ import com.gamecenter.app.games.model.DifficultyLevel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -117,6 +122,9 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private int winStreak = 0;
 
+    /** 预测式返回手势回调（API 33+），与 onBackPressed() 双轨兼容 */
+    private OnBackInvokedCallback backInvokedCallback;
+
     // ==================== 计时器 ====================
 
     /** 红方剩余时间 */
@@ -160,6 +168,7 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chinesechess);
 
@@ -180,6 +189,7 @@ public class ChineseChessActivity extends BaseGameActivity {
         chessView.setOnMoveSoundListener(this::playMoveSound);
 
         initSoundPool();
+        registerPredictiveBack();
 
         findViewById(R.id.btn_start_game).setOnClickListener(v -> startGame());
         findViewById(R.id.btn_undo).setOnClickListener(v -> handleUndo());
@@ -609,7 +619,7 @@ public class ChineseChessActivity extends BaseGameActivity {
         long sec = ms / 1000L;
         long m = sec / 60L;
         long s = sec % 60L;
-        return String.format("%02d:%02d", m, s);
+        return String.format(Locale.getDefault(), "%02d:%02d", m, s);
     }
 
     // ==================== 控制按钮 ====================
@@ -789,16 +799,38 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     // ==================== 返回键 ====================
 
+    /**
+     * 注册预测式返回手势回调（API 33+）。
+     * <p>API < 33 的设备继续走 onBackPressed() 兼容路径，实现双轨返回逻辑。</p>
+     */
+    private void registerPredictiveBack() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            backInvokedCallback = () -> handleBack();
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    backInvokedCallback
+            );
+        }
+    }
+
+    @android.annotation.SuppressLint("MissingSuperCall")
     @Override
     public void onBackPressed() {
+        handleBack();
+    }
+
+    /**
+     * 统一的返回处理逻辑：游戏进行中弹出确认退出对话框，否则直接结束。
+     */
+    private void handleBack() {
         if (isGameRunning && !chessView.isGameOver()) {
             new AlertDialog.Builder(this)
                     .setMessage(R.string.chinese_chess_exit_confirm)
-                    .setPositiveButton(R.string.chinese_chess_exit_yes, (d, w) -> super.onBackPressed())
+                    .setPositiveButton(R.string.chinese_chess_exit_yes, (d, w) -> finish())
                     .setNegativeButton(R.string.chinese_chess_exit_no, null)
                     .show();
         } else {
-            super.onBackPressed();
+            finish();
         }
     }
 
@@ -846,6 +878,10 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     @Override
     protected void onDestroy() {
+        if (backInvokedCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backInvokedCallback);
+            backInvokedCallback = null;
+        }
         mainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
         if (aiExecutor != null) {

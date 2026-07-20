@@ -4,6 +4,12 @@ plugins {
     id 'com.google.devtools.ksp'
 }
 
+def releaseSigningProperties = new Properties()
+def releaseSigningFile = rootProject.file("keystore.properties")
+if (releaseSigningFile.exists()) {
+    releaseSigningFile.withInputStream { releaseSigningProperties.load(it) }
+}
+
 android {
     namespace 'com.gamecenter.app.wrongbook'
     compileSdk 35
@@ -14,11 +20,28 @@ android {
         targetSdk 35
         versionCode 100
         versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            if (!releaseSigningProperties.isEmpty()) {
+                storeFile rootProject.file(releaseSigningProperties['STORE_FILE'])
+                storePassword releaseSigningProperties['STORE_PASSWORD']
+                keyAlias releaseSigningProperties['KEY_ALIAS']
+                keyPassword releaseSigningProperties['KEY_PASSWORD']
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -61,11 +84,21 @@ dependencies {
     // ML Kit 本地 OCR（本地模式）
     compileOnly libs.mlkit.text.recognition
 
+    // EXIF 旋转信息读取（图片压缩修正方向）
+    implementation libs.androidx.exifinterface
+
+    // EncryptedSharedPreferences（正式版 API Key 加密存储）
+    implementation libs.androidx.security.crypto
+
     // Kotlin 协程（与宿主版本对齐）
     implementation libs.kotlinx.coroutines.core
     implementation libs.kotlinx.coroutines.android
 
     ksp libs.room.compiler
+
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.room.testing
 }
 
 tasks.matching {

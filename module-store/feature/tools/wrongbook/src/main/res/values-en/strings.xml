@@ -2,6 +2,7 @@
 <resources>
     <string name="wrongbook_title">WrongBook</string>
     <string name="wrongbook_description">AI-powered wrong question organizer and review planner</string>
+    <string name="wrongbook_back">Back to Games</string>
 
     <string name="wrongbook_tab_questions">Questions</string>
     <string name="wrongbook_tab_dashboard">Dashboard</string>
@@ -27,6 +28,16 @@
     <string name="wrongbook_analyzing">AI is analyzing…</string>
     <string name="wrongbook_save_question">Save Question</string>
     <string name="wrongbook_question_content">Question Content</string>
+    <string name="wrongbook_re_recognize">Re-recognize</string>
+    <string name="wrongbook_accurate_recognize">Accurate OCR</string>
+    <string name="wrongbook_answer">Correct Answer</string>
+    <string name="wrongbook_wrong_reason">Common Mistake</string>
+    <string name="wrongbook_review_suggestion">Review Suggestion</string>
+    <string name="wrongbook_question_type_format">Type: %1$s</string>
+    <string name="wrongbook_confidence_format">Confidence: %1$.0f%%</string>
+    <string name="wrongbook_detail_options_label">Options</string>
+    <string name="wrongbook_detail_question_type_label">Question Type</string>
+    <string name="wrongbook_detail_no_ai_extra">No AI extended fields</string>
 
     <string name="wrongbook_total_questions">Total Questions</string>
     <string name="wrongbook_today_reviews">Reviews Today</string>
@@ -43,14 +54,49 @@
     <string name="wrongbook_ocr_engine">OCR Engine</string>
     <string name="wrongbook_ocr_local">Local ML Kit (default)</string>
     <string name="wrongbook_ocr_cloud">Cloud OCR (Scnet)</string>
+    <string name="wrongbook_ocr_baidu">Baidu OCR (backend proxy)</string>
     <string name="wrongbook_ai_mode">AI Mode</string>
     <string name="wrongbook_ai_cloud">Cloud AI</string>
     <string name="wrongbook_ai_local">Local AI (reserved)</string>
+    <string name="wrongbook_ai_backend_proxy">Backend proxy AI (Zhipu GLM)</string>
     <string name="wrongbook_ai_base_url">API Base URL</string>
     <string name="wrongbook_ai_api_key">API Key</string>
     <string name="wrongbook_ai_model">Model Name</string>
     <string name="wrongbook_save_settings">Save Settings</string>
     <string name="wrongbook_settings_saved">Settings saved</string>
+
+    <!-- Backend proxy (Baidu OCR + Zhipu GLM) -->
+    <string name="wrongbook_backend_section">Backend proxy service</string>
+    <string name="wrongbook_backend_section_hint">Provider keys stay in backend .env; the app encrypts the backend URL and access token</string>
+    <string name="wrongbook_backend_base_url">Backend service URL</string>
+    <string name="wrongbook_backend_base_url_hint">e.g. http://10.0.2.2:8080</string>
+    <string name="wrongbook_backend_enable">Enable backend proxy</string>
+    <string name="wrongbook_backend_test_connection">Test connection</string>
+    <string name="wrongbook_backend_api_token">Backend access token (encrypted)</string>
+    <string name="wrongbook_backend_testing">Testing connection…</string>
+    <string name="wrongbook_backend_test_success">Connected (OCR: %1$s, AI: %2$s)</string>
+    <string name="wrongbook_backend_test_success_simple">Connected</string>
+    <string name="wrongbook_backend_test_fail">Connection failed: %1$s</string>
+    <string name="wrongbook_backend_test_ocr_ok">Baidu OCR configured</string>
+    <string name="wrongbook_backend_test_ocr_off">Baidu OCR not configured</string>
+    <string name="wrongbook_backend_test_ai_ok">Zhipu AI configured</string>
+    <string name="wrongbook_backend_test_ai_off">Zhipu AI not configured</string>
+    <string name="wrongbook_backend_url_empty">Please enter the backend service URL first</string>
+    <string name="wrongbook_backend_flag_disabled">Backend proxy is disabled (feature flag off)</string>
+
+    <!-- Production API direct keys (EncryptedSharedPreferences) -->
+    <string name="wrongbook_secure_section">Production API Keys</string>
+    <string name="wrongbook_secure_section_hint">Keys are encrypted with EncryptedSharedPreferences; only this device can decrypt them</string>
+    <string name="wrongbook_secure_baidu_api_key">Baidu OCR API Key</string>
+    <string name="wrongbook_secure_baidu_secret_key">Baidu OCR Secret Key</string>
+    <string name="wrongbook_secure_zhipu_api_key">Zhipu GLM API Key</string>
+    <string name="wrongbook_secure_zhipu_model">Zhipu model name (default glm-4-flash)</string>
+    <string name="wrongbook_secure_save">Save Encrypted</string>
+    <string name="wrongbook_secure_clear">Clear Config</string>
+    <string name="wrongbook_secure_saved">Keys saved with encryption</string>
+    <string name="wrongbook_secure_cleared">Key configuration cleared</string>
+    <string name="wrongbook_secure_status_format">Current: %1$s</string>
+    <string name="wrongbook_secure_flag_disabled">Secure key configuration is disabled (feature flag off)</string>
 
     <!-- Common -->
     <string name="wrongbook_cancel">Cancel</string>
@@ -130,4 +176,12 @@
     <string name="wrongbook_import_cloud">Restore Backup from HK VPS</string>
     <string name="wrongbook_cloud_export_success">Successfully backed up data to Cloud VPS</string>
     <string name="wrongbook_cloud_import_success">Successfully restored data from Cloud VPS</string>
+
+    <!-- Error messages (Bug fixes) -->
+    <string name="wrongbook_save_failed">Failed to save question, please retry</string>
+    <string name="wrongbook_save_failed_with_reason">Failed to save question: %1$s</string>
+    <string name="wrongbook_cloud_backup_failed">Cloud backup failed</string>
+    <string name="wrongbook_cloud_restore_failed">Cloud restore failed</string>
+    <string name="wrongbook_cloud_backup_failed_with_reason">Cloud backup failed: %1$s</string>
+    <string name="wrongbook_cloud_restore_failed_with_reason">Cloud restore failed: %1$s</string>
 </resources>

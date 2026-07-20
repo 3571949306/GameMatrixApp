@@ -12,6 +12,11 @@
       tools:replace="android:exported" 用于覆盖 androidx.test:core 库 manifest 中的默认值，解决合并冲突。
     -->
     <application android:label="GameMatrix Tests">
+        <!-- 部分第三方模拟器仅提供 android.test.base；AndroidX Runner 已随测试 APK 打包。 -->
+        <uses-library
+            android:name="android.test.runner"
+            android:required="false"
+            tools:replace="android:required" />
         <activity
             android:name="androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity"
             android:exported="false"

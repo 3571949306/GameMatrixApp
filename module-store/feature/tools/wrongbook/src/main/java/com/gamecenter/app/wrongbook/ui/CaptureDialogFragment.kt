@@ -22,9 +22,12 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.gamecenter.app.wrongbook.R
 import com.gamecenter.app.wrongbook.analysis.AnalysisResult
+import com.gamecenter.app.wrongbook.analysis.ImageCompressHelper
 import com.gamecenter.app.wrongbook.databinding.ActivityCaptureBinding
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -40,8 +43,17 @@ class CaptureDialogFragment : DialogFragment() {
     private var currentImageUri: Uri? = null
     private var currentImagePath: String = ""
     private var lastAnalysis: AnalysisResult? = null
+    /** OCR 原始输出（未经过用户编辑），用于持久化溯源 */
+    private var currentOcrText: String = ""
+    /** 题目来源：photo / album / manual */
+    private var currentSourceType: String = "manual"
 
     private var currentStep = 1
+
+    /** 模块 Resources：用于读取模块自身的字符串资源，避免与宿主 R 冲突 */
+    private val moduleResources: android.content.res.Resources
+        get() = com.gamecenter.app.modules.ModuleManager.getModuleResources(ModuleContextHelper.MODULE_ID)?.resources
+            ?: super.getResources()
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -50,6 +62,8 @@ class CaptureDialogFragment : DialogFragment() {
             result.data?.data?.let { uri ->
                 currentImageUri = uri
                 currentImagePath = ""
+                currentSourceType = "album"
+                currentOcrText = ""
                 binding.ivStep2Preview.setImageURI(uri)
                 goToStep(2)
             }
@@ -111,7 +125,9 @@ class CaptureDialogFragment : DialogFragment() {
         binding.btnStep1Camera.setOnClickListener { checkCameraAndTakePhoto() }
         binding.btnStep1Gallery.setOnClickListener { pickImage() }
 
-        binding.btnStep2Recognize.setOnClickListener { recognizeCurrentImage() }
+        binding.btnStep2Recognize.setOnClickListener { recognizeCurrentImage(false) }
+        binding.btnStep2ReRecognize.setOnClickListener { recognizeCurrentImage(false) }
+        binding.btnStep2Accurate.setOnClickListener { recognizeCurrentImage(true) }
 
         binding.btnStep4Analyze.setOnClickListener { analyzeCurrentText() }
 
@@ -141,7 +157,12 @@ class CaptureDialogFragment : DialogFragment() {
         viewModel.ocrResult.observe(viewLifecycleOwner) { result ->
             result?.let {
                 binding.pbStep2Ocr.visibility = View.GONE
+                binding.btnStep2Recognize.visibility = View.VISIBLE
+                binding.btnStep2ReRecognize.visibility = View.VISIBLE
+                binding.btnStep2Accurate.visibility = View.VISIBLE
                 if (it.success) {
+                    // 保存 OCR 原始文本，用户编辑前的快照
+                    currentOcrText = it.text
                     binding.etStep3Content.setText(it.text)
                     goToStep(3)
                 } else {
@@ -187,7 +208,7 @@ class CaptureDialogFragment : DialogFragment() {
 
         binding.layoutNavigation.visibility = if (step > 1) View.VISIBLE else View.GONE
         binding.btnWizardPrev.visibility = if (step > 1) View.VISIBLE else View.GONE
-        
+
         binding.btnWizardNext.visibility = View.VISIBLE
         binding.btnWizardNext.text = if (step == 5) "保存错题" else "下一步"
 
@@ -219,6 +240,8 @@ class CaptureDialogFragment : DialogFragment() {
             "${requireContext().packageName}.wrongbook.fileprovider",
             file
         )
+        currentSourceType = "photo"
+        currentOcrText = ""
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         intent.putExtra(MediaStore.EXTRA_OUTPUT, currentImageUri)
         takePhotoLauncher.launch(intent)
@@ -229,14 +252,22 @@ class CaptureDialogFragment : DialogFragment() {
         pickImageLauncher.launch(intent)
     }
 
-    private fun recognizeCurrentImage() {
+    /**
+     * 识别当前图片。
+     *
+     * @param accurate true 表示高精度识别（后端切换 accurate 接口）
+     */
+    private fun recognizeCurrentImage(accurate: Boolean) {
         val uri = currentImageUri
         if (uri == null) {
             showSnackbar("请先选择图片")
             return
         }
         binding.pbStep2Ocr.visibility = View.VISIBLE
-        viewModel.recognizeImage(uri)
+        binding.btnStep2Recognize.visibility = View.GONE
+        binding.btnStep2ReRecognize.visibility = View.GONE
+        binding.btnStep2Accurate.visibility = View.GONE
+        viewModel.recognizeImage(uri, accurate)
     }
 
     private fun analyzeCurrentText() {
@@ -251,15 +282,90 @@ class CaptureDialogFragment : DialogFragment() {
         viewModel.analyzeText(text)
     }
 
+    /**
+     * 显示 AI 分析结果（Step 4 和 Step 5）。
+     *
+     * 第五阶段增强：展示题型、选项、答案、错因、复习建议、置信度。
+     */
     private fun showAnalysis(result: AnalysisResult) {
+        // Step 4 简要展示
         binding.layoutStep4Result.visibility = View.VISIBLE
         binding.tvStep4Subject.text = result.subject.ifBlank { "通用" }
         binding.tvStep4Knowledge.text = if (result.knowledgePoints.isEmpty()) "-" else result.knowledgePoints.joinToString(", ")
         binding.tvStep4Analysis.text = result.analysis.ifBlank { "-" }
 
+        // Step 5 完整展示
         binding.tvStep5Subject.text = result.subject.ifBlank { "通用" }
-        binding.tvStep5Content.text = binding.etStep3Content.text?.toString()?.trim() ?: ""
+
+        // 题型
+        if (result.questionType.isNotBlank() && result.questionType != "unknown") {
+            binding.tvStep5QuestionType.visibility = View.VISIBLE
+            binding.tvStep5QuestionType.text = moduleResources.getString(
+                R.string.wrongbook_question_type_format, mapQuestionType(result.questionType)
+            )
+        } else {
+            binding.tvStep5QuestionType.visibility = View.GONE
+        }
+
+        // 题目内容
+        val contentText = binding.etStep3Content.text?.toString()?.trim() ?: ""
+        binding.tvStep5Content.text = result.question.ifBlank { contentText }
+
+        // 选项
+        if (result.options.isNotEmpty()) {
+            binding.tvStep5Options.visibility = View.VISIBLE
+            binding.tvStep5Options.text = result.options.joinToString("\n")
+        } else {
+            binding.tvStep5Options.visibility = View.GONE
+        }
+
+        // 答案
+        binding.tvStep5Answer.text = result.answer.ifBlank { "-" }
+
+        // 解析
         binding.tvStep5Analysis.text = result.analysis.ifBlank { "-" }
+
+        // 错因
+        if (result.wrongReason.isNotBlank()) {
+            binding.tvStep5WrongReasonLabel.visibility = View.VISIBLE
+            binding.tvStep5WrongReason.visibility = View.VISIBLE
+            binding.tvStep5WrongReason.text = result.wrongReason
+        } else {
+            binding.tvStep5WrongReasonLabel.visibility = View.GONE
+            binding.tvStep5WrongReason.visibility = View.GONE
+        }
+
+        // 复习建议
+        if (result.reviewSuggestion.isNotBlank()) {
+            binding.tvStep5ReviewLabel.visibility = View.VISIBLE
+            binding.tvStep5ReviewSuggestion.visibility = View.VISIBLE
+            binding.tvStep5ReviewSuggestion.text = result.reviewSuggestion
+        } else {
+            binding.tvStep5ReviewLabel.visibility = View.GONE
+            binding.tvStep5ReviewSuggestion.visibility = View.GONE
+        }
+
+        // 置信度
+        if (result.confidence > 0) {
+            binding.tvStep5Confidence.visibility = View.VISIBLE
+            binding.tvStep5Confidence.text = moduleResources.getString(
+                R.string.wrongbook_confidence_format, result.confidence * 100
+            )
+        } else {
+            binding.tvStep5Confidence.visibility = View.GONE
+        }
+    }
+
+    /** 将后端题型枚举映射为本地化文案 */
+    private fun mapQuestionType(type: String): String {
+        return when (type) {
+            "single_choice" -> "单选题"
+            "multiple_choice" -> "多选题"
+            "judge" -> "判断题"
+            "fill_blank" -> "填空题"
+            "short_answer" -> "简答题"
+            else -> type
+        }
     }
 
     private fun saveQuestion() {
@@ -276,13 +382,41 @@ class CaptureDialogFragment : DialogFragment() {
             return
         }
         viewLifecycleOwner.lifecycleScope.launch {
-            val savedImagePath = copyImageToPrivateDir()
-            viewModel.saveQuestion(text, analysis, savedImagePath)
-            Toast.makeText(requireContext(), "错题保存成功！", Toast.LENGTH_SHORT).show()
-            dismiss()
+            // 第三阶段：使用图片压缩工具替代直接复制
+            val savedImagePath = compressAndSaveImage()
+            // 第三阶段：传递 OCR/AI 溯源元数据
+            val success = viewModel.saveQuestion(
+                rawText = text,
+                analysisResult = analysis,
+                imagePath = savedImagePath,
+                ocrText = currentOcrText,
+                sourceType = currentSourceType,
+                ocrProvider = viewModel.currentOcrProvider,
+                aiProvider = viewModel.currentAiProvider,
+                aiModel = viewModel.currentAiModel
+            )
+            if (success) {
+                Toast.makeText(requireContext(), "错题保存成功！", Toast.LENGTH_SHORT).show()
+                dismiss()
+            } else {
+                showSnackbar("错题保存失败，请重试")
+            }
         }
     }
 
+    /**
+     * 使用 ImageCompressHelper 压缩并修正图片方向后保存到私有目录。
+     * 压缩失败时回退到直接复制。
+     * 重 IO 操作在 Dispatchers.IO 执行，避免阻塞主线程。
+     */
+    private suspend fun compressAndSaveImage(): String = withContext(Dispatchers.IO) {
+        val uri = currentImageUri ?: return@withContext ""
+        val compressed = ImageCompressHelper.compressAndFixOrientation(requireContext(), uri)
+        if (compressed.isNotBlank()) return@withContext compressed
+        copyImageToPrivateDir()
+    }
+
+    /** 回退方案：直接复制原始图片（不压缩） */
     private suspend fun copyImageToPrivateDir(): String {
         val uri = currentImageUri ?: return ""
         return try {

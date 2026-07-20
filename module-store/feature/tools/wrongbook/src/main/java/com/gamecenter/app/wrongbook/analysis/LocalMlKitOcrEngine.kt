@@ -19,7 +19,7 @@ class LocalMlKitOcrEngine : OcrEngine {
 
     override val name: String = "local"
 
-    override suspend fun recognize(context: Context, imageUri: Uri): OcrResult =
+    override suspend fun recognize(context: Context, imageUri: Uri, accurate: Boolean): OcrResult =
         withContext(Dispatchers.IO) {
             suspendCancellableCoroutine { continuation ->
                 val image: InputImage?

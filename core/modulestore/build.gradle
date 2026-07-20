@@ -35,6 +35,7 @@ android {
 dependencies {
     implementation project(':core:common')
     implementation project(':core:moduleloader')
+    implementation project(':core:security')
 
     implementation 'androidx.annotation:annotation:1.9.1'
     implementation 'androidx.core:core-ktx:1.15.0'

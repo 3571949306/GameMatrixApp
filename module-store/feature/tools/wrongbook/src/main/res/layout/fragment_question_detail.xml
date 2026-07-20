@@ -334,6 +334,115 @@
                     android:importantForAutofill="no" />
             </FrameLayout>
 
+            <!-- AI 解析增强字段区（题型/选项/答案/错因/复习建议/置信度） -->
+            <LinearLayout
+                android:id="@+id/layoutAiExtra"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="40dp"
+                android:background="@drawable/wrongbook_card_background"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:visibility="gone">
+
+                <!-- 题型 -->
+                <TextView
+                    android:id="@+id/tvDetailQuestionType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/wrongbook_text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <!-- 选项 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/wrongbook_detail_options_label"
+                    android:textColor="@color/wrongbook_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvDetailOptions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/wrongbook_text_primary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <!-- 答案 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/wrongbook_answer"
+                    android:textColor="@color/wrongbook_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvDetailAnswer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/wrongbook_mastery_high"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <!-- 易错原因 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/wrongbook_wrong_reason"
+                    android:textColor="@color/wrongbook_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvDetailWrongReason"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/wrongbook_mastery_low"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <!-- 复习建议 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/wrongbook_review_suggestion"
+                    android:textColor="@color/wrongbook_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvDetailReviewSuggestion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/wrongbook_text_primary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <!-- 置信度 -->
+                <TextView
+                    android:id="@+id/tvDetailConfidence"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/wrongbook_text_tertiary"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>

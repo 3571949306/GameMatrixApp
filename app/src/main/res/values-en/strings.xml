@@ -51,7 +51,7 @@
 <string name="ai_level_expert">"Expert"</string>
 <string name="ai_level_intermediate">"Intermediate"</string>
 <string name="ai_level_master">"Master"</string>
-<string name="ai_thinking">"AI is thinking..."</string>
+<string name="ai_thinking">"AI is thinking…"</string>
 <string name="alert">"Alert"</string>
 <string name="all">"All"</string>
 <string name="all_modules">"All modules"</string>
@@ -109,7 +109,7 @@
 <string name="button_download">"Download"</string>
 <string name="button_edit">"Edit"</string>
 <string name="button_install">"Install"</string>
-<string name="button_loading">"Loading..."</string>
+<string name="button_loading">"Loading…"</string>
 <string name="button_no">"No"</string>
 <string name="button_ok">"OK"</string>
 <string name="button_retry">"Retry"</string>
@@ -136,7 +136,7 @@
 <string name="check_for_updates">"Check for updates"</string>
 <string name="check_update_failed">"Failed to check for updates"</string>
 <string name="check_update_success">"Successfully checked for updates"</string>
-<string name="checking_update">"Checking for updates..."</string>
+<string name="checking_update">"Checking for updates…"</string>
 <string name="choose_color">"Choose color"</string>
 <string name="choose_language">"Choose language"</string>
 <string name="choose_theme">"Choose theme"</string>
@@ -174,7 +174,7 @@
 <string name="confirm_uninstall_message">"Are you sure you want to uninstall \"%s\"?"</string>
 <string name="connect_failed">"Connection failed"</string>
 <string name="connect_timeout">"Connection timeout"</string>
-<string name="connecting">"Connecting..."</string>
+<string name="connecting">"Connecting…"</string>
 <string name="connection_error">"Connection error"</string>
 <string name="connection_failed">"Connection failed"</string>
 <string name="connection_lost">"Connection lost"</string>
@@ -265,9 +265,9 @@
 <string name="download_progress">"Download progress"</string>
 <string name="download_size">"Download size"</string>
 <string name="download_speed">"Download speed"</string>
-<string name="downloading">"Downloading..."</string>
-<string name="downloading_module">"Downloading module..."</string>
-<string name="downloading_update">"Downloading update..."</string>
+<string name="downloading">"Downloading…"</string>
+<string name="downloading_module">"Downloading module…"</string>
+<string name="downloading_update">"Downloading update…"</string>
 <string name="draw">"Draw"</string>
 <string name="draw_offer">"Draw offer"</string>
 <string name="draw_offered">"Opponent offered a draw"</string>
@@ -444,9 +444,9 @@
 <string name="install_time">"Install time"</string>
 <string name="installed">"Installed"</string>
 <string name="installed_modules">"Installed modules"</string>
-<string name="installing">"Installing..."</string>
-<string name="installing_module">"Installing module..."</string>
-<string name="installing_update">"Installing update..."</string>
+<string name="installing">"Installing…"</string>
+<string name="installing_module">"Installing module…"</string>
+<string name="installing_update">"Installing update…"</string>
 <string name="insufficient_storage">"Insufficient storage"</string>
 <string name="insufficient_storage_message">"Insufficient storage, please free up space and try again"</string>
 <string name="invalid_email">"Invalid email address"</string>
@@ -490,10 +490,10 @@
 <string name="licenses">"Licenses"</string>
 <string name="light">"Light"</string>
 <string name="light_theme">"Light theme"</string>
-<string name="loading">"Loading..."</string>
-<string name="loading_game">"Loading game..."</string>
-<string name="loading_modules">"Loading modules..."</string>
-<string name="loading_update">"Loading update..."</string>
+<string name="loading">"Loading…"</string>
+<string name="loading_game">"Loading game…"</string>
+<string name="loading_modules">"Loading modules…"</string>
+<string name="loading_update">"Loading update…"</string>
 <string name="local">"Local"</string>
 <string name="local_game">"Local game"</string>
 <string name="local_modules">"Local modules"</string>
@@ -687,7 +687,7 @@
 <string name="player_stats">"Player stats"</string>
 <string name="player_white">"White"</string>
 <string name="players">"Players"</string>
-<string name="please_wait">"Please wait..."</string>
+<string name="please_wait">"Please wait…"</string>
 <string name="popular">"Popular"</string>
 <string name="popular_modules">"Popular modules"</string>
 <string name="portrait">"Portrait"</string>
@@ -696,8 +696,8 @@
 <string name="power_saver_mode">"Power saver mode"</string>
 <string name="preferences">"Preferences"</string>
 <string name="premium">"Premium"</string>
-<string name="prepare_update">"Prepare update..."</string>
-<string name="preparing_update">"Preparing update..."</string>
+<string name="prepare_update">"Prepare update…"</string>
+<string name="preparing_update">"Preparing update…"</string>
 <string name="press_back_again">"Press back again to exit"</string>
 <string name="preview">"Preview"</string>
 <string name="preview_theme">"Preview theme"</string>
@@ -707,7 +707,7 @@
 <string name="privacy_settings">"Privacy settings"</string>
 <string name="private_message">"Private message"</string>
 <string name="problem">"Problem"</string>
-<string name="processing">"Processing..."</string>
+<string name="processing">"Processing…"</string>
 <string name="profile">"Profile"</string>
 <string name="profile_settings">"Profile settings"</string>
 <string name="progress">"Progress"</string>
@@ -734,7 +734,7 @@
 <string name="rating">"Rating"</string>
 <string name="rating_stars">"Rating stars"</string>
 <string name="reconnect">"Reconnect"</string>
-<string name="reconnecting">"Reconnecting..."</string>
+<string name="reconnecting">"Reconnecting…"</string>
 <string name="red">"Red"</string>
 <string name="redo">"Redo"</string>
 <string name="refresh">"Refresh"</string>
@@ -766,7 +766,7 @@
 <string name="repair_module_failed">"Failed to repair module"</string>
 <string name="repair_module_success">"Module repaired successfully"</string>
 <string name="repair_modules">"Repair modules"</string>
-<string name="repairing">"Repairing..."</string>
+<string name="repairing">"Repairing…"</string>
 <string name="repeat_password">"Repeat password"</string>
 <string name="replay">"Replay"</string>
 <string name="report">"Report"</string>
@@ -798,7 +798,7 @@
 <string name="restore_defaults">"Restore defaults"</string>
 <string name="restore_purchase">"Restore purchase"</string>
 <string name="restore_settings">"Restore settings"</string>
-<string name="restoring">"Restoring..."</string>
+<string name="restoring">"Restoring…"</string>
 <string name="result">"Result"</string>
 <string name="retry">"Retry"</string>
 <string name="retry_download">"Retry download"</string>
@@ -829,7 +829,7 @@
 <string name="save_success">"Save successful"</string>
 <string name="save_theme">"Save theme"</string>
 <string name="saved">"Saved"</string>
-<string name="saving">"Saving..."</string>
+<string name="saving">"Saving…"</string>
 <string name="scan">"Scan"</string>
 <string name="scan_qr_code">"Scan QR code"</string>
 <string name="score">"Score"</string>
@@ -983,7 +983,7 @@
 <string name="start_module">"Start module"</string>
 <string name="start_new_game">"Start new game"</string>
 <string name="start_time">"Start time"</string>
-<string name="starting">"Starting..."</string>
+<string name="starting">"Starting…"</string>
 <string name="statistics">"Statistics"</string>
 <string name="status">"Status"</string>
 <string name="status_connected">"Connected"</string>
@@ -1039,7 +1039,7 @@
 <string name="sync_complete">"Sync complete"</string>
 <string name="sync_data">"Sync data"</string>
 <string name="sync_failed">"Sync failed"</string>
-<string name="sync_in_progress">"Syncing..."</string>
+<string name="sync_in_progress">"Syncing…"</string>
 <string name="sync_now">"Sync now"</string>
 <string name="sync_settings">"Sync settings"</string>
 <string name="sync_success">"Sync successful"</string>
@@ -1159,7 +1159,7 @@
 <string name="uninstall_module_failed">"Failed to uninstall module"</string>
 <string name="uninstall_module_success">"Module uninstalled successfully"</string>
 <string name="uninstall_modules">"Uninstall modules"</string>
-<string name="uninstalling">"Uninstalling..."</string>
+<string name="uninstalling">"Uninstalling…"</string>
 <string name="unknown">"Unknown"</string>
 <string name="unknown_error">"Unknown error"</string>
 <string name="unknown_error_message">"An unknown error occurred"</string>
@@ -1180,7 +1180,7 @@
 <string name="update_channel">"Update channel"</string>
 <string name="update_check">"Update check"</string>
 <string name="update_check_failed">"Update check failed"</string>
-<string name="update_checking">"Checking for updates..."</string>
+<string name="update_checking">"Checking for updates…"</string>
 <string name="update_complete">"Update complete"</string>
 <string name="update_completed">"Update completed"</string>
 <string name="update_description">"Update description"</string>
@@ -1199,14 +1199,14 @@
 <string name="update_ready_message">"Update is ready, install now?"</string>
 <string name="update_required">"Update required"</string>
 <string name="update_settings">"Update settings"</string>
-<string name="update_size">"Update size"</string>
+<string name="update_size">Size: %s</string>
 <string name="update_source">"Update source"</string>
 <string name="update_source_changed">"Update source changed"</string>
 <string name="update_source_settings">"Update source settings"</string>
 <string name="update_status">"Update status"</string>
 <string name="update_success">"Update successful"</string>
 <string name="update_time">"Update time"</string>
-<string name="update_version">"Update version"</string>
+<string name="update_version">Version: %s</string>
 <string name="updated">"Updated"</string>
 <string name="updated_at">"Updated at"</string>
 <string name="updated_modules">"Updated modules"</string>
@@ -1217,7 +1217,7 @@
 <string name="upload_module">"Upload module"</string>
 <string name="upload_progress">"Upload progress"</string>
 <string name="upload_success">"Upload successful"</string>
-<string name="uploading">"Uploading..."</string>
+<string name="uploading">"Uploading…"</string>
 <string name="url">"URL"</string>
 <string name="usage">"Usage"</string>
 <string name="usage_statistics">"Usage statistics"</string>
@@ -1277,9 +1277,9 @@
 <string name="vs_ai">"VS AI"</string>
 <string name="vs_player">"VS Player"</string>
 <string name="wait">"Wait"</string>
-<string name="waiting">"Waiting..."</string>
-<string name="waiting_for_opponent">"Waiting for opponent..."</string>
-<string name="waiting_for_players">"Waiting for players..."</string>
+<string name="waiting">"Waiting…"</string>
+<string name="waiting_for_opponent">"Waiting for opponent…"</string>
+<string name="waiting_for_players">"Waiting for players…"</string>
 <string name="wallpaper">"Wallpaper"</string>
 <string name="wallpaper_settings">"Wallpaper settings"</string>
 <string name="warning">"Warning"</string>
@@ -1364,4 +1364,801 @@
 <string name="chinese_chess_exit_no">"Continue"</string>
 <string name="chinese_chess_undo_unavailable">"Cannot undo now"</string>
 <string name="nav_wrongbook">"WrongBook"</string>
+
+    <!-- i18n sync: zh→en: auto-supplemented by scripts/sync_i18n.py -->
+    <string name="achievement_ai_conversations_10_desc">Chat with AI assistant 10 times</string>
+    <string name="achievement_ai_conversations_10_title">AI New Friend</string>
+    <string name="achievement_ai_conversations_50_desc">Chat with AI assistant 50 times</string>
+    <string name="achievement_ai_conversations_50_title">AI Old Buddy</string>
+    <string name="achievement_chess_checkmate_desc">Deliver checkmate in Chinese Chess</string>
+    <string name="achievement_chess_checkmate_title">Checkmate!</string>
+    <string name="achievement_daily_login_desc">Log in once a day</string>
+    <string name="achievement_daily_login_streak_7_desc">Log in for 7 consecutive days</string>
+    <string name="achievement_daily_login_streak_7_title">Persistence</string>
+    <string name="achievement_daily_login_title">Daily Check-in</string>
+    <string name="achievement_first_win_desc">Win your first game</string>
+    <string name="achievement_first_win_title">First Win</string>
+    <string name="achievement_games_played_100_desc">Complete 100 games</string>
+    <string name="achievement_games_played_100_title">Seasoned Player</string>
+    <string name="achievement_games_played_10_desc">Complete 10 games</string>
+    <string name="achievement_games_played_10_title">Getting Started</string>
+    <string name="achievement_games_played_50_desc">Complete 50 games</string>
+    <string name="achievement_games_played_50_title">Veteran</string>
+    <string name="achievement_go_first_capture_desc">Capture your first stone in Go</string>
+    <string name="achievement_go_first_capture_title">First Capture</string>
+    <string name="achievement_gomoku_perfect_desc">Win a Gomoku game without losing a stone</string>
+    <string name="achievement_gomoku_perfect_title">Perfect Game</string>
+    <string name="achievement_online_first_win_desc">Win your first online game</string>
+    <string name="achievement_online_first_win_title">Online First Win</string>
+    <string name="achievement_online_win_streak_3_desc">Win 3 online games in a row</string>
+    <string name="achievement_online_win_streak_3_title">Online 3-Win Streak</string>
+    <string name="achievement_win_streak_10_desc">Win 10 games in a row</string>
+    <string name="achievement_win_streak_10_title">10-Win Streak</string>
+    <string name="achievement_win_streak_3_desc">Win 3 games in a row</string>
+    <string name="achievement_win_streak_3_title">3-Win Streak</string>
+    <string name="achievement_win_streak_5_desc">Win 5 games in a row</string>
+    <string name="achievement_win_streak_5_title">5-Win Streak</string>
+    <string name="ai_assistant">AI Assistant</string>
+    <string name="ai_cloud_mode">Cloud mode</string>
+    <string name="ai_execute">Run</string>
+    <string name="ai_input_hint">Enter text to process…</string>
+    <string name="ai_local_mode">Local mode</string>
+    <string name="ai_no_api_key">No API key configured. Cloud AI features are unavailable.</string>
+    <string name="ai_open_full_page">Open full AI page</string>
+    <string name="ai_quota_exceeded">Today\'s free quota is used up</string>
+    <string name="ai_result_empty">Please enter text to process</string>
+    <string name="ai_status_done">Done</string>
+    <string name="ai_status_failed">Failed</string>
+    <string name="ai_status_processing">Processing…</string>
+    <string name="ai_status_ready">Ready</string>
+    <string name="ai_task_chat">Chat</string>
+    <string name="ai_task_classify">Classify</string>
+    <string name="ai_task_keywords">Keywords</string>
+    <string name="ai_task_ocr">OCR</string>
+    <string name="ai_task_ocr_clean">OCR Cleanup</string>
+    <string name="ai_task_qa_pairs">QA Pairs</string>
+    <string name="ai_task_rewrite">Rewrite</string>
+    <string name="ai_task_summary">Summarize</string>
+    <string name="ai_task_translate">Translate</string>
+    <string name="ai_typing">AI is typing…</string>
+    <string name="battery_info">Battery Info</string>
+    <string name="battery_level">Level</string>
+    <string name="battery_status">Status</string>
+    <string name="battery_temperature">Temperature</string>
+    <string name="battery_voltage">Voltage</string>
+    <string name="blackjack">Blackjack</string>
+    <string name="blackjack_desc">Classic card game</string>
+    <string name="brotato">Survival Shooter</string>
+    <string name="brotato_desc">Defeat enemies, collect coins, upgrade</string>
+    <string name="browser_initial_url">https://www.baidu.com</string>
+    <string name="browser_loading">Loading…</string>
+    <string name="btn_restart">Restart</string>
+    <string name="btn_undo">Undo</string>
+    <string name="category_casual">Casual</string>
+    <string name="category_classics">Classics</string>
+    <string name="category_other">Other</string>
+    <string name="category_puzzle">Puzzle</string>
+    <string name="category_reaction">Reaction</string>
+    <string name="check_update">Check for updates</string>
+    <string name="checkers">Checkers</string>
+    <string name="checkers_desc">Classic checkers</string>
+    <string name="chinese_chess">Chinese Chess</string>
+    <string name="chinese_chess_back_home">Back to menu</string>
+    <string name="chinese_chess_black_player">Black (AI)</string>
+    <string name="chinese_chess_captured_label">Captured</string>
+    <string name="chinese_chess_check_alert">Check!</string>
+    <string name="chinese_chess_default_player_name">Player</string>
+    <string name="chinese_chess_desc">Chinese Chess vs AI</string>
+    <string name="chinese_chess_draw">Draw</string>
+    <string name="chinese_chess_draw_accept">Accept</string>
+    <string name="chinese_chess_draw_confirm">Draw offered. Waiting for opponent…</string>
+    <string name="chinese_chess_draw_offer">Opponent offers a draw. Accept?</string>
+    <string name="chinese_chess_draw_reject">Decline</string>
+    <string name="chinese_chess_draw_rejected">Opponent declined the draw</string>
+    <string name="chinese_chess_game_over_draw">Draw</string>
+    <string name="chinese_chess_game_over_lose">Black wins</string>
+    <string name="chinese_chess_game_over_title">Game over</string>
+    <string name="chinese_chess_game_over_win">Red wins</string>
+    <string name="chinese_chess_move_history">Move history</string>
+    <string name="chinese_chess_no_moves">No moves yet</string>
+    <string name="chinese_chess_play_again">Play again</string>
+    <string name="chinese_chess_red_player">Red (You)</string>
+    <string name="chinese_chess_resign">Resign</string>
+    <string name="chinese_chess_resign_confirm">Are you sure you want to resign?</string>
+    <string name="chinese_chess_resigned">You resigned</string>
+    <string name="chinese_chess_stat_black_captures">Black captures</string>
+    <string name="chinese_chess_stat_captures">Captures</string>
+    <string name="chinese_chess_stat_duration">Duration</string>
+    <string name="chinese_chess_stat_moves">Total moves</string>
+    <string name="chinese_chess_stat_red_captures">Red captures</string>
+    <string name="chinese_chess_stat_score">Score</string>
+    <string name="chinese_chess_turn_black">Black\'s turn</string>
+    <string name="chinese_chess_turn_red">Red\'s turn</string>
+    <string name="chinesechess">Chinese Chess</string>
+    <string name="chinesechess_desc">Classic Chinese Chess game</string>
+    <string name="dependencies">Dependencies</string>
+    <string name="device_brand">Brand</string>
+    <string name="device_model">Model</string>
+    <string name="device_os_version">OS Version</string>
+    <string name="difficulty_hell">Hell</string>
+    <string name="dns1">DNS 1</string>
+    <string name="dns2">DNS 2</string>
+    <string name="dns_info">DNS Servers</string>
+    <string name="error_cancelled">Request cancelled</string>
+    <string name="error_dns_resolution">Unable to resolve server address. Please check your network.</string>
+    <string name="error_io">Network I/O error. Please retry.</string>
+    <string name="error_network_disconnected">Network disconnected. Please check your network settings.</string>
+    <string name="error_server_4xx">Request rejected by server. Please check your input.</string>
+    <string name="error_server_5xx">Internal server error. Please try again later.</string>
+    <string name="error_ssl">SSL certificate verification failed. Please check network security.</string>
+    <string name="feedback_163">NetEase 163 Mail (web)</string>
+    <string name="feedback_copied">Recipient address copied to clipboard</string>
+    <string name="feedback_copy_hint">Fallback recipient is not configured in the public repo. Prefer "Submit feedback".</string>
+    <string name="feedback_copy_recipient"></string>
+    <string name="feedback_default">Open local mail client</string>
+    <string name="feedback_gmail">Gmail (web)</string>
+    <string name="feedback_netease_toast">Opening NetEase Mail Master…</string>
+    <string name="feedback_no_client">No mail client found. Please choose a web client or send manually.</string>
+    <string name="feedback_outlook">Outlook (web)</string>
+    <string name="feedback_qq">QQ Mail (web)</string>
+    <string name="feedback_toast">Opening mail client…</string>
+    <string name="game_blackjack">Blackjack</string>
+    <string name="game_breakout">Breakout</string>
+    <string name="game_brotato">Survival Shooter</string>
+    <string name="game_checkers">Checkers</string>
+    <string name="game_dice">Dice Game</string>
+    <string name="game_doudizhu">Dou Dizhu</string>
+    <string name="game_doudizhu_desc">Classic three-player card game</string>
+    <string name="game_entrance">Enter game</string>
+    <string name="game_flappy">Flappy Bird</string>
+    <string name="game_go">Go</string>
+    <string name="game_guess">Guess Number</string>
+    <string name="game_klotski">Klotski</string>
+    <string name="game_knife">Knife Master</string>
+    <string name="game_knife_desc">Throw knives precisely, hit the rotating target, avoid inserted knives</string>
+    <string name="game_match">Match-3</string>
+    <string name="game_memory">Memory Cards</string>
+    <string name="game_pipeline">Pipeline</string>
+    <string name="game_plane">Air Combat</string>
+    <string name="game_reaction">Reaction Challenge</string>
+    <string name="game_rock">Rock Paper Scissors</string>
+    <string name="game_sokoban">Sokoban</string>
+    <string name="game_sudoku">Sudoku</string>
+    <string name="game_tic">Tic-Tac-Toe</string>
+    <string name="game_tiles">Don\'t Tap White Tile</string>
+    <string name="game_whack">Whack-a-Mole</string>
+    <string name="generate">Generate</string>
+    <string name="generate_qr">Generate QR</string>
+    <string name="gomoku">Gomoku</string>
+    <string name="gomoku_desc">Classic Gomoku vs AI</string>
+    <string name="icon_desc">Icon</string>
+    <string name="installed_modules_empty">No downloaded modules</string>
+    <string name="installed_modules_title">Downloaded Modules</string>
+    <string name="installed_uninstall">Uninstall</string>
+    <string name="installed_update">Update</string>
+    <!-- ===== Module store localization (Batch 19) ===== -->
+    <string name="module_search_hint">Search modules / games</string>
+    <string name="module_update_all">Update all</string>
+    <string name="module_update_all_count">Update all (%1$d)</string>
+    <string name="module_retry">Retry</string>
+    <string name="module_builtin">Built-in</string>
+    <string name="module_new_badge">NEW</string>
+    <string name="module_action_download">Download</string>
+    <string name="module_action_open">Open</string>
+    <string name="module_action_enable">Enable</string>
+    <string name="module_action_cancel">Cancel</string>
+    <string name="module_status_downloading">Downloading %1$d%%</string>
+    <string name="module_status_update_available">Update available v%1$d → v%2$d</string>
+    <string name="module_status_installed">Installed</string>
+    <string name="module_status_not_installed">Not installed</string>
+    <string name="module_stats_format">%1$d modules | %2$d installed%3$s</string>
+    <string name="module_stats_update_suffix"> | %1$d updates</string>
+    <string name="module_refreshing">Refreshing module list</string>
+    <string name="module_no_updates">No modules to update</string>
+    <string name="module_start_update_count">Starting update for %1$d modules</string>
+    <string name="module_enabled_format">%1$s enabled</string>
+    <string name="module_start_download_format">Starting download of %1$s…</string>
+    <string name="module_download_complete_format">%1$s download complete</string>
+    <string name="module_download_failed_format">Download failed: %1$s</string>
+    <string name="module_uninstalled_format">%1$s uninstalled</string>
+    <string name="module_load_failed">Failed to load module</string>
+    <string name="module_start_failed_format">Failed to start: %1$s</string>
+    <string name="module_need_real_package">This game requires the real module package to be downloaded</string>
+    <string name="module_settings_wip">Settings coming soon</string>
+    <string name="module_uninstall_confirm_title">Confirm uninstall</string>
+    <string name="module_uninstall_confirm_format">Uninstall %1$s?</string>
+    <string name="module_cancel_download_confirm_title">Cancel download</string>
+    <string name="module_cancel_download_confirm_format">Cancel download of %1$s?</string>
+    <string name="module_sort_by_name">By name</string>
+    <string name="module_sort_by_size">By size</string>
+    <string name="module_sort_by_version">By version</string>
+    <string name="module_sort_by_downloads">By downloads</string>
+    <string name="module_sort_by_rating">By rating</string>
+    <string name="module_sort_title">Sort by</string>
+    <!-- ===== Batch 21 filter / search history / detail enhancement strings ===== -->
+    <string name="module_filter_title">Filter</string>
+    <string name="module_filter_state_label">Install state</string>
+    <string name="module_filter_state_all">All</string>
+    <string name="module_filter_state_installed">Installed only</string>
+    <string name="module_filter_state_not_installed">Not installed only</string>
+    <string name="module_filter_state_updatable">Updatable only</string>
+    <string name="module_filter_size_label">File size</string>
+    <string name="module_filter_size_all">Any</string>
+    <string name="module_filter_size_small">&lt; 5 MB</string>
+    <string name="module_filter_size_medium">5 ~ 20 MB</string>
+    <string name="module_filter_size_large">&gt; 20 MB</string>
+    <string name="module_filter_version_label">Version</string>
+    <string name="module_filter_version_all">Any</string>
+    <string name="module_filter_version_above_v1">Above v1.0</string>
+    <string name="module_filter_version_above_v2">Above v2.0</string>
+    <string name="module_filter_clear">Clear filter</string>
+    <string name="module_filter_applied_format">Filter applied (%1$d results)</string>
+    <string name="module_search_history_title">Search history</string>
+    <string name="module_search_history_clear">Clear history</string>
+    <string name="module_search_history_cleared">Search history cleared</string>
+    <string name="module_detail_screenshots">Screenshots</string>
+    <string name="module_detail_changelog">Changelog</string>
+    <string name="module_detail_permissions">Permissions</string>
+    <string name="module_detail_no_changelog">No changelog available</string>
+    <string name="module_detail_perm_internet">Network access: for downloading module packages and online content</string>
+    <string name="module_detail_perm_storage">Storage access: for caching module assets and saving screenshots</string>
+    <string name="module_detail_perm_notifications">Notifications: for showing download progress and update reminders</string>
+    <string name="module_category_installed">Installed</string>
+    <string name="module_subcategory_all">All</string>
+    <string name="module_grid_view">Grid view</string>
+    <string name="module_list_view">List view</string>
+    <string name="module_check_update_notification_title">Module updates available</string>
+    <string name="module_check_update_notification_text">%1$d modules can be updated. Tap to view</string>
+    <string name="module_detail_intro">About this module</string>
+    <string name="module_detail_info">Information</string>
+    <string name="module_detail_version_label">Version</string>
+    <string name="module_detail_size_label">Size</string>
+    <string name="module_detail_author_label">Author</string>
+    <string name="module_detail_category_label">Category</string>
+    <string name="module_detail_downloads_label">Downloads</string>
+    <string name="module_detail_open">Open module</string>
+    <!-- ===== Batch 20 new strings ===== -->
+    <string name="module_hero_badge">Featured</string>
+    <string name="module_hero_badge_hot">Hot</string>
+    <string name="module_hero_badge_new">New</string>
+    <string name="module_hero_action_open">Open Now</string>
+    <string name="module_hero_action_enable">Enable Now</string>
+    <string name="module_hero_action_download">Download Now</string>
+    <string name="module_stat_total">Total</string>
+    <string name="module_stat_installed">Installed</string>
+    <string name="module_stat_update">Updates</string>
+    <string name="module_stat_total_trend">↑ %1$d total</string>
+    <string name="module_stat_installed_trend">%1$d%% installed</string>
+    <string name="module_stat_update_trend">→ %1$d to update</string>
+    <string name="module_detail_close">Close</string>
+    <string name="module_detail_uninstall">Uninstall</string>
+    <string name="module_detail_download">Download</string>
+    <string name="module_detail_update">Update</string>
+    <string name="module_detail_enable">Enable module</string>
+    <string name="module_detail_cancel_download">Cancel download</string>
+    <string name="module_detail_description_label">Description</string>
+    <string name="module_detail_status_label">Status</string>
+    <string name="module_detail_size_label_v2">File size</string>
+    <string name="module_detail_version_label_v2">Latest version</string>
+    <string name="module_detail_installed_version_label">Installed version</string>
+    <string name="module_detail_action_label">Action</string>
+    <string name="ip_info">IP Address</string>
+    <string name="minesweeper">Minesweeper</string>
+    <string name="minesweeper_desc">Classic minesweeper. Long press to flag, short tap to reveal.</string>
+    <string name="minesweeper_easy">Easy 9×9</string>
+    <string name="minesweeper_hard">Hard 16×30</string>
+    <string name="minesweeper_lose_msg">You hit a mine!</string>
+    <string name="minesweeper_lose_title">Game over</string>
+    <string name="minesweeper_medium">Medium 16×16</string>
+    <string name="minesweeper_play_again">Play again</string>
+    <string name="minesweeper_reset">Restart</string>
+    <string name="minesweeper_status">Remaining: %1$d | Flags: %2$d</string>
+    <string name="minesweeper_title">Minesweeper</string>
+    <string name="minesweeper_win_msg">You win!</string>
+    <string name="minesweeper_win_title">Congratulations</string>
+    <string name="mobile_ip">Mobile IP</string>
+    <string name="module_back">Back</string>
+    <string name="module_close">Close</string>
+    <string name="module_empty">No modules available</string>
+    <string name="module_empty_title">Nothing here</string>
+    <string name="module_empty_action">Browse all modules</string>
+    <string name="module_error_title">Something went wrong</string>
+    <string name="module_icon_desc">Module icon</string>
+    <string name="module_refresh">Refresh</string>
+    <string name="module_store_title">Module Store</string>
+    <string name="nav_ai">AI Assistant</string>
+    <string name="nav_browser">Browser</string>
+    <string name="nav_games">Games</string>
+    <string name="nav_tools">Tools</string>
+    <string name="nav_vpn">VPN</string>
+    <string name="navigate_next">Next</string>
+    <string name="network_speed_test">Speed Test</string>
+    <string name="online_cancel">Cancel</string>
+    <string name="online_client_error">Client error: </string>
+    <string name="online_connected_to_host">Connected to host</string>
+    <string name="online_connection_lost">Connection lost: </string>
+    <string name="online_copy_room_code">Copy room code</string>
+    <string name="online_create_failed">Failed to create room</string>
+    <string name="online_create_room">Create room</string>
+    <string name="online_creating_cloud">Creating cloud room…</string>
+    <string name="online_disconnected_title">Disconnected</string>
+    <string name="online_input_message">Type a message…</string>
+    <string name="online_input_room_code_hint">Enter the 6-digit room code</string>
+    <string name="online_input_room_code_toast">Please enter the 6-digit room code</string>
+    <string name="online_join">Join</string>
+    <string name="online_join_room">Join room</string>
+    <string name="online_join_room_title">Join room</string>
+    <string name="online_joining_room">Joining room </string>
+    <string name="online_leave_room">Leave room</string>
+    <string name="online_opponent_disconnected">Opponent disconnected: </string>
+    <string name="online_opponent_joined">Opponent joined!</string>
+    <string name="online_reconnect">Reconnect</string>
+    <string name="online_reconnect_failed">Unable to reconnect. Please rejoin.</string>
+    <string name="online_reconnecting">Reconnecting…</string>
+    <string name="online_room_code_copied">Room code copied</string>
+    <string name="online_room_code_label">Room code: </string>
+    <string name="online_room_created">Room created</string>
+    <string name="online_send">Send</string>
+    <string name="online_server_error">Server error: </string>
+    <string name="online_share_room_code_hint">Share this room code with your opponent.\n\nThe game starts automatically once they join.</string>
+    <string name="online_title">Online Match</string>
+    <string name="online_waiting_opponent">Waiting for opponent</string>
+    <string name="online_waiting_opponent_reconnect">Waiting for opponent to reconnect…</string>
+    <string name="online_waiting_reconnect">Waiting to reconnect</string>
+    <string name="permission_decline">Not now</string>
+    <string name="permission_declined_toast">Some features may be limited. You can grant permissions in Settings at any time.</string>
+    <string name="permission_dialog_message">Welcome to GameMatrix! To provide full functionality, we need the following permissions:
+
+• Location: for LAN game discovery and Wi-Fi address detection
+• Camera: for QR code scanning in Tools
+• Storage: for downloading and saving game update packages
+• Install unknown apps: for installing downloaded game updates
+
+You can grant all permissions for the best experience, or grant them individually in system settings later.</string>
+    <string name="permission_dialog_title">Permission usage</string>
+    <string name="permission_grant_all">Grant all</string>
+    <string name="permission_granted_toast">Permissions granted. All features are available.</string>
+    <string name="ping">Ping</string>
+    <string name="port_scan">Port Scan</string>
+    <string name="qr_code">QR Code Tool</string>
+    <string name="qrcode_text">Enter text</string>
+    <string name="recovery_btn_cancel">Cancel download</string>
+    <string name="recovery_btn_launch_anyway">Try launching main app</string>
+    <string name="recovery_launch_anyway_confirm">Skip recovery and launch the main app anyway? If it still crashes, you will return to this page.</string>
+    <string name="recovery_downgrade_warning">The recovery build is older than the current version. Installing will downgrade. Continue?</string>
+    <string name="recovery_btn_download">Download stable build</string>
+    <string name="recovery_btn_install">Install stable build</string>
+    <string name="recovery_btn_retry">Retry download</string>
+    <string name="recovery_hint">This mode is triggered automatically when the app crashes repeatedly. Installing the stable build will replace the current version.</string>
+    <string name="recovery_icon_desc">Recovery mode icon</string>
+    <string name="recovery_install_failed">Installation failed. Please retry.</string>
+    <string name="recovery_status_switching_slow">VPS too slow (&lt;5MB/s), switched to GitHub automatically</string>
+    <string name="recovery_source">Download source</string>
+    <string name="recovery_status_apk_ready">A downloaded stable build is ready</string>
+    <string name="recovery_status_cancelled">Download cancelled</string>
+    <string name="recovery_status_download_complete">Download complete. Tap install to repair.</string>
+    <string name="recovery_status_downloading">Downloading stable build…</string>
+    <string name="recovery_status_error">Download failed</string>
+    <string name="recovery_status_ready">App issue detected. Download a stable build to repair.</string>
+    <string name="recovery_title">App Recovery Mode</string>
+    <string name="rock">Rock Paper Scissors</string>
+    <string name="rock_desc">Simple rock-paper-scissors</string>
+    <string name="scan_ports">Scan Ports</string>
+    <string name="scan_qr">Scan QR</string>
+    <string name="sending">Sending…</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_current_version">Current version: </string>
+    <string name="settings_ok">OK</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_select_color_scheme">Choose color scheme</string>
+    <string name="settings_select_update_source">Choose update source</string>
+    <string name="settings_source_auto">Auto</string>
+    <string name="settings_source_auto_recommended">Auto (recommended)</string>
+    <string name="settings_source_github">GitHub Releases</string>
+    <string name="settings_source_hk_vps">Hong Kong VPS</string>
+    <string name="settings_source_us_vps">US VPS (deprecated)</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_version_update">Version update</string>
+    <string name="snake">Snake</string>
+    <string name="snake_desc">Classic Snake</string>
+    <string name="start_test">Start Test</string>
+    <string name="store_base_framework">Base Framework</string>
+    <string name="store_category_ai">AI Assistant</string>
+    <string name="store_category_browser">Browser</string>
+    <string name="store_category_games">Games</string>
+    <string name="store_category_tools">Tools</string>
+    <string name="store_category_vpn">VPN</string>
+    <string name="store_subcategory_casual">Casual</string>
+    <string name="store_subcategory_classics">Classics</string>
+    <string name="store_subcategory_puzzle">Puzzle</string>
+    <string name="target_ip">Target IP</string>
+    <string name="tetris">Tetris</string>
+    <string name="tetris_desc">Classic Tetris</string>
+    <string name="tool_icon_desc">Tool icon</string>
+    <string name="tools_title">Tools</string>
+    <string name="update_apk_lost">Installation package lost. Please re-download.</string>
+    <string name="update_auto_download_complete">Update package downloaded. You can open the download directory in Settings.</string>
+    <string name="update_auto_download_started">New version found. Downloading package in background.</string>
+    <string name="update_auto_downloading">Update package is downloading in the background</string>
+    <string name="update_beta_only_enable">Enable beta and re-check</string>
+    <string name="update_beta_only_hint"> has fallen far behind.
+
+You can either enable "Accept beta builds" to update now, or wait for the next stable release.</string>
+    <string name="update_beta_only_msg">The latest server version is beta %1$s (version code %2$d).
+
+You are currently on version code %3$d, the previous stable release is %4$s</string>
+    <string name="update_beta_only_stable_code">(version code %d)</string>
+    <string name="update_beta_only_title">Only beta update available</string>
+    <string name="update_beta_only_toast">The latest server version is a beta. Enable "Accept beta builds" to update.</string>
+    <string name="update_beta_only_wait">Wait for stable release</string>
+    <string name="update_changelog">Changelog:</string>
+    <string name="update_channel_label">Channel: %s</string>
+    <string name="update_download">Download now</string>
+    <string name="update_downloading">Downloading…</string>
+    <string name="update_error">Failed to check for updates</string>
+    <string name="update_force">Force update</string>
+    <string name="update_install">Install now</string>
+    <string name="update_install_permission_needed">Install permission is required to install updates. Please grant it in Settings.</string>
+    <string name="update_install_prompt">Download complete. Install now?</string>
+    <string name="update_last_stable_default">Previous stable release</string>
+    <string name="update_network_error">Network connection failed. Please check your network and retry.</string>
+    <string name="update_new_version">New version available</string>
+    <string name="update_no_update">Already up to date</string>
+    <string name="update_open_directory">Open directory</string>
+    <string name="update_verifying">Verifying package…</string>
+    <string name="update_version_code">Version code: %d</string>
+    <string name="upload_speed">Upload Speed</string>
+    <string name="wifi_ip">Wi-Fi IP</string>
+    <string name="wifi_signal">Wi-Fi Signal</string>
+    <string name="wifi_signal_strength">Signal Strength</string>
+
+    <!-- ===== Feature A: Daily Challenge + Streak (ACHIEVEMENT_V2) ===== -->
+    <string name="daily_challenge_title">Daily Challenge</string>
+    <string name="daily_challenge_desc">Complete today\'s challenge to keep your streak</string>
+    <string name="daily_challenge_progress">Progress: %1$d / %2$d</string>
+    <string name="daily_challenge_status_label_completed">Completed</string>
+    <string name="daily_challenge_status_label_not_completed">Not completed</string>
+    <string name="daily_challenge_play">Go</string>
+    <string name="daily_challenge_type_play">Play %1$d rounds of %2$s</string>
+    <string name="daily_challenge_type_win">Win %1$d rounds of %2$s</string>
+    <string name="daily_challenge_type_unlock">Unlock %1$d new achievements</string>
+    <string name="daily_challenge_new">Today\'s new challenge generated</string>
+    <string name="daily_challenge_toast_progress">Challenge progress: %1$d / %2$d</string>
+    <string name="daily_challenge_toast_done">Daily challenge done! Streak +1</string>
+    <string name="streak_title">Streak Records</string>
+    <string name="streak_current_days">Current Streak</string>
+    <string name="streak_best_days">Best Streak</string>
+    <string name="streak_total_games">Total Games</string>
+    <string name="streak_days_unit">%d days</string>
+    <string name="streak_games_unit">%d games</string>
+    <string name="streak_keep_going">Keep it up!</string>
+    <string name="streak_broken">Streak reset</string>
+
+    <!-- ===== Feature B: Settings Enhancement (SETTINGS_ENHANCE) ===== -->
+    <string name="settings_font_size">Font size</string>
+    <string name="settings_font_size_desc">Adjust the global font size of the app</string>
+    <string name="settings_select_font_size">Select font size</string>
+    <string name="settings_font_size_small">Small</string>
+    <string name="settings_font_size_medium">Medium (default)</string>
+    <string name="settings_font_size_large">Large</string>
+    <string name="settings_cache_clear">Clear cache</string>
+    <string name="settings_cache_clear_desc">Clear temporary cache files generated by the app</string>
+    <string name="settings_cache_size">Current cache: %1$s</string>
+    <string name="settings_cache_empty">Cache is empty</string>
+    <string name="settings_cache_cleared">Cache cleared</string>
+    <string name="settings_cache_clear_failed">Failed to clear</string>
+    <string name="settings_cache_calculating">Calculating…</string>
+
+    <!-- ===== Feature C: Home Recent Games (HOME_REVAMP) ===== -->
+    <string name="home_recent_games">Recently played</string>
+    <string name="home_no_recent_games">No recent games yet — pick one below to start</string>
+    <string name="home_recent_clear">Clear recent history</string>
+    <string name="home_recent_cleared">Recent history cleared</string>
+
+    <!-- ===== Batch 10-1: Home Quick Stats Bar (HOME_QUICK_STATS_BAR) ===== -->
+    <string name="home_stats_today_playtime">Today</string>
+    <string name="home_stats_streak">Streak</string>
+    <string name="home_stats_achievements">Achievements</string>
+    <string name="home_stats_playtime_format">%1$s min</string>
+    <string name="home_stats_streak_format">%1$d-day streak</string>
+    <string name="home_stats_achievements_format">%1$d / %2$d</string>
+    <string name="home_stats_playtime_zero">No playtime today yet</string>
+
+    <!-- ===== Batch 10-2: Home Game of Day (HOME_GAME_OF_DAY) ===== -->
+    <string name="home_game_of_day_title">Today\'s Pick</string>
+    <string name="home_game_of_day_subtitle">One featured game every day</string>
+    <string name="home_game_of_day_play">Play Now</string>
+    <string name="home_game_of_day_desc_classics">A timeless classic — give it a try</string>
+    <string name="home_game_of_day_desc_puzzle">Brain-teasing puzzle, endless fun</string>
+    <string name="home_game_of_day_desc_casual">Casual and relaxing, jump right in</string>
+
+    <!-- ===== Batch 10-3: Random Game FAB (RANDOM_GAME_FAB) ===== -->
+    <string name="random_game_fab_desc">Pick a random game to play</string>
+    <string name="random_game_launched_format">Random launch: %1$s</string>
+    <string name="random_game_no_available">No launchable game available</string>
+
+    <!-- ===== Batch 10-4: Achievement Progress Ring (ACHIEVEMENT_PROGRESS_RING) ===== -->
+    <string name="achievement_ring_title">Achievement Overview</string>
+    <string name="achievement_ring_progress_format">%1$d / %2$d</string>
+    <string name="achievement_ring_percent_format">%1$d%%</string>
+    <string name="achievement_ring_level_format">Lv.%1$d</string>
+    <string name="achievement_ring_level_beginner">Beginner</string>
+    <string name="achievement_ring_level_explorer">Explorer</string>
+    <string name="achievement_ring_level_expert">Expert</string>
+    <string name="achievement_ring_level_master">Master</string>
+    <string name="achievement_ring_level_legend">Legend</string>
+    <string name="achievement_ring_unlocked_label">Unlocked</string>
+    <string name="achievement_ring_total_label">Total</string>
+
+    <!-- ===== Batch 11-1 (GAME_RATING_SYSTEM) ===== -->
+    <string name="game_rating_dialog_title">Rate \"%1$s\"</string>
+    <string name="game_rating_dialog_subtitle">Your rating will appear on the card</string>
+    <string name="game_rating_star_desc">%1$d star(s)</string>
+    <string name="game_rating_clear">Clear rating</string>
+    <string name="game_rating_cleared">Rating cleared</string>
+    <string name="game_rating_saved">Saved %1$d-star rating</string>
+    <string name="game_rating_user_badge_desc">My rating</string>
+    <string name="game_rating_user_format">%1$d★</string>
+    <string name="game_rating_button_text">Rate this game</string>
+    <string name="game_rating_my_rating_label">My rating</string>
+
+    <!-- ===== Batch 11-2 (DATA_BACKUP_RESTORE) ===== -->
+    <string name="settings_data_backup_title">Data Backup</string>
+    <string name="settings_data_backup_subtitle">Export / Import favorites, ratings and stats</string>
+    <string name="settings_data_export">Export data to file</string>
+    <string name="settings_data_import">Import data from file</string>
+    <string name="data_backup_export_success">Exported successfully (%1$s)</string>
+    <string name="data_backup_export_failed">Export failed: %1$s</string>
+    <string name="data_backup_import_success">Imported %1$d item(s)</string>
+    <string name="data_backup_import_failed">Import failed: %1$s</string>
+    <string name="data_backup_import_confirm_title">Confirm Import</string>
+    <string name="data_backup_import_confirm_message">Import will overwrite existing data. Continue?</string>
+    <string name="data_backup_default_filename">gamematrix_backup_%1$s.json</string>
+    <string name="data_backup_invalid_format">Invalid file format</string>
+
+    <!-- ===== Batch 11-3 (HOME_PLAYTIME_REMINDER) ===== -->
+    <string name="playtime_reminder_title">Time for a break</string>
+    <string name="playtime_reminder_today_format">Played %1$s minutes today</string>
+    <string name="playtime_reminder_action_dismiss">Got it</string>
+    <string name="playtime_reminder_action_continue">Keep playing</string>
+    <string name="playtime_reminder_desc_60">You\'ve played for over 60 minutes. Stand up and stretch for 5 minutes.</string>
+    <string name="playtime_reminder_desc_120">You\'ve played for over 120 minutes. Prolonged gaming may strain your eyes.</string>
+
+    <!-- ===== Batch 11-4 (GAME_FAVORITE_REORDER) ===== -->
+    <string name="settings_favorite_reorder_title">Favorites First</string>
+    <string name="settings_favorite_reorder_subtitle">Pin favorited games to the top of the list</string>
+    <string name="favorite_reorder_enabled_toast">Favorites First enabled</string>
+    <string name="favorite_reorder_disabled_toast">Favorites First disabled</string>
+    <string name="data_backup_unavailable">Data backup is unavailable in this context</string>
+
+    <!-- ===== Batch 12-1 (HOME_RESUME_GAME_CARD) ===== -->
+    <string name="home_resume_game_title">Resume last game</string>
+    <string name="home_resume_game_action">Resume</string>
+    <string name="home_resume_game_time_format">Last played: %1$s</string>
+    <string name="home_resume_game_no_history">No play history yet. Try your first game!</string>
+
+    <!-- ===== Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER) ===== -->
+    <string name="home_recent_achievement_title">Recently unlocked</string>
+    <string name="home_recent_achievement_dismiss">Close</string>
+    <string name="home_recent_achievement_unknown">Unknown achievement</string>
+
+    <!-- ===== Batch 12-3 (GAME_PLAY_TIME_BADGE) ===== -->
+    <string name="game_play_time_badge_format_hours">%1$.1f h</string>
+    <string name="game_play_time_badge_format_minutes">%1$d min</string>
+
+    <!-- ===== Batch 12-4 (APP_LAUNCH_TIME_DISPLAY) ===== -->
+    <string name="app_launch_time_format">Launch time: %1$d ms</string>
+
+    <!-- ===== Feature D: Visual Refresh (VISUAL_REFRESH) ===== -->
+    <string name="visual_refresh_game_icon">Game icon</string>
+
+    <!-- ===== Feature E: Home Card Enhancement (HOME_CARD_ENHANCE) ===== -->
+    <string name="home_card_hot_badge">HOT</string>
+    <string name="home_card_favorite_add">Added to favorites</string>
+    <string name="home_card_favorite_remove">Removed from favorites</string>
+    <string name="home_card_rating_label">Rating</string>
+    <string name="home_card_no_rating">No rating yet</string>
+    <string name="home_top_bar_greeting_morning">Good morning</string>
+    <string name="home_top_bar_greeting_afternoon">Good afternoon</string>
+    <string name="home_top_bar_greeting_evening">Good evening</string>
+    <string name="home_top_bar_subtitle">Welcome back to Game Center</string>
+    <string name="home_top_notification">Notifications</string>
+    <string name="home_top_avatar">Profile</string>
+    <string name="home_top_notification_empty">No new notifications</string>
+
+    <!-- ===== Feature F: Game Stats Dashboard (GAME_STATS_DASHBOARD) ===== -->
+    <string name="stats_title">Game Stats</string>
+    <string name="stats_back">Back</string>
+    <string name="stats_hero_title">My Game Stats</string>
+    <string name="stats_hero_subtitle">Keep playing, improve daily</string>
+    <string name="stats_total_playtime">Total Time</string>
+    <string name="stats_active_days">Active Days</string>
+    <string name="stats_total_games">Total Games</string>
+    <string name="stats_current_streak">Current Streak</string>
+    <string name="stats_best_streak_format">Best streak: %1$d days</string>
+    <string name="stats_top_games">Top 5 Most Played</string>
+    <string name="stats_no_top_games">No play records yet — start your first game</string>
+    <string name="stats_achievement_summary">Achievement Summary</string>
+    <string name="stats_achievement_progress_format">Unlocked %1$d / %2$d</string>
+    <string name="stats_win_loss_title">Win / Loss</string>
+    <string name="stats_win_count">Wins</string>
+    <string name="stats_loss_count">Losses</string>
+    <string name="stats_play_count_format">%1$d times</string>
+    <string name="stats_duration_min_format">%1$d min</string>
+    <string name="stats_duration_hour_format">%1$d h %2$d min</string>
+    <string name="stats_rank_format">Rank %1$d</string>
+
+    <!-- ===== Batch 5: Daily check-in + Notifications center + Profile fragment + Home daily cards ===== -->
+    <!-- Daily check-in -->
+    <string name="daily_checkin_title">Daily Check-in</string>
+    <string name="daily_checkin_subtitle">Check in daily for more rewards</string>
+    <string name="daily_checkin_btn">Check In Now</string>
+    <string name="daily_checkin_consecutive">Consecutive Days</string>
+    <string name="daily_checkin_today_reward">Today\'s Reward</string>
+    <string name="daily_checkin_reward_format">+%1$d points</string>
+    <string name="daily_checkin_done_today">Already checked in today</string>
+    <string name="daily_checkin_claimed">Checked in! Streak +1</string>
+    <string name="daily_checkin_unit_days">%d days</string>
+    <string name="daily_checkin_break_warning">Missing a day resets the streak</string>
+
+    <!-- Notifications center -->
+    <string name="notifications_center_title">Notifications</string>
+    <string name="notifications_center_empty">No new notifications</string>
+    <string name="notifications_center_section_today">Today</string>
+    <string name="notifications_center_section_earlier">Earlier</string>
+    <string name="notifications_center_daily_challenge">Daily challenge in progress</string>
+    <string name="notifications_center_streak">Streak maintained</string>
+    <string name="notifications_center_update">New version available</string>
+    <string name="notifications_center_achievement">New achievement unlocked</string>
+    <string name="notifications_center_checkin">Not checked in today yet</string>
+    <string name="notifications_center_view_detail">View details</string>
+
+    <!-- Profile -->
+    <string name="nav_profile">Me</string>
+    <string name="profile_title">Profile</string>
+    <string name="profile_subtitle">View your stats and favorites</string>
+    <string name="profile_section_account">Account</string>
+    <string name="profile_section_stats">My Stats</string>
+    <string name="profile_section_actions">Quick Actions</string>
+    <string name="profile_my_stats">Game Statistics</string>
+    <string name="profile_my_favorites">My Favorites</string>
+    <string name="profile_my_achievements">Achievements</string>
+    <string name="profile_module_store">Module Store</string>
+    <string name="profile_about">About</string>
+    <string name="profile_checkin">Daily Check-in</string>
+    <string name="profile_guest_name">Player</string>
+    <string name="profile_favorites_count_format">%1$d games favorited</string>
+    <string name="profile_no_favorites">No favorites yet — tap ♥ on a game card to add one</string>
+
+    <!-- Filter chips -->
+    <string name="filter_all_games">All</string>
+    <string name="filter_favorites_only">Favorites</string>
+
+    <!-- Home daily cards click toasts -->
+    <string name="home_daily_card_click_hint">Tap the challenge game to make progress</string>
+    <string name="home_streak_card_click_hint">Play daily to keep your streak alive</string>
+
+    <!-- Batch 5: Daily challenge card progress format -->
+    <string name="daily_challenge_progress_format">Progress: %1$d / %2$d</string>
+
+    <!-- ===== Batch 7-1: GAME_DETAIL_SHEET Game detail BottomSheet ===== -->
+    <string name="game_detail_play_now">Play Now</string>
+    <string name="game_detail_favorite_add">Add to Favorites</string>
+    <string name="game_detail_favorite_remove">Remove from Favorites</string>
+    <string name="game_detail_stats_label">Game Stats</string>
+    <string name="game_detail_play_count_format">Total plays: %1$d</string>
+    <string name="game_detail_win_loss_format">Wins %1$d / Losses %2$d</string>
+    <string name="game_detail_play_time_format">Total time: %1$s</string>
+    <string name="game_detail_last_played_never">Never played</string>
+    <string name="game_detail_last_played_format">Last played: %1$s</string>
+    <string name="game_detail_high_score_format">High score: %1$d</string>
+    <string name="game_detail_category_label">Category</string>
+    <string name="game_detail_play_time_now_format">%1$d min</string>
+
+    <!-- ===== Batch 7-2: ANIM_SHIMMER_LOADING skeleton ===== -->
+    <string name="shimmer_loading_hint">Loading…</string>
+
+    <!-- ===== Batch 7-3: EMPTY_STATE_ILLUSTRATION empty states ===== -->
+    <string name="empty_search_title">No matching games found</string>
+    <string name="empty_search_subtitle">Try another keyword, or browse all categories</string>
+    <string name="empty_favorites_title">No favorite games yet</string>
+    <string name="empty_favorites_subtitle">Tap the heart icon on a game card to favorite it</string>
+    <string name="empty_default_title">No games available</string>
+    <string name="empty_default_subtitle">Visit the module store to download more games</string>
+    <string name="empty_action_browse_modules">Open Module Store</string>
+    <string name="empty_action_clear_filter">Clear Filter</string>
+
+    <!-- ===== Batch 7-4: SETTINGS_ABOUT_PAGE About page ===== -->
+    <string name="settings_about_title">About</string>
+    <string name="settings_about_subtitle">Version info and open source licenses</string>
+    <string name="about_app_name">GameMatrix App</string>
+    <string name="about_version_label">Version</string>
+    <string name="about_version_code_label">Internal version code</string>
+    <string name="about_build_channel_label">Release channel</string>
+    <string name="about_build_date_label">Build date</string>
+    <string name="about_github_label">GitHub Repository</string>
+    <string name="about_github_action">Open in browser</string>
+    <string name="about_open_source_label">Open Source Licenses</string>
+    <string name="about_open_source_subtitle">View third-party licenses</string>
+    <string name="about_copy_version">Copy version info</string>
+    <string name="about_copy_success">Version info copied to clipboard</string>
+    <string name="about_open_source_licenses_title">Open Source Licenses</string>
+    <string name="about_download_metrics_title">Download Metrics (Debug only)</string>
+    <string name="about_download_metrics_hint">Long-press "Copy version info" to view download metrics summary</string>
+    <string name="about_open_source_licenses_body">This app uses the following open source components: AndroidX, Kotlin, Material Components for Android, Hilt, Room, OkHttp, FastAPI, Glide, LeakCanary (Debug only), and more. See each component\'s repository for full licenses.</string>
+
+    <!-- ===== Localization fix (2026-07-17): in-app language switch + hardcoded text migration ===== -->
+    <!-- Channel localization (shared by AboutDialog / AppSettingsDialog) -->
+    <string name="about_channel_beta">Beta</string>
+    <string name="about_channel_stable">Stable</string>
+    <string name="settings_channel_beta">Beta</string>
+    <string name="settings_channel_stable">Stable</string>
+    <!-- Version display format (AboutDialog / AppSettingsDialog / GamesFragment top version) -->
+    <string name="about_version_display_format">Version %1$s · Internal version %2$d</string>
+    <string name="settings_version_display_format">Version %1$s · Internal version %2$d</string>
+    <string name="settings_version_compact_format">v%1$s (vc %2$d)</string>
+    <!-- Search box hint -->
+    <string name="search_game_hint">Search games</string>
+    <!-- Toast error messages -->
+    <string name="error_module_store_not_found">Module store not found</string>
+    <string name="error_stats_not_found">Game stats not found</string>
+    <string name="error_settings_open_failed">Failed to open settings</string>
+    <string name="error_achievement_not_found">Achievement center not found</string>
+    <string name="error_game_launch_failed_format">Failed to launch game: %1$s</string>
+
+    <!-- ===== Batch 8-1: SEARCH_HISTORY_CHIPS search history chips ===== -->
+    <string name="search_history_section_title">Search history</string>
+    <string name="search_history_clear">Clear</string>
+    <string name="search_history_cleared">Search history cleared</string>
+
+    <!-- ===== Batch 8-3: ACHIEVEMENT_TOAST achievement unlock toast ===== -->
+    <string name="achievement_toast_title">Achievement Unlocked</string>
+    <string name="achievement_toast_badge">Achievement</string>
+    <string name="achievement_toast_icon_desc">Achievement icon</string>
+
+    <!-- ===== Batch 8-4: HOME_HERO_BANNER home hero banner ===== -->
+    <string name="hero_banner_icon_desc">Banner decoration icon</string>
+    <string name="hero_banner_daily_title">Today\'s Pick</string>
+    <string name="hero_banner_daily_subtitle">Take on the daily recommended game and build your streak</string>
+    <string name="hero_banner_daily_cta">Challenge Now</string>
+    <string name="hero_banner_event_title">Event Ongoing</string>
+    <string name="hero_banner_event_subtitle">Visit the module store to discover more games</string>
+    <string name="hero_banner_event_cta">Browse</string>
+    <string name="hero_banner_challenge_title">Streak Challenge</string>
+    <string name="hero_banner_challenge_subtitle">Check your streak progress and best records</string>
+    <string name="hero_banner_challenge_cta">View Records</string>
+
+    <!-- ===== Batch 9-1: GAME_LONG_PRESS_MENU game card long-press menu ===== -->
+    <string name="long_press_play_now">Play Now</string>
+    <string name="long_press_add_favorite">Add to Favorites</string>
+    <string name="long_press_remove_favorite">Remove from Favorites</string>
+    <string name="long_press_share">Share Game</string>
+    <string name="long_press_add_shortcut">Add to Home Screen</string>
+    <string name="long_press_share_text_format">Play %1$s on GameMatrixApp: %2$s</string>
+    <string name="long_press_share_chooser_title">Share via</string>
+    <string name="long_press_share_failed">Share failed</string>
+    <string name="long_press_shortcut_unsupported">System version too low, home screen shortcuts not supported</string>
+    <string name="long_press_shortcut_not_supported">Current launcher does not support home screen shortcuts</string>
+    <string name="long_press_shortcut_added">Requested to add \"%1$s\" to home screen</string>
+    <string name="long_press_shortcut_failed">Failed to add home screen shortcut</string>
+
+    <!-- ===== Batch 9-2: HOME_PULL_REFRESH home pull-to-refresh ===== -->
+    <string name="home_pull_refresh_done">Game list refreshed</string>
+
+    <!-- ===== Batch 9-3: ACHIEVEMENT_DETAIL_PAGE single-game achievement detail page ===== -->
+    <string name="achievement_detail_title">Achievement Details</string>
+    <string name="achievement_detail_game_icon">Game icon</string>
+    <string name="achievement_detail_filter_all">All</string>
+    <string name="achievement_detail_filter_unlocked">Unlocked</string>
+    <string name="achievement_detail_filter_locked">Locked</string>
+    <string name="achievement_detail_empty">No achievement config for this game</string>
+    <string name="achievement_detail_empty_filter">No achievements match the current filter</string>
+    <string name="achievement_detail_percent_format">%1$d%%</string>
+    <string name="achievement_detail_unlocked_format">Unlocked %1$d / %2$d</string>
+    <string name="achievement_detail_unlock_date_format">Unlocked at: %1$s</string>
+    <string name="achievement_detail_default_desc">Complete the required condition to unlock this achievement</string>
+    <string name="achievement_rarity_bronze">Bronze</string>
+    <string name="achievement_rarity_silver">Silver</string>
+    <string name="achievement_rarity_gold">Gold</string>
+    <string name="achievement_rarity_platinum">Platinum</string>
 </resources>

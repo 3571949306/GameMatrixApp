@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 8-4 (HOME_HERO_BANNER): 轮播指示器圆点（选中态） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="?attr/colorPrimary" />
+    <size
+        android:width="6dp"
+        android:height="6dp" />
+</shape>

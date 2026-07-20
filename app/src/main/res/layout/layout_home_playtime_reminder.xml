@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 11-3 (HOME_PLAYTIME_REMINDER): 今日时长提醒卡片。
+     根据档位由代码切换 background（mild / severe）。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="@dimen/spacing_16"
+    android:layout_marginEnd="@dimen/spacing_16"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="@dimen/spacing_16"
+    android:background="@drawable/bg_playtime_reminder_gradient_mild"
+    android:elevation="2dp">
+
+    <!-- 左侧图标 -->
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/playtime_reminder_title"
+        android:scaleType="centerInside"
+        app:srcCompat="@drawable/ic_playtime_reminder_coffee"
+        app:tint="@android:color/white" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="@dimen/spacing_12"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_playtime_reminder_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/playtime_reminder_title"
+            android:textColor="@android:color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_playtime_reminder_today"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@android:color/white"
+            android:textSize="11sp"
+            android:alpha="0.92"
+            tools:ignore="MissingDefaultResource"
+            tools:text="今日已游玩 73 分钟" />
+
+        <TextView
+            android:id="@+id/tv_playtime_reminder_desc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/playtime_reminder_desc_60"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:alpha="0.95" />
+    </LinearLayout>
+
+    <!-- 右侧"知道了"按钮 -->
+    <TextView
+        android:id="@+id/btn_playtime_reminder_dismiss"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="@dimen/spacing_12"
+        android:paddingEnd="@dimen/spacing_12"
+        android:paddingTop="@dimen/spacing_6"
+        android:paddingBottom="@dimen/spacing_6"
+        android:background="@drawable/bg_playtime_reminder_btn"
+        android:clickable="true"
+        android:focusable="true"
+        android:text="@string/playtime_reminder_action_dismiss"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

@@ -14,6 +14,9 @@ import androidx.annotation.Nullable;
 
 import com.gamecenter.app.browser.security.BrowserSecurityPolicy;
 import com.gamecenter.app.browser.security.AdBlocker;
+import com.gamecenter.app.browser.security.BrowserTrackerBlocker;
+import com.gamecenter.app.browser.security.BrowserTrackerStats;
+import com.gamecenter.app.browser.core.BrowserSettingsManager;
 
 import java.io.ByteArrayInputStream;
 
@@ -106,6 +109,34 @@ public class BrowserWebViewClient extends WebViewClient {
         if (adBlocker.shouldBlock(url)) {
             return new WebResourceResponse("text/plain", "utf-8",
                 new ByteArrayInputStream(new byte[0]));
+        }
+        // P1-2 追踪保护：拦截追踪器请求并记录统计
+        BrowserTrackerBlocker trackerBlocker = BrowserTrackerBlocker.getInstance();
+        if (trackerBlocker.shouldBlock(url)) {
+            if (view != null && view.getContext() != null) {
+                BrowserTrackerStats stats = BrowserTrackerStats.getInstance(view.getContext());
+                stats.recordBlock(url);
+            }
+            return new WebResourceResponse("text/plain", "utf-8",
+                new ByteArrayInputStream(new byte[0]));
+        }
+        // P2-4 数据节省模式：拦截图片/字体资源（仅非主框架）
+        if (view != null && view.getContext() != null
+                && !request.isForMainFrame()
+                && BrowserSettingsManager.getInstance(view.getContext()).isDataSaverEnabled()) {
+            String lower = url.toLowerCase(java.util.Locale.ROOT);
+            boolean isImage = lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                    || lower.endsWith(".png") || lower.endsWith(".gif")
+                    || lower.endsWith(".webp") || lower.endsWith(".bmp")
+                    || lower.endsWith(".svg") || lower.contains(".jpg?")
+                    || lower.contains(".png?") || lower.contains(".webp?");
+            boolean isFont = lower.endsWith(".woff") || lower.endsWith(".woff2")
+                    || lower.endsWith(".ttf") || lower.endsWith(".otf")
+                    || lower.endsWith(".eot");
+            if (isImage || isFont) {
+                return new WebResourceResponse("text/plain", "utf-8",
+                        new ByteArrayInputStream(new byte[0]));
+            }
         }
         return super.shouldInterceptRequest(view, request);
     }

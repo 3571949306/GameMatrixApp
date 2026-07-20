@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 20: Hero Banner 渐变背景（紫→品红，横向） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:startColor="@color/module_hero_gradient_start"
+        android:centerColor="@color/md_theme_primary"
+        android:endColor="@color/module_hero_gradient_end"
+        android:type="linear" />
+    <corners android:radius="@dimen/gm_radius_xl" />
+</shape>

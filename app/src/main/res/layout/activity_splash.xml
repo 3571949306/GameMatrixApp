@@ -9,24 +9,51 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_splash_gradient">
 
-    <!-- 应用 Logo 图标 -->
-    <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/iv_logo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:alpha="0"
-        android:scaleX="0.8"
-        android:scaleY="0.8"
-        android:src="@drawable/ic_launcher_foreground"
+    <!-- 应用 Logo 图标 + 波纹环容器（Batch 4：波纹扩散动画） -->
+    <FrameLayout
+        android:id="@+id/logo_container"
+        android:layout_width="240dp"
+        android:layout_height="240dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.42"
-        tools:src="@drawable/ic_launcher_foreground"
-        tools:alpha="1"
-        tools:scaleX="1"
-        tools:scaleY="1" />
+        app:layout_constraintVertical_bias="0.42">
+
+        <!-- 波纹环 1（SplashActivity 中错开 400ms 启动） -->
+        <View
+            android:id="@+id/v_ripple_ring_1"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_ripple_ring"
+            android:alpha="0"
+            android:visibility="invisible" />
+
+        <!-- 波纹环 2（SplashActivity 中错开 800ms 启动） -->
+        <View
+            android:id="@+id/v_ripple_ring_2"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_ripple_ring"
+            android:alpha="0"
+            android:visibility="invisible" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/iv_logo"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:alpha="0"
+            android:scaleX="0.8"
+            android:scaleY="0.8"
+            android:src="@drawable/ic_launcher_foreground"
+            tools:src="@drawable/ic_launcher_foreground"
+            tools:alpha="1"
+            tools:scaleX="1"
+            tools:scaleY="1" />
+    </FrameLayout>
 
     <!-- 应用名称 -->
     <TextView
@@ -42,7 +69,7 @@
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/iv_logo"
+        app:layout_constraintTop_toBottomOf="@id/logo_container"
         tools:alpha="1" />
 
     <!-- 副标题 -->

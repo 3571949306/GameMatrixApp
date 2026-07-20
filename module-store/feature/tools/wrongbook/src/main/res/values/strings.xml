@@ -2,6 +2,7 @@
 <resources>
     <string name="wrongbook_title">错题本</string>
     <string name="wrongbook_description">AI 错题整理与复习工具</string>
+    <string name="wrongbook_back">返回游戏大厅</string>
 
     <!-- 底部标签 -->
     <string name="wrongbook_tab_questions">错题</string>
@@ -30,6 +31,16 @@
     <string name="wrongbook_analyzing">AI 正在分析…</string>
     <string name="wrongbook_save_question">保存错题</string>
     <string name="wrongbook_question_content">题目内容</string>
+    <string name="wrongbook_re_recognize">重新识别</string>
+    <string name="wrongbook_accurate_recognize">高精度识别</string>
+    <string name="wrongbook_answer">正确答案</string>
+    <string name="wrongbook_wrong_reason">易错原因</string>
+    <string name="wrongbook_review_suggestion">复习建议</string>
+    <string name="wrongbook_question_type_format">题型：%1$s</string>
+    <string name="wrongbook_confidence_format">置信度：%1$.0f%%</string>
+    <string name="wrongbook_detail_options_label">选项</string>
+    <string name="wrongbook_detail_question_type_label">题型</string>
+    <string name="wrongbook_detail_no_ai_extra">暂无 AI 解析增强字段</string>
 
     <!-- 看板 -->
     <string name="wrongbook_total_questions">总错题数</string>
@@ -49,14 +60,49 @@
     <string name="wrongbook_ocr_engine">OCR 引擎</string>
     <string name="wrongbook_ocr_local">本地 ML Kit（默认）</string>
     <string name="wrongbook_ocr_cloud">云端 OCR（Scnet）</string>
+    <string name="wrongbook_ocr_baidu">百度 OCR（后端代理）</string>
     <string name="wrongbook_ai_mode">AI 模式</string>
     <string name="wrongbook_ai_cloud">云端 AI</string>
     <string name="wrongbook_ai_local">本地 AI（预留）</string>
+    <string name="wrongbook_ai_backend_proxy">后端代理 AI（智谱 GLM）</string>
     <string name="wrongbook_ai_base_url">API 地址</string>
     <string name="wrongbook_ai_api_key">API Key</string>
     <string name="wrongbook_ai_model">模型名称</string>
     <string name="wrongbook_save_settings">保存设置</string>
     <string name="wrongbook_settings_saved">设置已保存</string>
+
+    <!-- 后端代理（百度 OCR + 智谱 GLM） -->
+    <string name="wrongbook_backend_section">后端代理服务</string>
+    <string name="wrongbook_backend_section_hint">第三方密钥由后端 .env 管理；App 加密保存后端地址与访问令牌</string>
+    <string name="wrongbook_backend_base_url">后端服务地址</string>
+    <string name="wrongbook_backend_base_url_hint">例如 http://10.0.2.2:8080</string>
+    <string name="wrongbook_backend_enable">启用后端代理</string>
+    <string name="wrongbook_backend_test_connection">测试连接</string>
+    <string name="wrongbook_backend_api_token">后端访问令牌（加密保存）</string>
+    <string name="wrongbook_backend_testing">正在测试连接…</string>
+    <string name="wrongbook_backend_test_success">连接成功（OCR: %1$s，AI: %2$s）</string>
+    <string name="wrongbook_backend_test_success_simple">连接成功</string>
+    <string name="wrongbook_backend_test_fail">连接失败：%1$s</string>
+    <string name="wrongbook_backend_test_ocr_ok">百度 OCR 已配置</string>
+    <string name="wrongbook_backend_test_ocr_off">百度 OCR 未配置</string>
+    <string name="wrongbook_backend_test_ai_ok">智谱 AI 已配置</string>
+    <string name="wrongbook_backend_test_ai_off">智谱 AI 未配置</string>
+    <string name="wrongbook_backend_url_empty">请先填写后端服务地址</string>
+    <string name="wrongbook_backend_flag_disabled">后端代理功能未启用（feature flag 关闭）</string>
+
+    <!-- 正式版 API 直连密钥（EncryptedSharedPreferences 加密保存） -->
+    <string name="wrongbook_secure_section">正式版 API 直连密钥</string>
+    <string name="wrongbook_secure_section_hint">密钥使用 EncryptedSharedPreferences 加密保存，仅本机可解密</string>
+    <string name="wrongbook_secure_baidu_api_key">百度 OCR API Key</string>
+    <string name="wrongbook_secure_baidu_secret_key">百度 OCR Secret Key</string>
+    <string name="wrongbook_secure_zhipu_api_key">智谱 GLM API Key</string>
+    <string name="wrongbook_secure_zhipu_model">智谱模型名（默认 glm-4-flash）</string>
+    <string name="wrongbook_secure_save">加密保存</string>
+    <string name="wrongbook_secure_clear">清除配置</string>
+    <string name="wrongbook_secure_saved">密钥已加密保存</string>
+    <string name="wrongbook_secure_cleared">密钥配置已清除</string>
+    <string name="wrongbook_secure_status_format">当前配置：%1$s</string>
+    <string name="wrongbook_secure_flag_disabled">正式版密钥配置未启用（feature flag 关闭）</string>
 
     <!-- 通用 -->
     <string name="wrongbook_cancel">取消</string>
@@ -136,4 +182,12 @@
     <string name="wrongbook_import_cloud">从香港 VPS 恢复备份</string>
     <string name="wrongbook_cloud_export_success">成功备份数据至云端 VPS</string>
     <string name="wrongbook_cloud_import_success">成功从云端恢复错题数据</string>
+
+    <!-- 错误提示（Bug 修复） -->
+    <string name="wrongbook_save_failed">错题保存失败，请重试</string>
+    <string name="wrongbook_save_failed_with_reason">错题保存失败：%1$s</string>
+    <string name="wrongbook_cloud_backup_failed">云端备份失败</string>
+    <string name="wrongbook_cloud_restore_failed">云端恢复失败</string>
+    <string name="wrongbook_cloud_backup_failed_with_reason">云端备份失败：%1$s</string>
+    <string name="wrongbook_cloud_restore_failed_with_reason">云端恢复失败：%1$s</string>
 </resources>

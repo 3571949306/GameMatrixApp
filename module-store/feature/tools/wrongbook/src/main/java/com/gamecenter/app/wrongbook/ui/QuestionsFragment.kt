@@ -8,11 +8,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gamecenter.app.wrongbook.R
 import com.gamecenter.app.wrongbook.data.QuestionEntity
 import com.gamecenter.app.wrongbook.databinding.FragmentQuestionsBinding
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 /**
  * 错题列表 Fragment。
@@ -147,22 +149,24 @@ class QuestionsFragment : BaseWrongBookFragment() {
                     Snackbar.make(binding.root, moduleResources.getString(R.string.wrongbook_question_deleted), Snackbar.LENGTH_LONG)
                         .setAction(moduleResources.getString(R.string.wrongbook_undo)) {
                             // 撤销删除，将备份的错题重新存回
-                            questionsToBackup.forEach { backup ->
-                                viewModel.saveQuestion(
-                                    rawText = backup.rawText,
-                                    analysisResult = com.gamecenter.app.wrongbook.analysis.AnalysisResult(
-                                        success = true,
-                                        subject = backup.subject,
-                                        difficulty = backup.difficulty,
-                                        knowledgePoints = parseJsonList(backup.knowledgePoints),
-                                        analysis = backup.analysis
-                                    ),
-                                    imagePath = backup.imagePath,
-                                    isFavorite = backup.isFavorite,
-                                    tags = backup.tags
-                                )
+                            viewLifecycleOwner.lifecycleScope.launch {
+                                questionsToBackup.forEach { backup ->
+                                    viewModel.saveQuestion(
+                                        rawText = backup.rawText,
+                                        analysisResult = com.gamecenter.app.wrongbook.analysis.AnalysisResult(
+                                            success = true,
+                                            subject = backup.subject,
+                                            difficulty = backup.difficulty,
+                                            knowledgePoints = parseJsonList(backup.knowledgePoints),
+                                            analysis = backup.analysis
+                                        ),
+                                        imagePath = backup.imagePath,
+                                        isFavorite = backup.isFavorite,
+                                        tags = backup.tags
+                                    )
+                                }
+                                Snackbar.make(binding.root, moduleResources.getString(R.string.wrongbook_undo_success), Snackbar.LENGTH_SHORT).show()
                             }
-                            Snackbar.make(binding.root, moduleResources.getString(R.string.wrongbook_undo_success), Snackbar.LENGTH_SHORT).show()
                         }.show()
                 }
                 .setNegativeButton(moduleResources.getString(R.string.wrongbook_cancel), null)

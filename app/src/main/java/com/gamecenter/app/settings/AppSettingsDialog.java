@@ -3,10 +3,12 @@ package com.gamecenter.app.settings;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -21,6 +23,7 @@ import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.StatsActivity;
 import com.gamecenter.app.update.UpdateManager;
 import com.google.android.material.materialswitch.MaterialSwitch;
+import java.io.File;
 import java.util.List;
 
 /**
@@ -36,14 +39,34 @@ public class AppSettingsDialog {
     private final Fragment fragment;
     private final Runnable onCheckUpdate;
     private final Runnable onFeedback;
+    // Batch 11-2 (DATA_BACKUP_RESTORE): SAF launcher 触发回调
+    private final Runnable onExportData;
+    private final Runnable onImportData;
 
     public AppSettingsDialog(
             @NonNull Fragment fragment,
             @Nullable Runnable onCheckUpdate,
             @Nullable Runnable onFeedback) {
+        this(fragment, onCheckUpdate, onFeedback, null, null);
+    }
+
+    /**
+     * Batch 11 构造函数：增加数据导出/导入回调。
+     *
+     * @param onExportData 触发 SAF ACTION_CREATE_DOCUMENT（导出 JSON）
+     * @param onImportData 触发 SAF ACTION_OPEN_DOCUMENT（导入 JSON）
+     */
+    public AppSettingsDialog(
+            @NonNull Fragment fragment,
+            @Nullable Runnable onCheckUpdate,
+            @Nullable Runnable onFeedback,
+            @Nullable Runnable onExportData,
+            @Nullable Runnable onImportData) {
         this.fragment = fragment;
         this.onCheckUpdate = onCheckUpdate;
         this.onFeedback = onFeedback;
+        this.onExportData = onExportData;
+        this.onImportData = onImportData;
     }
 
     /**
@@ -94,6 +117,20 @@ public class AppSettingsDialog {
         return ctx.getString(R.string.language_auto);
     }
 
+    /** Feature B: 字号偏好显示名称。 */
+    private String getFontSizeLabel(int fontSize) {
+        Context ctx = fragment.requireContext();
+        switch (fontSize) {
+            case SettingsManager.FONT_SIZE_SMALL:
+                return ctx.getString(R.string.settings_font_size_small);
+            case SettingsManager.FONT_SIZE_LARGE:
+                return ctx.getString(R.string.settings_font_size_large);
+            case SettingsManager.FONT_SIZE_MEDIUM:
+            default:
+                return ctx.getString(R.string.settings_font_size_medium);
+        }
+    }
+
     public void show() {
         if (!fragment.isAdded()) {
             return;
@@ -106,10 +143,19 @@ public class AppSettingsDialog {
 
         // 版本信息
         TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);
-        String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? " Beta" : "";
+        String channelLabel;
+        if ("beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL)) {
+            channelLabel = " " + context.getString(R.string.settings_channel_beta);
+        } else if ("stable".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL)) {
+            channelLabel = " " + context.getString(R.string.settings_channel_stable);
+        } else {
+            channelLabel = "";
+        }
         if (tvVersion != null) {
-            tvVersion.setText("版本 " + BuildConfig.VERSION_NAME + channelLabel
-                    + " · 内部版本 " + BuildConfig.VERSION_CODE);
+            tvVersion.setText(context.getString(
+                    R.string.settings_version_display_format,
+                    BuildConfig.VERSION_NAME + channelLabel,
+                    BuildConfig.VERSION_CODE));
         }
 
         // 当前语言
@@ -190,6 +236,25 @@ public class AppSettingsDialog {
             });
         }
 
+        // Batch 7-4 (SETTINGS_ABOUT_PAGE): 关于入口
+        LinearLayout llAbout = dialogView.findViewById(R.id.ll_about);
+        if (llAbout != null) {
+            llAbout.setOnClickListener(v -> {
+                if (BuildConfig.SETTINGS_ABOUT_PAGE) {
+                    com.gamecenter.app.ui.AboutDialog aboutDialog =
+                            new com.gamecenter.app.ui.AboutDialog(() -> {
+                                if (onCheckUpdate != null) {
+                                    onCheckUpdate.run();
+                                }
+                            });
+                    aboutDialog.show(fragment.getChildFragmentManager(), "AboutDialog");
+                } else {
+                    Toast.makeText(context, context.getString(R.string.settings_about_title),
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         // ===== 声音与反馈开关 =====
         // 音效总开关（控制所有音频）
         MaterialSwitch switchSfxMaster = dialogView.findViewById(R.id.switch_sfx_master);
@@ -221,12 +286,119 @@ public class AppSettingsDialog {
         // 初始化开关联动状态
         updateAudioSwitchStates(dialogView, settings.isSfxEnabled());
 
+        // ===== Feature B (SETTINGS_ENHANCE): 字号 + 缓存清理 =====
+        if (BuildConfig.SETTINGS_ENHANCE) {
+            initFeatureBRows(dialogView, settings);
+        }
+
+        // ===== Batch 11-2 (DATA_BACKUP_RESTORE): 数据导出/导入 =====
+        if (BuildConfig.DATA_BACKUP_RESTORE) {
+            initDataBackupRows(dialogView);
+        } else {
+            // 关闭 flag 时隐藏整张数据卡片，避免出现死按钮
+            View cardData = dialogView.findViewById(R.id.card_data);
+            if (cardData != null) cardData.setVisibility(View.GONE);
+            // 分组标题也隐藏
+            View groupTitle = findDataBackupGroupTitle(dialogView);
+            if (groupTitle != null) groupTitle.setVisibility(View.GONE);
+        }
+
+        // ===== Batch 11-4 (GAME_FAVORITE_REORDER): 收藏置顶开关 =====
+        if (BuildConfig.GAME_FAVORITE_REORDER) {
+            initFavoriteReorderSwitch(dialogView);
+        } else {
+            View llFav = dialogView.findViewById(R.id.ll_favorite_reorder);
+            if (llFav != null) llFav.setVisibility(View.GONE);
+        }
+
         new AlertDialog.Builder(context)
                 .setTitle(context.getString(R.string.settings_title))
                 .setView(dialogView)
                 .setPositiveButton(context.getString(R.string.settings_ok), null)
                 .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
+    }
+
+    /**
+     * Batch 11-2: 绑定数据导出/导入行的点击事件。
+     * 若调用方未提供 SAF 回调，则把对应行置灰并 Toast 提示。
+     */
+    private void initDataBackupRows(@NonNull View rootView) {
+        Context ctx = fragment.requireContext();
+        View llExport = rootView.findViewById(R.id.ll_data_export);
+        View llImport = rootView.findViewById(R.id.ll_data_import);
+
+        if (llExport != null) {
+            if (onExportData != null) {
+                llExport.setOnClickListener(v -> onExportData.run());
+            } else {
+                llExport.setAlpha(0.45f);
+                llExport.setEnabled(false);
+                llExport.setOnClickListener(v ->
+                        Toast.makeText(ctx, R.string.data_backup_unavailable,
+                                Toast.LENGTH_SHORT).show());
+            }
+        }
+        if (llImport != null) {
+            if (onImportData != null) {
+                llImport.setOnClickListener(v -> onImportData.run());
+            } else {
+                llImport.setAlpha(0.45f);
+                llImport.setEnabled(false);
+                llImport.setOnClickListener(v ->
+                        Toast.makeText(ctx, R.string.data_backup_unavailable,
+                                Toast.LENGTH_SHORT).show());
+            }
+        }
+    }
+
+    /** Batch 11-4: 绑定收藏置顶开关。 */
+    private void initFavoriteReorderSwitch(@NonNull View rootView) {
+        Context ctx = fragment.requireContext();
+        MaterialSwitch sw = rootView.findViewById(R.id.switch_favorite_reorder);
+        if (sw == null) return;
+        sw.setChecked(com.gamecenter.app.ui.GameFavoriteReorderHelper.INSTANCE.isEnabled(ctx));
+        sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            com.gamecenter.app.ui.GameFavoriteReorderHelper.INSTANCE.setEnabled(ctx, isChecked);
+            Toast.makeText(ctx,
+                    isChecked ? R.string.favorite_reorder_enabled_toast
+                              : R.string.favorite_reorder_disabled_toast,
+                    Toast.LENGTH_SHORT).show();
+        });
+        // 整行点击也触发开关切换
+        View llFav = rootView.findViewById(R.id.ll_favorite_reorder);
+        if (llFav != null) {
+            llFav.setOnClickListener(v -> sw.setChecked(!sw.isChecked()));
+        }
+    }
+
+    /**
+     * 找到"数据与排序"分组的标题 TextView。
+     * 由于布局中该标题没有 ID，通过遍历父布局定位（在 card_data 之前的 TextView）。
+     * 这里简化处理：直接查找紧邻 card_data 之前的 TextView。
+     */
+    private static View findDataBackupGroupTitle(@NonNull View rootView) {
+        // 简化：card_data 之前的同级 TextView 即为分组标题
+        // 由于 ScrollView+LinearLayout 结构，遍历查找包含 settings_data_backup_title 文案的 TextView
+        if (!(rootView instanceof android.view.ViewGroup)) return null;
+        return findTextViewByText((android.view.ViewGroup) rootView,
+                rootView.getContext().getString(R.string.settings_data_backup_title));
+    }
+
+    private static View findTextViewByText(android.view.ViewGroup group, String text) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof TextView) {
+                TextView tv = (TextView) child;
+                if (text.equals(tv.getText() == null ? "" : tv.getText().toString())) {
+                    return tv;
+                }
+            } else if (child instanceof android.view.ViewGroup) {
+                View found = findTextViewByText((android.view.ViewGroup) child, text);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     /**
@@ -469,6 +641,19 @@ public class AppSettingsDialog {
                     currentSchemeIndex[0] = ColorSchemeManager.normalizeSchemeIndex(which);
                     updateColorSchemeRow(vPrimary, vSecondary, vAccent, tvSchemeName,
                             schemes.get(currentSchemeIndex[0]));
+
+                    // Batch 3 (THEME_SWITCHER)：补全"最后一公里"
+                    // 原行为：仅更新预览色块，关闭弹窗后选择丢失
+                    // 新行为：持久化到 SharedPreferences + 立即应用配色 + 重建 Activity 让所有界面元素刷新
+                    if (BuildConfig.THEME_SWITCHER) {
+                        SettingsManager settings = SettingsManager.getInstance(context);
+                        settings.setColorSchemeIndex(currentSchemeIndex[0]);
+                        // 立即应用到当前 Activity（状态栏、导航栏、根视图背景等）
+                        Activity activity = fragment.requireActivity();
+                        App.refreshColorScheme(activity);
+                        // 重建 Activity 让所有界面元素（卡片、按钮、文字等）重新读取主题色
+                        activity.recreate();
+                    }
                 })
                 .create();
         dialog.setOnShowListener(d -> {
@@ -550,6 +735,182 @@ public class AppSettingsDialog {
                 })
                 .setNegativeButton(context.getString(R.string.settings_cancel), null)
                 .show();
+    }
+
+    // ==================== Feature B (SETTINGS_ENHANCE): 字号 + 缓存清理 ====================
+
+    /**
+     * 初始化 Feature B 的两行：字号 + 缓存清理。
+     */
+    private void initFeatureBRows(@NonNull View rootView, @NonNull SettingsManager settings) {
+        Context context = fragment.requireContext();
+
+        // ----- 字号行 -----
+        LinearLayout llFontSize = rootView.findViewById(R.id.ll_font_size);
+        TextView tvCurrentFontSize = rootView.findViewById(R.id.tv_current_font_size);
+        if (tvCurrentFontSize != null) {
+            tvCurrentFontSize.setText(getFontSizeLabel(settings.getFontSize()));
+        }
+        if (llFontSize != null) {
+            llFontSize.setOnClickListener(v ->
+                    showFontSizePicker(context, settings, tvCurrentFontSize));
+        }
+
+        // ----- 缓存清理行 -----
+        LinearLayout llCacheClear = rootView.findViewById(R.id.ll_cache_clear);
+        TextView tvCacheSize = rootView.findViewById(R.id.tv_cache_size);
+        if (llCacheClear != null) {
+            llCacheClear.setOnClickListener(v ->
+                    showCacheClearDialog(context, tvCacheSize));
+        }
+        // 异步计算缓存大小
+        updateCacheSizeLabel(tvCacheSize);
+    }
+
+    /** 弹出字号选择对话框。 */
+    private void showFontSizePicker(@NonNull Context context,
+                                    @NonNull SettingsManager settings,
+                                    @Nullable TextView tvLabel) {
+        String[] items = {
+                context.getString(R.string.settings_font_size_small),
+                context.getString(R.string.settings_font_size_medium),
+                context.getString(R.string.settings_font_size_large)
+        };
+        int current = settings.getFontSize();
+        int checkedItem;
+        if (current == SettingsManager.FONT_SIZE_SMALL) {
+            checkedItem = 0;
+        } else if (current == SettingsManager.FONT_SIZE_LARGE) {
+            checkedItem = 2;
+        } else {
+            checkedItem = 1;
+        }
+
+        new AlertDialog.Builder(context)
+                .setTitle(context.getString(R.string.settings_select_font_size))
+                .setSingleChoiceItems(items, checkedItem, (dialog, which) -> {
+                    int newFontSize;
+                    if (which == 0) {
+                        newFontSize = SettingsManager.FONT_SIZE_SMALL;
+                    } else if (which == 2) {
+                        newFontSize = SettingsManager.FONT_SIZE_LARGE;
+                    } else {
+                        newFontSize = SettingsManager.FONT_SIZE_MEDIUM;
+                    }
+                    settings.setFontSize(newFontSize);
+                    if (tvLabel != null) {
+                        tvLabel.setText(getFontSizeLabel(newFontSize));
+                    }
+                    dialog.dismiss();
+                    // 重建当前 Activity 让字号生效
+                    fragment.requireActivity().recreate();
+                })
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
+                .show();
+    }
+
+    /** 弹出缓存清理确认对话框。 */
+    private void showCacheClearDialog(@NonNull Context context, @Nullable TextView tvCacheSize) {
+        new AlertDialog.Builder(context)
+                .setTitle(context.getString(R.string.settings_cache_clear))
+                .setMessage(context.getString(R.string.settings_cache_clear_desc))
+                .setPositiveButton(context.getString(R.string.settings_ok), (dialog, which) -> {
+                    boolean ok = clearAppCache();
+                    Toast.makeText(context,
+                            ok ? R.string.settings_cache_cleared
+                                    : R.string.settings_cache_clear_failed,
+                            Toast.LENGTH_SHORT).show();
+                    if (ok) {
+                        updateCacheSizeLabel(tvCacheSize);
+                    }
+                })
+                .setNegativeButton(context.getString(R.string.settings_cancel), null)
+                .show();
+    }
+
+    /**
+     * 异步计算并显示当前缓存大小。
+     */
+    private void updateCacheSizeLabel(@Nullable TextView tvCacheSize) {
+        if (tvCacheSize == null) return;
+        Context context = fragment.requireContext();
+        tvCacheSize.setText(context.getString(R.string.settings_cache_calculating));
+        AsyncTask.execute(() -> {
+            long size = getCacheSizeBytes(context);
+            String human = formatSize(size);
+            tvCacheSize.post(() -> {
+                if (size <= 0) {
+                    tvCacheSize.setText(context.getString(R.string.settings_cache_empty));
+                } else {
+                    tvCacheSize.setText(context.getString(R.string.settings_cache_size, human));
+                }
+            });
+        });
+    }
+
+    /** 递归计算缓存目录总大小（字节）。 */
+    private static long getCacheSizeBytes(@NonNull Context context) {
+        long total = 0;
+        total += dirSize(context.getCacheDir());
+        File externalCache = context.getExternalCacheDir();
+        if (externalCache != null) {
+            total += dirSize(externalCache);
+        }
+        return total;
+    }
+
+    /** 递归计算目录大小。 */
+    private static long dirSize(@NonNull File dir) {
+        if (!dir.exists()) return 0;
+        long size = 0;
+        File[] files = dir.listFiles();
+        if (files == null) return 0;
+        for (File f : files) {
+            if (f.isDirectory()) {
+                size += dirSize(f);
+            } else {
+                size += f.length();
+            }
+        }
+        return size;
+    }
+
+    /** 格式化字节大小为可读字符串。 */
+    private static String formatSize(long bytes) {
+        if (bytes <= 0) return "0 B";
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format(java.util.Locale.US, "%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format(java.util.Locale.US, "%.1f MB", bytes / (1024.0 * 1024));
+        return String.format(java.util.Locale.US, "%.2f GB", bytes / (1024.0 * 1024 * 1024));
+    }
+
+    /** 清理应用缓存。返回是否成功。 */
+    private boolean clearAppCache() {
+        try {
+            Context context = fragment.requireContext();
+            deleteRecursive(context.getCacheDir());
+            File external = context.getExternalCacheDir();
+            if (external != null) {
+                deleteRecursive(external);
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** 递归删除目录及子项。 */
+    private static void deleteRecursive(@NonNull File fileOrDir) {
+        if (fileOrDir.isDirectory()) {
+            File[] children = fileOrDir.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursive(child);
+                }
+            }
+        }
+        //noinspection ResultOfMethodCallIgnored
+        fileOrDir.delete();
     }
 
     private static class ColorSchemeAdapter extends android.widget.BaseAdapter {

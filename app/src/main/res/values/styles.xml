@@ -62,39 +62,39 @@
 
     <!-- FAB -->
     <style name="Widget.GameMatrix.FAB" parent="Widget.Material3.FloatingActionButton.Primary">
-        <item name="elevation">3dp</item>
-        <item name="pressedTranslationZ">6dp</item>
+        <item name="elevation">@dimen/gm_elevation_2</item>
+        <item name="pressedTranslationZ">@dimen/gm_elevation_3</item>
     </style>
 
-    <!-- 卡片 — 无描边、微妙阴影 -->
+    <!-- 卡片 — 无描边、微妙阴影（A2: 圆角/阴影引用 token） -->
     <style name="Widget.GameMatrix.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardCornerRadius">16dp</item>
-        <item name="cardElevation">1dp</item>
+        <item name="cardCornerRadius">@dimen/gm_radius_lg</item>
+        <item name="cardElevation">@dimen/gm_elevation_1</item>
         <item name="strokeWidth">0dp</item>
         <item name="rippleColor">?attr/colorPrimaryContainer</item>
     </style>
 
     <!-- 游戏卡片 — 稍大圆角 -->
     <style name="Widget.GameMatrix.Card.Game" parent="Widget.GameMatrix.Card">
-        <item name="cardCornerRadius">20dp</item>
-        <item name="cardElevation">2dp</item>
+        <item name="cardCornerRadius">@dimen/gm_radius_xl</item>
+        <item name="cardElevation">@dimen/gm_elevation_2</item>
         <item name="strokeWidth">0dp</item>
         <item name="rippleColor">?attr/colorPrimaryContainer</item>
     </style>
 
     <!-- 模块卡片 -->
     <style name="Widget.GameMatrix.Card.Module" parent="Widget.GameMatrix.Card">
-        <item name="cardCornerRadius">12dp</item>
-        <item name="cardElevation">1dp</item>
+        <item name="cardCornerRadius">@dimen/gm_radius_md</item>
+        <item name="cardElevation">@dimen/gm_elevation_1</item>
         <item name="strokeWidth">0dp</item>
     </style>
 
-    <!-- 搜索框 -->
+    <!-- 搜索框（A2: 圆角引用 token） -->
     <style name="Widget.GameMatrix.Search" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusBottomEnd">24dp</item>
-        <item name="boxCornerRadiusBottomStart">24dp</item>
-        <item name="boxCornerRadiusTopEnd">24dp</item>
-        <item name="boxCornerRadiusTopStart">24dp</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/gm_radius_xl</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/gm_radius_xl</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/gm_radius_xl</item>
+        <item name="boxCornerRadiusTopStart">@dimen/gm_radius_xl</item>
         <item name="boxStrokeWidth">0dp</item>
         <item name="boxStrokeWidthFocused">0dp</item>
         <item name="boxBackgroundColor">?attr/colorSurfaceVariant</item>
@@ -113,9 +113,9 @@
         <item name="tabRippleColor">?attr/colorPrimaryContainer</item>
     </style>
 
-    <!-- Chip -->
+    <!-- Chip（A2: 圆角引用 token） -->
     <style name="Widget.GameMatrix.Chip" parent="Widget.Material3.Chip.Filter">
-        <item name="chipCornerRadius">8dp</item>
+        <item name="chipCornerRadius">@dimen/gm_radius_sm</item>
         <item name="chipMinHeight">28dp</item>
         <item name="textStartPadding">12dp</item>
         <item name="textEndPadding">12dp</item>
@@ -176,5 +176,20 @@
     <!-- 兼容桥接 -->
     <style name="ShapeAppearance" />
     <style name="Widget.Material3.Button.Tonal" parent="Widget.Material3.Button.TonalButton" />
+
+    <!-- Feature D (VISUAL_REFRESH): 底部导航选中态圆角胶囊指示器 -->
+    <style name="ShapeAppearance.GameMatrix.NavIndicator" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">14dp</item>
+    </style>
+
+    <!-- Batch 6 (NAV_ACTIVE_ANIM): 选中态胶囊增强 —— 更高、更圆、带阴影 -->
+    <style name="Widget.GameMatrix.BottomNavigationView.ActiveIndicator"
+           parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:height">36dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.GameMatrix.NavIndicator</item>
+        <item name="backgroundTint">@color/bottom_nav_selected_bg</item>
+        <item name="android:elevation">3dp</item>
+    </style>
 
 </resources>

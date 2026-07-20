@@ -24,11 +24,26 @@ object ModuleVerifier {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    fun verifySha256(file: File, expectedSha256: String): Boolean {
+    /**
+     * 校验文件的 SHA-256。
+     *
+     * Batch 21 安全修复：
+     * - 默认情况下 [expectedSha256] 为空时拒绝校验（返回 false），防止绕过完整性检查
+     * - 仅当显式传入 [allowEmpty]=true 时，空 SHA 才被接受（仅用于内置模块）
+     *
+     * @param file 待校验的文件
+     * @param expectedSha256 期望的 SHA-256 十六进制字符串
+     * @param allowEmpty 是否允许空 SHA 跳过校验（仅内置模块应为 true）
+     */
+    fun verifySha256(file: File, expectedSha256: String, allowEmpty: Boolean = false): Boolean {
         if (!file.exists()) return false
         if (expectedSha256.isEmpty()) {
-            Log.d(TAG, "SHA-256 为空，跳过校验: ${file.name}")
-            return true
+            if (allowEmpty) {
+                Log.d(TAG, "SHA-256 为空，允许跳过校验（内置模块）: ${file.name}")
+                return true
+            }
+            Log.w(TAG, "SHA-256 为空，拒绝校验（非内置模块必须配置 SHA）: ${file.name}")
+            return false
         }
         val actual = computeSha256(file)
         val result = actual.equals(expectedSha256, ignoreCase = true)

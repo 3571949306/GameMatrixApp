@@ -3,6 +3,7 @@ package com.gamecenter.app.browser.security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,7 +32,7 @@ public class AdBlocker {
 
     public boolean shouldBlock(String url) {
         if (!enabled || url == null) return false;
-        String host = extractHost(url).toLowerCase();
+        String host = extractHost(url).toLowerCase(Locale.ROOT);
         if (host.isEmpty()) return false;
 
         synchronized (whitelistDomains) {
@@ -54,17 +55,17 @@ public class AdBlocker {
     public boolean isEnabled() { return enabled; }
 
     public void addWhitelistDomain(String domain) {
-        if (domain != null && !domain.isEmpty()) { whitelistDomains.add(domain.toLowerCase()); }
+        if (domain != null && !domain.isEmpty()) { whitelistDomains.add(domain.toLowerCase(Locale.ROOT)); }
     }
 
     public void removeWhitelistDomain(String domain) {
-        if (domain != null) { whitelistDomains.remove(domain.toLowerCase()); }
+        if (domain != null) { whitelistDomains.remove(domain.toLowerCase(Locale.ROOT)); }
     }
 
     public Set<String> getWhitelistDomains() { return new HashSet<>(whitelistDomains); }
 
     public boolean isWhitelisted(String url) {
-        String host = extractHost(url).toLowerCase();
+        String host = extractHost(url).toLowerCase(Locale.ROOT);
         synchronized (whitelistDomains) {
             for (String domain : whitelistDomains) {
                 if (host.equals(domain) || host.endsWith("." + domain)) { return true; }

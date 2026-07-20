@@ -21,6 +21,7 @@ import com.gamecenter.app.R;
 import com.gamecenter.app.games.doudizhu.model.Card;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 斗地主 UI 控制器。
@@ -706,7 +707,7 @@ public final class DouDiZhuUIController {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override public void afterTextChanged(Editable s) {
-                String text = s.toString().replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+                String text = s.toString().replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
                 if (!text.equals(s.toString())) {
                     s.clear();
                     s.append(text);
@@ -716,11 +717,11 @@ public final class DouDiZhuUIController {
         // 尝试从剪贴板自动填入 6 位房间码
         String clipText = getClipboardText();
         if (clipText != null && clipText.matches("[A-Za-z0-9]{6}")) {
-            input.setText(clipText.toUpperCase());
+            input.setText(clipText.toUpperCase(Locale.ROOT));
         }
         builder.setView(input);
         builder.setPositiveButton("加入", (dialog, which) -> {
-            String code = input.getText().toString().trim().toUpperCase();
+            String code = input.getText().toString().trim().toUpperCase(Locale.ROOT);
             joinCallback.onJoin(code);
         });
         builder.setNegativeButton("取消", null);

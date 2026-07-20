@@ -1,0 +1,23 @@
+# GameMatrixApp 错题本后端服务依赖
+# Python 3.10+（已验证 Python 3.14 兼容）
+
+# Web 框架
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.20
+
+# HTTP 客户端（调用百度/智谱 API）
+httpx>=0.28.0
+
+# 数据校验（pydantic 2.11+ 的 pydantic-core 提供 cp314 wheel）
+pydantic>=2.11.0
+pydantic-settings>=2.7.0
+
+# 环境变量加载
+python-dotenv>=1.0.1
+
+# 图片处理（Pillow 11.2+ 提供 cp314 wheel）
+Pillow>=11.2.0
+
+# 工具
+loguru>=0.7.3

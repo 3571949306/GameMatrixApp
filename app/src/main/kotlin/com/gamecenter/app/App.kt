@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.gamecenter.app.recovery.CrashDetector
+import com.gamecenter.app.util.CrashHandler
 import com.gamecenter.app.core.security.SecureOkHttpFactory
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -106,6 +107,16 @@ class App : Application() {
     }
 
     override fun onCreate() {
+        // 尽早安装全局崩溃处理器：置于 super.onCreate() 之前，
+        // 使 Hilt/DI 初始化期崩溃也能被 UncaughtExceptionHandler 捕获并驱动恢复模式。
+        CrashHandler.init(this) { _, throwable ->
+            // R1: 恢复页自身崩溃不计入触发信号，避免"恢复→崩溃→再恢复"死循环。
+            // 仅当异常栈帧不来自 recovery 包时，才记录真实崩溃。
+            if (!isFromRecovery(throwable)) {
+                CrashDetector.recordCrash(this@App)
+            }
+        }
+
         super.onCreate()
 
         CrashDetector.markAppStart(this)
@@ -119,9 +130,16 @@ class App : Application() {
 
         SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, !BuildConfig.DEBUG)
 
+        // Batch 21: 初始化下载指标收集器
+        com.gamecenter.app.modules.DownloadMetricsCollector.init(this)
+
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                 applyColorScheme(activity)
+                // Feature B (SETTINGS_ENHANCE): 应用用户选择的字号
+                if (BuildConfig.SETTINGS_ENHANCE) {
+                    com.gamecenter.app.settings.FontSizeHelper.apply(activity)
+                }
             }
 
             override fun onActivityStarted(activity: Activity) {}
@@ -135,6 +153,33 @@ class App : Application() {
         moduleLifecycleManager = ModuleLifecycleManager.getInstance(this)
         moduleLifecycleManager.initialize()
         Log.i("App", "模块系统已初始化")
+    }
+
+    /**
+     * R1: 判断异常是否源自恢复模式包。若恢复页自身崩溃也被计入触发信号，
+     * 会导致"进入恢复 → 恢复页崩溃 → 再进入恢复"的死循环。
+     * 仅检查栈帧包名，避免对恢复流程内部的崩溃计数。
+     */
+    private fun isFromRecovery(throwable: Throwable): Boolean {
+        val recoveryPkg = "com.gamecenter.app.recovery"
+        // 1) 直接类名前缀匹配（最快路径）
+        if (throwable.javaClass.name.startsWith(recoveryPkg)) return true
+        // 2) 遍历栈帧，任一帧属于 recovery 包即视为源自恢复流程
+        for (element in throwable.stackTrace) {
+            if (element.className.startsWith(recoveryPkg)) return true
+        }
+        // 3) 递归检查 cause，避免包装异常绕过
+        var cause = throwable.cause
+        var depth = 0
+        while (cause != null && depth < 5) {
+            if (cause.javaClass.name.startsWith(recoveryPkg)) return true
+            for (element in cause.stackTrace) {
+                if (element.className.startsWith(recoveryPkg)) return true
+            }
+            cause = cause.cause
+            depth++
+        }
+        return false
     }
 
     fun shouldAutoCheckUpdate(): Boolean {
@@ -186,6 +231,8 @@ class App : Application() {
     override fun onTerminate() {
         super.onTerminate()
         moduleLifecycleManager.release()
+        // Batch 21 改进：应用终止时 flush 下载指标，避免丢失未达 buffer 上限的数据
+        com.gamecenter.app.modules.DownloadMetricsCollector.flush()
         Log.i("App", "应用程序已终止，所有资源已释放")
     }
 

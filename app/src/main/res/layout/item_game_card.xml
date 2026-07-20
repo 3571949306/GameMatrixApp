@@ -27,6 +27,8 @@
             android:layout_height="@dimen/icon_size_xlarge"
             android:contentDescription="游戏图标"
             android:scaleType="centerInside"
+            android:padding="14dp"
+            android:background="@drawable/bg_game_icon_gradient_default"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -67,6 +69,49 @@
             app:layout_constraintTop_toBottomOf="@id/tv_game_name"
             tools:text="经典五子棋人机对战" />
 
+        <!-- 评分行（Feature E HOME_CARD_ENHANCE）：星形图标 + 评分数字 -->
+        <LinearLayout
+            android:id="@+id/tv_rating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_6"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/tv_category_tag"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_game_desc"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:contentDescription="@string/home_card_rating_label"
+                android:scaleType="centerInside"
+                app:srcCompat="@drawable/ic_star_rating"
+                app:tint="@color/rating_star" />
+
+            <TextView
+                android:id="@+id/tv_rating_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:textColor="@color/rating_star"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="4.5" />
+
+            <TextView
+                android:id="@+id/tv_rating_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="10sp"
+                tools:text="(8)" />
+        </LinearLayout>
+
         <!-- 分类标签 -->
         <TextView
             android:id="@+id/tv_category_tag"
@@ -83,33 +128,87 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_game_desc"
+            app:layout_constraintTop_toBottomOf="@id/tv_rating"
             tools:text="经典" />
 
-        <!-- 保留的旧版 ID -->
-        <View
+        <!-- Feature E (HOME_CARD_ENHANCE): 热门徽章（左上角，默认隐藏） -->
+        <TextView
             android:id="@+id/iv_hot_badge"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_6"
+            android:layout_marginTop="@dimen/spacing_6"
+            android:background="@drawable/bg_hot_badge"
+            android:paddingStart="@dimen/spacing_6"
+            android:paddingEnd="@dimen/spacing_6"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="@string/home_card_hot_badge"
+            android:textColor="@color/hot_badge_text"
+            android:textSize="9sp"
+            android:textStyle="bold"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible" />
 
-        <View
+        <!-- Feature E (HOME_CARD_ENHANCE): 收藏按钮（右上角心形） -->
+        <ImageView
             android:id="@+id/btn_favorite"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:layout_marginEnd="@dimen/spacing_6"
+            android:layout_marginTop="@dimen/spacing_6"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/home_card_favorite_add"
+            android:padding="4dp"
+            android:scaleType="centerInside"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_favorite"
+            tools:src="@drawable/ic_favorite" />
 
-        <View
-            android:id="@+id/tv_rating"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
+        <!-- Batch 12-3 (GAME_PLAY_TIME_BADGE): 总游玩时长徽章（右上角下方，仅当总时长 > 0 时显示） -->
+        <TextView
+            android:id="@+id/badge_play_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_6"
+            android:layout_marginTop="@dimen/spacing_4"
+            android:background="@drawable/bg_play_time_badge"
+            android:paddingStart="@dimen/spacing_6"
+            android:paddingEnd="@dimen/spacing_6"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
             android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btn_favorite"
+            tools:text="3.2h"
+            tools:visibility="visible" />
+
+        <!-- Batch 11-1 (GAME_RATING_SYSTEM): 用户评分徽章（左下角，默认隐藏） -->
+        <TextView
+            android:id="@+id/badge_user_rating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_6"
+            android:layout_marginBottom="@dimen/spacing_6"
+            android:background="@drawable/bg_user_rating_badge"
+            android:contentDescription="@string/game_rating_user_badge_desc"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            tools:text="5★"
+            tools:visibility="visible" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

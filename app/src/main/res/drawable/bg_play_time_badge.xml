@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 12-3 (GAME_PLAY_TIME_BADGE): 游戏卡片右上角总游玩时长徽章背景（半透明绿色） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#CC0F9D58" />
+    <corners android:radius="8dp" />
+</shape>
