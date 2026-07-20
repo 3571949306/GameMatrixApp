@@ -61,6 +61,8 @@ public class SettingsManager {
     private static final String KEY_VIBRATION_ENABLED = "vibration_enabled";
     /** 应用语言键名 */
     private static final String KEY_APP_LANGUAGE = "app_language";
+    /** 字号偏好键名（Feature B / SETTINGS_ENHANCE） */
+    private static final String KEY_FONT_SIZE = "font_size";
 
     /** 跟随系统主题 */
     public static final int THEME_SYSTEM = 0;
@@ -86,10 +88,17 @@ public class SettingsManager {
 
     /** 跟随系统语言 */
     public static final String LANGUAGE_SYSTEM = "";
-    /** 中文 */
-    public static final String LANGUAGE_ZH = "zh";
+    /** 中文（使用 zh-CN 与 resConfigs "zh-rCN" 及 locales_config 匹配，确保 Android 13+ per-app language 生效） */
+    public static final String LANGUAGE_ZH = "zh-CN";
     /** 英文 */
     public static final String LANGUAGE_EN = "en";
+
+    /** 字号：小（Feature B / SETTINGS_ENHANCE） */
+    public static final int FONT_SIZE_SMALL = 0;
+    /** 字号：中（默认） */
+    public static final int FONT_SIZE_MEDIUM = 1;
+    /** 字号：大 */
+    public static final int FONT_SIZE_LARGE = 2;
 
     /**
      * 单例引用，使用 {@code volatile} 保证多线程可见性，
@@ -402,7 +411,14 @@ public class SettingsManager {
      *         或 {@link #LANGUAGE_SYSTEM}（空字符串）表示跟随系统，默认跟随系统
      */
     public String getAppLanguage() {
-        return prefs.getString(KEY_APP_LANGUAGE, LANGUAGE_SYSTEM);
+        String lang = prefs.getString(KEY_APP_LANGUAGE, LANGUAGE_SYSTEM);
+        // 兼容历史值：旧版本 LANGUAGE_ZH = "zh"，现版本 = "zh-CN"
+        // 统一迁移为 "zh-CN" 以匹配 resConfigs "zh-rCN" 和 locales_config
+        if ("zh".equals(lang)) {
+            prefs.edit().putString(KEY_APP_LANGUAGE, LANGUAGE_ZH).apply();
+            return LANGUAGE_ZH;
+        }
+        return lang;
     }
 
     /**
@@ -420,6 +436,48 @@ public class SettingsManager {
             languageTag = LANGUAGE_SYSTEM;
         }
         prefs.edit().putString(KEY_APP_LANGUAGE, languageTag).apply();
+    }
+
+    // ==================== Feature B: 字号偏好 (SETTINGS_ENHANCE) ====================
+
+    /**
+     * 获取字号偏好。
+     *
+     * @return 字号常量：{@link #FONT_SIZE_SMALL}、{@link #FONT_SIZE_MEDIUM} 或 {@link #FONT_SIZE_LARGE}，
+     *         默认为 {@link #FONT_SIZE_MEDIUM}
+     */
+    public int getFontSize() {
+        int v = prefs.getInt(KEY_FONT_SIZE, FONT_SIZE_MEDIUM);
+        if (v < FONT_SIZE_SMALL || v > FONT_SIZE_LARGE) {
+            return FONT_SIZE_MEDIUM;
+        }
+        return v;
+    }
+
+    /**
+     * 设置字号偏好。
+     *
+     * @param fontSize 字号常量
+     */
+    public void setFontSize(int fontSize) {
+        if (fontSize < FONT_SIZE_SMALL || fontSize > FONT_SIZE_LARGE) {
+            fontSize = FONT_SIZE_MEDIUM;
+        }
+        prefs.edit().putInt(KEY_FONT_SIZE, fontSize).apply();
+    }
+
+    /**
+     * 获取字号对应的 fontScale 值，供 Activity/Application 应用到 Configuration。
+     *
+     * @return 0.85 / 1.0 / 1.15
+     */
+    public float getFontScale() {
+        switch (getFontSize()) {
+            case FONT_SIZE_SMALL: return 0.85f;
+            case FONT_SIZE_LARGE: return 1.15f;
+            case FONT_SIZE_MEDIUM:
+            default: return 1.0f;
+        }
     }
 
     /**

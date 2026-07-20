@@ -16,6 +16,8 @@ import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.google.android.material.button.MaterialButton;
 
+import java.util.Locale;
+
 /**
  * 华容道游戏 Activity。
  *
@@ -307,6 +309,6 @@ public class KlotskiActivity extends BaseGameActivity {
     /** 格式化毫秒为 mm:ss */
     private String formatDuration(long ms) {
         long sec = ms / 1000L;
-        return String.format("%02d:%02d", sec / 60L, sec % 60L);
+        return String.format(Locale.getDefault(), "%02d:%02d", sec / 60L, sec % 60L);
     }
 }

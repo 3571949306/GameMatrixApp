@@ -54,7 +54,7 @@ object ModuleDownloadManager {
         val outputFile = ModuleDownloader.getModuleFile(context, manifest)
 
         // 检查是否已下载且校验通过
-        if (outputFile.exists() && ModuleVerifier.verifySha256(outputFile, manifest.sha256)) {
+        if (outputFile.exists() && ModuleVerifier.verifySha256(outputFile, manifest.sha256, allowEmpty = manifest.builtIn)) {
             Log.d(TAG, "downloadModule: ${manifest.id} 已下载且校验通过")
             callback?.onComplete(manifest.id, outputFile)
             return
@@ -83,7 +83,7 @@ object ModuleDownloadManager {
                 Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
 
                 // 校验 SHA-256
-                if (!ModuleVerifier.verifySha256(file, manifest.sha256)) {
+                if (!ModuleVerifier.verifySha256(file, manifest.sha256, allowEmpty = manifest.builtIn)) {
                     Log.e(TAG, "onComplete: ${manifest.id} SHA-256 校验失败")
                     file.delete()
                     downloadQueue[moduleId]?.onError(moduleId, "SHA-256 校验失败")
@@ -151,7 +151,7 @@ object ModuleDownloadManager {
      */
     fun isModuleDownloaded(context: Context, manifest: ModuleManifest): Boolean {
         val file = ModuleDownloader.getModuleFile(context, manifest)
-        return file.exists() && ModuleVerifier.verifySha256(file, manifest.sha256)
+        return file.exists() && ModuleVerifier.verifySha256(file, manifest.sha256, allowEmpty = manifest.builtIn)
     }
 
     /**

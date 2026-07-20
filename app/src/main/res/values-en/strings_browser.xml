@@ -71,6 +71,12 @@
     <string name="browser_tab_count">"%d tabs"</string>
     <string name="browser_tab_empty">"No open tabs"</string>
     <string name="browser_tab_max_reached">"Maximum tabs reached"</string>
+    <string name="browser_tab_closed_one">"Tab closed"</string>
+    <string name="browser_tab_switched">"Switched to tab: %s"</string>
+    <string name="browser_tab_created">"New tab created"</string>
+    <!-- P0-1 Multi-tab setting -->
+    <string name="browser_settings_multi_tab">"Multi-tab (experimental)"</string>
+    <string name="browser_settings_multi_tab_summary">"Keep multiple pages alive simultaneously"</string>
 
     <!-- Incognito mode (Stage 9) -->
     <string name="browser_incognito_on">"Incognito mode enabled"</string>
@@ -175,4 +181,162 @@
 
     <!-- Tab item -->
     <string name="browser_tab_icon_desc">"Tab icon"</string>
+
+    <!-- ===== Browser full optimization (Batch 13, 2026-07-19) ===== -->
+    <!-- Find In Page -->
+    <string name="browser_menu_find_in_page">"Find in page"</string>
+    <string name="browser_find_hint">"Find text in page"</string>
+    <string name="browser_find_prev">"Previous match"</string>
+    <string name="browser_find_next">"Next match"</string>
+    <string name="browser_find_close">"Close find"</string>
+
+    <!-- Reader Mode -->
+    <string name="browser_menu_reader_mode">"Reader mode"</string>
+    <string name="browser_menu_reader_mode_exit">"Exit reader mode"</string>
+    <string name="browser_reader_already_active">"Already in reader mode"</string>
+    <string name="browser_reader_extract_failed">"Cannot extract main content"</string>
+    <string name="browser_reader_entered">"Reader mode on"</string>
+    <string name="browser_reader_exited">"Reader mode off"</string>
+
+    <!-- Screenshot -->
+    <string name="browser_menu_screenshot">"Screenshot"</string>
+    <string name="browser_screenshot_saved">"Saved to Pictures/%1$s"</string>
+    <string name="browser_screenshot_failed">"Screenshot failed"</string>
+
+    <!-- Gesture Navigation -->
+    <string name="browser_gesture_back_desc">"Swipe right from left edge: back"</string>
+    <string name="browser_gesture_forward_desc">"Swipe left from right edge: forward"</string>
+    <string name="browser_gesture_back_performed">"Went back"</string>
+    <string name="browser_gesture_forward_performed">"Went forward"</string>
+    <string name="browser_gesture_no_history">"No page to go back/forward"</string>
+
+    <!-- Browser Home Page (Phase 1 P0-2) -->
+    <string name="browser_home_title">Browser Home</string>
+    <string name="browser_home_search_hint">Search or type URL</string>
+    <string name="browser_home_quick_entry">Quick Entry</string>
+    <string name="browser_home_site_icon">Site icon</string>
+    <string name="browser_reading_list">Reading List</string>
+    <string name="browser_search">Search</string>
+    <string name="browser_history">History</string>
+
+    <!-- Smart URL Bar (Phase 1 P0-4) -->
+    <string name="browser_url_paste_and_go">Paste and go</string>
+    <string name="browser_url_search_engine">Search engine</string>
+    <string name="browser_url_engine_baidu">Baidu</string>
+    <string name="browser_url_engine_bing">Bing</string>
+    <string name="browser_url_engine_google">Google</string>
+    <string name="browser_url_engine_duckduckgo">DuckDuckGo</string>
+    <string name="browser_url_suggestion_clear">Clear suggestions</string>
+    <string name="browser_url_suggestion_cleared">Suggestions cleared</string>
+    <string name="browser_url_suggestion_clear_failed">Failed to clear</string>
+    <string name="browser_url_engine_selected">Search engine switched to %1$s</string>
+
+    <string name="browser_gesture_double_tap_forward_desc">Double tap to forward</string>
+    <string name="browser_history_list_title">History list</string>
+
+    <!-- Dark Mode (Phase 2 P1-1) -->
+    <string name="browser_dark_mode">Dark mode</string>
+    <string name="browser_dark_mode_auto">Auto (follow system)</string>
+    <string name="browser_dark_mode_force_on">Force on</string>
+    <string name="browser_dark_mode_force_off">Force off</string>
+
+    <!-- Home Page Style -->
+    <string name="browser_home_page_style">Home page style</string>
+    <string name="browser_home_page_style_grid">Grid shortcuts</string>
+    <string name="browser_home_page_style_cards">Card flow</string>
+    <string name="browser_home_page_style_minimal">Minimal</string>
+
+    <!-- Reading List (Phase 2 P1-3) -->
+    <string name="browser_reading_list_title">Reading List</string>
+    <string name="browser_reading_list_empty">No reading list yet</string>
+    <string name="browser_reading_list_added">Added to reading list</string>
+    <string name="browser_reading_list_removed">Removed from reading list</string>
+    <string name="browser_reading_list_save_for_later">Save for later</string>
+    <string name="browser_menu_reading_list_add">Add to reading list</string>
+    <string name="browser_menu_reading_list">Reading list</string>
+    <string name="browser_reading_list_search_hint">Search reading list</string>
+    <string name="browser_reading_list_empty_hint">Tap \"Add to reading list\" in the browser menu to save a page</string>
+    <string name="browser_reading_list_count_suffix">items</string>
+    <string name="browser_reading_list_clear_all">Clear reading list</string>
+    <string name="browser_reading_list_clear_title">Clear reading list</string>
+    <string name="browser_reading_list_clear_message">Are you sure you want to clear all reading list items? This action cannot be undone.</string>
+    <string name="browser_reading_list_cleared">Reading list cleared</string>
+    <string name="browser_reading_list_deleted">Reading item deleted</string>
+    <string name="browser_reading_list_delete">Delete</string>
+    <string name="browser_reading_list_options_title">Actions</string>
+    <string name="browser_reading_list_mark_read">Mark as read</string>
+    <string name="browser_reading_list_mark_unread">Mark as unread</string>
+    <string name="browser_reading_list_marked_read">Marked as read</string>
+    <string name="browser_reading_list_marked_unread">Marked as unread</string>
+    <string name="browser_reading_list_already_exists">Already in reading list</string>
+    <string name="browser_reading_list_no_url">Cannot add current page to reading list</string>
+    <string name="browser_reading_list_extracting">Extracting page summary…</string>
+
+    <!-- Privacy Dashboard (Phase 2 P1-2) -->
+    <string name="browser_privacy_dashboard">Privacy dashboard</string>
+    <string name="browser_privacy_blocked_count">Blocked %1$d trackers</string>
+    <string name="browser_privacy_blocked_domains">Blocked domains</string>
+    <string name="browser_privacy_trackers_blocked">Tracker blocking</string>
+    <string name="browser_privacy_total_blocked">Total blocked</string>
+    <string name="browser_privacy_session_blocked">This session</string>
+    <string name="browser_privacy_description">Third-party tracker blocking is enabled. When you visit websites, the browser automatically blocks common trackers such as Google Analytics, Facebook Pixel, Baidu Tongji, Umeng, Sensors Data, etc., to protect your browsing privacy.</string>
+    <string name="browser_privacy_empty">No trackers blocked yet</string>
+    <string name="browser_privacy_empty_hint">Blocked trackers will appear here after you browse</string>
+    <string name="browser_privacy_reset">Reset stats</string>
+    <string name="browser_privacy_reset_confirm_title">Reset stats</string>
+    <string name="browser_privacy_reset_confirm_message">Are you sure you want to clear all blocking stats? This action cannot be undone.</string>
+    <string name="browser_privacy_reset_confirm">Reset</string>
+    <string name="browser_privacy_reset_done">Stats have been reset</string>
+    <string name="browser_privacy_protection_on">Tracker protection enabled</string>
+    <string name="browser_privacy_protection_off">Tracker protection disabled</string>
+    <string name="browser_privacy_rule_count">%1$d built-in rules</string>
+    <string name="browser_privacy_domain_count">%1$d times</string>
+    <string name="browser_menu_privacy_dashboard">Privacy dashboard</string>
+    <!-- Offline Cache (P1-4) -->
+    <string name="browser_offline_cache_title">Offline cache</string>
+    <string name="browser_offline_cache_count">%1$d pages cached</string>
+    <string name="browser_offline_cache_empty">No offline cache yet</string>
+    <string name="browser_offline_cache_empty_hint">Browsing pages will automatically cache the most recent 10 pages</string>
+    <string name="browser_offline_cache_clear_all">Clear</string>
+    <string name="browser_offline_cache_clear_title">Clear offline cache</string>
+    <string name="browser_offline_cache_clear_message">Are you sure you want to clear all offline cache?</string>
+    <string name="browser_offline_cache_cleared">Offline cache cleared</string>
+    <string name="browser_offline_cache_delete">Delete</string>
+    <string name="browser_offline_cache_delete_title">Delete cache</string>
+    <string name="browser_offline_cache_delete_message">Are you sure you want to delete this cache?</string>
+    <string name="browser_offline_cache_deleted">Cache deleted</string>
+    <string name="browser_menu_offline_cache">Offline cache</string>
+    <!-- Page Translate (P1-5) -->
+    <string name="browser_menu_translate">Translate page</string>
+    <string name="browser_translate_engine_title">Select translate engine</string>
+    <string name="browser_translate_google">Google Translate</string>
+    <string name="browser_translate_baidu">Baidu Translate</string>
+    <string name="browser_translate_bing">Bing Translator</string>
+    <string name="browser_translate_cancel">Cancel</string>
+    <string name="browser_translate_no_url">No page to translate</string>
+    <!-- P3-3 底部工具栏可定制 -->
+    <string name="browser_bottom_bar_customize_title">Customize bottom bar</string>
+    <string name="browser_menu_customize_bottom_bar">Customize bottom bar</string>
+    <string name="browser_btn_back">Back</string>
+    <string name="browser_btn_forward">Forward</string>
+    <string name="browser_btn_refresh">Refresh</string>
+    <string name="browser_btn_home">Home</string>
+    <string name="browser_btn_tabs">Tabs</string>
+    <string name="browser_menu_more">More</string>
+    <!-- P3-4 骨架屏 -->
+    <string name="browser_loading_page">Loading page…</string>
+
+    <string name="browser_loading_page_old_placeholder">Loading page…</string>
+    <string name="browser_volume_scroll">Volume key scroll</string>
+    <string name="browser_data_saver">Data saver</string>
+    <string name="browser_data_saver_saved">Saved %1$s</string>
+    <string name="browser_customize_bottom_bar">Customize bottom bar</string>
+
+    <string name="browser_settings_dark_mode_summary">Three options: Auto / Force on / Force off</string>
+    <string name="browser_settings_home_page_style_summary">Choose home page style</string>
+    <string name="browser_settings_gesture_edge_width">Gesture edge width</string>
+    <string name="browser_settings_double_tap_forward">Double tap forward</string>
+    <string name="browser_settings_double_tap_forward_summary">Double tap right half of WebView to forward</string>
+    <string name="browser_settings_long_press_history">Long press for history</string>
+    <string name="browser_settings_long_press_history_summary">Long press WebView to show history panel</string>
 </resources>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 个人中心底部导航图标（人形剪影），fillColor 由 BottomNavigationView 的 tint 覆盖 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,12 C13.66,12 15,10.66 15,9 C15,7.34 13.66,6 12,6 C10.34,6 9,7.34 9,9 C9,10.66 10.34,12 12,12 Z" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,14 C9.33,14 4,15.34 4,18 L4,20 L20,20 L20,18 C20,15.34 14.67,14 12,14 Z" />
+
+</vector>

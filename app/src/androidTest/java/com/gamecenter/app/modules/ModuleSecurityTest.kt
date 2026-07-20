@@ -3,7 +3,6 @@ package com.gamecenter.app.modules
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.gamecenter.app.models.ModuleInfo
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -22,18 +21,31 @@ class ModuleSecurityTest {
         val dummyApk = File(context.cacheDir, "unsigned_test.apk")
         dummyApk.writeText("This is an invalid dummy unsigned APK content")
 
-        val manifest = ModuleInfo().apply {
-            moduleId = "security_test"
-            versionCode = 1
-            entryClass = "com.gamecenter.app.security_test.TestModule"
-            sha256 = ""
-        }
+        val manifest = ModuleManifest(
+            id = "security_test",
+            name = "Security test",
+            description = "Unsigned APK rejection test",
+            versionName = "1.0.0",
+            versionCode = 1,
+            entryClass = "com.gamecenter.app.security_test.TestModule",
+            fileName = "unsigned_test.apk",
+            fileSize = dummyApk.length(),
+            sha256 = "",
+            downloadUrl = ""
+        )
 
-        val result = ModuleLoader.loadModule(context, manifest, dummyApk)
+        val moduleFile = ModuleDownloader.getModuleFile(context, manifest)
+        moduleFile.parentFile?.mkdirs()
+        dummyApk.copyTo(moduleFile, overwrite = true)
+
+        val result = ModuleLoader.loadModule(context, manifest)
         assertNull(result)
 
         if (dummyApk.exists()) {
             dummyApk.delete()
+        }
+        if (moduleFile.exists()) {
+            moduleFile.delete()
         }
     }
 

@@ -12,6 +12,7 @@ import com.gamecenter.app.BuildConfig;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -78,7 +79,7 @@ public class BrowserSecurityPolicy {
             return UrlPolicy.ALLOW_INTERNAL;
         }
 
-        String lowerScheme = scheme.toLowerCase();
+        String lowerScheme = scheme.toLowerCase(Locale.ROOT);
         if (BLOCKED_SCHEMES.contains(lowerScheme)) {
             return UrlPolicy.BLOCK;
         }
@@ -107,7 +108,7 @@ public class BrowserSecurityPolicy {
         int idx = url.indexOf(":");
         if (idx <= 0) return null;
         // intent://host#Intent;...;end 中冒号前仍是 intent，保持协议提取一致
-        String scheme = url.substring(0, idx).toLowerCase();
+        String scheme = url.substring(0, idx).toLowerCase(Locale.ROOT);
         // 特殊处理 intent scheme：即使后面结构复杂也返回 intent
         if (scheme.startsWith("intent")) return "intent";
         return scheme;

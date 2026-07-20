@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 12-1 (HOME_RESUME_GAME_CARD): 继续游玩卡片背景渐变（紫蓝渐变，区别于 playtime reminder 的橙红警示色） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#FF667eea"
+        android:endColor="#FF764ba2"
+        android:angle="45" />
+    <corners android:radius="16dp" />
+</shape>

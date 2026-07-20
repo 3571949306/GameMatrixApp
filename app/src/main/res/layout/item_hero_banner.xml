@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 单张 Hero Banner 卡片（Batch 21: 多张轮播用） -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- 渐变背景 -->
+    <View
+        android:id="@+id/heroBgView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/module_hero_gradient" />
+
+    <!-- 装饰光晕（背景层） -->
+    <View
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="end|bottom"
+        android:layout_marginBottom="-40dp"
+        android:layout_marginEnd="-40dp"
+        android:background="@drawable/module_hero_decor_circle"
+        android:alpha="0.18" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="@dimen/gm_spacing_4"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/heroBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_hot_badge"
+                android:paddingHorizontal="@dimen/gm_spacing_2"
+                android:paddingVertical="2dp"
+                android:text="@string/module_hero_badge"
+                android:textColor="@color/hot_badge_text"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/heroTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:textColor="@android:color/white"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/heroDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_1"
+                android:textColor="@color/achievement_toast_desc"
+                android:textSize="12sp"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/heroActionBtn"
+                style="@style/Widget.GameMatrix.Button.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_3"
+                android:backgroundTint="@android:color/white"
+                android:textColor="@color/md_theme_primary"
+                android:minHeight="36dp"
+                android:paddingHorizontal="@dimen/gm_spacing_4"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/heroIcon"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
+            android:contentDescription="@null"
+            app:tint="@android:color/white"
+            android:src="@drawable/ic_games" />
+    </LinearLayout>
+</FrameLayout>

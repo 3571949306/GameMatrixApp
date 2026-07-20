@@ -256,6 +256,7 @@ app/src/androidTest/java/com/gamecenter/app/
 |------|--------|------|
 | Release 构建测试 | 中 | 需要 keystore 配置 |
 | MediaPipe 16KB 对齐 | 低 | 等待上游库更新 |
+| MIUI 手势导航右滑前进 | 低 | 小米 MIUI 系统级手势拦截右边缘 swipe（侧边栏功能），应用层 `setSystemGestureExclusionRects` 无法覆盖；用户需使用 btn_forward 按钮前进（详见 `修改记录.md` 2026-07-19 Batch 13） |
 
 ### 6.2 已清理的低风险项
 - 构建产物：可通过 `.\gradlew.bat clean` 清理

@@ -1,48 +1,79 @@
 package com.gamecenter.app.modules
 
 import android.content.Context
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.gamecenter.app.R
 
+/**
+ * 模块列表适配器（Batch 20: 分类渐变图标背景 + NEW 徽章 + 紧凑布局 + 状态 visibility 修复 + 卡片可点击）。
+ */
 class ModuleAdapter(
-    private var modules: List<ModuleManifest>,
     private var installedIds: Set<String>,
-    private val onActionClick: (ModuleManifest, Int) -> Unit
-) : RecyclerView.Adapter<ModuleAdapter.ViewHolder>() {
+    private val onActionClick: (ModuleManifest, Int) -> Unit,
+    private val onItemBodyClick: (ModuleManifest) -> Unit = {}
+) : ListAdapter<ModuleManifest, ModuleAdapter.ViewHolder>(DIFF_CALLBACK) {
 
     companion object {
         const val ACTION_DOWNLOAD = 0
-        const val ACTION_INSTALL = 1
         const val ACTION_OPEN = 2
         const val ACTION_UPDATE = 3
         const val ACTION_ENABLE = 4
         const val ACTION_UNINSTALL = 5
 
-        private val CATEGORY_LABELS = mapOf(
-            "game" to "游戏",
-            "browser" to "浏览器",
-            "tools" to "工具箱",
-            "ai" to "AI助手",
-            "vpn" to "VPN",
-            "other" to "其他"
+        /** 分类 → 字符串资源（替代硬编码 CATEGORY_LABELS） */
+        private val CATEGORY_LABEL_RES = mapOf(
+            "game" to R.string.store_category_games,
+            "browser" to R.string.store_category_browser,
+            "tools" to R.string.store_category_tools,
+            "ai" to R.string.store_category_ai,
+            "vpn" to R.string.store_category_vpn,
+            "other" to R.string.store_category_games // 兜底用通用文案
         )
 
+        /** 分类 → 图标（修复 vpn 误用 ic_settings 的 bug） */
         private val CATEGORY_ICONS = mapOf(
             "game" to R.drawable.ic_games,
             "browser" to R.drawable.ic_browser,
             "tools" to R.drawable.ic_tools,
             "ai" to R.drawable.ic_ai,
-            "vpn" to R.drawable.ic_settings
+            "vpn" to R.drawable.ic_vpn
         )
+
+        /** Batch 20: 分类 → 渐变图标背景 drawable */
+        private val CATEGORY_GRADIENTS = mapOf(
+            "game" to R.drawable.module_category_game_gradient,
+            "browser" to R.drawable.module_category_browser_gradient,
+            "tools" to R.drawable.module_category_tools_gradient,
+            "ai" to R.drawable.module_category_ai_gradient,
+            "vpn" to R.drawable.module_category_vpn_gradient,
+            "other" to R.drawable.module_category_other_gradient
+        )
+
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<ModuleManifest>() {
+            override fun areItemsTheSame(oldItem: ModuleManifest, newItem: ModuleManifest): Boolean =
+                oldItem.id == newItem.id
+
+            override fun areContentsTheSame(oldItem: ModuleManifest, newItem: ModuleManifest): Boolean =
+                oldItem.id == newItem.id &&
+                        oldItem.versionCode == newItem.versionCode &&
+                        oldItem.name == newItem.name &&
+                        oldItem.description == newItem.description &&
+                        oldItem.builtIn == newItem.builtIn
+        }
     }
 
     private val downloadProgress = mutableMapOf<String, Int>()
@@ -50,10 +81,14 @@ class ModuleAdapter(
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val icon: ImageView = view.findViewById(R.id.moduleItemIcon)
+        val iconContainer: FrameLayout = view.findViewById(R.id.moduleIconContainer)
+        val newBadge: TextView = view.findViewById(R.id.moduleItemNewBadge)
         val name: TextView = view.findViewById(R.id.moduleItemName)
         val desc: TextView = view.findViewById(R.id.moduleItemDesc)
         val version: TextView = view.findViewById(R.id.moduleItemVersion)
         val size: TextView = view.findViewById(R.id.moduleItemSize)
+        val rating: TextView = view.findViewById(R.id.moduleItemRating)
+        val downloads: TextView = view.findViewById(R.id.moduleItemDownloads)
         val status: TextView = view.findViewById(R.id.moduleItemStatus)
         val progress: ProgressBar = view.findViewById(R.id.moduleItemProgress)
         val actionBtn: Button = view.findViewById(R.id.moduleItemActionBtn)
@@ -69,11 +104,14 @@ class ModuleAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val module = modules[position]
+        val module = getItem(position)
+        val context = holder.itemView.context
+
         holder.name.text = module.name
         holder.desc.text = module.description
         holder.version.text = "v${module.versionName}"
-        holder.size.text = if (module.builtIn) "内置" else formatFileSize(module.fileSize)
+        holder.size.text = if (module.builtIn) context.getString(R.string.module_builtin)
+                           else formatFileSize(module.fileSize)
 
         val isInstalled = installedIds.contains(module.id)
         val isDownloading = downloadProgress.containsKey(module.id)
@@ -81,97 +119,113 @@ class ModuleAdapter(
         val installedVersion = installedVersions[module.id] ?: 0
         val hasUpdate = isInstalled && !isBuiltIn && installedVersion < module.versionCode && installedVersion > 0
 
-        val successColor = ContextCompat.getColor(holder.itemView.context, android.R.color.holo_green_dark)
-        val infoColor = 0xFF2196F3.toInt()
-        val onSurfaceVariantColor = ContextCompat.getColor(holder.itemView.context, R.color.md_theme_light_on_surface_variant)
+        // 主题感知语义色（替代硬编码颜色，深色模式自动切换）
+        val successColor = resolveThemeColor(context, R.attr.colorSuccess, R.color.md_theme_on_surface_variant)
+        val infoColor = resolveThemeColor(context, R.attr.colorInfo, R.color.md_theme_on_surface_variant)
+        val warningColor = resolveThemeColor(context, R.attr.colorWarning, R.color.md_theme_on_surface_variant)
+        val onSurfaceVariantColor = ContextCompat.getColor(context, R.color.md_theme_on_surface_variant)
 
-        val categoryLabel = CATEGORY_LABELS[module.storeCategory] ?: "其他"
-        holder.categoryChip.text = categoryLabel
+        // 分类 Chip（引用字符串资源，不硬编码）
+        val categoryLabelRes = CATEGORY_LABEL_RES[module.storeCategory] ?: R.string.store_category_games
+        holder.categoryChip.text = context.getString(categoryLabelRes)
         holder.categoryChip.visibility = if (module.isBaseFramework) View.GONE else View.VISIBLE
 
-        val iconRes = resolveIconRes(holder.itemView.context, module)
+        // Batch 21: 评分 + 下载次数（基于模块 id 稳定 hash 生成 mock 数据，未来可从服务端获取）
+        val ratingValue = generateStableRating(module.id)
+        val downloadCount = generateStableDownloadCount(module.id)
+        holder.rating.text = String.format("%.1f", ratingValue)
+        holder.downloads.text = formatDownloadCount(downloadCount)
+
+        // Batch 20: 根据分类动态切换图标容器渐变背景
+        val gradientRes = CATEGORY_GRADIENTS[module.storeCategory]
+            ?: R.drawable.module_category_other_gradient
+        holder.iconContainer.setBackgroundResource(gradientRes)
+
+        // 图标（三级回退：ic_<gameId> → ic_game_<gameId> → 分类图标 → 系统默认）
+        val iconRes = resolveIconRes(context, module)
         holder.icon.setImageResource(iconRes)
 
         holder.builtInChip.visibility = if (isBuiltIn) View.VISIBLE else View.GONE
 
+        // Batch 20: NEW 徽章（未安装或有更新时显示）
+        holder.newBadge.visibility = if (!isInstalled || hasUpdate) View.VISIBLE else View.GONE
+
+        // 卡片本身可点击（点击非按钮区域 → onItemBodyClick，由 Activity 决定打开/下载）
+        holder.itemView.setOnClickListener { onItemBodyClick(module) }
+
         when {
             isDownloading -> {
+                val percent = downloadProgress[module.id] ?: 0
                 holder.progress.visibility = View.VISIBLE
-                holder.progress.progress = downloadProgress[module.id] ?: 0
-                holder.status.text = "下载中 ${downloadProgress[module.id] ?: 0}%"
-                holder.status.setTextColor(successColor)
-                holder.actionBtn.text = "取消"
-                holder.uninstallBtn.visibility = View.GONE
-                holder.actionBtn.setOnClickListener {
-                    onActionClick(module, ACTION_DOWNLOAD)
+                if (holder.progress is LinearProgressIndicator) {
+                    (holder.progress as LinearProgressIndicator).setProgressCompat(percent, true)
+                } else {
+                    holder.progress.progress = percent
                 }
+                // 修复状态文字 visibility bug：显式设为 VISIBLE
+                holder.status.visibility = View.VISIBLE
+                holder.status.text = context.getString(R.string.module_status_downloading, percent)
+                holder.status.setTextColor(successColor)
+                holder.actionBtn.text = context.getString(R.string.module_action_cancel)
+                holder.uninstallBtn.visibility = View.GONE
+                holder.actionBtn.setOnClickListener { onActionClick(module, ACTION_DOWNLOAD) }
             }
             hasUpdate -> {
                 holder.progress.visibility = View.GONE
-                holder.status.text = "有更新 v${installedVersion}→v${module.versionCode}"
-                holder.status.setTextColor(0xFFFF9800.toInt())
-                holder.actionBtn.text = "更新"
-                holder.actionBtn.setOnClickListener {
-                    onActionClick(module, ACTION_DOWNLOAD)
-                }
+                holder.status.visibility = View.VISIBLE
+                holder.status.text = context.getString(R.string.module_status_update_available, installedVersion, module.versionCode)
+                holder.status.setTextColor(warningColor)
+                holder.actionBtn.text = context.getString(R.string.installed_update)
+                holder.actionBtn.setOnClickListener { onActionClick(module, ACTION_DOWNLOAD) }
                 holder.uninstallBtn.visibility = View.VISIBLE
                 holder.uninstallBtn.isEnabled = true
-                holder.uninstallBtn.setOnClickListener {
-                    onActionClick(module, ACTION_UNINSTALL)
-                }
+                holder.uninstallBtn.setOnClickListener { onActionClick(module, ACTION_UNINSTALL) }
             }
             isInstalled -> {
                 holder.progress.visibility = View.GONE
-                holder.status.text = "已安装"
+                holder.status.visibility = View.VISIBLE
+                holder.status.text = context.getString(R.string.module_status_installed)
                 holder.status.setTextColor(successColor)
-                holder.actionBtn.text = "打开"
-                holder.actionBtn.setOnClickListener {
-                    onActionClick(module, ACTION_OPEN)
-                }
+                holder.actionBtn.text = context.getString(R.string.module_action_open)
+                holder.actionBtn.setOnClickListener { onActionClick(module, ACTION_OPEN) }
                 holder.uninstallBtn.visibility = View.VISIBLE
                 holder.uninstallBtn.isEnabled = true
-                holder.uninstallBtn.setOnClickListener {
-                    onActionClick(module, ACTION_UNINSTALL)
-                }
+                holder.uninstallBtn.setOnClickListener { onActionClick(module, ACTION_UNINSTALL) }
             }
             isBuiltIn -> {
                 holder.progress.visibility = View.GONE
-                holder.status.text = "内置"
+                holder.status.visibility = View.VISIBLE
+                holder.status.text = context.getString(R.string.module_builtin)
                 holder.status.setTextColor(infoColor)
-                holder.actionBtn.text = "启用"
-                holder.actionBtn.setOnClickListener {
-                    onActionClick(module, ACTION_ENABLE)
-                }
+                holder.actionBtn.text = context.getString(R.string.module_action_enable)
+                holder.actionBtn.setOnClickListener { onActionClick(module, ACTION_ENABLE) }
                 holder.uninstallBtn.visibility = View.GONE
             }
             else -> {
                 holder.progress.visibility = View.GONE
-                holder.status.text = "未安装"
+                holder.status.visibility = View.VISIBLE
+                holder.status.text = context.getString(R.string.module_status_not_installed)
                 holder.status.setTextColor(onSurfaceVariantColor)
-                holder.actionBtn.text = "下载"
-                holder.actionBtn.setOnClickListener {
-                    onActionClick(module, ACTION_DOWNLOAD)
-                }
+                holder.actionBtn.text = context.getString(R.string.module_action_download)
+                holder.actionBtn.setOnClickListener { onActionClick(module, ACTION_DOWNLOAD) }
                 holder.uninstallBtn.visibility = View.GONE
             }
         }
     }
 
-    override fun getItemCount() = modules.size
-
+    /** 更新整个模块列表（使用 DiffUtil 增量刷新，启用 item 动画） */
     fun updateModules(newModules: List<ModuleManifest>) {
-        modules = newModules
-        notifyDataSetChanged()
+        submitList(newModules)
     }
 
     fun updateInstalledIds(newInstalledIds: Set<String>) {
         installedIds = newInstalledIds
-        notifyDataSetChanged()
+        notifyItemRangeChanged(0, itemCount)
     }
 
     fun updateDownloadProgress(moduleId: String, percent: Int) {
         downloadProgress[moduleId] = percent
-        val index = modules.indexOfFirst { it.id == moduleId }
+        val index = currentList.indexOfFirst { it.id == moduleId }
         if (index >= 0) {
             notifyItemChanged(index)
         }
@@ -179,7 +233,7 @@ class ModuleAdapter(
 
     fun removeDownloadProgress(moduleId: String) {
         downloadProgress.remove(moduleId)
-        val index = modules.indexOfFirst { it.id == moduleId }
+        val index = currentList.indexOfFirst { it.id == moduleId }
         if (index >= 0) {
             notifyItemChanged(index)
         }
@@ -198,9 +252,55 @@ class ModuleAdapter(
     }
 
     /**
+     * Batch 21: 基于模块 id 稳定生成评分（3.8 ~ 5.0）。
+     * 同一模块 id 始终返回同一评分，避免滚动时数字跳变。
+     */
+    private fun generateStableRating(moduleId: String): Float {
+        val hash = moduleId.hashCode()
+        // 3.8 + (hash % 13) * 0.1 → 3.8 ~ 5.0
+        val raw = 3.8f + ((Math.abs(hash) % 13) * 0.1f).toFloat()
+        return Math.min(raw, 5.0f)
+    }
+
+    /**
+     * Batch 21: 基于模块 id 稳定生成下载次数（50 ~ 12500）。
+     */
+    private fun generateStableDownloadCount(moduleId: String): Int {
+        val hash = moduleId.hashCode()
+        val absHash = Math.abs(hash)
+        // 50 + (hash % 12500)
+        return 50 + (absHash % 12500)
+    }
+
+    /**
+     * Batch 21: 格式化下载次数为短文本（1.2k / 12k / 999+）。
+     */
+    private fun formatDownloadCount(count: Int): String {
+        return when {
+            count < 1000 -> count.toString()
+            count < 10000 -> "%.1fk".format(count / 1000.0)
+            else -> "${count / 1000}k"
+        }
+    }
+
+    /** 解析主题属性颜色，失败时回退到指定资源 id */
+    private fun resolveThemeColor(context: Context, attr: Int, fallbackRes: Int): Int {
+        val typedValue = TypedValue()
+        return if (context.theme.resolveAttribute(attr, typedValue, true)) {
+            try {
+                if (typedValue.resourceId != 0) ContextCompat.getColor(context, typedValue.resourceId)
+                else typedValue.data
+            } catch (e: Exception) {
+                ContextCompat.getColor(context, fallbackRes)
+            }
+        } else {
+            ContextCompat.getColor(context, fallbackRes)
+        }
+    }
+
+    /**
      * 解析模块图标资源 ID。
      * 优先级：ic_<gameId> → ic_game_<gameId> → 分类图标 → 系统默认。
-     * 例如 gameId="gomoku" 会匹配 ic_gomoku；gameId="game_2048" 会匹配 ic_game_2048。
      */
     private fun resolveIconRes(context: Context, module: ModuleManifest): Int {
         val gameId = module.gameId.ifEmpty { module.id }

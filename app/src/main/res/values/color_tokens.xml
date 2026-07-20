@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== 语义色 Token（A2: Spec §7.1 语义色扩展） ========== -->
+    <!-- 单一真源：明/暗通过 values-night/color_tokens.xml overlay 表达同名资源 -->
+    <!-- layout 应通过 ?attr/colorSuccess 等主题属性引用，而非直接 @color/colorSuccess -->
+
+    <!-- 成功色：安装成功/正确/完成 -->
+    <color name="colorSuccess">#1FA463</color>
+    <color name="colorOnSuccess">#FFFFFF</color>
+    <color name="colorSuccessContainer">#D1F4DE</color>
+    <color name="colorOnSuccessContainer">#00210F</color>
+
+    <!-- 警告色：更新可用/弱提示 -->
+    <color name="colorWarning">#E08A00</color>
+    <color name="colorOnWarning">#FFFFFF</color>
+    <color name="colorWarningContainer">#FFE0B0</color>
+    <color name="colorOnWarningContainer">#271900</color>
+
+    <!-- 信息色：信息提示（= colorPrimary） -->
+    <color name="colorInfo">@color/md_theme_primary</color>
+    <color name="colorOnInfo">@color/md_theme_on_primary</color>
+    <color name="colorInfoContainer">@color/md_theme_primary_container</color>
+    <color name="colorOnInfoContainer">@color/md_theme_on_primary_container</color>
+</resources>

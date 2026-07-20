@@ -3,6 +3,7 @@ package com.gamecenter.app.browser.security;
 import com.gamecenter.app.browser.util.UrlUtils;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -24,15 +25,15 @@ public class DomainTrustManager {
     }
 
     public DomainLevel getDomainLevel(String url) {
-        String host = UrlUtils.getHost(url).toLowerCase();
+        String host = UrlUtils.getHost(url).toLowerCase(Locale.ROOT);
         if (host.isEmpty()) return DomainLevel.NORMAL;
         for (String d : blockedDomains) { if (host.equals(d) || host.endsWith("." + d)) return DomainLevel.BLOCKED; }
         for (String d : trustedDomains) { if (host.equals(d) || host.endsWith("." + d)) return DomainLevel.TRUSTED; }
         return DomainLevel.NORMAL;
     }
 
-    public void addTrustedDomain(String domain) { trustedDomains.add(domain.toLowerCase()); }
-    public void addBlockedDomain(String domain) { blockedDomains.add(domain.toLowerCase()); }
-    public void removeTrustedDomain(String domain) { trustedDomains.remove(domain.toLowerCase()); }
-    public void removeBlockedDomain(String domain) { blockedDomains.remove(domain.toLowerCase()); }
+    public void addTrustedDomain(String domain) { trustedDomains.add(domain.toLowerCase(Locale.ROOT)); }
+    public void addBlockedDomain(String domain) { blockedDomains.add(domain.toLowerCase(Locale.ROOT)); }
+    public void removeTrustedDomain(String domain) { trustedDomains.remove(domain.toLowerCase(Locale.ROOT)); }
+    public void removeBlockedDomain(String domain) { blockedDomains.remove(domain.toLowerCase(Locale.ROOT)); }
 }

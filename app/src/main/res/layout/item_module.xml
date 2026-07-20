@@ -1,52 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 模块卡片（Batch 20/21: 分类渐变图标背景 + 紧凑布局 + NEW 徽章 + 评分下载次数 + 状态行精修） -->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="8dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginBottom="12dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
-    app:strokeWidth="0dp"
-    app:cardBackgroundColor="?attr/colorSurface"
+    android:layout_marginStart="@dimen/gm_spacing_2"
+    android:layout_marginEnd="@dimen/gm_spacing_2"
+    android:layout_marginBottom="@dimen/gm_spacing_2"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    style="@style/Widget.GameMatrix.Card.Module"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:paddingStart="@dimen/gm_spacing_3"
+        android:paddingEnd="@dimen/gm_spacing_3"
+        android:paddingTop="@dimen/gm_spacing_3"
+        android:paddingBottom="@dimen/gm_spacing_3">
 
-        <!-- 模块图标 -->
+        <!-- 模块图标容器（分类渐变背景，运行时按分类切换 drawable） -->
         <FrameLayout
             android:id="@+id/moduleIconContainer"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="@drawable/game_icon_bg_gradient"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/module_category_other_gradient"
+            android:elevation="2dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
             <ImageView
                 android:id="@+id/moduleItemIcon"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_gravity="center"
                 android:contentDescription="@string/module_icon_desc"
+                app:tint="@android:color/white"
                 android:src="@android:drawable/ic_menu_gallery" />
 
-            <!-- New 标签 -->
-            <com.google.android.material.chip.Chip
-                android:id="@+id/moduleItemNewChip"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
+            <!-- NEW 徽章（运行时控制 visibility） -->
+            <TextView
+                android:id="@+id/moduleItemNewBadge"
                 android:layout_width="wrap_content"
-                android:layout_height="20dp"
-                android:layout_gravity="top|end"
-                android:text="NEW"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|top"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_hot_badge"
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="1dp"
+                android:text="@string/module_new_badge"
+                android:textColor="@color/hot_badge_text"
                 android:textSize="9sp"
-                android:visibility="gone"
-                app:chipBackgroundColor="@color/status_update_available"
-                app:chipMinHeight="0dp" />
+                android:textStyle="bold"
+                android:visibility="gone" />
         </FrameLayout>
 
         <!-- 右侧内容区域 -->
@@ -54,23 +66,23 @@
             android:id="@+id/contentLayout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
             android:orientation="vertical"
             app:layout_constraintStart_toEndOf="@id/moduleIconContainer"
             app:layout_constraintEnd_toStartOf="@id/actionLayout"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- 标题行：名称 + 分类标签 -->
+            <!-- 标题行：名称 + 内置标签 -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <TextView
                     android:id="@+id/moduleItemName"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="15sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -78,127 +90,60 @@
                     app:layout_constraintHorizontal_bias="0.0"
                     app:layout_constraintHorizontal_chainStyle="packed"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toStartOf="@+id/moduleItemCategoryChip"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/moduleItemCategoryChip"
-                    style="@style/Widget.Material3.Chip.Assist"
-                    android:layout_width="wrap_content"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="8dp"
-                    android:textSize="10sp"
-                    android:visibility="gone"
-                    app:chipCornerRadius="4dp"
-                    app:chipMinHeight="20dp"
-                    app:textEndPadding="6dp"
-                    app:textStartPadding="6dp"
-                    app:layout_constraintStart_toEndOf="@+id/moduleItemName"
                     app:layout_constraintEnd_toStartOf="@+id/moduleItemBuiltInChip"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/moduleItemBuiltInChip"
-                    style="@style/Widget.Material3.Chip.Assist"
+                    style="@style/Widget.GameMatrix.Chip.Assist"
                     android:layout_width="wrap_content"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="6dp"
-                    android:text="内置"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
+                    android:text="@string/module_builtin"
                     android:textSize="10sp"
                     android:visibility="gone"
-                    app:chipCornerRadius="4dp"
-                    app:chipMinHeight="20dp"
-                    app:textEndPadding="6dp"
-                    app:textStartPadding="6dp"
-                    app:layout_constraintStart_toEndOf="@+id/moduleItemCategoryChip"
+                    app:layout_constraintStart_toEndOf="@+id/moduleItemName"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <!-- 作者信息 -->
-            <TextView
-                android:id="@+id/moduleItemAuthor"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
-                android:visibility="gone" />
 
             <!-- 描述 -->
             <TextView
                 android:id="@+id/moduleItemDesc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:ellipsize="end"
-                android:maxLines="2"
+                android:maxLines="1"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
 
-            <!-- 评分和下载次数 -->
+            <!-- 版本 + 大小 + 分类 chip 同一行（紧凑布局） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
-                <!-- 评分 -->
-                <LinearLayout
-                    android:id="@+id/ratingLayout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
-
-                    <ImageView
-                        android:layout_width="12dp"
-                        android:layout_height="12dp"
-                        android:src="@android:drawable/btn_star_big_on"
-                        app:tint="?attr/colorPrimary" />
-
-                    <TextView
-                        android:id="@+id/moduleItemRating"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="2dp"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
-                <!-- 下载次数 -->
-                <TextView
-                    android:id="@+id/moduleItemDownloads"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="11sp"
-                    android:visibility="gone" />
-
-                <!-- 分隔符 -->
-                <View
-                    android:layout_width="4dp"
-                    android:layout_height="0dp" />
-
-                <!-- 版本和大小 -->
                 <TextView
                     android:id="@+id/moduleItemVersion"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/module_version_chip_bg"
+                    android:paddingHorizontal="@dimen/gm_spacing_1"
+                    android:paddingVertical="2dp"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:text="•"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
+                    android:layout_marginEnd="@dimen/gm_spacing_1"
+                    android:text="·"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="11sp" />
 
@@ -208,28 +153,90 @@
                     android:layout_height="wrap_content"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="11sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/moduleItemCategoryChip"
+                    style="@style/Widget.GameMatrix.Chip.Assist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
+                    android:textSize="10sp"
+                    android:visibility="visible" />
+            </LinearLayout>
+
+            <!-- Batch 21: 评分 + 下载次数行 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- 评分（单颗星 + 数字，节省空间） -->
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_rating_star"
+                    app:tint="@color/module_rating_star" />
+
+                <TextView
+                    android:id="@+id/moduleItemRating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    tools:text="4.8" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
+                    android:layout_marginEnd="@dimen/gm_spacing_1"
+                    android:text="·"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="11sp" />
+
+                <!-- 下载次数 -->
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_download_count"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+
+                <TextView
+                    android:id="@+id/moduleItemDownloads"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="11sp"
+                    tools:text="1.2k" />
             </LinearLayout>
 
             <!-- 进度条 -->
             <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/moduleItemProgress"
                 android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:layout_marginTop="8dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:max="100"
                 android:progress="0"
                 app:indicatorColor="?attr/colorPrimary"
                 app:trackColor="?attr/colorSurfaceVariant"
                 android:visibility="gone" />
 
-            <!-- 状态文本 -->
+            <!-- 状态文本（默认 invisible 以便运行时切换） -->
             <TextView
                 android:id="@+id/moduleItemStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:textSize="11sp"
-                android:visibility="gone" />
+                android:visibility="invisible" />
         </LinearLayout>
 
         <!-- 操作按钮区域 -->
@@ -237,7 +244,7 @@
             android:id="@+id/actionLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:orientation="vertical"
             android:gravity="center"
             app:layout_constraintEnd_toEndOf="parent"
@@ -246,31 +253,29 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/moduleItemActionBtn"
-                style="@style/Widget.Material3.Button.Tonal"
-                android:layout_width="88dp"
-                android:layout_height="36dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
+                style="@style/Widget.GameMatrix.Button.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="@dimen/gm_touch_target"
+                android:paddingHorizontal="@dimen/gm_spacing_3"
                 android:textSize="12sp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/moduleItemUninstallBtn"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="88dp"
-                android:layout_height="36dp"
-                android:layout_marginTop="8dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
+                style="@style/Widget.GameMatrix.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_1"
+                android:minWidth="@dimen/gm_touch_target"
+                android:paddingHorizontal="@dimen/gm_spacing_3"
                 android:text="@string/installed_uninstall"
                 android:textSize="11sp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:visibility="gone" />
         </LinearLayout>
-
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

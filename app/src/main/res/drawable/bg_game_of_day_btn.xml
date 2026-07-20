@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 10-2 (HOME_GAME_OF_DAY): 今日推荐"立即开始"按钮背景（白色圆角） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FFFFFF" />
+    <corners android:radius="14dp" />
+</shape>

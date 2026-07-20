@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 模块详情截图占位渐变（Batch 21，主题感知） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="135"
+        android:startColor="@color/module_stat_total_accent"
+        android:centerColor="@color/module_stat_installed_accent"
+        android:endColor="@color/module_stat_update_accent" />
+    <corners android:radius="@dimen/gm_radius_md" />
+</shape>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 错题本后端代理地址（debug 构建默认指向本机模拟器的宿主回环地址） -->
+    <string name="wrongbook_api_base_url">http://10.0.2.2:8080</string>
+</resources>

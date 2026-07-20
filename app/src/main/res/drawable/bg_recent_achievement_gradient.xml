@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER): 最近解锁成就横幅背景渐变（金黄渐变，奖励感） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#FFf6d365"
+        android:endColor="#FFfda085"
+        android:angle="45" />
+    <corners android:radius="16dp" />
+</shape>

@@ -7,6 +7,15 @@
         android:id="@+id/menu_incognito"
         android:title="@string/browser_menu_incognito" />
     <item
+        android:id="@+id/menu_find_in_page"
+        android:title="@string/browser_menu_find_in_page" />
+    <item
+        android:id="@+id/menu_reader_mode"
+        android:title="@string/browser_menu_reader_mode" />
+    <item
+        android:id="@+id/menu_screenshot"
+        android:title="@string/browser_menu_screenshot" />
+    <item
         android:id="@+id/menu_desktop"
         android:title="@string/browser_menu_desktop" />
     <item
@@ -24,6 +33,24 @@
     <item
         android:id="@+id/menu_bookmarks"
         android:title="@string/browser_menu_bookmarks" />
+    <item
+        android:id="@+id/menu_reading_list_add"
+        android:title="@string/browser_menu_reading_list_add" />
+    <item
+        android:id="@+id/menu_reading_list"
+        android:title="@string/browser_menu_reading_list" />
+    <item
+        android:id="@+id/menu_privacy_dashboard"
+        android:title="@string/browser_menu_privacy_dashboard" />
+    <item
+        android:id="@+id/menu_offline_cache"
+        android:title="@string/browser_menu_offline_cache" />
+    <item
+        android:id="@+id/menu_translate"
+        android:title="@string/browser_menu_translate" />
+    <item
+        android:id="@+id/menu_customize_bottom_bar"
+        android:title="@string/browser_menu_customize_bottom_bar" />
     <item
         android:id="@+id/menu_downloads"
         android:title="@string/browser_menu_downloads" />

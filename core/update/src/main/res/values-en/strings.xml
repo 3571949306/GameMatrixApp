@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_new_version">New version available</string>
+    <string name="update_version">Version: %s</string>
+    <string name="update_size">Size: %s</string>
+    <string name="update_changelog">Changelog:</string>
+    <string name="update_download">Download now</string>
+    <string name="update_later">Remind me later</string>
+    <string name="update_force">Force update</string>
+    <string name="update_downloading">Downloading…</string>
+    <string name="update_verifying">Verifying package…</string>
+    <string name="update_install">Install now</string>
+    <string name="update_no_update">Already up to date</string>
+    <string name="update_beta_only_title">Only beta update available</string>
+    <string name="update_beta_only_enable">Enable beta and re-check</string>
+    <string name="update_beta_only_wait">Wait for stable release</string>
+    <string name="update_beta_only_toast">The latest server version is a beta. Enable "Accept beta builds" to update.</string>
+    <string name="update_channel_label">Channel: %s</string>
+    <string name="update_version_code">Version code: %d</string>
+    <string name="update_last_stable_default">Previous stable release</string>
+    <string name="update_beta_only_msg">The latest server version is beta %1$s (version code %2$d).\n\nYou are currently on version code %3$d, the previous stable release is %4$s</string>
+    <string name="update_beta_only_stable_code">(version code %d)</string>
+    <string name="update_beta_only_hint"> has fallen far behind.\n\nYou can either enable "Accept beta builds" to update now, or wait for the next stable release.</string>
+    <string name="update_auto_downloading">Update package is downloading in the background</string>
+    <string name="update_auto_download_started">New version found. Downloading package in background.</string>
+    <string name="update_auto_download_complete">Update package downloaded. You can open the download directory in Settings.</string>
+    <string name="update_install_prompt">Download complete. Install now?</string>
+    <string name="update_open_directory">Open directory</string>
+    <string name="update_apk_lost">Installation package lost. Please re-download.</string>
+    <string name="update_install_permission_needed">Install permission is required to install updates. Please grant it in Settings.</string>
+</resources>

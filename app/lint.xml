@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GameMatrixApp Lint 规则（A2: 设计 Token 系统）
+  ============================================================
+  目的：逐步拦截 layout 中硬编码的尺寸/颜色/字号，强制引用 gm_spacing_* /
+  gm_radius_* / ?attr/colorXxx 等设计 Token。
+
+  当前阶段（MVP A2）：不阻断构建。
+  后续阶段（A2-4 全量迁移后）：自定义 lint rule 上线后升级为 error 阻断 CI。
+
+  注意：
+  - HardcodedTextSize / HardcodedColor / HardcodedDimens 在标准 AGP lint 8.13.2
+    中无原生实现，需自定义 lint 规则（二期）。此处暂不声明，避免 UnknownIssueId 告警。
+  - HardcodedText（硬编码字符串）已在 build.gradle disable，保持不变。
+-->
+<lint>
+    <!-- 硬编码尺寸（dp）使用 px 单位：标准 lint 已有 PxUsage 检查，保持 warning -->
+    <issue id="PxUsage" severity="warning" />
+
+    <!-- 2026-07-07: P2 Lint 压缩已完成 NewApi / WrongConstant /
+         UnspecifiedRegisterReceiverFlag / StringFormatInvalid 修复并恢复 error。
+         详见 commit 记录（贾思敏 P2）。 -->
+</lint>

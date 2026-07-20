@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 骨架屏背景 -->
+<!-- 骨架屏背景（主题感知，浅色/深色自适应） -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#E8EAED" />
-    <corners android:radius="8dp" />
+    <solid android:color="?attr/colorSurfaceVariant" />
+    <corners android:radius="@dimen/gm_radius_sm" />
 </shape>

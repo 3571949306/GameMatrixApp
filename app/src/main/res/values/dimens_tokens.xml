@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== 间距 Token（A2: Spec §7.3，4dp 基准） ========== -->
+    <!-- layout 应引用 @dimen/gm_spacing_* 替代硬编码 dp -->
+    <dimen name="gm_spacing_0">0dp</dimen>
+    <dimen name="gm_spacing_1">4dp</dimen>
+    <dimen name="gm_spacing_2">8dp</dimen>
+    <dimen name="gm_spacing_3">12dp</dimen>
+    <dimen name="gm_spacing_4">16dp</dimen>
+    <dimen name="gm_spacing_5">20dp</dimen>
+    <dimen name="gm_spacing_6">24dp</dimen>
+    <dimen name="gm_spacing_7">32dp</dimen>
+    <dimen name="gm_spacing_8">40dp</dimen>
+    <dimen name="gm_spacing_9">48dp</dimen>
+    <dimen name="gm_spacing_10">64dp</dimen>
+
+    <!-- 触控目标最小尺寸（Spec §7.3: 48×48dp） -->
+    <dimen name="gm_touch_target">48dp</dimen>
+</resources>

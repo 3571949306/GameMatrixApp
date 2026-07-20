@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurfaceVariant"
+    android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <!-- 顶部栏：返回按钮 + 标题 + 搜索框 -->

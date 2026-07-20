@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature B: 缓存清理图标 (database/broom) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,2C6.48,2 2,3.79 2,6v12c0,2.21 4.48,4 10,4s10,-1.79 10,-4V6C22,3.79 17.52,2 12,2zM12,4c4.84,0 8,1.5 8,2s-3.16,2 -8,2 -8,-1.5 -8,-2 3.16,-2 8,-2zM4,9.03c2.01,1.01 4.97,1.47 8,1.47s5.99,-0.46 8,-1.47v3c0,0.5 -3.16,2 -8,2s-8,-1.5 -8,-2v-3zM4,15.03c2.01,1.01 4.97,1.47 8,1.47s5.99,-0.46 8,-1.47v3c0,0.5 -3.16,2 -8,2s-8,-1.5 -8,-2v-3z" />
+</vector>

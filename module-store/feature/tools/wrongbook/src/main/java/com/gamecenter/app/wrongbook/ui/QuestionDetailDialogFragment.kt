@@ -172,7 +172,7 @@ class QuestionDetailDialogFragment : DialogFragment() {
         // 标签 Chip
         val topics = parseKnowledgePoints(q.knowledgePoints) +
                      q.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
-        
+
         binding.tagsContainer.removeAllViews()
         topics.distinct().forEach { topic ->
             val tv = TextView(requireContext()).apply {
@@ -192,9 +192,172 @@ class QuestionDetailDialogFragment : DialogFragment() {
             }
             binding.tagsContainer.addView(tv)
         }
-        
+
         // 标签编辑输入框默认填入
         binding.etTagsInput.setText(q.tags)
+
+        // AI 解析增强字段
+        displayAiExtra(q)
+    }
+
+    /**
+     * 展示 AI 解析返回的题型/选项/答案/错因/复习建议/置信度。
+     * 字段全为空时隐藏整块区域。
+     */
+    private fun displayAiExtra(q: QuestionEntity) {
+        val hasAny = q.questionType.isNotBlank() && q.questionType != "unknown" ||
+                     q.optionsJson != "[]" ||
+                     q.answer.isNotBlank() ||
+                     q.wrongReason.isNotBlank() ||
+                     q.reviewSuggestion.isNotBlank() ||
+                     q.confidence > 0
+
+        if (!hasAny) {
+            binding.layoutAiExtra.visibility = View.GONE
+            return
+        }
+        binding.layoutAiExtra.visibility = View.VISIBLE
+
+        // 题型
+        if (q.questionType.isNotBlank() && q.questionType != "unknown") {
+            binding.tvDetailQuestionType.visibility = View.VISIBLE
+            binding.tvDetailQuestionType.text = moduleResources.getString(
+                R.string.wrongbook_question_type_format, mapQuestionType(q.questionType)
+            )
+        } else {
+            binding.tvDetailQuestionType.visibility = View.GONE
+        }
+
+        // 选项
+        val options = parseStringList(q.optionsJson)
+        if (options.isNotEmpty()) {
+            // 显示"选项"label
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailOptions) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.VISIBLE
+                    child.visibility = View.VISIBLE
+                    (child as TextView).text = options.joinToString("\n")
+                    break
+                }
+            }
+        } else {
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailOptions) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.GONE
+                    child.visibility = View.GONE
+                    break
+                }
+            }
+        }
+
+        // 答案
+        if (q.answer.isNotBlank()) {
+            // 显示"答案"label
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailAnswer) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.VISIBLE
+                    child.visibility = View.VISIBLE
+                    (child as TextView).text = q.answer
+                    break
+                }
+            }
+        } else {
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailAnswer) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.GONE
+                    child.visibility = View.GONE
+                    break
+                }
+            }
+        }
+
+        // 易错原因
+        if (q.wrongReason.isNotBlank()) {
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailWrongReason) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.VISIBLE
+                    child.visibility = View.VISIBLE
+                    (child as TextView).text = q.wrongReason
+                    break
+                }
+            }
+        } else {
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailWrongReason) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.GONE
+                    child.visibility = View.GONE
+                    break
+                }
+            }
+        }
+
+        // 复习建议
+        if (q.reviewSuggestion.isNotBlank()) {
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailReviewSuggestion) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.VISIBLE
+                    child.visibility = View.VISIBLE
+                    (child as TextView).text = q.reviewSuggestion
+                    break
+                }
+            }
+        } else {
+            for (i in 0 until binding.layoutAiExtra.childCount) {
+                val child = binding.layoutAiExtra.getChildAt(i)
+                if (child.id == R.id.tvDetailReviewSuggestion) {
+                    val label = binding.layoutAiExtra.getChildAt(i - 1)
+                    label.visibility = View.GONE
+                    child.visibility = View.GONE
+                    break
+                }
+            }
+        }
+
+        // 置信度
+        if (q.confidence > 0) {
+            binding.tvDetailConfidence.visibility = View.VISIBLE
+            binding.tvDetailConfidence.text = moduleResources.getString(
+                R.string.wrongbook_confidence_format, q.confidence * 100
+            )
+        } else {
+            binding.tvDetailConfidence.visibility = View.GONE
+        }
+    }
+
+    /** 将后端题型枚举映射为本地化文案 */
+    private fun mapQuestionType(type: String): String {
+        return when (type) {
+            "single_choice" -> "单选题"
+            "multiple_choice" -> "多选题"
+            "judge" -> "判断题"
+            "fill_blank" -> "填空题"
+            "short_answer" -> "简答题"
+            else -> type
+        }
+    }
+
+    /** 解析 JSON 数组字符串为 List<String> */
+    private fun parseStringList(json: String): List<String> {
+        return try {
+            val array = JSONArray(json)
+            (0 until array.length()).map { array.optString(it, "") }.filter { it.isNotBlank() }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun enterEditMode() {

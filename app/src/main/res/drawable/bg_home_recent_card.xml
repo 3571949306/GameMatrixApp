@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature C: 首页最近游玩小卡片背景 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_recent_card_bg" />
+    <corners android:radius="16dp" />
+    <stroke
+        android:width="0.5dp"
+        android:color="?attr/colorOutline" />
+</shape>

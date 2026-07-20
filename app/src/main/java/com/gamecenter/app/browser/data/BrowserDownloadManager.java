@@ -19,6 +19,7 @@ import com.gamecenter.app.browser.data.entity.BrowserDownloadEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -102,7 +103,7 @@ public class BrowserDownloadManager {
 
     public boolean isDangerousFile(String fileName) {
         if (fileName == null) return false;
-        String lower = fileName.toLowerCase();
+        String lower = fileName.toLowerCase(Locale.ROOT);
         return lower.endsWith(".apk") || lower.endsWith(".exe") || lower.endsWith(".bat")
                 || lower.endsWith(".sh") || lower.endsWith(".cmd") || lower.endsWith(".vbs")
                 || lower.endsWith(".js") || lower.endsWith(".msi");
@@ -113,7 +114,7 @@ public class BrowserDownloadManager {
         int dotIndex = url.lastIndexOf('.');
         int slashIndex = url.lastIndexOf('/');
         if (dotIndex > slashIndex && dotIndex >= 0) {
-            extension = url.substring(dotIndex + 1).toLowerCase();
+            extension = url.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
         }
         switch (extension) {
             case "pdf": return "application/pdf";
@@ -285,11 +286,7 @@ public class BrowserDownloadManager {
                 }
             };
             IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
-            } else {
-                context.registerReceiver(receiver, filter);
-            }
+            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
         } catch (Exception e) {
             // 忽略注册失败
         }

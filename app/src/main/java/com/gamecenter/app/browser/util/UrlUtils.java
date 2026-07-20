@@ -5,6 +5,7 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -31,7 +32,7 @@ public class UrlUtils {
         String s = input.trim();
         if (s.isEmpty()) return "https://www.baidu.com";
 
-        String lower = s.toLowerCase();
+        String lower = s.toLowerCase(Locale.ROOT);
         // 拦截危险协议
         if (lower.startsWith("file://") || lower.startsWith("content://")
                 || lower.startsWith("javascript:") || lower.startsWith("intent://")
@@ -72,7 +73,7 @@ public class UrlUtils {
      */
     public static boolean isDangerousScheme(@Nullable String input) {
         if (input == null) return false;
-        String lower = input.trim().toLowerCase();
+        String lower = input.trim().toLowerCase(Locale.ROOT);
         return lower.startsWith("file://") || lower.startsWith("content://")
                 || lower.startsWith("javascript:") || lower.startsWith("intent://")
                 || lower.startsWith("about:") || lower.startsWith("data:");

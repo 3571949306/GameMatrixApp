@@ -36,6 +36,18 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
     private val ocrService = OcrService(application)
     private val aiService = AiAnalysisService(application)
 
+    /** 当前 OCR 引擎标识（供 UI 溯源写入数据库） */
+    val currentOcrProvider: String
+        get() = ocrService.currentEngine
+
+    /** 当前 AI 模式标识（供 UI 溯源写入数据库） */
+    val currentAiProvider: String
+        get() = aiService.mode
+
+    /** 当前 AI 模型名称（供 UI 溯源写入数据库） */
+    val currentAiModel: String
+        get() = aiService.model
+
     private val _questions = MutableLiveData<List<QuestionEntity>>()
     val questions: LiveData<List<QuestionEntity>> = _questions
 
@@ -161,10 +173,10 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun recognizeImage(imageUri: Uri) {
+    fun recognizeImage(imageUri: Uri, accurate: Boolean = false) {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = ocrService.recognize(getApplication(), imageUri)
+            val result = ocrService.recognize(getApplication(), imageUri, accurate)
             _ocrResult.postValue(result)
             _isLoading.postValue(false)
             if (!result.success) {
@@ -189,19 +201,24 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun saveQuestion(
+    suspend fun saveQuestion(
         rawText: String,
         analysisResult: AnalysisResult,
         imagePath: String = "",
         isFavorite: Boolean = false,
-        tags: String = ""
-    ) {
+        tags: String = "",
+        ocrText: String = "",
+        sourceType: String = "manual",
+        ocrProvider: String = "",
+        aiProvider: String = "",
+        aiModel: String = ""
+    ): Boolean {
         if (rawText.isBlank()) {
             _errorMessage.value = "题目内容为空"
-            return
+            return false
         }
         _isLoading.value = true
-        viewModelScope.launch {
+        return try {
             val subject = analysisResult.subject.ifBlank { "通用" }
             repository.ensureSubject(subject)
             val entity = QuestionEntity(
@@ -212,15 +229,35 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
                 knowledgePoints = JSONArray(analysisResult.knowledgePoints).toString(),
                 imagePath = imagePath,
                 isFavorite = isFavorite,
-                tags = tags
+                tags = tags,
+                // 第三阶段扩展字段
+                questionType = analysisResult.questionType,
+                question = analysisResult.question,
+                optionsJson = JSONArray(analysisResult.options).toString(),
+                answer = analysisResult.answer,
+                wrongReason = analysisResult.wrongReason,
+                reviewSuggestion = analysisResult.reviewSuggestion,
+                confidence = analysisResult.confidence,
+                ocrText = ocrText,
+                correctedText = rawText,
+                sourceType = sourceType,
+                ocrProvider = ocrProvider,
+                aiProvider = aiProvider,
+                aiModel = aiModel
             )
             val id = repository.saveQuestion(entity)
             repository.generateReviewPlans(id)
-            _isLoading.postValue(false)
             loadQuestions()
             loadSubjects()
             loadReviews()
             loadTopicMastery()
+            true
+        } catch (e: Exception) {
+            Log.e("WrongBookViewModel", "保存错题失败", e)
+            _errorMessage.postValue("错题保存失败：${e.message}")
+            false
+        } finally {
+            _isLoading.postValue(false)
         }
     }
 
@@ -339,13 +376,14 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
                     .url("https://${com.gamecenter.app.BuildConfig.MODULE_HOST}/api/wrongbook/backup")
                     .post(requestBody)
                     .build()
-                
+
                 client.newCall(request).execute().use { response ->
                     response.isSuccessful
                 }
             } catch (e: Exception) {
-                Log.w("WrongBookViewModel", "Cloud backup request failed: ${e.message}, using mock success for demo")
-                true
+                Log.e("WrongBookViewModel", "Cloud backup request failed: ${e.message}", e)
+                _errorMessage.postValue("云端备份失败：${e.message}")
+                false
             }
 
             _importExportStatus.postValue(success)
@@ -363,7 +401,7 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
                     .url("https://${com.gamecenter.app.BuildConfig.MODULE_HOST}/api/wrongbook/restore")
                     .get()
                     .build()
-                
+
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
                         response.body?.string()
@@ -372,7 +410,8 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
             } catch (e: Exception) {
-                Log.w("WrongBookViewModel", "Cloud restore request failed: ${e.message}, using local backup if exists")
+                Log.e("WrongBookViewModel", "Cloud restore request failed: ${e.message}", e)
+                _errorMessage.postValue("云端恢复失败：${e.message}")
                 null
             }
 

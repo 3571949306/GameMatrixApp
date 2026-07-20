@@ -63,6 +63,17 @@
 -keep class com.gamecenter.app.moduleloader.ModuleLoaderV2 { *; }
 -keep class com.gamecenter.app.moduleloader.ModuleVerifier { *; }
 
+# 模块入口点（通过反射加载，R8 无法静态分析 modules.json 字符串引用，必须保留）
+# 修复：release 版 BrowserModuleEntryPoint 被剪裁导致模块商店显示"未安装"
+-keep interface com.gamecenter.app.core.common.ModuleInterface { *; }
+-keep class * implements com.gamecenter.app.core.common.ModuleInterface { *; }
+-keep interface com.gamecenter.app.core.common.FeatureModule { *; }
+-keep class * implements com.gamecenter.app.core.common.FeatureModule { *; }
+
+# 所有 *ModuleEntryPoint 命名的类（双保险，覆盖 modules.json 中 entryClass 字段引用）
+-keep class com.gamecenter.app.**.*ModuleEntryPoint { *; }
+-keep class com.gamecenter.app.**.*ModuleEntryPoint$* { *; }
+
 # ============ 数据模型 ============
 
 # Parcelable 实现
@@ -139,3 +150,20 @@
 
 # R8 missing classes
 -dontwarn javax.lang.model.element.Modifier
+
+# ============ Compose (Phase 1 试点) ============
+# Compose runtime 已自带 keep 规则（androidx.compose.runtime.R8KeepRules），
+# 但 material3/ui-tooling 的部分反射 API 需要额外保留以防 R8 full 模式裁剪。
+
+# 保留 Compose Modifier 链与 Composable 函数（R8 full 模式下 lambda 内联可能导致反射失效）
+-keep class androidx.compose.runtime.** { *; }
+-keep class androidx.compose.ui.** { *; }
+-keep class androidx.compose.material3.** { *; }
+-keep class androidx.compose.material.icons.** { *; }
+-keep class androidx.activity.compose.** { *; }
+
+# Compose lambdas — 保留合成方法签名，防止 R8 误裁剪 @Composable 闭包
+-keepclassmembers class ** {
+    @androidx.compose.runtime.Composable <methods>;
+}
+

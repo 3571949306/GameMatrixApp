@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.GameMatrix.Card.Game"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/spacing_6"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:strokeWidth="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingTop="@dimen/spacing_20"
+        android:paddingBottom="@dimen/spacing_16"
+        android:paddingStart="@dimen/spacing_12"
+        android:paddingEnd="@dimen/spacing_12">
+
+        <!-- 图标占位 -->
+        <View
+            android:layout_width="@dimen/icon_size_xlarge"
+            android:layout_height="@dimen/icon_size_xlarge"
+            android:background="@drawable/bg_skeleton_placeholder" />
+
+        <!-- 标题占位 -->
+        <View
+            android:layout_width="80dp"
+            android:layout_height="14dp"
+            android:layout_marginTop="@dimen/spacing_12"
+            android:background="@drawable/bg_skeleton_placeholder" />
+
+        <!-- 描述占位 -->
+        <View
+            android:layout_width="110dp"
+            android:layout_height="10dp"
+            android:layout_marginTop="@dimen/spacing_6"
+            android:background="@drawable/bg_skeleton_placeholder" />
+
+        <!-- 描述占位第二行 -->
+        <View
+            android:layout_width="70dp"
+            android:layout_height="10dp"
+            android:layout_marginTop="3dp"
+            android:background="@drawable/bg_skeleton_placeholder" />
+
+        <!-- 分类标签占位 -->
+        <View
+            android:layout_width="48dp"
+            android:layout_height="20dp"
+            android:layout_marginTop="@dimen/spacing_8"
+            android:background="@drawable/bg_skeleton_placeholder" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

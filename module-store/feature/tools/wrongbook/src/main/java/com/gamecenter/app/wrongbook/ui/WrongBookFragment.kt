@@ -72,6 +72,11 @@ class WrongBookFragment : BaseWrongBookFragment() {
             CaptureDialogFragment().show(parentFragmentManager, "CaptureDialogFragment")
         }
 
+        // 返回按钮：触发宿主 onBackPressedDispatcher，与系统返回键/边缘滑动走同一回调
+        binding.btnBack.setOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
+
         // 搜索入口
         binding.btnSearch.setOnClickListener {
             val searchDialog = SearchFragment()

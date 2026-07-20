@@ -11,6 +11,14 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ---
 
+## 2026-07-11 安全与构建链维护
+
+- 错题本预装 APK 改为发布证书签名，构建时自动同步模块大小与 SHA-256，并在下载和安装时执行硬校验。
+- 错题本后端 POST 接口增加 API Token 鉴权与限流；安卓端敏感配置使用加密存储。
+- 修复阻塞 CI 的 Lint 错误、Windows i18n 脚本编码崩溃，并接入可执行的 Baseline Profile 生成任务。
+
+---
+
 ## 2026-07-06 v1.4.1 循环 17-24 维护版
 
 ### 🌐 循环 17-19：浏览器循环19重构为原生实现

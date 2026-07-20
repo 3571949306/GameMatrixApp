@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import com.gamecenter.app.core.security.ModuleSignatureVerifier;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,14 +34,6 @@ public class ModuleVerifier {
     
     /** 缓冲区大小：8KB */
     private static final int BUFFER_SIZE = 8192;
-    
-    /** 开发者公钥证书的 SHA-256 指纹白名单 */
-    private static final String[] TRUSTED_SIGNATURE_PINS = {
-        // 在线上发布前，请替换为真实的开发者证书签名指纹
-        "REPLACE_WITH_YOUR_RELEASE_KEY_FINGERPRINT",
-        // 预留的测试证书指纹（仅做测试用，实际生产须移除）
-        "a1b2c3d4e5f60708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
-    };
     
     /** 签名验证结果：成功 */
     public static final int VERIFY_SUCCESS = 0;
@@ -168,47 +161,17 @@ public class ModuleVerifier {
     public static VerifyResult verifySignature(@NonNull Context context, 
                                                @NonNull File apkFile) {
         try {
-            PackageManager pm = context.getPackageManager();
-            PackageInfo packageInfo = pm.getPackageArchiveInfo(
-                    apkFile.getAbsolutePath(), 
-                    PackageManager.GET_SIGNATURES);
-            
-            if (packageInfo == null) {
-                Log.e(TAG, "无法读取 APK 包信息: " + apkFile.getName());
-                return VerifyResult.failure(VERIFY_ERROR_SIGNATURE_FAILED, 
-                        "无法读取 APK 包信息，签名验证失败");
+            ModuleSignatureVerifier.Result result =
+                    ModuleSignatureVerifier.INSTANCE.verify(apkFile, context);
+            if (result instanceof ModuleSignatureVerifier.Result.Success) {
+                Log.d(TAG, "APK v2/v3 签名与发布证书匹配: " + apkFile.getName());
+                return VerifyResult.success();
             }
-            
-            if (packageInfo.signatures == null || packageInfo.signatures.length == 0) {
-                Log.e(TAG, "APK 未签名: " + apkFile.getName());
-                return VerifyResult.failure(VERIFY_ERROR_SIGNATURE_FAILED, 
-                        "APK 未签名或签名无效");
-            }
-            
-            // 安全加固：比对签名公钥的 SHA-256 指纹
-            boolean isTrusted = false;
-            for (android.content.pm.Signature signature : packageInfo.signatures) {
-                String sha256Fingerprint = calculateSha256(signature.toByteArray());
-                if (sha256Fingerprint != null) {
-                    for (String pin : TRUSTED_SIGNATURE_PINS) {
-                        if (pin.equalsIgnoreCase(sha256Fingerprint)) {
-                            isTrusted = true;
-                            break;
-                        }
-                    }
-                }
-                if (isTrusted) break;
-            }
-
-            if (!isTrusted) {
-                Log.e(TAG, "签名校验失败: 模块被未知的密钥签名！" + apkFile.getName());
-                return VerifyResult.failure(VERIFY_ERROR_SIGNATURE_FAILED, "签名校验失败，非官方受信任的模块");
-            }
-            
-            Log.d(TAG, "签名验证通过: " + apkFile.getName() 
-                    + ", 签名数量=" + packageInfo.signatures.length);
-            return VerifyResult.success();
-            
+            String reason = result instanceof ModuleSignatureVerifier.Result.Failure
+                    ? ((ModuleSignatureVerifier.Result.Failure) result).getReason()
+                    : ((ModuleSignatureVerifier.Result.Warning) result).getReason();
+            Log.e(TAG, "签名校验失败: " + apkFile.getName() + ", " + reason);
+            return VerifyResult.failure(VERIFY_ERROR_SIGNATURE_FAILED, reason);
         } catch (Exception e) {
             Log.e(TAG, "签名验证异常: " + apkFile.getName(), e);
             return VerifyResult.failure(VERIFY_ERROR_SIGNATURE_FAILED, 

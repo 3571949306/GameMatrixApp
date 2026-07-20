@@ -28,7 +28,7 @@ class BrowserModuleEntryPoint : ModuleInterface, FeatureModule {
 
     override fun getName(): String = "浏览器"
 
-    override fun getVersion(): String = "1.0.0"
+    override fun getVersion(): String = "1.4.1"
 
     override fun getDescription(): String = "内置浏览器，支持网页浏览、历史记录、收藏夹、下载管理。"
 

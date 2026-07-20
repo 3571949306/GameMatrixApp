@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -56,6 +57,7 @@ public class BrowserSettingsActivity extends AppCompatActivity {
         setupSwitches();
         setupClearButtons();
         setupResetButton();
+        setupDarkModeRow();
     }
 
     @Override
@@ -174,10 +176,74 @@ public class BrowserSettingsActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.browser_settings_reset_confirm, (d, w) -> {
                     BrowserSettingsManager.getInstance(this).resetToDefaults();
                     setupSwitches();
+                    updateDarkModeSummary();
                     Toast.makeText(this, R.string.browser_settings_reset_done, Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show());
+    }
+
+    /**
+     * P1-1：夜间模式选择条目。
+     *
+     * <p>点击弹出单选对话框，提供三档选项：自动 / 强制开 / 强制关。
+     * 选择后立即写入 BrowserSettingsManager，触发 OnSettingsChangeListener 回调
+     * （BrowserFragment 会收到 RELOAD_REQUIRED 并刷新页面）。
+     */
+    private void setupDarkModeRow() {
+        View row = findViewById(R.id.row_dark_mode);
+        if (row == null) return;
+        updateDarkModeSummary();
+        row.setOnClickListener(v -> {
+            BrowserSettingsManager mgr = BrowserSettingsManager.getInstance(this);
+            int current = mgr.getForceDarkMode();
+            int selectedIndex;
+            if (current == BrowserSettingsManager.DARK_MODE_FORCE_ON) {
+                selectedIndex = 1;
+            } else if (current == BrowserSettingsManager.DARK_MODE_FORCE_OFF) {
+                selectedIndex = 2;
+            } else {
+                selectedIndex = 0; // AUTO
+            }
+            String[] items = new String[] {
+                    getString(R.string.browser_dark_mode_auto),
+                    getString(R.string.browser_dark_mode_force_on),
+                    getString(R.string.browser_dark_mode_force_off)
+            };
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.browser_dark_mode)
+                    .setSingleChoiceItems(items, selectedIndex, (dialog, which) -> {
+                        int newMode;
+                        if (which == 1) {
+                            newMode = BrowserSettingsManager.DARK_MODE_FORCE_ON;
+                        } else if (which == 2) {
+                            newMode = BrowserSettingsManager.DARK_MODE_FORCE_OFF;
+                        } else {
+                            newMode = BrowserSettingsManager.DARK_MODE_AUTO;
+                        }
+                        mgr.setForceDarkMode(newMode);
+                        updateDarkModeSummary();
+                        dialog.dismiss();
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        });
+    }
+
+    /** 更新夜间模式按钮的副标题文案 */
+    private void updateDarkModeSummary() {
+        TextView tvSummary = findViewById(R.id.tv_dark_mode_summary);
+        if (tvSummary == null) return;
+        int mode = BrowserSettingsManager.getInstance(this).getForceDarkMode();
+        int resId;
+        if (mode == BrowserSettingsManager.DARK_MODE_FORCE_ON) {
+            resId = R.string.browser_dark_mode_force_on;
+        } else if (mode == BrowserSettingsManager.DARK_MODE_FORCE_OFF) {
+            resId = R.string.browser_dark_mode_force_off;
+        } else {
+            resId = R.string.browser_dark_mode_auto;
+        }
+        tvSummary.setText(resId);
     }
 
     private void saveInputs() {

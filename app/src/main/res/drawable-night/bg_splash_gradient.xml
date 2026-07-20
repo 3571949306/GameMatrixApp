@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 启动屏背景 - 深色模式（Batch 4 修复：原浅色 #FAFAFA 在深色模式下白底刺眼）
+     使用深色背景 #121019，与深色主题 surface 色一致，避免启动屏闪烁刺眼 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#121019" />
+</shape>

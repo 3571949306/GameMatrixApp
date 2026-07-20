@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 20: 浏览器分类渐变图标背景（蓝：信任） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="45"
+        android:startColor="@color/module_category_browser_start"
+        android:endColor="@color/module_category_browser_end"
+        android:type="linear" />
+    <corners android:radius="@dimen/gm_radius_md" />
+</shape>

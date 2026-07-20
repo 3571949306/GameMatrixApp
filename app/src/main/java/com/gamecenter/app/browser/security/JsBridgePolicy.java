@@ -4,6 +4,7 @@ import com.gamecenter.app.browser.util.UrlUtils;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -29,13 +30,13 @@ public class JsBridgePolicy {
     }
 
     public boolean isTrustedDomain(String url) {
-        String host = UrlUtils.getHost(url).toLowerCase();
+        String host = UrlUtils.getHost(url).toLowerCase(Locale.ROOT);
         for (String domain : trustedDomains) {
             if (host.equals(domain) || host.endsWith("." + domain)) return true;
         }
         return false;
     }
 
-    public void addTrustedDomain(String domain) { trustedDomains.add(domain.toLowerCase()); }
-    public void removeTrustedDomain(String domain) { trustedDomains.remove(domain.toLowerCase()); }
+    public void addTrustedDomain(String domain) { trustedDomains.add(domain.toLowerCase(Locale.ROOT)); }
+    public void removeTrustedDomain(String domain) { trustedDomains.remove(domain.toLowerCase(Locale.ROOT)); }
 }

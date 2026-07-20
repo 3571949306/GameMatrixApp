@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER): 首页"最近解锁成就"横幅。
+     显示最近一次解锁的成就标题、描述、关闭按钮。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="@dimen/spacing_16"
+    android:layout_marginEnd="@dimen/spacing_16"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="@dimen/spacing_16"
+    android:background="@drawable/bg_recent_achievement_gradient"
+    android:elevation="2dp">
+
+    <!-- 左侧奖杯图标 -->
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/home_recent_achievement_title"
+        android:scaleType="centerInside"
+        app:srcCompat="@drawable/ic_recent_achievement"
+        app:tint="@android:color/white" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="@dimen/spacing_12"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/home_recent_achievement_title"
+            android:textColor="@android:color/white"
+            android:alpha="0.85"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_recent_achievement_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="连胜大师" />
+
+        <TextView
+            android:id="@+id/tv_recent_achievement_desc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@android:color/white"
+            android:alpha="0.9"
+            android:textSize="11sp"
+            tools:text="连续胜利 10 次" />
+    </LinearLayout>
+
+    <!-- 右侧"关闭"按钮 -->
+    <ImageView
+        android:id="@+id/btn_recent_achievement_dismiss"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="@string/home_recent_achievement_dismiss"
+        android:padding="6dp"
+        android:scaleType="centerInside"
+        app:srcCompat="@drawable/ic_close"
+        app:tint="@android:color/white" />
+
+</LinearLayout>

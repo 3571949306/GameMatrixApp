@@ -334,14 +334,14 @@ public class SystemInfoCollector {
             int dh = Math.min(metrics.widthPixels, metrics.heightPixels);
             appendKV("逻辑分辨率", dw + " × " + dh, "应用可用的渲染分辨率(扣除导航栏等)");
             appendKV("DPI", String.valueOf(metrics.densityDpi), "每英寸像素密度，越高显示越细腻");
-            appendKV("密度因子", String.format("%.2f", metrics.density),
+            appendKV("密度因子", String.format(Locale.getDefault(), "%.2f", metrics.density),
                     "相对于160dpi的缩放比例，1.0=mdpi, 3.0=xxhdpi");
 
             try {
                 // Android M+ 支持获取显示模式（刷新率、HDR等高级信息）
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     float refresh = display.getMode().getRefreshRate();
-                    appendKV("刷新率", String.format("%.1f Hz", refresh), "屏幕每秒刷新次数，越高越流畅");
+                    appendKV("刷新率", String.format(Locale.getDefault(), "%.1f Hz", refresh), "屏幕每秒刷新次数，越高越流畅");
                     appendKV("显示模式ID", String.valueOf(display.getMode().getModeId()),
                             "不同模式可能对应不同分辨率/刷新率组合");
                     appendKV("HDR支持", Arrays.toString(display.getHdrCapabilities().getSupportedHdrTypes()),
@@ -353,8 +353,8 @@ public class SystemInfoCollector {
             float ydpi = metrics.ydpi;
             // 通过勾股定理计算屏幕对角线物理尺寸
             double sizeInches = Math.sqrt(w * w + h * h) / (float) metrics.densityDpi;
-            appendKV("屏幕尺寸", String.format("%.1f 英寸", sizeInches), "屏幕对角线物理尺寸");
-            appendKV("XDpi / YDpi", String.format("%.1f / %.1f", xdpi, ydpi), "水平和垂直方向精确DPI");
+            appendKV("屏幕尺寸", String.format(Locale.getDefault(), "%.1f 英寸", sizeInches), "屏幕对角线物理尺寸");
+            appendKV("XDpi / YDpi", String.format(Locale.getDefault(), "%.1f / %.1f", xdpi, ydpi), "水平和垂直方向精确DPI");
         }
     }
 
@@ -364,6 +364,7 @@ public class SystemInfoCollector {
      * <p>通过注册一个 null BroadcastReceiver 来获取系统最后一次广播的电池状态，
      * 这是一种无需动态注册监听器即可获取当前电池信息的高效方式。
      */
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void getBatteryInfo_static() {
         appendSection("电池(静态信息)");
         // 传入 null 作为 BroadcastReceiver，立即获取最近的粘性广播，无需注册监听
@@ -1008,9 +1009,9 @@ public class SystemInfoCollector {
      */
     private String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
-        return String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+        if (bytes < 1024 * 1024) return String.format(Locale.getDefault(), "%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format(Locale.getDefault(), "%.1f MB", bytes / (1024.0 * 1024.0));
+        return String.format(Locale.getDefault(), "%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
     /**
@@ -1117,8 +1118,8 @@ public class SystemInfoCollector {
      */
     private static String formatBytesStatic(long bytes) {
         if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
-        return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+        if (bytes < 1024 * 1024) return String.format(Locale.getDefault(), "%.1f MB", bytes / (1024.0 * 1024.0));
+        return String.format(Locale.getDefault(), "%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
     /**

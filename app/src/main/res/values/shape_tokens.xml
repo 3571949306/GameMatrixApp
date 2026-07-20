@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== 圆角 Token（A2: Spec §7.4） ========== -->
+    <!-- 卡片用 md/lg，Chip/游戏块用 full，对话框用 xl -->
+    <dimen name="gm_radius_xs">4dp</dimen>
+    <dimen name="gm_radius_sm">8dp</dimen>
+    <dimen name="gm_radius_md">12dp</dimen>
+    <dimen name="gm_radius_lg">16dp</dimen>
+    <dimen name="gm_radius_xl">24dp</dimen>
+    <dimen name="gm_radius_xxl">32dp</dimen>
+    <dimen name="gm_radius_full">9999dp</dimen>
+</resources>

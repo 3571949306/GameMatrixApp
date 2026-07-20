@@ -1,0 +1,68 @@
+// ============================================================
+// :macrobenchmark 模块 — Baseline Profile 生产者
+// ============================================================
+// 用途：生成冷启动 Baseline Profile，打包进 APK assets 实现 AOT 预热。
+//
+// 分发渠道：HK VPS + GitHub Releases（非 Google Play）
+//   → 不能用云 Profile（Cloud Profile 仅 Play 通道可用）
+//   → 必须本地生成 + 打包内置 baseline-prof.txt
+//
+// 运行方式：./gradlew :app:generateBaselineProfile
+//   需连接支持 Macrobenchmark 的官方 Android 设备或 AVD。
+// ============================================================
+
+plugins {
+    id 'com.android.test'
+    id 'org.jetbrains.kotlin.android'
+    id 'androidx.baselineprofile'
+}
+
+android {
+    namespace 'com.gamecenter.app.macrobenchmark'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 35
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    targetProjectPath ':app'
+
+    // Gradle Managed Device：无需本地连接真机即可生成 Profile
+    testOptions {
+        managedDevices {
+            devices {
+                pixel6Api34(com.android.build.api.dsl.ManagedVirtualDevice) {
+                    device = "Pixel 6"
+                    apiLevel = 34
+                    systemImageSource = "aosp"
+                }
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    // BaselineProfileRule — 记录冷启动热路径并生成 profile
+    implementation 'androidx.benchmark:benchmark-macro-junit4:1.4.1'
+    // AndroidJUnit4 runner
+    implementation 'androidx.test.ext:junit:1.2.1'
+    // Test rules
+    implementation 'androidx.test:rules:1.6.1'
+    // UiAutomator（BaselineProfileScope 内部 pressHome / startActivityAndWait 依赖）
+    implementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+}
+
+baselineProfile {
+    useConnectedDevices = true
+}

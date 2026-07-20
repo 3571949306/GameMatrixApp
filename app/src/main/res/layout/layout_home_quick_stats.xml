@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 10-1 (HOME_QUICK_STATS_BAR): 首页快速统计栏 - 3 列（今日时长 / 连胜 / 成就） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="@dimen/spacing_16"
+    android:layout_marginEnd="@dimen/spacing_16"
+    android:background="@drawable/bg_quick_stats_gradient"
+    android:orientation="horizontal"
+    android:paddingTop="@dimen/spacing_12"
+    android:paddingBottom="@dimen/spacing_12"
+    android:paddingStart="@dimen/spacing_8"
+    android:paddingEnd="@dimen/spacing_8"
+    android:elevation="2dp">
+
+    <!-- 列 1：今日时长 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:contentDescription="@string/home_stats_today_playtime"
+            android:scaleType="centerInside"
+            app:srcCompat="@drawable/ic_stats_playtime"
+            app:tint="@color/top_bar_on_gradient" />
+
+        <TextView
+            android:id="@+id/tv_stat_playtime_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_4"
+            android:textColor="@color/top_bar_on_gradient"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:ignore="TextContrastCheck" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/home_stats_today_playtime"
+            android:textColor="@color/top_bar_on_gradient_variant"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- 分隔线 1 -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_vertical"
+        android:background="#33FFFFFF" />
+
+    <!-- 列 2：连胜 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:contentDescription="@string/home_stats_streak"
+            android:scaleType="centerInside"
+            app:srcCompat="@drawable/ic_streak_fire"
+            app:tint="@color/top_bar_on_gradient" />
+
+        <TextView
+            android:id="@+id/tv_stat_streak_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_4"
+            android:textColor="@color/top_bar_on_gradient"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/home_stats_streak"
+            android:textColor="@color/top_bar_on_gradient_variant"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- 分隔线 2 -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_vertical"
+        android:background="#33FFFFFF" />
+
+    <!-- 列 3：成就 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="@dimen/icon_size_medium"
+            android:layout_height="@dimen/icon_size_medium"
+            android:contentDescription="@string/home_stats_achievements"
+            android:scaleType="centerInside"
+            app:srcCompat="@drawable/ic_star_filled"
+            app:tint="@color/top_bar_on_gradient" />
+
+        <TextView
+            android:id="@+id/tv_stat_achievements_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_4"
+            android:textColor="@color/top_bar_on_gradient"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/home_stats_achievements"
+            android:textColor="@color/top_bar_on_gradient_variant"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+</LinearLayout>

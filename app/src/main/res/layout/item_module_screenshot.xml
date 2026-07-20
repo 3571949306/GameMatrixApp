@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 模块详情截图 item（Batch 21） -->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="160dp"
+    android:layout_height="100dp"
+    android:layout_marginEnd="@dimen/gm_spacing_2"
+    app:cardCornerRadius="@dimen/gm_radius_md"
+    app:cardElevation="@dimen/gm_elevation_1"
+    app:strokeWidth="0dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/module_detail_screenshot_gradient">
+
+        <!-- 模块图标占位（无真实截图时使用分类渐变+图标） -->
+        <ImageView
+            android:id="@+id/screenshotIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:src="@android:drawable/ic_menu_gallery"
+            app:tint="@android:color/white" />
+
+        <!-- 截图编号标签 -->
+        <TextView
+            android:id="@+id/screenshotLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="@dimen/gm_spacing_1"
+            android:layout_marginBottom="@dimen/gm_spacing_1"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:background="@drawable/screenshot_label_bg"
+            android:textColor="@android:color/white"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            tools:text="01" />
+    </FrameLayout>
+</com.google.android.material.card.MaterialCardView>
