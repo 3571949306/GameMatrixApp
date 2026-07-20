@@ -20,6 +20,7 @@ import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class GoActivity extends BaseGameActivity {
 
@@ -41,11 +42,19 @@ public class GoActivity extends BaseGameActivity {
     private final List<MaterialButton> difficultyButtons = new ArrayList<>();
     private long aiThinkStartMs = 0L;
 
+    /** 新手引导序列（首次开始游戏后弹出，3 步引导） */
+    private com.gamecenter.app.ui.onboarding.CoachmarkSequence onboardingSequence;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         game = new GoGame();
         ai = new GoAI();
+        onboardingSequence = new com.gamecenter.app.ui.onboarding.CoachmarkSequence(
+                this,
+                com.gamecenter.app.ui.onboarding.GoOnboarding.steps,
+                com.gamecenter.app.ui.onboarding.GoOnboarding.STORAGE_KEY
+        );
     }
 
     @NonNull
@@ -79,6 +88,8 @@ public class GoActivity extends BaseGameActivity {
         tvStatus.setTextSize(16f);
         tvStatus.setTextColor(0xFF2D2D2D);
         tvStatus.setPadding(0, 24, 0, 8);
+        // 给状态栏打上稳定 id，供 Coachmark 定位（围棋新手引导第 2 步目标）
+        tvStatus.setId(R.id.go_status_view);
 
         tvScore = new TextView(this);
         tvScore.setGravity(Gravity.CENTER);
@@ -107,6 +118,8 @@ public class GoActivity extends BaseGameActivity {
         int viewWidth = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
         goView.setLayoutParams(new FrameLayout.LayoutParams(viewWidth, viewWidth));
         goView.setOnCellClickListener(this::onCellClick);
+        // 给棋盘打上稳定 id，供 Coachmark 定位（围棋新手引导第 1 步目标）
+        goView.setId(R.id.go_board_view);
 
         addDifficultyButtonsTo(gamePanel);
 
@@ -114,6 +127,8 @@ public class GoActivity extends BaseGameActivity {
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER);
         btnRow.setPadding(0, 16, 0, 0);
+        // 给按钮行打上稳定 id，供 Coachmark 定位（围棋新手引导第 3 步目标）
+        btnRow.setId(R.id.go_buttons_view);
 
         MaterialButton btnPass = new MaterialButton(this);
         btnPass.setText(R.string.game_go_pass);
@@ -171,6 +186,12 @@ public class GoActivity extends BaseGameActivity {
 
         isGameRunning = true;
         gameStartTime = System.currentTimeMillis();
+
+        // 首次开始游戏后触发新手引导（gamePanel 此时已 VISIBLE，goView 拿得到尺寸）
+        // Spec §6 / 设计 §5.6：U2 免登录上手
+        if (onboardingSequence != null) {
+            goView.postDelayed(() -> onboardingSequence.start(), 300L);
+        }
     }
 
     private void onCellClick(int row, int col) {
@@ -306,7 +327,7 @@ public class GoActivity extends BaseGameActivity {
 
     private String formatDuration(long ms) {
         long sec = ms / 1000L;
-        return String.format("%02d:%02d", sec / 60L, sec % 60L);
+        return String.format(Locale.getDefault(), "%02d:%02d", sec / 60L, sec % 60L);
     }
 
     private void addDifficultyButtonsTo(LinearLayout parent) {
@@ -417,5 +438,9 @@ public class GoActivity extends BaseGameActivity {
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+        if (onboardingSequence != null) {
+            onboardingSequence.destroy();
+            onboardingSequence = null;
+        }
     }
 }

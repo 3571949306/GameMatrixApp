@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.gamecenter.app.core.security.ModuleSignatureVerifier
 import java.io.File
 
 object RecoveryInstaller {
@@ -23,6 +24,22 @@ object RecoveryInstaller {
         if (!RecoveryVerifier.verifyApkBasic(apkFile)) {
             Log.e(TAG, "APK basic verification failed")
             return false
+        }
+
+        // R3: 签名/证书强校验。仅当团队在发布流水线配置了 EXPECTED_STABLE_SHA256 时启用，
+        // 与下载器的 SHA-256 完整性校验保持同一开关。证书未配置（占位）时按既有"缺失暂放行"
+        // 策略放行，避免反向砖化恢复安装；真实签名不匹配/篡改则必须拦截。
+        if (RecoveryDownloader.EXPECTED_STABLE_SHA256.isNotEmpty()) {
+            val sigResult = ModuleSignatureVerifier.verify(apkFile, context)
+            if (sigResult.isFailure) {
+                val reason = (sigResult as ModuleSignatureVerifier.Result.Failure).reason
+                if (reason.contains("发布证书未配置")) {
+                    Log.w(TAG, "发布证书未配置，跳过签名强校验（过渡期放行）")
+                } else {
+                    Log.e(TAG, "恢复包签名校验失败，拒绝安装: $reason")
+                    return false
+                }
+            }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

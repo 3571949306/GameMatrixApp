@@ -100,6 +100,12 @@ public class SettingsActivity extends AppCompatActivity {
         // 服务器状态
         checkServerStatus();
 
+        // 新手引导（U2 免登录上手：允许用户重置引导并重新查看）
+        View btnOnboarding = findViewById(R.id.btn_onboarding_reset);
+        if (btnOnboarding != null) {
+            btnOnboarding.setOnClickListener(v -> showOnboardingResetDialog());
+        }
+
         // 关于
         View btnAbout = findViewById(R.id.btn_about);
         if (btnAbout != null) {
@@ -247,6 +253,44 @@ public class SettingsActivity extends AppCompatActivity {
                         + "服务器: " + BuildConfig.MODULE_HOST + "\n"
                         + "模块存储: /data/data/包名/files/modules/")
                 .setPositiveButton("确定", null)
+                .show();
+    }
+
+    /**
+     * 新手引导重置对话框（U2 免登录上手）。
+     *
+     * <p>项目无账号体系，引导完成态持久化在 SharedPreferences("onboarding") 中。
+     * 这里提供「全部重置 / 选择性重置」入口，让用户能重新查看引导。</p>
+     */
+    private void showOnboardingResetDialog() {
+        String[] items = {"全部重置", "斗地主引导", "围棋引导"};
+        new AlertDialog.Builder(this)
+                .setTitle("新手引导")
+                .setItems(items, (dialog, which) -> {
+                    android.content.SharedPreferences prefs =
+                            getSharedPreferences("onboarding", MODE_PRIVATE);
+                    android.content.SharedPreferences.Editor editor = prefs.edit();
+                    switch (which) {
+                        case 0:
+                            editor.clear();
+                            break;
+                        case 1:
+                            editor.putBoolean(
+                                    com.gamecenter.app.ui.onboarding.DoudizhuOnboarding.STORAGE_KEY,
+                                    false);
+                            break;
+                        case 2:
+                            editor.putBoolean(
+                                    com.gamecenter.app.ui.onboarding.GoOnboarding.STORAGE_KEY,
+                                    false);
+                            break;
+                    }
+                    editor.apply();
+                    Toast.makeText(this,
+                            "已重置，下次进入对应游戏将重新显示引导",
+                            Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
                 .show();
     }
 

@@ -2,6 +2,7 @@ package com.gamecenter.app.modules
 
 import android.content.Context
 import android.util.Log
+import com.gamecenter.app.core.security.ModuleSignatureVerifier
 import dalvik.system.DexClassLoader
 import java.io.File
 
@@ -46,7 +47,8 @@ object ModuleLoader {
 
         clearOptimizedDex(context, moduleFile)
 
-        if (!ModuleVerifier.verifySha256(moduleFile, manifest.sha256)) {
+        // Batch 21 安全修复：内置模块允许空 SHA 跳过校验；非内置模块必须配置且匹配 SHA-256
+        if (!ModuleVerifier.verifySha256(moduleFile, manifest.sha256, allowEmpty = manifest.builtIn)) {
             Log.e(TAG, "模块 SHA-256 校验失败: ${manifest.id}")
             if (manifest.sha256.isNotEmpty()) {
                 moduleFile.delete()
@@ -223,88 +225,16 @@ object ModuleLoader {
     }
 
     private fun verifyApkSignature(context: Context, apkFile: File): Boolean {
-        val isTestEnvironment = try {
-            Class.forName("org.robolectric.Robolectric") != null
-        } catch (_: ClassNotFoundException) {
-            false
-        }
-        if (isTestEnvironment) {
-            Log.d(TAG, "测试环境 (Robolectric)，跳过签名校验")
-            return true
-        }
-
-        try {
-            val packageManager = context.packageManager
-            val hostSigs = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                val packageInfo = packageManager.getPackageInfo(
-                    context.packageName,
-                    android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-                )
-                val signingInfo = packageInfo?.signingInfo
-                if (signingInfo != null) {
-                    if (signingInfo.hasMultipleSigners()) {
-                        signingInfo.apkContentsSigners
-                    } else {
-                        signingInfo.signingCertificateHistory
-                    }
-                } else {
-                    null
-                }
-            } else {
-                val packageInfo = packageManager.getPackageInfo(
-                    context.packageName,
-                    android.content.pm.PackageManager.GET_SIGNATURES
-                )
-                @Suppress("DEPRECATION")
-                packageInfo.signatures
+        return when (val result = ModuleSignatureVerifier.verify(apkFile, context)) {
+            ModuleSignatureVerifier.Result.Success -> true
+            is ModuleSignatureVerifier.Result.Failure -> {
+                Log.e(TAG, "模块发布证书校验失败: ${result.reason}")
+                false
             }
-
-            if (hostSigs == null || hostSigs.isEmpty()) {
-                Log.w(TAG, "宿主签名为空，放行校验")
-                return true
+            is ModuleSignatureVerifier.Result.Warning -> {
+                Log.e(TAG, "模块发布证书校验告警按失败处理: ${result.reason}")
+                false
             }
-
-            val apkSigs = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                val packageInfo = packageManager.getPackageArchiveInfo(
-                    apkFile.absolutePath,
-                    android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-                )
-                val signingInfo = packageInfo?.signingInfo
-                if (signingInfo != null) {
-                    if (signingInfo.hasMultipleSigners()) {
-                        signingInfo.apkContentsSigners
-                    } else {
-                        signingInfo.signingCertificateHistory
-                    }
-                } else {
-                    null
-                }
-            } else {
-                val packageInfo = packageManager.getPackageArchiveInfo(
-                    apkFile.absolutePath,
-                    android.content.pm.PackageManager.GET_SIGNATURES
-                )
-                @Suppress("DEPRECATION")
-                packageInfo?.signatures
-            }
-
-            if (apkSigs == null || apkSigs.isEmpty()) {
-                Log.e(TAG, "无法获取待加载 APK 的签名: ${apkFile.name}")
-                return false
-            }
-
-            for (hostSig in hostSigs) {
-                for (apkSig in apkSigs) {
-                    if (hostSig.toByteArray().contentEquals(apkSig.toByteArray())) {
-                        return true
-                    }
-                }
-            }
-            Log.e(TAG, "APK 签名不匹配! APK 签名不属于官方开发证书。")
-            return false
-        } catch (e: Exception) {
-            Log.e(TAG, "签名比对异常: ${e.message}", e)
-            return false
         }
     }
 }

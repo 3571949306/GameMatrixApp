@@ -6,10 +6,13 @@ subprojects {
     afterEvaluate { project ->
         if (project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")) {
             // AGP 8.x: testCoverage DSL 已移除，通过 buildTypes 启用覆盖率
-            project.android.buildTypes.all { buildType ->
-                if (buildType.name == "debug") {
-                    buildType.enableUnitTestCoverage = true
-                    buildType.enableAndroidTestCoverage = true
+            def androidExtension = project.extensions.findByName("android")
+            if (androidExtension != null && androidExtension.hasProperty("buildTypes")) {
+                androidExtension.buildTypes.all { buildType ->
+                    if (buildType.name == "debug") {
+                        buildType.enableUnitTestCoverage = true
+                        buildType.enableAndroidTestCoverage = true
+                    }
                 }
             }
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== GameMatrixApp 自定义主题属性（A2: 设计 Token 系统） ========== -->
+    <!-- 语义色 attr：供 layout 通过 ?attr/colorXxx 引用，明/暗由 themes.xml 与 themes-night.xml overlay -->
+    <!-- 标准 M3 attr（colorPrimary/colorSurface/colorSurfaceContainerLow 等）无需在此声明 -->
+    <attr name="colorSuccess" format="color" />
+    <attr name="colorOnSuccess" format="color" />
+    <attr name="colorSuccessContainer" format="color" />
+    <attr name="colorOnSuccessContainer" format="color" />
+
+    <attr name="colorWarning" format="color" />
+    <attr name="colorOnWarning" format="color" />
+    <attr name="colorWarningContainer" format="color" />
+    <attr name="colorOnWarningContainer" format="color" />
+
+    <attr name="colorInfo" format="color" />
+    <attr name="colorOnInfo" format="color" />
+    <attr name="colorInfoContainer" format="color" />
+    <attr name="colorOnInfoContainer" format="color" />
+</resources>

@@ -2,8 +2,13 @@ package com.gamecenter.app.games.base;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.games.model.AchievementData;
+import com.gamecenter.app.ui.AchievementToastView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +22,7 @@ import java.util.Map;
  */
 public class AchievementManager {
 
+    private static final String TAG = "AchievementManager";
     private static final String PREFS_NAME = "game_achievements";
     private final Context context;
     private final SharedPreferences prefs;
@@ -47,6 +53,33 @@ public class AchievementManager {
         data.unlocked = true;
         data.unlockedAt = System.currentTimeMillis();
         saveToPrefs(achievementId, data);
+
+        // Batch 8-3 (ACHIEVEMENT_TOAST): 解锁成功后弹出顶部浮层
+        if (BuildConfig.ACHIEVEMENT_TOAST) {
+            showAchievementToast(achievementId);
+        }
+    }
+
+    /**
+     * Batch 8-3 (ACHIEVEMENT_TOAST): 在当前 Activity 顶部弹出成就解锁浮层。
+     * 解析成就标题与描述（按 achievementId 取本地化字符串，找不到时回退到通用文案）。
+     * 调用方需保证 context 来自 Activity，否则浮层不显示（不抛错）。
+     */
+    private void showAchievementToast(@NonNull String achievementId) {
+        try {
+            String title = context.getString(com.gamecenter.app.R.string.achievement_toast_title);
+            // 描述：尝试用 achievementId 找对应字符串，找不到时回退到 achievementId 本身
+            int descResId = context.getResources().getIdentifier(
+                    "achievement_desc_" + achievementId,
+                    "string",
+                    context.getPackageName());
+            String description = descResId != 0
+                    ? context.getString(descResId)
+                    : achievementId;
+            AchievementToastView.show(context, title, description);
+        } catch (Exception e) {
+            Log.w(TAG, "成就浮层显示失败: " + achievementId, e);
+        }
     }
 
     /**

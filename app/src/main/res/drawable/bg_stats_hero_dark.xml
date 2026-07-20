@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature F (GAME_STATS_DASHBOARD): 仪表盘 Hero 卡片渐变背景（深色模式） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="#1A237E"
+        android:centerColor="#283593"
+        android:endColor="#3949AB"
+        android:type="linear" />
+    <corners android:radius="@dimen/spacing_20" />
+</shape>

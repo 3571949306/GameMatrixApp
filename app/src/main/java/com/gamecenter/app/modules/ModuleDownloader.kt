@@ -4,7 +4,9 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.core.security.SecureOkHttpFactory
+import com.gamecenter.app.core.security.ModuleSignatureVerifier
 import java.io.File
 import java.io.FileOutputStream
 import okhttp3.Request
@@ -16,6 +18,11 @@ object ModuleDownloader {
     private const val BYTES_PER_KB = 1024
     private const val HTTP_OK = 200
     private const val HTTP_PARTIAL_CONTENT = 206
+
+    /** Batch 21: 每个 URL 的最大重试次数（不含首次尝试） */
+    private const val MAX_RETRIES_PER_URL = 2
+    /** Batch 21: 重试线性退避基准（毫秒） */
+    private const val RETRY_BASE_DELAY_MS = 1000L
 
     private val activeDownloads = mutableMapOf<String, Boolean>()
     private val activeCallbacks = mutableMapOf<String, Callback>()
@@ -95,6 +102,7 @@ object ModuleDownloader {
     }
 
     private fun doDownload(appContext: Context, manifest: ModuleManifest, moduleId: String) {
+        val downloadStartTime = System.currentTimeMillis()
         val targetFile = getModuleFile(appContext, manifest)
         val tempFile = File(targetFile.parent, targetFile.name + ".tmp")
 
@@ -107,7 +115,23 @@ object ModuleDownloader {
             Log.d(TAG, "删除残留临时文件: ${tempFile.name}")
         }
 
-        val urls = manifest.getAllDownloadUrls()
+        val urls = manifest.getAllDownloadUrls().toMutableList()
+
+        // Batch 21 改进：CDN fallback 域名自动接线
+        // 若 BuildConfig.DOWNLOAD_FALLBACK_BASE_URL 非空，且主 URL 以 DOWNLOAD_BASE_URL 开头，
+        // 则自动用 fallback 域名替换主域名构造一个备用 URL，追加到列表末尾（去重）。
+        val fallbackBase = BuildConfig.DOWNLOAD_FALLBACK_BASE_URL
+        if (fallbackBase.isNotEmpty() && manifest.downloadUrl.startsWith(BuildConfig.DOWNLOAD_BASE_URL)) {
+            val autoFallbackUrl = manifest.downloadUrl.replace(
+                BuildConfig.DOWNLOAD_BASE_URL,
+                fallbackBase
+            )
+            if (autoFallbackUrl != manifest.downloadUrl &&
+                urls.none { it == autoFallbackUrl }) {
+                urls.add(autoFallbackUrl)
+                Log.d(TAG, "模块 $moduleId 自动追加 CDN fallback URL: $autoFallbackUrl")
+            }
+        }
 
         Log.d(TAG, "模块 $moduleId 开始下载, ${urls.size} 个源, 目标: ${targetFile.absolutePath}")
 
@@ -140,41 +164,137 @@ object ModuleDownloader {
             Log.d(TAG, "模块 $moduleId 尝试源 ${index + 1}/${urls.size}: $url")
             notifySourceSwitch(moduleId, index, url)
 
-            try {
-                if (tempFile.exists()) {
-                    tempFile.delete()
-                    Log.d(TAG, "切换源前删除临时文件: ${tempFile.name}")
+            // Batch 21: 在同一 URL 内进行重试 + 线性退避
+            var lastError: Exception? = null
+            var successInThisUrl = false
+            for (attempt in 0..MAX_RETRIES_PER_URL) {
+                if (activeDownloads[moduleId] != true) {
+                    Log.d(TAG, "模块 $moduleId 下载已取消(重试检查)")
+                    notifyError(moduleId, ErrorCodes.ERROR_CANCELED, "下载已取消")
+                    cleanup(moduleId)
+                    return
                 }
 
-                val file = downloadFromUrl(url, targetFile, tempFile, moduleId)
-                if (file != null) {
-                    Log.d(TAG, "模块 $moduleId 下载完成，开始SHA-256校验")
-                    // 安全加固：sha256 为空时直接拒绝，不允许绕过校验
-                    if (manifest.sha256.isEmpty()) {
-                        Log.e(TAG, "模块 $moduleId 安全校验配置错误：manifest 中 sha256 为空，拒绝安装")
-                        file.delete()
-                        notifyError(moduleId, ErrorCodes.ERROR_CONFIG, "模块安全配置错误：sha256 不能为空")
+                if (attempt > 0) {
+                    val delay = RETRY_BASE_DELAY_MS * attempt
+                    Log.d(TAG, "模块 $moduleId 源 ${index + 1} 第 $attempt 次重试，等待 ${delay}ms")
+                    try {
+                        Thread.sleep(delay)
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        notifyError(moduleId, ErrorCodes.ERROR_CANCELED, "下载已取消")
                         cleanup(moduleId)
                         return
                     }
-                    val actualSha256 = ModuleVerifier.computeSha256(file)
-                    if (!actualSha256.equals(manifest.sha256, ignoreCase = true)) {
-                        Log.w(TAG, "模块 $moduleId SHA-256 校验失败: expected=${manifest.sha256}, actual=$actualSha256")
-                        file.delete()
-                        notifyError(moduleId, ErrorCodes.ERROR_CHECKSUM_FAILED, "SHA-256 校验失败，尝试下一个源")
-                        continue
-                    }
-                    Log.d(TAG, "模块 $moduleId 下载完成: ${file.absolutePath}")
-                    notifyComplete(moduleId, file)
-                    cleanup(moduleId)
-                    return
-                } else {
-                    Log.w(TAG, "模块 $moduleId 源 ${index + 1} 返回null(可能被取消)")
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "模块 $moduleId 源 ${index + 1} 失败: ${e.message}", e)
+
+                try {
+                    if (tempFile.exists()) {
+                        tempFile.delete()
+                        Log.d(TAG, "尝试下载前删除临时文件: ${tempFile.name}")
+                    }
+
+                    val file = downloadFromUrl(url, targetFile, tempFile, moduleId)
+                    if (file != null) {
+                        Log.d(TAG, "模块 $moduleId 下载完成，开始SHA-256校验")
+                        // 安全加固：sha256 为空时直接拒绝，不允许绕过校验
+                        if (manifest.sha256.isEmpty()) {
+                            Log.e(TAG, "模块 $moduleId 安全校验配置错误：manifest 中 sha256 为空，拒绝安装")
+                            file.delete()
+                            notifyError(moduleId, ErrorCodes.ERROR_CONFIG, "模块安全配置错误：sha256 不能为空")
+                            cleanup(moduleId)
+                            return
+                        }
+                        val actualSha256 = ModuleVerifier.computeSha256(file)
+                        if (!actualSha256.equals(manifest.sha256, ignoreCase = true)) {
+                            Log.w(TAG, "模块 $moduleId SHA-256 校验失败: expected=${manifest.sha256}, actual=$actualSha256")
+                            file.delete()
+                            notifyError(moduleId, ErrorCodes.ERROR_CHECKSUM_FAILED, "SHA-256 校验失败，尝试下一个源")
+                            // SHA 不匹配说明文件有问题，重试无意义，直接切换 URL
+                            break
+                        }
+                        when (val signature = ModuleSignatureVerifier.verify(file, appContext)) {
+                            ModuleSignatureVerifier.Result.Success -> Unit
+                            is ModuleSignatureVerifier.Result.Failure -> {
+                                Log.e(TAG, "模块 $moduleId 签名校验失败: ${signature.reason}")
+                                file.delete()
+                                // Batch 21 改进：签名校验失败也记录指标（之前遗漏）
+                                DownloadMetricsCollector.record(DownloadMetric(
+                                    moduleId = moduleId,
+                                    success = false,
+                                    durationMs = System.currentTimeMillis() - downloadStartTime,
+                                    errorCode = ErrorCodes.ERROR_CONFIG,
+                                    urlIndex = index,
+                                    attemptCount = attempt + 1,
+                                    timestamp = System.currentTimeMillis()
+                                ))
+                                notifyError(moduleId, ErrorCodes.ERROR_CONFIG, "模块签名验证失败")
+                                cleanup(moduleId)
+                                return
+                            }
+                            is ModuleSignatureVerifier.Result.Warning -> {
+                                Log.e(TAG, "模块 $moduleId 签名校验未通过: ${signature.reason}")
+                                file.delete()
+                                // Batch 21 改进：签名校验警告也记录指标
+                                DownloadMetricsCollector.record(DownloadMetric(
+                                    moduleId = moduleId,
+                                    success = false,
+                                    durationMs = System.currentTimeMillis() - downloadStartTime,
+                                    errorCode = ErrorCodes.ERROR_CONFIG,
+                                    urlIndex = index,
+                                    attemptCount = attempt + 1,
+                                    timestamp = System.currentTimeMillis()
+                                ))
+                                notifyError(moduleId, ErrorCodes.ERROR_CONFIG, "模块签名验证失败")
+                                cleanup(moduleId)
+                                return
+                            }
+                        }
+                        // 下载成功：记录指标 + 通知完成
+                        DownloadMetricsCollector.record(DownloadMetric(
+                            moduleId = moduleId,
+                            success = true,
+                            durationMs = System.currentTimeMillis() - downloadStartTime,
+                            errorCode = 0,
+                            urlIndex = index,
+                            attemptCount = attempt,
+                            timestamp = System.currentTimeMillis()
+                        ))
+                        Log.d(TAG, "模块 $moduleId 下载完成: ${file.absolutePath}")
+                        notifyComplete(moduleId, file)
+                        cleanup(moduleId)
+                        return
+                    } else {
+                        Log.w(TAG, "模块 $moduleId 源 ${index + 1} attempt=$attempt 返回null(可能被取消)")
+                    }
+                    successInThisUrl = true
+                    break
+                } catch (e: Exception) {
+                    Log.w(TAG, "模块 $moduleId 源 ${index + 1} attempt=$attempt 失败: ${e.message}", e)
+                    lastError = e
+                    // 仅在网络/IO 异常时重试；其他异常直接切换 URL
+                    val isRetryable = e is java.io.IOException ||
+                        e is java.net.SocketTimeoutException ||
+                        e is java.net.UnknownHostException ||
+                        e is javax.net.ssl.SSLException
+                    if (!isRetryable) break
+                }
+            }
+
+            if (!successInThisUrl && lastError != null) {
+                Log.w(TAG, "模块 $moduleId 源 ${index + 1} 所有重试均失败: ${lastError.message}")
                 if (index >= urls.size - 1) {
-                    notifyError(moduleId, ErrorCodes.ERROR_NETWORK, "所有下载源均失败: ${e.message}")
+                    // 记录失败指标
+                    DownloadMetricsCollector.record(DownloadMetric(
+                        moduleId = moduleId,
+                        success = false,
+                        durationMs = System.currentTimeMillis() - downloadStartTime,
+                        errorCode = ErrorCodes.ERROR_NETWORK,
+                        urlIndex = index,
+                        attemptCount = MAX_RETRIES_PER_URL + 1,
+                        timestamp = System.currentTimeMillis()
+                    ))
+                    notifyError(moduleId, ErrorCodes.ERROR_NETWORK, "所有下载源均失败: ${lastError.message}")
                 }
             }
         }
@@ -189,6 +309,8 @@ object ModuleDownloader {
         activeDownloads.remove(moduleId)
         activeCallbacks.remove(moduleId)
         Log.d(TAG, "cleanup() for $moduleId, remaining active: ${activeDownloads.keys}")
+        // Batch 21 改进：下载结束后立即 flush 指标，避免应用被系统杀死时丢失数据
+        DownloadMetricsCollector.flush()
     }
 
     private fun notifyProgress(moduleId: String, downloaded: Long, total: Long, speedKbps: Long) {

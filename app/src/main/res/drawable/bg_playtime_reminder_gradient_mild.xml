@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 11-3 (HOME_PLAYTIME_REMINDER) MILD 档：暖橙渐变，60~119 分钟时使用 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="45"
+        android:startColor="#FF9800"
+        android:centerColor="#FF7043"
+        android:endColor="#F4511E"
+        android:type="linear" />
+    <corners android:radius="16dp" />
+</shape>

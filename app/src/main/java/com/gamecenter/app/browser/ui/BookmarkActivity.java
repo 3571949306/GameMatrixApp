@@ -1,7 +1,9 @@
 package com.gamecenter.app.browser.ui;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -10,7 +12,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -34,6 +39,7 @@ public class BookmarkActivity extends AppCompatActivity {
     private TextView tvCountHeader;
     private BrowserBookmarkRepository bookmarkRepository;
     private BookmarkAdapter adapter;
+    private OnBackInvokedCallback backInvokedCallback;
 
     public static void start(Context context) {
         context.startActivity(new Intent(context, BookmarkActivity.class));
@@ -41,6 +47,7 @@ public class BookmarkActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bookmark);
         bookmarkRepository = new BrowserBookmarkRepository(getApplication());
@@ -48,6 +55,21 @@ public class BookmarkActivity extends AppCompatActivity {
         setupRecyclerView();
         setupListeners();
         loadBookmarks();
+        registerPredictiveBack();
+    }
+
+    /**
+     * 注册预测式返回手势回调（API 33+）。
+     * <p>API < 33 的设备继续走 onBackPressed() 兼容路径，实现双轨返回逻辑。</p>
+     */
+    private void registerPredictiveBack() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            backInvokedCallback = () -> handleBack();
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    backInvokedCallback
+            );
+        }
     }
 
     private void initViews() {
@@ -146,9 +168,29 @@ public class BookmarkActivity extends AppCompatActivity {
         });
     }
 
+    @SuppressLint("MissingSuperCall")
     @Override
     public void onBackPressed() {
-        if (etSearch.getText().toString().trim().isEmpty()) super.onBackPressed();
-        else etSearch.setText("");
+        handleBack();
+    }
+
+    /**
+     * 统一的返回处理逻辑：搜索框有内容时先清空，否则结束当前页面。
+     */
+    private void handleBack() {
+        if (etSearch.getText().toString().trim().isEmpty()) {
+            finish();
+        } else {
+            etSearch.setText("");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (backInvokedCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backInvokedCallback);
+            backInvokedCallback = null;
+        }
+        super.onDestroy();
     }
 }

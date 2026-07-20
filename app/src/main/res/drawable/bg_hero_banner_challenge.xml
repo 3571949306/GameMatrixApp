@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Batch 8-4 (HOME_HERO_BANNER): 挑战横幅背景渐变（青绿色） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#4DB6AC"
+        android:centerColor="#26A69A"
+        android:endColor="#00897B"
+        android:angle="0" />
+    <corners android:radius="20dp" />
+</shape>

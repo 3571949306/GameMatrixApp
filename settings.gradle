@@ -23,6 +23,8 @@ pluginManagement {
 // }
 rootProject.name = "GameMatrixApp"
 include ':app'
+// U1: Baseline Profile 生产者模块（冷启动 AOT 预热，非 Play 渠道必须打包内置）
+include ':macrobenchmark'
 include ':core:common'
 include ':core:network'
 include ':core:update'

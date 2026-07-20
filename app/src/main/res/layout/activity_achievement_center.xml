@@ -6,6 +6,48 @@
     android:orientation="vertical"
     android:background="@color/eye_care_bg">
 
+    <!-- ============== Feature A: 每日挑战卡片（仅当 ACHIEVEMENT_V2 开启时显示） ============== -->
+    <include
+        android:id="@+id/card_daily_challenge_include"
+        layout="@layout/card_daily_challenge"
+        android:visibility="gone" />
+
+    <!-- ============== Feature A: 连胜概览卡片 ============== -->
+    <include
+        android:id="@+id/card_streak_summary_include"
+        layout="@layout/card_streak_summary"
+        android:visibility="gone" />
+
+    <!-- ============== Batch 10-4 (ACHIEVEMENT_PROGRESS_RING): 成就总览圆环卡片 ============== -->
+    <LinearLayout
+        android:id="@+id/ring_progress_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="12dp"
+        android:padding="16dp"
+        android:background="@color/eye_care_card"
+        android:elevation="1dp"
+        android:visibility="gone"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/achievement_ring_title"
+            android:textSize="14sp"
+            android:textColor="@color/eye_care_text_secondary"
+            android:textStyle="bold" />
+
+        <com.gamecenter.app.ui.AchievementProgressRingView
+            android:id="@+id/ring_achievement_progress"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp" />
+    </LinearLayout>
+
     <!-- 顶部标题栏 -->
     <LinearLayout
         android:layout_width="match_parent"

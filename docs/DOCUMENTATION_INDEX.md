@@ -1,6 +1,6 @@
 # GameMatrixApp 全局文档索引
 
-项目全部文档的中枢链接。最后更新：2026-07-06。
+项目全部文档的中枢链接。最后更新：2026-07-19。
 
 ## 根目录 (Root)
 
@@ -22,6 +22,7 @@
 | [项目改进建议书.md](/docs/项目改进建议书.md) | 项目改进建议书 v7 |
 | [game_center_app_ai_roadmap.md](/docs/game_center_app_ai_roadmap.md) | AI 开发路线图 |
 | [DONT_DO_THIS.md](/docs/DONT_DO_THIS.md) | 写给 AI / 协作者：不要做 |
+| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（47 个：基础设施 10 + 加法升级 37），含用途、引入版本、退役计划与治理规则 |
 | [PUBLISH_GUIDE.md](/docs/PUBLISH_GUIDE.md) | 发布指南 |
 | [SECURITY.md](/docs/SECURITY.md) | 安全策略 |
 | [NETWORK_LAYER.md](/docs/NETWORK_LAYER.md) | 网络层架构 |

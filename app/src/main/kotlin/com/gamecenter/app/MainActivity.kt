@@ -1,5 +1,7 @@
 package com.gamecenter.app
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -7,9 +9,13 @@ import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.view.View
+import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,11 +33,13 @@ import com.gamecenter.app.update.DownloadState
 import com.gamecenter.app.update.UpdateCheckState
 import com.gamecenter.app.update.UpdateInfo
 import com.gamecenter.app.update.UpdateViewModel
+import com.gamecenter.app.ui.NavBadgeHelper
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import java.lang.ref.WeakReference
+import java.util.Locale
 
 /**
  * 应用的主界面（入口页面）。
@@ -97,6 +105,50 @@ class MainActivity : AppCompatActivity() {
         observeUpdateStates()
         scheduleAutoUpdateCheck()
         downloadCoreModulesIfMissing()
+
+        // Batch 9-1 (GAME_LONG_PRESS_MENU): 处理桌面快捷方式启动 Intent
+        if (BuildConfig.GAME_LONG_PRESS_MENU) {
+            handleGameShortcutIntent(intent)
+        }
+
+        // Batch 9-4 (NAV_BADGE_UNREAD): 初始化底部导航未读徽章
+        if (BuildConfig.NAV_BADGE_UNREAD) {
+            NavBadgeHelper.updateBadges(this, navView)
+        }
+
+        // 返回手势/返回键统一拦截：在非"游戏大厅" destination 时，按返回或边缘滑动
+        // 自动切回游戏大厅，避免 KeepStateNavigator 场景下直接退出应用。
+        // 适用 destination：错题本 / browser / tools / ai / vpn / profile。
+        setupBackToGamesHandler()
+    }
+
+    /**
+     * 注册全局返回拦截：当当前 destination 不是"游戏大厅"时，按系统返回键或
+     * 边缘滑动 predictive back 手势会切回游戏大厅，而不是退出应用。
+     *
+     * 原因：使用 KeepStateNavigator 时，navigate() 不会把目标 destination
+     * 真正 push 到系统 back stack 上，所以系统返回键会跳过 NavController
+     * 直接走 Activity.finish()。这里手动拦截，保证用户体验。
+     */
+    private fun setupBackToGamesHandler() {
+        val callback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val controller = navController ?: return
+                val currentId = controller.currentDestination?.id
+                if (currentId == null || currentId == R.id.navigation_games) {
+                    // 已在游戏大厅（或未知）：让系统处理（退出应用）
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                    return
+                }
+                // 其他 destination：先尝试 popBackStack，失败再直接 navigate 回游戏大厅
+                if (!controller.popBackStack(R.id.navigation_games, false)) {
+                    controller.navigate(R.id.navigation_games)
+                }
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, callback)
     }
 
     private fun setupDynamicNavigation(navView: BottomNavigationView) {
@@ -128,16 +180,34 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (BuildConfig.ENABLE_WRONGBOOK && installedIds.contains("wrongbook")) {
-            menu.add(Menu.NONE, R.id.navigation_wrongbook, Menu.NONE, R.string.nav_wrongbook)
-                .setIcon(R.drawable.ic_nav_wrongbook)
+            // wrongbook 已从底部导航移除（最多 6 个 item 限制），改由 GamesFragment 头像菜单进入
+        }
+
+        if (BuildConfig.PROFILE_FRAGMENT) {
+            menu.add(Menu.NONE, R.id.navigation_profile, Menu.NONE, R.string.nav_profile)
+                .setIcon(R.drawable.ic_nav_profile)
         }
 
         navView.setOnItemSelectedListener { item ->
             navController?.navigate(item.itemId)
+            // Batch 6 (NAV_ACTIVE_ANIM): 选中 item 图标缩放动画
+            if (BuildConfig.NAV_ACTIVE_ANIM) {
+                animateNavItemIcon(navView, item.itemId)
+            }
             true
         }
 
-        navView.setOnItemReselectedListener {}
+        // 关键修复：点击已选中 item 时也触发导航。
+        // 场景：进入错题本（不在底部导航 menu 中）后，"游戏大厅" item 会被
+        // BottomNavigationView 默认置为 selected。此时点击它触发的是
+        // setOnItemReselectedListener 而不是 setOnItemSelectedListener，
+        // 若回调为空则用户卡死在错题本无法返回游戏大厅。
+        navView.setOnItemReselectedListener { item ->
+            navController?.navigate(item.itemId)
+            if (BuildConfig.NAV_ACTIVE_ANIM) {
+                animateNavItemIcon(navView, item.itemId)
+            }
+        }
 
         navController?.currentDestination?.let { destination ->
             val currentId = destination.id
@@ -184,6 +254,7 @@ class MainActivity : AppCompatActivity() {
             "ai" -> R.id.navigation_ai
             "vpn" -> R.id.navigation_vpn
             "wrongbook" -> R.id.navigation_wrongbook
+            "profile" -> R.id.navigation_profile
             else -> return
         }
         val navView = findViewById<BottomNavigationView>(R.id.nav_view)
@@ -195,6 +266,71 @@ class MainActivity : AppCompatActivity() {
         intent?.removeExtra(EXTRA_NAV_TAB)
     }
 
+    /**
+     * Batch 9-1 (GAME_LONG_PRESS_MENU): 处理桌面快捷方式启动 Intent。
+     * 如果是从游戏桌面快捷方式启动，直接拉起对应游戏。
+     */
+    private fun handleGameShortcutIntent(intent: Intent?) {
+        val gameId = com.gamecenter.app.ui.GameLongPressMenu.extractGameIdFromIntent(intent)
+            ?: return
+        // 仅消费一次，避免旋转屏幕重复启动
+        intent?.removeExtra("extra_long_press_game_id")
+        intent?.removeExtra("extra_long_press_game_name")
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (isFinishing || isDestroyed) return@postDelayed
+            com.gamecenter.app.games.ui.GameLauncherHelper.launchGameWithDialog(this, gameId)
+        }, 600L)
+    }
+
+    /**
+     * Batch 6 (NAV_ACTIVE_ANIM): 底部导航选中 item 图标缩放动画。
+     *
+     * 实现：BottomNavigationMenuView 是 BottomNavigationView 的第 0 个子 view，
+     * 它的子 view 是 BottomNavigationItemView，每个 item 的第 0 个 ImageView 子 view 即图标。
+     * 通过 menu 中 itemId 找到 position，定位到对应的 item view 并对其图标应用缩放动画。
+     */
+    private fun animateNavItemIcon(navView: BottomNavigationView, itemId: Int) {
+        try {
+            val menuView = navView.getChildAt(0) as? ViewGroup ?: return
+            // 找到 itemId 在 menu 中的位置（仅计算可见 item）
+            val menu = navView.menu
+            var position = -1
+            for (i in 0 until menu.size()) {
+                if (menu.getItem(i).itemId == itemId) {
+                    position++
+                    break
+                }
+                position++
+            }
+            if (position < 0 || position >= menuView.childCount) return
+            val itemView = menuView.getChildAt(position) ?: return
+            val iconView = findFirstImageView(itemView) ?: return
+            val scaleX = ObjectAnimator.ofFloat(iconView, "scaleX", 1f, 1.25f, 1f)
+            val scaleY = ObjectAnimator.ofFloat(iconView, "scaleY", 1f, 1.25f, 1f)
+            AnimatorSet().apply {
+                playTogether(scaleX, scaleY)
+                duration = 220
+                interpolator = DecelerateInterpolator()
+                start()
+            }
+        } catch (e: Exception) {
+            Log.d("MainActivity", "导航动画播放失败", e)
+        }
+    }
+
+    /** 在 view 树中找到第一个 ImageView（用于定位 BottomNavigationItemView 的图标 view）。 */
+    private fun findFirstImageView(view: View): ImageView? {
+        if (view is ImageView) return view
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val child = view.getChildAt(i) ?: continue
+                val found = findFirstImageView(child)
+                if (found != null) return found
+            }
+        }
+        return null
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -203,6 +339,17 @@ class MainActivity : AppCompatActivity() {
             setupDynamicNavigation(navView)
         }
         handleNavTabIntent()
+        // Batch 9-1 (GAME_LONG_PRESS_MENU): 顶部再启动时也要处理桌面快捷方式 Intent
+        if (BuildConfig.GAME_LONG_PRESS_MENU) {
+            handleGameShortcutIntent(intent)
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // R4: 用户主动离开（Home/最近任务）→ 标记上一次会话为优雅退出，
+        // 避免"连续快速开关 3 次"被启发式误判为连续闪退。
+        CrashDetector.markGracefulExit(this)
     }
 
     override fun onResume() {
@@ -212,6 +359,10 @@ class MainActivity : AppCompatActivity() {
             setupDynamicNavigation(navView)
         }
         handleNavTabIntent()
+        // Batch 9-4 (NAV_BADGE_UNREAD): 每次回到前台刷新未读徽章
+        if (BuildConfig.NAV_BADGE_UNREAD && navView != null) {
+            NavBadgeHelper.updateBadges(this, navView)
+        }
     }
 
     private fun applySystemBarInsets() {
@@ -324,13 +475,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val message = StringBuilder().apply {
-            append(String.format(getString(R.string.update_version), info.versionName))
+            append(String.format(Locale.getDefault(), getString(R.string.update_version), info.versionName))
             append("\n")
             append(getString(R.string.update_channel_label, info.channelLabel))
             append("\n")
             append(getString(R.string.update_version_code, info.versionCode))
             append("\n")
-            append(String.format(getString(R.string.update_size), info.fileSizeFormatted))
+            append(String.format(Locale.getDefault(), getString(R.string.update_size), info.fileSizeFormatted))
             append("\n\n")
             append(getString(R.string.update_changelog))
             append("\n")
@@ -499,8 +650,8 @@ class MainActivity : AppCompatActivity() {
 
         private fun formatFileSize(size: Long): String {
             if (size < 1024) return "$size B"
-            if (size < 1024 * 1024) return String.format("%.1f KB", size / 1024.0)
-            return String.format("%.1f MB", size / (1024.0 * 1024.0))
+            if (size < 1024 * 1024) return String.format(Locale.getDefault(), "%.1f KB", size / 1024.0)
+            return String.format(Locale.getDefault(), "%.1f MB", size / (1024.0 * 1024.0))
         }
     }
 }

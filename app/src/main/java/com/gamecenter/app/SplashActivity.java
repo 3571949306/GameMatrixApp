@@ -13,7 +13,9 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
+import com.gamecenter.app.ui.LaunchTimeTracker;
 
 /**
  * Launch screen Activity - shows logo animation then auto-enters MainActivity.
@@ -31,6 +33,11 @@ public class SplashActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        // Batch 12-4 (APP_LAUNCH_TIME_DISPLAY): 在 SplashActivity 入口最早处记录启动开始时间，
+        // 用于后续在首页显示启动耗时。必须在所有其他初始化之前调用。
+        if (BuildConfig.APP_LAUNCH_TIME_DISPLAY) {
+            LaunchTimeTracker.INSTANCE.markStart();
+        }
         // 接入 AndroidX SplashScreen API：必须在 super.onCreate 之前调用，
         // 以正确处理 Android 12+ 系统启动屏到应用主题的过渡，避免双启动屏闪烁。
         SplashScreen.installSplashScreen(this);
@@ -98,7 +105,63 @@ public class SplashActivity extends AppCompatActivity {
         tagSet.playTogether(tagAlpha, tagTransY);
         tagSet.start();
 
+        // Batch 4 (SPLASH_ANIMATION_ENHANCE)：波纹扩散动画
+        // 2 圈错开扩散，让启动屏更有"生命力"，避免静态简约风的单调感
+        if (BuildConfig.SPLASH_ANIMATION_ENHANCE) {
+            playRippleExpandAnimation();
+        }
+
         handler.postDelayed(this::playExitAnimation, 500 + SPLASH_DURATION);
+    }
+
+    /**
+     * Batch 4：波纹扩散动画。
+     * <p>
+     * 2 个波纹环错开启动，每个环从 scale 1.0 扩散到 2.2，alpha 从 0.6 渐变到 0，
+     * duration 1200ms，第二圈比第一圈延迟 400ms 启动，形成连续扩散的视觉效果。
+     * </p>
+     */
+    private void playRippleExpandAnimation() {
+        View ring1 = findViewById(R.id.v_ripple_ring_1);
+        View ring2 = findViewById(R.id.v_ripple_ring_2);
+        if (ring1 != null) {
+            startSingleRipple(ring1, 200);
+        }
+        if (ring2 != null) {
+            startSingleRipple(ring2, 600);
+        }
+    }
+
+    /**
+     * 启动单个波纹环的扩散动画。
+     *
+     * @param ring       波纹环 View
+     * @param startDelay 启动延迟（ms）
+     */
+    private void startSingleRipple(View ring, long startDelay) {
+        ring.setVisibility(View.VISIBLE);
+        ring.setAlpha(0.6f);
+        ring.setScaleX(1.0f);
+        ring.setScaleY(1.0f);
+
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(ring, "scaleX", 1.0f, 2.2f);
+        scaleX.setDuration(1200);
+        scaleX.setStartDelay(startDelay);
+        scaleX.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(ring, "scaleY", 1.0f, 2.2f);
+        scaleY.setDuration(1200);
+        scaleY.setStartDelay(startDelay);
+        scaleY.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        ObjectAnimator alpha = ObjectAnimator.ofFloat(ring, "alpha", 0.6f, 0.0f);
+        alpha.setDuration(1200);
+        alpha.setStartDelay(startDelay);
+        alpha.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(scaleX, scaleY, alpha);
+        set.start();
     }
 
     private void playExitAnimation() {
@@ -109,7 +172,15 @@ public class SplashActivity extends AppCompatActivity {
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        startActivity(new Intent(SplashActivity.this, MainActivity.class));
+                        Intent mainIntent = new Intent(SplashActivity.this, MainActivity.class);
+                        // Batch 14 (BROWSER_SMART_URL_BAR 测试辅助)：转发 EXTRA_NAV_TAB extra，
+                        // 支持通过 adb am start --es extra_nav_tab browser 直接启动到指定 tab，
+                        // 绕过 MIUI 底部手势拦截导致的 adb input 无法点击底部导航的问题。
+                        String navTab = getIntent().getStringExtra(MainActivity.EXTRA_NAV_TAB);
+                        if (navTab != null) {
+                            mainIntent.putExtra(MainActivity.EXTRA_NAV_TAB, navTab);
+                        }
+                        startActivity(mainIntent);
                         finish();
                         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
                     }

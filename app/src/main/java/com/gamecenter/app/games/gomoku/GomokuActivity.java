@@ -27,6 +27,7 @@ import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
 
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -477,7 +478,7 @@ public class GomokuActivity extends AppCompatActivity {
                         // 将坐标 (x,y) 转换为棋盘标记，例如 A1, H8
                         char colLabel = (char) ('A' + hint[0]);
                         int rowLabel = 15 - hint[1];
-                        String message = String.format("💡 大师建议: %c%d\n%s", colLabel, rowLabel, analysis);
+                        String message = String.format(Locale.getDefault(), "💡 大师建议: %c%d\n%s", colLabel, rowLabel, analysis);
                         Toast.makeText(GomokuActivity.this, message, Toast.LENGTH_LONG).show();
                     }
                 });
@@ -563,7 +564,7 @@ public class GomokuActivity extends AppCompatActivity {
         long elapsedSec = (SystemClock.elapsedRealtime() - gameStartElapsedMs) / 1000;
         long min = elapsedSec / 60;
         long sec = elapsedSec % 60;
-        tvTimer.setText(String.format("%02d:%02d", min, sec));
+        tvTimer.setText(String.format(Locale.getDefault(), "%02d:%02d", min, sec));
     }
 
     /**

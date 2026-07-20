@@ -18,7 +18,8 @@ interface OcrEngine {
      *
      * @param context 上下文
      * @param imageUri 图片 URI
+     * @param accurate 是否启用高精度模式（仅云端引擎生效，本地引擎忽略）
      * @return 识别结果
      */
-    suspend fun recognize(context: Context, imageUri: Uri): OcrResult
+    suspend fun recognize(context: Context, imageUri: Uri, accurate: Boolean = false): OcrResult
 }

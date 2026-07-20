@@ -25,6 +25,9 @@ object ModuleManager {
     private const val KEY_MODULE_VERSION_PREFIX = "module_version_"
     private const val KEY_MODULES_LIST_VERSION = "modules_list_version"
     private const val KEY_MODULES_LIST_JSON = "modules_list_json"
+    /** Batch 21: ETag 缓存协商 — 服务端返回 304 时跳过全量下载 */
+    private const val KEY_MODULES_LIST_ETAG = "modules_list_etag"
+    private const val HTTP_NOT_MODIFIED = 304
 
     private val MODULES_URL: String get() = BuildConfig.MODULES_URL
 
@@ -82,15 +85,43 @@ object ModuleManager {
     private fun fetchRemoteModulesInternal(context: Context): Pair<List<ModuleManifest>?, String?> {
         return try {
             val client = SecureOkHttpFactory.buildModuleClient()
-            val request = Request.Builder()
-                .url(MODULES_URL)
-                .build()
+            // Batch 21: ETag 缓存协商 — 上次响应携带 ETag 时发送 If-None-Match
+            val cachedEtag = prefs(context).getString(KEY_MODULES_LIST_ETAG, null)
+            val requestBuilder = Request.Builder().url(MODULES_URL)
+            if (!cachedEtag.isNullOrEmpty()) {
+                requestBuilder.header("If-None-Match", cachedEtag)
+                Log.d(TAG, "ETag 缓存协商: 发送 If-None-Match=$cachedEtag")
+            }
+            val request = requestBuilder.build()
 
             val response = client.newCall(request).execute()
             val responseCode = response.code
+
+            // Batch 21: 304 Not Modified — 远程清单未变化，跳过解析，直接返回本地缓存
+            if (responseCode == HTTP_NOT_MODIFIED) {
+                Log.d(TAG, "远程模块列表未修改 (304 Not Modified)，使用本地缓存")
+                response.close()
+                val cachedJson = prefs(context).getString(KEY_MODULES_LIST_JSON, null)
+                if (!cachedJson.isNullOrEmpty()) {
+                    val cached = parseModulesArray(cachedJson)
+                    val newMap = ConcurrentHashMap<String, ModuleManifest>()
+                    for (m in cached) newMap[m.id] = m
+                    manifests.clear()
+                    manifests.putAll(newMap)
+                    registerLocalFallbackIfNeeded(context)
+                }
+                return Pair(getAvailableModules(), null)
+            }
+
             if (!response.isSuccessful) {
                 response.close()
                 return Pair(null, "HTTP $responseCode")
+            }
+
+            // Batch 21: 提取并缓存 ETag（如果服务端返回）
+            val serverEtag = response.header("ETag")
+            if (!serverEtag.isNullOrEmpty()) {
+                Log.d(TAG, "服务端返回 ETag: $serverEtag")
             }
 
             val body = response.body?.string() ?: run {
@@ -109,8 +140,10 @@ object ModuleManager {
                 return Pair(getAvailableModules(), null)
             }
 
+            // Batch 21: 版本一致 + ETag 一致时仅刷新内存不写盘
+            val etagUnchanged = !serverEtag.isNullOrEmpty() && serverEtag == cachedEtag
             if (remoteVersion == localVersion && localVersion > 0) {
-                Log.d(TAG, "模块列表版本一致 ($remoteVersion)，无需写盘，但仍刷新内存")
+                Log.d(TAG, "模块列表版本一致 ($remoteVersion, etagUnchanged=$etagUnchanged)，无需写盘，但仍刷新内存")
                 val fresh = parseModulesArray(body)
                 val newMap = ConcurrentHashMap<String, ModuleManifest>()
                 for (m in fresh) newMap[m.id] = m
@@ -132,6 +165,10 @@ object ModuleManager {
                 .putInt(KEY_MODULES_LIST_VERSION, remoteVersion)
                 .putString(KEY_MODULES_LIST_JSON, body)
                 .apply()
+            // Batch 21: 持久化 ETag 供下次请求使用
+            if (!serverEtag.isNullOrEmpty()) {
+                prefs(context).edit().putString(KEY_MODULES_LIST_ETAG, serverEtag).apply()
+            }
 
             Pair(getAvailableModules(), null)
         } catch (e: Exception) {
@@ -177,7 +214,7 @@ object ModuleManager {
             Log.d(TAG, "downloadModule: $moduleId installedVersion=$installedVersion, manifestVersion=${manifest.versionCode}")
             if (installedVersion >= manifest.versionCode && manifest.fileName.isNotEmpty()) {
                 val existingFile = ModuleDownloader.getModuleFile(context, manifest)
-                if (existingFile.exists() && ModuleVerifier.verifySha256(existingFile, manifest.sha256)) {
+                if (existingFile.exists() && ModuleVerifier.verifySha256(existingFile, manifest.sha256, allowEmpty = manifest.builtIn)) {
                     Log.d(TAG, "downloadModule: $moduleId is already up to date and verified")
                     callback?.onComplete(moduleId, existingFile)
                     return
@@ -326,33 +363,23 @@ object ModuleManager {
             return
         }
 
+        // Batch 21 修复：vpn 硬编码与 assets/modules.json 保持完全一致
+        // （sha256/fileName/fallbackUrl/githubUrl 完全对齐）
+        // 避免 assets 读取失败时，使用与 modules.json 不一致的 sha256 导致下载后校验失败
         val localModules = listOf(
             ModuleManifest(
                 id = "vpn",
-                name = "科学上网",
-                description = "多协议科学上网工具，支持 VMess/VLESS/Trojan/Shadowsocks 节点管理与 VPN 连接。",
+                name = "VPN服务",
+                description = "安全网络连接服务模块。",
                 versionName = "1.0.0", versionCode = 100,
                 entryClass = "com.gamecenter.app.vpn.VpnModuleEntryPoint",
-                fileName = "feature_vpn_v100_v2.apk",
-                fileSize = 661544,
-                sha256 = "222b57edf262c23dd71752ba8ba52933c2ffe78cb1035fab48b00ce56d207bae",
-                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "feature_vpn_v100_v2.apk",
+                fileName = "vpn-debug.apk",
+                fileSize = 840065,
+                sha256 = "05e80e0206ac92dba01b6f96e663512e255adcea87ed57ce14ce949bb3bf3843",
+                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "vpn-debug.apk",
+                fallbackUrl = "https://hk-relay.tcp0053.shop/modules/vpn-debug.apk",
+                githubUrl = BuildConfig.GITHUB_RELEASES_URL + "/download/modules-v1/vpn-debug.apk",
                 type = "nav", storeCategory = "vpn",
-                builtIn = false, isBaseFramework = false, iconUrl = ""
-            ),
-            ModuleManifest(
-                id = "game_2048",
-                name = "2048",
-                description = "经典数字合并游戏，滑动方块使相同数字合并，目标达到2048！",
-                versionName = "1.0.0", versionCode = 100,
-                entryClass = "com.gamecenter.app.game2048.Game2048ModuleEntryPoint",
-                fileName = "feature_game2048_v100.apk",
-                fileSize = 0,
-                sha256 = "",
-                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "feature_game2048_v100.apk",
-                type = "game", storeCategory = "game",
-                gameId = "game_2048", gameCategory = "puzzle",
-                gameDesc = "经典数字合并游戏",
                 builtIn = false, isBaseFramework = false, iconUrl = ""
             )
         )

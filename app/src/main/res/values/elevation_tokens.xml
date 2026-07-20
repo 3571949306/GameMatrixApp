@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== 阴影 / 层级 Token（A2: Spec §7.5） ========== -->
+    <!-- 0=平面/分割, 1=卡片静止, 2=悬浮卡/FAB, 3=底部弹层/菜单, 4=对话框, 5=顶层模态 -->
+    <dimen name="gm_elevation_0">0dp</dimen>
+    <dimen name="gm_elevation_1">1dp</dimen>
+    <dimen name="gm_elevation_2">3dp</dimen>
+    <dimen name="gm_elevation_3">6dp</dimen>
+    <dimen name="gm_elevation_4">8dp</dimen>
+    <dimen name="gm_elevation_5">12dp</dimen>
+</resources>

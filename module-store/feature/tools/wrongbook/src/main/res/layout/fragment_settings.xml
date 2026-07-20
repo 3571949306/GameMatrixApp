@@ -46,6 +46,15 @@
                 android:textColor="@color/wrongbook_text_primary"
                 android:buttonTint="@color/wrongbook_primary" />
 
+            <RadioButton
+                android:id="@+id/rbOcrBaidu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="@string/wrongbook_ocr_baidu"
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
+
         </RadioGroup>
 
         <!-- AI Mode -->
@@ -80,6 +89,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/wrongbook_ai_local"
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
+
+            <RadioButton
+                android:id="@+id/rbAiBackendProxy"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="@string/wrongbook_ai_backend_proxy"
                 android:textColor="@color/wrongbook_text_primary"
                 android:buttonTint="@color/wrongbook_primary" />
 
@@ -137,6 +155,96 @@
                 android:paddingEnd="12dp"
                 android:textSize="14sp"
                 android:importantForAutofill="no" />
+
+        </LinearLayout>
+
+        <!-- Backend proxy section (Baidu OCR + Zhipu GLM via FastAPI) -->
+        <TextView
+            android:id="@+id/tvBackendSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="4dp"
+            android:text="@string/wrongbook_backend_section"
+            android:textColor="@color/wrongbook_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvBackendSectionHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/wrongbook_backend_section_hint"
+            android:textColor="@color/wrongbook_text_secondary"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/llBackendConfigContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/wrongbook_card_background"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <CheckBox
+                android:id="@+id/cbBackendEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/wrongbook_backend_enable"
+                android:textColor="@color/wrongbook_text_primary"
+                android:buttonTint="@color/wrongbook_primary" />
+
+            <EditText
+                android:id="@+id/etBackendBaseUrl"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:hint="@string/wrongbook_backend_base_url_hint"
+                android:inputType="textUri"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textColorHint="@color/wrongbook_text_tertiary"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textSize="14sp"
+                android:importantForAutofill="no" />
+
+            <EditText
+                android:id="@+id/etBackendApiToken"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/wrongbook_tab_unselected"
+                android:hint="@string/wrongbook_backend_api_token"
+                android:importantForAutofill="no"
+                android:inputType="textPassword"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/wrongbook_text_primary"
+                android:textColorHint="@color/wrongbook_text_tertiary"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnTestConnection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/wrongbook_button_outline"
+                android:text="@string/wrongbook_backend_test_connection"
+                android:textColor="@color/wrongbook_primary" />
+
+            <TextView
+                android:id="@+id/tvBackendStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/wrongbook_text_secondary"
+                android:textSize="12sp"
+                android:visibility="gone" />
 
         </LinearLayout>
 

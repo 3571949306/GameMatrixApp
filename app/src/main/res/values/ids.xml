@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    onboarding 用的 View id 资源
+    GoActivity 的棋盘/按钮/状态栏等 View 都是动态构建，没有 R.id 引用；
+    在此集中声明稳定 id，供 CoachmarkSequence 定位目标 View。
+-->
+<resources>
+    <!-- 围棋 -->
+    <item name="go_board_view" type="id" />
+    <item name="go_status_view" type="id" />
+    <item name="go_buttons_view" type="id" />
+
+    <!-- 通用 onboarding 入口（设置页"新手引导"按钮） -->
+    <item name="btn_onboarding_reset" type="id" />
+</resources>

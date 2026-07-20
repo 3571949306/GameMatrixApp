@@ -1,6 +1,9 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    // Phase 1 Compose 试点：开启 Kotlin Compose Compiler 插件（Kotlin 2.0+ 内置）
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'androidx.baselineprofile'
     // Phase 1.3: kapt 已完全删除 (Glide 编译期类生成器未使用, Hilt/Room 走 KSP)
     id 'com.google.devtools.ksp'
     id 'com.google.dagger.hilt.android'
@@ -31,6 +34,7 @@ def configuredWsUrl = ""
 def configuredFeedbackUrl = ""
 def configuredMimoApiKey = ""
 def configuredMimoApiUrl = ""
+def configuredServerFallbackUrl = ""
 
 if (localPropsFile.exists()) {
     localPropsFile.withReader("UTF-8") { reader ->
@@ -42,6 +46,7 @@ if (localPropsFile.exists()) {
                 def key = line.substring(0, eq).trim()
                 def val = line.substring(eq + 1).trim()
                 if (key == "server.url") configuredServerUrl = val
+                if (key == "server.url.fallback") configuredServerFallbackUrl = val
                 if (key == "relay.url") configuredRelayUrl = val
                 if (key == "ws.url") configuredWsUrl = val
                 if (key == "feedback.url") configuredFeedbackUrl = val
@@ -204,10 +209,157 @@ android {
         // Phase 2: AI 错题本模块开关（预装）
         buildConfigField "boolean", "ENABLE_WRONGBOOK", "true"
 
+        // 错题本后端代理模式开关：开启后启用百度OCR+智谱GLM后端代理通道
+        buildConfigField "boolean", "WRONGBOOK_BACKEND_PROXY", "true"
+
+        // 错题本正式版直连密钥安全存储开关：开启后允许在设置页输入百度/智谱 API Key（EncryptedSharedPreferences 加密保存）
+        buildConfigField "boolean", "WRONGBOOK_SECURE_API_CONFIG", "true"
+
         // 浏览器模块功能开关
         buildConfigField "boolean", "BROWSER_SECURITY_POLICY", "true"
         buildConfigField "boolean", "BROWSER_JS_BRIDGE_ENABLED", "false"
         buildConfigField "boolean", "BROWSER_WEBVIEW_DEBUG", "false"
+
+        // ===== Batch 13：浏览器模块全面优化（2026-07-19） =====
+        // 左右滑动手势导航（左边缘右滑后退 / 右边缘左滑前进，带视觉反馈）
+        buildConfigField "boolean", "BROWSER_GESTURE_NAV", "true"
+        // 页面内查找（顶部查找栏 + 上/下/关闭 + 匹配计数）
+        buildConfigField "boolean", "BROWSER_FIND_IN_PAGE", "true"
+        // 阅读模式（JS 提取正文 + 美化 HTML 渲染）
+        buildConfigField "boolean", "BROWSER_READER_MODE", "true"
+        // 网页截图（保存到 Pictures/BrowserScreenshots，Android 10+ 用 MediaStore）
+        buildConfigField "boolean", "BROWSER_SCREENSHOT", "true"
+        // 进度条主题色改进（progressTint + progressBackgroundTint）
+        buildConfigField "boolean", "BROWSER_PROGRESS_SMOOTH", "true"
+
+        // ===== Batch 14：浏览器模块 Phase 1-4 全面优化（2026-07-19） =====
+        // P0-2 起始页（3 风格可切换：宫格/卡片流/极简）
+        buildConfigField "boolean", "BROWSER_HOME_PAGE", "true"
+        // P0-4 智能 URL Bar（URL/搜索自动识别 + 引擎切换 + 历史建议 + 粘贴并前往）
+        buildConfigField "boolean", "BROWSER_SMART_URL_BAR", "true"
+        // P1-1 夜间模式（三档：自动/强制开/强制关）
+        buildConfigField "boolean", "BROWSER_FORCE_DARK", "true"
+        // P1-2 追踪保护 + 隐私仪表盘
+        buildConfigField "boolean", "BROWSER_TRACKER_PROTECTION", "true"
+        // P1-3 阅读列表（稍后阅读）
+        buildConfigField "boolean", "BROWSER_READING_LIST", "true"
+        // P1-4 离线缓存（最近 10 个页面）
+        buildConfigField "boolean", "BROWSER_OFFLINE_CACHE", "true"
+        // P1-5 页面翻译
+        buildConfigField "boolean", "BROWSER_TRANSLATE", "true"
+        // P2-1 智能双指缩放
+        buildConfigField "boolean", "BROWSER_SMART_ZOOM", "true"
+        // P2-2 音量键滚动
+        buildConfigField "boolean", "BROWSER_VOLUME_SCROLL", "true"
+        // P2-3 媒体嗅探（视频/PDF 下载）
+        buildConfigField "boolean", "BROWSER_MEDIA_SNIFFER", "true"
+        // P2-4 数据节省模式
+        buildConfigField "boolean", "BROWSER_DATA_SAVER", "true"
+        // P2-5 多指手势（三指截图/双指下拉刷新/边缘长按切 Tab）
+        buildConfigField "boolean", "BROWSER_MULTI_FINGER_GESTURE", "true"
+        // P3-2 Tab 切换动画
+        buildConfigField "boolean", "BROWSER_TAB_SWITCHER_ANIM", "true"
+        // P3-3 底部工具栏可定制
+        buildConfigField "boolean", "BROWSER_CUSTOM_BOTTOM_BAR", "true"
+        // P3-4 页面加载骨架屏
+        buildConfigField "boolean", "BROWSER_SKELETON_LOADING", "true"
+        // P3-5 Toast → Snackbar 替换
+        buildConfigField "boolean", "BROWSER_SNACKBAR_FEEDBACK", "true"
+        // P0-1 真·多 Tab 架构（WebView 池）
+        buildConfigField "boolean", "BROWSER_REAL_MULTI_TAB", "true"
+
+        // ===== 本轮加法：4 个 Feature Flag =====
+        // 每日挑战 + 连胜统计系统
+        buildConfigField "boolean", "ACHIEVEMENT_V2", "true"
+        // 设置中心增强（字号调节 + 缓存清理）
+        buildConfigField "boolean", "SETTINGS_ENHANCE", "true"
+        // 首页最近游玩区域
+        buildConfigField "boolean", "HOME_REVAMP", "true"
+        // 全局视觉打磨（图标渐变背景 + 底部导航选中指示器）
+        buildConfigField "boolean", "VISUAL_REFRESH", "true"
+
+        // ===== 本轮加法 Batch 1：首页卡片增强（顶栏渐变美化 + 收藏/评分/热门徽章 + 图标点击动效） =====
+        buildConfigField "boolean", "HOME_CARD_ENHANCE", "true"
+
+        // ===== 本轮加法 Batch 2：游戏统计仪表盘（总时长/活跃天数/Top5/胜负/成就概览） =====
+        buildConfigField "boolean", "GAME_STATS_DASHBOARD", "true"
+
+        // ===== 本轮加法 Batch 3：多主题色切换（点击即持久化+应用，补全已存在 UI 的最后一公里） =====
+        buildConfigField "boolean", "THEME_SWITCHER", "true"
+
+        // ===== 本轮加法 Batch 4：启动动画增强（波纹扩散）+ 深色模式启动屏背景修复 =====
+        buildConfigField "boolean", "SPLASH_ANIMATION_ENHANCE", "true"
+
+        // ===== 本轮加法 Batch 5：每日签到弹窗 + 通知中心 + 个人中心 Fragment + 主页挑战/连胜卡片 =====
+        buildConfigField "boolean", "DAILY_CHECKIN", "true"
+        buildConfigField "boolean", "NOTIFICATIONS_CENTER", "true"
+        buildConfigField "boolean", "PROFILE_FRAGMENT", "true"
+        buildConfigField "boolean", "HOME_DAILY_CARDS", "true"
+
+        // ===== 本轮加法 Batch 6：底部导航激活动画（选中态缩放+颜色渐变） =====
+        buildConfigField "boolean", "NAV_ACTIVE_ANIM", "true"
+
+        // ===== 本轮加法 Batch 7-1：游戏详情 BottomSheet（点击卡片弹出详情面板） =====
+        buildConfigField "boolean", "GAME_DETAIL_SHEET", "true"
+
+        // ===== 本轮加法 Batch 7-2：首页骨架屏加载动画（Shimmer 占位） =====
+        buildConfigField "boolean", "ANIM_SHIMMER_LOADING", "true"
+
+        // ===== 本轮加法 Batch 7-3：空状态精美插图（搜索/收藏/最近为空时显示） =====
+        buildConfigField "boolean", "EMPTY_STATE_ILLUSTRATION", "true"
+
+        // ===== 本轮加法 Batch 7-4：设置-关于页面（版本/构建/许可/检查更新/GitHub） =====
+        buildConfigField "boolean", "SETTINGS_ABOUT_PAGE", "true"
+
+        // ===== 本轮加法 Batch 8-1：搜索历史 Chip 流（持久化 + 点击回填 + 清除） =====
+        buildConfigField "boolean", "SEARCH_HISTORY_CHIPS", "true"
+        // ===== 本轮加法 Batch 8-2：游戏卡片触摸抬升动效（elevation + scale + 释放回弹） =====
+        buildConfigField "boolean", "CARD_TILT_ANIM", "true"
+        // ===== 本轮加法 Batch 8-3：成就解锁顶部浮层（滑入动效 + 自动消失） =====
+        buildConfigField "boolean", "ACHIEVEMENT_TOAST", "true"
+        // ===== 本轮加法 Batch 8-4：首页英雄横幅轮播（3 张精选横幅 + 自动轮播 + 指示器） =====
+        buildConfigField "boolean", "HOME_HERO_BANNER", "true"
+
+        // ===== 本轮加法 Batch 9-1：游戏卡片长按上下文菜单（分享 / 收藏切换 / 桌面快捷方式 / 立即开始） =====
+        buildConfigField "boolean", "GAME_LONG_PRESS_MENU", "true"
+        // ===== 本轮加法 Batch 9-2：首页下拉刷新（SwipeRefreshLayout + 主题色刷新头） =====
+        buildConfigField "boolean", "HOME_PULL_REFRESH", "true"
+        // ===== 本轮加法 Batch 9-3：成就详情独立页（进度条 + 稀有度 + 解锁日期） =====
+        buildConfigField "boolean", "ACHIEVEMENT_DETAIL_PAGE", "true"
+        // ===== 本轮加法 Batch 9-4：底部导航未读消息红点徽章（每日挑战 / 签到状态驱动） =====
+        buildConfigField "boolean", "NAV_BADGE_UNREAD", "true"
+
+        // ===== 本轮加法 Batch 10-1：首页快速统计栏（今日时长 + 连胜 + 成就数，渐变卡片） =====
+        buildConfigField "boolean", "HOME_QUICK_STATS_BAR", "true"
+        // ===== 本轮加法 Batch 10-2：首页"今日推荐"卡片（基于日期 hash 轮换游戏 + 快速开始） =====
+        buildConfigField "boolean", "HOME_GAME_OF_DAY", "true"
+        // ===== 本轮加法 Batch 10-3：随机游戏悬浮按钮（骰子图标，点击随机启动一款游戏） =====
+        buildConfigField "boolean", "RANDOM_GAME_FAB", "true"
+        // ===== 本轮加法 Batch 10-4：成就中心圆环进度头部（已解锁/总数 + 百分比 + 等级文案） =====
+        buildConfigField "boolean", "ACHIEVEMENT_PROGRESS_RING", "true"
+
+        // ===== 本轮加法 Batch 11-1：游戏 5 星用户评分（卡片右上角徽章 + 详情页评分弹窗，SharedPreferences 持久化） =====
+        buildConfigField "boolean", "GAME_RATING_SYSTEM", "true"
+        // ===== 本轮加法 Batch 11-2：数据备份与恢复（导出 / 导入 JSON，SAF ACTION_CREATE_DOCUMENT / ACTION_OPEN_DOCUMENT） =====
+        buildConfigField "boolean", "DATA_BACKUP_RESTORE", "true"
+        // ===== 本轮加法 Batch 11-3：首页今日时长超阈值显示"休息提醒"渐变警示卡片 =====
+        buildConfigField "boolean", "HOME_PLAYTIME_REMINDER", "true"
+        // ===== 本轮加法 Batch 11-4：收藏置顶（设置开关，开启后已收藏游戏在游戏列表中自动排在前面） =====
+        buildConfigField "boolean", "GAME_FAVORITE_REORDER", "true"
+
+        // ===== 本轮加法 Batch 12-1：首页"继续游玩"卡片（基于最近游玩记录，点击直接启动游戏） =====
+        buildConfigField "boolean", "HOME_RESUME_GAME_CARD", "true"
+        // ===== 本轮加法 Batch 12-2：首页"最近解锁成就"横幅（可关闭，当日不再显示） =====
+        buildConfigField "boolean", "ACHIEVEMENT_RECENT_UNLOCKED_BANNER", "true"
+        // ===== 本轮加法 Batch 12-3：游戏卡片右上角显示总游玩时长徽章（如"3.2h"） =====
+        buildConfigField "boolean", "GAME_PLAY_TIME_BADGE", "true"
+        // ===== 本轮加法 Batch 12-4：启动耗时显示（Debug 构建在首页角落小字显示启动毫秒数） =====
+        buildConfigField "boolean", "APP_LAUNCH_TIME_DISPLAY", "true"
+
+        // ===== Batch 21 模块商店增强：筛选 / 搜索历史 / 详情增强 =====
+        buildConfigField "boolean", "MODULE_STORE_FILTER", "true"
+        buildConfigField "boolean", "MODULE_STORE_SEARCH_HISTORY", "true"
+        buildConfigField "boolean", "MODULE_STORE_DETAIL_ENHANCE", "true"
 
         buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
@@ -224,6 +376,9 @@ android {
         buildConfigField "String", "DOWNLOAD_BASE_URL", toJavaStringLiteral(_serverBase + "/modules/")
         buildConfigField "String", "MODULE_HOST", "\"${new URI(_serverBase).getHost()}\""
         buildConfigField "String", "GITHUB_RELEASES_URL", toJavaStringLiteral("https://github.com/3571949306/GameMatrixApp/releases")
+        // Batch 21: CDN fallback 域名 — 用户在 local.properties 中配置 server.url.fallback 即可启用
+        // 未配置时为空字符串，模块下载会自动跳过空 URL
+        buildConfigField "String", "DOWNLOAD_FALLBACK_BASE_URL", toJavaStringLiteral(configuredServerFallbackUrl ?: "")
     }
 
     aaptOptions {
@@ -303,6 +458,8 @@ android {
     buildFeatures {
         buildConfig = true
         viewBinding = true
+        // Phase 1 Compose 试点：设置页用 Compose 重写
+        compose = true
     }
 
     sourceSets {
@@ -382,6 +539,18 @@ dependencies {
     implementation libs.androidx.lifecycle.viewmodel.ktx
     implementation libs.kotlinx.coroutines.android
     implementation libs.kotlinx.coroutines.core
+
+    // ============================================================
+    // Phase 1 Compose 试点：设置页（Compose 互操作，与 ViewBinding 共存）
+    // 用 BOM 统一管理 Compose 库版本
+    // ============================================================
+    implementation platform(libs.compose.bom)
+    implementation libs.compose.ui
+    implementation libs.compose.ui.graphics
+    implementation libs.compose.ui.tooling.preview
+    implementation libs.compose.material3
+    implementation libs.androidx.activity.compose
+    debugImplementation libs.compose.ui.tooling
     
     // Hilt Dependency Injection (Phase 1.3: 切到 KSP)
     implementation libs.hilt.android
@@ -394,6 +563,7 @@ dependencies {
  
     // Phase 2.1: Baseline Profile (启动加速)
     implementation libs.profileinstaller
+    baselineProfile project(':macrobenchmark')
     
     // LeakCanary for debug builds only
     // 通过 -PleakCanary=true 启用，默认关闭以避免蓝叠模拟器崩溃
@@ -425,6 +595,11 @@ dependencies {
             because 'align with coroutines-core 1.10.1'
         }
     }
+}
+
+baselineProfile {
+    automaticGenerationDuringBuild = false
+    saveInSrc = true
 }
 
 // ============================================================
@@ -617,19 +792,20 @@ task packageAppClasses(type: Jar) {
 }
 
 // =============================================================================
-// 模块预装：把浏览器/工具/TTS 模块的 Debug APK 打包到 assets/modules/，
-// 首次启动时由 App.java 提取到 cacheDir/modules/，DexClassLoader 加载。
+// 模块预装：把与宿主同证书签名的 Release 模块 APK 打包到 assets/modules/。
+// 任务在 mergeAssets 前执行，保证当前构建产物不会携带旧模块。
 // 保留 VPS 更新通道：modules.json 的 downloadUrl 仍指向 VPS，versionCode 升级时下载覆盖。
 // VPN 模块刻意不预装（合规/分发约束）。
 // 注意：当前跳过 ai 模块（其源码有未解决的 Step import 编译错误，待单独修复）。
 // =============================================================================
 task bundlePreinstalledModules() {
     group = 'build'
-    description = '把可预装模块的 Debug APK 复制到 app/src/main/assets/modules/'
+    description = '构建、签名并复制预装模块，同时刷新 modules.json 完整性元数据'
+    dependsOn ':module-store:feature:tools:wrongbook:assembleRelease'
 
     def moduleMappings = [
         // [模块项目路径, 源APK名, 目标文件名（与 modules.json 中 fileName 一致）]
-        [':module-store:feature:tools:wrongbook', 'wrongbook-debug.apk', 'feature_wrongbook_v100.apk']
+        [':module-store:feature:tools:wrongbook', 'wrongbook-release.apk', 'feature_wrongbook_v100.apk']
     ]
 
     doLast {
@@ -644,7 +820,7 @@ task bundlePreinstalledModules() {
                 logger.warn("[preinstall] 模块未包含: ${modulePath}（跳过）")
                 return
             }
-            def srcApk = file("${moduleProject.buildDir}/outputs/apk/debug/${srcApkName}")
+            def srcApk = file("${moduleProject.buildDir}/outputs/apk/release/${srcApkName}")
             if (!srcApk.exists()) {
                 logger.warn("[preinstall] 模块 APK 未构建: ${srcApk}（请先 assembleDebug 该模块，跳过）")
                 return
@@ -655,38 +831,28 @@ task bundlePreinstalledModules() {
                 into assetsModulesDir
                 rename { String fileName -> targetName }
             }
+            def manifestFile = file("${projectDir}/src/main/assets/modules.json")
+            def manifestText = manifestFile.getText('UTF-8')
+            def moduleMatcher = manifestText =~ /(?s)(\{\s*"id"\s*:\s*"wrongbook".*?\n\s*\})/
+            if (moduleMatcher.find()) {
+                def moduleBlock = moduleMatcher.group(1)
+                def moduleSha256 = java.security.MessageDigest.getInstance('SHA-256')
+                        .digest(srcApk.bytes)
+                        .collect { String.format('%02x', it) }
+                        .join('')
+                def updatedBlock = moduleBlock
+                        .replaceFirst(/"fileSize"\s*:\s*\d+/, "\"fileSize\": ${srcApk.length()}")
+                        .replaceFirst(/"sha256"\s*:\s*"[^"]*"/, "\"sha256\": \"${moduleSha256}\"")
+                if (updatedBlock != moduleBlock) {
+                    manifestFile.setText(manifestText.replace(moduleBlock, updatedBlock), 'UTF-8')
+                }
+            }
             logger.lifecycle("[preinstall] ${targetName} (${srcApk.length()} bytes) 已复制到 assets/modules/")
         }
     }
 }
 
-// 在 assembleDebug 完成后才执行预装任务（避免循环依赖：模块依赖 app classes.jar）
 afterEvaluate {
-    // 模块构建依赖 app，但 app 构建完成后再用模块产物
-    // 所以：app 的 assembleDebug 完成后，再触发模块构建 + 复制
-    def moduleTasks = [
-        ':module-store:feature:tools:browser:assembleDebug',
-        ':module-store:feature:tools:tools:assembleDebug',
-        ':module-store:feature:tools:ai:assembleDebug',
-        ':module-store:feature:tools:wrongbook:assembleDebug',
-        ':module-store:feature:games:games:tts:assembleDebug'
-    ]
-
-    // 先确保模块 APK 已构建（如果还没构建），然后在 app build 完成后复制到 assets
-    tasks.named('bundlePreinstalledModules').configure {
-        moduleTasks.each { taskPath ->
-            def modulePath = taskPath.split(':').dropRight(1).join(':')
-            if (rootProject.findProject(modulePath) != null) {
-                it.dependsOn taskPath
-            }
-        }
-    }
-
-    // 在 app:assembleDebug 完成后自动跑 bundlePreinstalledModules（post-build hook）
-    tasks.named('assembleDebug').configure {
-        it.finalizedBy 'bundlePreinstalledModules'
-    }
-    tasks.named('assembleRelease').configure {
-        it.finalizedBy 'bundlePreinstalledModules'
-    }
+    tasks.named('mergeDebugAssets').configure { it.dependsOn 'bundlePreinstalledModules' }
+    tasks.named('mergeReleaseAssets').configure { it.dependsOn 'bundlePreinstalledModules' }
 }

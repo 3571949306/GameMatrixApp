@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== 语义色 Token — 深色覆盖（A2: Spec §7.1 DARK） ========== -->
+    <!-- 仅覆盖需要暗色变体的色；colorInfo 引用 md_theme_primary 已自动跟随暗色 -->
+
+    <!-- 成功色（深色） -->
+    <color name="colorSuccess">#4CC38A</color>
+    <color name="colorOnSuccess">#00391C</color>
+    <color name="colorSuccessContainer">#00522C</color>
+    <color name="colorOnSuccessContainer">#A8F0C2</color>
+
+    <!-- 警告色（深色） -->
+    <color name="colorWarning">#FFB84D</color>
+    <color name="colorOnWarning">#422C00</color>
+    <color name="colorWarningContainer">#5E4100</color>
+    <color name="colorOnWarningContainer">#FFE0B0</color>
+</resources>

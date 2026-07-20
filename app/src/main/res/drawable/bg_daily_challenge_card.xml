@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature A: 每日挑战卡片渐变背景 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="@color/daily_challenge_card_bg_start"
+        android:endColor="@color/daily_challenge_card_bg_end"
+        android:type="linear" />
+    <corners android:radius="20dp" />
+</shape>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_network_disconnected">Network disconnected. Please check your network settings.</string>
+    <string name="error_timeout">Request timed out. Please try again later.</string>
+    <string name="error_dns_resolution">Unable to resolve server address. Please check your network.</string>
+    <string name="error_server_5xx">Internal server error. Please try again later.</string>
+    <string name="error_server_4xx">Request rejected by server. Please check your input.</string>
+    <string name="error_io">Network I/O error. Please retry.</string>
+    <string name="error_ssl">SSL certificate verification failed. Please check network security.</string>
+    <string name="error_cancelled">Request cancelled</string>
+    <string name="error_unknown">Unknown network error. Please try again later.</string>
+</resources>

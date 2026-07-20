@@ -12,6 +12,9 @@ buildscript {
         classpath 'com.android.tools.build:gradle:8.13.2'
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21'
         classpath 'org.jetbrains.kotlin:kotlin-reflect:2.0.21'
+        // Compose Compiler Plugin (Kotlin 2.0+ 内置，版本与 Kotlin 保持一致)
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.0.21'
+        classpath 'androidx.baselineprofile:androidx.baselineprofile.gradle.plugin:1.4.1'
         classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.21-1.0.25'
         classpath 'com.google.dagger:hilt-android-gradle-plugin:2.57.2'
         // Phase 1.1: 静态分析

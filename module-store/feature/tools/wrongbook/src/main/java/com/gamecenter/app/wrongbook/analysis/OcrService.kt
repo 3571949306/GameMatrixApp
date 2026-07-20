@@ -8,6 +8,7 @@ import android.content.SharedPreferences
  * OCR 服务入口。
  *
  * 根据用户设置选择本地或云端 OCR 引擎。
+ * 支持引擎：local（ML Kit）/ scnet（预留）/ baidu（后端代理）。
  */
 class OcrService(context: Context) {
 
@@ -21,7 +22,10 @@ class OcrService(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** 当前 OCR 引擎：local / scnet */
+    /** 后端代理配置（百度 OCR 走后端） */
+    val backendConfig: BackendProxyConfig = BackendProxyConfig(context)
+
+    /** 当前 OCR 引擎：local / scnet / baidu */
     var currentEngine: String
         get() = prefs.getString(KEY_ENGINE, "local") ?: "local"
         set(value) = prefs.edit().putString(KEY_ENGINE, value).apply()
@@ -38,6 +42,13 @@ class OcrService(context: Context) {
         "local" to LocalMlKitOcrEngine()
     )
 
+    init {
+        // feature flag 开启时，注册百度 OCR 后端代理引擎
+        if (BackendProxyConfig.isFeatureFlagEnabled()) {
+            engines["baidu"] = BaiduOcrEngine(backendConfig)
+        }
+    }
+
     /**
      * 注册云端 OCR 引擎。
      */
@@ -46,15 +57,22 @@ class OcrService(context: Context) {
     }
 
     /**
-     * 判断云端 OCR 是否可用。
+     * 判断云端 OCR（scnet）是否可用。
      */
     fun isCloudAvailable(): Boolean = engines.containsKey("scnet")
 
     /**
-     * 执行 OCR 识别。
+     * 判断百度 OCR 后端代理是否可用（受 feature flag 控制）。
      */
-    suspend fun recognize(context: Context, imageUri: Uri): OcrResult {
+    fun isBaiduAvailable(): Boolean = engines.containsKey("baidu")
+
+    /**
+     * 执行 OCR 识别。
+     *
+     * @param accurate true 时云端引擎切换高精度模式（本地引擎忽略）
+     */
+    suspend fun recognize(context: Context, imageUri: Uri, accurate: Boolean = false): OcrResult {
         val engine = engines[currentEngine] ?: engines["local"]!!
-        return engine.recognize(context, imageUri)
+        return engine.recognize(context, imageUri, accurate)
     }
 }

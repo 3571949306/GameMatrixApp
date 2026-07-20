@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- MuMu 等第三方模拟器可能仅提供 android.test.base。 -->
+        <uses-library
+            android:name="android.test.runner"
+            android:required="false"
+            tools:replace="android:required" />
+    </application>
+</manifest>
