@@ -4,7 +4,12 @@ import android.content.Context;
 import androidx.fragment.app.Fragment;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
+import com.gamecenter.app.core.common.ModuleNavigationContribution;
+import com.gamecenter.app.core.common.NavigationSlot;
 import com.gamecenter.app.fragments.GamesFragment;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class GamesHallModuleEntryPoint implements ModuleInterface, FeatureModule {
 
@@ -51,5 +56,30 @@ public class GamesHallModuleEntryPoint implements ModuleInterface, FeatureModule
     @Override
     public Fragment createFragment(Context context) {
         return new GamesFragment();
+    }
+
+    @Override
+    public List<ModuleNavigationContribution> getNavigationContributions(Context context) {
+        return Arrays.<ModuleNavigationContribution>asList(new GamesHallNavContribution());
+    }
+
+    private static class GamesHallNavContribution implements ModuleNavigationContribution {
+        @Override
+        public String getContributionId() { return "games_hall"; }
+
+        @Override
+        public String getTitle(Context context) { return "游戏大厅"; }
+
+        @Override
+        public int getIconResId() { return 0; }
+
+        @Override
+        public int getOrder() { return 10; }
+
+        @Override
+        public NavigationSlot getSlot() { return NavigationSlot.BOTTOM_NAV; }
+
+        @Override
+        public Fragment createFragment(Context context) { return new GamesFragment(); }
     }
 }

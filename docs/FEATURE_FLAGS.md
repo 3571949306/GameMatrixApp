@@ -3,9 +3,9 @@
 > 本文档索引项目所有 Feature Flag，包括用途、引入版本、退役计划。
 > 规则：Flag 超过 3 个月未关闭 = 应该删除代码（保留功能）。
 
-**最后更新**: 2026-07-19
-**Flag 总数**: 68 个（基础设施 10 + 加法升级 58）
-**默认值分布**: 65 个 true / 3 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`）
+**最后更新**: 2026-07-20
+**Flag 总数**: 73 个（基础设施 10 + 加法升级 58 + 混合架构 5）
+**默认值分布**: 69 个 true / 4 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`、`ENABLE_CATALOG_SIGNATURE`）
 **声明位置**: `app/build.gradle` → `defaultConfig`（`buildTypes` 中无覆盖）
 
 ---
@@ -140,6 +140,16 @@
 | `BROWSER_SKELETON_LOADING` | true | 1.4.1（加法升级第十五轮 Batch 18，2026-07-19） | 页面加载骨架屏（已实现：`layout_browser_skeleton.xml` 8 个 View 占位块 + `bg_skeleton_block.xml` 圆角灰色背景；`BrowserFragment.onPageStarted` 显示 + `bringToFront`，`onPageFinished` 隐藏） | ✅ 已实现 | 稳定 |
 | `BROWSER_REAL_MULTI_TAB` | true | 1.4.1（加法升级第十二轮 Batch 15，2026-07-19） | 真·多 Tab 架构（已实现：BrowserWebViewPool 活跃池上限 5 + LRU 释放 + saveState/restoreState 状态保留；TabManagerActivity 通过 ActivityResultLauncher + setResult 回传操作结果；BrowserController 双模式：单 WebView / 多 Tab 池） | ✅ 已实现 | 稳定 |
 
+### 十三、混合架构改造（5 个，2026-07-20，P0-P6）
+
+| Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
+|-----------|--------|----------|------|----------|------|
+| `ENABLE_CATALOG_SIGNATURE` | false | 1.4.1（混合架构 P3） | Ed25519 远程目录签名验证（当前兼容模式，默认关闭，验证失败仅记录日志不阻止使用） | 正式上线并稳定后改为 true，再评估是否退役 | 活跃 |
+| `ENABLE_TRANSACTIONAL_INSTALL` | true | 1.4.1（混合架构 P3） | 事务性模块安装（`staging/current/last_good/quarantine` 目录结构，原子提升 + 自动回滚） | 长期保留 | 活跃 |
+| `ENABLE_P4_DYNAMIC_NAVIGATION` | true | 1.4.1（混合架构 P4） | 模块声明式动态底部导航（`ModuleNavigationContribution` + `BottomNavigationManager`） | 长期保留 | 活跃 |
+| `ENABLE_P5_STORE_OWNED_UPDATE` | true | 1.4.1（混合架构 P5） | Store-Owned 批量模块更新（远程目录为权威源 + 依赖拓扑排序 + 失败回滚） | 长期保留 | 活跃 |
+| `ENABLE_P6_UNITY_MODULE` | true | 1.4.1（混合架构 P6） | Unity 模块架构支持（`UnityModuleLauncher` 接口 + 注册中心 + 占位启动器） | Unity SDK 接入稳定后评估 | 活跃 |
+
 ---
 
 ## 治理规则
@@ -213,7 +223,7 @@
 
 - `app/build.gradle` 第 194–307 行（`defaultConfig` 中所有 `buildConfigField "boolean"` 声明）
 - `docs/AI_CONTEXT.md` 第 304–374 行（Feature Flag 章节，含九轮加法升级详细说明）
-- 实际总数：**47 个 boolean Flag**（基础设施 10 + 加法升级 37），全部声明于 `defaultConfig`，`buildTypes` 中无覆盖
+- 实际总数：**73 个 boolean Flag**（基础设施 10 + 加法升级 58 + 混合架构 5），全部声明于 `defaultConfig`，`buildTypes` 中无覆盖
 
 ---
 

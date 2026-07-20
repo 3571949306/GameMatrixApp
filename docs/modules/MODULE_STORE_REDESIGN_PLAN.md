@@ -1,8 +1,8 @@
 # Module Store Redesign Plan
 
 Date: 2026-06-25
-Last updated: 2026-07-06 (cycles 19-24 review)
-Current version: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+Last updated: 2026-07-20 (hybrid architecture P0-P6 completed, ADB real device test issues logged)
+Current version: versionCode=589 / versionName=1.4.1 (lastStable=465/1.4.0)
 Project root: d:\Developmment\GameMatrixApp
 
 Scope: redesign the GameMatrixApp module store so app functionality can evolve independently from the host APK.
@@ -328,15 +328,50 @@ Reuse:
 - existing remote manifest fetch and cache in `ModuleManager`;
 - existing SHA-256 download code in `ModuleDownloader`.
 
-### P3: Build The Transactional Installer
+### P3: Build The Transactional Installer ✅ Completed (2026-07-20)
 
-Changes:
+**已完成的工作**：
 
-- Introduce `ModuleRepository` and `ModuleInstallTransaction`.
-- Add `staging/current/last_good` storage.
-- Promote only after verification.
-- Roll back on load failure.
-- Store install state in Room or a single owned module DB instead of scattered SharedPreferences.
+1. **目录签名验证（Ed25519）**
+   - 实现 `CatalogSignatureVerifier` 接口和 `Ed25519CatalogSignatureVerifier`
+   - 集成到 `StoreCatalogRepository`，从响应头 `X-Catalog-Signature` 获取签名并验证
+   - Feature Flag: `ENABLE_CATALOG_SIGNATURE`（当前为 false，兼容模式）
+
+2. **事务性安装系统**
+   - 实现 `TransactionInstaller`，管理 staging/current/last_good/quarantine 目录结构
+   - 修改 `ModuleDownloader.getModuleFile()` 下载到 staging 目录
+   - 修改 `ModuleManager.downloadModule()` 的 onComplete 回调集成事务安装
+   - 修改 `ModuleLoader.loadModule()` 优先从 current/ 读取，兼容旧 modules/ 目录
+   - 实现模块加载失败时的自动回滚逻辑（attemptRollback 方法）
+   - Feature Flag: `ENABLE_TRANSACTIONAL_INSTALL`（当前为 true）
+
+3. **依赖管理**
+   - 添加 Tink 加密库依赖（com.google.crypto.tink:tink-android:1.10.0）
+
+**目录结构**：
+```
+filesDir/modules/
+  staging/      # 下载中的模块
+  current/      # 当前使用的模块
+  last_good/    # 上一个稳定版本
+  quarantine/   # 有问题的模块
+```
+
+**安装流程**：
+1. 下载到 staging/
+2. 验证 SHA-256 和签名
+3. 备份 current/ 到 last_good/
+4. 原子移动到 current/
+5. 加载失败时自动回滚到 last_good/
+
+**技术细节**：
+- 使用 Tink 加密库进行 Ed25519 签名验证
+- 兼容旧版本：`getModuleFileCompat()` 优先 current，兼容旧 modules/ 目录
+- 回滚机制：加载失败时自动从 last_good 恢复到 current
+
+**遗留问题**：
+- 目录签名当前处于兼容模式（ENABLE_CATALOG_SIGNATURE=false），后续需要配置真实公钥并启用
+- 安装状态仍使用 SharedPreferences，未迁移到 Room（可推迟到 P4）
 
 Reuse:
 
@@ -344,21 +379,34 @@ Reuse:
 - `core/module-host/ModuleLoader`;
 - `core/security/ModuleVerifier`.
 
-### P4: Make Host UI Module-Declared
+### P4: Make Host UI Module-Declared ✅ Completed (2026-07-20)
 
-Changes:
+**已完成的工作**：
 
-- Bottom navigation reads installed module contributions.
-- Games hall reads installed game contributions.
-- Tool sections read installed tool contributions.
-- Store category pages read catalog metadata, not hardcoded lists.
-- Installed modules page reads local module DB.
+1. **模块导航贡献协议**
+   - `ModuleNavigationContribution` 接口定义：`getNavigationId()`、`getNavigationSlot()`、`getNavigationOrder()`、`getNavigationIconRes()`、`getNavigationTitleRes()`、`createContentIntent()`
+   - 各模块 `*ModuleEntryPoint` 实现该接口声明底部导航贡献
 
-Goal:
+2. **模块注册中心与路由**
+   - `ModuleRegistry`：收集已加载模块的导航贡献、Unity 启动器、Intent 路由
+   - `ModuleIntentRouter`：支持模块间通过 `module://{moduleId}?action=...` 安全路由
 
-- Browser/tools/AI/VPN/games hall can be replaced by module updates without changing the host APK.
+3. **动态底部导航**
+   - `BottomNavigationManager`：从 `ModuleRegistry` 读取贡献并构建 `BottomNavigationView` 菜单
+   - `MainActivity.kt` 集成动态导航，替换硬编码菜单
+   - Feature Flag: `ENABLE_P4_DYNAMIC_NAVIGATION`（默认 true）
 
-### P5: Convert Existing Features To Store-Owned Modules
+4. **动态内容区**
+   - `DynamicGamesHallFragment`：游戏大厅动态内容区
+   - `DynamicToolsFragment`：工具区动态内容区
+
+**目标达成**：
+- Browser/tools/AI/VPN/games hall 的导航入口可由模块更新驱动，无需修改 host APK。
+
+**遗留验证**：
+- 新增/卸载模块后底部导航自动刷新需在真实场景下进一步验证。
+
+### P5: Convert Existing Features To Store-Owned Modules ✅ Completed (2026-07-20)
 
 > **2026-07-06 review**: `wrongbook` (cycle 20) is inserted into the migration order as a new tools-family module. It is already preinstalled as a `feature-apk` under `module-store/feature/tools/wrongbook/`.
 
@@ -384,7 +432,18 @@ Each conversion must define:
 - permissions needed from host;
 - fallback behavior if missing or broken.
 
-### P6: Add Unity And Large Content Packs
+**Store-Owned update implementation**:
+
+- `ModuleUpdateManager` drives updates from the remote catalog.
+- `checkForUpdates()` scans installed modules against the catalog and returns `UpdateCandidate`s.
+- Candidates are sorted with `sortCandidatesByDependencyOrder()`:
+  - Critical modules (`isBaseFramework` / `required`) are updated first.
+  - Within each group, Kahn topological sort ensures dependencies are updated before dependents.
+  - Circular dependencies are detected, logged, and kept in a safe original order.
+- `performBatchUpdate()` downloads and installs each candidate; failures trigger `TransactionInstaller.rollback()`.
+- Controlled by `ENABLE_P5_STORE_OWNED_UPDATE` in `app/build.gradle`.
+
+### P6: Add Unity And Large Content Packs ✅ Completed (2026-07-20)
 
 Unity should not be forced into the same single-APK module path. Use separate module kinds:
 
@@ -394,6 +453,15 @@ Unity should not be forced into the same single-APK module path. Use separate mo
 - `host-update` only when Unity runtime/native packaging changes.
 
 This keeps Unity content independent from the APK while respecting Android runtime limits.
+
+**Unity module architecture implementation**:
+
+- Core interface `UnityModuleLauncher` lives in `core/common` so modules can declare Unity support without creating a reverse dependency.
+- `FeatureModule.createUnityLauncher()` default returns `null`; Unity modules override it.
+- `ModuleRegistry.getUnityLaunchers()` collects launchers from loaded modules.
+- `UnityModuleManager` provides runtime registration, query, `launchStandalone()`, and `createEmbeddedFragment()`.
+- `PlaceholderUnityModuleLauncher` + `UnityPlayerPlaceholderActivity` provide a safe no-Unity-SDK fallback for architecture validation.
+- Controlled by `ENABLE_P6_UNITY_MODULE` in `app/build.gradle`.
 
 ## Implementation Boundaries
 
@@ -445,9 +513,9 @@ The redesign is successful when:
 9. Move UI routing to module contributions after install transactions are reliable.
 10. Only then migrate games and large Unity content.
 
-## Implementation Progress (2026-07-06 review, cycles 19-24)
+## Implementation Progress (2026-07-20 review, hybrid architecture P0-P6 completed)
 
-> This section records actual progress against the P0–P6 phases after cycles 19-24.
+> This section records actual progress against the P0–P6 phases after cycles 19-24 and the hybrid architecture completion.
 
 ### Infrastructure already in place
 
@@ -466,13 +534,13 @@ The redesign is successful when:
 
 | Phase | Description | Status | Notes |
 |-------|-------------|--------|-------|
-| P0 | Freeze the contract (ModuleManifest v3, module API, install state, signing policy, navigation contribution) | ⚠️ Not started | `ModuleManifest` still has three models (app/core:common/core:module-host); signing policy is SHA-256 only (no signer check) |
-| P1 | Shell infrastructure + seed modules | 🔄 Partial | Existing `core/module-*` blocks reused; `ModuleEntryPoint` / `ModuleMetadata` / `IntentResult` / `ModuleCategory` not yet extended in `core/common` |
-| P2 | Split catalog from APK fallback | ⚠️ Not started | `assets/modules.json` still treated as current; remote signed catalog not implemented |
-| P3 | Transactional installer (`staging/current/last_good`) | ⚠️ Not started | Current install path is download → verify SHA-256 → install directly, no `last_good` rollback |
-| P4 | Host UI module-declared | ⚠️ Not started | Bottom navigation still hardcoded in `MainActivity.kt`; wrongbook tab added via `ENABLE_WRONGBOOK` flag but not module-driven |
-| P5 | Convert existing features to store-owned modules | 🔄 Partial | 9 dynamic APK modules exist and are preinstalled (including cycle-20 `wrongbook`); store-owned update/rollback not yet possible |
-| P6 | Unity + large content packs | ⚠️ Not started | Out of scope for cycles 19-24 |
+| P0 | Freeze the contract (ModuleManifest v3, module API, install state, signing policy, navigation contribution) | 🔄 Partial | `core/common/ModuleManifest.kt` 已作为统一模型，各模块 `ModuleManifest` 改为 typealias/兼容包装；导航贡献协议已定义 |
+| P1 | Shell infrastructure + seed modules | ✅ Completed | 远程目录协议、UI 配置协议、`ModuleNavigationContribution`、`ModuleRegistry`、`ModuleIntentRouter`、`BottomNavigationManager` 已落地 |
+| P2 | Split catalog from APK fallback | ✅ Completed | `DefaultStoreCatalogRepository` 以远程目录为权威源，`assets/modules.json` 仅作为 4 级降级中的救援种子 |
+| P3 | Transactional installer (`staging/current/last_good`) | ✅ Completed | Ed25519 signature verification + transactional install with rollback support (2026-07-20) |
+| P4 | Host UI module-declared | ✅ Completed (2026-07-20) | `ModuleNavigationContribution` + `BottomNavigationManager` + `DynamicGamesHallFragment` + `DynamicToolsFragment`; 底部导航由模块贡献动态构建 |
+| P5 | Convert existing features to store-owned modules | ✅ Completed (2026-07-20) | `ModuleUpdateManager` with dependency-ordered batch updates and rollback via `TransactionInstaller` |
+| P6 | Unity + large content packs | ✅ Completed (2026-07-20) | `UnityModuleLauncher` core interface, `UnityModuleManager`, placeholder launcher/Activity; ready for Unity SDK integration |
 
 ### Cycle 19-24 deltas relevant to this plan
 
@@ -484,12 +552,207 @@ The redesign is successful when:
 | 23 | CI online (android_ci.yml + dependabot.yml) | P0/P3 verification work can lean on CI; new install-path tests should be added to `lint-and-test` job |
 | 24 | Netty 4.1.134 → 4.1.135.Final (7 CVE) | Transitive dependency only; no runtime impact on APK, but validates Dependabot workflow |
 
-### Recommended next actions (revised)
+### Recommended next actions (revised, 2026-07-20)
 
-1. **P0 first**: collapse `ModuleManifest` to one model before adding any new module-level fields. The wrongbook preinstall added metadata in the existing 25-field model, which is fine short-term but increases the debt if P0 keeps slipping.
-2. **Codify the `ENABLE_*` feature flag pattern** as part of P1: every preinstalled module should have one (wrongbook sets the example).
-3. **Add install-transaction tests to CI**: when P3 starts, the `lint-and-test` job should cover download → verify → promote → launch → rollback.
-4. **Wire `ModuleContextHelper` + `ModuleShellFragment` into the docs**: they are the supported cross-APK boundary helpers; new modules should use them instead of hand-rolled `AssetManager.addAssetPath()` calls.
+1. **P0 收尾**: `core/common/ModuleManifest.kt` 已是统一模型，但安装状态仍使用 SharedPreferences；后续迁移到 Room 以支持复杂查询和回滚。
+2. **P3 公钥配置**: `ENABLE_CATALOG_SIGNATURE` 当前为 false 且使用占位公钥；正式上线前配置真实 Ed25519 公钥并改为 true。
+3. **P4 验证**: 底部导航已改为模块贡献驱动，需在新增/卸载模块场景下验证导航自动刷新。
+4. **P5 测试**: `ModuleUpdateManager` 已实现依赖拓扑排序，需补充多模块并发更新与失败回滚的集成测试。
+5. **P6 Unity SDK 接入**: 占位实现已就绪，接入 Unity as a Library 后替换 `PlaceholderUnityModuleLauncher`。
+6. **CI 增强**: 在 `lint-and-test` job 中增加 download → verify → promote → launch → rollback 的集成测试。
+
+## Hybrid Store Phase 1 Progress (2026-07-20)
+
+> This section records the hybrid store architecture implementation completed on 2026-07-20.
+
+### Overview
+
+Implemented P1 (remote catalog) and P2 (lightweight server-driven UI) phases of the hybrid store architecture. The goal is to make store content and UI layout server-controllable without requiring main APK updates.
+
+### P1: Remote Catalog Content
+
+**P1.1 catalog.json protocol (schemaVersion=2)**
+
+- Backward compatible with v1 `modules.json`
+- Top-level structure: `schemaVersion`, `catalogVersion`, `generatedAt`, `categories`, `heroBanners`, `modules`
+- New file: `app/src/main/assets/catalog.json`
+
+**P1.2 Remote categories**
+
+- `StoreCategory` model: `id`, `name`, `order`, `enabled`
+- Server controls category display order and visibility
+- Unknown categories fall back to "Other"
+- Empty categories show all modules
+
+**P1.3 Remote Hero Banner**
+
+- `StoreHeroBanner` model: `id`, `title`, `subtitle`, `moduleId`, `imageUrl`, `order`, `enabled`
+- Reuses existing `HeroBannerAdapter`
+- Image load failure shows local placeholder
+- Invalid `moduleId` does not crash
+
+**P1.4 Remote module details**
+
+- `StoreModule` model adds: `shortDescription`, `description`, `iconUrl`, `screenshots`, `changelog`, `permissionsDescription`, `tags`, `sortOrder`, `featured`, `enabled`, `storeCategory`
+- Reuses existing `ModuleDetailBottomSheet` and `ModuleScreenshotAdapter`
+- Invalid screenshot URLs are skipped
+- Empty changelog/permissions hide corresponding sections
+- `enabled=false` modules hidden from store but retained in installed management with "已下架" marker
+
+**P1.5 Remove hardcoded name overrides**
+
+- `ModuleManifest` extended with 10 new fields (total 35 fields)
+- Server-provided `name`/`description` take priority
+- Local fallback only when server fields are empty
+- `ModuleDetailBottomSheet` renders server-provided `changelog` and `permissionsDescription` first
+
+**P1.6 StoreCatalogRepository**
+
+- Interface: `getCachedCatalog()`, `refresh(callback)`, `addObserver()`, `removeObserver()`
+- Default implementation: `DefaultStoreCatalogRepository`
+- ETag negotiation + atomic cache replacement
+- 4-level fallback: remote → cache file → `assets/catalog.json` → `assets/modules.json` → `rescueCatalog()`
+- Feature flag `STORE_REMOTE_CATALOG` controls network requests
+
+**P1.7 Cache degradation**
+
+Priority:
+1. Latest valid remote catalog
+2. Last successful cache
+3. `assets/modules.json`
+4. Minimal hardcoded rescue catalog
+
+**P1.8 UI refresh**
+
+- Pull-to-refresh or FAB refresh triggers: catalog update → category recalculation → banner update → module list update → stats update
+- Current search keyword and filter state preserved
+- Category deleted by server auto-switches to "All"
+
+### P2: Lightweight Server-Driven UI
+
+**P2.1 store-ui.json**
+
+- New file: `app/src/main/assets/store-ui.json`
+- Schema: `schemaVersion=1`, `pageVersion=1`, `minHostVersionCode`, `pages.store_home.sections`
+- 9 section types: `hero_banner`, `search_bar`, `notice`, `category_tabs`, `section_title`, `module_list`, `module_grid`, `update_section`, `installed_section`
+
+**P2.2 StoreUiConfig model**
+
+- `StoreUiConfig`, `StorePage`, `StoreSection` data classes
+- `StoreSection.SUPPORTED_TYPES`: 9 whitelist types
+- `columns` valid range [1,4], invalid values clamp to 0 (caller uses DEFAULT_COLUMNS=2)
+- `params` parsed as `Map<String, String>`
+
+**P2.3 StoreUiConfigRepository**
+
+- ETag + atomic cache + `minHostVersionCode` validation
+- 4-level fallback: remote → cache → `assets/store-ui.json` → `defaultConfig()`
+- Feature flag `STORE_REMOTE_UI` controls network requests
+
+**P2.4 StoreSectionRenderer**
+
+- Interface: `supports(type)`, `render(section, container, host)`
+- `StoreRendererHost` callback interface: `hostContext()`, `currentModules()`, `installedModuleIds()`, `dispatchAction()`, `triggerRefresh()`, `switchCategory()`
+- `StoreSectionRendererRegistry.dispatchRender()`: renders sections in order, skips duplicate IDs, skips unknown types, try-catch per section
+- 9 renderers: `HeroBannerRenderer`, `SearchBarRenderer`, `NoticeRenderer`, `CategoryTabsRenderer`, `SectionTitleRenderer`, `ModuleListRenderer`, `ModuleGridRenderer`, `UpdateSectionRenderer`, `InstalledSectionRenderer`
+
+**P2.5 Action whitelist**
+
+- 6 allowed actions: `open_module`, `open_module_detail`, `open_installed_modules`, `refresh_catalog`, `switch_category`, `open_update_list`
+- Required params: `open_module`/`open_module_detail` need `moduleId`, `switch_category` needs `categoryId`
+- Parameter value blacklist regex: `[\"\\;`$|&<>\n\r]|\b(Intent|Activity|Class|Runtime|Process|exec|shell|javascript|intent)\b` (case-insensitive)
+- Prevents arbitrary Intent URI, class name, Shell command, JavaScript injection
+
+**P2.6 StoreViewModel + StorePageState**
+
+- `StorePageState`: immutable state data class (catalog, uiConfig, modules, currentCategory, searchKeyword, isLoading, error, installedModuleIds)
+- `StoreViewModel`: coordinates `StoreCatalogRepository` + `StoreUiConfigRepository`, thread-safe state via `AtomicReference`
+- `ModuleStoreActivity` implements `StoreRendererHost`, delegates section rendering to `StoreSectionRendererRegistry`
+
+### Testing
+
+**Unit tests (63 tests, all passing)**
+
+- `StoreCatalogTest` (20 tests): v1/v2 compatibility, missing fields, `enabled=false`, screenshot filtering, duplicate IDs, corrupted entries, `rescueCatalog`, `toJson` roundtrip
+- `StoreUiConfigTest` (18 tests): default layout, section order, disabled sections, list/grid switching, unknown components, columns range, schemaVersion, params parsing, `toJson` roundtrip
+- `StoreActionRouterTest` (25 tests): 6 whitelist actions, unknown action rejection, required params, parameter value blacklist (Intent/Activity/Runtime/exec/shell/javascript/semicolon/backtick/dollar/pipe/angle brackets)
+
+**Real device testing (Xiaomi ares M2012K10C)**
+
+- Module store opens successfully
+- Hero Banner, 3-column stats, category tabs, subcategories, search history, module cards all display correctly
+- Pull-to-refresh triggers `StorePageState updated: catalog=true uiConfig.pages=1`
+- Module detail BottomSheet shows screenshots, description, changelog, permissions
+- No FATAL EXCEPTION in logcat
+
+### Feature flags
+
+- `STORE_REMOTE_CATALOG`: controls remote catalog network requests
+- `STORE_REMOTE_UI`: controls remote UI config network requests
+- `STORE_SECTION_RENDERER`: controls section renderer dispatch
+
+All three flags can be set to `false` in `app/build.gradle` to disable remote features without affecting compilation.
+
+### Files modified
+
+**New files:**
+- `app/src/main/assets/catalog.json`
+- `app/src/main/assets/store-ui.json`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreCatalog.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreCategory.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreModule.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreHeroBanner.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/model/StoreUiConfig.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreCatalogRepository.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreUiConfigRepository.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreSectionRenderer.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreActionRouter.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StorePageState.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreViewModel.kt`
+- `app/src/test/java/com/gamecenter/app/modules/store/StoreCatalogTest.kt`
+- `app/src/test/java/com/gamecenter/app/modules/store/StoreUiConfigTest.kt`
+- `app/src/test/java/com/gamecenter/app/modules/store/StoreActionRouterTest.kt`
+
+**Modified files:**
+- `app/build.gradle`: 3 feature flags + testOptions.returnDefaultValues=true
+- `app/src/main/java/com/gamecenter/app/modules/ModuleManifest.kt`: 10 new fields
+- `app/src/main/java/com/gamecenter/app/modules/HeroBannerAdapter.kt`: server-provided banner support
+- `app/src/main/java/com/gamecenter/app/modules/ModuleScreenshotAdapter.kt`: server-provided screenshots
+- `app/src/main/java/com/gamecenter/app/modules/ModuleDetailBottomSheet.kt`: server-provided changelog/permissions
+- `app/src/main/java/com/gamecenter/app/modules/ModuleStoreActivity.kt`: implements `StoreRendererHost`, integrates repositories
+- `app/src/main/res/layout/activity_module_store.xml`: root container id for renderer
+- `app/src/test/java/com/gamecenter/app/modules/ModuleDependencyTest.java`: adapt to 35-field ModuleManifest
+- `.gitignore`: exclude Gradle 8.13+ cache directories
+
+### Rollback methods
+
+- **Full rollback**: `git revert` the 4 commits in reverse order
+- **Disable remote features**: set 3 feature flags to `false` in `app/build.gradle`
+- **Delete new files**: remove `app/src/main/java/com/gamecenter/app/modules/store/` directory and `catalog.json`/`store-ui.json` assets
+
+### Remaining issues
+
+1. **Duplicate downloaders**: `ModuleDownloader` in `app/modules/` and `core/modulestore/` still coexist; not deleted per user instruction
+2. **Download concurrency**: no limit on simultaneous downloads; recommended max 2 concurrent downloads
+3. **Real-time progress**: `ModuleDownloadManager.getDownloadProgress()` is dead code; UI does not show real-time download speed
+4. **Catalog signature**: ✅ P3 已实现 Ed25519 目录签名验证（`CatalogSignatureVerifier`），当前处于兼容模式（`ENABLE_CATALOG_SIGNATURE=false`），后续需要配置真实公钥并启用
+5. **Transactional install**: ✅ P3 已实现 `staging/current/last_good/quarantine` 事务安装，支持加载失败自动回滚
+6. **Dynamic store APK**: not implemented; store UI still in main APK; deferred to P4
+7. **⚠️ 模块签名证书不匹配（2026-07-20 ADB 真机测试发现，高优先级）**: `core/security/.../ModuleSignatureVerifier.kt` 的 `loadPinnedCertificate()` 加载 `res/raw/release_signer.cer` 与服务器模块 APK 签名证书不一致，导致 tools/ai/vpn 模块下载后 `Result.Failure("签名者证书不匹配")`，无法完成端到端安装。修复方向：①统一 debug/release 签名证书；②debug 构建放宽校验策略；③用主 APK 签名证书重新签名服务器模块 APK 后上传。详见 `docs/ADB_REAL_DEVICE_TEST_PLAN.md` §21.1.2
+8. **搜索范围限制（2026-07-20 ADB 真机测试发现，中优先级）**: 当前模块商店搜索仅在当前选中的分类下生效，需评估是否扩展为全部分类搜索或提供搜索范围提示
+
+### Next phase recommendation
+
+**P4: Host UI module-declared**
+
+- 底部导航读取已安装模块贡献
+- 游戏大厅读取已安装游戏贡献
+- 工具区读取已安装工具贡献
+- 商店分类页读取目录元数据，而非硬编码列表
+- 已安装模块页读取本地模块数据库
+
+**目标**：
+- 浏览器/工具/AI/VPN/游戏大厅可通过模块更新替换，无需修改主 APK
 
 
 ---

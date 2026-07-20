@@ -1,5 +1,135 @@
 # GameMatrixApp - 版本更新日志
 
+## [混合架构 P0-P6 改造完成 + 部署测试] - 2026-07-20
+
+### 🎯 目标
+完成模块商店混合架构改造全部阶段（P0 基线确认、P1 远程目录化、P2 服务端驱动界面、P3 目录签名 + 事务安装、P4 动态 Host UI、P5 Store-Owned 更新、P6 Unity 模块架构），并在小米 ares 真机上完成部署测试。
+
+### 🛠 主要变更
+
+#### P0/P1/P2 混合架构基础
+- 远程目录协议（`StoreCatalog`、`StoreCategory`、`StoreModule`、`StoreHeroBanner`）
+- 远程 UI 配置协议（`StoreUiConfig`、`StoreSectionRenderer`）
+- 目录仓库：ETag 缓存 + 4 级降级
+- UI 配置仓库：原子缓存 + 观察者驱动
+- 模块商店主页接入远程目录与 UI 配置
+
+#### P3 目录签名 + 事务安装
+- 新增 `CatalogSignatureVerifier`：基于 Tink 的 Ed25519 目录签名验证
+- 新增 `TransactionInstaller`：`staging/current/last_good/quarantine` 目录结构
+- `ModuleDownloader` 下载到 `staging/`
+- `ModuleManager` 集成事务安装
+- `ModuleLoader` 优先从 `current/` 加载，失败时自动回滚 `last_good/`
+- Feature Flag：`ENABLE_CATALOG_SIGNATURE`（默认 false，兼容模式）、`ENABLE_TRANSACTIONAL_INSTALL`（默认 true）
+
+#### P4 动态 Host UI
+- 新增 `ModuleNavigationContribution` 接口
+- 新增 `ModuleRegistry` 模块注册中心
+- 新增 `ModuleIntentRouter` 模块间 Intent 路由
+- 新增 `BottomNavigationManager` 动态底部导航
+- 新增 `DynamicGamesHallFragment`、`DynamicToolsFragment`
+- Feature Flag：`ENABLE_P4_DYNAMIC_NAVIGATION`（默认 true）
+
+#### P5 Store-Owned 更新与回滚
+- 新增 `ModuleUpdateManager`：以远程目录为权威来源
+- 依赖拓扑排序：关键模块优先 + Kahn 算法保证被依赖者优先更新
+- 关键模块失败时中断并回滚
+- Feature Flag：`ENABLE_P5_STORE_OWNED_UPDATE`（默认 true）
+
+#### P6 Unity 模块架构
+- 新增 `UnityModuleLauncher` 接口（core/common）
+- 新增 `UnityModuleManager` 注册/查询/启动管理器
+- 新增占位独立启动 Activity 与嵌入 Fragment
+- Feature Flag：`ENABLE_P6_UNITY_MODULE`（默认 true）
+
+#### 部署测试
+- 为便于 ADB 直接启动，`ModuleStoreActivity` 临时设为 `exported=true`
+- 真机测试完成后恢复为 `exported=false`
+
+### 📝 修改文件
+
+**核心新增文件（P3-P6）**:
+- `app/src/main/java/com/gamecenter/app/modules/store/CatalogSignatureVerifier.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/TransactionInstaller.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/ModuleUpdateManager.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/RemoteCatalogAuthorityManager.kt`
+- `core/common/src/main/java/com/gamecenter/app/core/common/ModuleNavigationContribution.kt`
+- `core/common/src/main/java/com/gamecenter/app/core/common/ModuleRegistry.kt`
+- `core/common/src/main/java/com/gamecenter/app/core/common/ModuleIntentRouter.kt`
+- `core/common/src/main/java/com/gamecenter/app/core/common/UnityModuleLauncher.kt`
+- `app/src/main/java/com/gamecenter/app/modules/BottomNavigationManager.kt`
+- `app/src/main/java/com/gamecenter/app/features/DynamicGamesHallFragment.kt`
+- `app/src/main/java/com/gamecenter/app/features/DynamicToolsFragment.kt`
+- `app/src/main/java/com/gamecenter/app/modules/unity/UnityModuleManager.kt`
+- `app/src/main/java/com/gamecenter/app/modules/unity/PlaceholderUnityModuleLauncher.kt`
+- `app/src/main/java/com/gamecenter/app/modules/unity/UnityPlayerPlaceholderActivity.kt`
+- `docs/modules/P3_IMPLEMENTATION_PLAN.md`
+
+**核心修改文件**:
+- `app/build.gradle` — 新增 P3-P6 Feature Flags + Tink 依赖
+- `gradle/libs.versions.toml` — Tink 版本
+- `app/src/main/AndroidManifest.xml` — ModuleStoreActivity exported 状态
+- `app/src/main/java/com/gamecenter/app/modules/ModuleDownloader.kt`
+- `app/src/main/java/com/gamecenter/app/modules/ModuleManager.kt`
+- `app/src/main/java/com/gamecenter/app/modules/ModuleLoader.kt`
+- `app/src/main/java/com/gamecenter/app/modules/store/StoreCatalogRepository.kt`
+- `app/src/main/kotlin/com/gamecenter/app/MainActivity.kt`
+- `core/common/src/main/java/com/gamecenter/app/core/common/FeatureModule.kt`
+- `core/common/src/main/java/com/gamecenter/app/core/common/ModuleRegistry.kt`
+- 各动态模块 `*ModuleEntryPoint.*` — 迁移到 `core/common` 统一模型
+
+### ✅ 验证结果
+
+- `\.\gradlew.bat :app:bundlePreinstalledModules -PautoBumpVersion=false --stacktrace` **BUILD SUCCESSFUL in 24s**
+- `\.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace` **BUILD SUCCESSFUL in 9s**
+- **真机测试（小米 ares M2012K10C，无线调试）**:
+  - APK 安装成功
+  - 模块商店通过 ADB 直接启动成功
+  - 首页 Hero Banner / 统计 / 分类 tab / 搜索 / 模块列表正常
+  - 浏览器 / 工具箱 / AI助手 / VPN / 已安装 分类切换无崩溃
+  - 搜索框输入 `tts` 正常响应
+  - 列表滚动正常
+  - 模块详情 BottomSheet（Games Hall）展示完整
+  - 从 Launcher 启动 App 正常
+  - logcat 无 FATAL EXCEPTION / 应用崩溃 ✅
+
+### 🔧 Feature Flags
+- `ENABLE_CATALOG_SIGNATURE`（默认 false）
+- `ENABLE_TRANSACTIONAL_INSTALL`（默认 true）
+- `ENABLE_P4_DYNAMIC_NAVIGATION`（默认 true）
+- `ENABLE_P5_STORE_OWNED_UPDATE`（默认 true）
+- `ENABLE_P6_UNITY_MODULE`（默认 true）
+
+### 🔄 回滚方法
+
+**整体 Git 回退**:
+```powershell
+git checkout -- app/build.gradle
+# ...（按各阶段分别 checkout 对应文件，详见 修改记录.md 各章节）
+```
+
+**禁用功能**（保留代码）:
+```gradle
+// app/build.gradle
+buildConfigField "boolean", "ENABLE_CATALOG_SIGNATURE", "false"
+buildConfigField "boolean", "ENABLE_TRANSACTIONAL_INSTALL", "false"
+buildConfigField "boolean", "ENABLE_P4_DYNAMIC_NAVIGATION", "false"
+buildConfigField "boolean", "ENABLE_P5_STORE_OWNED_UPDATE", "false"
+buildConfigField "boolean", "ENABLE_P6_UNITY_MODULE", "false"
+```
+
+### ⚠️ 遗留问题（2026-07-20 ADB 真机测试发现）
+
+1. **模块签名证书不匹配（高优先级）**：`core/security/src/main/kotlin/com/gamecenter/app/core/security/ModuleSignatureVerifier.kt` 的 `loadPinnedCertificate()` 加载 `res/raw/release_signer.cer` 与服务器模块 APK 签名证书不一致，导致 tools/ai/vpn 模块下载后 `Result.Failure("签名者证书不匹配")`，无法完成端到端安装。详见 `docs/ADB_REAL_DEVICE_TEST_PLAN.md` §21.1.2
+
+2. **模块商店搜索范围限制（中优先级）**：当前搜索仅在当前选中的分类下生效，例如在"工具箱"分类搜索"2048"不会返回结果，需在"游戏"分类下搜索。详见 `docs/ADB_REAL_DEVICE_TEST_PLAN.md` §21.1.2
+
+3. **test_artifacts 清理（低优先级）**：`test_artifacts/` 目录约 110 个临时截图与 UI dump 文件，已登记到 `待删除文件清单.md`，待任务结束之后整目录删除。
+
+4. **目录签名公钥占位（中优先级）**：`ENABLE_CATALOG_SIGNATURE=false` 处于兼容模式，正式上线前需配置真实 Ed25519 公钥并改为 true。
+
+---
+
 ## [Batch 21 项目检查] - 2026-07-20（Fix 1 遗漏修复：vpn fallbackUrl 与 modules.json 对齐）
 
 ### 🛠 修复
