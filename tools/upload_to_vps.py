@@ -139,7 +139,36 @@ def collect_uploads(args: argparse.Namespace, cfg: dict) -> list[tuple[Path, str
 
 def connect(cfg: dict) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # 安全性：使用 RejectPolicy 替代 AutoAddPolicy，防止中间人攻击
+    # 修复 GitHub Code Scanning alert #32 (py/paramiko-missing-host-key-validation)
+    # 已知主机密钥从以下来源加载（按优先级）：
+    #   1. cfg["knownHostsFile"] 显式指定
+    #   2. 环境变量 UPLOAD_KNOWN_HOSTS_FILE
+    #   3. 默认 ~/.ssh/known_hosts
+    # 首次连接需先执行: ssh-keyscan -H <host> >> ~/.ssh/known_hosts
+    client.set_missing_host_key_policy(paramiko.RejectPolicy())
+
+    known_hosts_file = (
+        cfg.get("knownHostsFile")
+        or os.environ.get("UPLOAD_KNOWN_HOSTS_FILE")
+        or os.path.expanduser("~/.ssh/known_hosts")
+    )
+    if os.path.exists(known_hosts_file):
+        client.load_host_keys(known_hosts_file)
+        # 同时加载系统默认 known_hosts（如有）
+        try:
+            client.load_system_host_keys()
+        except Exception:
+            pass
+    else:
+        # 显式加载系统主机密钥（RejectPolicy 下若主机未在 known_hosts 中会拒绝连接）
+        try:
+            client.load_system_host_keys()
+        except Exception as exc:
+            raise RuntimeError(
+                f"known_hosts file not found: {known_hosts_file}. "
+                f"Please run: ssh-keyscan -H {cfg.get('host', '<host>')} >> {known_hosts_file}"
+            ) from exc
 
     auth_method = str(cfg.get("authMethod", "password")).lower()
     kwargs = {
