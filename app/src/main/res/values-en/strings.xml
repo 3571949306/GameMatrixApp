@@ -2161,4 +2161,9 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="achievement_rarity_silver">Silver</string>
     <string name="achievement_rarity_gold">Gold</string>
     <string name="achievement_rarity_platinum">Platinum</string>
+    <!-- ===== P6: Unity module placeholder strings ===== -->
+    <string name="unity_module_placeholder_title">"Unity Module: %1$s"</string>
+    <string name="unity_module_placeholder_desc">"This is a placeholder; Unity runtime is not integrated yet. Real Unity modules will be available in a future release."</string>
+    <string name="unity_module_not_supported">"This device does not support running this Unity module"</string>
+
 </resources>

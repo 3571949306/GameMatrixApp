@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
+import com.gamecenter.app.core.common.ModuleNavigationContribution
+import com.gamecenter.app.core.common.NavigationSlot
 import com.gamecenter.app.fragments.ToolsFragment
 
 class ToolsModuleEntryPoint : ModuleInterface, FeatureModule {
@@ -32,5 +34,18 @@ class ToolsModuleEntryPoint : ModuleInterface, FeatureModule {
 
     override fun createFragment(context: Context): Fragment {
         return ToolsFragment()
+    }
+
+    override fun getNavigationContributions(context: Context): List<ModuleNavigationContribution> {
+        return listOf(ToolsNavContribution())
+    }
+
+    private class ToolsNavContribution : ModuleNavigationContribution {
+        override fun getContributionId(): String = "tools"
+        override fun getTitle(context: Context): String = "工具箱"
+        override fun getIconResId(): Int = 0
+        override fun getOrder(): Int = 30
+        override fun getSlot(): NavigationSlot = NavigationSlot.BOTTOM_NAV
+        override fun createFragment(context: Context): Fragment = ToolsFragment()
     }
 }
