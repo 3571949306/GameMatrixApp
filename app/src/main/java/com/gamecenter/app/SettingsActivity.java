@@ -15,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.gamecenter.app.modules.ModuleManager;
-import com.gamecenter.app.modules.ModuleManifest;
+import com.gamecenter.app.core.common.ModuleManifest;
 
 import java.io.File;
 import java.text.DecimalFormat;

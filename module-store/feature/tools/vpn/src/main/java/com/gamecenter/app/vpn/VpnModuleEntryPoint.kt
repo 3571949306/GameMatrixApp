@@ -6,6 +6,8 @@ import android.util.Log
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
+import com.gamecenter.app.core.common.ModuleNavigationContribution
+import com.gamecenter.app.core.common.NavigationSlot
 import com.gamecenter.app.core.common.VpnDelegate
 import com.gamecenter.app.vpn.model.Node
 import com.gamecenter.app.vpn.protocol.ProtocolFactory
@@ -50,6 +52,31 @@ class VpnModuleEntryPoint : ModuleInterface, FeatureModule, VpnDelegate {
     // ===== FeatureModule =====
 
     override fun createFragment(context: Context): Fragment = VpnFragment()
+
+    override fun getNavigationContributions(context: Context): List<ModuleNavigationContribution> {
+        return listOf(
+            VpnBottomNavContribution(),
+            VpnToolsGridContribution()
+        )
+    }
+
+    private class VpnBottomNavContribution : ModuleNavigationContribution {
+        override fun getContributionId(): String = "vpn"
+        override fun getTitle(context: Context): String = "科学上网"
+        override fun getIconResId(): Int = 0
+        override fun getOrder(): Int = 50
+        override fun getSlot(): NavigationSlot = NavigationSlot.BOTTOM_NAV
+        override fun createFragment(context: Context): Fragment = VpnFragment()
+    }
+
+    private class VpnToolsGridContribution : ModuleNavigationContribution {
+        override fun getContributionId(): String = "vpn_tools"
+        override fun getTitle(context: Context): String = "科学上网"
+        override fun getIconResId(): Int = 0
+        override fun getOrder(): Int = 50
+        override fun getSlot(): NavigationSlot = NavigationSlot.TOOLS_GRID
+        override fun createFragment(context: Context): Fragment = VpnFragment()
+    }
 
     // ===== VpnDelegate =====
 

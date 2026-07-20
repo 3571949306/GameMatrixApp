@@ -448,14 +448,37 @@ object ModuleDownloader {
     }
 
     fun getModuleFile(context: Context, manifest: ModuleManifest): File {
-        val dir = File(context.filesDir, "modules")
-        if (!dir.exists()) dir.mkdirs()
-        // 防御路径穿越漏洞，同时兼容预装模块的文件名
+        // P3: 下载到 staging 目录，由 TransactionInstaller 负责移动到 current
+        return com.gamecenter.app.modules.store.TransactionInstaller.getStagingFile(context, manifest)
+    }
+    
+    /**
+     * 获取模块在 current 目录的文件（已安装完成的模块）。
+     * P3: 用于加载侧读取已安装的模块。
+     */
+    fun getInstalledModuleFile(context: Context, manifest: ModuleManifest): File {
+        return com.gamecenter.app.modules.store.TransactionInstaller.getCurrentFile(context, manifest)
+    }
+    
+    /**
+     * 获取模块文件（兼容旧版本）。
+     * 优先返回 current/ 路径，若不存在则返回旧 modules/ 路径（兼容迁移）。
+     */
+    fun getModuleFileCompat(context: Context, manifest: ModuleManifest): File {
+        val currentFile = getInstalledModuleFile(context, manifest)
+        if (currentFile.exists()) return currentFile
+        
+        // 兼容旧版本：检查旧 modules/ 目录
+        val legacyDir = File(context.filesDir, "modules")
         var safeFileName = File(manifest.fileName).name
         if (safeFileName.isEmpty() || !safeFileName.endsWith(".apk")) {
             safeFileName = "${manifest.id}.apk"
         }
-        return File(dir, safeFileName)
+        val legacyFile = File(legacyDir, safeFileName)
+        if (legacyFile.exists()) return legacyFile
+        
+        // 默认返回 current 路径
+        return currentFile
     }
 
     fun getModuleDir(context: Context): File {

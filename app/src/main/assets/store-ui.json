@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": 1,
+  "minHostVersionCode": 567,
+  "generatedAt": "2026-07-20T00:00:00Z",
+  "pages": {
+    "store_home": {
+      "sections": [
+        {
+          "id": "hero",
+          "type": "hero_banner",
+          "enabled": true,
+          "order": 10
+        },
+        {
+          "id": "search",
+          "type": "search_bar",
+          "enabled": true,
+          "order": 20
+        },
+        {
+          "id": "notice",
+          "type": "notice",
+          "enabled": false,
+          "order": 25,
+          "params": {
+            "text": "欢迎来到模块商店，下拉刷新可获取最新内容",
+            "dismissable": true
+          }
+        },
+        {
+          "id": "categories",
+          "type": "category_tabs",
+          "enabled": true,
+          "order": 30
+        },
+        {
+          "id": "featured_title",
+          "type": "section_title",
+          "enabled": true,
+          "order": 40,
+          "params": {
+            "text": "推荐模块",
+            "icon": "ic_store_featured"
+          }
+        },
+        {
+          "id": "modules",
+          "type": "module_grid",
+          "enabled": true,
+          "order": 50,
+          "columns": 2
+        },
+        {
+          "id": "updates",
+          "type": "update_section",
+          "enabled": true,
+          "order": 60,
+          "params": {
+            "maxItems": 5
+          }
+        },
+        {
+          "id": "installed",
+          "type": "installed_section",
+          "enabled": true,
+          "order": 70,
+          "params": {
+            "maxItems": 10
+          }
+        },
+        {
+          "id": "all_modules_list",
+          "type": "module_list",
+          "enabled": false,
+          "order": 80
+        }
+      ]
+    }
+  }
+}

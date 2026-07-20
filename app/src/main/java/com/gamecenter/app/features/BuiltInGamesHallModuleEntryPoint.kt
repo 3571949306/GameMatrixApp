@@ -2,8 +2,11 @@ package com.gamecenter.app.features
 
 import android.content.Context
 import androidx.fragment.app.Fragment
+import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
+import com.gamecenter.app.core.common.ModuleNavigationContribution
+import com.gamecenter.app.core.common.NavigationSlot
 
 class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
 
@@ -29,5 +32,30 @@ class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
 
     override fun isRunning(): Boolean = running
 
-    override fun createFragment(context: Context): Fragment = BuiltInGamesHallFragment()
+    override fun createFragment(context: Context): Fragment {
+        return if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
+            DynamicGamesHallFragment()
+        } else {
+            BuiltInGamesHallFragment()
+        }
+    }
+
+    override fun getNavigationContributions(context: Context): List<ModuleNavigationContribution> {
+        return listOf(GamesHallNavContribution())
+    }
+
+    private class GamesHallNavContribution : ModuleNavigationContribution {
+        override fun getContributionId(): String = "games_hall"
+        override fun getTitle(context: Context): String = "游戏大厅"
+        override fun getIconResId(): Int = 0
+        override fun getOrder(): Int = 10
+        override fun getSlot(): NavigationSlot = NavigationSlot.BOTTOM_NAV
+        override fun createFragment(context: Context): Fragment {
+            return if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
+                DynamicGamesHallFragment()
+            } else {
+                BuiltInGamesHallFragment()
+            }
+        }
+    }
 }

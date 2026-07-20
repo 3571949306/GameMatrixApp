@@ -213,7 +213,8 @@ object ModuleManager {
             val installedVersion = getInstalledVersionCode(context, moduleId)
             Log.d(TAG, "downloadModule: $moduleId installedVersion=$installedVersion, manifestVersion=${manifest.versionCode}")
             if (installedVersion >= manifest.versionCode && manifest.fileName.isNotEmpty()) {
-                val existingFile = ModuleDownloader.getModuleFile(context, manifest)
+                // P3: 使用兼容方法检查已安装的模块
+                val existingFile = ModuleDownloader.getModuleFileCompat(context, manifest)
                 if (existingFile.exists() && ModuleVerifier.verifySha256(existingFile, manifest.sha256, allowEmpty = manifest.builtIn)) {
                     Log.d(TAG, "downloadModule: $moduleId is already up to date and verified")
                     callback?.onComplete(moduleId, existingFile)
@@ -234,12 +235,30 @@ object ModuleManager {
 
             override fun onComplete(moduleId: String, file: File) {
                 Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
+                
+                // P3: 事务性安装 - 将文件从 staging 移动到 current
+                val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
+                    context, manifest, file
+                )
+                
+                if (!installResult.isSuccess) {
+                    val reason = (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Failure)?.reason ?: "未知原因"
+                    Log.e(TAG, "事务安装失败: $moduleId, $reason")
+                    downloadCallbacks[moduleId]?.onError(moduleId, "安装失败: $reason")
+                    downloadCallbacks.remove(moduleId)
+                    return
+                }
+                
+                // 获取安装后的 current 文件
+                val installedFile = ModuleDownloader.getInstalledModuleFile(context, manifest)
+                Log.d(TAG, "事务安装成功: $moduleId -> ${installedFile.absolutePath}")
+                
                 ModuleLoader.unloadModule(moduleId)
                 markModuleInstalled(context, manifest)
                 if (manifest.type == "game") {
                     registerInstalledGameModules(context)
                 }
-                downloadCallbacks[moduleId]?.onComplete(moduleId, file)
+                downloadCallbacks[moduleId]?.onComplete(moduleId, installedFile)
                 downloadCallbacks.remove(moduleId)
             }
 
@@ -273,7 +292,8 @@ object ModuleManager {
     fun uninstallModule(context: Context, moduleId: String) {
         ModuleLoader.unloadModule(moduleId)
         val manifest = manifests[moduleId] ?: return
-        val file = ModuleDownloader.getModuleFile(context, manifest)
+        // P3: 使用兼容方法获取模块文件路径
+        val file = ModuleDownloader.getModuleFileCompat(context, manifest)
         if (file.exists()) file.delete()
         removeInstalledModule(context, moduleId)
         if (manifest.type == "game") {
@@ -289,7 +309,8 @@ object ModuleManager {
         val manifest = manifests[moduleId] ?: return false
         if (manifest.builtIn) return true
         if (manifest.fileName.isNotEmpty()) {
-            val file = ModuleDownloader.getModuleFile(context, manifest)
+            // P3: 使用兼容方法检查模块文件
+            val file = ModuleDownloader.getModuleFileCompat(context, manifest)
             if (file.exists()) return true
         }
         return false
@@ -350,7 +371,8 @@ object ModuleManager {
                 continue
             }
             if (!installed.contains(id) && manifest.fileName.isNotEmpty()) {
-                val file = ModuleDownloader.getModuleFile(context, manifest)
+                // P3: 使用兼容方法检查模块文件
+                val file = ModuleDownloader.getModuleFileCompat(context, manifest)
                 if (file.exists()) installed.add(id)
             }
         }

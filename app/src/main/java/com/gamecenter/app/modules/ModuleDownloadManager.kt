@@ -51,7 +51,8 @@ object ModuleDownloadManager {
             DOWNLOAD_URL + manifest.fileName
         }
 
-        val outputFile = ModuleDownloader.getModuleFile(context, manifest)
+        // P3: 使用兼容方法获取模块文件路径（优先 current/，兼容旧 modules/）
+        val outputFile = ModuleDownloader.getModuleFileCompat(context, manifest)
 
         // 检查是否已下载且校验通过
         if (outputFile.exists() && ModuleVerifier.verifySha256(outputFile, manifest.sha256, allowEmpty = manifest.builtIn)) {
@@ -150,7 +151,8 @@ object ModuleDownloadManager {
      * @return 是否已下载且校验通过
      */
     fun isModuleDownloaded(context: Context, manifest: ModuleManifest): Boolean {
-        val file = ModuleDownloader.getModuleFile(context, manifest)
+        // P3: 使用兼容方法检查模块文件
+        val file = ModuleDownloader.getModuleFileCompat(context, manifest)
         return file.exists() && ModuleVerifier.verifySha256(file, manifest.sha256, allowEmpty = manifest.builtIn)
     }
 
@@ -162,7 +164,8 @@ object ModuleDownloadManager {
      * @return 是否删除成功
      */
     fun deleteDownloadedModule(context: Context, manifest: ModuleManifest): Boolean {
-        val file = ModuleDownloader.getModuleFile(context, manifest)
+        // P3: 使用兼容方法获取模块文件路径
+        val file = ModuleDownloader.getModuleFileCompat(context, manifest)
         return if (file.exists()) {
             val result = file.delete()
             Log.d(TAG, "deleteDownloadedModule: ${manifest.id} result=$result")

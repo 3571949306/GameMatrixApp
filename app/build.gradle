@@ -361,6 +361,35 @@ android {
         buildConfigField "boolean", "MODULE_STORE_SEARCH_HISTORY", "true"
         buildConfigField "boolean", "MODULE_STORE_DETAIL_ENHANCE", "true"
 
+        // ===== 混合架构 P1/P2：远程目录 + 远程 UI 配置 + 区块渲染器 =====
+        // 默认开启，关闭后商店退回旧 assets/modules.json + 硬编码布局
+        buildConfigField "boolean", "STORE_REMOTE_CATALOG", "true"
+        buildConfigField "boolean", "STORE_REMOTE_UI", "true"
+        buildConfigField "boolean", "STORE_SECTION_RENDERER", "false"
+
+        // ===== 混合架构 P3：目录签名 + 事务安装 =====
+        // 目录签名验证开关：开启后强制验证catalog.json的Ed25519签名
+        // 当前处于兼容模式（false），后续正式启用时改为true
+        buildConfigField "boolean", "ENABLE_CATALOG_SIGNATURE", "false"
+        // 事务性安装开关：开启后使用staging/current/last_good/quarantine目录结构
+        buildConfigField "boolean", "ENABLE_TRANSACTIONAL_INSTALL", "true"
+
+        // ===== 混合架构 P4：Host UI 完全模块化 =====
+        // 动态底部导航开关：开启后底部导航从 ModuleRegistry 的导航贡献动态构建
+        buildConfigField "boolean", "ENABLE_P4_DYNAMIC_NAVIGATION", "true"
+        // 动态游戏大厅开关：开启后游戏大厅从模块贡献动态构建
+        buildConfigField "boolean", "ENABLE_P4_DYNAMIC_GAMES_HALL", "false"
+        // 动态工具区开关：开启后工具区从模块贡献动态构建
+        buildConfigField "boolean", "ENABLE_P4_DYNAMIC_TOOLS", "true"
+
+        // ===== 混合架构 P5：Store-Owned 更新与回滚 =====
+        // 开启后模块更新完全由商店目录驱动，失败时自动回滚
+        buildConfigField "boolean", "ENABLE_P5_STORE_OWNED_UPDATE", "true"
+
+        // ===== 混合架构 P6：Unity 模块架构 =====
+        // 开启后支持 Unity launcher / content 模块类型
+        buildConfigField "boolean", "ENABLE_P6_UNITY_MODULE", "true"
+
         buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
@@ -428,6 +457,17 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = false
+        }
+    }
+
+    // P2.8: 单元测试配置
+    // - returnDefaultValues=true: Android Log / Context 等未 mock 方法返回默认值（0/null/false）
+    //   而不是抛 RuntimeException，便于测试包含 Log.w 调用的代码路径（如 StoreActionRouter 拒绝分支）
+    // - includeAndroidResources=true: Robolectric 测试可读取资源
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
         }
     }
 
@@ -500,6 +540,7 @@ dependencies {
     implementation libs.androidx.security.crypto
     implementation libs.zxing
     implementation libs.gson
+    implementation libs.tink.android
     implementation libs.okhttp
     implementation libs.glide
     implementation libs.mediapipe.genai
