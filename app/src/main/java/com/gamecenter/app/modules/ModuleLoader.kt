@@ -2,6 +2,7 @@ package com.gamecenter.app.modules
 
 import android.content.Context
 import android.util.Log
+import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.core.security.ModuleSignatureVerifier
 import dalvik.system.DexClassLoader
 import java.io.File
@@ -20,7 +21,8 @@ object ModuleLoader {
             return null
         }
 
-        val moduleFile = ModuleDownloader.getModuleFile(context, manifest)
+        // P3: 优先从 current/ 读取已安装的模块，兼容旧 modules/ 目录
+        val moduleFile = ModuleDownloader.getModuleFileCompat(context, manifest)
         if (manifest.builtIn && (
                 !moduleFile.exists() ||
                 ModuleManager.getInstalledVersionCode(context, manifest.id) <= manifest.builtInVersionCode
@@ -64,6 +66,8 @@ object ModuleLoader {
 
         if (!ModuleVerifier.verifyDexFile(moduleFile)) {
             Log.e(TAG, "模块文件格式无效: ${manifest.id}")
+            // P3: 加载失败时尝试回滚到 last_good 版本
+            attemptRollback(context, manifest, "Dex文件验证失败")
             return null
         }
 
@@ -88,6 +92,8 @@ object ModuleLoader {
 
             if (instance !is ModuleInterface) {
                 Log.e(TAG, "入口类未实现 ModuleInterface: ${manifest.entryClass}")
+                // P3: 加载失败时尝试回滚到 last_good 版本
+                attemptRollback(context, manifest, "入口类未实现 ModuleInterface")
                 return null
             }
 
@@ -107,11 +113,44 @@ object ModuleLoader {
             loadedModules[manifest.id] = instance
             classLoaders[manifest.id] = classLoader
 
+            // P1/P4: 注册到模块注册中心
+            try {
+                com.gamecenter.app.core.common.ModuleRegistry.registerLoadedModule(manifest.id, instance)
+                com.gamecenter.app.core.common.ModuleRegistry.registerManifest(manifest)
+            } catch (e: Exception) {
+                Log.w(TAG, "注册模块到 ModuleRegistry 失败: ${manifest.id}", e)
+            }
+
             Log.d(TAG, "模块 ${manifest.id} 加载成功: ${manifest.entryClass}")
             instance
         } catch (e: Exception) {
             Log.e(TAG, "模块加载失败 ${manifest.id}: ${e.message}", e)
+            // P3: 加载失败时尝试回滚到 last_good 版本
+            attemptRollback(context, manifest, "加载异常: ${e.message}")
             null
+        }
+    }
+    
+    /**
+     * P3: 尝试回滚模块到 last_good 版本。
+     * 
+     * @param context 上下文
+     * @param manifest 模块清单
+     * @param reason 回滚原因（用于日志）
+     */
+    private fun attemptRollback(context: Context, manifest: ModuleManifest, reason: String) {
+        if (!BuildConfig.ENABLE_TRANSACTIONAL_INSTALL) {
+            Log.d(TAG, "事务安装已禁用，跳过回滚: ${manifest.id}")
+            return
+        }
+        
+        Log.w(TAG, "模块加载失败，尝试回滚: ${manifest.id}, 原因: $reason")
+        
+        val rollbackSuccess = com.gamecenter.app.modules.store.TransactionInstaller.rollback(context, manifest)
+        if (rollbackSuccess) {
+            Log.d(TAG, "模块回滚成功: ${manifest.id}")
+        } else {
+            Log.e(TAG, "模块回滚失败: ${manifest.id}")
         }
     }
 
@@ -170,6 +209,15 @@ object ModuleLoader {
             instance.init(context)
             loadedModules[manifest.id] = instance
             classLoaders[manifest.id] = context.classLoader
+
+            // P1/P4: 注册到模块注册中心（内置模块同样需要贡献导航等能力）
+            try {
+                com.gamecenter.app.core.common.ModuleRegistry.registerLoadedModule(manifest.id, instance)
+                com.gamecenter.app.core.common.ModuleRegistry.registerManifest(manifest)
+            } catch (e: Exception) {
+                Log.w(TAG, "注册内置模块到 ModuleRegistry 失败: ${manifest.id}", e)
+            }
+
             Log.d(TAG, "Built-in module loaded: ${manifest.id} -> ${manifest.entryClass}")
             instance
         } catch (e: Exception) {
@@ -193,6 +241,12 @@ object ModuleLoader {
         loadedModules.remove(moduleId)
         classLoaders.remove(moduleId)
         resourceLoaders.remove(moduleId)
+        // P1/P4: 从模块注册中心注销
+        try {
+            com.gamecenter.app.core.common.ModuleRegistry.unregisterLoadedModule(moduleId)
+        } catch (e: Exception) {
+            Log.w(TAG, "从 ModuleRegistry 注销模块失败: $moduleId", e)
+        }
         Log.d(TAG, "模块 $moduleId 已卸载")
     }
 

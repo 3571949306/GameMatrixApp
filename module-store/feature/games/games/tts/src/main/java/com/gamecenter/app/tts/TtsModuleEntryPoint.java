@@ -4,6 +4,11 @@ import android.content.Context;
 import androidx.fragment.app.Fragment;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
+import com.gamecenter.app.core.common.ModuleNavigationContribution;
+import com.gamecenter.app.core.common.NavigationSlot;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * TTS 语音合成模块入口（供模块商店和游戏大厅识别）。
@@ -46,4 +51,29 @@ public class TtsModuleEntryPoint implements ModuleInterface, FeatureModule {
 
     @Override
     public Fragment createFragment(Context context) { return new TtsFragment(); }
+
+    @Override
+    public List<ModuleNavigationContribution> getNavigationContributions(Context context) {
+        return Arrays.<ModuleNavigationContribution>asList(new TtsNavContribution());
+    }
+
+    private static class TtsNavContribution implements ModuleNavigationContribution {
+        @Override
+        public String getContributionId() { return "tts_voice"; }
+
+        @Override
+        public String getTitle(Context context) { return "语音合成"; }
+
+        @Override
+        public int getIconResId() { return 0; }
+
+        @Override
+        public int getOrder() { return 130; }
+
+        @Override
+        public NavigationSlot getSlot() { return NavigationSlot.GAMES_HALL; }
+
+        @Override
+        public Fragment createFragment(Context context) { return new TtsFragment(); }
+    }
 }

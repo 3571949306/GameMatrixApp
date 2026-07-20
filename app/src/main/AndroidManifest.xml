@@ -192,6 +192,13 @@
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
 
+        <!-- P6: Unity 模块占位启动 Activity -->
+        <activity
+            android:name=".modules.unity.UnityPlayerPlaceholderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.browser.fileprovider"

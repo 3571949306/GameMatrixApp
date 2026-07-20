@@ -2156,4 +2156,9 @@
 
     <!-- ===== Batch 9-2: HOME_PULL_REFRESH 首页下拉刷新 ===== -->
     <string name="home_pull_refresh_done">已刷新游戏列表</string>
+    <!-- ===== P6: Unity 模块架构占位字符串 ===== -->
+    <string name="unity_module_placeholder_title">Unity 模块：%1$s</string>
+    <string name="unity_module_placeholder_desc">当前为占位实现，未集成 Unity 运行时。真实 Unity 模块将在后续版本提供。</string>
+    <string name="unity_module_not_supported">当前设备不支持运行该 Unity 模块</string>
+
 </resources>

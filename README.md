@@ -11,6 +11,30 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ---
 
+## 2026-07-20 混合架构 P0-P6 改造完成
+
+完成模块商店混合架构全部阶段改造，实现服务器驱动商店内容与 UI，主 APK 仅保留下载/校验/安装/加载核心能力。
+
+### 已完成阶段
+- **P0/P1/P2**：远程目录协议、远程 UI 配置、目录仓库（ETag + 4 级降级）、UI 配置仓库、区块渲染器
+- **P3**：Ed25519 目录签名验证（Tink，兼容模式）+ 事务安装（`staging/current/last_good/quarantine`）+ 自动回滚
+- **P4**：模块声明式动态导航（`ModuleNavigationContribution` + `BottomNavigationManager` + `DynamicGamesHallFragment`/`DynamicToolsFragment`）
+- **P5**：Store-Owned 批量更新（`ModuleUpdateManager` + 依赖拓扑排序 + 失败回滚）
+- **P6**：Unity 模块架构接口（`UnityModuleLauncher` + `UnityModuleManager` + 占位启动器）
+
+### 部署测试
+- 小米 ares (M2012K10C) 真机验证通过
+- 构建：`bundlePreinstalledModules` + `assembleDebug` 成功
+- 测试：模块商店启动、分类切换、搜索、详情、主入口均正常，logcat 无 FATAL EXCEPTION
+
+### 相关文档
+- [CHANGELOG.md](CHANGELOG.md)
+- [docs/modules/MODULE_STORE_REDESIGN_PLAN.md](docs/modules/MODULE_STORE_REDESIGN_PLAN.md)
+- [docs/modules/P3_IMPLEMENTATION_PLAN.md](docs/modules/P3_IMPLEMENTATION_PLAN.md)
+- [修改记录.md](修改记录.md)
+
+---
+
 ## 2026-07-11 安全与构建链维护
 
 - 错题本预装 APK 改为发布证书签名，构建时自动同步模块大小与 SHA-256，并在下载和安装时执行硬校验。
