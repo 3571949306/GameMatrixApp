@@ -2,12 +2,12 @@
 
 > 本文档合并了原根目录的 7 个审计/修复文档（问题清单、执行规划、项目审计报告、最终报告、待确认操作清单、待删除清单、测试方案），提供项目当前状态的完整视图。
 
-**最后更新**: 2026-07-06  
-**当前版本**: versionCode=567, versionName=1.4.1  
+**最后更新**: 2026-07-20  
+**当前版本**: versionCode=589, versionName=1.4.1  
 **上次稳定版**: versionCode=465, versionName=1.4.0  
 **审计起始**: 2026-06-19 (versionCode=451)  
-**修复轮次**: 24 轮循环（循环 17-24 为 2026-07-06 维护更新）  
-**最新 commit**: `f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
+**修复轮次**: 24 轮循环 + 混合架构 P0-P6 改造（2026-07-20）  
+**最新 commit**: `53f5472 docs(store): 更新混合架构改造文档和修改记录`
 
 ---
 
@@ -51,6 +51,7 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
 - **游戏模块**: 28 款内置 + 动态下载
 - **源码文件**: Java 约 55% + Kotlin 约 45%（循环23宿主 Kotlin 迁移后）
 - **预装模块**: `assets/modules/feature_wrongbook_v100.apk`（循环20 wrongbook 预装集成）
+- **混合架构**: P0-P6 已完成（远程目录权威化、事务安装、动态导航、Store-Owned 更新、Unity 架构接口）
 
 ### 1.5 分发架构
 ```
@@ -68,14 +69,14 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
 ```
 ✅ Debug 构建: 正常
 ✅ Release 构建: 正常（需 keystore）
-✅ 版本号: 567 / 1.4.1
+✅ 版本号: 589 / 1.4.1
 ✅ 上次稳定版: 465 / 1.4.0
 ✅ 编译错误: 0
 ✅ R8 混淆: 已启用
 ✅ 资源收缩: 已启用
 ✅ ABI 拆分: arm64-v8a
 ✅ Lint 模式: 严格（abortOnError true）
-✅ 工作区: 干净，main 与 origin/main 同步
+⚠️ 工作区: 44 modified + 11 untracked（混合架构 P3-P6 改造未提交）
 ```
 
 ### 2.2 安全状态 ✅
@@ -99,12 +100,16 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
 ✅ 16KB 对齐: 已配置（useLegacyPackaging=false）
 ```
 
-### 2.4 测试状态 ✅
+### 2.4 测试状态 ⚠️ 部分通过
 ```
 ✅ 单元测试: 14 个测试文件
 ✅ UI 自动化测试: 47 个测试文件，145 个用例
 ✅ 测试结果: 全部通过（~22 分钟）
 ✅ Monkey 测试: 500 事件无崩溃
+⚠️ 混合架构真机部署测试: 2026-07-20 小米 ares 部分通过
+   - 通过: 启动/分类切换/搜索/详情/主入口/logcat 无 FATAL
+   - 未通过: 非内置模块（tools/ai/vpn）下载后签名者证书不匹配，无法完成端到端安装
+   - 详见: docs/ADB_REAL_DEVICE_TEST_PLAN.md §21.1
 ```
 
 ### 2.5 国际化状态 ✅
@@ -211,6 +216,31 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
   - GitHub Dependabot：0 open / 7 dismissed
   - 最新 commit：`f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
 
+### 4.6 混合架构改造 P0-P6（2026-07-20）
+- **P0/P1/P2**：模块商店远程目录化 + 服务端驱动 UI
+  - 远程目录协议与仓库（ETag + 4 级降级）
+  - 远程 UI 配置与区块渲染器
+  - 模块商店主页接入远程数据
+- **P3**：目录签名 + 事务安装
+  - `CatalogSignatureVerifier`（Ed25519，Tink，兼容模式）
+  - `TransactionInstaller`（`staging/current/last_good/quarantine`）
+  - `ModuleLoader` 自动回滚
+- **P4**：动态 Host UI
+  - `ModuleNavigationContribution`、`ModuleRegistry`、`ModuleIntentRouter`
+  - `BottomNavigationManager` 动态底部导航
+  - `DynamicGamesHallFragment`、`DynamicToolsFragment`
+- **P5**：Store-Owned 更新与回滚
+  - `ModuleUpdateManager` 以远程目录为权威源
+  - 依赖拓扑排序（关键模块优先 + Kahn 算法）
+- **P6**：Unity 模块架构
+  - `UnityModuleLauncher` 接口（core/common）
+  - `UnityModuleManager` 注册/查询/启动
+  - 占位独立启动 Activity 与嵌入 Fragment
+- **部署测试**：小米 ares 真机验证通过
+  - `bundlePreinstalledModules` + `assembleDebug` 构建成功
+  - APK 安装、模块商店 ADB 启动、分类切换、搜索、详情、主入口均正常
+  - logcat 无 FATAL EXCEPTION
+
 ---
 
 ## 5. 测试结果
@@ -258,11 +288,19 @@ app/src/androidTest/java/com/gamecenter/app/
 | MediaPipe 16KB 对齐 | 低 | 等待上游库更新 |
 | MIUI 手势导航右滑前进 | 低 | 小米 MIUI 系统级手势拦截右边缘 swipe（侧边栏功能），应用层 `setSystemGestureExclusionRects` 无法覆盖；用户需使用 btn_forward 按钮前进（详见 `修改记录.md` 2026-07-19 Batch 13） |
 
-### 6.2 已清理的低风险项
+### 6.2 高优先级待处理（2026-07-20 ADB 真机测试发现）
+| 事项 | 优先级 | 说明 |
+|------|--------|------|
+| 模块签名证书不匹配 | **高** | `core/security/src/main/kotlin/com/gamecenter/app/core/security/ModuleSignatureVerifier.kt` 中 `loadPinnedCertificate()` 加载 `res/raw/release_signer.cer` 与服务器模块 APK 签名证书不一致，导致 tools/ai/vpn 模块下载后签名校验失败。修复方向：①统一 debug/release 签名证书；②debug 构建放宽校验策略；③用主 APK 签名证书重新签名服务器模块 APK 后上传 |
+| 模块商店搜索范围限制 | 中 | 当前搜索仅在当前选中的分类下生效，需评估是否扩展为全部分类搜索 |
+| 目录签名公钥占位 | 中 | `ENABLE_CATALOG_SIGNATURE=false` 处于兼容模式，正式上线前需配置真实 Ed25519 公钥 |
+| test_artifacts 清理 | 低 | `test_artifacts/` 目录约 110 个临时截图与 UI dump 文件，已登记到 `待删除文件清单.md` |
+
+### 6.3 已清理的低风险项
 - 构建产物：可通过 `.\gradlew.bat clean` 清理
 - 临时日志：可安全删除
 
-### 6.3 严禁删除的文件
+### 6.4 严禁删除的文件
 - 数据库文件（`app/src/main/assets/*.db`）
 - 签名配置（`keystore.properties`）
 - 本地配置（`local.properties`）

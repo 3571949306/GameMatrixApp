@@ -2,7 +2,7 @@ package com.gamecenter.app.modules;
 
 import android.content.Context;
 import android.util.Log;
-import com.gamecenter.app.modules.ModuleManifest;
+import com.gamecenter.app.core.common.ModuleManifest;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
+import com.gamecenter.app.core.common.ModuleNavigationContribution
+import com.gamecenter.app.core.common.NavigationSlot
 
 /**
  * 浏览器模块入口点。
@@ -36,5 +38,18 @@ class BrowserModuleEntryPoint : ModuleInterface, FeatureModule {
 
     override fun createFragment(context: Context): Fragment {
         return BrowserFragment()
+    }
+
+    override fun getNavigationContributions(context: Context): List<ModuleNavigationContribution> {
+        return listOf(BrowserNavContribution())
+    }
+
+    private class BrowserNavContribution : ModuleNavigationContribution {
+        override fun getContributionId(): String = "browser"
+        override fun getTitle(context: Context): String = "浏览器"
+        override fun getIconResId(): Int = 0
+        override fun getOrder(): Int = 20
+        override fun getSlot(): NavigationSlot = NavigationSlot.BOTTOM_NAV
+        override fun createFragment(context: Context): Fragment = BrowserFragment()
     }
 }

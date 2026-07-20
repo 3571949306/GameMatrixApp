@@ -4,6 +4,11 @@ import android.content.Context;
 import androidx.fragment.app.Fragment;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
+import com.gamecenter.app.core.common.ModuleNavigationContribution;
+import com.gamecenter.app.core.common.NavigationSlot;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureModule {
 
@@ -50,5 +55,30 @@ public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureMod
     @Override
     public Fragment createFragment(Context context) {
         return new ChineseChessModuleFragment();
+    }
+
+    @Override
+    public List<ModuleNavigationContribution> getNavigationContributions(Context context) {
+        return Arrays.<ModuleNavigationContribution>asList(new ChineseChessNavContribution());
+    }
+
+    private static class ChineseChessNavContribution implements ModuleNavigationContribution {
+        @Override
+        public String getContributionId() { return "chinesechess"; }
+
+        @Override
+        public String getTitle(Context context) { return "中国象棋"; }
+
+        @Override
+        public int getIconResId() { return 0; }
+
+        @Override
+        public int getOrder() { return 120; }
+
+        @Override
+        public NavigationSlot getSlot() { return NavigationSlot.GAMES_HALL; }
+
+        @Override
+        public Fragment createFragment(Context context) { return new ChineseChessModuleFragment(); }
     }
 }

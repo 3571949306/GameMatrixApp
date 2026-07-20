@@ -60,7 +60,16 @@ data class StoreModule(
     val tags: List<String> = emptyList(),
     val sortOrder: Int = 0,
     val featured: Boolean = false,
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    // P0 v3 新增字段
+    val kind: String = "feature-apk",
+    val channel: String = "stable",
+    val maxAppVersionCode: Int = 0,
+    val navigationContribution: com.gamecenter.app.core.common.NavigationContribution? = null,
+    val permissions: List<String> = emptyList(),
+    val rolloutPercent: Int = 100,
+    val restartRequired: Boolean = false,
+    val rollbackAllowed: Boolean = true
 ) {
 
     fun toJson(): JSONObject = JSONObject().apply {
@@ -99,7 +108,63 @@ data class StoreModule(
         put("sortOrder", sortOrder)
         put("featured", featured)
         put("enabled", enabled)
+        put("kind", kind)
+        put("channel", channel)
+        put("maxAppVersionCode", maxAppVersionCode)
+        navigationContribution?.let { put("navigationContribution", it.toJson()) }
+        if (permissions.isNotEmpty()) put("permissions", JSONArray(permissions))
+        put("rolloutPercent", rolloutPercent)
+        put("restartRequired", restartRequired)
+        put("rollbackAllowed", rollbackAllowed)
     }
+
+    /**
+     * 转换为规范 ModuleManifest（P0 v3）。
+     */
+    fun toModuleManifest(): com.gamecenter.app.core.common.ModuleManifest = com.gamecenter.app.core.common.ModuleManifest(
+        id = id,
+        name = name,
+        description = description,
+        versionName = versionName,
+        versionCode = versionCode,
+        entryClass = entryClass,
+        fileName = fileName,
+        fileSize = fileSize,
+        sha256 = sha256,
+        downloadUrl = downloadUrl,
+        fallbackUrl = fallbackUrl,
+        githubUrl = githubUrl,
+        iconUrl = iconUrl,
+        category = category,
+        storeCategory = storeCategory,
+        kind = kind,
+        channel = channel,
+        minAppVersionCode = minAppVersionCode,
+        maxAppVersionCode = maxAppVersionCode,
+        depends = depends,
+        required = required,
+        isBaseFramework = isBaseFramework,
+        builtIn = builtIn,
+        builtInVersionCode = builtInVersionCode,
+        enabled = enabled,
+        featured = featured,
+        sortOrder = sortOrder,
+        type = type,
+        gameId = gameId,
+        gameCategory = gameCategory,
+        gameDesc = gameDesc,
+        activityClass = activityClass,
+        shortDescription = shortDescription,
+        screenshots = screenshots,
+        changelog = changelog,
+        permissionsDescription = permissionsDescription,
+        tags = tags,
+        navigationContribution = navigationContribution,
+        permissions = permissions,
+        rolloutPercent = rolloutPercent,
+        restartRequired = restartRequired,
+        rollbackAllowed = rollbackAllowed
+    )
 
     companion object {
         fun fromJson(json: JSONObject): StoreModule? {
@@ -132,6 +197,15 @@ data class StoreModule(
                     if (tag.isNotEmpty()) tagsList.add(tag)
                 }
             }
+            val runtimePermissionsList = mutableListOf<String>()
+            json.optJSONArray("permissions")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val perm = arr.optString(i, "")
+                    if (perm.isNotEmpty()) runtimePermissionsList.add(perm)
+                }
+            }
+            val navJson = json.optJSONObject("navigationContribution")
+            val navContribution = navJson?.let { com.gamecenter.app.core.common.NavigationContribution.fromJson(it) }
             return StoreModule(
                 id = id,
                 name = json.optString("name", id),
@@ -167,7 +241,15 @@ data class StoreModule(
                 tags = tagsList,
                 sortOrder = json.optInt("sortOrder", 0),
                 featured = json.optBoolean("featured", false),
-                enabled = json.optBoolean("enabled", true)
+                enabled = json.optBoolean("enabled", true),
+                kind = json.optString("kind", "feature-apk"),
+                channel = json.optString("channel", "stable"),
+                maxAppVersionCode = json.optInt("maxAppVersionCode", 0),
+                navigationContribution = navContribution,
+                permissions = runtimePermissionsList,
+                rolloutPercent = json.optInt("rolloutPercent", 100),
+                restartRequired = json.optBoolean("restartRequired", false),
+                rollbackAllowed = json.optBoolean("rollbackAllowed", true)
             )
         }
     }
