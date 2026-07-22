@@ -225,6 +225,12 @@ public class ChineseChessView extends View {
         selectedCol = -1;
         validMoves.clear();
         invalidate();
+
+        // 红方被将死/困毙 → 黑方（AI）胜
+        if (currentSide == 1 && isDefeated(1)) {
+            gameOver = true;
+            if (gameOverListener != null) gameOverListener.onGameOver(2);
+        }
     }
 
     /**
@@ -670,8 +676,9 @@ public class ChineseChessView extends View {
                 selectedCol = col;
                 computeValidMoves();
             } else {
-                // 尝试移动到目标位置
-                if (isValidMove(selectedRow, selectedCol, row, col)) {
+                // 尝试移动到目标位置（同时校验走子后己方将/帅不被将军）
+                if (isValidMove(selectedRow, selectedCol, row, col)
+                        && isLegalMove(selectedRow, selectedCol, row, col, 1)) {
                     int captured = board[row][col];
                     board[row][col] = board[selectedRow][selectedCol];
                     board[selectedRow][selectedCol] = 0;
@@ -704,6 +711,13 @@ public class ChineseChessView extends View {
                     selectedCol = -1;
                     validMoves.clear();
                     invalidate();
+
+                    // 黑方被将死/困毙 → 红方（玩家）胜，无需再触发 AI
+                    if (isDefeated(2)) {
+                        gameOver = true;
+                        if (gameOverListener != null) gameOverListener.onGameOver(1);
+                        return true;
+                    }
 
                     // 通知玩家走棋完成，触发 AI
                     if (playerMoveListener != null) {
@@ -885,21 +899,7 @@ public class ChineseChessView extends View {
      * @param side 1=红方，2=黑方
      */
     public boolean isInCheck(int side) {
-        int[] king = findKing(side);
-        if (king == null) return false;
-        int kr = king[0], kc = king[1];
-        // 遍历对方所有棋子，检查是否能走到 (kr, kc)
-        for (int r = 0; r < ROWS; r++) {
-            for (int c = 0; c < COLS; c++) {
-                int piece = board[r][c];
-                if (piece == 0) continue;
-                if (side == 1 && piece > 0) continue;
-                if (side == 2 && piece < 0) continue;
-                // 对方棋子在不考虑己方阻挡的情况下，能否吃到我方将/帅？
-                if (canAttack(r, c, kr, kc)) return true;
-            }
-        }
-        return false;
+        return kingInCheck(board, side);
     }
 
     /**
@@ -907,9 +907,17 @@ public class ChineseChessView extends View {
      * 用于将军检测（不模拟"己方阻挡"）。
      */
     private boolean canAttack(int fr, int fc, int tr, int tc) {
+        return canAttackOn(board, fr, fc, tr, tc);
+    }
+
+    /**
+     * 判断 (fr, fc) 位置的棋子能否在棋盘 b 上走到 (tr, tc)。
+     * 可作用于任意棋盘副本，用于"走子后己方是否被将军"的合法性校验。
+     */
+    private static boolean canAttackOn(int[][] b, int fr, int fc, int tr, int tc) {
         if (fr == tr && fc == tc) return false;
-        int piece = board[fr][fc];
-        int target = board[tr][tc];
+        int piece = b[fr][fc];
+        int target = b[tr][tc];
         // 不吃自己棋子
         if (piece > 0 && target > 0) return false;
         if (piece < 0 && target < 0) return false;
@@ -936,19 +944,19 @@ public class ChineseChessView extends View {
                 if (piece < 0 && tr > 4) return false;
                 int eyeR = fr + dr / 2;
                 int eyeC = fc + dc / 2;
-                return board[eyeR][eyeC] == 0;
+                return b[eyeR][eyeC] == 0;
             }
             case KNIGHT: {
                 if (!((Math.abs(dr) == 2 && Math.abs(dc) == 1) || (Math.abs(dr) == 1 && Math.abs(dc) == 2))) return false;
-                if (Math.abs(dr) == 2) return board[fr + dr / 2][fc] == 0;
-                return board[fr][fc + dc / 2] == 0;
+                if (Math.abs(dr) == 2) return b[fr + dr / 2][fc] == 0;
+                return b[fr][fc + dc / 2] == 0;
             }
             case ROOK:
                 if (dr != 0 && dc != 0) return false;
-                return isPathClear(fr, fc, tr, tc);
+                return isPathClearOn(b, fr, fc, tr, tc);
             case CANNON: {
                 if (dr != 0 && dc != 0) return false;
-                int cnt = countPiecesBetween(fr, fc, tr, tc);
+                int cnt = countPiecesBetweenOn(b, fr, fc, tr, tc);
                 if (target == 0) return cnt == 0;
                 return cnt == 1;
             }
@@ -963,6 +971,118 @@ public class ChineseChessView extends View {
             }
         }
         return false;
+    }
+
+    // ==================== 将死 / 困毙检测（P0-2 修复） ====================
+
+    /** 在棋盘 b 上判断两点之间路径是否无阻挡 */
+    private static boolean isPathClearOn(int[][] b, int r1, int c1, int r2, int c2) {
+        if (r1 == r2) {
+            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+            for (int c = minC + 1; c < maxC; c++) if (b[r1][c] != 0) return false;
+        } else {
+            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+            for (int r = minR + 1; r < maxR; r++) if (b[r][c1] != 0) return false;
+        }
+        return true;
+    }
+
+    /** 在棋盘 b 上统计两点之间棋子数量 */
+    private static int countPiecesBetweenOn(int[][] b, int r1, int c1, int r2, int c2) {
+        int count = 0;
+        if (r1 == r2) {
+            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+            for (int c = minC + 1; c < maxC; c++) if (b[r1][c] != 0) count++;
+        } else {
+            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+            for (int r = minR + 1; r < maxR; r++) if (b[r][c1] != 0) count++;
+        }
+        return count;
+    }
+
+    /** 将/帅是否正被将军（含"白脸将/对脸"规则） */
+    private static boolean kingInCheck(int[][] b, int side) {
+        int[] king = findKingOn(b, side);
+        if (king == null) return false;
+        int kr = king[0], kc = king[1];
+        int attackerSide = (side == 1) ? 2 : 1;
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                int piece = b[r][c];
+                if (piece == 0) continue;
+                if (side == 1 && piece > 0) continue;
+                if (side == 2 && piece < 0) continue;
+                if (canAttackOn(b, r, c, kr, kc)) return true;
+            }
+        }
+        // 白脸将（两将照面）：同一列且无子相隔，视为被将军
+        int[] enemyKing = findKingOn(b, attackerSide);
+        if (enemyKing != null && enemyKing[1] == kc) {
+            boolean clear = true;
+            int lo = Math.min(kr, enemyKing[0]) + 1;
+            int hi = Math.max(kr, enemyKing[0]);
+            for (int r = lo; r < hi; r++) {
+                if (b[r][kc] != 0) { clear = false; break; }
+            }
+            if (clear) return true;
+        }
+        return false;
+    }
+
+    private static int[] findKingOn(int[][] b, int side) {
+        int target = (side == 1) ? KING : -KING;
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                if (b[r][c] == target) return new int[]{r, c};
+            }
+        }
+        return null;
+    }
+
+    private static int[][] copyBoardArray(int[][] src) {
+        int[][] c = new int[ROWS][COLS];
+        for (int r = 0; r < ROWS; r++) System.arraycopy(src[r], 0, c[r], 0, COLS);
+        return c;
+    }
+
+    /**
+     * 判断 side 方从 (fr,fc) 走到 (tr,tc) 是否合法（走完后己方将/帅不被将军）。
+     */
+    private boolean isLegalMove(int fr, int fc, int tr, int tc, int side) {
+        int[][] b = copyBoardArray(board);
+        b[tr][tc] = b[fr][fc];
+        b[fr][fc] = 0;
+        return !kingInCheck(b, side);
+    }
+
+    /**
+     * 判断 side 方在当前局面是否还有合法走法。
+     */
+    private boolean hasLegalMove(int side) {
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                int piece = board[r][c];
+                if (piece == 0) continue;
+                if (side == 1 && piece < 0) continue;
+                if (side == 2 && piece > 0) continue;
+                for (int tr = 0; tr < ROWS; tr++) {
+                    for (int tc = 0; tc < COLS; tc++) {
+                        if (tr == r && tc == c) continue;
+                        if (isValidMove(r, c, tr, tc) && isLegalMove(r, c, tr, tc, side)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 判断 side 方是否已无合法走法（被将死或困毙，按象棋规则均判负）。
+     */
+    private boolean isDefeated(int side) {
+        return !hasLegalMove(side);
     }
 
     /**
@@ -1067,6 +1187,57 @@ public class ChineseChessView extends View {
             case PAWN: return isRed ? "兵" : "卒";
             default: return "";
         }
+    }
+
+    /**
+     * 获取所有走法的格式化棋谱列表。
+     * 通过从初始棋盘重放每一步，确保每步棋子类型识别正确
+     * （moveHistory 只存坐标和被吃棋子，不存移动棋子本身）。
+     * 格式："棋子(起始行,起始列)→(目标行,目标列)"，行列为 0-based 棋盘坐标。
+     *
+     * @return 走法字符串列表，空局时返回空列表
+     */
+    @NonNull
+    public List<String> getAllMoveNotations() {
+        List<String> result = new ArrayList<>();
+        if (moveHistory.isEmpty()) return result;
+
+        int[][] replayBoard = createInitialBoard();
+        for (int[] move : moveHistory) {
+            int fromR = move[0], fromC = move[1];
+            int toR = move[2], toC = move[3];
+            int piece = replayBoard[fromR][fromC];
+            if (piece == 0) {
+                result.add("?");
+                continue;
+            }
+            boolean isRed = piece > 0;
+            int type = Math.abs(piece);
+            String pieceName = getPieceName(type, isRed);
+            result.add(pieceName + "(" + fromR + "," + fromC + ")\u2192(" + toR + "," + toC + ")");
+            // 重放走法
+            replayBoard[toR][toC] = piece;
+            replayBoard[fromR][fromC] = 0;
+        }
+        return result;
+    }
+
+    /**
+     * 创建初始棋盘布局的副本（用于重放走法历史）。
+     */
+    private int[][] createInitialBoard() {
+        int[][] b = new int[ROWS][COLS];
+        // 红方（下方，正数）
+        b[9][0] = ROOK;    b[9][1] = KNIGHT;  b[9][2] = BISHOP;  b[9][3] = ADVISOR; b[9][4] = KING;
+        b[9][5] = ADVISOR; b[9][6] = BISHOP;  b[9][7] = KNIGHT;  b[9][8] = ROOK;
+        b[7][1] = CANNON;  b[7][7] = CANNON;
+        b[6][0] = PAWN;    b[6][2] = PAWN;    b[6][4] = PAWN;    b[6][6] = PAWN;    b[6][8] = PAWN;
+        // 黑方（上方，负数）
+        b[0][0] = -ROOK;    b[0][1] = -KNIGHT;  b[0][2] = -BISHOP;  b[0][3] = -ADVISOR; b[0][4] = -KING;
+        b[0][5] = -ADVISOR; b[0][6] = -BISHOP;  b[0][7] = -KNIGHT;  b[0][8] = -ROOK;
+        b[2][1] = -CANNON;  b[2][7] = -CANNON;
+        b[3][0] = -PAWN;    b[3][2] = -PAWN;    b[3][4] = -PAWN;    b[3][6] = -PAWN;    b[3][8] = -PAWN;
+        return b;
     }
 
     /**

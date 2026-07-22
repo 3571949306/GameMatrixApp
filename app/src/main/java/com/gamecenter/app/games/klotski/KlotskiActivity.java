@@ -11,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -54,7 +55,7 @@ public class KlotskiActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "华容道";
+        return getString(R.string.game_klotski_name);
     }
 
     @Override
@@ -70,15 +71,15 @@ public class KlotskiActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFFFFFFF);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_klotski_color_bg));
         root.setPadding(0, 16, 0, 0);
 
         // 标题
         TextView tvTitle = new TextView(this);
-        tvTitle.setText("华容道");
+        tvTitle.setText(getString(R.string.game_klotski_name));
         tvTitle.setGravity(Gravity.CENTER);
         tvTitle.setTextSize(26f);
-        tvTitle.setTextColor(0xFF212121);
+        tvTitle.setTextColor(ContextCompat.getColor(this, R.color.game_klotski_color_title));
         tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         root.addView(tvTitle, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -87,9 +88,9 @@ public class KlotskiActivity extends BaseGameActivity {
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(15f);
-        tvStatus.setTextColor(0xFF4CAF50);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_klotski_color_status));
         tvStatus.setPadding(16, 8, 16, 4);
-        tvStatus.setText("滑动方块，帮助曹操逃出");
+        tvStatus.setText(getString(R.string.game_klotski_slide_hint));
         root.addView(tvStatus, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
@@ -97,8 +98,8 @@ public class KlotskiActivity extends BaseGameActivity {
         tvMoves = new TextView(this);
         tvMoves.setGravity(Gravity.CENTER);
         tvMoves.setTextSize(13f);
-        tvMoves.setTextColor(0xFF757575);
-        tvMoves.setText("步数: 0");
+        tvMoves.setTextColor(ContextCompat.getColor(this, R.color.game_klotski_color_moves));
+        tvMoves.setText(getString(R.string.game_klotski_moves_label, 0));
         root.addView(tvMoves, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
@@ -117,7 +118,7 @@ public class KlotskiActivity extends BaseGameActivity {
         btnRow.setPadding(16, 0, 16, 8);
 
         MaterialButton btnRestart = new MaterialButton(this);
-        btnRestart.setText("重开");
+        btnRestart.setText(R.string.game_klotski_restart);
         btnRestart.setTextSize(13f);
         LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
@@ -127,7 +128,7 @@ public class KlotskiActivity extends BaseGameActivity {
         btnRow.addView(btnRestart);
 
         MaterialButton btnHint = new MaterialButton(this);
-        btnHint.setText("提示");
+        btnHint.setText(R.string.game_klotski_hint);
         btnHint.setTextSize(13f);
         btnHint.setLayoutParams(btnParams);
         btnHint.setOnClickListener(v -> showHint());
@@ -135,16 +136,16 @@ public class KlotskiActivity extends BaseGameActivity {
 
         // 2026-06-23: 撤销按钮
         MaterialButton btnUndo = new MaterialButton(this);
-        btnUndo.setText("↶ 撤销");
+        btnUndo.setText(R.string.game_klotski_undo);
         btnUndo.setTextSize(13f);
         btnUndo.setLayoutParams(btnParams);
         btnUndo.setOnClickListener(v -> {
             if (game != null && game.undoMove()) {
                 klotskiView.invalidate();
-                if (tvMoves != null) tvMoves.setText("步数: " + game.getMoves());
-                tvStatus.setText("已撤销");
+                if (tvMoves != null) tvMoves.setText(getString(R.string.game_klotski_moves_label, game.getMoves()));
+                tvStatus.setText(R.string.game_klotski_undone);
             } else {
-                Toast.makeText(this, "无可撤销", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.game_klotski_no_undo, Toast.LENGTH_SHORT).show();
             }
         });
         btnRow.addView(btnUndo);
@@ -162,8 +163,8 @@ public class KlotskiActivity extends BaseGameActivity {
         if (klotskiView != null) {
             klotskiView.setGame(game);
             klotskiView.setOnWinListener(() -> {
-                tvStatus.setText("🎉 恭喜通关！");
-                Toast.makeText(this, "恭喜通关！", Toast.LENGTH_SHORT).show();
+                tvStatus.setText(R.string.game_klotski_win_status);
+                Toast.makeText(this, R.string.game_klotski_win_toast, Toast.LENGTH_SHORT).show();
                 // 2026-06-23: 通关后弹游戏结束 Dialog（含步数+用时）
                 usageStore.recordWin(getGameId());
                 checkAchievement("win", game.getMoves());
@@ -172,27 +173,27 @@ public class KlotskiActivity extends BaseGameActivity {
             });
             klotskiView.setOnMoveListener(() -> {
                 if (tvMoves != null) {
-                    tvMoves.setText("步数: " + game.getMoves());
+                    tvMoves.setText(getString(R.string.game_klotski_moves_label, game.getMoves()));
                 }
             });
         }
 
         if (tvStatus != null) {
-            tvStatus.setText("滑动方块，帮助曹操逃出");
+            tvStatus.setText(R.string.game_klotski_slide_hint);
         }
         if (tvMoves != null) {
-            tvMoves.setText("步数: 0");
+            tvMoves.setText(getString(R.string.game_klotski_moves_label, 0));
         }
     }
 
     private void showHint() {
         if (isHintSearching) {
-            Toast.makeText(this, "正在搜索中...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_klotski_searching, Toast.LENGTH_SHORT).show();
             return;
         }
 
         isHintSearching = true;
-        tvStatus.setText("正在计算最优解...");
+        tvStatus.setText(R.string.game_klotski_calculating);
         hintStartMs = System.currentTimeMillis();  // 2026-06-23: 性能监控起点
 
         new Thread(() -> {
@@ -204,14 +205,14 @@ public class KlotskiActivity extends BaseGameActivity {
                 android.util.Log.i("KlotskiAI", "提示搜索耗时=" + hintMs + "ms");
                 if (hintMs > 500) {
                     android.widget.Toast.makeText(this,
-                            "提示搜索 " + hintMs + "ms",
+                            getString(R.string.game_klotski_hint_search_ms, hintMs),
                             android.widget.Toast.LENGTH_SHORT).show();
                 }
                 if (hint != null) {
                     klotskiView.showHint(hint);
-                    tvStatus.setText("提示: " + hint.totalSteps + "步可通关");
+                    tvStatus.setText(getString(R.string.game_klotski_hint_steps, hint.totalSteps));
                 } else {
-                    tvStatus.setText("未找到解法");
+                    tvStatus.setText(R.string.game_klotski_no_solution);
                 }
             });
         }).start();
@@ -226,18 +227,18 @@ public class KlotskiActivity extends BaseGameActivity {
     private void showGameEndDialog(boolean won, int moves) {
         long elapsed = gameStartTime > 0 ? (System.currentTimeMillis() - gameStartTime) : 0L;
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        builder.setTitle(won ? "🎉 通关" : "本局结束");
+        builder.setTitle(won ? R.string.game_klotski_dialog_win_title : R.string.game_klotski_dialog_end_title);
         StringBuilder content = new StringBuilder();
-        content.append(won ? "恭喜通关！\n\n" : "再接再厉\n\n");
-        content.append("总步数: ").append(moves).append("\n");
-        content.append("用时: ").append(formatDuration(elapsed));
+        content.append(won ? getString(R.string.game_klotski_dialog_win_msg) : getString(R.string.game_klotski_dialog_lose_msg));
+        content.append(getString(R.string.game_klotski_dialog_total_moves, moves));
+        content.append(getString(R.string.game_klotski_dialog_time, formatDuration(elapsed)));
         if (won) {
-            content.append("\n\n得分 +100");
+            content.append(getString(R.string.game_klotski_dialog_score));
         }
         builder.setMessage(content.toString());
-        builder.setPositiveButton("再来一局", (d, w) -> startNewGame());
-        builder.setNegativeButton("返回主菜单", (d, w) -> finish());
-        builder.setNeutralButton("排行榜", (d, w) -> showLeaderboard());
+        builder.setPositiveButton(R.string.game_klotski_play_again, (d, w) -> startNewGame());
+        builder.setNegativeButton(R.string.game_klotski_back_to_main, (d, w) -> finish());
+        builder.setNeutralButton(R.string.game_klotski_leaderboard, (d, w) -> showLeaderboard());
         builder.setCancelable(false);
         builder.show();
 
@@ -284,9 +285,9 @@ public class KlotskiActivity extends BaseGameActivity {
     private void showLeaderboard() {
         android.content.SharedPreferences prefs = getSharedPreferences("klotski_leaderboard", MODE_PRIVATE);
         String existing = prefs.getString("records", "");
-        StringBuilder content = new StringBuilder("最少步数通关记录（前 5）：\n\n");
+        StringBuilder content = new StringBuilder(getString(R.string.game_klotski_leaderboard_header));
         if (existing.isEmpty()) {
-            content.append("暂无记录，赶快通关吧！");
+            content.append(getString(R.string.game_klotski_no_records));
         } else {
             int rank = 1;
             for (String line : existing.split("\\|")) {
@@ -294,15 +295,13 @@ public class KlotskiActivity extends BaseGameActivity {
                 String[] parts = line.split(",");
                 int moves = Integer.parseInt(parts[0]);
                 long ms = Long.parseLong(parts[1]);
-                content.append("#").append(rank++).append("  ")
-                        .append(moves).append(" 步 / ")
-                        .append(formatDuration(ms)).append("\n");
+                content.append(getString(R.string.game_klotski_leaderboard_record, rank++, moves, formatDuration(ms)));
             }
         }
         new android.app.AlertDialog.Builder(this)
-                .setTitle("🏆 华容道排行榜")
+                .setTitle(R.string.game_klotski_leaderboard_title)
                 .setMessage(content.toString())
-                .setPositiveButton("关闭", null)
+                .setPositiveButton(R.string.game_klotski_close, null)
                 .show();
     }
 

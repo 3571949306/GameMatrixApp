@@ -8,6 +8,10 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.core.content.ContextCompat;
+
+import com.gamecenter.app.R;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -74,7 +78,7 @@ public class BreakoutView extends View {
 
     private void init() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        setBackgroundColor(0xFF1a1a2e);
+        setBackgroundColor(ContextCompat.getColor(getContext(), R.color.game_screen_bg));
     }
 
     public void setOnGameListener(OnGameListener listener) {
@@ -196,12 +200,12 @@ public class BreakoutView extends View {
 
         // 绘制分数
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("分：" + score, viewWidth - 16, viewHeight - 16, paint);
+        canvas.drawText(getContext().getString(R.string.game_breakout_score_label, score), viewWidth - 16, viewHeight - 16, paint);
 
         // 绘制关卡
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(18);
-        canvas.drawText("关卡 " + level, viewWidth / 2, viewHeight - 16, paint);
+        canvas.drawText(getContext().getString(R.string.game_breakout_level_label, level), viewWidth / 2, viewHeight - 16, paint);
     }
 
     // ==================== 游戏循环 ====================

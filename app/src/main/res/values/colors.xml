@@ -87,7 +87,6 @@
     <color name="info_container">#DEE3FF</color>
 
     <!-- ===== 游戏分类色彩（低饱和度、同色系区分） ===== -->
-    <!-- TODO A1: 分类色仍为旧 Google Blue 系，后续 A2 全量迁移至设计 Token -->
     <color name="category_classics_start">#7B5800</color>
     <color name="category_classics_end">#9E6A03</color>
     <color name="category_puzzle_start">#137333</color>
@@ -97,6 +96,10 @@
     <color name="category_tools_start">#3D5AFE</color>
     <color name="category_tools_end">#5C6CFE</color>
 
+    <!-- ===== 游戏屏中性深色（Snake/Tetris 等，浅深色自适应） ===== -->
+    <color name="game_screen_bg">#1B1B1F</color>
+    <color name="game_screen_grid">#2C2C30</color>
+
     <!-- ===== 卡片与表面 ===== -->
     <color name="card_glow_primary">#0D3D5AFE</color>
     <color name="card_glow_secondary">#0D5F6368</color>
@@ -104,7 +107,7 @@
     <color name="surface_elevated_light">@color/md_theme_surface</color>
 
     <!-- ===== 五子棋配色（浅色） ===== -->
-    <!-- TODO A1-3: 游戏内自定义 View 仍硬编码 #1A73E8 作 accent，后续应改走 ?attr/colorPrimary -->
+    <!-- 五子棋 accent 已统一至 @color/brand_primary（游戏内自定义 View 硬编码后续走 ?attr/colorPrimary） -->
     <color name="gomoku_bg">#DEB887</color>
     <color name="gomoku_line">#643C14</color>
     <color name="gomoku_black_piece">#202124</color>
@@ -116,14 +119,14 @@
     <color name="gomoku_card_border">#DADCE0</color>
     <color name="gomoku_title_text">#202124</color>
     <color name="gomoku_subtitle_text">#5F6368</color>
-    <color name="gomoku_accent">#1A73E8</color>
+    <color name="gomoku_accent">@color/brand_primary</color>
     <color name="gomoku_accent_light">#E8F0FE</color>
-    <color name="gomoku_difficulty_selected">#1A73E8</color>
+    <color name="gomoku_difficulty_selected">@color/brand_primary</color>
     <color name="gomoku_difficulty_selected_text">#FFFFFF</color>
     <color name="gomoku_difficulty_unselected">#5F6368</color>
     <color name="gomoku_difficulty_unselected_bg">#E8EAED</color>
-    <color name="gomoku_start_btn_start">#1A73E8</color>
-    <color name="gomoku_start_btn_end">#1557B0</color>
+    <color name="gomoku_start_btn_start">@color/brand_primary</color>
+    <color name="gomoku_start_btn_end">@color/brand_primary_dark</color>
     <color name="gomoku_star_filled">#F9AB00</color>
     <color name="gomoku_star_empty">#DADCE0</color>
 
@@ -138,7 +141,7 @@
     <color name="launcher_bg">#3D5AFE</color>
 
     <!-- ===== 斗地主游戏专用颜色 ===== -->
-    <!-- TODO A1: purple_500 (#7B1FA2) 为违规紫品红色，当前无引用；后续功能图标统一替换为 Material Symbols -->
+    <!-- 违规紫 purple_500 (#7B1FA2) 已于美化轮清理，无残留引用 -->
     <color name="gold">#F9AB00</color>
     <color name="yellow">#FDD835</color>
     <color name="light_gray">#DADCE0</color>
@@ -146,12 +149,11 @@
     <color name="black">#202124</color>
     <color name="dark_gray">#5F6368</color>
     <color name="gray_light">#E8EAED</color>
-    <color name="purple_500">#7B1FA2</color>
 
     <!-- ===== AI消息气泡 ===== -->
     <color name="ai_message_user_bg">#E8F0FE</color>
     <color name="ai_message_user_text">#1F1F1F</color>
-    <color name="ai_message_user_role">#1A73E8</color>
+    <color name="ai_message_user_role">@color/brand_primary</color>
     <color name="ai_message_assistant_bg">#F1F3F4</color>
     <color name="ai_message_assistant_text">#1F1F1F</color>
     <color name="ai_message_assistant_role">#5F6368</color>
@@ -175,7 +177,7 @@
     <color name="chinese_chess_black">#202124</color>
     <color name="chinese_chess_piece_bg_start">#FFF8E1</color>
     <color name="chinese_chess_piece_bg_end">#F5E6C8</color>
-    <color name="chinese_chess_selected">#1A73E8</color>
+    <color name="chinese_chess_selected">@color/brand_primary</color>
     <color name="chinese_chess_hint">#137333</color>
     <color name="chinese_chess_last_move">#D93025</color>
     <color name="chinese_chess_ai_thinking">#E37400</color>
@@ -188,12 +190,12 @@
     <color name="chess_card_border">#DADCE0</color>
     <color name="chess_title_text">#202124</color>
     <color name="chess_subtitle_text">#5F6368</color>
-    <color name="chess_difficulty_selected">#1A73E8</color>
+    <color name="chess_difficulty_selected">@color/brand_primary</color>
     <color name="chess_difficulty_selected_text">#FFFFFF</color>
     <color name="chess_difficulty_unselected">#5F6368</color>
     <color name="chess_difficulty_unselected_bg">#E8EAED</color>
-    <color name="chess_start_btn_start">#1A73E8</color>
-    <color name="chess_start_btn_end">#1557B0</color>
+    <color name="chess_start_btn_start">@color/brand_primary</color>
+    <color name="chess_start_btn_end">@color/brand_primary_dark</color>
     <color name="chess_star_filled">#F9AB00</color>
     <color name="chess_star_empty">#DADCE0</color>
     <color name="chess_control_btn_bg">#5F6368</color>
@@ -305,9 +307,9 @@
     <color name="module_category_other_icon_bg">#FFB2EBF2</color>
     <color name="module_category_other_accent">#006064</color>
 
-    <!-- Hero Banner 渐变 -->
-    <color name="module_hero_gradient_start">#6750A4</color>
-    <color name="module_hero_gradient_end">#9C27B0</color>
+    <!-- Hero Banner 渐变（品牌蓝紫，Material3 简约克制） -->
+    <color name="module_hero_gradient_start">#3D5AFE</color>
+    <color name="module_hero_gradient_end">#5C6CFE</color>
     <color name="module_hero_overlay">#66000000</color>
 
     <!-- Hero Banner 渐变 2（蓝绿系） -->
@@ -335,4 +337,70 @@
     <!-- 骨架屏色 -->
     <color name="skeleton_base">#FFE0E0E0</color>
     <color name="skeleton_highlight">#FFF5F5F5</color>
+
+    <!-- ===== 首页沉浸式改版 (HOME_IMMERSIVE_REVAMP) — 浅色 ===== -->
+    <!-- Hero 区主渐变：品牌蓝 → 品牌浅蓝 → 中蓝紫（简约克制，原过艳紫蓝已收敛） -->
+    <color name="home_immersive_hero_start">#3D5AFE</color>
+    <color name="home_immersive_hero_center">#5C6CFE</color>
+    <color name="home_immersive_hero_end">#5C6BC0</color>
+    <!-- Hero 区文字色（在彩色背景上使用白色） -->
+    <color name="home_immersive_hero_on_color">#FFFFFF</color>
+    <color name="home_immersive_hero_on_color_variant">#E6FFFFFF</color>
+    <!-- Hero 区表面叠层（半透明白，用于内部卡片） -->
+    <color name="home_immersive_hero_overlay">#1AFFFFFF</color>
+    <color name="home_immersive_hero_overlay_strong">#33FFFFFF</color>
+    <!-- 沉浸式卡片表面（浅色：纯白 + 微阴影） -->
+    <color name="home_immersive_card_surface">#FFFFFF</color>
+    <color name="home_immersive_card_border">#1F000000</color>
+    <!-- 沉浸式统计 chip 背景（Hero 内嵌使用半透明白） -->
+    <color name="home_immersive_stat_chip_bg">#33FFFFFF</color>
+    <color name="home_immersive_stat_chip_text">#FFFFFF</color>
+    <!-- 沉浸式搜索药丸（在 Hero 外使用表面色） -->
+    <color name="home_immersive_search_pill_bg">#FFFFFF</color>
+    <color name="home_immersive_search_pill_stroke">#1F3D5AFE</color>
+    <color name="home_immersive_search_pill_text">#5F6368</color>
+    <color name="home_immersive_search_pill_hint">#9AA0A6</color>
+    <!-- 沉浸式空状态引导卡片渐变 -->
+    <color name="home_immersive_empty_card_start">#F1F3F4</color>
+    <color name="home_immersive_empty_card_end">#E8F0FE</color>
+    <color name="home_immersive_empty_card_text">#5F6368</color>
+    <color name="home_immersive_empty_card_accent">#3D5AFE</color>
+
+    <!-- ===== 首页 V2 游戏霓虹风色板（HOME_REVAMP_V2, 2026-07-22） ===== -->
+    <!-- Hero 渐变：品牌蓝紫，Material3 简约克制（原霓虹紫红橙已收敛） -->
+    <color name="home_v2_hero_start">#2C3FAA</color>
+    <color name="home_v2_hero_center">#3D5AFE</color>
+    <color name="home_v2_hero_end">#5C6CFE</color>
+    <!-- Hero 上文字 -->
+    <color name="home_v2_hero_on_color">#FFFFFF</color>
+    <color name="home_v2_hero_on_color_variant">#E6FFFFFF</color>
+    <!-- Hero 内部叠层 -->
+    <color name="home_v2_hero_overlay">#1AFFFFFF</color>
+    <color name="home_v2_hero_overlay_strong">#33FFFFFF</color>
+    <!-- 卡片 -->
+    <color name="home_v2_card_surface">#FFFFFF</color>
+    <color name="home_v2_card_border">#1F000000</color>
+    <!-- 统计 chip -->
+    <color name="home_v2_stat_chip_bg">#33FFFFFF</color>
+    <color name="home_v2_stat_chip_text">#FFFFFF</color>
+    <!-- 搜索药丸 -->
+    <color name="home_v2_search_pill_bg">#FFFFFF</color>
+    <color name="home_v2_search_pill_stroke">#1F3D5AFE</color>
+    <color name="home_v2_search_pill_text">#5F6368</color>
+    <color name="home_v2_search_pill_hint">#9AA0A6</color>
+    <!-- 今日推荐大图卡 -->
+    <color name="home_v2_hero_card_overlay">#99000000</color>
+    <color name="home_v2_hero_card_overlay_start">#00000000</color>
+    <color name="home_v2_hero_card_overlay_end">#CC000000</color>
+    <color name="home_v2_hero_card_accent">#FFD700</color>
+    <color name="home_v2_hero_card_badge">#3D5AFE</color>
+    <!-- 分类强调色 -->
+    <color name="home_v2_category_classics">#FFB300</color>
+    <color name="home_v2_category_puzzle">#00897B</color>
+    <color name="home_v2_category_casual">#FF5722</color>
+    <!-- 空状态引导 -->
+    <color name="home_v2_empty_card_start">#F1F3F4</color>
+    <color name="home_v2_empty_card_end">#DEE3FF</color>
+    <color name="home_v2_empty_card_text">#5F6368</color>
+    <color name="home_v2_empty_card_accent">#3D5AFE</color>
 </resources>

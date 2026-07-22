@@ -1,6 +1,5 @@
 package com.gamecenter.app.games.pipeline;
 
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -10,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -83,7 +83,7 @@ public class PipelineActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "管道工";
+        return getString(R.string.game_pipeline_name);
     }
 
     @Override
@@ -132,24 +132,24 @@ public class PipelineActivity extends BaseGameActivity {
         LinearLayout root = new android.widget.LinearLayout(this);
         root.setOrientation(android.widget.LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_bg));
         root.setPadding(16, 16, 16, 16);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_pipeline_color_text));
         tvStatus.setPadding(0, 8, 0, 8);
-        tvStatus.setText("旋转管道，连接起点到终点！");
+        tvStatus.setText(R.string.game_pipeline_status_intro);
 
         // 统计
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_pipeline_color_stats));
         tvStats.setPadding(0, 4, 0, 12);
-        tvStats.setText("关卡：1 | 步数：0");
+        tvStats.setText(R.string.game_pipeline_stats_initial);
 
         // 网格
         gridLayout = new GridLayout(this);
@@ -161,15 +161,15 @@ public class PipelineActivity extends BaseGameActivity {
         buttonArea.setGravity(Gravity.CENTER);
 
         btnStart = new MaterialButton(this);
-        btnStart.setText("开始游戏");
-        btnStart.setBackgroundColor(0xFF5B8A72);
-        btnStart.setTextColor(Color.WHITE);
+        btnStart.setText(R.string.game_pipeline_start);
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_btn_start));
+        btnStart.setTextColor(ContextCompat.getColor(this, R.color.game_pipeline_color_btn_start_text));
         btnStart.setOnClickListener(v -> startNewGame());
 
         btnCheck = new MaterialButton(this);
-        btnCheck.setText("检查连接");
-        btnCheck.setBackgroundColor(0xFF4CAF50);
-        btnCheck.setTextColor(Color.WHITE);
+        btnCheck.setText(R.string.game_pipeline_check);
+        btnCheck.setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_btn_check));
+        btnCheck.setTextColor(ContextCompat.getColor(this, R.color.game_pipeline_color_btn_check_text));
         btnCheck.setVisibility(View.GONE);
         btnCheck.setOnClickListener(v -> checkConnection());
 
@@ -234,9 +234,9 @@ public class PipelineActivity extends BaseGameActivity {
             // 设置初始颜色（随机旋转）
             if (pipeTypes[row][col] != PIPE_NONE) {
                 pipeRotations[row][col] = random.nextInt(4);
-                btn.setBackgroundColor(0xFFE3F2FD);
+                btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_pipe));
             } else {
-                btn.setBackgroundColor(0xFFF5F0E8);
+                btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_pipe_empty));
                 btn.setEnabled(false);
             }
 
@@ -245,7 +245,7 @@ public class PipelineActivity extends BaseGameActivity {
         }
 
         updatePipeDisplay();
-        tvStatus.setText("关卡 " + currentLevel + " - 旋转管道连接通路！");
+        tvStatus.setText(getString(R.string.game_pipeline_level_intro, currentLevel));
         updateStatsDisplay();
     }
 
@@ -406,16 +406,16 @@ public class PipelineActivity extends BaseGameActivity {
         if (allCorrect) {
             onLevelComplete();
         } else {
-            tvStatus.setText("还有管道未连通，继续旋转！");
+            tvStatus.setText(R.string.game_pipeline_not_connected);
             // 高亮错误的管道
             for (int r = 0; r < gridSize; r++) {
                 for (int c = 0; c < gridSize; c++) {
                     int index = r * gridSize + c;
                     if (pipeTypes[r][c] != PIPE_NONE && pipeTypes[r][c] != PIPE_CROSS) {
                         if (pipeRotations[r][c] != targetRotations[r][c]) {
-                            pipeButtons[index].setBackgroundColor(0xFFFFCDD2);
+                            pipeButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_pipe_error));
                         } else {
-                            pipeButtons[index].setBackgroundColor(0xFFC8E6C9);
+                            pipeButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_pipeline_color_pipe_correct));
                         }
                     }
                 }
@@ -435,7 +435,7 @@ public class PipelineActivity extends BaseGameActivity {
         currentScore += score;
         updateScore(score);
 
-        tvStatus.setText("🎉 管道连通！关卡 " + currentLevel + " 完成！用了 " + moveCount + " 步");
+        tvStatus.setText(getString(R.string.game_pipeline_level_complete, currentLevel, moveCount));
 
         checkAchievement("win", currentLevel);
         checkAchievement("score", moveCount);
@@ -452,11 +452,11 @@ public class PipelineActivity extends BaseGameActivity {
         currentLevel++;
 
         btnCheck.setVisibility(View.GONE);
-        btnStart.setText("下一关（关卡 " + currentLevel + "）");
+        btnStart.setText(getString(R.string.game_pipeline_next_level, currentLevel));
         btnStart.setVisibility(View.VISIBLE);
     }
 
     private void updateStatsDisplay() {
-        tvStats.setText("关卡：" + currentLevel + " | 步数：" + moveCount);
+        tvStats.setText(getString(R.string.game_pipeline_stats, currentLevel, moveCount));
     }
 }

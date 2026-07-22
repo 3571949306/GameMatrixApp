@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # GameMatrixApp 安全审查报告与漏洞修复计划
 
 经过对项目的详细安全审查，我们发现在核心框架的**动态模块加载**和**网络下载**部分存在高危及严重级别的安全漏洞。这些漏洞可能导致设备被恶意接管（任意代码执行）、私有数据被覆写以及中间人网络攻击。

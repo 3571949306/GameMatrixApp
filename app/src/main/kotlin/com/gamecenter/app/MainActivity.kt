@@ -153,7 +153,6 @@ class MainActivity : AppCompatActivity() {
                 // P4: 使用动态导航管理器处理返回
                 if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
                     val manager = bottomNavigationManager ?: return
-                    val navView = findViewById<BottomNavigationView>(R.id.nav_view)
                     val currentId = manager.getCurrentContributionId()
                     if (currentId == null || currentId == "games_hall") {
                         isEnabled = false
@@ -161,11 +160,8 @@ class MainActivity : AppCompatActivity() {
                         isEnabled = true
                         return
                     }
-                    // 切换回游戏大厅（第一个 item）
-                    val firstItemId = navView.menu.getItem(0)?.itemId
-                    if (firstItemId != null && firstItemId != -1) {
-                        navView.selectedItemId = firstItemId
-                    }
+                    // 用户可以重排 tab，必须按稳定 ID 返回游戏大厅，不能假设它排第一。
+                    manager.selectContribution("games_hall")
                     return
                 }
 
@@ -196,10 +192,7 @@ class MainActivity : AppCompatActivity() {
 
         // 默认选中游戏大厅
         if (manager.getCurrentContributionId() == null) {
-            val firstItemId = navView.menu.getItem(0)?.itemId
-            if (firstItemId != null && firstItemId != -1) {
-                manager.navigateTo(firstItemId)
-            }
+            manager.selectContribution("games_hall")
         }
     }
 
@@ -320,25 +313,9 @@ class MainActivity : AppCompatActivity() {
         val tab = intent?.getStringExtra(EXTRA_NAV_TAB) ?: return
 
         if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-            // P4: 通过贡献 ID 查找对应 menu item
-            val navView = findViewById<BottomNavigationView>(R.id.nav_view) ?: return
             val manager = bottomNavigationManager ?: return
-            val contributions = com.gamecenter.app.core.common.ModuleRegistry
-                .getNavigationContributionsForSlot(this, com.gamecenter.app.core.common.NavigationSlot.BOTTOM_NAV)
-
-            for ((index, entry) in contributions.withIndex()) {
-                if (entry.contribution.getContributionId() == tab) {
-                    val menuItem = navView.menu.getItem(index)
-                    navView.selectedItemId = menuItem.itemId
-                    intent?.removeExtra(EXTRA_NAV_TAB)
-                    return
-                }
-            }
-            // 未找到模块贡献：兜底到游戏大厅
-            val firstItemId = navView.menu.getItem(0)?.itemId
-            if (firstItemId != null && firstItemId != -1) {
-                navView.selectedItemId = firstItemId
-            }
+            // 自定义排序后索引会变化，因此始终通过稳定贡献 ID 跳转。
+            if (!manager.selectContribution(tab)) manager.selectContribution("games_hall")
             intent?.removeExtra(EXTRA_NAV_TAB)
             return
         }

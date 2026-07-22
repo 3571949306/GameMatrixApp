@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页 V2 今日推荐大图卡底部渐变蒙版（从透明到深色，用于衬托文字） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="@color/home_v2_hero_card_overlay_start"
+        android:centerColor="@color/home_v2_hero_card_overlay"
+        android:endColor="@color/home_v2_hero_card_overlay_end"
+        android:type="linear" />
+</shape>

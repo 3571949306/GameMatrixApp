@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # 小游戏 AI 响应优化交接说明
 
 更新时间：2026-05-21

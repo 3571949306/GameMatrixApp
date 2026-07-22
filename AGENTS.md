@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # AI Coding Rules for GameMatrixApp
 
 This file is mandatory reading for any AI or automation agent working in this
@@ -16,6 +19,7 @@ Before non-trivial work, read:
 - `docs/AI_CODING_STANDARDS.md`
 - `docs/AI_CONTEXT.md`
 - `docs/DONT_DO_THIS.md`
+- `docs/flutter-store/MIGRATION_STATUS.md`（涉及模块商店、Catalog、Runtime 或 Flutter 时）
 - relevant module docs under `docs/modules/` or `docs/module-docs/`
 
 If these documents conflict, prefer the more specific and newer rule, then
@@ -55,6 +59,8 @@ When a preinstalled dynamic module changed:
 .\gradlew.bat :module-store:feature:tools:<module>:assembleDebug :app:bundlePreinstalledModules -PautoBumpVersion=false --stacktrace
 .\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
 ```
+
+When validating the Flutter-first module store, add `-PenableFlutterModuleStore=true -PautoUploadVps=false` to the relevant app tasks, then run `flutter analyze` and `flutter test` from `flutter_module/`. The flag defaults to false and must remain opt-in until the release gates in `docs/flutter-store/MIGRATION_STATUS.md` are complete.
 
 Install and smoke test on a connected emulator:
 

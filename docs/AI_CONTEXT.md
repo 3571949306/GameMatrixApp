@@ -1,10 +1,13 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # AI 上下文文档 - GameMatrix App
 
 > 本文档合并了原 `AI_CONTEXT.md`、`PROJECT_CONTEXT.md`、`AI_ONBOARDING.md`、`项目AI接手说明.md` 四个文档，供 AI 编程助手和新开发者阅读。
 
-**最后更新**: 2026-07-18  
-**当前版本**: versionCode=587, versionName=1.4.1
-**上次稳定版**: versionCode=465, versionName=1.4.0
+**最后更新**: 2026-07-22
+**当前工作树/生产版本**: versionCode=595, versionName=1.4.1
+**上次稳定版**: versionCode=594, versionName=1.4.1
 
 ---
 
@@ -21,8 +24,8 @@
 | DI | Hilt 2.57.2 |
 | 数据库 | Room 2.7.1（浏览器模块 v2 schema 4 张表） |
 | 网络 | OkHttp 4.12.0 |
-| GitHub | `https://github.com/3571949306/GameMatrixApp.git` (main 分支，工作区干净) |
-| 最新 commit | `f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞` |
+| GitHub | `https://github.com/3571949306/GameMatrixApp.git`（当前工作树包含用户并行修改，不能假定 clean） |
+| 当前文档真值 | 实时代码、Gradle、APK、真机和 logcat；旧 commit/发布说明仅作历史参考 |
 
 ### 核心功能
 - 28 款内置经典游戏（经典/益智/休闲三大类）
@@ -32,16 +35,38 @@
 
 ---
 
-## 2. 当前状态（2026-07-06）
+## 2. 当前状态（2026-07-22）
+
+### Flutter-first 模块商店
+
+- `flutter_module/` 已通过 Add-to-App 接入；Flutter 负责模块商店 UI、路由与 UI 状态。
+- Pigeon 调用 `ModuleCoreFacade`，Android 继续独占目录信任、下载、SHA-256、签名、安装、启停、回滚和 Runtime 生命周期。
+- 支持 `flutter/web/asset/android/native_service/unity` 六类 Runtime 框架；`ModuleStoreActivity` 在开关启用时直接承载 Flutter Fragment，关闭、失败或显式强制旧商店时渲染原生 UI。
+- 启用参数：`-PenableFlutterModuleStore=true`；源码默认值保留 false 作为安全回退，stable vc595 已用生产参数启用。Flutter Release 必须同时启用 Catalog 验签。
+- Flutter UI、客户端、六类 Runtime、Android 11–15 矩阵和生产发布闭环均为 100%；stable vc595、可定制宿主底部导航与签名 Catalog V8 已上线，以 `docs/flutter-store/MIGRATION_STATUS.md` 为准。
+
+### 当前验证状态
+
+```text
+✅ Flutter analyze / 6 个 Flutter tests
+✅ Android 全量单测、lint、Debug assemble
+✅ lintVitalRelease、R8、资源收缩、APK v2 签名和 ARM64/x86_64 双 ABI staging Release
+✅ Android 11/API 30、12/API 31、14/API 34 各 20 次签名 Release 进出；Android 15/API 35 最新 Release 40 次；Android 13 真机 Debug 80 次
+✅ 目标流无 FATAL / Flutter channel 错误；强制验签正确拒绝无签名远端并保留缓存
+✅ 线上签名 Catalog V8、多 Runtime 正式包、生产灰度与 stable vc595 已完成；底部导航排序/隐藏及 Flutter 商店升级路径已在 API 35 验证。
+⚠️ 工作树包含本任务及用户并行的游戏 AI/模块修改
+```
+
+## 2A. 2026-07-06 历史状态
 
 ### 构建状态
 ```
-✅ Debug/Release 构建正常
+✅ 当时的 Debug/Release 构建记录
 ✅ R8 混淆已启用
 ✅ ABI splits: arm64-v8a
 ✅ Lint 严格模式（abortOnError true）
 ✅ 证书绑定: Release 启用
-✅ 工作区干净，main 与 origin/main 同步
+⚠️ “工作区干净”仅是当时记录；当前必须以实时 `git status` 为准
 ```
 
 ### 循环 17-24 维护记录（2026-07-06）
@@ -621,6 +646,7 @@ P3-5 Toast→Snackbar 替换（已完成）：
 - **应用时机**：① `App.onCreate()` 调用 `applyLanguage()` 应用保存的语言；② `AppSettingsDialog.showLanguagePicker()` 用户选择后即时调用 `setApplicationLocales` + `recreate()`
 - **旧值迁移**：`getAppLanguage()` 读取到旧值 `"zh"` 时自动迁移为 `"zh-CN"` 并持久化（2026-07-17 修复）
 - **硬编码文本禁令**：所有 UI 文本必须通过 `@string/` 或 `getString(R.string.*)` 引用，不允许在 Java/Kotlin/layout 中硬编码中英文文本
+- **休闲游戏组 D 本地化与主题合规（2026-07-22）**：dice / guess / reaction / whack / rock / blackjack 六款游戏的 UI 文本与颜色已完成资源化重构。UI 文本追加到各自的 `res/values/strings_game_<name>.xml`（命名约定 `game_<name>_<purpose>`，含变量的用 `%1$d`/`%2$s` 占位符 + `getString(R.string.xxx, args...)`）。UI 颜色（背景/文字/按钮，不含 Canvas `onDraw` 中的 `paint.setColor`）集中到新建的 `res/values/colors_game_group_d.xml`（浅色）与 `res/values-night/colors_game_group_d.xml`（深色），命名约定 `game_<name>_color_<purpose>`，Java 侧用 `ContextCompat.getColor(this, R.color.xxx)` 读取。`getGameName()` 复用已有的 `game_<name>_name` 资源。Reaction 的 `static final int COLOR_*` 常量已删除，改为使用处直接调用 `ContextCompat.getColor()`；Rock 的 `static final String[] CHOICE_NAMES` 改为实例字段 `choiceNames`，在 `initGame()` 中用 `getString()` 初始化。本次共新增 86 条字符串资源、41 条颜色资源（浅色 41 + 深色 41）。
 
 ---
 

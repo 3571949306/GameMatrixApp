@@ -11,6 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -41,11 +42,7 @@ import java.util.Random;
 public class ReactionActivity extends BaseGameActivity {
 
     // ==================== 常量 ====================
-    private static final int COLOR_WAITING = 0xFFE53935;   // 红色 - 等待
-    private static final int COLOR_READY = 0xFF4CAF50;     // 绿色 - 可以点击
-    private static final int COLOR_IDLE = 0xFFFBF9F6;      // 白色 - 空闲
-    private static final int COLOR_TOO_EARLY = 0xFFFF9800;  // 橙色 - 点早了
-    private static final int COLOR_RESULT = 0xFF5B8A72;    // 绿色主题 - 结果
+    // UI 颜色已迁移至 colors_game_group_d.xml，运行时通过 ContextCompat.getColor() 读取
 
     // ==================== 游戏状态 ====================
     private Handler handler = new Handler(Looper.getMainLooper());
@@ -79,7 +76,7 @@ public class ReactionActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "反应力";
+        return getString(R.string.game_reaction_name);
     }
 
     @Override
@@ -132,24 +129,24 @@ public class ReactionActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_bg));
         root.setPadding(32, 32, 32, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_reaction_color_text_primary));
         tvStatus.setPadding(0, 16, 0, 16);
-        tvStatus.setText("测试你的反应速度！");
+        tvStatus.setText(getString(R.string.game_reaction_status_init));
 
         // 统计信息
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_reaction_color_text_secondary));
         tvStats.setPadding(0, 8, 0, 24);
-        tvStats.setText("最佳：-- ms | 平均：-- ms");
+        tvStats.setText(getString(R.string.game_reaction_stats_init));
 
         // 目标方块
         targetBox = new View(this);
@@ -158,21 +155,21 @@ public class ReactionActivity extends BaseGameActivity {
         boxParams.gravity = Gravity.CENTER;
         boxParams.setMargins(0, 32, 0, 32);
         targetBox.setLayoutParams(boxParams);
-        targetBox.setBackgroundColor(COLOR_IDLE);
+        targetBox.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_idle));
         targetBox.setOnClickListener(v -> onTargetClick());
 
         // 开始按钮
         btnStart = new MaterialButton(this);
-        btnStart.setText("开始测试");
-        btnStart.setBackgroundColor(0xFF5B8A72);
+        btnStart.setText(getString(R.string.game_reaction_btn_start));
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_btn_start));
         btnStart.setTextColor(Color.WHITE);
         btnStart.setOnClickListener(v -> startRound());
 
         // 重试按钮
         btnRetry = new MaterialButton(this);
-        btnRetry.setText("再来一轮");
-        btnRetry.setBackgroundColor(0xFFFBF9F6);
-        btnRetry.setTextColor(0xFF5B8A72);
+        btnRetry.setText(getString(R.string.game_reaction_btn_retry));
+        btnRetry.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_btn_retry_bg));
+        btnRetry.setTextColor(ContextCompat.getColor(this, R.color.game_reaction_color_text_secondary));
         btnRetry.setVisibility(View.GONE);
         btnRetry.setOnClickListener(v -> startRound());
 
@@ -193,13 +190,12 @@ public class ReactionActivity extends BaseGameActivity {
     private void startRound() {
         if (!isGameRunning || isGamePaused) return;
 
-        currentRound++;
-        totalRounds++;
+        // 轮次计数移至成功反应后执行，避免"点早了"的失败轮次被计入 totalRounds
         waitingForGreen = true;
         greenShown = false;
 
-        targetBox.setBackgroundColor(COLOR_WAITING);
-        tvStatus.setText("等待变绿...");
+        targetBox.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_waiting));
+        tvStatus.setText(getString(R.string.game_reaction_status_waiting));
         btnStart.setVisibility(View.GONE);
         btnRetry.setVisibility(View.GONE);
 
@@ -213,8 +209,8 @@ public class ReactionActivity extends BaseGameActivity {
         handler.postDelayed(() -> {
             if (!isGameRunning || isGamePaused) return;
             if (waitingForGreen) {
-                targetBox.setBackgroundColor(COLOR_READY);
-                tvStatus.setText("快点击！");
+                targetBox.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_ready));
+                tvStatus.setText(getString(R.string.game_reaction_status_go));
                 readyTimeMs = System.currentTimeMillis();
                 greenShown = true;
             }
@@ -235,8 +231,8 @@ public class ReactionActivity extends BaseGameActivity {
         if (!greenShown) {
             // 点早了
             waitingForGreen = false;
-            targetBox.setBackgroundColor(COLOR_TOO_EARLY);
-            tvStatus.setText("太早了！等变绿再点");
+            targetBox.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_too_early));
+            tvStatus.setText(getString(R.string.game_reaction_status_too_early));
             fastCount = 0;
             btnRetry.setVisibility(View.VISIBLE);
             return;
@@ -247,9 +243,14 @@ public class ReactionActivity extends BaseGameActivity {
         lastReactionTimeMs = reactionMs;
         waitingForGreen = false;
         greenShown = false;
+        // 仅成功反应才计入轮次（修复失败轮计入统计 Bug）
+        currentRound++;
+        totalRounds++;
 
         if (reactionMs < bestReactionTimeMs) {
             bestReactionTimeMs = reactionMs;
+            // 反应时间越小越好，转换为"越大越好"的分数后持久化最高分
+            recordHighScore(Math.max(0, 1000 - (int) reactionMs));
         }
         totalReactionTimeMs += reactionMs;
 
@@ -261,8 +262,8 @@ public class ReactionActivity extends BaseGameActivity {
         }
 
         // 显示结果
-        targetBox.setBackgroundColor(COLOR_RESULT);
-        tvStatus.setText("反应时间：" + reactionMs + " ms！");
+        targetBox.setBackgroundColor(ContextCompat.getColor(this, R.color.game_reaction_color_result));
+        tvStatus.setText(getString(R.string.game_reaction_status_result, reactionMs));
 
         // 计算分数
         int score = Math.max(50 - (int)(reactionMs / 20), 5);
@@ -272,7 +273,7 @@ public class ReactionActivity extends BaseGameActivity {
         // 更新统计
         long avgMs = totalReactionTimeMs / totalRounds;
         String bestStr = bestReactionTimeMs == Long.MAX_VALUE ? "--" : String.valueOf(bestReactionTimeMs);
-        tvStats.setText("最佳：" + bestStr + " ms | 平均：" + avgMs + " ms | 轮次：" + totalRounds);
+        tvStats.setText(getString(R.string.game_reaction_stats_format, bestStr, avgMs, totalRounds));
 
         // 成就检查
         checkAchievement("win", totalRounds);

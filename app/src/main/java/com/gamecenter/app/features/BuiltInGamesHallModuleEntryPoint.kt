@@ -3,6 +3,7 @@ package com.gamecenter.app.features
 import android.content.Context
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.BuildConfig
+import com.gamecenter.app.GamesFragment
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
 import com.gamecenter.app.core.common.ModuleNavigationContribution
@@ -33,8 +34,12 @@ class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
     override fun isRunning(): Boolean = running
 
     override fun createFragment(context: Context): Fragment {
+        // HOME_REVAMP_V2: 返回 GamesFragment 以加载 V2 布局（fragment_games.xml）
+        // 之前返回 BuiltInGamesHallFragment（纯代码 UI），导致 XML 布局改动不生效
         return if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
             DynamicGamesHallFragment()
+        } else if (BuildConfig.HOME_REVAMP_V2 || BuildConfig.HOME_IMMERSIVE_REVAMP) {
+            GamesFragment()
         } else {
             BuiltInGamesHallFragment()
         }
@@ -53,6 +58,8 @@ class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
         override fun createFragment(context: Context): Fragment {
             return if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
                 DynamicGamesHallFragment()
+            } else if (BuildConfig.HOME_REVAMP_V2 || BuildConfig.HOME_IMMERSIVE_REVAMP) {
+                GamesFragment()
             } else {
                 BuiltInGamesHallFragment()
             }

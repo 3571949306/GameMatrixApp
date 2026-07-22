@@ -26,4 +26,20 @@
     <string name="game_whack_ach_streak_10_desc">连续击中10只地鼠</string>
     <string name="game_whack_ach_10_games">地鼠克星</string>
     <string name="game_whack_ach_10_games_desc">累计完成10局打地鼠</string>
+
+    <!-- UI 文本 -->
+    <string name="game_whack_status_init">点击开始，消灭地鼠！</string>
+    <string name="game_whack_status_play">打地鼠！</string>
+    <string name="game_whack_timer_format">⏱ %1$d秒</string>
+    <string name="game_whack_score_init">得分：0</string>
+    <string name="game_whack_score_format">得分：%1$d</string>
+    <string name="game_whack_status_end">⏰ 时间到！得分：%1$d</string>
+    <string name="game_whack_btn_start">开始游戏</string>
+    <string name="game_whack_btn_restart">再来一局</string>
+    <string name="game_whack_diff_easy">简单</string>
+    <string name="game_whack_diff_easy_desc">地鼠出现较慢</string>
+    <string name="game_whack_diff_normal">普通</string>
+    <string name="game_whack_diff_normal_desc">标准节奏</string>
+    <string name="game_whack_diff_hard">困难</string>
+    <string name="game_whack_diff_hard_desc">地鼠出现飞快</string>
 </resources>

@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrix App
 
 [![Android](https://img.shields.io/badge/Android-API%2024%2B-green?logo=android)](https://developer.android.com/)
@@ -11,9 +14,34 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 ---
 
-## 2026-07-20 混合架构 P0-P6 改造完成
+## 2026-07-22 Flutter-first Multi-runtime Module Store（vc595 导航定制已发布）
 
-完成模块商店混合架构全部阶段改造，实现服务器驱动商店内容与 UI，主 APK 仅保留下载/校验/安装/加载核心能力。
+项目已接入 Flutter Add-to-App 模块商店框架：Flutter 负责商店 UI，Kotlin `ModuleCoreFacade` 继续统一目录、下载、SHA-256、APK 签名、事务安装、启停与回滚；支持 `flutter/web/asset/android/native_service/unity` 六类运行时，并保留旧原生商店回退。
+
+| 维度 | 当前状态 |
+|---|---|
+| Flutter 商店 UI、路由与 Pigeon Bridge | 已完成；Android 11–15 签名 Release 矩阵与 Android 13 ARM64 真机均通过 |
+| Android 权威目录、下载、安装、回滚与 Runtime 生命周期 | 保持原生，Flutter 不直接接触 APK/DEX/文件路径 |
+| `ModuleStoreActivity` | 直接承载缓存 Engine 的 Flutter Fragment；显式 `force_legacy_module_store` 时在同一宿主渲染旧商店 |
+| Catalog V2 客户端信任 | 构建注入 Ed25519 公钥、轮换、强制 Release 验签与负向测试已完成 |
+| 正式 V2 多 Runtime 远程包 | Catalog V8、Ed25519 header、正式 APK 与受控 Web/Asset/Unity 灰度均已发布并验收 |
+| 综合进度 | Flutter UI、客户端、Runtime、Android 11–15 矩阵与生产发布闭环均为 100% |
+
+源码默认仍允许安全回退；stable vc595 使用生产参数启用 Flutter 商店与强制 Catalog 验签。测试构建命令：
+
+```powershell
+.\gradlew.bat :app:assembleDebug -PenableFlutterModuleStore=true -PautoUploadVps=false -PautoBumpVersion=false
+```
+
+Flutter 工具链位于 `flutter_module/`。架构、Catalog V2、Pigeon API、运行时、安全测试、生产证据和回退说明见 [docs/flutter-store/ARCHITECTURE.md](docs/flutter-store/ARCHITECTURE.md) 与 [MIGRATION_STATUS.md](docs/flutter-store/MIGRATION_STATUS.md)。
+
+宿主底部导航支持可信 Android 功能模块通过 `navigationContribution` 增加一级入口，并允许用户在“设置 → 数据与导航 → 底部导航”拖拽排序或隐藏。该配置由 Android 保存和执行，Flutter 商店不直接修改宿主导航、APK 或 DEX。
+
+---
+
+## 2026-07-20 原生混合架构 P0-P6 基线（现为 Flutter 商店的兼容后端）
+
+该阶段完成原生模块商店的混合架构基线。自 2026-07-21 起，商店展示/交互层由 Flutter 实验入口承接；本节保留为 Android 权威后端和旧商店回退的历史实现说明，不能单独代表当前 Flutter 化或生产发布状态。
 
 ### 已完成阶段
 - **P0/P1/P2**：远程目录协议、远程 UI 配置、目录仓库（ETag + 4 级降级）、UI 配置仓库、区块渲染器
@@ -211,7 +239,7 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 ## 功能列表 / Feature List
 
 ### 🛒 模块商店 / Module Store
-- **按需扩展**：宿主包内置了经典小游戏入口，其他游戏（ZIP 格式）以及各种核心功能模块（浏览器、工具箱、AI、VPN）均通过模块商店进行动态下载安装，极大地减小了初始 APK 体积。模块商店现包含 29 款游戏模块和 4 个功能模块，共 33 个可下载模块。
+- **多运行时目录**：当前 Android 13 真机目录显示 34 个模块，包含内置、预装与动态条目。Flutter-first UI 统一展示 `flutter/web/asset/android/native_service/unity`，实际下载/安装仍由 Android 权威链执行；不能再把全部条目描述为“33 个可下载模块”。
 - **动态插件机制**：对于 Browser, Tools, AI, VPN, Chinese Chess, Klotski, Knife，通过将其设置为 `builtIn: false` 的动态 APK 插件，运行时通过 `DexClassLoader` 动态装载并使用反射或 Hook 对资源进行重装载，防止内置依赖导致的资源冲突与崩溃。
 - **实时搜索框**：在 `ModuleStoreActivity` 顶部增加了按关键词快速搜索模块的过滤机制。
 - **卸载与更新**：提供已下载模块管理入口，支持快捷卸载 and 秒级热更新。
@@ -272,7 +300,8 @@ An Android game center with a modular marketplace for on-demand expansion of gam
 
 | 项目 | 版本 |
 |------|------|
-| 开发语言 | Java 17 + Kotlin |
+| 开发语言 | Java 17 + Kotlin 2.0.21 + Dart 3.12.x |
+| Flutter | 3.44.x Add-to-App（模块商店实验入口） |
 | 最低 Android 版本 | API 24 (Android 7.0) |
 | 目标 SDK | API 35 (Android 15) |
 | 编译 SDK | API 35 |

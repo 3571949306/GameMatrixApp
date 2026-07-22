@@ -10,6 +10,10 @@ import androidx.annotation.NonNull;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
+import com.gamecenter.app.games.model.DifficultyLevel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 土豆兄弟游戏 Activity（继承 BaseGameActivity）。
@@ -38,6 +42,7 @@ public class BrotatoActivity extends BaseGameActivity {
     private Handler handler = new Handler(Looper.getMainLooper());
     private int totalGames = 0;
     private int bestWave = 0;
+    private float difficultyFactor = 0.5f;
 
     private static final long FRAME_INTERVAL_MS = 16;
     private final Runnable gameLoop = new Runnable() {
@@ -61,17 +66,18 @@ public class BrotatoActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "土豆兄弟";
+        return getString(R.string.game_brotato_name);
     }
 
     @Override
     protected void initGame() {
         brotatoView = new BrotatoView(this);
+        applyDifficulty();
 
         brotatoView.setOnGameListener(new BrotatoView.OnGameListener() {
             @Override
             public void onScoreChanged(int score) {
-                updateScore(currentScore + score);
+                updateScore(score);
             }
 
             @Override
@@ -81,8 +87,8 @@ public class BrotatoActivity extends BaseGameActivity {
                 if (wave > bestWave) {
                     bestWave = wave;
                 }
-                currentScore += score;
-                updateScore(currentScore);
+                updateScore(score);
+                recordHighScore(score);
 
                 usageStore.recordLoss(getGameId());
 
@@ -152,6 +158,31 @@ public class BrotatoActivity extends BaseGameActivity {
     @Override
     protected void checkAchievement(@NonNull String eventType, @NonNull Object... params) {
         achievementManager.checkAndUnlock(eventType, params);
+    }
+
+    @NonNull
+    @Override
+    public List<DifficultyLevel> getDifficultyLevels() {
+        List<DifficultyLevel> levels = new ArrayList<>();
+        levels.add(new DifficultyLevel(getString(R.string.game_brotato_diff_easy), 1, getString(R.string.game_brotato_diff_easy_desc), 0, 0, 0.3f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_brotato_diff_normal), 2, getString(R.string.game_brotato_diff_normal_desc), 0, 0, 0.5f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_brotato_diff_hard), 3, getString(R.string.game_brotato_diff_hard_desc), 0, 0, 0.8f, false));
+        return levels;
+    }
+
+    @Override
+    public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
+                                    @NonNull DifficultyLevel newLevel) {
+        difficultyFactor = newLevel.difficultyFactor;
+        applyDifficulty();
+    }
+
+    /**
+     * 根据当前难度因子配置 BrotatoView（影响敌人速度/生成间隔/血量）。
+     */
+    private void applyDifficulty() {
+        if (brotatoView == null) return;
+        brotatoView.setDifficultyFactor(difficultyFactor);
     }
 
     @Override

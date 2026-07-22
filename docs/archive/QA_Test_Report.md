@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # GameCenterApp 模块化架构重构 - 测试报告
 
 ## 测试概述

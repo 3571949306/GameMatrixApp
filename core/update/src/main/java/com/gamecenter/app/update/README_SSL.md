@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # SSL/TLS 网络配置说明
 
 ## 当前实现
@@ -87,11 +90,11 @@ curl -k -sI https://<YOUR_DOMAIN>:1443/version-beta.json
 
 ## 相关文件
 
-- [UpdateManager.java](../app/src/main/java/com/gamecenter/app/update/UpdateManager.java): 更新检查、下载和安装流程
-- [SSLHelper.java](../app/src/main/java/com/gamecenter/app/update/SSLHelper.java): TLS 信任管理
-- [network_security_config.xml](../app/src/main/res/xml/network_security_config.xml): Android 网络安全配置
-- [AndroidManifest.xml](../app/src/main/AndroidManifest.xml): 应用清单与网络配置引用
-- [服务器部署/var_www_update/update_server.py](../服务器部署/var_www_update/update_server.py): VPS 更新服务模板
+- [UpdateManager.java](/core/update/src/main/java/com/gamecenter/app/update/UpdateManager.java): 更新检查、下载和安装流程
+- [SSLHelper.java](/core/update/src/main/java/com/gamecenter/app/update/SSLHelper.java): TLS 信任管理
+- [network_security_config.xml](/app/src/main/res/xml/network_security_config.xml): Android 网络安全配置
+- [AndroidManifest.xml](/app/src/main/AndroidManifest.xml): 应用清单与网络配置引用
+- VPS 更新服务模板不在当前仓库中，部署时必须以受控服务器仓库/配置为准。
 ---
 
 ## 2026-05-14 文档同步：文字适配与应用语言

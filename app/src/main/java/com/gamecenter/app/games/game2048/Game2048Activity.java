@@ -121,7 +121,7 @@ public class Game2048Activity extends BaseGameActivity {
         if (gameContentContainer instanceof android.widget.FrameLayout) {
             com.google.android.material.button.MaterialButton btnUndo =
                     new com.google.android.material.button.MaterialButton(this);
-            btnUndo.setText("↶ 撤销");
+            btnUndo.setText(getString(R.string.game_2048_undo));
             btnUndo.setTextSize(12f);
             btnUndo.setMinWidth(0);
             btnUndo.setPadding(16, 6, 16, 6);
@@ -135,9 +135,9 @@ public class Game2048Activity extends BaseGameActivity {
             btnUndo.setOnClickListener(v -> {
                 if (game2048View.undo()) {
                     updateScore(game2048View.getScore() - 10);
-                    android.widget.Toast.makeText(this, "已撤销", android.widget.Toast.LENGTH_SHORT).show();
+                    android.widget.Toast.makeText(this, getString(R.string.game_2048_undone), android.widget.Toast.LENGTH_SHORT).show();
                 } else {
-                    android.widget.Toast.makeText(this, "已无历史可撤销",
+                    android.widget.Toast.makeText(this, getString(R.string.game_2048_no_undo_history),
                             android.widget.Toast.LENGTH_SHORT).show();
                 }
             });
@@ -146,7 +146,7 @@ public class Game2048Activity extends BaseGameActivity {
             // 2026-06-23: 重做按钮（undo 的反向，还原撤销前的状态）
             com.google.android.material.button.MaterialButton btnRedo =
                     new com.google.android.material.button.MaterialButton(this);
-            btnRedo.setText("↷ 重做");
+            btnRedo.setText(getString(R.string.game_2048_redo));
             btnRedo.setTextSize(12f);
             btnRedo.setMinWidth(0);
             btnRedo.setPadding(16, 6, 16, 6);
@@ -160,9 +160,9 @@ public class Game2048Activity extends BaseGameActivity {
             btnRedo.setOnClickListener(v -> {
                 if (game2048View.redo()) {
                     updateScore(game2048View.getScore() + 10);
-                    android.widget.Toast.makeText(this, "已重做", android.widget.Toast.LENGTH_SHORT).show();
+                    android.widget.Toast.makeText(this, getString(R.string.game_2048_redone), android.widget.Toast.LENGTH_SHORT).show();
                 } else {
-                    android.widget.Toast.makeText(this, "已无可重做",
+                    android.widget.Toast.makeText(this, getString(R.string.game_2048_no_redo_history),
                             android.widget.Toast.LENGTH_SHORT).show();
                 }
             });
@@ -234,11 +234,11 @@ public class Game2048Activity extends BaseGameActivity {
     @Override
     public List<DifficultyLevel> getDifficultyLevels() {
         List<DifficultyLevel> levels = new ArrayList<>();
-        levels.add(new DifficultyLevel("简单", 1, "4×4 棋盘，大方块出现概率高",
+        levels.add(new DifficultyLevel(getString(R.string.game_2048_diff_easy), 1, getString(R.string.game_2048_diff_easy_desc),
                 0, 0, 0.3f, false));
-        levels.add(new DifficultyLevel("普通", 2, "4×4 棋盘，标准概率",
+        levels.add(new DifficultyLevel(getString(R.string.game_2048_diff_normal), 2, getString(R.string.game_2048_diff_normal_desc),
                 0, 0, 0.5f, true));
-        levels.add(new DifficultyLevel("困难", 3, "4×4 棋盘，小方块出现概率高",
+        levels.add(new DifficultyLevel(getString(R.string.game_2048_diff_hard), 3, getString(R.string.game_2048_diff_hard_desc),
                 0, 0, 0.8f, false));
         return levels;
     }
@@ -249,6 +249,6 @@ public class Game2048Activity extends BaseGameActivity {
         if (game2048View != null) {
             game2048View.setDifficultyFactor(newLevel.difficultyFactor);
         }
-        Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.game_2048_difficulty_changed, newLevel.name), Toast.LENGTH_SHORT).show();
     }
 }

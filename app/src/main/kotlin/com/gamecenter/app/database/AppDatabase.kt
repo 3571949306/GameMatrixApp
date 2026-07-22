@@ -25,7 +25,10 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "GameMatrix_database"
-                ).build()
+                )
+                    .addMigrations(*DatabaseMigrations.ALL_MIGRATIONS)
+                    .fallbackToDestructiveMigrationOnDowngrade(true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.gamecenter.app.core.common.GameAI;
+
 /**
  * 五子棋AI引擎，基于Minimax搜索 + Alpha-Beta剪枝。
  * <p>
@@ -31,7 +33,7 @@ import java.util.Random;
  *    就像棋手在脑海中模拟"如果我下这里，对手会下哪里，我再怎么下……"
  * 4. 搜索时间有限（难度越高时间越长），时间到了就选当前找到的最好的一步
  */
-public class GomokuAI {
+public class GomokuAI implements GameAI {
 
     private static final DifficultyProfile[] DIFFICULTY_PROFILES = {
             new DifficultyProfile("gomoku_low.ai", 450, 3),
@@ -73,6 +75,14 @@ public class GomokuAI {
 
     /** VCF算杀开关（feature flag）：仅大师难度启用 */
     private final boolean vcfEnabled;
+
+    /** 禁手规则开关（由当前对局决定，仅约束黑方） */
+    private boolean applyForbiddenRule;
+    private volatile boolean cancelled = false;
+    private volatile boolean thinking = false;
+
+    /** 当前对局引用，用于禁手判定 */
+    private GomokuGame gameRef;
 
     /** 搜索开始时间戳 */
     private long searchStartMs;
@@ -454,6 +464,26 @@ public class GomokuAI {
     }
 
     /**
+     * 获取合法候选着法（含禁手过滤）。
+     * <p>
+     * 当启用禁手规则且当前着子方为黑方时，过滤掉会导致禁手（三三/四四/长连）的着法。
+     * 若过滤后无候选着法，则返回原始候选（极端边界情况，避免无着可走）。
+     *
+     * @param board  棋盘数组
+     * @param player 当前执子方
+     * @return 候选着法坐标列表
+     */
+    private List<int[]> getLegalCandidateMoves(int[][] board, int player) {
+        List<int[]> base = getCandidateMoves(board);
+        if (!applyForbiddenRule || player != GomokuGame.BLACK || gameRef == null) return base;
+        List<int[]> out = new ArrayList<>();
+        for (int[] m : base) {
+            if (gameRef.getForbiddenType(m[0], m[1], player, board) == GomokuGame.ForbiddenType.NONE) out.add(m);
+        }
+        return out.isEmpty() ? base : out;
+    }
+
+    /**
      * 检查指定位置是否形成五连。
      *
      * @param x      横坐标
@@ -518,6 +548,7 @@ public class GomokuAI {
     private double minimax(int[][] board, int depth, double alpha, double beta,
                            boolean isMaximizing, int aiPlayer, int[] lastMoveInfo) {
         nodesSearched++;
+        if (cancelled) return evaluate(board, aiPlayer);
         // 定期检查超时
         if ((nodesSearched & (TIME_CHECK_INTERVAL - 1)) == 0 && checkTimeout()) {
             return evaluate(board, aiPlayer);
@@ -533,7 +564,7 @@ public class GomokuAI {
         int player = isMaximizing ? aiPlayer : getOpponent(aiPlayer);
         // 深层搜索减少候选数量以加速
         int limit = depth >= 4 ? 10 : 12;
-        List<int[]> topMoves = scoreAndSortMoves(getCandidateMoves(board), board, player, limit);
+        List<int[]> topMoves = scoreAndSortMoves(getLegalCandidateMoves(board, player), board, player, limit);
         if (topMoves.isEmpty()) return evaluate(board, aiPlayer);
 
         if (isMaximizing) {
@@ -652,7 +683,13 @@ public class GomokuAI {
         searchStartMs = System.currentTimeMillis();
 
         int[][] board = copyBoard(game.getBoard());
-        List<int[]> moves = getCandidateMoves(board);
+        this.gameRef = game;
+        this.applyForbiddenRule = game.isForbiddenMovesEnabled();
+        thinking = true;
+        cancelled = false;
+        int[] bestMove = null;
+        try {
+        List<int[]> moves = getLegalCandidateMoves(board, aiPlayer);
         if (moves.isEmpty()) return null;
 
         int humanPlayer = getOpponent(aiPlayer);
@@ -681,7 +718,7 @@ public class GomokuAI {
 
         // 迭代加深搜索
         List<int[]> orderedMoves = scoreAndSortMoves(moves, board, aiPlayer, moves.size());
-        int[] bestMove = orderedMoves.get(0);
+        bestMove = orderedMoves.get(0);
 
         for (int depth = 1; depth <= maxDepth; depth++) {
             if (timedOut || checkTimeout()) break;
@@ -714,7 +751,21 @@ public class GomokuAI {
         // 难度3/4始终选最优，不随机
         bestMove = maybePickRandomFromTop(bestMove, orderedMoves);
 
+        } finally {
+            thinking = false;
+        }
+
         return bestMove;
+    }
+
+    @Override
+    public void cancel() {
+        cancelled = true;
+    }
+
+    @Override
+    public boolean isThinking() {
+        return thinking;
     }
 
     /**
@@ -871,6 +922,11 @@ public class GomokuAI {
             board[move[1]][move[0]] = GomokuGame.EMPTY;
             // 五连或冲四（不含活四）
             if (wins || (threat.fours > 0 && threat.openFours == 0)) {
+                // 黑方禁手过滤：冲四着法若构成禁手则跳过
+                if (applyForbiddenRule && player == GomokuGame.BLACK
+                        && gameRef != null && gameRef.getForbiddenType(move[0], move[1], player, board) != GomokuGame.ForbiddenType.NONE) {
+                    continue;
+                }
                 moves.add(move);
             }
         }

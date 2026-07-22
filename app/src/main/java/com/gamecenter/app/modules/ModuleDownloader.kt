@@ -7,6 +7,7 @@ import android.util.Log
 import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.core.security.SecureOkHttpFactory
 import com.gamecenter.app.core.security.ModuleSignatureVerifier
+import com.gamecenter.app.modules.catalog.CatalogPackageTrustRegistry
 import java.io.File
 import java.io.FileOutputStream
 import okhttp3.Request
@@ -50,6 +51,7 @@ object ModuleDownloader {
         fun onProgress(moduleId: String, downloaded: Long, total: Long, speedKbps: Long)
         fun onComplete(moduleId: String, file: File)
         fun onError(moduleId: String, message: String)
+        fun onStateChanged(moduleId: String, state: String) = Unit
         fun onError(moduleId: String, errorCode: Int, message: String) {
             // Default implementation delegates to old signature for backwards compatibility
             onError(moduleId, message)
@@ -83,6 +85,7 @@ object ModuleDownloader {
         activeDownloads[moduleId] = true
         if (callback != null) {
             activeCallbacks[moduleId] = callback
+            callback.onStateChanged(moduleId, "queued")
         }
         val appContext = context.applicationContext
 
@@ -102,6 +105,7 @@ object ModuleDownloader {
     }
 
     private fun doDownload(appContext: Context, manifest: ModuleManifest, moduleId: String) {
+        notifyStateChanged(moduleId, "downloading")
         val downloadStartTime = System.currentTimeMillis()
         val targetFile = getModuleFile(appContext, manifest)
         val tempFile = File(targetFile.parent, targetFile.name + ".tmp")
@@ -196,6 +200,7 @@ object ModuleDownloader {
 
                     val file = downloadFromUrl(url, targetFile, tempFile, moduleId)
                     if (file != null) {
+                        notifyStateChanged(moduleId, "verifying")
                         Log.d(TAG, "模块 $moduleId 下载完成，开始SHA-256校验")
                         // 安全加固：sha256 为空时直接拒绝，不允许绕过校验
                         if (manifest.sha256.isEmpty()) {
@@ -213,7 +218,22 @@ object ModuleDownloader {
                             // SHA 不匹配说明文件有问题，重试无意义，直接切换 URL
                             break
                         }
-                        when (val signature = ModuleSignatureVerifier.verify(file, appContext)) {
+                        val packageTrustFailure = when {
+                            file.name.endsWith(".apk", ignoreCase = true) -> null
+                            !file.name.endsWith(".zip", ignoreCase = true) -> "不支持的模块包格式"
+                            !CatalogPackageTrustRegistry.isTrusted(manifest) -> "归档包未绑定到已验签 Catalog V2"
+                            else -> null
+                        }
+                        if (packageTrustFailure != null) {
+                            Log.e(TAG, "模块 $moduleId 安全校验失败: $packageTrustFailure")
+                            file.delete()
+                            notifyError(moduleId, ErrorCodes.ERROR_CONFIG, packageTrustFailure)
+                            cleanup(moduleId)
+                            return
+                        }
+                        if (!file.name.endsWith(".apk", ignoreCase = true)) {
+                            Log.d(TAG, "模块 $moduleId 归档包已通过 Catalog V2 绑定和 SHA-256 校验")
+                        } else when (val signature = ModuleSignatureVerifier.verify(file, appContext)) {
                             ModuleSignatureVerifier.Result.Success -> Unit
                             is ModuleSignatureVerifier.Result.Failure -> {
                                 Log.e(TAG, "模块 $moduleId 签名校验失败: ${signature.reason}")
@@ -329,6 +349,11 @@ object ModuleDownloader {
             return
         }
         mainHandler.post { cb.onComplete(moduleId, file) }
+    }
+
+    private fun notifyStateChanged(moduleId: String, state: String) {
+        val cb = activeCallbacks[moduleId] ?: return
+        mainHandler.post { cb.onStateChanged(moduleId, state) }
     }
 
     private fun notifyError(moduleId: String, errorCode: Int, message: String) {

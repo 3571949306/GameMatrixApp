@@ -27,4 +27,15 @@
     <string name="game_brotato_ach_score_200_desc">单局得分达到200分</string>
     <string name="game_brotato_ach_10_games">土豆老手</string>
     <string name="game_brotato_ach_10_games_desc">累计完成10局土豆兄弟</string>
+
+    <!-- UI 文案 -->
+    <string name="game_brotato_diff_easy">简单</string>
+    <string name="game_brotato_diff_easy_desc">敌人更慢，生成更慢，血量更低</string>
+    <string name="game_brotato_diff_normal">普通</string>
+    <string name="game_brotato_diff_normal_desc">标准难度</string>
+    <string name="game_brotato_diff_hard">困难</string>
+    <string name="game_brotato_diff_hard_desc">敌人更快，生成更快，血量更高</string>
+    <string name="game_brotato_score_label">分：%1$d</string>
+    <string name="game_brotato_wave_label">波次 %1$d</string>
+    <string name="game_brotato_wave_starting">波次 %1$d 即将开始...</string>
 </resources>

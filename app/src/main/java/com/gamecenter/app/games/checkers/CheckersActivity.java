@@ -10,6 +10,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -105,18 +106,18 @@ public class CheckersActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_checkers_color_bg));
 
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_checkers_color_status_text));
         tvStatus.setPadding(0, 24, 0, 8);
 
         tvDifficulty = new TextView(this);
         tvDifficulty.setGravity(Gravity.CENTER);
         tvDifficulty.setTextSize(14f);
-        tvDifficulty.setTextColor(0xFF5B8A72);
+        tvDifficulty.setTextColor(ContextCompat.getColor(this, R.color.game_checkers_color_diff_label));
         tvDifficulty.setPadding(0, 4, 0, 16);
 
         // 菜单面板

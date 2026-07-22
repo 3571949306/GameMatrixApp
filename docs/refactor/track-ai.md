@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # AI 助手模块改造设计 (track-ai)
 
 > 适用版本: v1.4.1 (vc=567, beta channel) — 2026-07-06 复核更新

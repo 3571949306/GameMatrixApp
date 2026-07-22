@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # AI User Agreement And Local Model Notice
 
 > This document is an engineering checklist for the in-app AI notice. It is not a substitute for legal review, but it defines the user-facing safeguards the app must implement before enabling local Gemma downloads.

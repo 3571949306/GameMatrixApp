@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp ADB 真机全量测试计划
 
 > 目标设备：小米 ares（M2012K10C）无线调试  
@@ -28,11 +31,14 @@ adb -s <serial> logcat -c
 
 ```powershell
 # 标准 Debug 构建（不自动升版号）
-.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
+.\gradlew.bat :app:assembleDebug -PautoUploadVps=false -PautoBumpVersion=false --stacktrace
+
+# Flutter-first 模块商店验证构建（实验入口）
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PautoUploadVps=false -PautoBumpVersion=false --stacktrace
 
 # 如需刷新预装模块（如修改了模块源码）
-.\gradlew.bat :module-store:feature:tools:wrongbook:assembleRelease :app:bundlePreinstalledModules -PautoBumpVersion=false --stacktrace
-.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
+.\gradlew.bat :module-store:feature:tools:wrongbook:assembleRelease :app:bundlePreinstalledModules -PautoUploadVps=false -PautoBumpVersion=false --stacktrace
+.\gradlew.bat :app:assembleDebug -PautoUploadVps=false -PautoBumpVersion=false --stacktrace
 ```
 
 ### 1.3 安装命令
@@ -352,7 +358,8 @@ adb -s <serial> logcat -d -t 2000 |
 | 入口 | 操作 |
 |------|------|
 | Profile 页"模块商店"按钮 | 点击 |
-| adb 直接启动 | `adb shell am start -n com.gamecenter.app/.modules.ModuleStoreActivity` |
+| Flutter-first 入口 | 使用启用开关的 APK，从主界面/Profile 点击“模块商店”；确认前台为 `ModuleStoreActivity` 且语义树显示 Flutter-first Hub |
+| adb 直接启动限制 | `ModuleStoreActivity`/Flutter Activity 为 `exported=false`，shell 直接启动会被系统拒绝；不要为测试临时改成 exported=true |
 
 ### 12.2 商店首页
 
@@ -395,11 +402,11 @@ adb -s <serial> logcat -d -t 2000 |
 | 排序 | 名称/大小/版本/下载量/评分 |
 | 搜索历史 | 最多保留 5 条，可点击回填，可清空 |
 
-### 12.5 模块详情 BottomSheet
+### 12.5 模块详情
 
 | 操作 | 预期 |
 |------|------|
-| 点击模块卡片 | 弹出详情 BottomSheet |
+| 点击模块卡片 | Flutter-first 显示详情路由；旧商店回退显示原生 BottomSheet |
 | 查看截图 | 可滑动浏览 |
 | 查看描述 | 完整描述可展开 |
 | 点击安装/更新 | 开始下载并安装 |
@@ -428,8 +435,8 @@ adb -s <serial> logcat -d -t 2000 |
 | 底部导航出现新 Tab | 安装 tools/ai/vpn 后导航动态刷新 |
 | 模块可启动 | 点击对应 Tab 进入模块 |
 | 模块功能正常 | 在模块内操作无崩溃 |
-| 已安装列表 | ModuleStoreActivity 中"已安装"分类显示 |
-| InstalledModulesActivity | 通过 adb 打开验证 |
+| 已安装列表 | Flutter-first `/store/installed` 与旧商店已安装分类显示一致 |
+| 旧 InstalledModulesActivity | 仅通过 App 内入口验证；非导出 Activity 不使用 shell 强启 |
 
 ### 12.8 卸载与回滚
 
@@ -494,11 +501,11 @@ adb shell am start -n com.gamecenter.app/.SplashActivity
 # 直接打开游戏大厅
 adb shell am start -n com.gamecenter.app/.MainActivity
 
-# 直接打开模块商店
-adb shell am start -n com.gamecenter.app/.modules.ModuleStoreActivity
+# 模块商店相关 Activity 为 exported=false：从主 App UI 进入，不使用 shell 强启
+# 启用构建进入后可确认：
+adb shell dumpsys activity activities | Select-String -Pattern "topResumedActivity|FlutterModuleStoreActivity|ModuleStoreActivity"
 
-# 直接打开已安装模块页
-adb shell am start -n com.gamecenter.app/.modules.InstalledModulesActivity
+# Flutter 已安装页：进入商店后通过页面按钮打开 `/store/installed`
 
 # 直接打开浏览器
 adb shell am start -n com.gamecenter.app/.browser.ui.BrowserActivity
@@ -585,11 +592,13 @@ git log --oneline -5
 git checkout <stable-commit>
 
 # 重新构建安装
-.\gradlew.bat :app:assembleDebug -PautoBumpVersion=false --stacktrace
+.\gradlew.bat :app:assembleDebug -PautoUploadVps=false -PautoBumpVersion=false --stacktrace
 adb -s <serial> install -r -d app\build\outputs\apk\debug\app-debug.apk
 ```
 
 模块商店相关功能可通过关闭 feature flag 快速回滚：
+
+Flutter-first 总开关无需修改源码：省略 `-PenableFlutterModuleStore=true` 或显式传入 `-PenableFlutterModuleStore=false` 即回到旧商店。以下开关仅控制旧混合商店的细分能力：
 
 ```gradle
 // app/build.gradle
@@ -680,3 +689,77 @@ adb -s <serial> logcat -d -t 500 | Select-String -Pattern "ModuleDownloader|Modu
   2. 重新上传签名后的模块 APK 到服务器并更新 `modules.json`；
   3. 再次执行本测试计划中的“模块下载与安装”章节，验证事务安装、安装后导航刷新、模块启动等流程；
   4. 评估是否将搜索范围从“当前分类”扩展为“全部分类”以提升体验。
+
+
+---
+
+## 22. 模块商店签名修复回归测试结果 (2026-07-20 第二轮)
+
+### 22.1 修复内容
+1. **签名配置补齐**：为 `tools`、`ai`、`vpn`、`tts_voice` 四个模块的 `build.gradle` 添加 `signingConfigs.release`（从 `keystore.properties` 读取，启用 v1+v2 签名），让模块用 `gamecenter.jks`（与主 APK 一致）签名，证书 SHA-256: `d058a18f9e89a29b5339eda27ece3ff9f78e0dbefe605d551e7745f724d2eddc`
+2. **TTS 模块编译修复**：`TtsModuleEntryPoint.java` 显式覆盖 Kotlin 接口 `FeatureModule` 的所有默认方法
+3. **catalog/modules 清单更新**：`catalogVersion` 1→3，`modules.json version` 21→23，5 个模块的 `fileSize`/`sha256` 全部对齐新签名 APK
+4. **分类修复**：`tts_voice.storeCategory` `"voice"→"tools"`，`wrongbook.storeCategory` `"wrongbook"→"tools"`，让两个模块能在"工具箱"tab 下显示
+5. **服务器更新**：5 个新签名 APK + v3 catalog.json + v23 modules.json 上传至 `/var/www/modules/` 和 `/var/www/`
+6. **nginx 路由修复**：新增 `location = /catalog.json` 路由到 9001 端口，绕过 `StoreCatalogRepository.catalogUrl` 推导 bug
+
+### 22.2 测试环境
+- 设备：小米 ares (M2012K10C)
+- 主 APK：`app-debug.apk` vc=591（内置 catalog v3 + modules v23）
+- 连接方式：无线调试 `adb-w4dm4dssby7xcunv-Z6Rs5D._adb-tls-connect._tcp`
+- 服务器：`https://hk-update.tcp0053.shop/modules/` (Cloudflare CDN + Nginx 反代 9001)
+
+### 22.3 测试步骤（每模块通用）
+1. 清空 logcat：`adb -s <serial> logcat -c`
+2. 进入模块商店 → 切换到目标分类 tab → 找到模块卡片 → 点击"下载"按钮
+3. 等待 5-15 秒（视模块大小）
+4. 抓取 logcat 验证：
+```powershell
+adb -s <serial> logcat -d -v brief 2>&1 | Select-String "ModuleSigVerifier|ModuleManager|TransactionInstaller|ModuleDownloader"
+```
+5. 验证 `current/` 目录已生成对应 APK：
+```powershell
+adb -s <serial> shell "run-as com.gamecenter.app ls -la files/modules/current/"
+```
+
+### 22.4 测试结果（全部通过 ✅）
+
+| 模块 | 文件 | 大小(bytes) | 下载 | SHA-256 校验 | 签名校验 | 事务安装 | 时长 |
+|---|---|---|---|---|---|---|---|
+| tools | feature_tools_v100.apk | 682414 | ✅ | ✅ | ✅ | ✅ | ~3s |
+| ai | feature_ai_v100.apk | 690730 | ✅ | ✅ | ✅ | ✅ | ~3s |
+| vpn | vpn-debug.apk | 639382 | ✅ | ✅ | ✅ | ✅ | ~4s |
+| tts_voice | feature_tts_voice_v101.apk | 647378 | ✅ | ✅ | ✅ | ✅ | ~4s |
+| wrongbook | feature_wrongbook_v100.apk | 6138762 | ✅ | ✅ | ✅ | ✅ | ~7s |
+
+每个模块日志关键证据：
+```
+I/ModuleSigVerifier: 已加载内置发布证书: sha256=d058a18f9e89a29b5339eda27ece3ff9f78e0dbefe605d551e7745f724d2eddc
+I/ModuleSigVerifier: 签名者证书校验通过: <file>.apk, sha256=d058a18f9e89a29b5339eda27ece3ff9f78e0dbefe605d551e7745f724d2eddc
+D/TransactionInstaller: 事务安装成功: <module-id>
+D/ModuleManager: 事务安装成功: <module-id> -> /data/user/0/com.gamecenter.app/files/modules/current/<file>.apk
+```
+
+### 22.5 测试结论
+- **结论**：21.1.5 章节提出的"签名证书一致性"问题已彻底修复。5 个动态模块均能在真机正常下载、SHA-256 校验、签名者证书校验、事务安装，端到端流程全部通过。
+- **统计**：模块总数 34，已安装 5（动态）+ 27（内置游戏）+ 2（核心内置 games_hall/browser）= 34，已安装率 100%。
+
+### 22.6 已知遗留问题（不阻塞当前测试）
+1. **`StoreCatalogRepository.catalogUrl` 推导 bug**：`MODULES_URL=https://hk-update.tcp0053.shop/modules.json` 推导出 `catalogUrl=https://hk-update.tcp0053.shop/catalog.json`（缺 `/modules/` 段），目前通过 nginx 加 `location = /catalog.json` 路由 + 服务器 root path 放 `catalog.json` 兜底。彻底修复需改 `StoreCatalogRepository.kt:87-95`。
+2. **`ModuleDownloader.getModuleFileCompat` 误判**：`files/modules/` 根目录下残留的 APK（未走事务安装到 `current/`）会被 `isModuleInstalled` 误判为已安装，导致 UI 显示"打开"而非"下载"按钮。彻底修复需在 `getModuleFileCompat` 中限制只检查 `current/` 子目录，或在 `isModuleInstalled` 中先校验 `KEY_INSTALLED_MODULES` 再走文件兜底。
+3. **商店搜索逻辑**：搜索仅在 `currentCategory` 下过滤，无法跨分类搜索。建议改为全局搜索 + 高亮命中分类。
+
+---
+
+## 23. Flutter-first 商店真机收尾（2026-07-21）
+
+| 项目 | 内容 |
+|---|---|
+| 设备 | 小米 M2012K10C / Android 13 / USB `w4dm4dssby7xcunv` |
+| APK | v1.4.1 / versionCode 591，Flutter 开关启用的 arm64 Debug APK |
+| 自动化 | Flutter analyze 无问题；6 个 Flutter tests；Android 404 tests / 0 failures / 0 errors / 1 skipped，lint/build 通过 |
+| UI | 首页、详情、返回、连续两次进入、Flutter 菜单回退旧商店通过 |
+| Engine | `game_matrix_main_engine` 初始化日志仅 1 条 |
+| 日志 | 无目标 FATAL、资源、Activity、MissingPlugin 或 Flutter channel 错误 |
+| Android 矩阵 | Android 11/API 30、12/API 31、14/API 34 各 20 次签名 Release 进出失败 0；Android 15/API 35 最新 Release 40 次失败 0 |
+| 未覆盖 | 线上签名正式 V2、多 Runtime 受控远程包和生产灰度；这些需要生产密钥、服务器与正式资产授权 |

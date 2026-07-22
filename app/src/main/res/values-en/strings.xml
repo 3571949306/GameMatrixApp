@@ -243,6 +243,9 @@
 <string name="difficulty_easy">"Easy"</string>
 <string name="difficulty_hard">"Hard"</string>
 <string name="difficulty_medium">"Medium"</string>
+<string name="doudizhu_diff_easy">"Easy"</string>
+<string name="doudizhu_diff_normal">"Normal"</string>
+<string name="doudizhu_diff_hard">"Hard"</string>
 <string name="disable">"Disable"</string>
 <string name="disabled">"Disabled"</string>
 <string name="disable_vibration">"Disable vibration"</string>
@@ -1524,6 +1527,9 @@
     <string name="game_rock">Rock Paper Scissors</string>
     <string name="game_sokoban">Sokoban</string>
     <string name="game_sudoku">Sudoku</string>
+    <string name="game_sudoku_notes">Notes</string>
+    <string name="game_sudoku_notes_on">Notes: On</string>
+    <string name="game_sudoku_notes_off">Notes: Off</string>
     <string name="game_tic">Tic-Tac-Toe</string>
     <string name="game_tiles">Don\'t Tap White Tile</string>
     <string name="game_whack">Whack-a-Mole</string>
@@ -1903,7 +1909,7 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="game_rating_my_rating_label">My rating</string>
 
     <!-- ===== Batch 11-2 (DATA_BACKUP_RESTORE) ===== -->
-    <string name="settings_data_backup_title">Data Backup</string>
+    <string name="settings_data_backup_title">Data &amp; navigation</string>
     <string name="settings_data_backup_subtitle">Export / Import favorites, ratings and stats</string>
     <string name="settings_data_export">Export data to file</string>
     <string name="settings_data_import">Import data from file</string>
@@ -1936,6 +1942,30 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="home_resume_game_action">Resume</string>
     <string name="home_resume_game_time_format">Last played: %1$s</string>
     <string name="home_resume_game_no_history">No play history yet. Try your first game!</string>
+    <!-- Home Immersive Revamp (HOME_IMMERSIVE_REVAMP, 2026-07-21): empty state copy -->
+    <string name="home_resume_empty_title">Start your first game</string>
+    <string name="home_resume_empty_hint">Pick one from the recommendations below and play now</string>
+    <!-- Home Immersive Revamp: quick stats row labels -->
+    <string name="home_stat_today_playtime">Today</string>
+    <string name="home_stat_streak">Streak</string>
+    <string name="home_stat_achievements">Achievements</string>
+    <!-- Home V2 Game Vitality Redesign (HOME_REVAMP_V2, 2026-07-22) -->
+    <string name="home_v2_featured_today">Featured Today</string>
+    <string name="home_v2_quick_access">Quick Access</string>
+    <string name="home_v2_play_now">Play Now</string>
+
+    <!-- Bottom navigation customization (Android host) -->
+    <string name="bottom_nav_settings_title">Bottom navigation</string>
+    <string name="bottom_nav_settings_entry_subtitle">Reorder or hide bottom destinations</string>
+    <string name="bottom_nav_settings_description">Drag the handle to reorder. Turn off a destination to hide it. Game Hall is always available, with up to %1$d visible items.</string>
+    <string name="bottom_nav_settings_required">Required destination; cannot be hidden</string>
+    <string name="bottom_nav_settings_optional">Can be reordered or hidden</string>
+    <string name="bottom_nav_settings_visibility_description">Show in bottom navigation</string>
+    <string name="bottom_nav_settings_drag_description">Drag %1$s to reorder</string>
+    <string name="bottom_nav_settings_required_hint">Game Hall is required and cannot be hidden</string>
+    <string name="bottom_nav_settings_max_items">Bottom navigation supports up to %1$d items. Hide another destination first.</string>
+    <string name="bottom_nav_settings_reset">Restore default order</string>
+    <string name="bottom_nav_settings_reset_done">Default bottom navigation restored</string>
 
     <!-- ===== Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER) ===== -->
     <string name="home_recent_achievement_title">Recently unlocked</string>
@@ -1989,7 +2019,7 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="stats_rank_format">Rank %1$d</string>
 
     <!-- ===== Batch 5: Daily check-in + Notifications center + Profile fragment + Home daily cards ===== -->
-    <!-- Daily check-in -->
+    <!-- Daily check-in (Changed to auto login-day tracking since 2026-07-22; legacy strings kept for compatibility) -->
     <string name="daily_checkin_title">Daily Check-in</string>
     <string name="daily_checkin_subtitle">Check in daily for more rewards</string>
     <string name="daily_checkin_btn">Check In Now</string>
@@ -2000,6 +2030,11 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="daily_checkin_claimed">Checked in! Streak +1</string>
     <string name="daily_checkin_unit_days">%d days</string>
     <string name="daily_checkin_break_warning">Missing a day resets the streak</string>
+
+    <!-- Auto login-day tracking (Added 2026-07-22, replaces manual check-in) -->
+    <string name="auto_login_days_title">Login Days</string>
+    <string name="auto_login_days_desc">Total %1$d days · Consecutive %2$d days</string>
+    <string name="auto_login_days_toast">Logged in for %1$d days total, %2$d consecutive</string>
 
     <!-- Notifications center -->
     <string name="notifications_center_title">Notifications</string>

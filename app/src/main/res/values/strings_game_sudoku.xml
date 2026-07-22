@@ -11,6 +11,11 @@
     <string name="game_sudoku_expert">专家</string>
     <string name="game_sudoku_hint">提示</string>
 
+    <!-- 笔记/草稿功能 -->
+    <string name="game_sudoku_notes">笔记</string>
+    <string name="game_sudoku_notes_on">笔记：开</string>
+    <string name="game_sudoku_notes_off">笔记：关</string>
+
     <!-- 游戏规则 -->
     <string name="game_sudoku_rules_title">数独规则</string>
     <string name="game_sudoku_rules_content">
@@ -33,4 +38,13 @@
     <string name="game_sudoku_ach_no_hint_desc">不使用任何提示完成数独</string>
     <string name="game_sudoku_ach_10min">神速解题</string>
     <string name="game_sudoku_ach_10min_desc">在10分钟内完成任意难度数独</string>
+
+    <!-- 难度名称与描述（本地化提取） -->
+    <string name="game_sudoku_diff_easy">简单</string>
+    <string name="game_sudoku_diff_medium">中等</string>
+    <string name="game_sudoku_diff_hard">困难</string>
+    <string name="game_sudoku_diff_easy_desc">挖30个格子</string>
+    <string name="game_sudoku_diff_medium_desc">挖40个格子</string>
+    <string name="game_sudoku_diff_hard_desc">挖50个格子</string>
+    <string name="game_sudoku_diff_expert_desc">挖60个格子</string>
 </resources>

@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # GameMatrixApp 模块重构与测试总结
 
 经过全面的分析与重构，我们成功推动了 `GameMatrixApp` 项目的技术进展。我们针对架构设计缺陷和测试缺失问题进行了专项治理，特别聚焦于耦合严重的围棋模块和基础平台服务。以下是本次工作的详细汇报。

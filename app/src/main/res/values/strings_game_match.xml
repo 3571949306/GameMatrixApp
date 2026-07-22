@@ -26,4 +26,21 @@
     <string name="game_match_ach_level_3_desc">通过第3关</string>
     <string name="game_match_ach_level_5">配对大师</string>
     <string name="game_match_ach_level_5_desc">通过第5关</string>
+
+    <!-- UI 文案（本地化提取） -->
+    <string name="game_match_status_intro">翻开卡牌找到配对！</string>
+    <string name="game_match_start">开始游戏</string>
+    <string name="game_match_level_intro">关卡 %1$d - 翻开卡牌找配对！</string>
+    <string name="game_match_level_complete">🎉 关卡 %1$d 通关！用了 %2$d 步，耗时 %3$d 秒</string>
+    <string name="game_match_next_level">下一关（关卡 %1$d）</string>
+    <string name="game_match_stats">关卡：%1$d | 步数：%2$d | 配对：%3$d/%4$d</string>
+    <string name="game_match_stats_initial">关卡：1 | 步数：0</string>
+
+    <!-- 难度名称与描述 -->
+    <string name="game_match_diff_easy">简单</string>
+    <string name="game_match_diff_normal">普通</string>
+    <string name="game_match_diff_hard">困难</string>
+    <string name="game_match_diff_easy_desc">起始 4x4</string>
+    <string name="game_match_diff_normal_desc">起始 4x5</string>
+    <string name="game_match_diff_hard_desc">起始 4x6</string>
 </resources>

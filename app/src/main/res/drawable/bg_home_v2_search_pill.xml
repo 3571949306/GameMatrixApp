@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页 V2 搜索药丸：圆角 999dp + 品红描边 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_v2_search_pill_bg" />
+    <corners android:radius="@dimen/corner_radius_full" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/home_v2_search_pill_stroke" />
+</shape>

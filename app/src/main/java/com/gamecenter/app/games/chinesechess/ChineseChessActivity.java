@@ -19,6 +19,7 @@ import android.window.OnBackInvokedDispatcher;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.SettingsManager;
@@ -53,7 +54,6 @@ public class ChineseChessActivity extends BaseGameActivity {
     // ==================== 常量 ====================
 
     private static final String GAME_ID_VALUE = "chinesechess";
-    private static final String GAME_NAME_VALUE = "中国象棋";
     private static final String TAG = "ChineseChessActivity";
 
     /** AI 最小响应延迟（毫秒） */
@@ -241,7 +241,7 @@ public class ChineseChessActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return GAME_NAME_VALUE;
+        return getString(R.string.game_chinesechess_name);
     }
 
     @Nullable
@@ -345,10 +345,10 @@ public class ChineseChessActivity extends BaseGameActivity {
     @Override
     public List<DifficultyLevel> getDifficultyLevels() {
         List<DifficultyLevel> levels = new ArrayList<>();
-        levels.add(new DifficultyLevel("简单", 1, "AI 搜索深度 2", 2, 300, 0.3f, false));
-        levels.add(new DifficultyLevel("普通", 2, "AI 搜索深度 4", 4, 500, 0.5f, true));
-        levels.add(new DifficultyLevel("困难", 3, "AI 搜索深度 6", 6, 800, 0.7f, false));
-        levels.add(new DifficultyLevel("大师", 4, "AI 搜索深度 8", 8, 1500, 1.0f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_chinesechess_diff_1), 1, getString(R.string.game_chinesechess_diff_1_desc), 2, 300, 0.3f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_chinesechess_diff_2), 2, getString(R.string.game_chinesechess_diff_2_desc), 4, 500, 0.5f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_chinesechess_diff_3), 3, getString(R.string.game_chinesechess_diff_3_desc), 6, 800, 0.7f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_chinesechess_diff_4), 4, getString(R.string.game_chinesechess_diff_4_desc), 8, 1500, 1.0f, false));
         return levels;
     }
 
@@ -409,18 +409,35 @@ public class ChineseChessActivity extends BaseGameActivity {
 
             Runnable applyMove = () -> {
                 if (currentGen != aiGeneration) return;
+                // 对局已在 AI 计算期间结束（如玩家走子后黑方被将死），直接收尾
+                if (chessView.isGameOver()) {
+                    aiThinking = false;
+                    chessView.setAiThinking(false);
+                    return;
+                }
                 if (bestMove != null && bestMove.length >= 4) {
                     chessView.applyAIMove(bestMove[0], bestMove[1], bestMove[2], bestMove[3]);
                     appendMoveHistory();
                     checkAndShowCheckAlert();
                     updateCapturedPieces();
+                } else {
+                    // AI 无合法着法（应已被 View 的将死/困毙检测提前结束，此处为安全兜底）
+                    if (chessView.isInCheck(2)) {
+                        Toast.makeText(ChineseChessActivity.this,
+                                R.string.game_chinesechess_black_checkmate_win, Toast.LENGTH_LONG).show();
+                        showGameOverDialog(1);
+                    } else {
+                        Toast.makeText(ChineseChessActivity.this,
+                                R.string.game_chinesechess_stalemate_draw, Toast.LENGTH_LONG).show();
+                        showGameOverDialog(0);
+                    }
                 }
                 aiThinking = false;
                 chessView.setAiThinking(false);
                 // 大师难度显示思考时长
                 if (aiDifficulty >= 4 && elapsed > 200) {
                     android.widget.Toast.makeText(this,
-                            "AI 思考 " + elapsed + "ms",
+                            getString(R.string.game_chinesechess_ai_think_ms, elapsed),
                             android.widget.Toast.LENGTH_SHORT).show();
                 }
             };
@@ -434,35 +451,30 @@ public class ChineseChessActivity extends BaseGameActivity {
     }
 
     /**
-     * 在走法历史面板追加最新一步棋谱。
+     * 重建并显示完整走法历史棋谱。
+     * 每步一行，红黑交替，格式如 "1. 红 炮(7,1)→(7,4)"。
+     * 通过 ChineseChessView.getAllMoveNotations() 从初始棋盘重放，
+     * 确保每步棋子类型识别正确。
      */
     private void appendMoveHistory() {
-        int count = chessView.getMoveCount();
-        String lastMove = chessView.getLastMoveNotation();
-        if (lastMove == null) return;
+        List<String> notations = chessView.getAllMoveNotations();
+        int count = notations.size();
+        if (count == 0) {
+            tvMoveHistory.setText(R.string.chinese_chess_no_moves);
+            return;
+        }
 
         StringBuilder sb = new StringBuilder();
-        // 显示所有历史（红黑配对）
         for (int i = 0; i < count; i++) {
+            int round = (i / 2) + 1;
+            String side = (i % 2 == 0) ? "红" : "黑";
             if (i > 0) sb.append("\n");
-            int round = (i / 2) + 1;
-            // 每对：红方走棋 + 黑方走棋
-            // 由于 getLastMoveNotation 只能取最后一步，重建需遍历历史。
-            // 简化：仅显示"回合数. 红方走棋  黑方走棋"
+            sb.append(round).append(". ").append(side).append(" ").append(notations.get(i));
         }
-        // 简化做法：每次追加一步，独立行号
-        sb.setLength(0);
-        for (int i = 0; i < count; i++) {
-            int round = (i / 2) + 1;
-            if (i % 2 == 0) {
-                sb.append(round).append(". ");
-            }
-            // 这里仅展示当前最后一步；如果要每步都展示，需要遍历历史棋盘状态重建。
-            // 简化方案：仅显示总数 + 最近一步
-            break;
-        }
-        tvMoveHistory.setText(getString(R.string.chinese_chess_stat_moves) + ": " + count
-                + "\n" + getString(R.string.chinese_chess_turn_red) + " " + lastMove);
+        tvMoveHistory.setText(sb.toString());
+
+        // 自动滚动到底部，显示最新走法
+        historyScroll.post(() -> historyScroll.fullScroll(View.FOCUS_DOWN));
     }
 
     /**
@@ -495,7 +507,9 @@ public class ChineseChessActivity extends BaseGameActivity {
         TextView tv = new TextView(this);
         tv.setText(ChineseChessView.getPieceName(pieceType, isRed));
         tv.setTextSize(11f);
-        tv.setTextColor(isRed ? 0xFFE53935 : 0xFF1A1A1A);
+        tv.setTextColor(isRed
+                ? ContextCompat.getColor(this, R.color.game_chinesechess_color_red_piece)
+                : ContextCompat.getColor(this, R.color.game_chinesechess_color_black_piece));
         tv.setBackgroundResource(R.drawable.chess_captured_piece_bg);
         tv.setPadding(6, 2, 6, 2);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -510,6 +524,7 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private void handleGameOver(int winner) {
         mainHandler.removeCallbacks(timerRunnable);
+        isGameRunning = false;
         aiThinking = false;
         chessView.setAiThinking(false);
 
@@ -567,7 +582,9 @@ public class ChineseChessActivity extends BaseGameActivity {
 
         tvTitle.setText(R.string.chinese_chess_game_over_title);
         tvWinner.setText(winnerText);
-        tvWinner.setTextColor(winner == 1 ? 0xFFE53935 : 0xFF1A1A1A);
+        tvWinner.setTextColor(winner == 1
+                ? ContextCompat.getColor(this, R.color.game_chinesechess_color_red_piece)
+                : ContextCompat.getColor(this, R.color.game_chinesechess_color_black_piece));
         tvStats.setText(
                 getString(R.string.chinese_chess_stat_moves) + ": " + totalMoves + "\n"
                         + getString(R.string.chinese_chess_stat_red_captures) + ": " + redCaptured + "\n"
@@ -666,96 +683,95 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private void handleHint() {
         if (chessView.isGameOver() || aiThinking || chessView.getCurrentSide() != 1) return;
-        
-        Toast.makeText(this, "大师思考中...", Toast.LENGTH_SHORT).show();
+
+        Toast.makeText(this, R.string.game_chinesechess_master_thinking, Toast.LENGTH_SHORT).show();
         final long currentGen = aiGeneration;
-        
+
         aiExecutor.execute(() -> {
-            int[][] boardCopy = new int[10][9];
             int[][] originalBoard = chessView.getBoardState();
-            // 翻转棋盘，让AI以为自己在下黑方（因为AI内部硬编码了为黑方寻优）
-            for (int r = 0; r < 10; r++) {
-                for (int c = 0; c < 9; c++) {
-                    boardCopy[r][c] = -originalBoard[9 - r][8 - c];
-                }
-            }
-            
-            // 使用大师级AI计算最佳走法 (难度4)
-            int[] aiMove = masterAi.getBestMove(boardCopy, 4);
-            int[] bestMove = null;
-            if (aiMove != null && aiMove.length >= 4) {
-                // 将结果翻转回真实的红方视角
-                bestMove = new int[]{
-                    9 - aiMove[0],
-                    8 - aiMove[1],
-                    9 - aiMove[2],
-                    8 - aiMove[3]
-                };
-            }
-            
+            // 使用大师级 AI 从红方视角计算最佳走法（难度4，aiSide=1）
+            int[] bestMove = masterAi.getBestMove(originalBoard, 4, 1);
+
             final int[] finalBestMove = bestMove;
             mainHandler.post(() -> {
                 if (currentGen != aiGeneration) return;
                 if (finalBestMove != null && finalBestMove.length >= 4) {
                     // 显示走法箭头
                     chessView.setHintMove(finalBestMove);
-                    
+
                     // 将坐标转为象棋术语
                     String notation = getNotation(originalBoard, finalBestMove, 1);
-                    Toast.makeText(ChineseChessActivity.this, "💡 提示：" + notation + "（大师建议）", Toast.LENGTH_LONG).show();
+                    Toast.makeText(ChineseChessActivity.this, getString(R.string.game_chinesechess_master_hint, notation), Toast.LENGTH_LONG).show();
                 }
             });
         });
     }
 
     /**
-     * 将棋盘坐标转换为标准的象棋记谱法
+     * 将棋盘坐标转换为标准中国象棋记谱法。
+     * 规则：
+     * - 红方用汉字数字（一~九，从右到左），黑方用阿拉伯数字（1~9，从左到右）
+     * - 格式：棋子 + 起始列 + 动作(进/退/平) + 目标列或步数
+     * - 直行棋子（车/炮/兵/将）：进退用步数，平用目标列
+     * - 斜走棋子（马/相/仕）：进退用目标列，无平
+     *
+     * @param board 走子前的棋盘状态
+     * @param move  [fromR, fromC, toR, toC]
+     * @param side  1=红方，2=黑方（仅作参考，实际颜色由棋子本身决定）
      */
     private String getNotation(int[][] board, int[] move, int side) {
         int r1 = move[0], c1 = move[1], r2 = move[2], c2 = move[3];
         int piece = board[r1][c1];
-        if (piece == 0) return "建议走法";
-        
+        if (piece == 0) return getString(R.string.game_chinesechess_suggested_move);
+
+        // 棋子类型和颜色（从棋子本身判断，避免负数索引）
+        int type = Math.abs(piece);
+        boolean isRed = piece > 0;
+
         // 棋子名称
-        String[] blackNames = {"", "將", "士", "象", "馬", "車", "砲", "卒"};
-        String[] redNames = {"", "帥", "仕", "相", "傌", "俥", "炮", "兵"};
-        int type = piece;
-        boolean isRed = side == 1; // 假设1为红方，根据实际调整
+        String[] blackNames = {"", "将", "士", "象", "马", "车", "炮", "卒"};
+        String[] redNames = {"", "帅", "仕", "相", "马", "车", "炮", "兵"};
         String name = isRed ? redNames[type] : blackNames[type];
-        
-        // 坐标转换 (红方九~一从右到左，黑方1~9从右到左)
+
+        // 列号转换：红方从右到左（9-c），黑方从左到右（c+1）
         int startCol = isRed ? (9 - c1) : (c1 + 1);
         int endCol = isRed ? (9 - c2) : (c2 + 1);
-        
-        // 动作：进、退、平
+
+        // 斜走棋子（仕/士=2, 相/象=3, 马=4）：进退用目标列
+        boolean isDiagonal = (type == 2 || type == 3 || type == 4);
+
         String action;
-        int num;
+        String numStr;
+
         if (r1 == r2) {
+            // 平移（只有直行棋子才会平移）
             action = "平";
-            num = endCol;
+            numStr = isRed ? cnNum(endCol) : String.valueOf(endCol);
         } else {
-            // 红方在下(行号大)，向上走(行号减小)为进。黑方在上，向下走为进。
+            // 进/退：红方在下（行号大），向上走（行号减）为进；黑方在上，向下走（行号增）为进
             boolean isAdvance = isRed ? (r2 < r1) : (r2 > r1);
             action = isAdvance ? "进" : "退";
-            // 马相仕等斜走棋子，以及直走棋子的差异
-            if (type == 2 || type == 3 || type == 4) {
-                num = endCol; // 斜走看终点列
+            if (isDiagonal) {
+                // 斜走棋子：进退用目标列
+                numStr = isRed ? cnNum(endCol) : String.valueOf(endCol);
             } else {
-                num = Math.abs(r2 - r1); // 直走看格数
+                // 直走棋子：进退用步数
+                int steps = Math.abs(r2 - r1);
+                numStr = isRed ? cnNum(steps) : String.valueOf(steps);
             }
         }
-        
-        // 数字转中文(红方用汉字，黑方用阿拉伯)
-        String[] cnNums = {"", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
-        String startStr = isRed ? cnNums[startCol] : String.valueOf(startCol);
-        String numStr = isRed ? cnNums[num] : String.valueOf(num);
-        if (type == 2 || type == 3 || type == 4) {
-            // 斜走（马相士）红黑都直接用坐标列
-            if (!isRed) numStr = String.valueOf(endCol);
-            else numStr = cnNums[endCol];
-        }
-        
+
+        String startStr = isRed ? cnNum(startCol) : String.valueOf(startCol);
         return name + startStr + action + numStr;
+    }
+
+    /**
+     * 将 1-9 的数字转为中文数字（红方记谱用）。
+     */
+    private String cnNum(int n) {
+        String[] cnNums = {"", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
+        if (n >= 0 && n <= 9) return cnNums[n];
+        return String.valueOf(n);
     }
 
     private void handleOfferDraw() {
@@ -785,13 +801,13 @@ public class ChineseChessActivity extends BaseGameActivity {
         tv.setText(formatDuration(ms));
         int color;
         if (ms < 30_000L) {
-            color = 0xFFE53935; // 红色（危急）
+            color = ContextCompat.getColor(this, R.color.game_chinesechess_color_timer_critical);
             tv.setTextSize(22f);
         } else if (ms < 60_000L) {
-            color = 0xFFFF6E40; // 橙色（警告）
+            color = ContextCompat.getColor(this, R.color.game_chinesechess_color_timer_warning);
             tv.setTextSize(21f);
         } else {
-            color = 0xFFFFFFFF;
+            color = ContextCompat.getColor(this, R.color.game_chinesechess_color_timer_normal);
             tv.setTextSize(20f);
         }
         tv.setTextColor(color);

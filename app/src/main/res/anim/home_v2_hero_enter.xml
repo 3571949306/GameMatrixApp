@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页 V2 Hero 区进入动画：渐显 + 上移 300ms -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="300"
+    android:interpolator="@android:interpolator/decelerate_quad">
+    <alpha
+        android:fromAlpha="0"
+        android:toAlpha="1" />
+    <translate
+        android:fromYDelta="8%"
+        android:toYDelta="0" />
+</set>

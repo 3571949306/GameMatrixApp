@@ -12,9 +12,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
+import com.gamecenter.app.games.model.DifficultyLevel;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -54,6 +56,10 @@ public class MatchActivity extends BaseGameActivity {
     private int gridCols = 4;
     private int totalCards = 16;
     private int pairCount = 8;
+    /** 当前难度对应的基础网格大小（由 onDifficultyChanged 设置） */
+    private int baseGridRows = 4;
+    private int baseGridCols = 4;
+    private int basePairCount = 8;
     private int[] cardValues;
     private boolean[] cardMatched;
     private boolean[] cardRevealed;
@@ -85,7 +91,7 @@ public class MatchActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "配对";
+        return getString(R.string.game_match_name);
     }
 
     @Override
@@ -126,6 +132,35 @@ public class MatchActivity extends BaseGameActivity {
         achievementManager.checkAndUnlock(eventType, params);
     }
 
+    @NonNull
+    @Override
+    public List<DifficultyLevel> getDifficultyLevels() {
+        List<DifficultyLevel> levels = new ArrayList<>();
+        levels.add(new DifficultyLevel(getString(R.string.game_match_diff_easy), 1, getString(R.string.game_match_diff_easy_desc), 0, 0, 1.0f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_match_diff_normal), 2, getString(R.string.game_match_diff_normal_desc), 0, 0, 1.5f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_match_diff_hard), 3, getString(R.string.game_match_diff_hard_desc), 0, 0, 2.0f, false));
+        return levels;
+    }
+
+    @Override
+    public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
+                                    @NonNull DifficultyLevel newLevel) {
+        // 根据难度调整初始网格大小
+        switch (newLevel.level) {
+            case 1:
+                baseGridRows = 4; baseGridCols = 4; basePairCount = 8;
+                break;
+            case 2:
+                baseGridRows = 4; baseGridCols = 5; basePairCount = 10;
+                break;
+            case 3:
+                baseGridRows = 4; baseGridCols = 6; basePairCount = 12;
+                break;
+            default:
+                break;
+        }
+    }
+
     // ==================== 游戏视图创建 ====================
 
     /**
@@ -135,24 +170,24 @@ public class MatchActivity extends BaseGameActivity {
         LinearLayout root = new android.widget.LinearLayout(this);
         root.setOrientation(android.widget.LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_match_color_bg));
         root.setPadding(32, 32, 32, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_match_color_text));
         tvStatus.setPadding(0, 16, 0, 8);
-        tvStatus.setText("翻开卡牌找到配对！");
+        tvStatus.setText(R.string.game_match_status_intro);
 
         // 统计信息
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_match_color_stats));
         tvStats.setPadding(0, 8, 0, 16);
-        tvStats.setText("关卡：1 | 步数：0");
+        tvStats.setText(R.string.game_match_stats_initial);
 
         // 网格容器
         gridLayout = new GridLayout(this);
@@ -162,9 +197,9 @@ public class MatchActivity extends BaseGameActivity {
 
         // 开始按钮
         btnStart = new MaterialButton(this);
-        btnStart.setText("开始游戏");
-        btnStart.setBackgroundColor(0xFF5B8A72);
-        btnStart.setTextColor(Color.WHITE);
+        btnStart.setText(R.string.game_match_start);
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_match_color_btn_start));
+        btnStart.setTextColor(ContextCompat.getColor(this, R.color.game_match_color_btn_start_text));
         btnStart.setOnClickListener(v -> startNewGame());
 
         root.addView(tvStatus);
@@ -191,14 +226,10 @@ public class MatchActivity extends BaseGameActivity {
         isProcessing = false;
         startTimeMs = System.currentTimeMillis();
 
-        // 计算当前关卡的网格大小
-        if (currentLevel <= 2) {
-            gridRows = 4; gridCols = 4; pairCount = 8;
-        } else if (currentLevel <= 4) {
-            gridRows = 4; gridCols = 5; pairCount = 10;
-        } else {
-            gridRows = 4; gridCols = 6; pairCount = 12;
-        }
+        // 网格大小由当前难度决定（难度系统取代原 currentLevel 网格递增）
+        gridRows = baseGridRows;
+        gridCols = baseGridCols;
+        pairCount = basePairCount;
         totalCards = gridRows * gridCols;
 
         // 创建配对
@@ -235,14 +266,14 @@ public class MatchActivity extends BaseGameActivity {
             btn.setLayoutParams(params);
             btn.setText("?");
             btn.setTextSize(20f);
-            btn.setTextColor(0xFF5B8A72);
-            btn.setBackgroundColor(0xFFFBF9F6);
+            btn.setTextColor(ContextCompat.getColor(this, R.color.game_match_color_card_back_text));
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_match_color_card_back));
             btn.setOnClickListener(v -> onCardClick(index));
             cardButtons[i] = btn;
             gridLayout.addView(btn);
         }
 
-        tvStatus.setText("关卡 " + currentLevel + " - 翻开卡牌找配对！");
+        tvStatus.setText(getString(R.string.game_match_level_intro, currentLevel));
         updateStatsDisplay();
     }
 
@@ -287,15 +318,15 @@ public class MatchActivity extends BaseGameActivity {
     private void revealCard(int index) {
         cardRevealed[index] = true;
         cardButtons[index].setText(CARD_SYMBOLS[cardValues[index]]);
-        cardButtons[index].setTextColor(0xFF2D2D2D);
-        cardButtons[index].setBackgroundColor(0xFFE8F5E9);
+        cardButtons[index].setTextColor(ContextCompat.getColor(this, R.color.game_match_color_card_front_text));
+        cardButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_match_color_card_front));
     }
 
     private void hideCard(int index) {
         cardRevealed[index] = false;
         cardButtons[index].setText("?");
-        cardButtons[index].setTextColor(0xFF5B8A72);
-        cardButtons[index].setBackgroundColor(0xFFFBF9F6);
+        cardButtons[index].setTextColor(ContextCompat.getColor(this, R.color.game_match_color_card_back_text));
+        cardButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_match_color_card_back));
     }
 
     /**
@@ -335,7 +366,7 @@ public class MatchActivity extends BaseGameActivity {
         currentScore += score;
         updateScore(currentScore);
 
-        tvStatus.setText("🎉 关卡 " + currentLevel + " 通关！用了 " + moveCount + " 步，耗时 " + elapsedSec + " 秒");
+        tvStatus.setText(getString(R.string.game_match_level_complete, currentLevel, moveCount, elapsedSec));
 
         // 成就检查
         checkAchievement("win", totalCompletions);
@@ -353,15 +384,18 @@ public class MatchActivity extends BaseGameActivity {
         usageStore.recordWin(getGameId());
         usageStore.recordPlayTime(getGameId(), elapsedMs);
 
+        // 最高分持久化
+        recordHighScore(currentScore);
+
         // 进入下一关
         currentLevel++;
 
-        btnStart.setText("下一关（关卡 " + currentLevel + "）");
+        btnStart.setText(getString(R.string.game_match_next_level, currentLevel));
         btnStart.setVisibility(View.VISIBLE);
     }
 
     private void updateStatsDisplay() {
-        tvStats.setText("关卡：" + currentLevel + " | 步数：" + moveCount + " | 配对：" + matchedPairs + "/" + pairCount);
+        tvStats.setText(getString(R.string.game_match_stats, currentLevel, moveCount, matchedPairs, pairCount));
     }
 
     @Override

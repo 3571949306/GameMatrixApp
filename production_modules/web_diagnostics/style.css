@@ -1,0 +1,18 @@
+body {
+  font: 16px system-ui, sans-serif;
+  margin: 2rem;
+  color: #18212f;
+  background: #f6f8fc;
+}
+
+main {
+  max-width: 42rem;
+  margin: auto;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 1rem;
+}
+
+strong {
+  color: #176b45;
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "GameMatrix production smoke theme",
+  "colors": {
+    "primary": "#176B45",
+    "surface": "#F6F8FC"
+  }
+}

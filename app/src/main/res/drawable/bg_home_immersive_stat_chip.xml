@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页沉浸式改版：统计 chip 背景（用于 Hero 内嵌统计） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_immersive_stat_chip_bg" />
+    <corners android:radius="999dp" />
+</shape>

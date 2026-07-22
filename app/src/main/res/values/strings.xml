@@ -45,6 +45,11 @@
     <string name="select_difficulty">请选择难度</string>
     <string name="difficulty">难度</string>
 
+    <!-- 斗地主难度选择 -->
+    <string name="doudizhu_diff_easy">简单</string>
+    <string name="doudizhu_diff_normal">普通</string>
+    <string name="doudizhu_diff_hard">困难</string>
+
     <!-- 五子棋游戏专用字符串 -->
     <string name="gomoku_main_title">五子棋</string>
     <string name="gomoku_main_subtitle">人机对战 · 经典15×15</string>
@@ -1915,7 +1920,7 @@
     <string name="game_rating_my_rating_label">我的评分</string>
 
     <!-- ===== Batch 11-2 (DATA_BACKUP_RESTORE) ===== -->
-    <string name="settings_data_backup_title">数据备份</string>
+    <string name="settings_data_backup_title">数据与导航</string>
     <string name="settings_data_backup_subtitle">导出 / 导入收藏、评分与战绩</string>
     <string name="settings_data_export">导出数据到文件</string>
     <string name="settings_data_import">从文件导入数据</string>
@@ -1948,6 +1953,30 @@
     <string name="home_resume_game_action">继续</string>
     <string name="home_resume_game_time_format">上次游玩：%1$s</string>
     <string name="home_resume_game_no_history">还没有游玩记录，去试试第一款游戏吧</string>
+    <!-- 首页沉浸式改版 (HOME_IMMERSIVE_REVAMP, 2026-07-21)：空状态引导文案 -->
+    <string name="home_resume_empty_title">开始你的第一局游戏</string>
+    <string name="home_resume_empty_hint">从下方推荐中挑选一款，立即开玩</string>
+    <!-- 首页沉浸式改版：快速统计行标签 -->
+    <string name="home_stat_today_playtime">今日时长</string>
+    <string name="home_stat_streak">连续登录</string>
+    <string name="home_stat_achievements">成就</string>
+    <!-- 首页 V2 游戏活力风重设计 (HOME_REVAMP_V2, 2026-07-22) -->
+    <string name="home_v2_featured_today">今日精选</string>
+    <string name="home_v2_quick_access">快速入口</string>
+    <string name="home_v2_play_now">立即开玩</string>
+
+    <!-- 底部导航自定义（Android 宿主） -->
+    <string name="bottom_nav_settings_title">底部导航</string>
+    <string name="bottom_nav_settings_entry_subtitle">排序或隐藏底部入口</string>
+    <string name="bottom_nav_settings_description">拖动右侧手柄调整顺序，关闭开关可隐藏入口。游戏大厅始终保留，最多显示 %1$d 项。</string>
+    <string name="bottom_nav_settings_required">必要入口，不能隐藏</string>
+    <string name="bottom_nav_settings_optional">可排序、可隐藏</string>
+    <string name="bottom_nav_settings_visibility_description">是否在底部导航中显示</string>
+    <string name="bottom_nav_settings_drag_description">拖动“%1$s”调整顺序</string>
+    <string name="bottom_nav_settings_required_hint">游戏大厅是必要入口，不能隐藏</string>
+    <string name="bottom_nav_settings_max_items">底部导航最多显示 %1$d 项，请先隐藏其他入口</string>
+    <string name="bottom_nav_settings_reset">恢复默认顺序</string>
+    <string name="bottom_nav_settings_reset_done">已恢复默认底部导航</string>
 
     <!-- ===== Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER) ===== -->
     <string name="home_recent_achievement_title">最近解锁成就</string>
@@ -2001,7 +2030,7 @@
     <string name="stats_rank_format">第 %1$d 名</string>
 
     <!-- ===== Batch 5：每日签到 + 通知中心 + 个人中心 + 主页每日卡片 ===== -->
-    <!-- 每日签到 -->
+    <!-- 每日签到（2026-07-22 起改为自动记录登录天数，旧字符串保留兼容） -->
     <string name="daily_checkin_title">每日签到</string>
     <string name="daily_checkin_subtitle">连续签到获得更多奖励</string>
     <string name="daily_checkin_btn">立即签到</string>
@@ -2012,6 +2041,11 @@
     <string name="daily_checkin_claimed">签到成功！连胜 +1</string>
     <string name="daily_checkin_unit_days">%d 天</string>
     <string name="daily_checkin_break_warning">中断会重置连胜哦</string>
+
+    <!-- 自动记录登录天数（2026-07-22 新增，替代手动签到） -->
+    <string name="auto_login_days_title">登录天数</string>
+    <string name="auto_login_days_desc">累计 %1$d 天 · 连续 %2$d 天</string>
+    <string name="auto_login_days_toast">已累计登录 %1$d 天，连续 %2$d 天</string>
 
     <!-- 通知中心 -->
     <string name="notifications_center_title">通知中心</string>

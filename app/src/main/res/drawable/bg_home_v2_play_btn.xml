@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页 V2 立即开始按钮背景：圆角药丸 + 强调色 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_v2_hero_card_accent" />
+    <corners android:radius="@dimen/corner_radius_full" />
+</shape>

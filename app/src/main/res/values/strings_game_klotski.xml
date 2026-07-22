@@ -34,4 +34,35 @@
     <string name="game_klotski_ach_all_levels_desc">通关所有关卡</string>
     <string name="game_klotski_ach_speed">速通高手</string>
     <string name="game_klotski_ach_speed_desc">在60秒内通关任意关卡</string>
+
+    <!-- UI 文案（本地化提取） -->
+    <string name="game_klotski_slide_hint">滑动方块，帮助曹操逃出</string>
+    <string name="game_klotski_moves_label">步数: %1$d</string>
+    <string name="game_klotski_restart">重开</string>
+    <string name="game_klotski_hint">提示</string>
+    <string name="game_klotski_undo">↶ 撤销</string>
+    <string name="game_klotski_undone">已撤销</string>
+    <string name="game_klotski_no_undo">无可撤销</string>
+    <string name="game_klotski_win_status">🎉 恭喜通关！</string>
+    <string name="game_klotski_win_toast">恭喜通关！</string>
+    <string name="game_klotski_searching">正在搜索中…</string>
+    <string name="game_klotski_calculating">正在计算最优解…</string>
+    <string name="game_klotski_hint_search_ms">提示搜索 %1$dms</string>
+    <string name="game_klotski_hint_steps">提示: %1$d步可通关</string>
+    <string name="game_klotski_no_solution">未找到解法</string>
+    <string name="game_klotski_dialog_win_title">🎉 通关</string>
+    <string name="game_klotski_dialog_end_title">本局结束</string>
+    <string name="game_klotski_dialog_win_msg">恭喜通关！\n\n</string>
+    <string name="game_klotski_dialog_lose_msg">再接再厉\n\n</string>
+    <string name="game_klotski_dialog_total_moves">总步数: %1$d\n</string>
+    <string name="game_klotski_dialog_time">用时: %1$s</string>
+    <string name="game_klotski_dialog_score">\n\n得分 +100</string>
+    <string name="game_klotski_play_again">再来一局</string>
+    <string name="game_klotski_back_to_main">返回主菜单</string>
+    <string name="game_klotski_leaderboard">排行榜</string>
+    <string name="game_klotski_close">关闭</string>
+    <string name="game_klotski_leaderboard_title">🏆 华容道排行榜</string>
+    <string name="game_klotski_leaderboard_header">最少步数通关记录（前 5）：\n\n</string>
+    <string name="game_klotski_leaderboard_record">#%1$d  %2$d 步 / %3$s\n</string>
+    <string name="game_klotski_no_records">暂无记录，赶快通关吧！</string>
 </resources>

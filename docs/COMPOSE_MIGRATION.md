@@ -1,4 +1,14 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # Compose 迁移指南 (Phase 2.4)
+
+## 与 Flutter-first 商店的关系
+
+- Flutter-first 只迁移模块商店 UI/交互，不等于全 App Flutter 重写。
+- Compose 路线仍适用于 Android 宿主页面和需要宿主资源/生命周期的动态模块；Flutter 商店不会替代这些业务页面。
+- 新模块先按 `runtimeType`/`deliveryType` 选择 Flutter、Web、Asset、Android、Native Service 或 Unity，再决定 Android Runtime 内部是否使用 Compose。
+- 不要把现有 Compose 模块搬入 Flutter 以追求表面统一；只有已编译进宿主且具备稳定 Pigeon/route 合同的页面才可选择 Flutter Runtime。
 
 ## 现状
 

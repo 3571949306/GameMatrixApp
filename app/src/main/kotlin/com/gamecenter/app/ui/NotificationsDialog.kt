@@ -127,20 +127,19 @@ class NotificationsDialog : DialogFragment() {
             )
         }
 
-        // 3. 今日签到（未签到 / 已签到）
+        // 3. 登录天数统计（2026-07-22 起由"签到状态"改为"登录天数展示"）
         // 注：DailyCheckInManager 由独立任务创建，此处引用其 API。
         val checkInManager = DailyCheckInManager.getInstance(context)
-        val checkedInToday = checkInManager.isCheckedInToday()
         val totalDays = checkInManager.getTotalCheckInDays()
-        val checkInDesc = String.format(getString(R.string.daily_checkin_unit_days), totalDays)
+        val consecutive = checkInManager.getConsecutiveDays()
+        val checkInDesc = getString(R.string.auto_login_days_desc, totalDays, consecutive)
         list.add(
             NotificationItem(
                 type = TYPE_CHECKIN,
-                titleRes = R.string.notifications_center_checkin,
+                titleRes = R.string.auto_login_days_title,
                 desc = checkInDesc,
                 iconRes = R.drawable.ic_notification,
-                tintRes = if (checkedInToday) android.R.color.holo_green_light
-                          else android.R.color.holo_red_light
+                tintRes = android.R.color.holo_green_light
             )
         )
 

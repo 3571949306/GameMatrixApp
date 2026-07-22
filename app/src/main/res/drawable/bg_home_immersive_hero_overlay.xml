@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页沉浸式改版：Hero 区内部表面叠层（半透明白卡片，用于统计行/今日推荐内嵌卡片） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_immersive_hero_overlay" />
+    <stroke
+        android:width="0.5dp"
+        android:color="@color/home_immersive_hero_overlay_strong" />
+    <corners android:radius="16dp" />
+</shape>

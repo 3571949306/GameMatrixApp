@@ -93,14 +93,31 @@ public class DouDiZhuMenuActivity extends AppCompatActivity {
      * <p>每个按钮均做了空指针保护，避免布局文件中缺少对应 ID 时抛出 NullPointerException。</p>
      */
     private void initButtons() {
-        // 单机模式按钮：启动本地AI对战
+        // 难度选择按钮：携带难度索引启动单机模式
+        // 0=简单（AI 思考慢、随机性高），1=普通（默认），2=困难（AI 思考快、激进）
+        AppCompatButton btnDiffEasy = findViewById(R.id.btnDiffEasy);
+        if (btnDiffEasy != null) {
+            setupButtonAnimation(btnDiffEasy);
+            btnDiffEasy.setOnClickListener(v -> launchSinglePlayer(0));
+        }
+
+        AppCompatButton btnDiffNormal = findViewById(R.id.btnDiffNormal);
+        if (btnDiffNormal != null) {
+            setupButtonAnimation(btnDiffNormal);
+            btnDiffNormal.setOnClickListener(v -> launchSinglePlayer(1));
+        }
+
+        AppCompatButton btnDiffHard = findViewById(R.id.btnDiffHard);
+        if (btnDiffHard != null) {
+            setupButtonAnimation(btnDiffHard);
+            btnDiffHard.setOnClickListener(v -> launchSinglePlayer(2));
+        }
+
+        // 单机模式按钮：以默认（普通）难度启动本地 AI 对战
         AppCompatButton btnSinglePlayer = findViewById(R.id.btnSinglePlayer);
         if (btnSinglePlayer != null) {
             setupButtonAnimation(btnSinglePlayer);
-            btnSinglePlayer.setOnClickListener(v -> {
-                Intent intent = new Intent(this, DouDiZhuActivity.class);
-                startActivity(intent);
-            });
+            btnSinglePlayer.setOnClickListener(v -> launchSinglePlayer(1));
         }
 
         // 联机模式按钮：启动局域网联机对战
@@ -135,6 +152,21 @@ public class DouDiZhuMenuActivity extends AppCompatActivity {
             setupButtonAnimation(btnBack);
             btnBack.setOnClickListener(v -> finish());
         }
+    }
+
+    /**
+     * 以指定难度启动单机斗地主 Activity。
+     *
+     * <p>通过 Intent Extra {@code "game_difficulty_index"} 传递难度索引：
+     * 0=简单，1=普通，2=困难。{@link DouDiZhuActivity} 在 onCreate 中读取该值
+     * 配置 AI 思考延迟与决策因子。</p>
+     *
+     * @param difficultyIndex 难度索引（0/1/2）
+     */
+    private void launchSinglePlayer(int difficultyIndex) {
+        Intent intent = new Intent(this, DouDiZhuActivity.class);
+        intent.putExtra("game_difficulty_index", difficultyIndex);
+        startActivity(intent);
     }
 
     /**

@@ -13,6 +13,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.SettingsManager;
 
 import java.util.Random;
@@ -307,7 +308,7 @@ public class Game2048View extends View {
                     newRow[c] *= 2;
                     score += newRow[c];
                     if (tileMergedListener != null) tileMergedListener.onTileMerged(newRow[c]);
-                    if (newRow[c] == 2048 && !won) { won = true; if (winListener != null) winListener.onWin(score); }
+                    if (newRow[c] == 2048 && !won) { won = true; canContinue = true; if (winListener != null) winListener.onWin(score); }
                     // 移除合并后的空位
                     for (int k = c + 1; k < GRID_SIZE - 1; k++) newRow[k] = newRow[k + 1];
                     newRow[GRID_SIZE - 1] = 0;
@@ -446,15 +447,15 @@ public class Game2048View extends View {
         // 分数
         paintText.setColor(0xFFFFFFFF);
         paintText.setTextSize(cellSize * 0.4f);
-        canvas.drawText("分数: " + score, w / 2f, startY - gap * 2, paintText);
+        canvas.drawText(getContext().getString(R.string.game_2048_score_label, score), w / 2f, startY - gap * 2, paintText);
 
         // 游戏结束
         if (gameOver && !canContinue) {
             canvas.drawRect(0, 0, w, h, paintOverlay);
             paintText.setTextSize(cellSize * 0.6f);
-            canvas.drawText("游戏结束", w / 2f, h / 2f - cellSize * 0.5f, paintText);
+            canvas.drawText(getContext().getString(R.string.game_2048_game_over), w / 2f, h / 2f - cellSize * 0.5f, paintText);
             paintText.setTextSize(cellSize * 0.35f);
-            canvas.drawText("点击重新开始", w / 2f, h / 2f + cellSize * 0.5f, paintText);
+            canvas.drawText(getContext().getString(R.string.game_2048_tap_to_restart), w / 2f, h / 2f + cellSize * 0.5f, paintText);
         }
     }
 

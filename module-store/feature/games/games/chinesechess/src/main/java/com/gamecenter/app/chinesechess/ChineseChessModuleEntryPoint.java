@@ -6,6 +6,7 @@ import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.core.common.ModuleNavigationContribution;
 import com.gamecenter.app.core.common.NavigationSlot;
+import com.gamecenter.app.core.common.UnityModuleLauncher;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,6 +54,16 @@ public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureMod
     }
 
     @Override
+    public UnityModuleLauncher createUnityLauncher() {
+        return null;
+    }
+
+    @Override
+    public boolean shouldPreload() {
+        return false;
+    }
+
+    @Override
     public Fragment createFragment(Context context) {
         return new ChineseChessModuleFragment();
     }
@@ -80,5 +91,8 @@ public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureMod
 
         @Override
         public Fragment createFragment(Context context) { return new ChineseChessModuleFragment(); }
+
+        @Override
+        public boolean isEnabled() { return true; }
     }
 }

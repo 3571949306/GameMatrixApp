@@ -31,4 +31,14 @@
     <string name="minesweeper_tutorial_step3_desc">根据数字推理哪些格子是安全的，哪些有地雷。例如：数字 1 周围只有一个雷。</string>
     <string name="minesweeper_tutorial_step4_title">难度选择</string>
     <string name="minesweeper_tutorial_step4_desc">简单模式 9×9 格子 10 颗雷，普通 16×16 格子 40 颗雷，困难 16×30 格子 99 颗雷。</string>
+
+    <!-- 游戏名与难度（本地化提取，遵循 game_<name>_<purpose> 约定） -->
+    <string name="game_minesweeper_name">扫雷</string>
+    <string name="game_minesweeper_diff_easy">简单</string>
+    <string name="game_minesweeper_diff_normal">普通</string>
+    <string name="game_minesweeper_diff_hard">困难</string>
+    <string name="game_minesweeper_diff_easy_desc">9×9 棋盘，10 颗雷</string>
+    <string name="game_minesweeper_diff_normal_desc">16×16 棋盘，40 颗雷</string>
+    <string name="game_minesweeper_diff_hard_desc">16×30 棋盘，99 颗雷</string>
+    <string name="game_minesweeper_difficulty_changed">难度已切换为：%1$s</string>
 </resources>

@@ -1,8 +1,11 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp 改造详细计划（Detailed Plan）
 
-> **当前进度 (2026-07-06)**：阶段1 ✅ 阶段2 ✅ 阶段3 ✅ 阶段4 ✅ 模块市场 ✅ 阶段5 本地模型 ✅ 阶段5.5 游戏内嵌 ✅ 阶段5.6 线程优化 ✅ 阶段5.7 UI优化 ✅ 阶段5.8 更新逻辑优化 ✅ 阶段5.9 浏览器原生重构 ✅ 阶段5.10 wrongbook 模块 ✅ 阶段5.11 宿主 Kotlin 迁移 ✅ 阶段5.12 Netty 安全修复 ✅ | 下一阶段：阶段6 扩展自动化
+> **当前进度 (2026-07-21)**：既有 AI/游戏路线保持；模块商店 Flutter UI 与桥接已完成，生产签名/正式 V2 包/多 API 门禁仍在推进。Flutter 化不要求改写游戏 AI。下一阶段仍是扩展自动化与发布门禁。
 >
-> 当前版本: **v1.4.1** (vc=567)
+> 当前工作树/生产版本: **v1.4.1** (vc=595，lastStable=594)
 > 上次稳定版: 1.4.0 (vc=465)
 > APK 已发布到 HK VPS（beta channel）和 GitHub Releases；2026-06-19 起 US VPS 已下线
 > 包名: `com.gamecenter.app`

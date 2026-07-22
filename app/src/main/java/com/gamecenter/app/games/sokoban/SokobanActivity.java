@@ -9,10 +9,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.google.android.material.button.MaterialButton;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * 推箱子游戏 Activity。
@@ -49,6 +53,9 @@ public class SokobanActivity extends BaseGameActivity {
     /** 总关卡数 */
     private static final int TOTAL_LEVELS = 10;
 
+    /** 每关最多撤销次数 */
+    private static final int MAX_UNDO = 10;
+
     // 游戏状态
     private int[][] map;
     private int playerRow;
@@ -58,6 +65,10 @@ public class SokobanActivity extends BaseGameActivity {
     private int currentLevel;
     private int levelsCleared;
     private int[][] originalMap;
+
+    // 撤销历史栈：每条记录 [fromRow, fromCol, toRow, toCol, pushedBox, boxToRow, boxToCol]
+    private Deque<int[]> undoStack;
+    private int undoCount;
 
     // UI 组件
     private SokobanView sokobanView;
@@ -98,23 +109,23 @@ public class SokobanActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sokoban_color_bg));
 
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_sokoban_color_text));
         tvStatus.setPadding(0, 24, 0, 8);
 
         tvLevel = new TextView(this);
         tvLevel.setGravity(Gravity.CENTER);
         tvLevel.setTextSize(14f);
-        tvLevel.setTextColor(0xFF5B8A72);
+        tvLevel.setTextColor(ContextCompat.getColor(this, R.color.game_sokoban_color_level));
 
         tvMoves = new TextView(this);
         tvMoves.setGravity(Gravity.CENTER);
         tvMoves.setTextSize(14f);
-        tvMoves.setTextColor(0xFF5B8A72);
+        tvMoves.setTextColor(ContextCompat.getColor(this, R.color.game_sokoban_color_moves));
         tvMoves.setPadding(0, 4, 0, 8);
 
         // 菜单面板
@@ -130,7 +141,7 @@ public class SokobanActivity extends BaseGameActivity {
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.setMargins(0, 4, 0, 4);
             btn.setLayoutParams(lp);
-            btn.setBackgroundColor(0xFF5B8A72);
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sokoban_color_btn_level));
             btn.setOnClickListener(v -> startLevel(level));
             menuPanel.addView(btn);
         }
@@ -192,6 +203,10 @@ public class SokobanActivity extends BaseGameActivity {
         btnReset.setText(R.string.btn_restart);
         btnReset.setOnClickListener(v -> startLevel(currentLevel));
 
+        MaterialButton btnUndo = new MaterialButton(this);
+        btnUndo.setText(R.string.btn_undo);
+        btnUndo.setOnClickListener(v -> undoMove());
+
         MaterialButton btnMenu = new MaterialButton(this);
         btnMenu.setText(R.string.game_klotski_back_to_menu);
         btnMenu.setOnClickListener(v -> showMenu());
@@ -200,8 +215,10 @@ public class SokobanActivity extends BaseGameActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         btnLp.setMargins(16, 0, 16, 0);
         btnReset.setLayoutParams(btnLp);
+        btnUndo.setLayoutParams(btnLp);
         btnMenu.setLayoutParams(btnLp);
 
+        btnRow.addView(btnUndo);
         btnRow.addView(btnReset);
         btnRow.addView(btnMenu);
 
@@ -226,7 +243,7 @@ public class SokobanActivity extends BaseGameActivity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
         lp.setMargins(8, 4, 8, 4);
         btn.setLayoutParams(lp);
-        btn.setBackgroundColor(0xFFFBF9F6);
+        btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sokoban_color_btn_dir));
         return btn;
     }
 
@@ -252,6 +269,8 @@ public class SokobanActivity extends BaseGameActivity {
         currentLevel = level;
         moveCount = 0;
         pushCount = 0;
+        undoStack = new ArrayDeque<>();
+        undoCount = 0;
 
         map = loadLevel(level);
         originalMap = copyMap(map);
@@ -299,6 +318,7 @@ public class SokobanActivity extends BaseGameActivity {
 
         // 空地或目标点：直接移动
         if (targetCell == FLOOR || targetCell == TARGET) {
+            undoStack.push(new int[]{playerRow, playerCol, newRow, newCol, 0, -1, -1});
             movePlayerTo(newRow, newCol);
             return;
         }
@@ -313,6 +333,7 @@ public class SokobanActivity extends BaseGameActivity {
             int behindBox = map[boxNewRow][boxNewCol];
             if (behindBox == FLOOR || behindBox == TARGET) {
                 // 推动箱子
+                undoStack.push(new int[]{playerRow, playerCol, newRow, newCol, 1, boxNewRow, boxNewCol});
                 pushBox(newRow, newCol, boxNewRow, boxNewCol);
                 movePlayerTo(newRow, newCol);
                 pushCount++;
@@ -368,6 +389,45 @@ public class SokobanActivity extends BaseGameActivity {
         } else {
             map[newRow][newCol] = BOX;
         }
+    }
+
+    /**
+     * 撤销最近一次移动，恢复玩家与被推箱子的位置。
+     * 每关最多撤销 {@link #MAX_UNDO} 次。
+     */
+    private void undoMove() {
+        if (!isGameRunning) return;
+        if (undoStack.isEmpty() || undoCount >= MAX_UNDO) return;
+
+        int[] last = undoStack.pop();
+        int fromR = last[0];
+        int fromC = last[1];
+        int toR = last[2];
+        int toC = last[3];
+        int pushed = last[4];
+        int boxToR = last[5];
+        int boxToC = last[6];
+
+        if (pushed == 1) {
+            // 箱子从 boxToR/boxToC 移回 toR/toC（玩家当前位置即箱子原位）
+            map[boxToR][boxToC] = (map[boxToR][boxToC] == BOX_ON_TARGET) ? TARGET : FLOOR;
+            int toBase = (map[toR][toC] == PLAYER_ON_TARGET) ? TARGET : FLOOR;
+            map[toR][toC] = (toBase == TARGET) ? BOX_ON_TARGET : BOX;
+            pushCount--;
+        } else {
+            // 未推箱子，仅清除玩家
+            map[toR][toC] = (map[toR][toC] == PLAYER_ON_TARGET) ? TARGET : FLOOR;
+        }
+
+        // 玩家回到原位置
+        map[fromR][fromC] = (map[fromR][fromC] == TARGET) ? PLAYER_ON_TARGET : PLAYER;
+        playerRow = fromR;
+        playerCol = fromC;
+        moveCount--;
+        undoCount++;
+
+        sokobanView.setMap(map);
+        updateMovesDisplay();
     }
 
     /**
@@ -452,10 +512,78 @@ public class SokobanActivity extends BaseGameActivity {
                 {WALL, TARGET, TARGET, TARGET, WALL},
                 {WALL, WALL, WALL, WALL, WALL}
             };
+            case 4: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, BOX, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            case 5: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, FLOOR, TARGET, FLOOR, FLOOR, TARGET, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, TARGET, FLOOR, FLOOR, TARGET, FLOOR, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            case 6: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, WALL, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, WALL, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            case 7: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, WALL, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, WALL, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            case 8: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, WALL, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, WALL, WALL, FLOOR, WALL, FLOOR, WALL, WALL, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, WALL, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            case 9: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, FLOOR, BOX, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, BOX, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, BOX, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, BOX, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, BOX, FLOOR, FLOOR, PLAYER, FLOOR, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            case 10: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, BOX, FLOOR, BOX, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, PLAYER, FLOOR, FLOOR, TARGET, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, BOX, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, TARGET, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
             default:
-                // 循环使用关卡1-3的变体
-                int variant = (level - 1) % 3 + 1;
-                return loadLevel(variant);
+                return loadLevel(1);
         }
     }
 

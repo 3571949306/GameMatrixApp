@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 街机 A 组游戏 UI 颜色（浅色主题） -->
+<!-- 仅包含 UI 元素颜色（setBackground/setTextColor），不含 Canvas onDraw 绘制色 -->
+<resources>
+    <!-- 飞翔的小鸟：背景天空色 -->
+    <color name="game_flappy_color_bg">#81D4FA</color>
+
+    <!-- 麻将连连看：UI 颜色 -->
+    <color name="game_tiles_color_bg">#F5F0E8</color>
+    <color name="game_tiles_color_text_primary">#2D2D2D</color>
+    <color name="game_tiles_color_accent">#5B8A72</color>
+    <color name="game_tiles_color_tile_bg">#FBF9F6</color>
+    <color name="game_tiles_color_tile_revealed_bg">#E8F5E9</color>
+</resources>

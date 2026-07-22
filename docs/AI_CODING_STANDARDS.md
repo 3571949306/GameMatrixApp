@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp AI 编程规范
 
 本文档用于约束后续 AI 在本项目中的编码、构建、验证和汇报行为。目标是减少“代码看似改了，但用户拿到的 APK 仍然坏”的问题，尤其是动态模块、预置模块和发布路径相关问题。
@@ -23,6 +26,13 @@
    - 不要把未测试的推测说成已完成。
    - 如果某个入口只做了防崩但功能还未完整接入，必须明确说明。
 
+5. Flutter-first 商店必须保持职责边界。
+   - Flutter 只负责模块商店 UI、路由和白名单 UI 偏好；不得直接操作 APK、DEX、服务、Unity、签名密钥或私有模块目录。
+   - 所有业务动作只能经 Pigeon → `ModuleCoreFacade` → `ModuleManager`/Runtime Handler。
+   - `ENABLE_FLUTTER_MODULE_STORE` 默认 false；没有完成生产门禁时不得改为默认 true。
+   - 修改 Pigeon schema 后必须重新生成 Dart/Kotlin 两端，并同时运行 Flutter 与 Android 测试。
+   - 用户可见变更必须验证第一次/第二次进入、返回、旧商店回退、Engine 初始化次数和目标 logcat。
+
 ## 2. 项目边界和架构规则
 
 ### 2.1 Host App
@@ -39,6 +49,13 @@
 - 底部导航同时检查 `bottom_nav_menu.xml`、`mobile_navigation.xml`、`MainActivity` 绑定逻辑。
 - 新 Activity 必须声明在宿主 `AndroidManifest.xml`，动态 APK 内 manifest 不会自动并入已安装宿主。
 - 崩溃恢复模式可能因为之前崩溃计数进入 `RecoveryActivity`，测试时可用 `adb shell pm clear com.gamecenter.app` 清干净状态。
+
+### 2.1A Flutter Add-to-App
+
+- `flutter_module/` 是宿主内模块，不按独立 Flutter App 发布。
+- `FlutterStoreEngineManager` 管理进程级缓存 Engine；Activity 不得销毁该 Engine。
+- `ModuleStoreActivity` 必须继续保留，作为默认关闭状态和故障回退。
+- 正式 V2 非内置包必须先映射到权威 `ModuleManifest`；不能为了打通 UI 绕过下载器或伪造进度。
 
 ### 2.1.1 宿主 Kotlin 迁移后的文件放置规则
 

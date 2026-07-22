@@ -2,6 +2,6 @@
 <!-- 中国象棋开始按钮：Google Play 蓝色 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#1A73E8" />
+    <solid android:color="@color/brand_primary" />
     <corners android:radius="24dp" />
 </shape>

@@ -26,4 +26,23 @@
     <string name="game_blackjack_ach_20_rounds_desc">累计完成20局21点</string>
     <string name="game_blackjack_ach_no_loss_5">不败金身</string>
     <string name="game_blackjack_ach_no_loss_5_desc">连续5局不输</string>
+
+    <!-- UI 文本 -->
+    <string name="game_blackjack_status_init">点击新游戏开始！</string>
+    <string name="game_blackjack_dealer_label">🤖 庄家</string>
+    <string name="game_blackjack_player_label">🎮 你的手牌</string>
+    <string name="game_blackjack_stats_init">胜：0 | 负：0 | 平：0</string>
+    <string name="game_blackjack_btn_hit">要牌</string>
+    <string name="game_blackjack_btn_stand">停牌</string>
+    <string name="game_blackjack_btn_new_game">新游戏</string>
+    <string name="game_blackjack_status_your_turn">你的回合：要牌还是停牌？</string>
+    <string name="game_blackjack_result_bust">爆牌！你超过了21点</string>
+    <string name="game_blackjack_result_dealer_bust">庄家爆牌！你赢了！</string>
+    <string name="game_blackjack_result_win">你赢了！%1$d vs %2$d</string>
+    <string name="game_blackjack_result_dealer_win">庄家赢了！%1$d vs %2$d</string>
+    <string name="game_blackjack_result_tie">平局！都是%1$d点</string>
+    <string name="game_blackjack_blackjack_bonus"> 🃏 Blackjack！</string>
+    <string name="game_blackjack_stats_format">胜：%1$d | 负：%2$d | 平：%3$d</string>
+    <string name="game_blackjack_points_format">点数：%1$d</string>
+    <string name="game_blackjack_points_hidden">点数：?</string>
 </resources>

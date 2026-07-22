@@ -26,4 +26,15 @@
     <string name="game_pipeline_ach_30_seconds_desc">30秒内完成通关</string>
     <string name="game_pipeline_ach_10_levels">管道大师</string>
     <string name="game_pipeline_ach_10_levels_desc">累计通过10关</string>
+
+    <!-- UI 文案（本地化提取） -->
+    <string name="game_pipeline_status_intro">旋转管道，连接起点到终点！</string>
+    <string name="game_pipeline_start">开始游戏</string>
+    <string name="game_pipeline_check">检查连接</string>
+    <string name="game_pipeline_level_intro">关卡 %1$d - 旋转管道连接通路！</string>
+    <string name="game_pipeline_not_connected">还有管道未连通，继续旋转！</string>
+    <string name="game_pipeline_level_complete">🎉 管道连通！关卡 %1$d 完成！用了 %2$d 步</string>
+    <string name="game_pipeline_next_level">下一关（关卡 %1$d）</string>
+    <string name="game_pipeline_stats">关卡：%1$d | 步数：%2$d</string>
+    <string name="game_pipeline_stats_initial">关卡：1 | 步数：0</string>
 </resources>

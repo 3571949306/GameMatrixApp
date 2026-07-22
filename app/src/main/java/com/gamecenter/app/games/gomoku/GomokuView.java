@@ -439,7 +439,7 @@ public class GomokuView extends View {
         textPaint.setTextAlign(Paint.Align.LEFT);
 
         int currentTurn = (game.getMoveCount() + 1) / 2;
-        String turnText = "第 " + currentTurn + " 回合";
+        String turnText = getContext().getString(R.string.game_gomoku_turn_info, currentTurn);
 
         Paint panelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         panelPaint.setColor(Color.argb(120, 0, 0, 0));
@@ -450,11 +450,13 @@ public class GomokuView extends View {
         int currentPlayer = game.getCurrentPlayer();
         String playerText;
         if (game.isGameOver()) {
-            playerText = "对局结束";
+            playerText = getContext().getString(R.string.game_gomoku_game_over);
         } else if (aiThinking) {
-            playerText = "AI思考中…";
+            playerText = getContext().getString(R.string.game_gomoku_ai_thinking);
         } else {
-            playerText = currentPlayer == GomokuGame.BLACK ? "黑方回合" : "白方回合";
+            playerText = currentPlayer == GomokuGame.BLACK
+                    ? getContext().getString(R.string.game_gomoku_black_turn)
+                    : getContext().getString(R.string.game_gomoku_white_turn);
         }
         textPaint.setTextAlign(Paint.Align.RIGHT);
         float playerTextWidth = textPaint.measureText(playerText);
@@ -482,18 +484,18 @@ public class GomokuView extends View {
             Integer winner = game.getWinner();
             String resultText;
             if (winner == null) {
-                resultText = "平局!";
+                resultText = getContext().getString(R.string.game_gomoku_result_draw);
             } else if (winner == GomokuGame.BLACK) {
-                resultText = "黑方胜利!";
+                resultText = getContext().getString(R.string.game_gomoku_result_black_win);
             } else {
-                resultText = "白方胜利!";
+                resultText = getContext().getString(R.string.game_gomoku_result_white_win);
             }
 
             textPaint.setColor(Color.WHITE);
             canvas.drawText(resultText, w / 2f, h / 2f - 30, textPaint);
 
             textPaint.setTextSize(24);
-            canvas.drawText("最终回合数: " + game.getMoveCount(), w / 2f, h / 2f + 30, textPaint);
+            canvas.drawText(getContext().getString(R.string.game_gomoku_final_moves, game.getMoveCount()), w / 2f, h / 2f + 30, textPaint);
 
             if (gameOverListener != null) {
                 gameOverListener.onGameOver(winner);

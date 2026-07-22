@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # 网络层架构 (Phase 2.3)
 
 ## 当前状态
@@ -93,7 +96,7 @@ naming:
 
 ### 背景
 
-- **当前版本**：versionCode=567 / versionName=1.4.1
+- **当时版本**：versionCode=567 / versionName=1.4.1（循环24历史记录；当前版本以 `version.properties` 为准）
 - **关联 commit**：`f978f06` 循环24 修复 Netty 漏洞
 - **改动**：Netty `4.1.134.Final` → `4.1.135.Final`
 
