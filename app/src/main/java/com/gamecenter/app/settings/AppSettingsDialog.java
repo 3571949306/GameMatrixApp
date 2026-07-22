@@ -295,12 +295,11 @@ public class AppSettingsDialog {
         if (BuildConfig.DATA_BACKUP_RESTORE) {
             initDataBackupRows(dialogView);
         } else {
-            // 关闭 flag 时隐藏整张数据卡片，避免出现死按钮
-            View cardData = dialogView.findViewById(R.id.card_data);
-            if (cardData != null) cardData.setVisibility(View.GONE);
-            // 分组标题也隐藏
-            View groupTitle = findDataBackupGroupTitle(dialogView);
-            if (groupTitle != null) groupTitle.setVisibility(View.GONE);
+            // 底部导航和收藏排序也位于这张卡片中，备份关闭时只隐藏备份行。
+            View llExport = dialogView.findViewById(R.id.ll_data_export);
+            View llImport = dialogView.findViewById(R.id.ll_data_import);
+            if (llExport != null) llExport.setVisibility(View.GONE);
+            if (llImport != null) llImport.setVisibility(View.GONE);
         }
 
         // ===== Batch 11-4 (GAME_FAVORITE_REORDER): 收藏置顶开关 =====
@@ -309,6 +308,17 @@ public class AppSettingsDialog {
         } else {
             View llFav = dialogView.findViewById(R.id.ll_favorite_reorder);
             if (llFav != null) llFav.setVisibility(View.GONE);
+        }
+
+        // 底部导航排序与隐藏由 Android 宿主持久化，返回主页后即时刷新。
+        View llBottomNavigation = dialogView.findViewById(R.id.ll_bottom_navigation_settings);
+        if (llBottomNavigation != null) {
+            if (BuildConfig.BOTTOM_NAV_CUSTOMIZATION) {
+                llBottomNavigation.setOnClickListener(v -> activity.startActivity(
+                        new Intent(activity, BottomNavigationSettingsActivity.class)));
+            } else {
+                llBottomNavigation.setVisibility(View.GONE);
+            }
         }
 
         new AlertDialog.Builder(context)

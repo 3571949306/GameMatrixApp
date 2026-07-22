@@ -3,6 +3,7 @@ package com.gamecenter.app.modules;
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import com.gamecenter.app.core.common.ModuleInterface;
+import com.gamecenter.app.core.common.ModuleManifest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,6 +64,11 @@ public class ModuleManagerTest {
         ModuleManager.INSTANCE.downloadModule(context, "nonExistentModule", new ModuleDownloader.Callback() {
             @Override
             public void onProgress(String moduleId, long downloaded, long total, long speedKbps) {
+                // 不应该被调用
+            }
+
+            @Override
+            public void onStateChanged(String moduleId, String state) {
                 // 不应该被调用
             }
 

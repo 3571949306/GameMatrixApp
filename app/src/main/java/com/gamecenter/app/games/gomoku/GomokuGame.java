@@ -72,6 +72,9 @@ public class GomokuGame {
     /** 胜利五连线两端坐标 [x1, y1, x2, y2]，未结束时为null */
     private int[] winningLine;
 
+    /** 禁手规则开关（仅约束黑方，标准 renju 规则）。默认开启。 */
+    private boolean forbiddenMovesEnabled = true;
+
     /**
      * 构造函数，初始化空棋盘和默认状态。
      */
@@ -349,6 +352,180 @@ public class GomokuGame {
         moveCount = 0;
         lastMove = null;
         winningLine = null;
+    }
+
+    // ===== 禁手（Forbidden Moves）规则支持 =====
+
+    /** 禁手类型枚举（仅黑方受约束）。 */
+    public enum ForbiddenType {
+        /** 非禁手（合法） */
+        NONE,
+        /** 三三禁手（同时形成两个活三） */
+        THREE_THREE,
+        /** 四四禁手（同时形成两个四） */
+        FOUR_FOUR,
+        /** 长连禁手（形成六子及以上连线） */
+        OVERLINE
+    }
+
+    /**
+     * 设置禁手规则开关。
+     *
+     * @param enabled true 表示启用禁手（黑方不可走三三/四四/长连）
+     */
+    public void setForbiddenMovesEnabled(boolean enabled) {
+        this.forbiddenMovesEnabled = enabled;
+    }
+
+    /**
+     * 查询禁手规则是否启用。
+     *
+     * @return 启用返回true
+     */
+    public boolean isForbiddenMovesEnabled() {
+        return forbiddenMovesEnabled;
+    }
+
+    /**
+     * 判断当前执子方在 (x,y) 落子是否构成禁手。
+     *
+     * @param x 横坐标
+     * @param y 纵坐标
+     * @return 构成禁手返回true
+     */
+    public boolean isForbiddenMove(int x, int y) {
+        return getForbiddenType(x, y, currentPlayer, board) != ForbiddenType.NONE;
+    }
+
+    /**
+     * 获取当前执子方在 (x,y) 落子的禁手类型。
+     *
+     * @param x 横坐标
+     * @param y 纵坐标
+     * @return 禁手类型，合法返回 {@link ForbiddenType#NONE}
+     */
+    public ForbiddenType getForbiddenType(int x, int y) {
+        return getForbiddenType(x, y, currentPlayer, board);
+    }
+
+    /**
+     * 通用禁手判定：在指定棋盘上，player 在 (x,y) 落子是否构成禁手。
+     * <p>
+     * 规则（仅约束黑方）：
+     * <ul>
+     *   <li>长连：形成六子及以上连线 → 禁手</li>
+     *   <li>五连：形成恰好五连 → 获胜，优先于禁手，合法</li>
+     *   <li>四四：同时形成两个"四"（含活四/冲四）→ 禁手</li>
+     *   <li>三三：同时形成两个"活三" → 禁手</li>
+     * </ul>
+     *
+     * @param x          横坐标
+     * @param y          纵坐标
+     * @param player     落子方颜色
+     * @param testBoard  棋盘数组（会被临时修改后复原）
+     * @return 禁手类型
+     */
+    public ForbiddenType getForbiddenType(int x, int y, int player, int[][] testBoard) {
+        if (!forbiddenMovesEnabled) return ForbiddenType.NONE;
+        if (player != BLACK) return ForbiddenType.NONE;
+        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return ForbiddenType.NONE;
+        if (testBoard[y][x] != EMPTY) return ForbiddenType.NONE;
+
+        int saved = testBoard[y][x];
+        testBoard[y][x] = BLACK;
+        ForbiddenType result = analyzeForbidden(x, y, testBoard);
+        testBoard[y][x] = saved;
+        return result;
+    }
+
+    /**
+     * 分析 (x,y) 落子（已模拟为黑子）是否构成禁手。
+     */
+    private ForbiddenType analyzeForbidden(int x, int y, int[][] board) {
+        boolean overline = false;
+        boolean five = false;
+        int fourCount = 0;
+        int threeCount = 0;
+
+        for (int[] dir : DIRECTIONS) {
+            // 以 (x,y) 为中心、半径4取直线（9格），中心索引4
+            int[] line = new int[9];
+            for (int i = 0; i < 9; i++) {
+                int cx = x + dir[0] * (i - 4);
+                int cy = y + dir[1] * (i - 4);
+                if (cx < 0 || cx >= BOARD_SIZE || cy < 0 || cy >= BOARD_SIZE) {
+                    line[i] = -1; // 墙：视为阻挡
+                } else {
+                    line[i] = board[cy][cx];
+                }
+            }
+            line[4] = BLACK; // 模拟落子
+            int run = maxRunThrough(line, 4);
+
+            if (run >= 6) {
+                overline = true;
+            } else if (run == 5) {
+                five = true;
+            } else {
+                boolean hasFour = false;
+                for (int i = 0; i < 9; i++) {
+                    if (i == 4 || line[i] != EMPTY) continue;
+                    if (wouldMakeFive(line, i)) { hasFour = true; break; }
+                }
+                if (hasFour) {
+                    fourCount++;
+                } else {
+                    boolean hasOpenThree = false;
+                    for (int i = 0; i < 9; i++) {
+                        if (i == 4 || line[i] != EMPTY) continue;
+                        if (wouldMakeOpenFour(line, i)) { hasOpenThree = true; break; }
+                    }
+                    if (hasOpenThree) threeCount++;
+                }
+            }
+        }
+
+        if (overline) return ForbiddenType.OVERLINE;
+        if (five) return ForbiddenType.NONE;
+        if (fourCount >= 2) return ForbiddenType.FOUR_FOUR;
+        if (threeCount >= 2) return ForbiddenType.THREE_THREE;
+        return ForbiddenType.NONE;
+    }
+
+    /** 计算直线中通过 idx 的最大连续黑子数。 */
+    private static int maxRunThrough(int[] line, int idx) {
+        int run = 1;
+        int i = idx + 1;
+        while (i < line.length && line[i] == BLACK) { run++; i++; }
+        i = idx - 1;
+        while (i >= 0 && line[i] == BLACK) { run++; i--; }
+        return run;
+    }
+
+    /** 在 line[idx] 模拟落黑子后，是否能形成五连。 */
+    private static boolean wouldMakeFive(int[] line, int idx) {
+        int saved = line[idx];
+        line[idx] = BLACK;
+        boolean r = maxRunThrough(line, idx) >= 5;
+        line[idx] = saved;
+        return r;
+    }
+
+    /** 在 line[idx] 模拟落黑子后，是否能形成"活四"（四子且两端均为空）。 */
+    private static boolean wouldMakeOpenFour(int[] line, int idx) {
+        int saved = line[idx];
+        line[idx] = BLACK;
+        int left = idx, right = idx;
+        while (left - 1 >= 0 && line[left - 1] == BLACK) left--;
+        while (right + 1 < line.length && line[right + 1] == BLACK) right++;
+        boolean openFour = false;
+        if (right - left + 1 == 4) {
+            boolean beforeOpen = (left - 1 >= 0) && line[left - 1] == EMPTY;
+            boolean afterOpen = (right + 1 < line.length) && line[right + 1] == EMPTY;
+            openFour = beforeOpen && afterOpen;
+        }
+        line[idx] = saved;
+        return openFour;
     }
 
     /**

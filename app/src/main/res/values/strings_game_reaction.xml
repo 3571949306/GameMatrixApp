@@ -26,4 +26,15 @@
     <string name="game_reaction_ach_streak_5_desc">连续5轮反应时间低于400毫秒</string>
     <string name="game_reaction_ach_20_rounds">反应力达人</string>
     <string name="game_reaction_ach_20_rounds_desc">累计完成20轮反应力测试</string>
+
+    <!-- UI 文本 -->
+    <string name="game_reaction_status_init">测试你的反应速度！</string>
+    <string name="game_reaction_stats_init">最佳：-- ms | 平均：-- ms</string>
+    <string name="game_reaction_btn_start">开始测试</string>
+    <string name="game_reaction_btn_retry">再来一轮</string>
+    <string name="game_reaction_status_waiting">等待变绿...</string>
+    <string name="game_reaction_status_go">快点击！</string>
+    <string name="game_reaction_status_too_early">太早了！等变绿再点</string>
+    <string name="game_reaction_status_result">反应时间：%1$d ms！</string>
+    <string name="game_reaction_stats_format">最佳：%1$s ms | 平均：%2$d ms | 轮次：%3$d</string>
 </resources>

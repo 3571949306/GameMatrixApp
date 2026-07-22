@@ -41,7 +41,6 @@ import com.gamecenter.app.games.ui.GameLauncherHelper;
 import com.gamecenter.app.modules.ModuleManager;
 import com.gamecenter.app.modules.ModuleStoreActivity;
 import com.gamecenter.app.settings.AppSettingsDialog;
-import com.gamecenter.app.ui.DailyCheckInDialog;
 import com.gamecenter.app.ui.DataBackupHelper;
 import com.gamecenter.app.ui.GameFavoriteReorderHelper;
 import com.gamecenter.app.ui.HeroBannerAdapter;
@@ -171,8 +170,8 @@ public class GamesFragment extends Fragment {
             ratingStore = new GameRatingStore(requireContext());
         }
         initViews(view);
-        // 包 D-1 (DAILY_CHECKIN): 每日首次进入游戏大厅自动弹出签到对话框
-        maybeShowDailyCheckInDialog();
+        // 包 D-1 (DAILY_CHECKIN): 每日首次进入游戏大厅自动记录登录天数（2026-07-22 起由手动签到改为自动记录）
+        recordLoginDay();
     }
 
     @Override
@@ -675,7 +674,21 @@ public class GamesFragment extends Fragment {
         GameRegistry.Entry entry = com.gamecenter.app.ui.ResumeGameHelper.INSTANCE.getResumeEntry(ctx);
         resumeEntry = entry;
         if (entry == null) {
-            resumeGameSection.setVisibility(View.GONE);
+            // 首页沉浸式改版 (HOME_IMMERSIVE_REVAMP, 2026-07-21) / V2 游戏活力风 (HOME_REVAMP_V2, 2026-07-22)：
+            // 空数据时显示引导卡片而非隐藏，避免首屏空白。
+            // 注意：此处仅控制 visibility，具体引导文案由 layout_resume_game 的默认值承载；
+            // 若改版 flag 关闭，则保持原行为（GONE）。
+            if (BuildConfig.HOME_IMMERSIVE_REVAMP || BuildConfig.HOME_REVAMP_V2) {
+                resumeGameSection.setVisibility(View.VISIBLE);
+                if (tvResumeGameName != null) {
+                    tvResumeGameName.setText(R.string.home_resume_empty_title);
+                }
+                if (tvResumeGameTime != null) {
+                    tvResumeGameTime.setText(R.string.home_resume_empty_hint);
+                }
+            } else {
+                resumeGameSection.setVisibility(View.GONE);
+            }
             return;
         }
         resumeGameSection.setVisibility(View.VISIBLE);
@@ -1152,9 +1165,18 @@ public class GamesFragment extends Fragment {
             } else if (item.getAction() == BannerAction.OPEN_MODULE_STORE) {
                 startActivity(new Intent(requireContext(), ModuleStoreActivity.class));
             } else if (item.getAction() == BannerAction.OPEN_DAILY_CHALLENGE) {
-                // 跳到每日签到对话框
+                // 2026-07-22 起签到改为自动记录登录天数，横幅点击改为展示登录天数提示
                 if (BuildConfig.DAILY_CHECKIN) {
-                    new DailyCheckInDialog().show(getParentFragmentManager(), "daily_checkin");
+                    try {
+                        DailyCheckInManager mgr = DailyCheckInManager.getInstance(requireContext());
+                        int days = mgr.getTotalCheckInDays();
+                        int consecutive = mgr.getConsecutiveDays();
+                        Toast.makeText(requireContext(),
+                                getString(R.string.auto_login_days_toast, days, consecutive),
+                                Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Log.w(TAG, "查询登录天数失败", e);
+                    }
                 } else {
                     Toast.makeText(requireContext(),
                             R.string.hero_banner_daily_subtitle, Toast.LENGTH_SHORT).show();
@@ -1189,22 +1211,20 @@ public class GamesFragment extends Fragment {
     }
 
     /**
-     * 包 D-1 (DAILY_CHECKIN): 每日首次进入游戏大厅自动弹出签到对话框。
-     * 通过 SharedPreferences 标记"今日已弹过"，避免重复弹出。
+     * 包 D-1 (DAILY_CHECKIN): 每日首次进入游戏大厅自动记录登录天数。
+     *
+     * <p>2026-07-22 起由"手动签到弹窗"改为"自动记录登录天数"，
+     * 降低单机 app 的用户粘性负担。用户无感知，后台自动累计连续登录天数与总登录天数。</p>
+     *
+     * <p>逻辑幂等：同一天多次进入大厅只会记录一次。</p>
      */
-    private void maybeShowDailyCheckInDialog() {
+    private void recordLoginDay() {
         if (!BuildConfig.DAILY_CHECKIN) return;
         if (rootView == null) return;
         try {
-            SharedPreferences prefs = requireContext()
-                    .getSharedPreferences("daily_checkin_dialog", Context.MODE_PRIVATE);
-            String today = DailyCheckInManager.todayKey();
-            String lastShown = prefs.getString("last_shown_date", "");
-            if (today.equals(lastShown)) return; // 今日已弹过
-            prefs.edit().putString("last_shown_date", today).apply();
-            new DailyCheckInDialog().show(getParentFragmentManager(), "daily_checkin");
+            DailyCheckInManager.getInstance(requireContext()).recordLoginDay();
         } catch (Exception e) {
-            Log.w(TAG, "签到弹窗显示失败", e);
+            Log.w(TAG, "记录登录天数失败", e);
         }
     }
 
@@ -1225,10 +1245,7 @@ public class GamesFragment extends Fragment {
                 popup.getMenu().add(0, 3, 0, R.string.stats_title);
                 popup.getMenu().add(0, 4, 0, R.string.settings_title);
                 popup.getMenu().add(0, 5, 0, R.string.achievement_center_title);
-                // 包 D-1 (DAILY_CHECKIN): 头像菜单加入签到入口
-                if (BuildConfig.DAILY_CHECKIN) {
-                    popup.getMenu().add(0, 6, 0, R.string.daily_checkin_title);
-                }
+                // 包 D-1 (DAILY_CHECKIN): 2026-07-22 起签到改为自动记录登录天数，头像菜单不再提供手动签到入口
                 // wrongbook 从底部导航移到头像菜单（受 ENABLE_WRONGBOOK 控制）
                 if (BuildConfig.ENABLE_WRONGBOOK) {
                     popup.getMenu().add(0, 7, 0, R.string.nav_wrongbook);
@@ -1269,14 +1286,6 @@ public class GamesFragment extends Fragment {
                         } catch (Exception e) {
                             Log.e(TAG, "打开成就中心失败", e);
                             Toast.makeText(requireContext(), R.string.error_achievement_not_found, Toast.LENGTH_SHORT).show();
-                        }
-                        return true;
-                    } else if (id == 6) {
-                        // 每日签到
-                        try {
-                            new DailyCheckInDialog().show(getParentFragmentManager(), "daily_checkin");
-                        } catch (Exception e) {
-                            Log.e(TAG, "打开签到弹窗失败", e);
                         }
                         return true;
                     } else if (id == 7) {

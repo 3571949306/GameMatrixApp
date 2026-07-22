@@ -20,6 +20,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.OvershootInterpolator;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.games.doudizhu.model.Card;
 import com.gamecenter.app.games.doudizhu.model.CardType;
 
@@ -177,7 +178,7 @@ public class DouDiZhuTableView extends View {
     private int playerLandlordStatus; // 0: 未确定, 1: 农民, 2: 地主
     // 三个玩家的地主状态
     private int[] landlordStatus = {0, 0, 0}; // 0=未确定, 1=农民, 2=地主
-    private String[] playerLabels = {"P1（待定）", "人机（待定）", "人机（待定）"};
+    private String[] playerLabels;
 
     // 动画相关
     private ValueAnimator playCardAnimator;
@@ -325,6 +326,11 @@ public class DouDiZhuTableView extends View {
         buttonDisabledPaint.setStyle(Paint.Style.FILL);
 
         // 初始化数据
+        playerLabels = new String[]{
+                getContext().getString(R.string.game_doudizhu_p1_pending),
+                getContext().getString(R.string.game_doudizhu_ai_pending),
+                getContext().getString(R.string.game_doudizhu_ai_pending)
+        };
         playerHandCards = new ArrayList<>();
         selectedCards = new ArrayList<>();
         selectedIndices = new ArrayList<>();
@@ -733,7 +739,7 @@ public class DouDiZhuTableView extends View {
         float textX = lastCardRight + letterWidth * 3f;
         float textY = startY + smallCardHeight * 0.6f;
 
-        String myRole = playerLabels[0] != null ? playerLabels[0] : ((landlordStatus[0] == 2) ? "P1（地主）" : "P1（农民）");
+        String myRole = playerLabels[0] != null ? playerLabels[0] : ((landlordStatus[0] == 2) ? getContext().getString(R.string.game_doudizhu_p1_landlord) : getContext().getString(R.string.game_doudizhu_p1_farmer));
         int myRoleColor = (landlordStatus[0] == 2) ? Color.parseColor("#FF6B35") : Color.parseColor("#4FC3F7");
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rolePaint.setColor(myRoleColor);
@@ -775,7 +781,7 @@ public class DouDiZhuTableView extends View {
         smallPaint.setTextSize(targetWidth * 0.35f);
         smallPaint.setFakeBoldText(true);
 
-        String rankSymbol = isJoker ? (card.getRank() == com.gamecenter.app.games.doudizhu.model.Rank.SMALL_JOKER ? "小" : "大")
+        String rankSymbol = isJoker ? (card.getRank() == com.gamecenter.app.games.doudizhu.model.Rank.SMALL_JOKER ? getContext().getString(R.string.game_doudizhu_joker_small) : getContext().getString(R.string.game_doudizhu_joker_big))
                                     : card.getRank().getSymbol();
         float textX = x + targetWidth * 0.15f;
         float textY = y + targetHeight * 0.35f;
@@ -787,7 +793,7 @@ public class DouDiZhuTableView extends View {
             canvas.drawText(suitSymbol, textX, textY + targetHeight * 0.25f, smallPaint);
         } else {
             smallPaint.setTextSize(targetWidth * 0.2f);
-            canvas.drawText("王", textX, textY + targetHeight * 0.25f, smallPaint);
+            canvas.drawText(getContext().getString(R.string.game_doudizhu_joker_king), textX, textY + targetHeight * 0.25f, smallPaint);
         }
     }
 
@@ -855,9 +861,9 @@ public class DouDiZhuTableView extends View {
         title.setFakeBoldText(true);
         title.setTextAlign(Paint.Align.CENTER);
         title.setTextSize(cellH * 0.58f);
-        canvas.drawText("记牌", x + labelW * 0.48f, y + panelH * 0.58f, title);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_card_counter), x + labelW * 0.48f, y + panelH * 0.58f, title);
 
-        String[] labels = {"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2", "小", "大"};
+        String[] labels = {"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2", getContext().getString(R.string.game_doudizhu_joker_small), getContext().getString(R.string.game_doudizhu_joker_big)};
         Paint rankPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rankPaint.setTextAlign(Paint.Align.CENTER);
         rankPaint.setFakeBoldText(true);
@@ -892,7 +898,7 @@ public class DouDiZhuTableView extends View {
      * @param count   剩余手牌数
      */
     private void drawCardCountBadge(Canvas canvas, float centerX, float y, int count) {
-        String text = "剩 " + Math.max(0, count);
+        String text = getContext().getString(R.string.game_doudizhu_cards_remaining, Math.max(0, count));
         Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(tableCardWidth * 0.18f);
@@ -973,7 +979,7 @@ public class DouDiZhuTableView extends View {
         drawRedCardCountBadge(canvas, centerX,
                 blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, leftAICardCount);
 
-        String role = playerLabels[1] != null ? playerLabels[1] : ((landlordStatus[1] == 2) ? "P2（地主）" : "P2（农民）");
+        String role = playerLabels[1] != null ? playerLabels[1] : ((landlordStatus[1] == 2) ? getContext().getString(R.string.game_doudizhu_p2_landlord) : getContext().getString(R.string.game_doudizhu_p2_farmer));
         int roleColor = (landlordStatus[1] == 2) ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5");
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rolePaint.setColor(roleColor);
@@ -990,7 +996,7 @@ public class DouDiZhuTableView extends View {
         float playedX = centerX + tableCardWidth * 0.5f + tableCardWidth * 0.3f;
         float playedY = stackCenterY - tableCardHeight * 0.2f;
         if (leftAIPassed) {
-            drawPassLabel(canvas, "不出", playedX + tableCardWidth * 0.2f,
+            drawPassLabel(canvas, getContext().getString(R.string.game_doudizhu_pass_label), playedX + tableCardWidth * 0.2f,
                     playedY + tableCardHeight * 0.5f);
         } else if (leftAIPlayedCards != null && !leftAIPlayedCards.isEmpty()) {
             drawPlayedCardsRow(canvas, leftAIPlayedCards, playedX, playedY);
@@ -1019,7 +1025,7 @@ public class DouDiZhuTableView extends View {
         drawRedCardCountBadge(canvas, centerX,
                 blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, rightAICardCount);
 
-        String role = playerLabels[2] != null ? playerLabels[2] : ((landlordStatus[2] == 2) ? "P3（地主）" : "P3（农民）");
+        String role = playerLabels[2] != null ? playerLabels[2] : ((landlordStatus[2] == 2) ? getContext().getString(R.string.game_doudizhu_p3_landlord) : getContext().getString(R.string.game_doudizhu_p3_farmer));
         int roleColor = (landlordStatus[2] == 2) ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5");
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rolePaint.setColor(roleColor);
@@ -1039,7 +1045,7 @@ public class DouDiZhuTableView extends View {
         }
         float playedY = stackCenterY - tableCardHeight * 0.2f;
         if (rightAIPassed) {
-            drawPassLabel(canvas, "不出", playedX, playedY + tableCardHeight * 0.5f);
+            drawPassLabel(canvas, getContext().getString(R.string.game_doudizhu_pass_label), playedX, playedY + tableCardHeight * 0.5f);
         } else if (rightAIPlayedCards != null && !rightAIPlayedCards.isEmpty()) {
             drawPlayedCardsRow(canvas, rightAIPlayedCards, playedX, playedY);
         }
@@ -1272,17 +1278,17 @@ public class DouDiZhuTableView extends View {
         // 绘制"出牌"按钮（金色渐变）
         float chupaiX = viewWidth / 2f - buttonWidth - buttonSpacing / 2f;
         drawGradientButton(canvas, chupaiX, buttonAreaY, buttonWidth, buttonHeight,
-                "出牌", true);
+                getContext().getString(R.string.game_doudizhu_btn_play), true);
 
         // 绘制"不出"按钮（金色渐变）
         float buchuX = viewWidth / 2f + buttonSpacing / 2f;
         drawGradientButton(canvas, buchuX, buttonAreaY, buttonWidth, buttonHeight,
-                "不出", true);
+                getContext().getString(R.string.game_doudizhu_btn_pass), true);
 
         // 绘制"提示"按钮（较小，在左侧）
         float tishiX = chupaiX - buttonWidth * 0.8f - buttonSpacing;
         drawGradientButton(canvas, tishiX, buttonAreaY, buttonWidth * 0.8f, buttonHeight,
-                "提示", true);
+                getContext().getString(R.string.game_doudizhu_btn_hint), true);
     }
 
     /**
@@ -1383,7 +1389,7 @@ public class DouDiZhuTableView extends View {
         if (currentTurn == 0 && (playerPlayedCards == null || playerPlayedCards.isEmpty())) {
             float promptY = areaTop - calculatedCardHeight * 0.15f;
             hintPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("请选择要出的牌", viewWidth / 2f, promptY, hintPaint);
+            canvas.drawText(getContext().getString(R.string.game_doudizhu_select_prompt), viewWidth / 2f, promptY, hintPaint);
         }
 
         // 如果自己是地主，在手牌上方绘制金色皇冠标记
@@ -1576,10 +1582,10 @@ public class DouDiZhuTableView extends View {
         String jokerText;
         if (card.getRank() == com.gamecenter.app.games.doudizhu.model.Rank.SMALL_JOKER) {
             cardColor = Color.parseColor("#9C27B0");
-            jokerText = "小";
+            jokerText = getContext().getString(R.string.game_doudizhu_joker_small);
         } else if (card.getRank() == com.gamecenter.app.games.doudizhu.model.Rank.BIG_JOKER) {
             cardColor = Color.parseColor("#D32F2F");
-            jokerText = "大";
+            jokerText = getContext().getString(R.string.game_doudizhu_joker_big);
         } else {
             boolean isRed = card.getSuit() == com.gamecenter.app.games.doudizhu.model.Suit.HEART
                     || card.getSuit() == com.gamecenter.app.games.doudizhu.model.Suit.DIAMOND;
@@ -1661,7 +1667,7 @@ public class DouDiZhuTableView extends View {
         jokerPaint.setTextSize(calculatedCardWidth * 0.32f);
         jokerPaint.setTextAlign(Paint.Align.CENTER);
         jokerPaint.setFakeBoldText(true);
-        canvas.drawText(jokerText + "王", cx, cy + calculatedCardWidth * 0.1f, jokerPaint);
+        canvas.drawText(jokerText + getContext().getString(R.string.game_doudizhu_joker_king), cx, cy + calculatedCardWidth * 0.1f, jokerPaint);
 
         // 中间星形装饰
         Paint symbolPaint = new Paint(Paint.ANTI_ALIAS_FLAG);

@@ -91,6 +91,22 @@ def shouldSkipUploadVerify = (project.findProperty("skipUploadVerify") ?: "false
 def shouldSkipReleaseLint = (project.findProperty("skipReleaseLint") ?: "false").toString().toBoolean()
 def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
 def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean()
+def flutterStoreEnabled = (project.findProperty("enableFlutterModuleStore") ?: "false").toString().toBoolean()
+def catalogSignatureEnabled = (project.findProperty("enableCatalogSignature") ?: "false").toString().toBoolean()
+def catalogSigningProfile = (project.findProperty("catalogSigningProfile") ?: "development").toString().trim().toLowerCase()
+def useStagingApplicationIdSuffix = (
+        project.findProperty("stagingApplicationIdSuffix") ?: "false"
+).toString().toBoolean()
+def flutterTargetPlatforms = (project.findProperty("target-platform") ?: "")
+        .toString()
+        .split(',')
+        .collect { it.trim() }
+        .findAll { !it.isEmpty() }
+def catalogEd25519PublicKeys = (
+        project.findProperty("catalogEd25519PublicKeys")
+                ?: System.getenv("GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS")
+                ?: ""
+).toString().trim()
 def releaseSigningRequired = gradle.startParameter.taskNames.any { taskName ->
     def normalized = taskName.toLowerCase()
     normalized.contains("release") || normalized.contains("upload")
@@ -136,6 +152,65 @@ def toJsonString = { String value ->
             .replace("\"", "\\\"")
             .replace("\r", "")
             .replace("\n", "\\n")
+}
+
+def validateCatalogTrustConfig = {
+    if (!catalogSignatureEnabled) return
+
+    def encodedKeys = catalogEd25519PublicKeys
+            .split(',')
+            .collect { it.trim() }
+            .findAll { !it.isEmpty() }
+    if (encodedKeys.isEmpty()) {
+        throw new GradleException(
+                "Catalog signature verification is enabled but no Ed25519 public key is configured. " +
+                        "Use -PcatalogEd25519PublicKeys=<base64-raw-32-byte-key>[,...] or " +
+                        "GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS."
+        )
+    }
+    if (encodedKeys.size() > 3 || encodedKeys.toSet().size() != encodedKeys.size()) {
+        throw new GradleException("Catalog trust must contain 1-3 unique Ed25519 public keys.")
+    }
+    encodedKeys.each { encodedKey ->
+        try {
+            def decoded = java.util.Base64.decoder.decode(encodedKey)
+            if (decoded.length != 32) {
+                throw new GradleException("Each Catalog Ed25519 public key must decode to exactly 32 bytes.")
+            }
+            if (decoded.every { it == (byte) 0 }) {
+                throw new GradleException("The all-zero Catalog Ed25519 placeholder key is forbidden.")
+            }
+        } catch (IllegalArgumentException ignored) {
+            throw new GradleException("Catalog Ed25519 public keys must be valid standard Base64.")
+        }
+    }
+}
+
+validateCatalogTrustConfig()
+if (releaseSigningRequired && flutterStoreEnabled) {
+    if (!catalogSignatureEnabled) {
+        throw new GradleException(
+                "A Release build with the Flutter module store enabled must also set " +
+                        "-PenableCatalogSignature=true."
+        )
+    }
+    if (currentVersionChannel == "stable" && catalogSigningProfile != "production") {
+        throw new GradleException(
+                "A stable Flutter-store Release requires -PcatalogSigningProfile=production."
+        )
+    }
+    if (currentVersionChannel == "stable" && useStagingApplicationIdSuffix) {
+        throw new GradleException("A stable Release cannot use the staging application ID suffix.")
+    }
+    if (useStagingApplicationIdSuffix &&
+            !(flutterTargetPlatforms.contains("android-arm64") &&
+                    flutterTargetPlatforms.contains("android-x64"))) {
+        throw new GradleException(
+                "A Flutter staging Release must include both android-arm64 and android-x64 " +
+                        "in -Ptarget-platform so the signed artifact can be tested on ARM64 devices " +
+                        "and the official x86_64 emulator."
+        )
+    }
 }
 
 def buildVersionJsonText = {
@@ -194,6 +269,9 @@ android {
 
         // 模块系统配置（T08：框�?APK 体积优化�?
         buildConfigField "boolean", "ENABLE_MODULE_SYSTEM", "true"
+        // Flutter-first module store stays opt-in until device verification is
+        // complete. Test locally with -PenableFlutterModuleStore=true.
+        buildConfigField "boolean", "ENABLE_FLUTTER_MODULE_STORE", flutterStoreEnabled.toString()
         buildConfigField "String", "MODULE_CACHE_DIR", '"modules"'
         buildConfigField "int", "MAX_MODULE_CACHE_SIZE", "200"
 
@@ -271,6 +349,8 @@ android {
         // ===== 本轮加法：4 个 Feature Flag =====
         // 每日挑战 + 连胜统计系统
         buildConfigField "boolean", "ACHIEVEMENT_V2", "true"
+        // 游戏全面改造（2026-07-22）：成就系统修复 + 难度系统补全 + Bug 修复 + 主题本地化合规
+        buildConfigField "boolean", "GAME_REVAMP_2026", "true"
         // 设置中心增强（字号调节 + 缓存清理）
         buildConfigField "boolean", "SETTINGS_ENHANCE", "true"
         // 首页最近游玩区域
@@ -280,6 +360,12 @@ android {
 
         // ===== 本轮加法 Batch 1：首页卡片增强（顶栏渐变美化 + 收藏/评分/热门徽章 + 图标点击动效） =====
         buildConfigField "boolean", "HOME_CARD_ENHANCE", "true"
+
+        // ===== 首页沉浸式改版（2026-07-21）：沉浸式 Hero 区 + 卡片流 + 空状态引导，保留所有现有 id =====
+        buildConfigField "boolean", "HOME_IMMERSIVE_REVAMP", "true"
+
+        // ===== 首页 V2 游戏活力风重设计（2026-07-22）：游戏霓虹配色 + 今日推荐大图卡 + 3 层信息架构，保留所有现有 id =====
+        buildConfigField "boolean", "HOME_REVAMP_V2", "true"
 
         // ===== 本轮加法 Batch 2：游戏统计仪表盘（总时长/活跃天数/Top5/胜负/成就概览） =====
         buildConfigField "boolean", "GAME_STATS_DASHBOARD", "true"
@@ -368,9 +454,11 @@ android {
         buildConfigField "boolean", "STORE_SECTION_RENDERER", "false"
 
         // ===== 混合架构 P3：目录签名 + 事务安装 =====
-        // 目录签名验证开关：开启后强制验证catalog.json的Ed25519签名
-        // 当前处于兼容模式（false），后续正式启用时改为true
-        buildConfigField "boolean", "ENABLE_CATALOG_SIGNATURE", "false"
+        // 目录信任链由构建参数注入。Flutter-store Release 会强制要求启用验签；
+        // 公钥允许配置 1-3 个，以支持无停机密钥轮换，私钥绝不能进入客户端。
+        buildConfigField "boolean", "ENABLE_CATALOG_SIGNATURE", catalogSignatureEnabled.toString()
+        buildConfigField "String", "CATALOG_ED25519_PUBLIC_KEYS_BASE64", toJavaStringLiteral(catalogEd25519PublicKeys)
+        buildConfigField "String", "CATALOG_SIGNING_PROFILE", toJavaStringLiteral(catalogSigningProfile)
         // 事务性安装开关：开启后使用staging/current/last_good/quarantine目录结构
         buildConfigField "boolean", "ENABLE_TRANSACTIONAL_INSTALL", "true"
 
@@ -381,6 +469,8 @@ android {
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_GAMES_HALL", "false"
         // 动态工具区开关：开启后工具区从模块贡献动态构建
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_TOOLS", "true"
+        // 用户可在设置中排序或隐藏宿主底部导航；游戏大厅保持强制可见。
+        buildConfigField "boolean", "BOTTOM_NAV_CUSTOMIZATION", "true"
 
         // ===== 混合架构 P5：Store-Owned 更新与回滚 =====
         // 开启后模块更新完全由商店目录驱动，失败时自动回滚
@@ -415,16 +505,12 @@ android {
         noCompress 'webp'
     }
 
-    // T08: APK 体积优化 - ABI 拆分（减�?Native 库体积约 75%�?
+    // Flutter Add-to-App uses one APK here. Native targets are selected with
+    // -Ptarget-platform; staging Release must contain ARM64 and x86_64 so the same
+    // signed QA artifact can be exercised on a real device and official emulator.
     splits {
         abi {
-            // 循环4: 启用 ABI splits, Release 构建只生成 arm64-v8a APK
-            // 注意: 如需模拟器测试(x86_64), 临时改回 enable false
-            enable true
-            reset()
-            // 仅保�?arm64-v8a（现代设备，占比 >95%�?
-            include "arm64-v8a"
-            universalApk false
+            enable false
         }
     }
 
@@ -434,10 +520,14 @@ android {
             buildConfigField "boolean", "TEST_MODE", "true"
             // Debug 包允许开启 WebView 远程调试（通过设置页开关控制）
             buildConfigField "boolean", "BROWSER_WEBVIEW_DEBUG", "true"
-            // Debug 包关闭 ABI 拆分，确保模拟器(x86_64)也能直接安装
-            splits.abi.enable = false
         }
         release {
+            // Allows a signed staging Release to coexist with an installed Debug build without
+            // deleting user data. Production builds keep the canonical application ID.
+            if (useStagingApplicationIdSuffix) {
+                applicationIdSuffix ".flutterstaging"
+                versionNameSuffix "-flutter-staging"
+            }
             // Phase 3.1: 启用 R8 混淆和资源收缩
             minifyEnabled true
             shrinkResources true
@@ -523,6 +613,7 @@ dependencies {
     implementation project(':core:moduleloader')
     implementation project(':core:modulestore')
     implementation project(':core:online')
+    implementation project(':flutter')
     if (rootProject.findProject(':modules:capabilities:mimo-tts') != null) {
         implementation project(':modules:capabilities:mimo-tts')
     }
@@ -837,7 +928,8 @@ task packageAppClasses(type: Jar) {
 // 任务在 mergeAssets 前执行，保证当前构建产物不会携带旧模块。
 // 保留 VPS 更新通道：modules.json 的 downloadUrl 仍指向 VPS，versionCode 升级时下载覆盖。
 // VPN 模块刻意不预装（合规/分发约束）。
-// 注意：当前跳过 ai 模块（其源码有未解决的 Step import 编译错误，待单独修复）。
+// 注意：ai/tools/tts 模块走 VPS 下载通道（不预装到 assets/modules/），
+// 见 modules.json 中 downloadUrl 字段。ai 模块源码编译已于 2026-06-23 修复（Step 嵌套类已补全）。
 // =============================================================================
 task bundlePreinstalledModules() {
     group = 'build'

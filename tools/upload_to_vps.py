@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import posixpath
+import socket
 import sys
 import urllib.error
 import urllib.request
@@ -15,6 +16,7 @@ from pathlib import Path
 
 try:
     import paramiko
+    from paramiko.hostkeys import HostKeyEntry
 except ImportError as exc:  # pragma: no cover - environment check
     raise SystemExit("paramiko is required: python -m pip install paramiko") from exc
 
@@ -137,6 +139,45 @@ def collect_uploads(args: argparse.Namespace, cfg: dict) -> list[tuple[Path, str
     return uploads
 
 
+def load_known_hosts_lenient(client: paramiko.SSHClient, path: str) -> int:
+    """Load valid host keys while ignoring unrelated malformed historical lines."""
+    valid_entries = 0
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            try:
+                entry = HostKeyEntry.from_line(line.strip())
+            except Exception:
+                continue
+            if entry is None:
+                continue
+            for hostname in entry.hostnames:
+                client.get_host_keys().add(hostname, entry.key.get_name(), entry.key)
+                valid_entries += 1
+    if valid_entries == 0:
+        raise RuntimeError(f"no valid host keys found in: {path}")
+    return valid_entries
+
+
+def add_trusted_port_alias(client: paramiko.SSHClient, host: str, port: int) -> None:
+    """Bind a non-default SSH port only when it presents the trusted host key."""
+    if port == 22:
+        return
+    port_label = f"[{host}]:{port}"
+    sock = socket.create_connection((host, port), timeout=15)
+    transport = paramiko.Transport(sock)
+    try:
+        transport.start_client(timeout=15)
+        remote_key = transport.get_remote_server_key()
+    finally:
+        transport.close()
+    host_keys = client.get_host_keys()
+    if not (host_keys.check(port_label, remote_key) or host_keys.check(host, remote_key)):
+        raise RuntimeError(
+            f"SSH host key for {port_label} does not match the trusted host record"
+        )
+    host_keys.add(port_label, remote_key.get_name(), remote_key)
+
+
 def connect(cfg: dict) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     # 安全性：使用 RejectPolicy 替代 AutoAddPolicy，防止中间人攻击
@@ -154,12 +195,7 @@ def connect(cfg: dict) -> paramiko.SSHClient:
         or os.path.expanduser("~/.ssh/known_hosts")
     )
     if os.path.exists(known_hosts_file):
-        client.load_host_keys(known_hosts_file)
-        # 同时加载系统默认 known_hosts（如有）
-        try:
-            client.load_system_host_keys()
-        except Exception:
-            pass
+        load_known_hosts_lenient(client, known_hosts_file)
     else:
         # 显式加载系统主机密钥（RejectPolicy 下若主机未在 known_hosts 中会拒绝连接）
         try:
@@ -190,6 +226,7 @@ def connect(cfg: dict) -> paramiko.SSHClient:
             raise ValueError("key auth selected but keyFile/privateKey is empty")
         kwargs["key_filename"] = os.path.expanduser(str(key_file))
 
+    add_trusted_port_alias(client, str(cfg["host"]), int(cfg["port"]))
     client.connect(**kwargs)
     return client
 

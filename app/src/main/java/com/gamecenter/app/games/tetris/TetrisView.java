@@ -14,6 +14,9 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+
+import com.gamecenter.app.R;
 
 import java.util.Random;
 
@@ -99,8 +102,9 @@ public class TetrisView extends View {
 
     // ==================== 颜色 ====================
 
-    private static final int COLOR_BG = 0xFF1A1A2E;
-    private static final int COLOR_GRID = 0xFF2A2A4E;
+    // 游戏屏背景/网格色：中性深色，浅深色自适应（资源化，原 #1A1A2E/#2A2A4E 蓝紫黑已收敛）
+    private int colorBg;
+    private int colorGrid;
     private static final int COLOR_TEXT = 0xFFFFFFFF;
     private static final int COLOR_OVERLAY = 0xCC000000;
 
@@ -210,8 +214,10 @@ public class TetrisView extends View {
     }
 
     private void init() {
-        paintBg.setColor(COLOR_BG);
-        paintGrid.setColor(COLOR_GRID);
+        colorBg = ContextCompat.getColor(getContext(), R.color.game_screen_bg);
+        colorGrid = ContextCompat.getColor(getContext(), R.color.game_screen_grid);
+        paintBg.setColor(colorBg);
+        paintGrid.setColor(colorGrid);
         paintGrid.setStyle(Paint.Style.STROKE);
         paintGrid.setStrokeWidth(0.5f);
         paintText.setColor(COLOR_TEXT);
@@ -517,16 +523,16 @@ public class TetrisView extends View {
         // 绘制信息
         paintText.setTextSize(cellSize * 0.8f);
         float infoY = offsetY + ROWS * cellSize + cellSize * 1.2f;
-        canvas.drawText("分数: " + score + "  消行: " + lines + "  等级: " + level, viewWidth / 2f, infoY, paintText);
+        canvas.drawText(getContext().getString(R.string.game_tetris_info_label, score, lines, level), viewWidth / 2f, infoY, paintText);
 
         // 游戏结束
         if (gameOver) {
             canvas.drawRect(0, 0, viewWidth, viewHeight, paintOverlay);
             paintText.setTextSize(cellSize * 2f);
-            canvas.drawText("游戏结束", viewWidth / 2f, viewHeight / 2f - cellSize, paintText);
+            canvas.drawText(getContext().getString(R.string.game_tetris_game_over), viewWidth / 2f, viewHeight / 2f - cellSize, paintText);
             paintText.setTextSize(cellSize * 1.2f);
-            canvas.drawText("最终分数: " + score, viewWidth / 2f, viewHeight / 2f + cellSize, paintText);
-            canvas.drawText("点击重新开始", viewWidth / 2f, viewHeight / 2f + cellSize * 3, paintText);
+            canvas.drawText(getContext().getString(R.string.game_tetris_final_score_label, score), viewWidth / 2f, viewHeight / 2f + cellSize, paintText);
+            canvas.drawText(getContext().getString(R.string.game_tetris_tap_to_restart), viewWidth / 2f, viewHeight / 2f + cellSize * 3, paintText);
         }
     }
 

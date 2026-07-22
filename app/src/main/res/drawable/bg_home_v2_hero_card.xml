@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页 V2 今日推荐大图卡背景：圆角 20dp + 品红强调描边 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_v2_hero_card_overlay_end" />
+    <corners android:radius="@dimen/corner_radius_xlarge" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/home_v2_hero_card_badge" />
+</shape>

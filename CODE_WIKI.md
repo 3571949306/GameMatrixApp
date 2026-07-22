@@ -1,4 +1,15 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp — Code Wiki
+
+## 2026-07-22 Flutter-first 模块商店架构
+
+- **当前工作树/生产版本**：versionCode=595、versionName=1.4.1；工作树包含用户并行修改，不能描述为 clean 或与远端同步。
+- **UI 层**：`flutter_module/lib/`，通过 Pigeon 调用 Android；Flutter 只保存搜索历史、筛选、排序和视图模式等 UI 偏好。
+- **宿主桥接**：`FlutterStoreEngineManager` 缓存唯一 Engine，`ModuleStoreActivity` 直接挂载 `FlutterModuleStoreFeature` 提供的 Flutter Fragment；显式回退时同一 Activity 渲染旧原生商店。
+- **权威后端**：`CatalogV2Repository`、`ModuleCoreFacade`、`ModuleManager` 与 `ModuleRuntimeRegistry`；Flutter 不直接下载或加载动态代码。
+- **状态**：Flutter UI、客户端、六类 Runtime、Android 11–15 矩阵和生产发布闭环均为 100%；stable vc595、签名 Catalog V8、正式模块包与生产灰度已完成，详见 `/docs/flutter-store/MIGRATION_STATUS.md`。
 
 ## 2026-07-06 Maintenance Notes (循环 17-24)
 
@@ -7,7 +18,7 @@
 - **循环 21-22：错题本全面推进**：Room v2 schema 升级；自定义图表 View（科目统计/复习进度）；科目管理、复习计划、数据导入导出。
 - **循环 23：宿主 Kotlin 迁移完成**：`App.java`/`MainActivity.java`/`GameRegistry.java` 迁移至 `.kt`，路径 `app/src/main/kotlin/com/gamecenter/app/{App.kt, MainActivity.kt, games/GameRegistry.kt}`；新增 `core/moduleloader/.../ModuleContextHelper.kt`；新增 `.github/workflows/android_ci.yml` 和 `.github/dependabot.yml`；语言比例变为 Java 约 55% + Kotlin 约 45%。
 - **循环 24：Netty 安全漏洞修复**：Netty 4.1.134.Final → 4.1.135.Final；修复 7 个 CVE（3 high + 4 medium：CVE-2026-50010/45416/44249 high，CVE-2026-50560/50020/48043/47244 medium）；GitHub Dependabot 状态 0 open / 7 dismissed；最新 commit `f978f06`。
-- **当前版本**：versionCode=567, versionName=1.4.1，lastStable=465/1.4.0；工作区干净，main 与 origin/main 同步。
+- **当时版本**：versionCode=567, versionName=1.4.1，lastStable=465/1.4.0；该行是 2026-07-06 历史快照，不代表当前工作树状态。
 - **动态模块（共 9 个）**：`module-store/feature/games/games/{hall,chinesechess,game2048,klotski,tts}` + `module-store/feature/tools/{ai,tools,vpn,wrongbook}`。
 
 ## 2026-05-25 Maintenance Notes (Module Framework Fix)
@@ -53,14 +64,14 @@
 
 > **项目名称**: GameMatrixApp  
 > **包名**: `com.gamecenter.app`  
-> **当前版本**: 1.4.1 (versionCode 567)
-> **上次稳定版**: 1.4.0 (versionCode 465)
+> **当前工作树/生产版本**: 1.4.1 (versionCode 595)
+> **上次稳定版**: 1.4.1 (versionCode 592)
 > **最低 SDK**: 24 (Android 7.0) | **目标 SDK**: 35  
 > **语言**: Java 约 55% + Kotlin 约 45%（循环23宿主 Kotlin 迁移后）
 > **构建系统**: Gradle 8.13.2 + AGP 8.13.2  
 > **依赖注入**: Hilt (Dagger)  
 > **数据库**: Room（浏览器模块 v2 schema 4 张表）  
-> **GitHub**: `https://github.com/3571949306/GameMatrixApp`（main 分支，工作区干净）
+> **GitHub**: `https://github.com/3571949306/GameMatrixApp`（当前工作树非 clean；提交/远端同步状态需实时检查）
 
 ---
 
@@ -289,7 +300,7 @@ GameMatrixApp/
 - `Entry` �?游戏条目，新增`categoryKey` 字段，支持分类标识符与本地化名称解密
 **分类键名常量**: `CATEGORY_CLASSICS` / `CATEGORY_PUZZLE` / `CATEGORY_CASUAL` / `CATEGORY_REACTION` / `CATEGORY_OTHER`
 
-#### [GameEntry.java](app/src/main/java/com/GameMatrix/app/games/GameEntry.java)
+#### GameEntry.java（历史类型，当前仓库已无对应文件）
 
 游戏条目注解（`@Target(TYPE)` + `@Retention(RUNTIME)`），用于在 Activity 类上声明游戏元数据：
 
@@ -326,7 +337,7 @@ public class GomokuActivity extends BaseGameActivity { ... }
 
 **关键方法**:
 - `getCategories(Context)` �?返回不可修改的分类列表，从字符串资源读取名称（支持国际化- `flatten(List<Category>)` �?将分类列表扁平化为游戏条目列�?
-#### [BaseGameActivity.java](app/src/main/java/com/GameMatrix/app/games/BaseGameActivity.java)
+#### [BaseGameActivity.java](app/src/main/java/com/gamecenter/app/games/base/BaseGameActivity.java)
 
 所有游戏 Activity 的抽象基类，提供通用基础设施。
 | 能力 | 实现 |
@@ -345,7 +356,11 @@ public class GomokuActivity extends BaseGameActivity { ... }
 |----|------|
 | `ModuleManager.kt` | 模块生命周期管理（下载/安装/卸载），动态注册和注销游戏模块 |
 | `ModuleManifest.kt` | 模块清单数据模型（含type/builtIn/storeCategory/isBaseFramework/activityClass/gameId/gameCategory/gameDesc�?|
-| `ModuleStoreActivity.kt` | 模块市场UI页面（默认游戏分类、刷新、已下载模块入口、下载/打开/卸载） |
+| `ModuleStoreActivity.kt` | 兼容入口与旧原生商店 UI；Flutter 开关开启时转入缓存 Engine，失败或强制回退时继续原生页面 |
+| `ModuleCoreFacade.kt` | Flutter/旧 UI 共用的唯一模块业务入口，统一状态、操作结果和事件 |
+| `CatalogV2Repository.kt` | 读取既有可信目录缓存/assets，严格解析 V2 并适配旧目录，不创建第二缓存 |
+| `ModuleRuntimeRegistry.kt` | 注册 Flutter/Web/Asset/Android/Native Service/Unity 六类 Runtime Handler |
+| `flutter_module/` | Flutter 商店 UI、路由、Pigeon Gateway 与 UI 状态；不直接操作 APK/DEX |
 | `ModuleAdapter.kt` | 模块列表RecyclerView适配器（支持下载/打开/卸载按钮） |
 | `InstalledModulesActivity.kt` | 已下载模块列表页面，支持分类筛选、更新/卸载操作 |
 | `InstalledModuleAdapter.kt` | 已下载模块列表适配器 |
@@ -384,11 +399,11 @@ VPN 模块是首个真正的"可下载外部模块"，代码不在主 APK 中：
 ---
 
 ### 4.3 网络与联机模块
-#### [BaseOnlineActivity.java](app/src/main/java/com/GameMatrix/app/network/BaseOnlineActivity.java)
+#### BaseOnlineActivity.java（历史类型，当前仓库已无对应文件）
 
 联机游戏 Activity 基类（模板方法模式），封装房间管理、聊天、连接状态等联机通用逻辑�?
 > ⚠️ 当前各游戏的 OnlineActivity（GomokuOnlineActivity、GoOnlineActivity 等）并未继承此的> 而是各自独立实现联机逻辑。新增游戏建议使用组合方式，通过 `OnlineRoomManager` 复用联机功能
-#### [OnlineRoomManager.java](app/src/main/java/com/GameMatrix/app/network/OnlineRoomManager.java)
+#### [OnlineRoomManager.java](modules/online-core/src/main/java/com/gamecenter/app/online/OnlineRoomManager.java)
 
 联机房间管理器（组合式），从 `BaseOnlineActivity` 中提取的独立组件，使各游�?OnlineActivity 可以通过组合方式复用联机逻辑，而不必继�?BaseOnline 的
 **使用方式**:
@@ -418,7 +433,7 @@ roomManager.setListener(new OnlineRoomManager.Listener() {
 
 **Listener 接口**: `onGameStarted()` / `onGameMessageReceived(JSONObject)` / `onGameReset()`
 
-#### [LANManager.java](app/src/main/java/com/GameMatrix/app/network/LANManager.java)
+#### [LANManager.java](modules/online-core/src/main/java/com/gamecenter/app/online/LANManager.java)
 
 局域网设备发现管理器（单例），支持双模式：
 
@@ -429,7 +444,7 @@ roomManager.setListener(new OnlineRoomManager.Listener() {
 
 **关键参数**: 发现端口 9877，广播间�?3s，主机过期超�?8s
 
-#### [OkHttpClientProvider.java](app/src/main/java/com/GameMatrix/app/network/OkHttpClientProvider.java)
+#### [OkHttpClientProvider.java](core/network/src/main/java/com/gamecenter/app/network/OkHttpClientProvider.java)
 
 HTTP/WebSocket 客户端提供者（单例），通过 Hilt 注入�?
 | 客户�?| 连接超时 | 读取超时 | 缓存 | 重试 | 去重 |
@@ -442,7 +457,7 @@ HTTP/WebSocket 客户端提供者（单例），通过 Hilt 注入�?
 
 ### 4.4 AI 模块
 
-#### [AiTaskRouter.java](app/src/main/java/com/GameMatrix/app/ai/AiTaskRouter.java)
+#### [AiTaskRouter.java](module-store/feature/tools/ai/src/main/java/com/gamecenter/app/ai/AiTaskRouter.java)
 
 AI 功能调度中心，核心设计遵�?*本地优先 (Local First)** 策略�?
 ```
@@ -472,7 +487,7 @@ AI 功能调度中心，核心设计遵�?*本地优先 (Local First)** 策略�
 - 单线程线程池 (`aiExecutor`) 串行执行，避免并发推理冲�?- `LocalLlmOutputGuard` 校验输出质量，防止退化输出（乱码/重复制- 结果通过 `Handler` 回调到主线程
 - 云端请求按模型能力设`max_tokens`：低成本模型 2048，中等模�?3072，高能力/长上下文模型 4096
 
-#### [AiPreferences.java](app/src/main/java/com/GameMatrix/app/ai/AiPreferences.java)
+#### [AiPreferences.java](module-store/feature/tools/ai/src/main/java/com/gamecenter/app/ai/AiPreferences.java)
 
 AI 偏好设置管理器，使用 `EncryptedSharedPreferences` 加密存储 API Key 等敏感数据：
 
@@ -492,7 +507,7 @@ AI 偏好设置管理器，使用 `EncryptedSharedPreferences` 加密存储 API 
 ---
 
 ### 4.5 工具箱模块
-#### [ToolBinder.java](app/src/main/java/com/GameMatrix/app/工具/ToolBinder.java)
+#### [ToolBinder.java](module-store/feature/tools/tools/src/main/java/com/gamecenter/app/tools/ToolBinder.java)
 
 工具绑定器接口，定义工具模块的 UI 与业务逻辑绑定契约。
 ```java
@@ -500,7 +515,7 @@ void bind(Context context, View contentView, ExecutorService executor);
 ```
 
 每个工具卡片提供一�?`ToolBinder` 实现，在 `bind()` 方法中完成 UI 初始化、事件监听和业务逻辑绑定�?
-#### [ToolHelper.java](app/src/main/java/com/GameMatrix/app/工具/ToolHelper.java)
+#### [ToolHelper.java](module-store/feature/tools/tools/src/main/java/com/gamecenter/app/tools/ToolHelper.java)
 
 工具辅助类（final 静态工具类），提供通用方法
 | 方法 | 功能 |
@@ -546,7 +561,7 @@ void bind(Context context, View contentView, ExecutorService executor);
 
 ### 4.6 更新模块
 
-#### [UpdateViewModel.kt](app/src/main/kotlin/com/GameMatrix/app/update/UpdateViewModel.kt)
+#### [UpdateViewModel.kt](core/update/src/main/kotlin/com/gamecenter/app/update/UpdateViewModel.kt)
 
 更新流程 ViewModel（`@HiltViewModel`），替代原有�?`UpdatePresenter`，使�?LiveData 暴露状态。采用Kotlin 协程（`viewModelScope.launch` + `suspendCancellableCoroutine`）将 Java 回调包装�?suspend 函数，实现结构化并发布
 **协程改造要�?*:
@@ -586,9 +601,9 @@ void bind(Context context, View contentView, ExecutorService executor);
 - LiveData 自动取消订阅，消�?`isFinishing()/isDestroyed()` 防御代码
 - 配置变更（如旋转屏幕）时自动恢复状�?- 协程结构化并发：`viewModelScope` 自动取消，`Job?` 替代布尔标志实现精确取消控制
 
-#### [UpdatePresenter.java](app/src/main/java/com/GameMatrix/app/update/UpdatePresenter.java)（已废弃�?
+#### [UpdatePresenter.java](core/update/src/main/java/com/gamecenter/app/update/UpdatePresenter.java)（旧 Presenter）
 > ⚠️ 此类已被 `UpdateViewModel` 替代，保留仅供参考。新代码应使�?`UpdateViewModel`�?
-#### [UpdateManager.java](app/src/main/java/com/GameMatrix/app/update/UpdateManager.java)
+#### [UpdateManager.java](core/update/src/main/java/com/gamecenter/app/update/UpdateManager.java)
 
 更新管理器（门面模式 + `@Singleton`），协调四个核心组件
 ```
@@ -626,7 +641,7 @@ UpdateManager (门面)
 ---
 
 ### 4.7 设置与主题管理
-#### [SettingsManager.java](app/src/main/java/com/GameMatrix/app/SettingsManager.java)
+#### [SettingsManager.java](core/common/src/main/java/com/gamecenter/app/SettingsManager.java)
 
 应用设置管理器（`@Singleton`），基于 SharedPreferences�?
 **DI 变更**: 构造函数已标注 `@Inject` + `@ApplicationContext`，Hilt 可直接创建实例。`getInstance()` 已标注 `@Deprecated`，保留作为非 DI 场景的兼容桥接�?
@@ -645,7 +660,7 @@ UpdateManager (门面)
 
 **更新来源选项**: 自动(0) / 香港VPS(1) / ~~美国VPS(2)~~（已废弃，2026-06-19 下线，自动重定向到 AUTO） / GitHub(3)
 
-#### [ColorSchemeManager.java](app/src/main/java/com/GameMatrix/app/ColorSchemeManager.java)
+#### [ColorSchemeManager.java](app/src/main/java/com/gamecenter/app/ColorSchemeManager.java)
 
 配色方案管理器（静态工具类），定义 8 套配色方案：
 
@@ -664,7 +679,7 @@ UpdateManager (门面)
 ---
 
 ### 4.8 数据库
-#### [AppDatabase.kt](app/src/main/kotlin/com/GameMatrix/app/database/AppDatabase.kt)
+#### [AppDatabase.kt](app/src/main/kotlin/com/gamecenter/app/database/AppDatabase.kt)
 
 Room 数据库（版本 1），包含两张实体表：
 
@@ -674,7 +689,7 @@ Room 数据库（版本 1），包含两张实体表：
 | `GameStatsEntity` | `GameStatsDao` | 游戏统计数据 |
 
 单例模式（双重检查锁定），数据库`GameMatrix_database`�?
-#### [AppModule.kt](app/src/main/kotlin/com/GameMatrix/app/di/AppModule.kt)
+#### [AppModule.kt](app/src/main/kotlin/com/gamecenter/app/di/AppModule.kt)
 
 Hilt 依赖注入模块（`@InstallIn(SingletonComponent::class)`），提供以下绑定�?
 **DI 变更**: `SettingsManager`、`OkHttpClientProvider`、`UpdateManager` 已改`@Inject` 构造函数，不再需�?`@Provides` 方法。Hilt 自动通过 `@Singleton` + `@Inject` 管理这些实例�?
@@ -1137,8 +1152,8 @@ Keep new cross-feature dependencies out of `:core:*` unless they are genuinely r
 - 最新 commit：`f978f06 fix(security): 循环24 修复 GitHub Dependabot 7 个 Netty 安全漏洞`
 
 ### 当前状态
-- versionCode=567 / versionName=1.4.1（lastStable=465/1.4.0）
-- 工作区干净，main 与 origin/main 同步
+- versionCode=594 / versionName=1.4.1（lastStable=593/1.4.1，以 `version.properties` 为准）
+- 当前工作树包含 Flutter 商店和用户并行修改；不得声明 clean 或与远端同步，需实时检查
 - 动态模块（共 9 个）：`module-store/feature/games/games/{hall,chinesechess,game2048,klotski,tts}` + `module-store/feature/tools/{ai,tools,vpn,wrongbook}`
 
 ---

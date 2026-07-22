@@ -169,8 +169,9 @@ data class StoreModule(
     companion object {
         fun fromJson(json: JSONObject): StoreModule? {
             val id = json.optString("id", "").ifEmpty { return null }
+            val packageJson = json.optJSONObject("package")
             val dependsList = mutableListOf<String>()
-            json.optJSONArray("depends")?.let { arr ->
+            (json.optJSONArray("depends") ?: json.optJSONArray("dependencies"))?.let { arr ->
                 for (i in 0 until arr.length()) {
                     val dep = arr.optString(i, "")
                     if (dep.isNotEmpty()) dependsList.add(dep)
@@ -213,12 +214,22 @@ data class StoreModule(
                 versionName = json.optString("versionName", "1.0.0"),
                 versionCode = json.optInt("versionCode", 0),
                 entryClass = json.optString("entryClass", ""),
-                fileName = json.optString("fileName", ""),
-                fileSize = json.optLong("fileSize", 0L),
-                sha256 = json.optString("sha256", ""),
-                downloadUrl = json.optString("downloadUrl", ""),
-                fallbackUrl = json.optString("fallbackUrl", ""),
-                githubUrl = json.optString("githubUrl", ""),
+                fileName = json.optString("fileName", "").ifEmpty {
+                    packageJson?.optString("fileName", "").orEmpty()
+                },
+                fileSize = json.optLong("fileSize", packageJson?.optLong("fileSize", 0L) ?: 0L),
+                sha256 = json.optString("sha256", "").ifEmpty {
+                    packageJson?.optString("sha256", "").orEmpty()
+                },
+                downloadUrl = json.optString("downloadUrl", "").ifEmpty {
+                    packageJson?.optString("downloadUrl", "").orEmpty()
+                },
+                fallbackUrl = json.optString("fallbackUrl", "").ifEmpty {
+                    packageJson?.optString("fallbackUrl", "").orEmpty()
+                },
+                githubUrl = json.optString("githubUrl", "").ifEmpty {
+                    packageJson?.optString("githubUrl", "").orEmpty()
+                },
                 iconUrl = json.optString("iconUrl", ""),
                 category = json.optString("category", "other"),
                 storeCategory = json.optString("storeCategory", "game"),
@@ -227,11 +238,14 @@ data class StoreModule(
                 gameId = json.optString("gameId", ""),
                 gameCategory = json.optString("gameCategory", ""),
                 gameDesc = json.optString("gameDesc", ""),
-                builtIn = json.optBoolean("builtIn", false),
+                builtIn = json.optBoolean(
+                    "builtIn",
+                    json.optString("deliveryType", "").equals("builtin", ignoreCase = true)
+                ),
                 isBaseFramework = json.optBoolean("isBaseFramework", false),
                 builtInVersionCode = json.optInt("builtInVersionCode", 0),
                 minAppVersion = json.optInt("minAppVersion", 0),
-                minAppVersionCode = json.optInt("minAppVersionCode", 0),
+                minAppVersionCode = json.optInt("minAppVersionCode", json.optInt("minHostVersionCode", 0)),
                 depends = dependsList,
                 required = json.optBoolean("required", false),
                 shortDescription = json.optString("shortDescription", ""),
@@ -242,9 +256,9 @@ data class StoreModule(
                 sortOrder = json.optInt("sortOrder", 0),
                 featured = json.optBoolean("featured", false),
                 enabled = json.optBoolean("enabled", true),
-                kind = json.optString("kind", "feature-apk"),
+                kind = json.optString("kind", json.optString("runtimeType", "feature-apk")),
                 channel = json.optString("channel", "stable"),
-                maxAppVersionCode = json.optInt("maxAppVersionCode", 0),
+                maxAppVersionCode = json.optInt("maxAppVersionCode", json.optInt("maxHostVersionCode", 0)),
                 navigationContribution = navContribution,
                 permissions = runtimePermissionsList,
                 rolloutPercent = json.optInt("rolloutPercent", 100),

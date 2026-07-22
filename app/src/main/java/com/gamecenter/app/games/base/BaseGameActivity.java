@@ -140,6 +140,52 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     }
 
     /**
+     * 直接解锁成就（带 gameId 隔离，推荐用于 win/game_over 等 boolean 型事件）。
+     * GAME_REVAMP_2026：修正跨游戏串扰。
+     * @param achievementId 成就标识
+     */
+    protected void unlockAchievement(@NonNull String achievementId) {
+        if (achievementManager != null) {
+            achievementManager.unlock(getGameId(), achievementId);
+        }
+    }
+
+    /**
+     * 按阈值检查并解锁成就（带 gameId 隔离，推荐用于 score/level/streak 等数值型事件）。
+     * GAME_REVAMP_2026：修正无条件解锁 bug。
+     * @param achievementId 成就标识
+     * @param currentValue  当前进度值
+     * @param threshold     解锁阈值
+     */
+    protected void checkAchievementThreshold(@NonNull String achievementId, int currentValue, int threshold) {
+        if (achievementManager != null) {
+            achievementManager.checkAndUnlock(getGameId(), achievementId, currentValue, threshold);
+        }
+    }
+
+    /**
+     * 记录最高分并返回是否破纪录（GAME_REVAMP_2026 统一最高分持久化）。
+     * @param score 本局最终得分
+     * @return 是否为新纪录
+     */
+    protected boolean recordHighScore(int score) {
+        if (usageStore == null) return false;
+        String gameId = getGameId();
+        if (gameId == null || gameId.isEmpty()) return false;
+        int oldHigh = usageStore.getHighScore(gameId);
+        usageStore.recordScore(gameId, score);
+        return score > oldHigh;
+    }
+
+    /**
+     * 获取本游戏历史最高分（GAME_REVAMP_2026）。
+     */
+    protected int getHighScore() {
+        if (usageStore == null) return 0;
+        return usageStore.getHighScore(getGameId());
+    }
+
+    /**
      * 游戏是否正在运行
      */
     public boolean isGameRunning() {

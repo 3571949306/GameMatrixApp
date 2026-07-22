@@ -3,6 +3,8 @@ package com.gamecenter.app.games.chinesechess;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.core.common.GameAI;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -10,28 +12,33 @@ import java.util.Random;
 /**
  * 中国象棋 AI 引擎。
  *
- * <p>基于 Minimax + Alpha-Beta 剪枝算法实现 AI 决策。
- * 根据难度级别调整搜索深度和评估精度。</p>
- *
- * <p>关键设计决策：
+ * <p>基于 Minimax + Alpha-Beta 剪枝算法实现 AI 决策，并叠加以下增强以提升棋力与正确性：
  * <ul>
- *   <li>使用 Minimax 搜索 + Alpha-Beta 剪枝优化</li>
- *   <li>4 个难度级别对应搜索深度 2/4/6/8</li>
- *   <li>评估函数考虑子力价值、位置价值和安全性</li>
- *   <li>支持异步计算（通过回调返回结果）</li>
- *   <li>搜索过程中定期检查中断状态</li>
+ *   <li>4 个难度级别对应搜索深度 2/4/6/8；</li>
+ *   <li>静态搜索（Quiescence Search）：仅在搜索边界对吃子序列继续展开，消除"地平线效应"
+ *       （避免 AI 在搜索末端吃掉大子却看不见随后被反吃）；</li>
+ *   <li>将军延伸（Check Extension）：被将军时额外展开一层，提升战术与杀棋识别；</li>
+ *   <li>MVV-LVA 走法排序：优先搜索"以大吃小"的着法，显著提升 Alpha-Beta 剪枝效率，
+ *       在相同时间内达到更深的等效搜索；</li>
+ *   <li>基于层数的将死距离评分：优先选择更快将死 / 更晚被将死的路线（象棋中困毙亦判负）；</li>
+ *   <li>评估函数综合子力价值、位置价值（棋子价值表）与机动性；</li>
+ *   <li>支持异步计算与取消（通过 {@link GameAI} 契约的 cancel/isThinking）。</li>
  * </ul>
  * </p>
  *
+ * <p>约定：棋盘用 10×9 的 int 矩阵表示，正值=红子、负值=黑子，
+ * 绝对值 1..7 对应 将/仕/相/马/车/炮/兵。
+ * 默认执黑（side = -1），通过 {@link #getBestMove(int[][], int, int)} 可指定任意视角。</p>
+ *
  * @author Kou Dou Ma (Alex)
- * @version 1.0
+ * @version 2.0
  * @since 2026-06-19
  */
-public class ChineseChessAI {
+public class ChineseChessAI implements GameAI {
 
     // ==================== 常量 ====================
 
-    /** 棋子基础价值 */
+    /** 棋子基础价值（索引为棋子类型 0..7） */
     private static final int[] PIECE_VALUES = {
         0,     // 未使用
         10000, // 帅/将
@@ -43,8 +50,17 @@ public class ChineseChessAI {
         100    // 兵/卒
     };
 
-    /** 难度配置 */
+    /** 难度配置（搜索深度） */
     private static final int[] SEARCH_DEPTHS = {2, 4, 6, 8};
+
+    /** 将死分数（远大于最大子力评估，确保对将死给予最高优先级） */
+    private static final int MATE_SCORE = 1_000_000;
+
+    /** 静态搜索最大层数（仅在吃子序列上展开，避免无限递归） */
+    private static final int QSEARCH_MAX_DEPTH = 6;
+
+    /** 将军延伸的层数上限（防止长将/循环将军导致搜索过深） */
+    private static final int CHECK_EXTENSION_PLY_LIMIT = 30;
 
     // ==================== 成员变量 ====================
 
@@ -52,6 +68,7 @@ public class ChineseChessAI {
     private final int searchDepth;
     private final Random random = new Random();
     private volatile boolean cancelled = false;
+    private volatile boolean thinking = false;
 
     // ==================== 构造函数 ====================
 
@@ -68,7 +85,7 @@ public class ChineseChessAI {
     // ==================== 公共方法 ====================
 
     /**
-     * 获取 AI 的最佳走法
+     * 获取 AI 的最佳走法（默认执黑）
      *
      * @param boardState 当前棋盘状态
      * @param difficulty 难度等级
@@ -76,14 +93,34 @@ public class ChineseChessAI {
      */
     @Nullable
     public int[] getBestMove(@NonNull int[][] boardState, int difficulty) {
+        return getBestMove(boardState, difficulty, -1);
+    }
+
+    /**
+     * 获取 AI 的最佳走法（支持指定视角）
+     *
+     * @param boardState 当前棋盘状态
+     * @param difficulty 难度等级
+     * @param aiSide     AI 执子方：1=红方，-1=黑方
+     * @return 走法数组 [fromRow, fromCol, toRow, toCol]，无合法走法返回 null
+     */
+    @Nullable
+    public int[] getBestMove(@NonNull int[][] boardState, int difficulty, int aiSide) {
         cancelled = false;
         int depth = Math.max(2, Math.min(8, SEARCH_DEPTHS[Math.max(0, Math.min(difficulty - 1, 3))]));
 
-        // 生成所有黑方（AI）的合法走法
-        List<int[]> moves = generateMoves(boardState, -1);
+        // 生成 AI 方的合法走法（过滤送将/白脸将的着法）
+        List<int[]> moves = generateLegalMoves(boardState, aiSide);
         if (moves.isEmpty()) return null;
 
-        int bestScore = Integer.MIN_VALUE;
+        // 根节点同样按 MVV-LVA 排序，提升剪枝与等分时择优
+        orderMovesByMvvLva(moves, boardState);
+
+        thinking = true;
+        // 注意符号约定：minimax 返回的是"红方视角"评分（越大对红方越有利）。
+        // AI 执红时最大化该评分，执黑时最小化。
+        boolean maximize = (aiSide == 1);
+        int bestScore = maximize ? Integer.MIN_VALUE : Integer.MAX_VALUE;
         List<int[]> bestMoves = new ArrayList<>();
 
         for (int[] move : moves) {
@@ -94,20 +131,31 @@ public class ChineseChessAI {
             newBoard[move[2]][move[3]] = newBoard[move[0]][move[1]];
             newBoard[move[0]][move[1]] = 0;
 
-            // Minimax 搜索
-            int score = minimax(newBoard, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+            // Minimax 搜索（根走子后轮到对方，isMax = !maximize）
+            int score = minimax(newBoard, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, !maximize, 1);
 
-            if (score > bestScore) {
-                bestScore = score;
-                bestMoves.clear();
-                bestMoves.add(move);
-            } else if (score == bestScore) {
-                bestMoves.add(move);
+            if (maximize) {
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMoves.clear();
+                    bestMoves.add(move);
+                } else if (score == bestScore) {
+                    bestMoves.add(move);
+                }
+            } else {
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMoves.clear();
+                    bestMoves.add(move);
+                } else if (score == bestScore) {
+                    bestMoves.add(move);
+                }
             }
         }
 
-        // 从最佳走法中随机选择一个
+        thinking = false;
         if (bestMoves.isEmpty()) return null;
+        // 从最佳走法中随机选择一个，增加对局多样性
         return bestMoves.get(random.nextInt(bestMoves.size()));
     }
 
@@ -116,59 +164,179 @@ public class ChineseChessAI {
      */
     public void cancel() {
         cancelled = true;
+        thinking = false;
+    }
+
+    @Override
+    public boolean isThinking() {
+        return thinking;
     }
 
     // ==================== Minimax 算法 ====================
 
     /**
-     * Minimax + Alpha-Beta 剪枝
+     * Minimax + Alpha-Beta 剪枝（含将军延伸、静态搜索与将死距离评分）。
      *
      * @param board  棋盘状态
      * @param depth  剩余搜索深度
      * @param alpha  Alpha 值
      * @param beta   Beta 值
      * @param isMax  是否为最大化层（红方）
-     * @return 评估分数
+     * @param ply    距根节点的层数（用于将军/将死距离评分与延伸上限）
+     * @return 评估分数（红方视角，越大对红方越有利）
      */
-    private int minimax(int[][] board, int depth, int alpha, int beta, boolean isMax) {
+    private int minimax(int[][] board, int depth, int alpha, int beta, boolean isMax, int ply) {
         if (cancelled) return 0;
-        if (depth == 0) return evaluateBoard(board);
+
+        int sideSign = isMax ? 1 : -1;
+        List<int[]> moves = generateLegalMoves(board, sideSign);
+        if (moves.isEmpty()) {
+            // 当前走子方无合法着法：被将死或困毙（象棋规则均判负）。
+            // 扣除层数使"更快将死 / 更晚被将死"获得更高分数。
+            return isMax ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
+        }
+
+        if (depth <= 0) {
+            // 到达搜索边界，转入静态搜索以稳定子力评估
+            return quiescence(board, alpha, beta, QSEARCH_MAX_DEPTH, isMax, ply);
+        }
+
+        // 将军延伸：被将军时本层不递减深度，强制看清杀棋线路（受层数上限保护）
+        boolean inCheck = isInCheck(board, sideSign);
+        int childDepth = (inCheck && ply < CHECK_EXTENSION_PLY_LIMIT) ? depth : depth - 1;
+
+        orderMovesByMvvLva(moves, board);
 
         if (isMax) {
-            // 红方（最大化）
             int maxEval = Integer.MIN_VALUE;
-            List<int[]> moves = generateMoves(board, 1);
             for (int[] move : moves) {
+                if (cancelled) break;
                 int[][] newBoard = copyBoard(board);
                 newBoard[move[2]][move[3]] = newBoard[move[0]][move[1]];
                 newBoard[move[0]][move[1]] = 0;
-                int eval = minimax(newBoard, depth - 1, alpha, beta, false);
-                maxEval = Math.max(maxEval, eval);
-                alpha = Math.max(alpha, eval);
+                int eval = minimax(newBoard, childDepth, alpha, beta, false, ply + 1);
+                if (eval > maxEval) maxEval = eval;
+                if (eval > alpha) alpha = eval;
                 if (beta <= alpha) break; // 剪枝
             }
             return maxEval;
         } else {
-            // 黑方（最小化）
             int minEval = Integer.MAX_VALUE;
-            List<int[]> moves = generateMoves(board, -1);
             for (int[] move : moves) {
+                if (cancelled) break;
                 int[][] newBoard = copyBoard(board);
                 newBoard[move[2]][move[3]] = newBoard[move[0]][move[1]];
                 newBoard[move[0]][move[1]] = 0;
-                int eval = minimax(newBoard, depth - 1, alpha, beta, true);
-                minEval = Math.min(minEval, eval);
-                beta = Math.min(beta, eval);
+                int eval = minimax(newBoard, childDepth, alpha, beta, true, ply + 1);
+                if (eval < minEval) minEval = eval;
+                if (eval < beta) beta = eval;
                 if (beta <= alpha) break; // 剪枝
             }
             return minEval;
         }
     }
 
+    // ==================== 静态搜索（Quiescence Search） ====================
+
+    /**
+     * 静态搜索：在搜索边界对吃子（及被将军时的全部应着）继续展开，消除地平线效应。
+     *
+     * <p>非将军局面采用"stand-pat"策略——若当前局面分已足够好则直接剪枝；否则仅尝试吃子。
+     * 被将军局面必须枚举全部合法应着（含非吃子逃将），否则会遗漏被将死的判定。</p>
+     */
+    private int quiescence(int[][] board, int alpha, int beta, int qdepth, boolean isMax, int ply) {
+        if (cancelled) return 0;
+        if (qdepth <= 0) return evaluateBoard(board);
+
+        int sideSign = isMax ? 1 : -1;
+        boolean inCheck = isInCheck(board, sideSign);
+
+        if (inCheck) {
+            List<int[]> evasions = generateLegalMoves(board, sideSign);
+            if (evasions.isEmpty()) {
+                // 无应着 = 被将死
+                return isMax ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
+            }
+            orderMovesByMvvLva(evasions, board);
+            if (isMax) {
+                int maxEval = Integer.MIN_VALUE;
+                for (int[] m : evasions) {
+                    if (cancelled) break;
+                    int[][] nb = copyBoard(board);
+                    nb[m[2]][m[3]] = nb[m[0]][m[1]];
+                    nb[m[0]][m[1]] = 0;
+                    int eval = quiescence(nb, alpha, beta, qdepth - 1, false, ply + 1);
+                    if (eval > maxEval) maxEval = eval;
+                    if (eval > alpha) alpha = eval;
+                    if (beta <= alpha) break;
+                }
+                return maxEval;
+            } else {
+                int minEval = Integer.MAX_VALUE;
+                for (int[] m : evasions) {
+                    if (cancelled) break;
+                    int[][] nb = copyBoard(board);
+                    nb[m[2]][m[3]] = nb[m[0]][m[1]];
+                    nb[m[0]][m[1]] = 0;
+                    int eval = quiescence(nb, alpha, beta, qdepth - 1, true, ply + 1);
+                    if (eval < minEval) minEval = eval;
+                    if (eval < beta) beta = eval;
+                    if (beta <= alpha) break;
+                }
+                return minEval;
+            }
+        }
+
+        // 非将军：stand-pat
+        int standPat = evaluateBoard(board);
+        if (isMax) {
+            if (standPat >= beta) return beta;
+            if (standPat > alpha) alpha = standPat;
+        } else {
+            if (standPat <= alpha) return alpha;
+            if (standPat < beta) beta = standPat;
+        }
+
+        List<int[]> caps = generateCaptureMoves(board, sideSign);
+        orderMovesByMvvLva(caps, board);
+        int oppSign = -sideSign;
+
+        for (int[] m : caps) {
+            if (cancelled) break;
+            int[][] nb = copyBoard(board);
+            nb[m[2]][m[3]] = nb[m[0]][m[1]];
+            nb[m[0]][m[1]] = 0;
+
+            // 若此吃子后对方无合法着法（含困毙），即构成将死，直接给将死分
+            if (generateLegalMoves(nb, oppSign).isEmpty()) {
+                int mate = isMax ? (MATE_SCORE - (ply + 1)) : -(MATE_SCORE - (ply + 1));
+                if (isMax) {
+                    if (mate > alpha) alpha = mate;
+                    if (alpha >= beta) return beta;
+                } else {
+                    if (mate < beta) beta = mate;
+                    if (beta <= alpha) return alpha;
+                }
+                continue;
+            }
+
+            int eval = quiescence(nb, alpha, beta, qdepth - 1, !isMax, ply + 1);
+            if (isMax) {
+                if (eval > alpha) alpha = eval;
+                if (alpha >= beta) return beta;
+            } else {
+                if (eval < beta) beta = eval;
+                if (beta <= alpha) return alpha;
+            }
+        }
+        return isMax ? alpha : beta;
+    }
+
     // ==================== 评估函数 ====================
 
     /**
-     * 评估棋盘分数（正数对红方有利，负数对黑方有利）
+     * 评估棋盘分数（正数对红方有利，负数对黑方有利）。
+     * 综合子力价值、位置价值（棋子价值表）与机动性（可走步数之差）。
      */
     private int evaluateBoard(int[][] board) {
         int score = 0;
@@ -186,45 +354,70 @@ public class ChineseChessAI {
                 else score -= value;             // 黑方
             }
         }
+        // 机动性：可走步数之差（轻量近似，鼓励积极调动）
+        score += (countPseudoMoves(board, 1) - countPseudoMoves(board, -1)) * 2;
         return score;
     }
 
     /**
-     * 获取位置加成分数
+     * 统计某方的伪合法着法数量（用于评估中的机动性项，不做送将过滤以保证性能）。
+     */
+    private int countPseudoMoves(int[][] board, int side) {
+        int count = 0;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                int piece = board[r][c];
+                if (piece == 0) continue;
+                if (side > 0 && piece < 0) continue;
+                if (side < 0 && piece > 0) continue;
+                count += generatePieceMoves(board, r, c, piece).size();
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 获取位置加成分数（棋子价值表 PST 的轻量实现）。
+     * 以红方视角计算：row 越小越靠近敌方底线（越深入敌阵越好）。
      */
     private int getPositionBonus(int type, int row, int col, boolean isRed) {
-        // 简化的位置评估
-        int bonus = 0;
+        int centerCol = 4 - Math.abs(col - 4); // 0..4，越大越居中
         switch (type) {
-            case 7: // 兵/卒
-                // 过河兵价值更高
-                if (isRed && row <= 4) bonus += 50;
-                if (!isRed && row >= 5) bonus += 50;
-                break;
-            case 4: // 马
-                // 中心位置的马更有价值
-                if (col >= 2 && col <= 6 && row >= 2 && row <= 7) bonus += 30;
-                break;
-            case 5: // 车
-                // 车在任何位置都有价值
-                bonus += 20;
-                break;
-            case 6: // 炮
-                // 炮在中间位置更有价值
-                if (col >= 1 && col <= 7) bonus += 15;
-                break;
+            case 7: { // 兵/卒
+                int bonus = 0;
+                boolean crossed = isRed ? (row <= 4) : (row >= 5);
+                if (crossed) bonus += 60;                 // 过河兵价值大增
+                int advance = isRed ? (4 - row) : (row - 5);
+                if (advance > 0) bonus += advance * 10;   // 越深入敌阵越好
+                if (col >= 3 && col <= 5) bonus += 12;    // 中兵控制中线
+                return bonus;
+            }
+            case 4: { // 马：中心强、避免边角、鼓励前压
+                int bonus = centerCol * 10;
+                int advance = isRed ? (4 - row) : (row - 5);
+                if (advance > 0) bonus += advance * 6;
+                if (col == 0 || col == 8) bonus -= 12;    // 边线马受限
+                if (row == 0 || row == 9) bonus -= 6;
+                return bonus;
+            }
+            case 5: // 车：中线与过河活跃
+                return (col >= 3 && col <= 5 ? 10 : 0) + ((isRed ? (4 - row) : (row - 5)) > 0 ? 3 : 0);
+            case 6: // 炮：中线与河界附近活跃
+                return (col >= 2 && col <= 6 ? 10 : 0) + ((isRed ? (4 - row) : (row - 5)) > 0 ? 2 : 0);
+            case 2: // 仕/士：贴身护将，居中列最佳
+                return (col == 4 ? 10 : (col == 3 || col == 5 ? 4 : 0));
+            case 3: // 相/象：守护己方半场，略偏好居中
+                return (isRed ? (row >= 4 ? 8 : 0) : (row <= 5 ? 8 : 0)) + centerCol * 2;
+            case 1: // 将/帅：居中更安全，隐藏于己方半场
+                return (col == 4 ? 8 : 0) + (isRed ? (row >= 4 ? 4 : 0) : (row <= 5 ? 4 : 0));
         }
-        return bonus;
+        return 0;
     }
 
     // ==================== 走法生成 ====================
 
     /**
-     * 生成指定方的所有合法走法
-     *
-     * @param board 棋盘状态
-     * @param side  方（1=红方，-1=黑方）
-     * @return 走法列表
+     * 生成指定方的所有伪合法走法（不校验是否送将）。
      */
     private List<int[]> generateMoves(int[][] board, int side) {
         List<int[]> moves = new ArrayList<>();
@@ -235,7 +428,6 @@ public class ChineseChessAI {
                 if (side > 0 && piece < 0) continue;
                 if (side < 0 && piece > 0) continue;
 
-                // 为每个棋子生成走法
                 List<int[]> pieceMoves = generatePieceMoves(board, r, c, piece);
                 moves.addAll(pieceMoves);
             }
@@ -244,7 +436,7 @@ public class ChineseChessAI {
     }
 
     /**
-     * 为单个棋子生成走法（简化版，基本规则）
+     * 为单个棋子生成伪合法走法（基本走子规则）。
      */
     private List<int[]> generatePieceMoves(int[][] board, int fromR, int fromC, int piece) {
         List<int[]> moves = new ArrayList<>();
@@ -358,6 +550,50 @@ public class ChineseChessAI {
         }
     }
 
+    /**
+     * 生成 side 方的全部合法吃子着法（过滤送将/白脸将），用于静态搜索。
+     */
+    private List<int[]> generateCaptureMoves(int[][] board, int side) {
+        List<int[]> caps = new ArrayList<>();
+        for (int[] m : generateMoves(board, side)) {
+            int target = board[m[2]][m[3]];
+            if (target == 0) continue; // 仅保留吃子
+            if (side > 0 && target < 0) {
+                // 红吃黑
+            } else if (side < 0 && target > 0) {
+                // 黑吃红
+            } else {
+                continue;
+            }
+            if (isMoveLegal(board, m[0], m[1], m[2], m[3], side)) caps.add(m);
+        }
+        return caps;
+    }
+
+    /**
+     * MVV-LVA 走法排序：优先搜索"以大吃小"（高价值受害者在前、低价值攻击者在前）。
+     * 安静着法（无受害者）排在最后，从而最大化 Alpha-Beta 剪枝效率。
+     */
+    private void orderMovesByMvvLva(List<int[]> moves, int[][] board) {
+        moves.sort((a, b) -> {
+            int va = victimValue(board, b); // 先按受害者价值降序
+            int vb = victimValue(board, a);
+            if (va != vb) return va - vb;
+            int aa = attackerValue(board, a); // 同受害者时按攻击者价值升序
+            int ab = attackerValue(board, b);
+            return aa - ab;
+        });
+    }
+
+    private int victimValue(int[][] board, int[] m) {
+        int t = Math.abs(board[m[2]][m[3]]);
+        return t == 0 ? 0 : PIECE_VALUES[t];
+    }
+
+    private int attackerValue(int[][] board, int[] m) {
+        return PIECE_VALUES[Math.abs(board[m[0]][m[1]])];
+    }
+
     // ==================== 工具方法 ====================
 
     private int[][] copyBoard(int[][] board) {
@@ -366,5 +602,146 @@ public class ChineseChessAI {
             System.arraycopy(board[r], 0, copy[r], 0, 9);
         }
         return copy;
+    }
+
+    // ==================== 合法性 / 将死检测 ====================
+
+    /** 判断 (fr,fc) 棋子能否在棋盘 b 上攻击 (tr,tc)（用于将军检测）。 */
+    private static boolean attacksSquare(int[][] b, int fr, int fc, int tr, int tc) {
+        if (fr == tr && fc == tc) return false;
+        int piece = b[fr][fc];
+        if (piece == 0) return false;
+        int target = b[tr][tc];
+        if (piece > 0 && target > 0) return false;
+        if (piece < 0 && target < 0) return false;
+        int type = Math.abs(piece);
+        int dr = tr - fr, dc = tc - fc;
+        switch (type) {
+            case 1: { // 将/帅
+                boolean inPalace = piece > 0 ? (tr >= 7 && tr <= 9 && tc >= 3 && tc <= 5)
+                        : (tr >= 0 && tr <= 2 && tc >= 3 && tc <= 5);
+                return inPalace && Math.abs(dr) + Math.abs(dc) == 1;
+            }
+            case 2: { // 仕/士
+                boolean inPalace = piece > 0 ? (tr >= 7 && tr <= 9 && tc >= 3 && tc <= 5)
+                        : (tr >= 0 && tr <= 2 && tc >= 3 && tc <= 5);
+                return inPalace && Math.abs(dr) == 1 && Math.abs(dc) == 1;
+            }
+            case 3: { // 相/象
+                if (Math.abs(dr) != 2 || Math.abs(dc) != 2) return false;
+                if (piece > 0 && tr < 5) return false;
+                if (piece < 0 && tr > 4) return false;
+                return b[fr + dr / 2][fc + dc / 2] == 0;
+            }
+            case 4: { // 马
+                if (!((Math.abs(dr) == 2 && Math.abs(dc) == 1) || (Math.abs(dr) == 1 && Math.abs(dc) == 2))) return false;
+                if (Math.abs(dr) == 2) return b[fr + dr / 2][fc] == 0;
+                return b[fr][fc + dc / 2] == 0;
+            }
+            case 5: // 车
+                if (dr != 0 && dc != 0) return false;
+                return pathClear(b, fr, fc, tr, tc);
+            case 6: { // 炮
+                if (dr != 0 && dc != 0) return false;
+                int cnt = piecesBetween(b, fr, fc, tr, tc);
+                if (target == 0) return cnt == 0;
+                return cnt == 1;
+            }
+            case 7: // 兵/卒
+                if (piece > 0) {
+                    if (fr >= 5) return dr == -1 && dc == 0;
+                    return (dr == -1 && dc == 0) || (dr == 0 && Math.abs(dc) == 1);
+                } else {
+                    if (fr <= 4) return dr == 1 && dc == 0;
+                    return (dr == 1 && dc == 0) || (dr == 0 && Math.abs(dc) == 1);
+                }
+        }
+        return false;
+    }
+
+    private static boolean pathClear(int[][] b, int r1, int c1, int r2, int c2) {
+        if (r1 == r2) {
+            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+            for (int c = minC + 1; c < maxC; c++) if (b[r1][c] != 0) return false;
+        } else {
+            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+            for (int r = minR + 1; r < maxR; r++) if (b[r][c1] != 0) return false;
+        }
+        return true;
+    }
+
+    private static int piecesBetween(int[][] b, int r1, int c1, int r2, int c2) {
+        int count = 0;
+        if (r1 == r2) {
+            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+            for (int c = minC + 1; c < maxC; c++) if (b[r1][c] != 0) count++;
+        } else {
+            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+            for (int r = minR + 1; r < maxR; r++) if (b[r][c1] != 0) count++;
+        }
+        return count;
+    }
+
+    private static int[] findKing(int[][] b, int side) {
+        int target = side > 0 ? 1 : -1;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                if (b[r][c] == target) return new int[]{r, c};
+            }
+        }
+        return null;
+    }
+
+    /** 判断 side 方在棋盘 b 上是否被将军（含"白脸将/对脸"规则）。 */
+    private static boolean isInCheck(int[][] b, int side) {
+        int[] king = findKing(b, side);
+        if (king == null) return false;
+        int kr = king[0], kc = king[1];
+        int attacker = side > 0 ? -1 : 1;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                int p = b[r][c];
+                if (p == 0) continue;
+                if ((side > 0 && p > 0) || (side < 0 && p < 0)) continue;
+                if (attacksSquare(b, r, c, kr, kc)) return true;
+            }
+        }
+        // 白脸将（两将照面）：检测敌方将/帅是否与本方将/帅同列且中间无子
+        int[] enemyKing = findKing(b, attacker);
+        if (enemyKing != null && enemyKing[1] == kc) {
+            boolean clear = true;
+            int lo = Math.min(kr, enemyKing[0]) + 1;
+            int hi = Math.max(kr, enemyKing[0]);
+            for (int r = lo; r < hi; r++) {
+                if (b[r][kc] != 0) { clear = false; break; }
+            }
+            if (clear) return true;
+        }
+        return false;
+    }
+
+    /** 走子后 side 方将/帅是否仍被将军（用于合法性校验）。 */
+    private boolean isMoveLegal(int[][] b, int fr, int fc, int tr, int tc, int side) {
+        int[][] nb = copyBoard(b);
+        nb[tr][tc] = nb[fr][fc];
+        nb[fr][fc] = 0;
+        return !isInCheck(nb, side);
+    }
+
+    /** 生成 side 方的全部合法着法（过滤送将/白脸将的着法）。 */
+    private List<int[]> generateLegalMoves(int[][] b, int side) {
+        List<int[]> legal = new ArrayList<>();
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                int p = b[r][c];
+                if (p == 0) continue;
+                if (side > 0 && p < 0) continue;
+                if (side < 0 && p > 0) continue;
+                for (int[] m : generatePieceMoves(b, r, c, p)) {
+                    if (isMoveLegal(b, r, c, m[2], m[3], side)) legal.add(m);
+                }
+            }
+        }
+        return legal;
     }
 }

@@ -1,11 +1,20 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # Module Store Redesign Plan
 
 Date: 2026-06-25
-Last updated: 2026-07-20 (hybrid architecture P0-P6 completed, ADB real device test issues logged)
-Current version: versionCode=589 / versionName=1.4.1 (lastStable=465/1.4.0)
+Last updated: 2026-07-21 (Flutter-first local closeout and Android 11–15 matrix verified)
+Current production version: versionCode=595 / versionName=1.4.1 (lastStable=594/1.4.1)
 Project root: d:\Developmment\GameMatrixApp
 
 Scope: redesign the GameMatrixApp module store so app functionality can evolve independently from the host APK.
+
+## 2026-07-21 Flutter-first implementation addendum
+
+This plan's P0-P6 Android hybrid architecture now serves as the authoritative backend and legacy fallback for the Flutter store. Flutter owns store presentation, routes and UI preferences; it does not replace `ModuleManager`, signature verification, transactional installation, rollback, Android module loading, services or Unity lifecycle management.
+
+The new path is selected through `-PenableFlutterModuleStore=true`; the source default remains a safe fallback, while stable vc595 is built with the production path enabled. Flutter UI, Android integration, runtime contracts, Android 11–15, signed Catalog V8, controlled multi-runtime rollout, and public APK verification are 100% complete. The current source of truth is `/docs/flutter-store/MIGRATION_STATUS.md`.
 
 Primary reference:
 
@@ -555,7 +564,7 @@ The redesign is successful when:
 ### Recommended next actions (revised, 2026-07-20)
 
 1. **P0 收尾**: `core/common/ModuleManifest.kt` 已是统一模型，但安装状态仍使用 SharedPreferences；后续迁移到 Room 以支持复杂查询和回滚。
-2. **P3 公钥配置**: `ENABLE_CATALOG_SIGNATURE` 当前为 false 且使用占位公钥；正式上线前配置真实 Ed25519 公钥并改为 true。
+2. **P3 公钥配置（已完成）**: 源码默认开关仍为 false 以便安全回退；stable vc595 通过生产构建参数启用真实 Ed25519 公钥和强制 Catalog 验签，线上 Catalog V8 已带签名 header。
 3. **P4 验证**: 底部导航已改为模块贡献驱动，需在新增/卸载模块场景下验证导航自动刷新。
 4. **P5 测试**: `ModuleUpdateManager` 已实现依赖拓扑排序，需补充多模块并发更新与失败回滚的集成测试。
 5. **P6 Unity SDK 接入**: 占位实现已就绪，接入 Unity as a Library 后替换 `PlaceholderUnityModuleLauncher`。

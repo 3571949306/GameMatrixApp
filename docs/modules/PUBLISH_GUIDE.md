@@ -1,9 +1,12 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp 发布指南
 
 > **文档版本**: v1.12.0
-> **最后更新**: 2026-07-06
+> **最后更新**: 2026-07-21
 > **维护者**: GameMatrixApp 开发团队
-> **当前版本**: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+> **当前工作树/生产版本**: versionCode=595 / versionName=1.4.1 (lastStable=594/1.4.1)
 > **项目根**: d:\Developmment\GameMatrixApp
 
 ---
@@ -24,6 +27,16 @@
 ---
 
 ## 重要更新
+
+### 2026-07-21 Flutter-first 商店发布门禁
+
+- 默认发布构建保持 `ENABLE_FLUTTER_MODULE_STORE=false`；测试构建使用 `-PenableFlutterModuleStore=true`。
+- 开启 Flutter 商店前必须通过 Flutter analyze/test、Android 单测/lint/构建、APK assets/ABI 检查、真机重复进入/旧商店回退及目标 logcat。
+- 正式 V2 非内置包必须映射到权威 `ModuleManifest`，并具有 HTTPS、SHA-256、生产签名和可回收测试 ID。
+- 客户端已移除 Catalog 占位公钥，Release 从构建参数/环境注入 1–3 把 Ed25519 公钥；stable vc595 已用 DPAPI 保护的生产密钥、公网 `X-Catalog-Signature` 和正式 V2 目录完成发布，后续版本不得降低这些门禁。
+- Flutter staging Release 必须同时包含 `android-arm64,android-x64`，并使用 `--no-parallel --max-workers=1` 规避当前 Hilt ASM 并行输出竞态；stable 构建必须使用 `catalogSigningProfile=production` 且禁止 staging application ID。
+- 发布流程不得只验证 Gradle 成功，必须验证 APK 签名/ABI/内置资产并在设备上进入 Flutter Activity；完整清单见 `/docs/flutter-store/TEST_PLAN.md`。
+- 本地 Android 11/API 30、12/API 31、14/API 34、15/API 35 签名 Release 矩阵已通过；该结果不替代生产签名 Catalog、正式包和灰度监控。
 
 ### 2026-07-06 循环 19-24 复核更新
 

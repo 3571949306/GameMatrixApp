@@ -6,6 +6,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
@@ -55,7 +56,7 @@ public class MinesweeperActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return GAME_NAME_VALUE;
+        return getString(R.string.game_minesweeper_name);
     }
 
     @Nullable
@@ -150,11 +151,11 @@ public class MinesweeperActivity extends BaseGameActivity {
     @Override
     public List<DifficultyLevel> getDifficultyLevels() {
         List<DifficultyLevel> levels = new ArrayList<>();
-        levels.add(new DifficultyLevel("简单", 1, "9×9 棋盘，10 颗雷",
+        levels.add(new DifficultyLevel(getString(R.string.game_minesweeper_diff_easy), 1, getString(R.string.game_minesweeper_diff_easy_desc),
                 0, 0, 0.3f, false));
-        levels.add(new DifficultyLevel("普通", 2, "16×16 棋盘，40 颗雷",
+        levels.add(new DifficultyLevel(getString(R.string.game_minesweeper_diff_normal), 2, getString(R.string.game_minesweeper_diff_normal_desc),
                 0, 0, 0.5f, true));
-        levels.add(new DifficultyLevel("困难", 3, "16×30 棋盘，99 颗雷",
+        levels.add(new DifficultyLevel(getString(R.string.game_minesweeper_diff_hard), 3, getString(R.string.game_minesweeper_diff_hard_desc),
                 0, 0, 0.8f, false));
         return levels;
     }
@@ -163,6 +164,6 @@ public class MinesweeperActivity extends BaseGameActivity {
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
         if (minesweeperView != null) minesweeperView.setDifficulty(newLevel.level);
-        Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.game_minesweeper_difficulty_changed, newLevel.name), Toast.LENGTH_SHORT).show();
     }
 }

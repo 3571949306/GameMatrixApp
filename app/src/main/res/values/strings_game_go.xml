@@ -66,4 +66,17 @@
     <string name="game_go_ai_thinking_with_difficulty">AI 思考中…（%1$s）</string>
     <string name="game_go_ach_master_win">棋道巅峰</string>
     <string name="game_go_ach_master_win_desc">在大师难度下战胜 AI</string>
+
+    <!-- 2026-07-22: 本地化重构 — UI 字符串提取 -->
+    <!-- AI 思考与难度提示 -->
+    <string name="game_go_ai_think_ms">AI 思考 %1$dms</string>
+    <string name="game_go_ai_difficulty_toast">AI 难度: %1$s</string>
+    <string name="game_go_diff_name_1">简单（随机）</string>
+    <string name="game_go_diff_name_2">普通（贪心）</string>
+    <string name="game_go_diff_name_3">困难（Minimax-2）</string>
+    <string name="game_go_diff_name_4">大师（MCTS）</string>
+    <string name="game_go_diff_name_unknown">未知</string>
+
+    <!-- 终局得分 -->
+    <string name="game_go_end_score">黑方(你): %1$d  |  白方(AI): %2$d</string>
 </resources>

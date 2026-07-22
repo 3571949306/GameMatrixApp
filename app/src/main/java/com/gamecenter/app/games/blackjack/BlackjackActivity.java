@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -82,7 +83,7 @@ public class BlackjackActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "21点";
+        return getString(R.string.game_blackjack_name);
     }
 
     @Override
@@ -131,35 +132,35 @@ public class BlackjackActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_blackjack_color_bg));
         root.setPadding(32, 32, 32, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_primary));
         tvStatus.setPadding(0, 16, 0, 16);
-        tvStatus.setText("点击新游戏开始！");
+        tvStatus.setText(getString(R.string.game_blackjack_status_init));
 
         // 庄家区域
         TextView tvDealerLabel = new TextView(this);
         tvDealerLabel.setGravity(Gravity.CENTER);
         tvDealerLabel.setTextSize(16f);
-        tvDealerLabel.setTextColor(0xFF5B8A72);
-        tvDealerLabel.setText("🤖 庄家");
+        tvDealerLabel.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_secondary));
+        tvDealerLabel.setText(getString(R.string.game_blackjack_dealer_label));
 
         tvDealerHand = new TextView(this);
         tvDealerHand.setGravity(Gravity.CENTER);
         tvDealerHand.setTextSize(18f);
-        tvDealerHand.setTextColor(0xFF2D2D2D);
+        tvDealerHand.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_primary));
         tvDealerHand.setPadding(0, 8, 0, 4);
         tvDealerHand.setText("");
 
         tvDealerTotal = new TextView(this);
         tvDealerTotal.setGravity(Gravity.CENTER);
         tvDealerTotal.setTextSize(14f);
-        tvDealerTotal.setTextColor(0xFFE53935);
+        tvDealerTotal.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_dealer_total));
         tvDealerTotal.setPadding(0, 0, 0, 24);
         tvDealerTotal.setText("");
 
@@ -167,20 +168,20 @@ public class BlackjackActivity extends BaseGameActivity {
         TextView tvPlayerLabel = new TextView(this);
         tvPlayerLabel.setGravity(Gravity.CENTER);
         tvPlayerLabel.setTextSize(16f);
-        tvPlayerLabel.setTextColor(0xFF5B8A72);
-        tvPlayerLabel.setText("🎮 你的手牌");
+        tvPlayerLabel.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_secondary));
+        tvPlayerLabel.setText(getString(R.string.game_blackjack_player_label));
 
         tvPlayerHand = new TextView(this);
         tvPlayerHand.setGravity(Gravity.CENTER);
         tvPlayerHand.setTextSize(18f);
-        tvPlayerHand.setTextColor(0xFF2D2D2D);
+        tvPlayerHand.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_primary));
         tvPlayerHand.setPadding(0, 8, 0, 4);
         tvPlayerHand.setText("");
 
         tvPlayerTotal = new TextView(this);
         tvPlayerTotal.setGravity(Gravity.CENTER);
         tvPlayerTotal.setTextSize(14f);
-        tvPlayerTotal.setTextColor(0xFF4CAF50);
+        tvPlayerTotal.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_player_total));
         tvPlayerTotal.setPadding(0, 0, 0, 24);
         tvPlayerTotal.setText("");
 
@@ -188,9 +189,9 @@ public class BlackjackActivity extends BaseGameActivity {
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_secondary));
         tvStats.setPadding(0, 8, 0, 16);
-        tvStats.setText("胜：0 | 负：0 | 平：0");
+        tvStats.setText(getString(R.string.game_blackjack_stats_init));
 
         // 按钮区域
         LinearLayout buttonArea = new LinearLayout(this);
@@ -198,8 +199,8 @@ public class BlackjackActivity extends BaseGameActivity {
         buttonArea.setGravity(Gravity.CENTER);
 
         btnHit = new MaterialButton(this);
-        btnHit.setText("要牌");
-        btnHit.setBackgroundColor(0xFF4CAF50);
+        btnHit.setText(getString(R.string.game_blackjack_btn_hit));
+        btnHit.setBackgroundColor(ContextCompat.getColor(this, R.color.game_blackjack_color_btn_hit));
         btnHit.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams hitParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         hitParams.setMargins(8, 0, 8, 0);
@@ -208,8 +209,8 @@ public class BlackjackActivity extends BaseGameActivity {
         btnHit.setOnClickListener(v -> onHit());
 
         btnStand = new MaterialButton(this);
-        btnStand.setText("停牌");
-        btnStand.setBackgroundColor(0xFFE53935);
+        btnStand.setText(getString(R.string.game_blackjack_btn_stand));
+        btnStand.setBackgroundColor(ContextCompat.getColor(this, R.color.game_blackjack_color_btn_stand));
         btnStand.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams standParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         standParams.setMargins(8, 0, 8, 0);
@@ -218,8 +219,8 @@ public class BlackjackActivity extends BaseGameActivity {
         btnStand.setOnClickListener(v -> onStand());
 
         btnNewGame = new MaterialButton(this);
-        btnNewGame.setText("新游戏");
-        btnNewGame.setBackgroundColor(0xFF5B8A72);
+        btnNewGame.setText(getString(R.string.game_blackjack_btn_new_game));
+        btnNewGame.setBackgroundColor(ContextCompat.getColor(this, R.color.game_blackjack_color_text_secondary));
         btnNewGame.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams newGameParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         newGameParams.setMargins(8, 0, 8, 0);
@@ -327,7 +328,7 @@ public class BlackjackActivity extends BaseGameActivity {
             return;
         }
 
-        tvStatus.setText("你的回合：要牌还是停牌？");
+        tvStatus.setText(getString(R.string.game_blackjack_status_your_turn));
         btnNewGame.setVisibility(View.GONE);
         btnHit.setVisibility(View.VISIBLE);
         btnStand.setVisibility(View.VISIBLE);
@@ -390,33 +391,33 @@ public class BlackjackActivity extends BaseGameActivity {
         String resultText;
         switch (result) {
             case "bust":
-                resultText = "爆牌！你超过了21点";
+                resultText = getString(R.string.game_blackjack_result_bust);
                 dealerWins++;
                 winStreak = 0;
                 noLossStreak = 0;
                 break;
             case "dealer_bust":
-                resultText = "庄家爆牌！你赢了！";
+                resultText = getString(R.string.game_blackjack_result_dealer_bust);
                 playerWins++;
                 winStreak++;
                 noLossStreak++;
                 currentScore += 20;
                 break;
             case "player_win":
-                resultText = "你赢了！" + playerScore + " vs " + dealerScore;
+                resultText = getString(R.string.game_blackjack_result_win, playerScore, dealerScore);
                 playerWins++;
                 winStreak++;
                 noLossStreak++;
                 currentScore += 20;
                 break;
             case "dealer_win":
-                resultText = "庄家赢了！" + dealerScore + " vs " + playerScore;
+                resultText = getString(R.string.game_blackjack_result_dealer_win, dealerScore, playerScore);
                 dealerWins++;
                 winStreak = 0;
                 noLossStreak = 0;
                 break;
             case "tie":
-                resultText = "平局！都是" + playerScore + "点";
+                resultText = getString(R.string.game_blackjack_result_tie, playerScore);
                 ties++;
                 winStreak = 0;
                 noLossStreak++;
@@ -429,13 +430,13 @@ public class BlackjackActivity extends BaseGameActivity {
         // Blackjack 额外加分
         if (playerScore == 21 && playerHand.size() == 2 && !result.equals("bust")) {
             currentScore += 30;
-            resultText += " 🃏 Blackjack！";
+            resultText += getString(R.string.game_blackjack_blackjack_bonus);
             checkAchievement("special", 1);
         }
 
         tvStatus.setText(resultText);
         updateScore(currentScore);
-        tvStats.setText("胜：" + playerWins + " | 负：" + dealerWins + " | 平：" + ties);
+        tvStats.setText(getString(R.string.game_blackjack_stats_format, playerWins, dealerWins, ties));
 
         // 成就检查
         if (result.equals("player_win") || result.equals("dealer_bust")) {
@@ -463,19 +464,19 @@ public class BlackjackActivity extends BaseGameActivity {
             playerStr.append(card).append("  ");
         }
         tvPlayerHand.setText(playerStr.toString().trim());
-        tvPlayerTotal.setText("点数：" + calculateHandValue(playerHand));
+        tvPlayerTotal.setText(getString(R.string.game_blackjack_points_format, calculateHandValue(playerHand)));
 
         // 庄家手牌
         if (hideDealerSecond && dealerHand.size() >= 2) {
             tvDealerHand.setText(dealerHand.get(0) + "  ??");
-            tvDealerTotal.setText("点数：?");
+            tvDealerTotal.setText(getString(R.string.game_blackjack_points_hidden));
         } else {
             StringBuilder dealerStr = new StringBuilder();
             for (String card : dealerHand) {
                 dealerStr.append(card).append("  ");
             }
             tvDealerHand.setText(dealerStr.toString().trim());
-            tvDealerTotal.setText("点数：" + calculateHandValue(dealerHand));
+            tvDealerTotal.setText(getString(R.string.game_blackjack_points_format, calculateHandValue(dealerHand)));
         }
     }
 }

@@ -175,6 +175,13 @@ public class ModuleDependencyDownloader {
                     callback.onSourceSwitch(moduleId, sourceIndex, url);
                 }
             }
+
+            @Override
+            public void onStateChanged(String moduleId, String state) {
+                if (callback != null) {
+                    callback.onStateChanged(moduleId, state);
+                }
+            }
         });
     }
     
@@ -244,6 +251,13 @@ public class ModuleDependencyDownloader {
             public void onSourceSwitch(String moduleId, int sourceIndex, String url) {
                 if (callback != null) {
                     callback.onSourceSwitch(moduleId, sourceIndex, url);
+                }
+            }
+
+            @Override
+            public void onStateChanged(String moduleId, String state) {
+                if (callback != null) {
+                    callback.onStateChanged(moduleId, state);
                 }
             }
         });

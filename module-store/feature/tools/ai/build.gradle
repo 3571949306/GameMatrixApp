@@ -3,6 +3,13 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// 与主 APK 使用同一 keystore（gamecenter.jks）签名，确保通过 ModuleSignatureVerifier 校验
+def releaseSigningProperties = new Properties()
+def releaseSigningFile = rootProject.file("keystore.properties")
+if (releaseSigningFile.exists()) {
+    releaseSigningFile.withInputStream { releaseSigningProperties.load(it) }
+}
+
 android {
     namespace 'com.gamecenter.app.ai'
     compileSdk 35
@@ -15,9 +22,25 @@ android {
         versionName "1.0.0"
     }
 
+    signingConfigs {
+        release {
+            if (!releaseSigningProperties.isEmpty()) {
+                storeFile rootProject.file(releaseSigningProperties['STORE_FILE'])
+                storePassword releaseSigningProperties['STORE_PASSWORD']
+                keyAlias releaseSigningProperties['KEY_ALIAS']
+                keyPassword releaseSigningProperties['KEY_PASSWORD']
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

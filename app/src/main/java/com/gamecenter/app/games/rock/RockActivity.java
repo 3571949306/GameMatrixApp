@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -42,7 +43,7 @@ public class RockActivity extends BaseGameActivity {
     private static final int ROCK = 0;
     private static final int SCISSORS = 1;
     private static final int PAPER = 2;
-    private static final String[] CHOICE_NAMES = {"石头", "剪刀", "布"};
+    private String[] choiceNames;
     private static final String[] CHOICE_EMOJI = {"✊", "✌️", "🖐"};
 
     // ==================== 游戏状态 ====================
@@ -76,11 +77,17 @@ public class RockActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "猜拳";
+        return getString(R.string.game_rock_name);
     }
 
     @Override
     protected void initGame() {
+        // 初始化手势名称数组（依赖 getString，需在 Activity 生命周期内执行）
+        choiceNames = new String[]{
+                getString(R.string.game_rock_choice_rock),
+                getString(R.string.game_rock_choice_scissors),
+                getString(R.string.game_rock_choice_paper)
+        };
         if (gameContentContainer instanceof FrameLayout) {
             View contentView = createGameContentView();
             ((FrameLayout) gameContentContainer).addView(contentView);
@@ -126,16 +133,16 @@ public class RockActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_rock_color_bg));
         root.setPadding(32, 32, 32, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(20f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_rock_color_text_primary));
         tvStatus.setPadding(0, 16, 0, 24);
-        tvStatus.setText("选择你的手势！");
+        tvStatus.setText(getString(R.string.game_rock_status_init));
 
         // 对战显示区域
         LinearLayout battleArea = new LinearLayout(this);
@@ -152,7 +159,7 @@ public class RockActivity extends BaseGameActivity {
 
         TextView tvVs = new TextView(this);
         tvVs.setTextSize(24f);
-        tvVs.setTextColor(0xFF5B8A72);
+        tvVs.setTextColor(ContextCompat.getColor(this, R.color.game_rock_color_text_secondary));
         tvVs.setGravity(Gravity.CENTER);
         tvVs.setText(" VS ");
 
@@ -171,9 +178,9 @@ public class RockActivity extends BaseGameActivity {
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_rock_color_text_secondary));
         tvStats.setPadding(0, 8, 0, 24);
-        tvStats.setText("胜：0 | 负：0 | 平：0");
+        tvStats.setText(getString(R.string.game_rock_stats_init));
 
         // 按钮区域
         LinearLayout buttonArea = new LinearLayout(this);
@@ -181,9 +188,9 @@ public class RockActivity extends BaseGameActivity {
         buttonArea.setGravity(Gravity.CENTER);
         buttonArea.setPadding(0, 0, 0, 16);
 
-        btnRock = createChoiceButton("✊ 石头", ROCK);
-        btnScissors = createChoiceButton("✌️ 剪刀", SCISSORS);
-        btnPaper = createChoiceButton("🖐 布", PAPER);
+        btnRock = createChoiceButton(getString(R.string.game_rock_btn_rock), ROCK);
+        btnScissors = createChoiceButton(getString(R.string.game_rock_btn_scissors), SCISSORS);
+        btnPaper = createChoiceButton(getString(R.string.game_rock_btn_paper), PAPER);
 
         buttonArea.addView(btnRock);
         buttonArea.addView(btnScissors);
@@ -191,8 +198,8 @@ public class RockActivity extends BaseGameActivity {
 
         // 重新开始按钮
         btnRestart = new MaterialButton(this);
-        btnRestart.setText("再来一局");
-        btnRestart.setBackgroundColor(0xFF5B8A72);
+        btnRestart.setText(getString(R.string.game_rock_btn_restart));
+        btnRestart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_rock_color_btn_restart));
         btnRestart.setTextColor(Color.WHITE);
         btnRestart.setVisibility(View.GONE);
         btnRestart.setOnClickListener(v -> resetRound());
@@ -213,8 +220,8 @@ public class RockActivity extends BaseGameActivity {
         MaterialButton btn = new MaterialButton(this);
         btn.setText(text);
         btn.setTextSize(14f);
-        btn.setBackgroundColor(0xFFFBF9F6);
-        btn.setTextColor(0xFF2D2D2D);
+        btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_rock_color_btn_choice_bg));
+        btn.setTextColor(ContextCompat.getColor(this, R.color.game_rock_color_text_primary));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         params.setMargins(8, 0, 8, 0);
         btn.setLayoutParams(params);
@@ -248,7 +255,7 @@ public class RockActivity extends BaseGameActivity {
         if (result == 0) {
             // 平局
             draws++;
-            resultText = "平局！双方都出了" + CHOICE_NAMES[playerChoice];
+            resultText = getString(R.string.game_rock_result_draw, choiceNames[playerChoice]);
         } else if (result == 1) {
             // 玩家赢
             playerWins++;
@@ -256,17 +263,17 @@ public class RockActivity extends BaseGameActivity {
             if (winStreak > maxWinStreak) {
                 maxWinStreak = winStreak;
             }
-            resultText = "你赢了！" + CHOICE_NAMES[playerChoice] + " 胜 " + CHOICE_NAMES[aiChoice];
+            resultText = getString(R.string.game_rock_result_win, choiceNames[playerChoice], choiceNames[aiChoice]);
             currentScore += 10;
         } else {
             // 玩家输
             aiWins++;
             winStreak = 0;
-            resultText = "你输了！" + CHOICE_NAMES[aiChoice] + " 胜 " + CHOICE_NAMES[playerChoice];
+            resultText = getString(R.string.game_rock_result_lose, choiceNames[aiChoice], choiceNames[playerChoice]);
         }
 
         tvStatus.setText(resultText);
-        tvStats.setText("胜：" + playerWins + " | 负：" + aiWins + " | 平：" + draws);
+        tvStats.setText(getString(R.string.game_rock_stats_format, playerWins, aiWins, draws));
         updateScore(currentScore);
 
         // 成就检查
@@ -331,7 +338,7 @@ public class RockActivity extends BaseGameActivity {
         btnRestart.setVisibility(View.GONE);
         tvPlayerChoice.setText("❓");
         tvAiChoice.setText("❓");
-        tvStatus.setText("选择你的手势！");
+        tvStatus.setText(getString(R.string.game_rock_status_init));
         enableButtons(true);
     }
 

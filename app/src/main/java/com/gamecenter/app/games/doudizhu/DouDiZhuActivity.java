@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.SettingsManager;
+import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.games.doudizhu.model.Card;
 import com.gamecenter.app.games.doudizhu.model.CardType;
 import com.gamecenter.app.games.doudizhu.model.Rank;
@@ -87,9 +88,18 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /** 地主状态：地主（一个人打两个，但多拿3张底牌） */
     private static final int LANDLORD_LORD = 2;
 
-    /** AI 思考延迟时间（毫秒），模拟真实思考过程
-     *  1.2秒的延迟让AI看起来像在"想"，而不是瞬间出牌 */
-    private static final long AI_THINKING_DELAY = 1200L;
+    /** AI 思考延迟时间（毫秒），模拟真实思考过程。
+     *  <p>由难度系统配置：简单 1800ms / 普通 1200ms / 困难 600ms。
+     *  延迟越长 AI 看起来"想得越久"，简单难度给玩家更多反应时间。</p> */
+    private long aiThinkingDelay = 1200L;
+
+    /** AI 决策难度因子（由难度系统配置）。
+     *  <p>简单 0.6（高随机性、易出错）/ 普通 1.0（标准）/ 困难 1.5（更激进）。
+     *  传入 {@link AIBot#decidePlay(List, List, GameContext, float)} 影响决策质量。</p> */
+    private float difficultyFactor = 1.0f;
+
+    /** 最高分持久化存储（斗地主不继承 BaseGameActivity，手动实例化） */
+    private GameUsageStore usageStore;
 
     // ============ 界面组件 ============
     // 这些都是屏幕上能看到的各种按钮、文字、进度条等UI元素
@@ -217,6 +227,13 @@ public class DouDiZhuActivity extends AppCompatActivity {
         soundManager = new DouDiZhuSoundManager(this);
         // 音效开关从 SettingsManager 持久化读取，同步到 DouDiZhuSoundManager 内部状态
         soundManager.setSoundEnabled(SettingsManager.getInstance(this).shouldPlayGameSound());
+
+        // 实例化最高分持久化存储（斗地主未继承 BaseGameActivity，需手动创建）
+        usageStore = new GameUsageStore(this);
+
+        // 读取菜单页传入的难度索引（0=简单 / 1=普通 / 2=困难），配置 AI 思考延迟与决策因子
+        int difficultyIndex = getIntent().getIntExtra("game_difficulty_index", 1);
+        applyDifficulty(difficultyIndex);
 
         initViews();
         initListeners();
@@ -620,7 +637,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         if (score > currentBidScore) {
             currentBidScore = score;
             landlordPlayerIndex = PLAYER_INDEX;
-            Toast.makeText(this, "你叫了 " + score + " 分", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.game_doudizhu_you_bid, score), Toast.LENGTH_SHORT).show();
 
             if (score == 3) {
                 setLandlord(PLAYER_INDEX);
@@ -631,7 +648,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
                 scheduleAIAction();
             }
         } else {
-            Toast.makeText(this, "必须叫比当前更高的分数", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_doudizhu_must_bid_higher, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -673,9 +690,9 @@ public class DouDiZhuActivity extends AppCompatActivity {
 
         // 更新身份标签
         String[] labels = new String[3];
-        labels[PLAYER_INDEX] = (landlordStatus[PLAYER_INDEX] == LANDLORD_LORD) ? "你（地主）" : "你（农民）";
-        labels[LEFT_AI_INDEX] = (landlordStatus[LEFT_AI_INDEX] == LANDLORD_LORD) ? "左AI（地主）" : "左AI（农民）";
-        labels[RIGHT_AI_INDEX] = (landlordStatus[RIGHT_AI_INDEX] == LANDLORD_LORD) ? "右AI（地主）" : "右AI（农民）";
+        labels[PLAYER_INDEX] = (landlordStatus[PLAYER_INDEX] == LANDLORD_LORD) ? getString(R.string.game_doudizhu_role_you_landlord) : getString(R.string.game_doudizhu_role_you_farmer);
+        labels[LEFT_AI_INDEX] = (landlordStatus[LEFT_AI_INDEX] == LANDLORD_LORD) ? getString(R.string.game_doudizhu_role_left_ai_landlord) : getString(R.string.game_doudizhu_role_left_ai_farmer);
+        labels[RIGHT_AI_INDEX] = (landlordStatus[RIGHT_AI_INDEX] == LANDLORD_LORD) ? getString(R.string.game_doudizhu_role_right_ai_landlord) : getString(R.string.game_doudizhu_role_right_ai_farmer);
         tableView.setPlayerLabels(labels);
 
         tableView.setAllLandlordStatus(landlordStatus);
@@ -733,7 +750,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
         List<Card> selectedCards = tableView.getSelectedCards();
 
         if (selectedCards.isEmpty()) {
-            Toast.makeText(this, "请选择要出的牌", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_doudizhu_select_cards, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -743,13 +760,13 @@ public class DouDiZhuActivity extends AppCompatActivity {
         // 校验牌型合法性
         CardType selectedType = GameRuleUtil.getCardType(selectedCards);
         if (selectedType == CardType.ERROR) {
-            Toast.makeText(this, "选择的牌型不合法", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_doudizhu_invalid_card_type, Toast.LENGTH_SHORT).show();
             return;
         }
 
         // 校验是否能打过上家
         if (!GameRuleUtil.canPlayPass(selectedCards, previousCards)) {
-            Toast.makeText(this, "打不过上家的牌", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_doudizhu_cannot_beat, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -794,12 +811,12 @@ public class DouDiZhuActivity extends AppCompatActivity {
         List<List<Card>> playableCombos = GameRuleUtil.findPlayableCombos(playerHandCards, previousCards);
 
         if (playableCombos.isEmpty()) {
-            Toast.makeText(this, "没有能打过的牌，请选择'不出'", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_doudizhu_no_beat_pass, Toast.LENGTH_SHORT).show();
         } else {
             // 自动选中第一组提示牌
             List<Card> hintCards = playableCombos.get(0);
             selectCardsByList(hintCards);
-            Toast.makeText(this, "提示：建议出 " + GameRuleUtil.getCardType(hintCards).getName(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.game_doudizhu_hint_suggest, GameRuleUtil.getCardType(hintCards).getName()), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -817,7 +834,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
 
         // 先手时不能选择不出
         if (getLastPlayedCards(lastPlayerWhoPlayed) == null) {
-            Toast.makeText(this, "当前你先出牌，不能不要", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.game_doudizhu_cannot_pass_first, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -855,9 +872,38 @@ public class DouDiZhuActivity extends AppCompatActivity {
     // ============ AI 逻辑 ============
 
     /**
+     * 根据难度索引配置 AI 行为参数。
+     *
+     * <p>难度影响两个维度：</p>
+     * <ul>
+     *   <li><b>AI 思考延迟</b>：简单 1800ms（慢，玩家有反应时间）/ 普通 1200ms / 困难 600ms（快）</li>
+     *   <li><b>决策难度因子</b>：简单 0.6（引入随机不出）/ 普通 1.0（标准）/ 困难 1.5（保持激进）</li>
+     * </ul>
+     *
+     * @param difficultyIndex 难度索引（0=简单 / 1=普通 / 2=困难），越界时回退为普通
+     */
+    private void applyDifficulty(int difficultyIndex) {
+        switch (difficultyIndex) {
+            case 0: // 简单：AI 慢且易出错
+                aiThinkingDelay = 1800L;
+                difficultyFactor = 0.6f;
+                break;
+            case 2: // 困难：AI 快且激进
+                aiThinkingDelay = 600L;
+                difficultyFactor = 1.5f;
+                break;
+            case 1: // 普通：默认
+            default:
+                aiThinkingDelay = 1200L;
+                difficultyFactor = 1.0f;
+                break;
+        }
+    }
+
+    /**
      * 调度 AI 的行动（叫地主或出牌）。
      *
-     * <p>取消之前挂起的 AI 任务，然后延迟 {@link #AI_THINKING_DELAY} 毫秒后执行。
+     * <p>取消之前挂起的 AI 任务，然后延迟 {@link #aiThinkingDelay} 毫秒后执行。
      * 根据当前游戏状态决定执行叫地主还是出牌逻辑。</p>
      */
     private void scheduleAIAction() {
@@ -873,7 +919,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
                 executeAIAction(currentTurn);
             }
         };
-        handler.postDelayed(aiThinkingRunnable, AI_THINKING_DELAY);
+        handler.postDelayed(aiThinkingRunnable, aiThinkingDelay);
     }
 
     /**
@@ -895,20 +941,20 @@ public class DouDiZhuActivity extends AppCompatActivity {
         if (soundManager != null) soundManager.bid(shouldBid, currentTurn);
 
         if (shouldBid) {
-            String aiName = (aiIndex == LEFT_AI_INDEX) ? "左AI" : "右AI";
-            Toast.makeText(this, aiName + " 叫地主", Toast.LENGTH_SHORT).show();
+            String aiName = (aiIndex == LEFT_AI_INDEX) ? getString(R.string.game_doudizhu_player_left_ai) : getString(R.string.game_doudizhu_player_right_ai);
+            Toast.makeText(this, getString(R.string.game_doudizhu_ai_calls_landlord, aiName), Toast.LENGTH_SHORT).show();
 
             setLandlord(aiIndex);
             startPlayingPhase();
         } else {
-            String aiName = (aiIndex == LEFT_AI_INDEX) ? "左AI" : "右AI";
-            Toast.makeText(this, aiName + " 不叫", Toast.LENGTH_SHORT).show();
+            String aiName = (aiIndex == LEFT_AI_INDEX) ? getString(R.string.game_doudizhu_player_left_ai) : getString(R.string.game_doudizhu_player_right_ai);
+            Toast.makeText(this, getString(R.string.game_doudizhu_ai_passes_bid, aiName), Toast.LENGTH_SHORT).show();
 
             int nextPlayer = (aiIndex + 1) % 3;
 
             // 如果轮回到玩家，说明所有人都不叫，玩家必须叫
             if (nextPlayer == PLAYER_INDEX) {
-                Toast.makeText(this, "所有人都选择不叫，你必须叫地主", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.game_doudizhu_all_pass_must_call, Toast.LENGTH_SHORT).show();
                 currentTurn = PLAYER_INDEX;
                 updateTurnIndicator();
             } else {
@@ -991,7 +1037,7 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /**
      * 执行 AI 的出牌行动。
      *
-     * <p>通过 {@link AIBot#decidePlay(List, List)} 获取 AI 的出牌决策，
+     * <p>通过 {@link AIBot#decidePlay(List, List, GameContext, float)} 获取 AI 的出牌决策，
      * 更新手牌和出牌记录，检查获胜条件和桌面清空条件。</p>
      *
      * @param aiIndex AI 玩家索引
@@ -1006,8 +1052,8 @@ public class DouDiZhuActivity extends AppCompatActivity {
         // 获取上家出的牌
         List<Card> previousCards = getLastPlayedCards(lastPlayerWhoPlayed);
 
-        // AI 决策出牌（返回 null 表示选择不出）
-        List<Card> aiPlayedCards = AIBot.decidePlay(aiHand, previousCards);
+        // AI 决策出牌（返回 null 表示选择不出）；传入难度因子影响决策质量
+        List<Card> aiPlayedCards = AIBot.decidePlay(aiHand, previousCards, null, difficultyFactor);
 
         boolean cleared = false;
         if (aiPlayedCards != null && !aiPlayedCards.isEmpty()) {
@@ -1237,9 +1283,9 @@ public class DouDiZhuActivity extends AppCompatActivity {
 
         String result;
         if (winnerIndex == PLAYER_INDEX) {
-            result = "你赢了！";
+            result = getString(R.string.game_doudizhu_you_win);
         } else {
-            result = "你输了！";
+            result = getString(R.string.game_doudizhu_you_lose);
         }
         if (soundManager != null) {
             if (winnerIndex == PLAYER_INDEX) {
@@ -1251,9 +1297,15 @@ public class DouDiZhuActivity extends AppCompatActivity {
 
         int scoreChange = calculateScore(winnerIndex, winnerIsLandlord);
 
-        tvGameOverTitle.setText("游戏结束");
+        // 玩家获胜时持久化本局得分到最高分（GameUsageStore 内部仅在新分高于历史最高时更新）
+        // 输局不计分，避免把对手的得分误记为玩家最高分
+        if (winnerIndex == PLAYER_INDEX && usageStore != null) {
+            usageStore.recordScore("doudizhu", scoreChange);
+        }
+
+        tvGameOverTitle.setText(R.string.game_doudizhu_game_over);
         tvGameOverResult.setText(result);
-        tvScoreDetail.setText("本局得分：" + (scoreChange >= 0 ? "+" : "") + scoreChange);
+        tvScoreDetail.setText(getString(R.string.game_doudizhu_score_detail, (scoreChange >= 0 ? "+" : "") + scoreChange));
 
         gameOverDialog.setVisibility(View.VISIBLE);
     }
@@ -1278,17 +1330,17 @@ public class DouDiZhuActivity extends AppCompatActivity {
      * 更新地主身份指示器文本。
      */
     private void updateLandlordIndicator() {
-        StringBuilder sb = new StringBuilder("地主：");
+        String name;
         if (landlordPlayerIndex == PLAYER_INDEX) {
-            sb.append("你");
+            name = getString(R.string.game_doudizhu_player_you);
         } else if (landlordPlayerIndex == LEFT_AI_INDEX) {
-            sb.append("左AI");
+            name = getString(R.string.game_doudizhu_player_left_ai);
         } else if (landlordPlayerIndex == RIGHT_AI_INDEX) {
-            sb.append("右AI");
+            name = getString(R.string.game_doudizhu_player_right_ai);
         } else {
-            sb.append("待定");
+            name = getString(R.string.game_doudizhu_player_pending);
         }
-        tvLandlordIndicator.setText(sb.toString());
+        tvLandlordIndicator.setText(getString(R.string.game_doudizhu_landlord_label) + name);
     }
 
     /**
@@ -1298,17 +1350,17 @@ public class DouDiZhuActivity extends AppCompatActivity {
         String turnText;
         switch (currentTurn) {
             case PLAYER_INDEX:
-                turnText = "你出牌";
+                turnText = getString(R.string.game_doudizhu_turn_you);
                 break;
             case LEFT_AI_INDEX:
-                turnText = "左AI出牌";
+                turnText = getString(R.string.game_doudizhu_turn_left_ai);
                 break;
             case RIGHT_AI_INDEX:
-                turnText = "右AI出牌";
+                turnText = getString(R.string.game_doudizhu_turn_right_ai);
                 break;
             default:
                 turnText = "";
         }
-        tvTurnIndicator.setText("轮到：" + turnText);
+        tvTurnIndicator.setText(getString(R.string.game_doudizhu_turn_label, turnText));
     }
 }

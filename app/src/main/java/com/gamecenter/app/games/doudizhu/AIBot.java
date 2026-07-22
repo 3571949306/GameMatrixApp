@@ -189,6 +189,27 @@ public class AIBot {
      * @return 能打过的牌组列表，接不住或选择不出时返回 null
      */
     public static List<Card> decidePlay(List<Card> aiHandCards, List<Card> previousCards, GameContext context) {
+        return decidePlay(aiHandCards, previousCards, context, 1.0f);
+    }
+
+    /**
+     * 机器人出牌决策方法（带难度因子）。
+     *
+     * <p>在原有决策基础上，难度因子 {@code difficultyFactor} 影响 AI 的随机性与激进程度：</p>
+     * <ul>
+     *   <li>低难度（factor &lt; 1.0，如 0.6）：接牌时以一定概率放弃，模拟被动、易错的弱 AI</li>
+     *   <li>普通难度（factor = 1.0）：保持原有最优决策</li>
+     *   <li>高难度（factor &gt; 1.0）：始终不放弃、保持最优，更激进</li>
+     * </ul>
+     *
+     * @param aiHandCards      AI 的当前手牌
+     * @param previousCards    上家打出的牌组（null 表示首发出牌或上家不出）
+     * @param context          游戏上下文（可为 null，使用默认上下文）
+     * @param difficultyFactor 难度因子（&lt;1.0 弱、=1.0 普通、&gt;1.0 强）
+     * @return 能打过的牌组列表，接不住或选择不出时返回 null
+     */
+    public static List<Card> decidePlay(List<Card> aiHandCards, List<Card> previousCards,
+                                        GameContext context, float difficultyFactor) {
         if (aiHandCards == null || aiHandCards.isEmpty()) {
             return null;
         }
@@ -201,17 +222,27 @@ public class AIBot {
         // 构建手牌结构化数据
         HandStructure hs = analyzeHandStructure(aiHandCards);
 
+        List<Card> decided;
         // 首发出牌（上家没有出牌或选择不出）
         if (previousCards == null || previousCards.isEmpty()) {
-            return decideLeadPlay(hs, context);
+            decided = decideLeadPlay(hs, context);
+        } else {
+            // 获取上家牌型和主牌权重，用于接牌决策
+            CardType previousType = GameRuleUtil.getCardType(previousCards);
+            int previousMainWeight = GameRuleUtil.getMainWeight(previousCards);
+            // 接牌策略
+            decided = decideFollowPlay(hs, previousType, previousMainWeight, previousCards.size(), context);
         }
 
-        // 获取上家牌型和主牌权重，用于接牌决策
-        CardType previousType = GameRuleUtil.getCardType(previousCards);
-        int previousMainWeight = GameRuleUtil.getMainWeight(previousCards);
-
-        // 接牌策略
-        return decideFollowPlay(hs, previousType, previousMainWeight, previousCards.size(), context);
+        // 难度因子影响：低难度引入随机性（偶尔放弃接牌，更被动），高难度保持激进不放弃
+        if (decided != null && difficultyFactor < 1.0f
+                && previousCards != null && !previousCards.isEmpty()) {
+            float passChance = (1.0f - difficultyFactor) * 0.35f;
+            if (Math.random() < passChance) {
+                return null;
+            }
+        }
+        return decided;
     }
 
     /**

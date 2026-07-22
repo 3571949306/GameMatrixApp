@@ -9,12 +9,16 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
+import com.gamecenter.app.games.model.DifficultyLevel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -70,7 +74,7 @@ public class GuessActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "猜数字";
+        return getString(R.string.game_guess_name);
     }
 
     @Override
@@ -111,6 +115,35 @@ public class GuessActivity extends BaseGameActivity {
         achievementManager.checkAndUnlock(eventType, params);
     }
 
+    @NonNull
+    @Override
+    public List<DifficultyLevel> getDifficultyLevels() {
+        List<DifficultyLevel> levels = new ArrayList<>();
+        levels.add(new DifficultyLevel(getString(R.string.game_guess_diff_easy), 1, getString(R.string.game_guess_diff_easy_desc), 0, 0, 1.0f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_guess_diff_normal), 2, getString(R.string.game_guess_diff_normal_desc), 0, 0, 1.5f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_guess_diff_hard), 3, getString(R.string.game_guess_diff_hard_desc), 0, 0, 2.0f, false));
+        return levels;
+    }
+
+    @Override
+    public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
+                                    @NonNull DifficultyLevel newLevel) {
+        // 根据难度设置猜测范围上限（下一轮 startNewRound 时生效）
+        switch (newLevel.level) {
+            case 1:
+                currentMax = 100;
+                break;
+            case 2:
+                currentMax = 500;
+                break;
+            case 3:
+                currentMax = 1000;
+                break;
+            default:
+                break;
+        }
+    }
+
     // ==================== 游戏视图创建 ====================
 
     /**
@@ -120,35 +153,35 @@ public class GuessActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_guess_color_bg));
         root.setPadding(48, 32, 48, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_guess_color_text_primary));
         tvStatus.setPadding(0, 16, 0, 8);
-        tvStatus.setText("猜一个数字！");
+        tvStatus.setText(getString(R.string.game_guess_status_init));
 
         // 范围提示
         tvRange = new TextView(this);
         tvRange.setGravity(Gravity.CENTER);
         tvRange.setTextSize(16f);
-        tvRange.setTextColor(0xFF5B8A72);
-        tvRange.setText("范围：0 ~ 100");
+        tvRange.setTextColor(ContextCompat.getColor(this, R.color.game_guess_color_text_secondary));
+        tvRange.setText(getString(R.string.game_guess_range_init));
 
         // 猜测次数
         tvGuessCount = new TextView(this);
         tvGuessCount.setGravity(Gravity.CENTER);
         tvGuessCount.setTextSize(14f);
-        tvGuessCount.setTextColor(0xFF5B8A72);
+        tvGuessCount.setTextColor(ContextCompat.getColor(this, R.color.game_guess_color_text_secondary));
         tvGuessCount.setPadding(0, 8, 0, 16);
-        tvGuessCount.setText("已猜次数：0");
+        tvGuessCount.setText(getString(R.string.game_guess_count_init));
 
         // 输入框
         etGuess = new TextInputEditText(this);
-        etGuess.setHint("输入你的猜测");
+        etGuess.setHint(getString(R.string.game_guess_hint_input));
         etGuess.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         etGuess.setGravity(Gravity.CENTER);
         etGuess.setTextSize(18f);
@@ -159,8 +192,8 @@ public class GuessActivity extends BaseGameActivity {
 
         // 猜测按钮
         btnGuess = new MaterialButton(this);
-        btnGuess.setText("猜！");
-        btnGuess.setBackgroundColor(0xFF5B8A72);
+        btnGuess.setText(getString(R.string.game_guess_btn_guess));
+        btnGuess.setBackgroundColor(ContextCompat.getColor(this, R.color.game_guess_color_btn_primary));
         btnGuess.setTextColor(Color.WHITE);
         btnGuess.setOnClickListener(v -> onGuess());
         LinearLayout.LayoutParams guessParams = new LinearLayout.LayoutParams(
@@ -170,9 +203,9 @@ public class GuessActivity extends BaseGameActivity {
 
         // 新游戏按钮
         btnNewGame = new MaterialButton(this);
-        btnNewGame.setText("新游戏");
-        btnNewGame.setBackgroundColor(0xFFFBF9F6);
-        btnNewGame.setTextColor(0xFF5B8A72);
+        btnNewGame.setText(getString(R.string.game_guess_btn_new_game));
+        btnNewGame.setBackgroundColor(ContextCompat.getColor(this, R.color.game_guess_color_btn_new_game_bg));
+        btnNewGame.setTextColor(ContextCompat.getColor(this, R.color.game_guess_color_text_secondary));
         btnNewGame.setVisibility(View.GONE);
         btnNewGame.setOnClickListener(v -> startNewRound());
         LinearLayout.LayoutParams newGameParams = new LinearLayout.LayoutParams(
@@ -183,7 +216,7 @@ public class GuessActivity extends BaseGameActivity {
         // 历史记录
         tvHistory = new TextView(this);
         tvHistory.setTextSize(13f);
-        tvHistory.setTextColor(0xFF888888);
+        tvHistory.setTextColor(ContextCompat.getColor(this, R.color.game_guess_color_text_history));
         tvHistory.setPadding(0, 16, 0, 0);
 
         root.addView(tvStatus);
@@ -209,9 +242,9 @@ public class GuessActivity extends BaseGameActivity {
 
         targetNumber = random.nextInt(currentMax + 1);
 
-        tvStatus.setText("猜一个 0 ~ " + currentMax + " 的数字！");
-        tvRange.setText("范围：0 ~ " + currentMax);
-        tvGuessCount.setText("已猜次数：0");
+        tvStatus.setText(getString(R.string.game_guess_status_new_round, currentMax));
+        tvRange.setText(getString(R.string.game_guess_range_format, currentMax));
+        tvGuessCount.setText(getString(R.string.game_guess_count_init));
         tvHistory.setText("");
         etGuess.setText("");
         etGuess.setEnabled(true);
@@ -233,12 +266,12 @@ public class GuessActivity extends BaseGameActivity {
         try {
             guess = Integer.parseInt(input);
         } catch (NumberFormatException e) {
-            tvStatus.setText("请输入有效的数字！");
+            tvStatus.setText(getString(R.string.game_guess_err_invalid));
             return;
         }
 
         if (guess < 0 || guess > currentMax) {
-            tvStatus.setText("请输入 0 ~ " + currentMax + " 之间的数字！");
+            tvStatus.setText(getString(R.string.game_guess_err_out_of_range, currentMax));
             return;
         }
 
@@ -248,24 +281,24 @@ public class GuessActivity extends BaseGameActivity {
         String historyLine;
         if (guess == targetNumber) {
             // 猜对了
-            historyLine = guess + " ✅ 正确！";
+            historyLine = getString(R.string.game_guess_history_correct, guess);
             historyBuilder.insert(0, historyLine + "\n");
             tvHistory.setText(historyBuilder.toString());
 
             onGameWin();
         } else if (guess < targetNumber) {
-            historyLine = guess + " ⬆ 太小了";
+            historyLine = getString(R.string.game_guess_history_too_small, guess);
             historyBuilder.insert(0, historyLine + "\n");
             tvHistory.setText(historyBuilder.toString());
-            tvStatus.setText(guess + " 太小了！再大一点");
+            tvStatus.setText(getString(R.string.game_guess_status_too_small, guess));
         } else {
-            historyLine = guess + " ⬇ 太大了";
+            historyLine = getString(R.string.game_guess_history_too_big, guess);
             historyBuilder.insert(0, historyLine + "\n");
             tvHistory.setText(historyBuilder.toString());
-            tvStatus.setText(guess + " 太大了！再小一点");
+            tvStatus.setText(getString(R.string.game_guess_status_too_big, guess));
         }
 
-        tvGuessCount.setText("已猜次数：" + guessCount);
+        tvGuessCount.setText(getString(R.string.game_guess_count_format, guessCount));
     }
 
     /**
@@ -287,7 +320,7 @@ public class GuessActivity extends BaseGameActivity {
         currentScore += score;
         updateScore(currentScore);
 
-        tvStatus.setText("🎉 恭喜！答案就是 " + targetNumber + "！用了 " + guessCount + " 次");
+        tvStatus.setText(getString(R.string.game_guess_status_win, targetNumber, guessCount));
 
         // 成就检查
         checkAchievement("win", totalGames);
@@ -303,10 +336,10 @@ public class GuessActivity extends BaseGameActivity {
 
         usageStore.recordWin(getGameId());
 
-        // 难度递增
-        if (totalGames % 3 == 0 && currentMax < 1000) {
-            currentMax = Math.min(currentMax * 2, 1000);
-        }
+        // 最高分持久化
+        recordHighScore(currentScore);
+
+        // 范围上限现由难度系统管理（onDifficultyChanged），不再每 3 局自动翻倍。
 
         etGuess.setEnabled(false);
         btnGuess.setVisibility(View.GONE);

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页沉浸式改版：空状态引导卡片渐变背景 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="45"
+        android:startColor="@color/home_immersive_empty_card_start"
+        android:endColor="@color/home_immersive_empty_card_end"
+        android:type="linear" />
+    <corners android:radius="20dp" />
+</shape>

@@ -26,4 +26,8 @@
     <string name="game_breakout_ach_score_100_desc">单关得分100+</string>
     <string name="game_breakout_ach_10_levels">打砖块大师</string>
     <string name="game_breakout_ach_10_levels_desc">累计通过10关</string>
+
+    <!-- UI 文案 -->
+    <string name="game_breakout_score_label">分：%1$d</string>
+    <string name="game_breakout_level_label">关卡 %1$d</string>
 </resources>

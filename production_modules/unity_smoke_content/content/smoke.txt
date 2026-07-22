@@ -1,0 +1,2 @@
+GameMatrix Unity content delivery verification asset.
+This file contains no executable code and is used only to validate signed content lifecycle handling.

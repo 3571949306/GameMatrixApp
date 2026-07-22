@@ -41,7 +41,6 @@ public class SnakeActivity extends BaseGameActivity {
     // ==================== 常量 ====================
 
     private static final String GAME_ID_VALUE = "snake";
-    private static final String GAME_NAME_VALUE = "贪吃蛇";
     private static final String TAG = "SnakeActivity";
 
     // ==================== 游戏组件 ====================
@@ -74,7 +73,7 @@ public class SnakeActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return GAME_NAME_VALUE;
+        return getString(R.string.game_snake_name);
     }
 
     @Nullable
@@ -216,11 +215,11 @@ public class SnakeActivity extends BaseGameActivity {
     @Override
     public List<DifficultyLevel> getDifficultyLevels() {
         List<DifficultyLevel> levels = new ArrayList<>();
-        levels.add(new DifficultyLevel("简单", 1, "蛇移动速度较慢，适合新手",
+        levels.add(new DifficultyLevel(getString(R.string.game_snake_diff_easy), 1, getString(R.string.game_snake_diff_easy_desc),
                 0, 0, 0.3f, false));
-        levels.add(new DifficultyLevel("普通", 2, "标准速度，均衡挑战",
+        levels.add(new DifficultyLevel(getString(R.string.game_snake_diff_normal), 2, getString(R.string.game_snake_diff_normal_desc),
                 0, 0, 0.5f, true));
-        levels.add(new DifficultyLevel("困难", 3, "蛇移动速度较快，反应挑战",
+        levels.add(new DifficultyLevel(getString(R.string.game_snake_diff_hard), 3, getString(R.string.game_snake_diff_hard_desc),
                 0, 0, 0.8f, false));
         return levels;
     }
@@ -229,7 +228,7 @@ public class SnakeActivity extends BaseGameActivity {
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
         if (snakeView != null) snakeView.setSpeedFactor(newLevel.difficultyFactor);
-        Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.game_snake_difficulty_changed, newLevel.name), Toast.LENGTH_SHORT).show();
     }
 
     // ==================== 生命周期 ====================

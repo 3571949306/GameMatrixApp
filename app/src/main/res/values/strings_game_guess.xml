@@ -25,4 +25,29 @@
     <string name="game_guess_ach_10_games_desc">累计完成10局猜数字</string>
     <string name="game_guess_ach_15_tries">坚持不懈</string>
     <string name="game_guess_ach_15_tries_desc">一局内猜了超过15次终于猜中</string>
+
+    <!-- UI 文本 -->
+    <string name="game_guess_status_init">猜一个数字！</string>
+    <string name="game_guess_range_init">范围：0 ~ 100</string>
+    <string name="game_guess_count_init">已猜次数：0</string>
+    <string name="game_guess_hint_input">输入你的猜测</string>
+    <string name="game_guess_btn_guess">猜！</string>
+    <string name="game_guess_btn_new_game">新游戏</string>
+    <string name="game_guess_diff_easy">简单</string>
+    <string name="game_guess_diff_easy_desc">范围 0~100</string>
+    <string name="game_guess_diff_normal">普通</string>
+    <string name="game_guess_diff_normal_desc">范围 0~500</string>
+    <string name="game_guess_diff_hard">困难</string>
+    <string name="game_guess_diff_hard_desc">范围 0~1000</string>
+    <string name="game_guess_status_new_round">猜一个 0 ~ %1$d 的数字！</string>
+    <string name="game_guess_range_format">范围：0 ~ %1$d</string>
+    <string name="game_guess_count_format">已猜次数：%1$d</string>
+    <string name="game_guess_err_invalid">请输入有效的数字！</string>
+    <string name="game_guess_err_out_of_range">请输入 0 ~ %1$d 之间的数字！</string>
+    <string name="game_guess_history_correct">%1$d ✅ 正确！</string>
+    <string name="game_guess_history_too_small">%1$d ⬆ 太小了</string>
+    <string name="game_guess_history_too_big">%1$d ⬇ 太大了</string>
+    <string name="game_guess_status_too_small">%1$d 太小了！再大一点</string>
+    <string name="game_guess_status_too_big">%1$d 太大了！再小一点</string>
+    <string name="game_guess_status_win">🎉 恭喜！答案就是 %1$d！用了 %2$d 次</string>
 </resources>

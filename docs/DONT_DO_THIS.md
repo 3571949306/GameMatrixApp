@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # 写给 AI / 协作者：不要做
 
 下面这些事**不要**做：
@@ -50,6 +53,24 @@
 Phase 2.4 给了样板（`hall/HallScreen.kt`），真整屏迁是 Phase 3+ 的事：
 - 改前必须先跟用户对齐
 - 不要为追求"全 Compose" 而重写还在跑业务的 View 系统 Activity
+
+## ❌ 不要把“模块商店 Flutter 化”扩大成“全 App Flutter 重写”
+
+- 当前 Flutter 化只覆盖模块商店 UI/交互层。
+- 宿主首页、棋类游戏、人机 AI、动态模块业务页面继续使用现有 Android/Compose/View 实现。
+- 没有明确产品需求和迁移计划时，不要因为技术统一而迁移这些页面。
+
+## ❌ 不要让 Flutter 绕过 Android 权威链
+
+- Flutter 不得直接下载 APK/ZIP、访问模块私有目录、加载 DEX、启动服务或控制 Unity 生命周期。
+- 不得另建安装数据库、目录缓存、签名策略或模拟下载进度。
+- 所有动作必须通过 Pigeon 和 `ModuleCoreFacade`，正式 V2 包必须映射到 `ModuleManager` 权威清单。
+
+## ❌ 不要删除旧商店或默认开启 Flutter 商店
+
+- `ModuleStoreActivity` 是故障回退路径，生产门禁完成前必须保留。
+- `ENABLE_FLUTTER_MODULE_STORE` 的源码默认 false 是回退策略，不代表生产未启用；stable vc595 已用生产参数启用。Android 11–15、签名 Catalog V8、正式多 Runtime 包和生产灰度均已完成，不得继续写成“占位公钥”“待线上签名”或“Android 11/12/14 待测”。
+- 不要把 Android 13 Debug 冒烟通过写成已完成正式发布。
 
 ## ❌ 不要把 lint abortOnError 改回 true
 

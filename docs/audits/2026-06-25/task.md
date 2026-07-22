@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # 漏洞修复任务清单
 
 - `[x]` 1. 修复 ModuleDownloader.kt 中的路径穿越漏洞

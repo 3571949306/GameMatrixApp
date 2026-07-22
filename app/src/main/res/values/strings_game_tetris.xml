@@ -35,4 +35,18 @@
     <string name="tetris_tutorial_step3_desc">每消除 10 行升一级，方块下落速度会加快。挑战更高等级！</string>
     <string name="tetris_tutorial_step4_title">游戏结束</string>
     <string name="tetris_tutorial_step4_desc">当方块堆积到顶部时游戏结束。尽量保持堆叠整齐，留出空间。</string>
+
+    <!-- 游戏名称与 UI 文案 -->
+    <string name="game_tetris_name">俄罗斯方块</string>
+    <string name="game_tetris_diff_easy">简单</string>
+    <string name="game_tetris_diff_easy_desc">下落速度慢，适合新手</string>
+    <string name="game_tetris_diff_normal">普通</string>
+    <string name="game_tetris_diff_normal_desc">标准下落速度，均衡挑战</string>
+    <string name="game_tetris_diff_hard">困难</string>
+    <string name="game_tetris_diff_hard_desc">下落速度快，反应挑战</string>
+    <string name="game_tetris_difficulty_changed">难度已切换为：%1$s</string>
+    <string name="game_tetris_info_label">分数: %1$d  消行: %2$d  等级: %3$d</string>
+    <string name="game_tetris_game_over">游戏结束</string>
+    <string name="game_tetris_final_score_label">最终分数: %1$d</string>
+    <string name="game_tetris_tap_to_restart">点击重新开始</string>
 </resources>

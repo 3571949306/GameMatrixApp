@@ -6,8 +6,10 @@ import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.core.common.ModuleNavigationContribution;
 import com.gamecenter.app.core.common.NavigationSlot;
+import com.gamecenter.app.core.common.UnityModuleLauncher;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -57,6 +59,22 @@ public class TtsModuleEntryPoint implements ModuleInterface, FeatureModule {
         return Arrays.<ModuleNavigationContribution>asList(new TtsNavContribution());
     }
 
+    // Java 实现 Kotlin 接口需显式覆盖所有带默认值的方法
+    @Override
+    public UnityModuleLauncher createUnityLauncher() { return null; }
+
+    @Override
+    public boolean shouldPreload() { return false; }
+
+    @Override
+    public String getModuleType() { return "feature"; }
+
+    @Override
+    public List<String> getDependencies() { return Collections.emptyList(); }
+
+    @Override
+    public List<String> getRequiredPermissions() { return Collections.emptyList(); }
+
     private static class TtsNavContribution implements ModuleNavigationContribution {
         @Override
         public String getContributionId() { return "tts_voice"; }
@@ -75,5 +93,8 @@ public class TtsModuleEntryPoint implements ModuleInterface, FeatureModule {
 
         @Override
         public Fragment createFragment(Context context) { return new TtsFragment(); }
+
+        @Override
+        public boolean isEnabled() { return true; }
     }
 }

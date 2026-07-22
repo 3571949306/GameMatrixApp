@@ -1,13 +1,16 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # 项目状态总览 - GameMatrix App
 
 > 本文档合并了原根目录的 7 个审计/修复文档（问题清单、执行规划、项目审计报告、最终报告、待确认操作清单、待删除清单、测试方案），提供项目当前状态的完整视图。
 
-**最后更新**: 2026-07-20  
-**当前版本**: versionCode=589, versionName=1.4.1  
-**上次稳定版**: versionCode=465, versionName=1.4.0  
+**最后更新**: 2026-07-22
+**当前工作树/生产版本**: versionCode=595, versionName=1.4.1
+**上次稳定版**: versionCode=594, versionName=1.4.1  
 **审计起始**: 2026-06-19 (versionCode=451)  
-**修复轮次**: 24 轮循环 + 混合架构 P0-P6 改造（2026-07-20）  
-**最新 commit**: `53f5472 docs(store): 更新混合架构改造文档和修改记录`
+**修复轮次**: 24 轮循环 + 混合架构 P0-P6 + Flutter-first 模块商店（2026-07-21）
+**工作树说明**: 当前存在本任务及用户并行修改；不得用旧 commit 或“clean”文档声明替代实时状态
 
 ---
 
@@ -24,6 +27,12 @@
 ---
 
 ## 1. 项目概览
+
+### Flutter 化范围
+
+本轮 Flutter 化仅覆盖模块商店展示/交互层，不重写宿主首页、棋类游戏、人机 AI 或动态模块业务页面。Flutter 通过 Pigeon 使用 Android `ModuleCoreFacade`；Android 仍是目录信任、下载、安装、回滚和 Runtime 生命周期的唯一权威。
+
+当前判断：Flutter UI、客户端信任链、六类 Runtime、Android 11–15 矩阵与生产发布均已完成，工程及生产闭环为 100%。stable vc595、可定制宿主底部导航、签名 Catalog V8、34 项正式目录、模块包和生产灰度均已通过验收；长期指标转入持续运维。
 
 ### 1.1 项目类型
 Android 游戏中心应用，采用模块化架构，支持动态加载游戏模块和功能模块。
@@ -68,9 +77,9 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
 ### 2.1 构建状态 ✅
 ```
 ✅ Debug 构建: 正常
-✅ Release 构建: 正常（需 keystore）
-✅ 版本号: 589 / 1.4.1
-✅ 上次稳定版: 465 / 1.4.0
+✅ Flutter-first 双 ABI staging Release：lintVital、R8、资源收缩、V2 签名、APK 内容和 Android 11–15 安装/进入均已验证
+✅ 当前工作树/生产版本号: 593 / 1.4.1
+✅ 上次稳定版: 592 / 1.4.1
 ✅ 编译错误: 0
 ✅ R8 混淆: 已启用
 ✅ 资源收缩: 已启用

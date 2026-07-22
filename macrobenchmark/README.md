@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # :macrobenchmark 模块 — Baseline Profile 生产者
 
 ## 背景
@@ -99,4 +102,3 @@ classpath 'androidx.benchmark:benchmark-baseline-profile-gradle-plugin:1.3.4'
 ```
 并将插件 ID 从 `com.android.baselineprofile` 改为 `androidx.baselineprofile`。
 此修改需要联网下载依赖，本轮未实施（遵守"只做本地文件操作和构建检查"约束）。
-

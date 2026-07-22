@@ -35,4 +35,22 @@
     <string name="game2048_tutorial_step3_desc">把大数字放在角落，小数字围绕在外。保持一个方向的主导，避免混乱移动。</string>
     <string name="game2048_tutorial_step4_title">挑战 2048</string>
     <string name="game2048_tutorial_step4_desc">目标是合成 2048 方块！即使达到 2048 后也可以继续挑战更高分。</string>
+
+    <!-- UI 文案 -->
+    <string name="game_2048_diff_easy">简单</string>
+    <string name="game_2048_diff_easy_desc">4×4 棋盘，大方块出现概率高</string>
+    <string name="game_2048_diff_normal">普通</string>
+    <string name="game_2048_diff_normal_desc">4×4 棋盘，标准概率</string>
+    <string name="game_2048_diff_hard">困难</string>
+    <string name="game_2048_diff_hard_desc">4×4 棋盘，小方块出现概率高</string>
+    <string name="game_2048_difficulty_changed">难度已切换为：%1$s</string>
+    <string name="game_2048_undo">↶ 撤销</string>
+    <string name="game_2048_redo">↷ 重做</string>
+    <string name="game_2048_undone">已撤销</string>
+    <string name="game_2048_no_undo_history">已无历史可撤销</string>
+    <string name="game_2048_redone">已重做</string>
+    <string name="game_2048_no_redo_history">已无可重做</string>
+    <string name="game_2048_score_label">分数: %1$d</string>
+    <string name="game_2048_game_over">游戏结束</string>
+    <string name="game_2048_tap_to_restart">点击重新开始</string>
 </resources>

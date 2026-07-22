@@ -29,4 +29,18 @@
     <string name="snake_tutorial_step3_desc">不要撞到边界或蛇的身体，否则游戏结束。蛇越长越需要小心。</string>
     <string name="snake_tutorial_step4_title">挑战高分</string>
     <string name="snake_tutorial_step4_desc">尝试在不同难度下获得高分！难度越高，蛇移动速度越快。</string>
+
+    <!-- 游戏名称与 UI 文案 -->
+    <string name="game_snake_name">贪吃蛇</string>
+    <string name="game_snake_diff_easy">简单</string>
+    <string name="game_snake_diff_easy_desc">蛇移动速度较慢，适合新手</string>
+    <string name="game_snake_diff_normal">普通</string>
+    <string name="game_snake_diff_normal_desc">标准速度，均衡挑战</string>
+    <string name="game_snake_diff_hard">困难</string>
+    <string name="game_snake_diff_hard_desc">蛇移动速度较快，反应挑战</string>
+    <string name="game_snake_difficulty_changed">难度已切换为：%1$s</string>
+    <string name="game_snake_score_label">分数: %1$d</string>
+    <string name="game_snake_game_over">游戏结束</string>
+    <string name="game_snake_final_score_label">最终分数: %1$d</string>
+    <string name="game_snake_tap_to_restart">点击重新开始</string>
 </resources>

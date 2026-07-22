@@ -31,4 +31,30 @@
     <string name="chinesechess_tutorial_step3_desc">移动到对方棋子的位置即可吃掉该棋子。注意炮需要隔一个棋子才能吃子。</string>
     <string name="chinesechess_tutorial_step4_title">将死获胜</string>
     <string name="chinesechess_tutorial_step4_desc">目标是将死对方的将/帅。保护好自己的将帅，同时攻击对方的将帅。</string>
+
+    <!-- 2026-07-22: 本地化重构 — UI 字符串提取 -->
+    <!-- 游戏名称 -->
+    <string name="game_chinesechess_name">中国象棋</string>
+
+    <!-- 难度名称与描述 -->
+    <string name="game_chinesechess_diff_1">简单</string>
+    <string name="game_chinesechess_diff_2">普通</string>
+    <string name="game_chinesechess_diff_3">困难</string>
+    <string name="game_chinesechess_diff_4">大师</string>
+    <string name="game_chinesechess_diff_1_desc">AI 搜索深度 2</string>
+    <string name="game_chinesechess_diff_2_desc">AI 搜索深度 4</string>
+    <string name="game_chinesechess_diff_3_desc">AI 搜索深度 6</string>
+    <string name="game_chinesechess_diff_4_desc">AI 搜索深度 8</string>
+
+    <!-- 对局结果 Toast -->
+    <string name="game_chinesechess_black_checkmate_win">黑方被将死，你赢了！</string>
+    <string name="game_chinesechess_stalemate_draw">困毙，和棋</string>
+
+    <!-- AI 思考提示 -->
+    <string name="game_chinesechess_ai_think_ms">AI 思考 %1$dms</string>
+    <string name="game_chinesechess_master_thinking">大师思考中…</string>
+    <string name="game_chinesechess_master_hint">💡 提示：%1$s（大师建议）</string>
+
+    <!-- 走法记谱回退文案 -->
+    <string name="game_chinesechess_suggested_move">建议走法</string>
 </resources>

@@ -1,4 +1,16 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # 模块市场当前策略
+
+## 2026-07-21 Flutter-first 现行策略
+
+- Flutter 负责模块商店 UI、路由、搜索/筛选和 UI 偏好；Android `ModuleCoreFacade`/`ModuleManager` 负责全部可信业务状态。
+- 功能开关 `ENABLE_FLUTTER_MODULE_STORE` 默认关闭；关闭或初始化失败时继续使用本文件后文描述的原生商店。
+- Catalog V2 必须显式声明 `runtimeType`/`deliveryType`；正式非内置包在进入下载前必须映射到权威 `ModuleManifest`。
+- 六类 Runtime 为 `flutter/web/asset/android/native_service/unity`。Flutter Runtime 只允许宿主已编译 route，不下载 Dart 源码。
+- 客户端 Ed25519 注入、双 ABI Release、Android 11–15、签名 Catalog V8、正式模块包与生产灰度均已完成；stable vc595 已启用 Flutter 商店，源码默认值继续提供安全回退。
+- 本文件后续 2026-05/07 的入口、分类和 VPS 描述属于旧商店/既有发布链，不能覆盖 `/docs/flutter-store/` 的当前状态。
 
 更新日期�?026-05-24
 

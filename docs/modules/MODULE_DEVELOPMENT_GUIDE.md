@@ -1,10 +1,13 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # 模块开发指南 / Module Development Guide
 
 > **文档版本**: v1.1  
 > **创建日期**: 2026-05-26  
-> **最后更新**: 2026-07-06 (循环 19-24 复核)  
+> **最后更新**: 2026-07-22 (Flutter-first 与宿主导航扩展同步)  
 > **维护者**: GameCenterApp Team  
-> **当前版本**: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)  
+> **当前工作树/生产版本**: versionCode=595 / versionName=1.4.1 (lastStable=594/1.4.1)  
 > **项目根**: d:\Developmment\GameMatrixApp
 
 ---
@@ -420,6 +423,27 @@ dependencies {
 | `permissions` | String[] | 需要的权限列表 |
 | `dependencies` | String[] | 依赖的模块 ID 列表 |
 
+### 底部导航贡献（Android 功能模块）
+
+需要成为 App 一级入口的 Android APK 模块，可以在已签名 Catalog/`modules.json` 中声明：
+
+```json
+"navigationContribution": {
+  "slot": "bottom_nav",
+  "title": "新专区",
+  "icon": "extension",
+  "order": 15,
+  "enabled": true
+}
+```
+
+- `order` 越小越靠前；游戏大厅默认是 `10`，因此 `15` 默认位于游戏大厅之后。
+- `icon` 只能使用宿主白名单键：`games/browser/tools/ai/vpn/profile/extension`。动态 APK 的 `R.drawable` ID 不得传给宿主。
+- 模块入口仍需实现 `ModuleInterface + FeatureModule`，且 `entryClass` 必须进入权威清单；点击标签时由 `ModuleShellFragment` 加载 `FeatureModule.createFragment()`。
+- 只有已安装、启用、版本兼容且声明为 `bottom_nav` 的模块会参与导航。普通小游戏应贡献到 `games_hall`，不要占用稀缺的一级标签。
+- 用户可以在“设置 → 数据与导航 → 底部导航”中重新排序或隐藏入口；游戏大厅不能隐藏，最多显示 6 项。
+- 新的 Flutter route 仍必须预编译进宿主，不能用此字段远程注入 Dart 代码。
+
 ---
 
 ## 发布模块到模块商店 / Publish Module to Module Store
@@ -755,3 +779,14 @@ android {
 
 ---
 [🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
+# Flutter-first Multi-runtime 补充（2026-07-21）
+
+新增模块必须先选择 `runtimeType`（`flutter/web/asset/android/native_service/unity`）与 `deliveryType`（`builtin/apk/zip/content`），并遵循 `docs/flutter-store/CATALOG_V2.md`。生命周期只能通过 `ModuleCoreFacade` 和对应 `ModuleRuntimeHandler`，不得在 Flutter 中直接操作 APK、DEX、服务、Unity 或原生文件路径。
+
+- Flutter：只登记宿主已编译 route，不下载 Dart 源码。
+- Web/Asset：ZIP 必须有 HTTPS、SHA-256、正式包签名并通过隔离解压；Web 默认禁用 JavaScript，禁止任意 bridge/外域。
+- Android：继续使用现有宿主证书校验和宿主代理/入口，动态 APK Activity/资源不能按普通 in-process 组件假设。
+- Native Service：`serviceType` 必须加入原生能力白名单并单独审计权限。
+- Unity：使用 launcher ID 和既有 Unity manager；content 与代码生命周期分开。
+
+提交模块前至少增加 Catalog 解析/兼容测试、handler 测试以及受控包安装/回滚测试，并在真机检查目标流 logcat。Flutter 商店稳定前不要删除旧 `ModuleStoreActivity` 或旧目录适配器。

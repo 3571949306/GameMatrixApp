@@ -25,4 +25,16 @@
     <string name="game_dice_ach_20_rounds_desc">累计完成20局骰子</string>
     <string name="game_dice_ach_high_score">高分赢家</string>
     <string name="game_dice_ach_high_score_desc">单局获得50分以上</string>
+
+    <!-- UI 文本 -->
+    <string name="game_dice_status_start">点击骰子开始游戏！</string>
+    <string name="game_dice_player_label">🎮 你的骰子</string>
+    <string name="game_dice_ai_label">🤖 电脑的骰子</string>
+    <string name="game_dice_btn_roll">🎲 掷骰子</string>
+    <string name="game_dice_btn_double">💰 加倍</string>
+    <string name="game_dice_btn_next_round">下一局</string>
+    <string name="game_dice_stats_format">总分：%1$d | 胜：%2$d | 负：%3$d | 平：%4$d</string>
+    <string name="game_dice_result_win">你赢了！%1$d vs %2$d (+%3$d分)</string>
+    <string name="game_dice_result_lose">你输了！%1$d vs %2$d</string>
+    <string name="game_dice_result_draw">平局！都是%1$d点 (+%2$d分)</string>
 </resources>

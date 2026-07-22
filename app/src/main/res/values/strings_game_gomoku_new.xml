@@ -24,4 +24,52 @@
     <string name="gomoku_tutorial_step3_desc">既要尝试形成自己的五子连珠，也要阻止对手形成五子连珠。</string>
     <string name="gomoku_tutorial_step4_title">难度挑战</string>
     <string name="gomoku_tutorial_step4_desc">选择不同难度挑战 AI。从简单开始，逐步提升到大师级别！</string>
+
+    <!-- 2026-07-22: 本地化重构 — UI 字符串提取 -->
+    <!-- 难度名称 -->
+    <string name="game_gomoku_diff_low">低</string>
+    <string name="game_gomoku_diff_medium">中</string>
+    <string name="game_gomoku_diff_high">高</string>
+    <string name="game_gomoku_diff_master">大师</string>
+    <string name="game_gomoku_difficulty_label">难度：%1$s (%2$d/%3$d)</string>
+
+    <!-- 禁手提示 -->
+    <string name="game_gomoku_forbidden">禁手</string>
+    <string name="game_gomoku_forbidden_three_three">三三禁手</string>
+    <string name="game_gomoku_forbidden_four_four">四四禁手</string>
+    <string name="game_gomoku_forbidden_overline">长连禁手</string>
+
+    <!-- 大师提示 -->
+    <string name="game_gomoku_master_thinking">大师思考中…</string>
+    <string name="game_gomoku_master_hint">💡 大师建议: %1$c%2$d\n%3$s</string>
+
+    <!-- 认输对话框 -->
+    <string name="game_gomoku_resign_title">认输</string>
+    <string name="game_gomoku_resign_message">确定要认输吗？将记录为AI获胜。</string>
+    <string name="game_gomoku_resign_confirm">确定认输</string>
+    <string name="game_gomoku_resign_cancel">继续对局</string>
+
+    <!-- 重新开始对话框 -->
+    <string name="game_gomoku_restart_title">重新开始</string>
+    <string name="game_gomoku_restart_message">确定要重新开始当前对局吗？</string>
+    <string name="game_gomoku_restart_confirm">确定</string>
+    <string name="game_gomoku_restart_cancel">取消</string>
+
+    <!-- 退出对局对话框 -->
+    <string name="game_gomoku_exit_title">退出对局</string>
+    <string name="game_gomoku_exit_message">当前对局尚未结束，确定要退出吗？</string>
+    <string name="game_gomoku_exit_confirm">退出</string>
+    <string name="game_gomoku_exit_restart">重新开始</string>
+    <string name="game_gomoku_exit_continue">继续对局</string>
+
+    <!-- GomokuView 棋盘信息文字 -->
+    <string name="game_gomoku_turn_info">第 %1$d 回合</string>
+    <string name="game_gomoku_game_over">对局结束</string>
+    <string name="game_gomoku_ai_thinking">AI思考中…</string>
+    <string name="game_gomoku_black_turn">黑方回合</string>
+    <string name="game_gomoku_white_turn">白方回合</string>
+    <string name="game_gomoku_result_draw">平局!</string>
+    <string name="game_gomoku_result_black_win">黑方胜利!</string>
+    <string name="game_gomoku_result_white_win">白方胜利!</string>
+    <string name="game_gomoku_final_moves">最终回合数: %1$d</string>
 </resources>

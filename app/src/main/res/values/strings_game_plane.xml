@@ -26,4 +26,14 @@
     <string name="game_plane_ach_wave_3_desc">达到波次3</string>
     <string name="game_plane_ach_10_games">飞机大战达人</string>
     <string name="game_plane_ach_10_games_desc">累计完成10局飞机大战</string>
+
+    <!-- UI 文案 -->
+    <string name="game_plane_diff_easy">简单</string>
+    <string name="game_plane_diff_easy_desc">敌机更慢，生成更慢</string>
+    <string name="game_plane_diff_normal">普通</string>
+    <string name="game_plane_diff_normal_desc">标准难度</string>
+    <string name="game_plane_diff_hard">困难</string>
+    <string name="game_plane_diff_hard_desc">敌机更快，生成更快</string>
+    <string name="game_plane_score_label">分：%1$d</string>
+    <string name="game_plane_wave_label">波次 %1$d</string>
 </resources>

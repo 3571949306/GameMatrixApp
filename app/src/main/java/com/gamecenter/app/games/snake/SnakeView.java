@@ -15,6 +15,9 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+
+import com.gamecenter.app.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,8 +65,9 @@ public class SnakeView extends View {
 
     // ==================== 颜色 ====================
 
-    private static final int COLOR_BG = 0xFF1A1A2E;
-    private static final int COLOR_GRID = 0xFF2A2A4E;
+    // 游戏屏背景/网格色：中性深色，浅深色自适应（资源化，原 #1A1A2E/#2A2A4E 蓝紫黑已收敛）
+    private int colorBg;
+    private int colorGrid;
     private static final int COLOR_SNAKE_HEAD = 0xFF4CAF50;
     private static final int COLOR_SNAKE_BODY = 0xFF81C784;
     private static final int COLOR_FOOD = 0xFFF44336;
@@ -162,11 +166,13 @@ public class SnakeView extends View {
 
     private void init() {
         // 背景
-        paintBg.setColor(COLOR_BG);
+        colorBg = ContextCompat.getColor(getContext(), R.color.game_screen_bg);
+        paintBg.setColor(colorBg);
         paintBg.setStyle(Paint.Style.FILL);
 
         // 网格线
-        paintGrid.setColor(COLOR_GRID);
+        colorGrid = ContextCompat.getColor(getContext(), R.color.game_screen_grid);
+        paintGrid.setColor(colorGrid);
         paintGrid.setStyle(Paint.Style.STROKE);
         paintGrid.setStrokeWidth(0.5f);
 
@@ -464,16 +470,16 @@ public class SnakeView extends View {
 
         // 绘制分数
         paintText.setTextSize(cellSize * 1.2f);
-        canvas.drawText("分数: " + score, viewWidth / 2f, offsetY - 10, paintText);
+        canvas.drawText(getContext().getString(R.string.game_snake_score_label, score), viewWidth / 2f, offsetY - 10, paintText);
 
         // 游戏结束覆盖层
         if (gameOver) {
             canvas.drawRect(0, 0, viewWidth, viewHeight, paintOverlay);
             paintText.setTextSize(cellSize * 2f);
-            canvas.drawText("游戏结束", viewWidth / 2f, viewHeight / 2f - cellSize, paintText);
+            canvas.drawText(getContext().getString(R.string.game_snake_game_over), viewWidth / 2f, viewHeight / 2f - cellSize, paintText);
             paintText.setTextSize(cellSize * 1.2f);
-            canvas.drawText("最终分数: " + score, viewWidth / 2f, viewHeight / 2f + cellSize, paintText);
-            canvas.drawText("点击重新开始", viewWidth / 2f, viewHeight / 2f + cellSize * 3, paintText);
+            canvas.drawText(getContext().getString(R.string.game_snake_final_score_label, score), viewWidth / 2f, viewHeight / 2f + cellSize, paintText);
+            canvas.drawText(getContext().getString(R.string.game_snake_tap_to_restart), viewWidth / 2f, viewHeight / 2f + cellSize * 3, paintText);
         }
     }
 

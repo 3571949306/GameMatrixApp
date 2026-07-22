@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 益智类游戏组 C 深色主题变体（klotski/sudoku/sokoban/minesweeper/memory/match/pipeline）
+     与 values/colors_game_group_c.xml 一一对应，提供深色主题下的颜色变体。 -->
+<resources>
+
+    <!-- ========== Klotski 华容道 ========== -->
+    <color name="game_klotski_color_bg">#FF1E1E1E</color>
+    <color name="game_klotski_color_title">#FFECECEC</color>
+    <color name="game_klotski_color_status">#FF81C784</color>
+    <color name="game_klotski_color_moves">#FF9E9E9E</color>
+
+    <!-- ========== Sudoku 数独 ========== -->
+    <color name="game_sudoku_color_bg">#FF1E2220</color>
+    <color name="game_sudoku_color_text">#FFE0E0E0</color>
+    <color name="game_sudoku_color_difficulty">#FF81C784</color>
+    <color name="game_sudoku_color_btn_difficulty">#FF3D6B58</color>
+    <color name="game_sudoku_color_btn_num">#FF2D302E</color>
+    <color name="game_sudoku_color_btn_num_text">#FFE0E0E0</color>
+    <color name="game_sudoku_color_btn_clear">#FF3D1F1F</color>
+    <color name="game_sudoku_color_btn_clear_text">#FFEF9A9A</color>
+    <color name="game_sudoku_color_btn_notes">#FF3D3D3D</color>
+    <color name="game_sudoku_color_btn_notes_text">#FFE0E0E0</color>
+    <color name="game_sudoku_color_btn_notes_on">#FF3D6B58</color>
+    <color name="game_sudoku_color_btn_notes_on_text">#FFFFFFFF</color>
+
+    <!-- ========== Sokoban 推箱子 ========== -->
+    <color name="game_sokoban_color_bg">#FF1E2220</color>
+    <color name="game_sokoban_color_text">#FFE0E0E0</color>
+    <color name="game_sokoban_color_level">#FF81C784</color>
+    <color name="game_sokoban_color_moves">#FF81C784</color>
+    <color name="game_sokoban_color_btn_level">#FF3D6B58</color>
+    <color name="game_sokoban_color_btn_dir">#FF2D302E</color>
+
+    <!-- ========== Memory 记忆翻牌 ========== -->
+    <color name="game_memory_color_bg">#FF1E2220</color>
+    <color name="game_memory_color_text">#FFE0E0E0</color>
+    <color name="game_memory_color_stats">#FF81C784</color>
+    <color name="game_memory_color_btn_start">#FF3D6B58</color>
+    <color name="game_memory_color_card_back">#FF2D302E</color>
+    <color name="game_memory_color_card_back_text">#FF81C784</color>
+    <color name="game_memory_color_card_front">#FF1B3A2A</color>
+    <color name="game_memory_color_card_front_text">#FFE0E0E0</color>
+    <color name="game_memory_color_card_matched">#FF3D6B58</color>
+    <color name="game_memory_color_card_matched_text">#FFFFFFFF</color>
+
+    <!-- ========== Match 配对 ========== -->
+    <color name="game_match_color_bg">#FF1E2220</color>
+    <color name="game_match_color_text">#FFE0E0E0</color>
+    <color name="game_match_color_stats">#FF81C784</color>
+    <color name="game_match_color_btn_start">#FF3D6B58</color>
+    <color name="game_match_color_btn_start_text">#FFFFFFFF</color>
+    <color name="game_match_color_card_back">#FF2D302E</color>
+    <color name="game_match_color_card_back_text">#FF81C784</color>
+    <color name="game_match_color_card_front">#FF1B3A2A</color>
+    <color name="game_match_color_card_front_text">#FFE0E0E0</color>
+
+    <!-- ========== Pipeline 管道工 ========== -->
+    <color name="game_pipeline_color_bg">#FF1E2220</color>
+    <color name="game_pipeline_color_text">#FFE0E0E0</color>
+    <color name="game_pipeline_color_stats">#FF81C784</color>
+    <color name="game_pipeline_color_btn_start">#FF3D6B58</color>
+    <color name="game_pipeline_color_btn_start_text">#FFFFFFFF</color>
+    <color name="game_pipeline_color_btn_check">#FF2E6B30</color>
+    <color name="game_pipeline_color_btn_check_text">#FFFFFFFF</color>
+    <color name="game_pipeline_color_pipe">#FF1A2B3D</color>
+    <color name="game_pipeline_color_pipe_empty">#FF1E2220</color>
+    <color name="game_pipeline_color_pipe_error">#FF4A2528</color>
+    <color name="game_pipeline_color_pipe_correct">#FF1F3D2A</color>
+
+</resources>

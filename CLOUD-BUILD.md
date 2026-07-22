@@ -1,9 +1,14 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp — 云编译 & VPS 部署指南
 
 > **本项目** : GameMatrixApp — Android 多模块游戏中心，含 DDZ、WebSocket Relay、模块化（ClassLoader + DexClassLoader）框架
 > **本指南** : 用 GitHub Actions 在云端编译 APK，再用 openclaw / VPS 接收 artifact
 > **最后更新** : 2026-07-06 (循环 19-24 复核)
-> **当前版本** : versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+> **当前工作树/生产版本**：versionCode=595 / versionName=1.4.1（lastStable=594/1.4.1，以 `version.properties` 为准）
+>
+> **Flutter 商店说明**：CI/云构建默认仍构建旧商店入口。验证 Flutter-first 商店时必须显式传入 `-PenableFlutterModuleStore=true`；生产签名和正式 V2 包门禁完成前不得把它改为默认开启。
 
 ---
 
@@ -18,6 +23,16 @@
 ---
 
 ## 2. 编译环境需求
+
+Flutter-first 商店构建还需要 Flutter 3.44.x/Dart 3.12.x，并能够解析 `flutter_module/.android` 的 Add-to-App 工程。推荐先执行：
+
+```powershell
+cd flutter_module
+flutter analyze
+flutter test
+cd ..
+.\gradlew.bat :app:assembleDebug -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PautoUploadVps=false -PautoBumpVersion=false
+```
 
 | 工具 | 最低版本 | 说明 |
 |---|---|---|

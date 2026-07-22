@@ -1,4 +1,11 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameCenterApp 发布指南
+
+## Flutter-first 商店发布附加门禁（2026-07-22）
+
+源码默认开关保留关闭值以支持安全回退；stable vc595 通过生产参数启用 Flutter 商店。Flutter analyze/test、Android 单测/lint、生产信任双 ABI Release、APK assets/ABI、旧商店回退、Android 11–15 矩阵、线上 Ed25519 Catalog、正式 V2 多 Runtime 包与灰度均已通过。后续发布不得省略这些门禁，发布判断以 `/docs/flutter-store/MIGRATION_STATUS.md` 为准。
 
 > **文档版本**: v1.1.0  
 > **最后更新**: 2026-07-06  
@@ -492,7 +499,7 @@ git push origin main
 
 ### Q4: APK 体积超过 15MB
 
-**解决方案**�?1. 检�?R8 全模式是否启用（`minifyEnabled true`、`shrinkResources true`�?2. 检�?ABI 拆分是否配置正确（仅保留 `arm64-v8a`�?3. 检查是否有不必要的资源或库被打�?4. 参�?[T08: 框架 APK 体积优化](文档/MODULAR_ARCHITECTURE_DESIGN.md#T08-框架-APK-体积优化) 文档
+**解决方案**：检查 R8、ABI、资源依赖，并参考 [模块商店重设计计划](modules/MODULE_STORE_REDESIGN_PLAN.md) 与 Flutter Release 体积门禁。Flutter Debug APK 体积不能代表 Release。
 
 ### Q5: 签名验证失败
 
@@ -556,10 +563,10 @@ GameCenterApp/
 ```
 
 ### C. 参考文�?
-- [模块化架构设计文档](文档/MODULAR_ARCHITECTURE_DESIGN.md)
-- [模块开发指南](文档/MODULE_DEVELOPMENT_GUIDE.md)
-- [项目上下文](PROJECT_CONTEXT.md)
-- [代码Wiki](CODE_WIKI.md)
+- [模块化架构设计文档](modules/MODULE_STORE_REDESIGN_PLAN.md)
+- [模块开发指南](modules/MODULE_DEVELOPMENT_GUIDE.md)
+- [项目上下文](AI_CONTEXT.md)
+- [代码 Wiki](../CODE_WIKI.md)
 - [Android 官方文档 - 签署应用](https://developer.android.com/studio/publish/app-signing)
 - [Android 官方文档 - 缩减、混淆和优化应用](https://developer.android.com/studio/build/shrink-code)
 - [Gradle 官方文档](https://docs.gradle.org/)

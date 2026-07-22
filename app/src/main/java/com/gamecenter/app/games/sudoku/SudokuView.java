@@ -12,6 +12,9 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * 数独棋盘自定义 View。
  *
@@ -36,6 +39,7 @@ public class SudokuView extends View {
     private static final int COLOR_GIVEN = Color.parseColor("#2D2D2D");
     private static final int COLOR_USER = Color.parseColor("#5B8A72");
     private static final int COLOR_ERROR_TEXT = Color.parseColor("#DC2626");
+    private static final int COLOR_NOTE = Color.parseColor("#7A7A7A");
 
     private Paint cellPaint;
     private Paint selectedPaint;
@@ -45,6 +49,7 @@ public class SudokuView extends View {
     private Paint boxLinePaint;
     private Paint textPaint;
     private Paint errorTextPaint;
+    private Paint notePaint;
 
     private float cellSize;
     private float boardOffsetX;
@@ -56,6 +61,9 @@ public class SudokuView extends View {
     private boolean[][] isGiven = new boolean[GRID_SIZE][GRID_SIZE];
     /** 错误标记 */
     private boolean[][] isError = new boolean[GRID_SIZE][GRID_SIZE];
+    /** 笔记/候选数字：每格存 1-9 的候选集合 */
+    @SuppressWarnings("unchecked")
+    private Set<Integer>[][] notes = (Set<Integer>[][]) new Set<?>[GRID_SIZE][GRID_SIZE];
 
     /** 当前选中的格子 */
     private int selectedRow = -1;
@@ -119,6 +127,11 @@ public class SudokuView extends View {
         errorTextPaint.setColor(COLOR_ERROR_TEXT);
         errorTextPaint.setTextAlign(Paint.Align.CENTER);
         errorTextPaint.setFakeBoldText(true);
+
+        notePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        notePaint.setColor(COLOR_NOTE);
+        notePaint.setTextAlign(Paint.Align.CENTER);
+        notePaint.setFakeBoldText(false);
     }
 
     public void setOnCellSelectListener(@Nullable OnCellSelectListener listener) {
@@ -132,6 +145,57 @@ public class SudokuView extends View {
         this.board = board;
         this.isGiven = isGiven;
         this.isError = new boolean[GRID_SIZE][GRID_SIZE];
+        // 重置笔记
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                notes[r][c] = new HashSet<>();
+            }
+        }
+        invalidate();
+    }
+
+    /**
+     * 切换指定格子的候选数字标记。
+     */
+    public void toggleNote(int row, int col, int num) {
+        if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+        if (num < 1 || num > 9) return;
+        if (notes[row][col] == null) notes[row][col] = new HashSet<>();
+        if (notes[row][col].contains(num)) {
+            notes[row][col].remove(num);
+        } else {
+            notes[row][col].add(num);
+        }
+        invalidate();
+    }
+
+    /**
+     * 清除指定格子的全部笔记。
+     */
+    public void clearNotes(int row, int col) {
+        if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+        if (notes[row][col] != null) notes[row][col].clear();
+        invalidate();
+    }
+
+    /**
+     * 从同行/同列/同宫的笔记中移除指定数字（填入正解后调用）。
+     */
+    public void removeNoteFromPeers(int row, int col, int num) {
+        if (num < 1 || num > 9) return;
+        // 同行同列
+        for (int i = 0; i < GRID_SIZE; i++) {
+            if (notes[row][i] != null) notes[row][i].remove(num);
+            if (notes[i][col] != null) notes[i][col].remove(num);
+        }
+        // 同宫
+        int boxRow = (row / BOX_SIZE) * BOX_SIZE;
+        int boxCol = (col / BOX_SIZE) * BOX_SIZE;
+        for (int r = boxRow; r < boxRow + BOX_SIZE; r++) {
+            for (int c = boxCol; c < boxCol + BOX_SIZE; c++) {
+                if (notes[r][c] != null) notes[r][c].remove(num);
+            }
+        }
         invalidate();
     }
 
@@ -231,6 +295,27 @@ public class SudokuView extends View {
                     }
                     canvas.drawText(String.valueOf(board[r][c]), cx, cy,
                             isError[r][c] ? errorTextPaint : textPaint);
+                }
+            }
+        }
+
+        // 绘制笔记/候选数字（仅在空格内，3x3 排列小字号）
+        float noteCell = cellSize / 3f;
+        notePaint.setTextSize(noteCell * 0.7f);
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                if (board[r][c] != 0) continue;
+                Set<Integer> set = notes[r][c];
+                if (set == null || set.isEmpty()) continue;
+                float left = boardOffsetX + c * cellSize;
+                float top = boardOffsetY + r * cellSize;
+                for (int n = 1; n <= 9; n++) {
+                    if (!set.contains(n)) continue;
+                    int nr = (n - 1) / 3;
+                    int nc = (n - 1) % 3;
+                    float cx = left + nc * noteCell + noteCell / 2f;
+                    float cy = top + nr * noteCell + noteCell * 0.7f;
+                    canvas.drawText(String.valueOf(n), cx, cy, notePaint);
                 }
             }
         }

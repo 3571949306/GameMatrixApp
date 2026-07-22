@@ -130,6 +130,14 @@ class App : Application() {
 
         SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, !BuildConfig.DEBUG)
 
+        if (BuildConfig.ENABLE_FLUTTER_MODULE_STORE) {
+            runCatching {
+                com.gamecenter.app.modules.bridge.FlutterStoreEngineManager.getOrCreate(this)
+            }.onFailure { error ->
+                Log.e("App", "Flutter module store prewarm failed; legacy store remains available", error)
+            }
+        }
+
         // Batch 21: 初始化下载指标收集器
         com.gamecenter.app.modules.DownloadMetricsCollector.init(this)
 

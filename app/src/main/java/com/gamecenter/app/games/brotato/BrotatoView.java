@@ -8,6 +8,10 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.core.content.ContextCompat;
+
+import com.gamecenter.app.R;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -67,6 +71,7 @@ public class BrotatoView extends View {
     private List<float[]> enemies = new ArrayList<>();        // [x, y, hp, speed]
     private Random random = new Random();
     private OnGameListener listener;
+    private float difficultyFactor = 0.5f;
 
     // ==================== 构造方法 ====================
 
@@ -77,11 +82,19 @@ public class BrotatoView extends View {
 
     private void init() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        setBackgroundColor(0xFF1B1B2F);
+        setBackgroundColor(ContextCompat.getColor(getContext(), R.color.game_screen_bg));
     }
 
     public void setOnGameListener(OnGameListener listener) {
         this.listener = listener;
+    }
+
+    /**
+     * 设置难度因子（由 Activity 根据难度调用）。
+     * 内部按 factor / 0.5 归一化为倍率 dm：简单 0.6 / 普通 1.0 / 困难 1.6。
+     */
+    public void setDifficultyFactor(float factor) {
+        this.difficultyFactor = factor;
     }
 
     // ==================== 游戏控制 ====================
@@ -215,9 +228,9 @@ public class BrotatoView extends View {
         paint.setColor(Color.WHITE);
         paint.setTextSize(20);
         paint.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText("分：" + score, 16, 32, paint);
+        canvas.drawText(getContext().getString(R.string.game_brotato_score_label, score), 16, 32, paint);
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("波次 " + wave, viewWidth - 16, 32, paint);
+        canvas.drawText(getContext().getString(R.string.game_brotato_wave_label, wave), viewWidth - 16, 32, paint);
 
         // 波次间歇提示
         if (!waveActive) {
@@ -226,7 +239,7 @@ public class BrotatoView extends View {
             paint.setColor(Color.WHITE);
             paint.setTextSize(28);
             paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("波次 " + wave + " 即将开始...", viewWidth / 2, viewHeight / 2 + 10, paint);
+            canvas.drawText(getContext().getString(R.string.game_brotato_wave_starting, wave), viewWidth / 2, viewHeight / 2 + 10, paint);
         }
     }
 
@@ -290,7 +303,8 @@ public class BrotatoView extends View {
 
         // 生成敌人
         if (enemiesSpawned < enemiesInWave) {
-            float spawnInterval = Math.max(300, 1500 - wave * 100);
+            float dm = difficultyFactor / 0.5f;
+            float spawnInterval = Math.max(300, (1500 - wave * 100) / dm);
             if (now - lastEnemySpawnTime >= spawnInterval) {
                 spawnEnemy();
                 lastEnemySpawnTime = now;
@@ -376,8 +390,10 @@ public class BrotatoView extends View {
             case 2: ex = random.nextFloat() * viewWidth; ey = viewHeight + ENEMY_SIZE; break;
             default: ex = -ENEMY_SIZE; ey = random.nextFloat() * viewHeight; break;
         }
+        float dm = difficultyFactor / 0.5f;
         float enemyHp = wave >= 5 ? (random.nextInt(3) == 0 ? 3 : 1) : 1;
-        float speed = 1.5f + wave * 0.15f + random.nextFloat();
+        enemyHp = Math.max(1f, enemyHp * dm);
+        float speed = (1.5f + wave * 0.15f + random.nextFloat()) * dm;
         enemies.add(new float[]{ex, ey, enemyHp, speed});
         enemiesSpawned++;
     }

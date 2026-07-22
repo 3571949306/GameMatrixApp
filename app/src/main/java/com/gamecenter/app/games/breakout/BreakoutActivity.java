@@ -62,7 +62,7 @@ public class BreakoutActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "打砖块";
+        return getString(R.string.game_breakout_name);
     }
 
     @Override

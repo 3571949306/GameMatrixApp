@@ -1,0 +1,19 @@
+// Stable host-owned Add-to-App include. Flutter's generated .android directory
+// remains ephemeral; this script keeps the GameMatrixApp settings integration
+// deterministic across `flutter pub get` regenerations.
+def flutterProjectRoot = buildscript.sourceFile.parentFile
+def generatedAndroidDir = new File(flutterProjectRoot, '.android')
+def localPropertiesFile = new File(generatedAndroidDir, 'local.properties')
+if (!localPropertiesFile.exists()) {
+    throw new GradleException("Run flutter pub get in ${flutterProjectRoot} before building Android")
+}
+
+def properties = new Properties()
+localPropertiesFile.withReader('UTF-8') { reader -> properties.load(reader) }
+def flutterSdkPath = properties.getProperty('flutter.sdk')
+if (!flutterSdkPath) throw new GradleException('flutter.sdk is missing from Flutter module local.properties')
+
+include ':flutter'
+project(':flutter').projectDir = new File(generatedAndroidDir, 'Flutter')
+
+apply from: "${flutterSdkPath}/packages/flutter_tools/gradle/module_plugin_loader.gradle"

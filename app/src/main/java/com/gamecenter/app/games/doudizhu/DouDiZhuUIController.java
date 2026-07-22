@@ -17,6 +17,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.util.Log;
 
+import androidx.core.content.ContextCompat;
+
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.doudizhu.model.Card;
 
@@ -293,19 +295,19 @@ public final class DouDiZhuUIController {
         if (progressLoading != null) progressLoading.setVisibility(View.GONE);
         if (btnCreateRoom != null) {
             btnCreateRoom.setVisibility(View.VISIBLE);
-            btnCreateRoom.setText(remoteP2PMode ? "云开房" : "创建房间");
+            btnCreateRoom.setText(remoteP2PMode ? activity.getString(R.string.game_doudizhu_cloud_open) : activity.getString(R.string.game_doudizhu_create_room));
         }
         if (btnCopyRoomAddress != null) btnCopyRoomAddress.setVisibility(View.GONE);
         if (btnJoinRoom != null) {
             btnJoinRoom.setVisibility(View.VISIBLE);
-            btnJoinRoom.setText(remoteP2PMode ? "输入房间码" : "加入房间");
+            btnJoinRoom.setText(remoteP2PMode ? activity.getString(R.string.game_doudizhu_enter_room_code) : activity.getString(R.string.game_doudizhu_join_room));
         }
         if (btnStartGame != null) btnStartGame.setVisibility(View.GONE);
-        if (tvServerInfo != null) tvServerInfo.setText(remoteP2PMode ? "斗地主云联机" : "选择操作创建或加入房间");
+        if (tvServerInfo != null) tvServerInfo.setText(remoteP2PMode ? activity.getString(R.string.game_doudizhu_cloud_title) : activity.getString(R.string.game_doudizhu_lobby_hint));
         if (tvRoomList != null) {
             tvRoomList.setText(remoteP2PMode
-                    ? "房主点\u201C云开房\u201D生成 6 位房间码。\n\n其他玩家点\u201C输入房间码\u201D，输入或粘贴房间码即可加入。\n旧版 p2p://IP:端口 地址仍可作为高级直连入口。"
-                    : "点击\"加入房间\"搜索局域网房间");
+                    ? activity.getString(R.string.game_doudizhu_host_cloud_hint)
+                    : activity.getString(R.string.game_doudizhu_lan_join_hint));
         }
     }
 
@@ -366,11 +368,11 @@ public final class DouDiZhuUIController {
     public void updateConnectedStatusText(boolean isHost, boolean isConnected, boolean remoteP2PMode) {
         if (tvConnectionStatus == null) return;
         if (isHost) {
-            tvConnectionStatus.setText(remoteP2PMode ? "云联机房主" : "主机");
-            tvConnectionStatus.setTextColor(0xFF4CAF50);
+            tvConnectionStatus.setText(remoteP2PMode ? activity.getString(R.string.game_doudizhu_status_cloud_host) : activity.getString(R.string.game_doudizhu_status_host));
+            tvConnectionStatus.setTextColor(ContextCompat.getColor(activity, R.color.game_doudizhu_color_connection_ok));
         } else if (isConnected) {
-            tvConnectionStatus.setText(remoteP2PMode ? "已连接云房间" : "已连接主机");
-            tvConnectionStatus.setTextColor(0xFF4CAF50);
+            tvConnectionStatus.setText(remoteP2PMode ? activity.getString(R.string.game_doudizhu_status_connected_cloud) : activity.getString(R.string.game_doudizhu_status_connected_host));
+            tvConnectionStatus.setTextColor(ContextCompat.getColor(activity, R.color.game_doudizhu_color_connection_ok));
         }
     }
 
@@ -436,7 +438,7 @@ public final class DouDiZhuUIController {
      */
     public void updateLandlordIndicator(String landlordName) {
         if (tvLandlordIndicator == null) return;
-        tvLandlordIndicator.setText("地主：" + landlordName);
+        tvLandlordIndicator.setText(activity.getString(R.string.game_doudizhu_landlord_label) + landlordName);
     }
 
     /**
@@ -446,7 +448,7 @@ public final class DouDiZhuUIController {
      */
     public void updateTurnIndicator(String turnText) {
         if (tvTurnIndicator == null) return;
-        tvTurnIndicator.setText("轮到：" + turnText);
+        tvTurnIndicator.setText(activity.getString(R.string.game_doudizhu_turn_label, turnText));
     }
 
     /**
@@ -626,7 +628,7 @@ public final class DouDiZhuUIController {
         ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
         if (clipboard != null) {
             clipboard.setPrimaryClip(ClipData.newPlainText(label, text));
-            showToast("已复制到剪贴板");
+            showToast(activity.getString(R.string.game_doudizhu_copied));
         }
     }
 
@@ -662,26 +664,26 @@ public final class DouDiZhuUIController {
      */
     public void showManualJoinDialog(String ipPrefix, ManualJoinCallback joinCallback) {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        builder.setTitle("手动输入IP加入");
+        builder.setTitle(activity.getString(R.string.game_doudizhu_manual_join_title));
         LinearLayout layout = new LinearLayout(activity);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 40, 50, 10);
         final EditText ipInput = new EditText(activity);
-        ipInput.setHint("IP地址");
+        ipInput.setHint(activity.getString(R.string.game_doudizhu_ip_hint));
         if (ipPrefix != null && !ipPrefix.isEmpty()) ipInput.setText(ipPrefix);
         layout.addView(ipInput);
         final EditText portInput = new EditText(activity);
-        portInput.setHint("端口");
+        portInput.setHint(activity.getString(R.string.game_doudizhu_port_hint));
         portInput.setText("8765");
         layout.addView(portInput);
         builder.setView(layout);
-        builder.setPositiveButton("加入", (dialog, which) -> {
+        builder.setPositiveButton(activity.getString(R.string.game_doudizhu_join_btn), (dialog, which) -> {
             String ip = ipInput.getText().toString().trim();
             int port = 8765;
             try { port = Integer.parseInt(portInput.getText().toString().trim()); } catch (NumberFormatException ignored) { Log.w(TAG, "Invalid number format: " + ignored.getMessage()); }
             joinCallback.onJoin(ip, port);
         });
-        builder.setNegativeButton("取消", null);
+        builder.setNegativeButton(activity.getString(R.string.game_doudizhu_cancel_btn), null);
         builder.show();
     }
 
@@ -694,9 +696,9 @@ public final class DouDiZhuUIController {
      */
     public void showRemoteJoinDialog(RemoteJoinCallback joinCallback) {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        builder.setTitle("输入房间码");
+        builder.setTitle(activity.getString(R.string.game_doudizhu_input_code_title));
         final EditText input = new EditText(activity);
-        input.setHint("6位房间码");
+        input.setHint(activity.getString(R.string.game_doudizhu_code_hint));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -720,11 +722,11 @@ public final class DouDiZhuUIController {
             input.setText(clipText.toUpperCase(Locale.ROOT));
         }
         builder.setView(input);
-        builder.setPositiveButton("加入", (dialog, which) -> {
+        builder.setPositiveButton(activity.getString(R.string.game_doudizhu_join_btn), (dialog, which) -> {
             String code = input.getText().toString().trim().toUpperCase(Locale.ROOT);
             joinCallback.onJoin(code);
         });
-        builder.setNegativeButton("取消", null);
+        builder.setNegativeButton(activity.getString(R.string.game_doudizhu_cancel_btn), null);
         builder.show();
     }
 
@@ -736,9 +738,9 @@ public final class DouDiZhuUIController {
      */
     public void showRoomSelectionDialog(String[] roomNames, RoomSelectionCallback selectionCallback) {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        builder.setTitle("选择房间");
+        builder.setTitle(activity.getString(R.string.game_doudizhu_select_room_title));
         builder.setItems(roomNames, (dialog, which) -> selectionCallback.onSelected(which));
-        builder.setNegativeButton("取消", null);
+        builder.setNegativeButton(activity.getString(R.string.game_doudizhu_cancel_btn), null);
         builder.show();
     }
 

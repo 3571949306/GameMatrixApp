@@ -48,7 +48,6 @@
     <color name="info_container">#2E3BB8</color>
 
     <!-- 分类色（深色） -->
-    <!-- TODO A1: 分类色后续 A2 全量迁移至设计 Token -->
     <color name="category_classics_start">#9E6A03</color>
     <color name="category_classics_end">#F9AB00</color>
     <color name="category_puzzle_start">#188038</color>
@@ -58,13 +57,17 @@
     <color name="category_tools_start">#8C9CFF</color>
     <color name="category_tools_end">#5C6BCC</color>
 
+    <!-- 游戏屏中性深色（深色模式对齐主题背景） -->
+    <color name="game_screen_bg">#0E1016</color>
+    <color name="game_screen_grid">#2A2E3A</color>
+
     <!-- 卡片 -->
     <color name="card_glow_primary">#1A8C9CFF</color>
     <color name="card_glow_secondary">#1A9AA0A6</color>
     <color name="surface_elevated">#2A2E3A</color>
 
     <!-- 五子棋（深色） -->
-    <!-- TODO A1-3: 游戏内自定义 View 仍硬编码 accent，后续应改走 ?attr/colorPrimary -->
+    <!-- 游戏内自定义 View 硬编码 accent 后续走 ?attr/colorPrimary -->
     <color name="gomoku_bg">#3E2723</color>
     <color name="gomoku_line">#A1887F</color>
     <color name="gomoku_black_piece">#E3E3E3</color>
@@ -96,7 +99,7 @@
     <color name="snake_text">#E4E6F0</color>
 
     <!-- 斗地主（深色） -->
-    <!-- TODO A1: purple_500 (#B39DDB) 为违规紫品红色，后续功能图标统一替换为 Material Symbols -->
+    <!-- 违规紫 purple_500 (#B39DDB) 已于美化轮清理，无残留引用 -->
     <color name="gold">#FDD663</color>
     <color name="yellow">#FDD663</color>
     <color name="light_gray">#5F6368</color>
@@ -104,7 +107,6 @@
     <color name="black">#0E1016</color>
     <color name="dark_gray">#9AA0A6</color>
     <color name="gray_light">#3E2723</color>
-    <color name="purple_500">#B39DDB</color>
 
     <!-- AI 消息（深色） -->
     <color name="ai_message_user_bg">#2E3BB8</color>
@@ -225,4 +227,59 @@
     <!-- P1-2 隐私仪表盘：统计卡片文字色（彩色背景上使用白色，深色模式保持一致） -->
     <color name="browser_privacy_stat_total_text">#FFFFFF</color>
     <color name="browser_privacy_stat_session_text">#FFFFFF</color>
+
+    <!-- ===== 首页沉浸式改版 (HOME_IMMERSIVE_REVAMP) — 深色 ===== -->
+    <!-- Hero 区主渐变（深色：深品牌蓝紫，简约克制，原过艳紫蓝已收敛） -->
+    <color name="home_immersive_hero_start">#1A237E</color>
+    <color name="home_immersive_hero_center">#283593</color>
+    <color name="home_immersive_hero_end">#3949AB</color>
+    <color name="home_immersive_hero_on_color">#FFFFFF</color>
+    <color name="home_immersive_hero_on_color_variant">#E6FFFFFF</color>
+    <color name="home_immersive_hero_overlay">#1AFFFFFF</color>
+    <color name="home_immersive_hero_overlay_strong">#33FFFFFF</color>
+    <!-- 沉浸式卡片表面（深色：深灰蓝） -->
+    <color name="home_immersive_card_surface">#222633</color>
+    <color name="home_immersive_card_border">#3D4250</color>
+    <color name="home_immersive_stat_chip_bg">#33FFFFFF</color>
+    <color name="home_immersive_stat_chip_text">#FFFFFF</color>
+    <!-- 沉浸式搜索药丸（深色：深表面色 + 蓝色描边） -->
+    <color name="home_immersive_search_pill_bg">#2A2E3A</color>
+    <color name="home_immersive_search_pill_stroke">#335C6CFE</color>
+    <color name="home_immersive_search_pill_text">#C5C9D6</color>
+    <color name="home_immersive_search_pill_hint">#5F6368</color>
+    <!-- 沉浸式空状态引导卡片（深色） -->
+    <color name="home_immersive_empty_card_start">#222633</color>
+    <color name="home_immersive_empty_card_end">#2E3BB8</color>
+    <color name="home_immersive_empty_card_text">#9AA0A6</color>
+    <color name="home_immersive_empty_card_accent">#8C9CFF</color>
+
+    <!-- ===== 首页 V2 游戏霓虹风色板（深色，HOME_REVAMP_V2, 2026-07-22） ===== -->
+    <!-- Hero 渐变：深表面 → 品牌深蓝 → 品牌蓝（简约克制，原霓虹紫已收敛） -->
+    <color name="home_v2_hero_start">#161922</color>
+    <color name="home_v2_hero_center">#2E3BB8</color>
+    <color name="home_v2_hero_end">#5C6CFE</color>
+    <color name="home_v2_hero_on_color">#FFFFFF</color>
+    <color name="home_v2_hero_on_color_variant">#E6FFFFFF</color>
+    <color name="home_v2_hero_overlay">#1AFFFFFF</color>
+    <color name="home_v2_hero_overlay_strong">#33FFFFFF</color>
+    <color name="home_v2_card_surface">#222633</color>
+    <color name="home_v2_card_border">#3D4250</color>
+    <color name="home_v2_stat_chip_bg">#33FFFFFF</color>
+    <color name="home_v2_stat_chip_text">#FFFFFF</color>
+    <color name="home_v2_search_pill_bg">#2A2E3A</color>
+    <color name="home_v2_search_pill_stroke">#335C6CFE</color>
+    <color name="home_v2_search_pill_text">#C5C9D6</color>
+    <color name="home_v2_search_pill_hint">#5F6368</color>
+    <color name="home_v2_hero_card_overlay">#CC000000</color>
+    <color name="home_v2_hero_card_overlay_start">#00000000</color>
+    <color name="home_v2_hero_card_overlay_end">#CC000000</color>
+    <color name="home_v2_hero_card_accent">#FFC24D</color>
+    <color name="home_v2_hero_card_badge">#8C9CFF</color>
+    <color name="home_v2_category_classics">#FFB300</color>
+    <color name="home_v2_category_puzzle">#00897B</color>
+    <color name="home_v2_category_casual">#FF5722</color>
+    <color name="home_v2_empty_card_start">#222633</color>
+    <color name="home_v2_empty_card_end">#2E3BB8</color>
+    <color name="home_v2_empty_card_text">#9AA0A6</color>
+    <color name="home_v2_empty_card_accent">#8C9CFF</color>
 </resources>
