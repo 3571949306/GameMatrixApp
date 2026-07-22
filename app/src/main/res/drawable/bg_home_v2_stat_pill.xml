@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 首页 V2 统计 chip 背景：半透明白 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/home_v2_stat_chip_bg" />
+    <corners android:radius="@dimen/corner_radius_large" />
+</shape>

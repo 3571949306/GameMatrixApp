@@ -8,6 +8,10 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.core.content.ContextCompat;
+
+import com.gamecenter.app.R;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +67,7 @@ public class PlaneView extends View {
     private List<float[]> enemies = new ArrayList<>();      // [x, y, speed]
     private Random random = new Random();
     private OnGameListener listener;
+    private float difficultyFactor = 0.5f;
 
     // ==================== 构造方法 ====================
 
@@ -73,11 +78,19 @@ public class PlaneView extends View {
 
     private void init() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        setBackgroundColor(0xFF0D1B2A);
+        setBackgroundColor(ContextCompat.getColor(getContext(), R.color.game_screen_bg));
     }
 
     public void setOnGameListener(OnGameListener listener) {
         this.listener = listener;
+    }
+
+    /**
+     * 设置难度因子（由 Activity 根据难度调用）。
+     * 内部按 factor / 0.5 归一化为倍率 dm：简单 0.6 / 普通 1.0 / 困难 1.6。
+     */
+    public void setDifficultyFactor(float factor) {
+        this.difficultyFactor = factor;
     }
 
     // ==================== 游戏控制 ====================
@@ -173,10 +186,10 @@ public class PlaneView extends View {
 
         // 绘制分数和波次
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("分：" + score, viewWidth - 16, 40, paint);
+        canvas.drawText(getContext().getString(R.string.game_plane_score_label, score), viewWidth - 16, 40, paint);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(18);
-        canvas.drawText("波次 " + wave, viewWidth / 2, viewHeight - 16, paint);
+        canvas.drawText(getContext().getString(R.string.game_plane_wave_label, wave), viewWidth / 2, viewHeight - 16, paint);
     }
 
     // ==================== 游戏循环 ====================
@@ -209,8 +222,9 @@ public class PlaneView extends View {
         }
 
         // 生成敌机
-        float enemySpeed = INITIAL_ENEMY_SPEED + wave * 0.3f;
-        if (now - lastEnemySpawnTime >= Math.max(500, ENEMY_SPAWN_INTERVAL_MS - wave * 100)) {
+        float dm = difficultyFactor / 0.5f;
+        float enemySpeed = (INITIAL_ENEMY_SPEED + wave * 0.3f) * dm;
+        if (now - lastEnemySpawnTime >= Math.max(500, (ENEMY_SPAWN_INTERVAL_MS - wave * 100) / dm)) {
             float ex = ENEMY_WIDTH / 2 + random.nextFloat() * (viewWidth - ENEMY_WIDTH);
             enemies.add(new float[]{ex, -ENEMY_HEIGHT, enemySpeed});
             lastEnemySpawnTime = now;

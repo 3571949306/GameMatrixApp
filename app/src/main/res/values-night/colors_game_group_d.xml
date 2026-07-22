@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ========== 休闲游戏组 D 颜色（深色主题） ========== -->
+    <!-- 与浅色主题对应；提升明度以保证深色背景下的可读性 -->
+    <!-- 注：仅提取 UI 元素颜色（背景/文字/按钮），不包含 Canvas onDraw 中的 paint.setColor -->
+
+    <!-- ===== Dice 骰子 ===== -->
+    <color name="game_dice_color_bg">#1A1D24</color>
+    <color name="game_dice_color_text_primary">#E4E6F0</color>
+    <color name="game_dice_color_text_secondary">#7DAB94</color>
+    <color name="game_dice_color_btn_primary">#7DAB94</color>
+    <color name="game_dice_color_btn_double">#FFB74D</color>
+
+    <!-- ===== Guess 猜数字 ===== -->
+    <color name="game_guess_color_bg">#1A1D24</color>
+    <color name="game_guess_color_text_primary">#E4E6F0</color>
+    <color name="game_guess_color_text_secondary">#7DAB94</color>
+    <color name="game_guess_color_btn_primary">#7DAB94</color>
+    <color name="game_guess_color_btn_new_game_bg">#2A2F3D</color>
+    <color name="game_guess_color_text_history">#AAAAAA</color>
+
+    <!-- ===== Reaction 反应力 ===== -->
+    <color name="game_reaction_color_bg">#1A1D24</color>
+    <color name="game_reaction_color_text_primary">#E4E6F0</color>
+    <color name="game_reaction_color_text_secondary">#7DAB94</color>
+    <color name="game_reaction_color_btn_start">#7DAB94</color>
+    <color name="game_reaction_color_btn_retry_bg">#2A2F3D</color>
+    <color name="game_reaction_color_idle">#2A2F3D</color>
+    <color name="game_reaction_color_waiting">#EF5350</color>
+    <color name="game_reaction_color_ready">#66BB6A</color>
+    <color name="game_reaction_color_too_early">#FFB74D</color>
+    <color name="game_reaction_color_result">#7DAB94</color>
+
+    <!-- ===== Whack 打地鼠 ===== -->
+    <color name="game_whack_color_bg">#1A1D24</color>
+    <color name="game_whack_color_text_primary">#E4E6F0</color>
+    <color name="game_whack_color_timer">#EF5350</color>
+    <color name="game_whack_color_text_secondary">#7DAB94</color>
+    <color name="game_whack_color_btn_start">#7DAB94</color>
+    <color name="game_whack_color_hole">#A1887F</color>
+    <color name="game_whack_color_mole">#66BB6A</color>
+    <color name="game_whack_color_hit">#FDD835</color>
+
+    <!-- ===== Rock 猜拳 ===== -->
+    <color name="game_rock_color_bg">#1A1D24</color>
+    <color name="game_rock_color_text_primary">#E4E6F0</color>
+    <color name="game_rock_color_text_secondary">#7DAB94</color>
+    <color name="game_rock_color_btn_choice_bg">#2A2F3D</color>
+    <color name="game_rock_color_btn_restart">#7DAB94</color>
+
+    <!-- ===== Blackjack 21点 ===== -->
+    <color name="game_blackjack_color_bg">#1A1D24</color>
+    <color name="game_blackjack_color_text_primary">#E4E6F0</color>
+    <color name="game_blackjack_color_text_secondary">#7DAB94</color>
+    <color name="game_blackjack_color_dealer_total">#EF5350</color>
+    <color name="game_blackjack_color_player_total">#66BB6A</color>
+    <color name="game_blackjack_color_btn_hit">#66BB6A</color>
+    <color name="game_blackjack_color_btn_stand">#EF5350</color>
+</resources>

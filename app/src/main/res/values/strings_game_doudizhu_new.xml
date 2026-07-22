@@ -16,4 +16,98 @@
     <string name="doudizhu_ach_landlord_win_desc">作为地主获胜一次</string>
     <string name="doudizhu_ach_farmer_win_name">农民英雄</string>
     <string name="doudizhu_ach_farmer_win_desc">作为农民获胜一次</string>
+
+    <!-- 2026-07-22: 本地化重构 — UI 字符串提取 -->
+    <!-- 玩家身份标签 -->
+    <string name="game_doudizhu_role_you_landlord">你（地主）</string>
+    <string name="game_doudizhu_role_you_farmer">你（农民）</string>
+    <string name="game_doudizhu_role_left_ai_landlord">左AI（地主）</string>
+    <string name="game_doudizhu_role_left_ai_farmer">左AI（农民）</string>
+    <string name="game_doudizhu_role_right_ai_landlord">右AI（地主）</string>
+    <string name="game_doudizhu_role_right_ai_farmer">右AI（农民）</string>
+
+    <!-- 叫地主 Toast -->
+    <string name="game_doudizhu_you_bid">你叫了 %1$d 分</string>
+    <string name="game_doudizhu_must_bid_higher">必须叫比当前更高的分数</string>
+    <string name="game_doudizhu_ai_calls_landlord">%1$s 叫地主</string>
+    <string name="game_doudizhu_ai_passes_bid">%1$s 不叫</string>
+    <string name="game_doudizhu_all_pass_must_call">所有人都选择不叫，你必须叫地主</string>
+
+    <!-- 出牌 Toast -->
+    <string name="game_doudizhu_select_cards">请选择要出的牌</string>
+    <string name="game_doudizhu_invalid_card_type">选择的牌型不合法</string>
+    <string name="game_doudizhu_cannot_beat">打不过上家的牌</string>
+    <string name="game_doudizhu_no_beat_pass">没有能打过的牌，请选择\'不出\'</string>
+    <string name="game_doudizhu_hint_suggest">提示：建议出 %1$s</string>
+    <string name="game_doudizhu_cannot_pass_first">当前你先出牌，不能不要</string>
+
+    <!-- 游戏结束 -->
+    <string name="game_doudizhu_you_win">你赢了！</string>
+    <string name="game_doudizhu_you_lose">你输了！</string>
+    <string name="game_doudizhu_game_over">游戏结束</string>
+    <string name="game_doudizhu_score_detail">本局得分：%1$s</string>
+
+    <!-- 状态指示器 -->
+    <string name="game_doudizhu_landlord_label">地主：</string>
+    <string name="game_doudizhu_turn_label">轮到：%1$s</string>
+    <string name="game_doudizhu_player_you">你</string>
+    <string name="game_doudizhu_player_left_ai">左AI</string>
+    <string name="game_doudizhu_player_right_ai">右AI</string>
+    <string name="game_doudizhu_player_pending">待定</string>
+    <string name="game_doudizhu_turn_you">你出牌</string>
+    <string name="game_doudizhu_turn_left_ai">左AI出牌</string>
+    <string name="game_doudizhu_turn_right_ai">右AI出牌</string>
+
+    <!-- UIController — 大厅与联机 -->
+    <string name="game_doudizhu_cloud_open">云开房</string>
+    <string name="game_doudizhu_create_room">创建房间</string>
+    <string name="game_doudizhu_enter_room_code">输入房间码</string>
+    <string name="game_doudizhu_join_room">加入房间</string>
+    <string name="game_doudizhu_cloud_title">斗地主云联机</string>
+    <string name="game_doudizhu_lobby_hint">选择操作创建或加入房间</string>
+    <string name="game_doudizhu_host_cloud_hint">房主点\u201C云开房\u201D生成 6 位房间码。\n\n其他玩家点\u201C输入房间码\u201D，输入或粘贴房间码即可加入。\n旧版 p2p://IP:端口 地址仍可作为高级直连入口。</string>
+    <string name="game_doudizhu_lan_join_hint">点击\"加入房间\"搜索局域网房间</string>
+    <string name="game_doudizhu_status_cloud_host">云联机房主</string>
+    <string name="game_doudizhu_status_host">主机</string>
+    <string name="game_doudizhu_status_connected_cloud">已连接云房间</string>
+    <string name="game_doudizhu_status_connected_host">已连接主机</string>
+    <string name="game_doudizhu_copied">已复制到剪贴板</string>
+
+    <!-- UIController — 对话框 -->
+    <string name="game_doudizhu_manual_join_title">手动输入IP加入</string>
+    <string name="game_doudizhu_ip_hint">IP地址</string>
+    <string name="game_doudizhu_port_hint">端口</string>
+    <string name="game_doudizhu_join_btn">加入</string>
+    <string name="game_doudizhu_cancel_btn">取消</string>
+    <string name="game_doudizhu_input_code_title">输入房间码</string>
+    <string name="game_doudizhu_code_hint">6位房间码</string>
+    <string name="game_doudizhu_select_room_title">选择房间</string>
+
+    <!-- TableView — 桌面绘制文字 -->
+    <string name="game_doudizhu_p1_pending">P1（待定）</string>
+    <string name="game_doudizhu_ai_pending">人机（待定）</string>
+    <string name="game_doudizhu_p1_landlord">P1（地主）</string>
+    <string name="game_doudizhu_p1_farmer">P1（农民）</string>
+    <string name="game_doudizhu_p2_landlord">P2（地主）</string>
+    <string name="game_doudizhu_p2_farmer">P2（农民）</string>
+    <string name="game_doudizhu_p3_landlord">P3（地主）</string>
+    <string name="game_doudizhu_p3_farmer">P3（农民）</string>
+    <string name="game_doudizhu_pass_label">不出</string>
+    <string name="game_doudizhu_card_counter">记牌</string>
+    <string name="game_doudizhu_cards_remaining">剩 %1$d</string>
+    <string name="game_doudizhu_select_prompt">请选择要出的牌</string>
+    <string name="game_doudizhu_btn_play">出牌</string>
+    <string name="game_doudizhu_btn_pass">不出</string>
+    <string name="game_doudizhu_btn_hint">提示</string>
+    <string name="game_doudizhu_joker_small">小</string>
+    <string name="game_doudizhu_joker_big">大</string>
+    <string name="game_doudizhu_joker_king">王</string>
+
+    <!-- 2026-07-22: 本地化重构 — 特效名称（canvas.drawText 提取） -->
+    <string name="game_doudizhu_effect_rocket">王炸</string>
+    <string name="game_doudizhu_effect_bomb">炸弹</string>
+    <string name="game_doudizhu_effect_plane">飞机</string>
+    <string name="game_doudizhu_effect_spring">春天</string>
+    <string name="game_doudizhu_effect_straight">顺子</string>
+    <string name="game_doudizhu_effect_consecutive_pairs">连对</string>
 </resources>

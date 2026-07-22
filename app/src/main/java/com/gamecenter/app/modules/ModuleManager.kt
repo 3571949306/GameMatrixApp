@@ -23,6 +23,8 @@ object ModuleManager {
     private const val PREFS_NAME = "module_manager_prefs"
     private const val KEY_INSTALLED_MODULES = "installed_modules"
     private const val KEY_MODULE_VERSION_PREFIX = "module_version_"
+    private const val KEY_LAST_GOOD_VERSION_PREFIX = "module_last_good_version_"
+    private const val KEY_DISABLED_MODULES = "disabled_modules"
     private const val KEY_MODULES_LIST_VERSION = "modules_list_version"
     private const val KEY_MODULES_LIST_JSON = "modules_list_json"
     /** Batch 21: ETag 缓存协商 — 服务端返回 304 时跳过全量下载 */
@@ -235,6 +237,8 @@ object ModuleManager {
 
             override fun onComplete(moduleId: String, file: File) {
                 Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
+                downloadCallbacks[moduleId]?.onStateChanged(moduleId, "installing")
+                rememberLastGoodVersion(context, manifest)
                 
                 // P3: 事务性安装 - 将文件从 staging 移动到 current
                 val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
@@ -266,6 +270,10 @@ object ModuleManager {
                 Log.e(TAG, "onError: $moduleId message=$message")
                 downloadCallbacks[moduleId]?.onError(moduleId, message)
                 downloadCallbacks.remove(moduleId)
+            }
+
+            override fun onStateChanged(moduleId: String, state: String) {
+                downloadCallbacks[moduleId]?.onStateChanged(moduleId, state)
             }
 
             override fun onSourceSwitch(moduleId: String, sourceIndex: Int, url: String) {
@@ -355,6 +363,21 @@ object ModuleManager {
     /** 返回所有已加载模块清单映射表（ID → Manifest） */
     fun getManifests(): Map<String, ModuleManifest> = HashMap(manifests)
 
+    /**
+     * 将已经过商店目录信任链校验的清单注册到运行时索引。
+     *
+     * 底部导航在冷启动时需要从上次成功的 Catalog 缓存恢复远程模块元数据，
+     * 但不能因此触发网络请求或绕过现有下载/安装器。这里只更新内存索引；
+     * APK 是否已安装、签名与 SHA-256 是否有效，仍由现有 ModuleManager/ModuleLoader
+     * 权威链路判断。
+     */
+    fun registerAvailableManifests(available: Collection<ModuleManifest>) {
+        for (manifest in available) {
+            manifests[manifest.id] = manifest
+        }
+        registerLocalFallbackIfNeeded()
+    }
+
     fun getAvailableModules(): List<ModuleManifest> = manifests.values.toList()
 
     fun getModuleManifest(moduleId: String): ModuleManifest? {
@@ -377,6 +400,54 @@ object ModuleManager {
             }
         }
         return installed
+    }
+
+    fun isModuleEnabled(context: Context, moduleId: String): Boolean {
+        val disabled = prefs(context).getStringSet(KEY_DISABLED_MODULES, emptySet()) ?: emptySet()
+        return !disabled.contains(moduleId)
+    }
+
+    fun setModuleEnabled(context: Context, moduleId: String, enabled: Boolean): Boolean {
+        val manifest = getModuleManifest(moduleId) ?: return false
+        if (!enabled && (manifest.required || manifest.isBaseFramework)) return false
+        val disabled = prefs(context).getStringSet(KEY_DISABLED_MODULES, emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
+        if (enabled) disabled.remove(moduleId) else disabled.add(moduleId)
+        prefs(context).edit().putStringSet(KEY_DISABLED_MODULES, disabled).apply()
+        if (!enabled) ModuleLoader.unloadModule(moduleId)
+        return true
+    }
+
+    fun hasRollback(context: Context, moduleId: String): Boolean {
+        val manifest = getModuleManifest(moduleId) ?: return false
+        return manifest.rollbackAllowed &&
+            com.gamecenter.app.modules.store.TransactionInstaller.getLastGoodFile(context, manifest).exists()
+    }
+
+    fun rollbackModule(context: Context, moduleId: String): Boolean {
+        val manifest = getModuleManifest(moduleId) ?: return false
+        if (!manifest.rollbackAllowed) return false
+        ModuleLoader.unloadModule(moduleId)
+        val rolledBack = com.gamecenter.app.modules.store.TransactionInstaller.rollback(context, manifest)
+        if (!rolledBack) return false
+        val p = prefs(context)
+        val currentVersion = p.getInt(KEY_MODULE_VERSION_PREFIX + moduleId, manifest.versionCode)
+        val lastGoodVersion = p.getInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, 0)
+        p.edit()
+            .putInt(KEY_MODULE_VERSION_PREFIX + moduleId, if (lastGoodVersion > 0) lastGoodVersion else currentVersion)
+            .putInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, currentVersion)
+            .apply()
+        return true
+    }
+
+    private fun rememberLastGoodVersion(context: Context, manifest: ModuleManifest) {
+        if (!isModuleInstalled(context, manifest.id)) return
+        val oldVersion = getInstalledVersionCode(context, manifest.id)
+        if (oldVersion > 0 && oldVersion != manifest.versionCode) {
+            prefs(context).edit()
+                .putInt(KEY_LAST_GOOD_VERSION_PREFIX + manifest.id, oldVersion)
+                .apply()
+        }
     }
 
     /** 本地内置模块兜底 — 无条件覆盖（不检查 containsKey），确保非内置模块的关键字段（sha256 等）不被缓存脏数据覆盖 */
@@ -447,7 +518,9 @@ object ModuleManager {
         p.edit()
             .putStringSet(KEY_INSTALLED_MODULES, installed)
             .remove(KEY_MODULE_VERSION_PREFIX + moduleId)
+            .remove(KEY_LAST_GOOD_VERSION_PREFIX + moduleId)
             .apply()
+        setModuleEnabled(context, moduleId, true)
     }
 
     fun cancelDownload(moduleId: String) = ModuleDownloader.cancel(moduleId)

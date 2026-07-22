@@ -12,9 +12,11 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
+import com.gamecenter.app.games.model.DifficultyLevel;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -43,25 +45,25 @@ import java.util.List;
  */
 public class MemoryActivity extends BaseGameActivity {
 
-    /** 网格行数 */
-    private static final int GRID_ROWS = 4;
-    /** 网格列数 */
-    private static final int GRID_COLS = 4;
-    /** 总卡牌数 */
-    private static final int TOTAL_CARDS = GRID_ROWS * GRID_COLS;
-    /** 对数 */
-    private static final int PAIR_COUNT = TOTAL_CARDS / 2;
+    /** 网格行数（可变，由难度设置） */
+    private int gridRows = 4;
+    /** 网格列数（可变，由难度设置） */
+    private int gridCols = 4;
+    /** 总卡牌数（可变，由难度设置） */
+    private int totalCards = gridRows * gridCols;
+    /** 对数（可变，由难度设置） */
+    private int pairCount = totalCards / 2;
 
-    /** 卡牌图案（emoji 表情符号） */
-    private static final String[] CARD_SYMBOLS = {"🍎", "🍊", "🍋", "🍇", "🍓", "🍒", "🥝", "🍑"};
+    /** 卡牌图案（emoji 表情符号），覆盖最高难度（12 对）所需 */
+    private static final String[] CARD_SYMBOLS = {"🍎", "🍊", "🍋", "🍇", "🍓", "🍒", "🥝", "🍑", "🍌", "🥑", "🌽", "🥕"};
 
     /** 翻牌延迟（毫秒） */
     private static final long FLIP_DELAY_MS = 800;
 
     // 游戏状态
-    private int[] cardValues = new int[TOTAL_CARDS];
-    private boolean[] cardRevealed = new boolean[TOTAL_CARDS];
-    private boolean[] cardMatched = new boolean[TOTAL_CARDS];
+    private int[] cardValues = new int[totalCards];
+    private boolean[] cardRevealed = new boolean[totalCards];
+    private boolean[] cardMatched = new boolean[totalCards];
     private int firstSelectedIndex = -1;
     private int secondSelectedIndex = -1;
     private boolean isProcessing = false;
@@ -106,6 +108,37 @@ public class MemoryActivity extends BaseGameActivity {
         }
     }
 
+    @NonNull
+    @Override
+    public List<DifficultyLevel> getDifficultyLevels() {
+        List<DifficultyLevel> levels = new ArrayList<>();
+        levels.add(new DifficultyLevel(getString(R.string.game_memory_diff_easy), 1, getString(R.string.game_memory_diff_easy_desc), 0, 0, 1.0f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_memory_diff_normal), 2, getString(R.string.game_memory_diff_normal_desc), 0, 0, 1.5f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_memory_diff_hard), 3, getString(R.string.game_memory_diff_hard_desc), 0, 0, 2.0f, false));
+        return levels;
+    }
+
+    @Override
+    public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
+                                    @NonNull DifficultyLevel newLevel) {
+        // 根据难度设置可变网格大小字段（实际网格在 startNewGame->rebuildGrid 中重建）
+        switch (newLevel.level) {
+            case 1:
+                gridRows = 4; gridCols = 4;
+                break;
+            case 2:
+                gridRows = 4; gridCols = 5;
+                break;
+            case 3:
+                gridRows = 4; gridCols = 6;
+                break;
+            default:
+                break;
+        }
+        totalCards = gridRows * gridCols;
+        pairCount = totalCards / 2;
+    }
+
     /**
      * 创建游戏内容视图
      */
@@ -113,13 +146,13 @@ public class MemoryActivity extends BaseGameActivity {
         android.widget.LinearLayout root = new android.widget.LinearLayout(this);
         root.setOrientation(android.widget.LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_bg));
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_text));
         tvStatus.setPadding(0, 32, 0, 8);
         tvStatus.setText(R.string.game_memory_press_start);
 
@@ -127,7 +160,7 @@ public class MemoryActivity extends BaseGameActivity {
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_stats));
         tvStats.setPadding(0, 8, 0, 16);
         tvStats.setText("");
 
@@ -135,20 +168,20 @@ public class MemoryActivity extends BaseGameActivity {
         btnStart = new MaterialButton(this);
         btnStart.setText(R.string.game_memory_start);
         btnStart.setOnClickListener(v -> startNewGame());
-        btnStart.setBackgroundColor(0xFF5B8A72);
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_btn_start));
 
         // 卡牌网格
         gridLayout = new GridLayout(this);
-        gridLayout.setColumnCount(GRID_COLS);
-        gridLayout.setRowCount(GRID_ROWS);
+        gridLayout.setColumnCount(gridCols);
+        gridLayout.setRowCount(gridRows);
         gridLayout.setUseDefaultMargins(true);
         gridLayout.setVisibility(View.GONE);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int cardSize = (int) (screenWidth * 0.85 / GRID_COLS);
+        int cardSize = (int) (screenWidth * 0.85 / gridCols);
 
-        cardButtons = new MaterialButton[TOTAL_CARDS];
-        for (int i = 0; i < TOTAL_CARDS; i++) {
+        cardButtons = new MaterialButton[totalCards];
+        for (int i = 0; i < totalCards; i++) {
             final int index = i;
             MaterialButton btn = new MaterialButton(this);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
@@ -158,8 +191,8 @@ public class MemoryActivity extends BaseGameActivity {
             btn.setLayoutParams(params);
             btn.setText("?");
             btn.setTextSize(24f);
-            btn.setTextColor(0xFF5B8A72);
-            btn.setBackgroundColor(0xFFFBF9F6);
+            btn.setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_card_back_text));
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_card_back));
             btn.setOnClickListener(v -> onCardClick(index));
             cardButtons[i] = btn;
             gridLayout.addView(btn);
@@ -181,9 +214,9 @@ public class MemoryActivity extends BaseGameActivity {
         gridLayout.setVisibility(View.VISIBLE);
 
         // 初始化卡牌
-        cardValues = new int[TOTAL_CARDS];
-        cardRevealed = new boolean[TOTAL_CARDS];
-        cardMatched = new boolean[TOTAL_CARDS];
+        cardValues = new int[totalCards];
+        cardRevealed = new boolean[totalCards];
+        cardMatched = new boolean[totalCards];
         firstSelectedIndex = -1;
         secondSelectedIndex = -1;
         isProcessing = false;
@@ -194,28 +227,56 @@ public class MemoryActivity extends BaseGameActivity {
 
         // 创建配对
         List<Integer> values = new ArrayList<>();
-        for (int i = 0; i < PAIR_COUNT; i++) {
+        for (int i = 0; i < pairCount; i++) {
             values.add(i);
             values.add(i);
         }
         Collections.shuffle(values);
-        for (int i = 0; i < TOTAL_CARDS; i++) {
+        for (int i = 0; i < totalCards; i++) {
             cardValues[i] = values.get(i);
         }
 
-        // 更新 UI
-        for (int i = 0; i < TOTAL_CARDS; i++) {
-            cardButtons[i].setText("?");
-            cardButtons[i].setTextColor(0xFF5B8A72);
-            cardButtons[i].setBackgroundColor(0xFFFBF9F6);
-            cardButtons[i].setEnabled(true);
-        }
+        // 重建网格以适配当前难度对应的网格大小
+        rebuildGrid();
 
         tvStatus.setText(R.string.game_memory_playing);
         updateStatsDisplay();
 
         isGameRunning = true;
         gameStartTime = System.currentTimeMillis();
+    }
+
+    /**
+     * 根据当前网格大小重建卡牌网格。
+     *
+     * <p>难度变更会改变 gridRows/gridCols/totalCards，因此每局开始时重建网格，
+     * 确保按钮数量与当前难度匹配（简单 4x4 / 普通 4x5 / 困难 4x6）。</p>
+     */
+    private void rebuildGrid() {
+        gridLayout.removeAllViews();
+        gridLayout.setColumnCount(gridCols);
+        gridLayout.setRowCount(gridRows);
+
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int cardSize = (int) (screenWidth * 0.85 / gridCols);
+
+        cardButtons = new MaterialButton[totalCards];
+        for (int i = 0; i < totalCards; i++) {
+            final int index = i;
+            MaterialButton btn = new MaterialButton(this);
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = cardSize;
+            params.height = cardSize;
+            params.setMargins(6, 6, 6, 6);
+            btn.setLayoutParams(params);
+            btn.setText("?");
+            btn.setTextSize(24f);
+            btn.setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_card_back_text));
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_card_back));
+            btn.setOnClickListener(v -> onCardClick(index));
+            cardButtons[i] = btn;
+            gridLayout.addView(btn);
+        }
     }
 
     /**
@@ -268,8 +329,8 @@ public class MemoryActivity extends BaseGameActivity {
     private void revealCard(int index) {
         cardRevealed[index] = true;
         cardButtons[index].setText(CARD_SYMBOLS[cardValues[index]]);
-        cardButtons[index].setTextColor(0xFF2D2D2D);
-        cardButtons[index].setBackgroundColor(0xFFE8F5E9);
+        cardButtons[index].setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_card_front_text));
+        cardButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_card_front));
     }
 
     /**
@@ -278,8 +339,8 @@ public class MemoryActivity extends BaseGameActivity {
     private void hideCard(int index) {
         cardRevealed[index] = false;
         cardButtons[index].setText("?");
-        cardButtons[index].setTextColor(0xFF5B8A72);
-        cardButtons[index].setBackgroundColor(0xFFFBF9F6);
+        cardButtons[index].setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_card_back_text));
+        cardButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_card_back));
     }
 
     /**
@@ -288,10 +349,10 @@ public class MemoryActivity extends BaseGameActivity {
     private void onMatchSuccess() {
         cardMatched[firstSelectedIndex] = true;
         cardMatched[secondSelectedIndex] = true;
-        cardButtons[firstSelectedIndex].setBackgroundColor(0xFF5B8A72);
-        cardButtons[firstSelectedIndex].setTextColor(0xFFFFFFFF);
-        cardButtons[secondSelectedIndex].setBackgroundColor(0xFF5B8A72);
-        cardButtons[secondSelectedIndex].setTextColor(0xFFFFFFFF);
+        cardButtons[firstSelectedIndex].setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_card_matched));
+        cardButtons[firstSelectedIndex].setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_card_matched_text));
+        cardButtons[secondSelectedIndex].setBackgroundColor(ContextCompat.getColor(this, R.color.game_memory_color_card_matched));
+        cardButtons[secondSelectedIndex].setTextColor(ContextCompat.getColor(this, R.color.game_memory_color_card_matched_text));
         cardButtons[firstSelectedIndex].setEnabled(false);
         cardButtons[secondSelectedIndex].setEnabled(false);
 
@@ -302,7 +363,7 @@ public class MemoryActivity extends BaseGameActivity {
         updateStatsDisplay();
 
         // 检查是否全部配对完成
-        if (matchedPairs == PAIR_COUNT) {
+        if (matchedPairs == pairCount) {
             onGameComplete();
         }
     }
@@ -331,6 +392,9 @@ public class MemoryActivity extends BaseGameActivity {
         usageStore.recordWin(getGameId());
         usageStore.recordPlayTime(getGameId(), elapsedMs);
 
+        // 最高分持久化
+        recordHighScore(currentScore);
+
         // 显示重新开始按钮
         btnStart.setText(R.string.game_memory_play_again);
         btnStart.setVisibility(View.VISIBLE);
@@ -344,7 +408,7 @@ public class MemoryActivity extends BaseGameActivity {
         if (startTimeMs > 0 && isGameRunning) {
             elapsed = (System.currentTimeMillis() - startTimeMs) / 1000;
         }
-        tvStats.setText(getString(R.string.game_memory_stats, moveCount, matchedPairs, PAIR_COUNT, elapsed));
+        tvStats.setText(getString(R.string.game_memory_stats, moveCount, matchedPairs, pairCount, elapsed));
     }
 
     @Override

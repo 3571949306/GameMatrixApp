@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 棋类 B 组游戏 UI 颜色（深色主题） -->
+<!-- 仅包含 UI 元素颜色（setBackground/setTextColor），不含 Canvas onDraw 绘制色 -->
+<resources>
+    <!-- 围棋：UI 颜色（深色变体） -->
+    <color name="game_go_color_bg">#1B1E22</color>
+    <color name="game_go_color_status_text">#E4E6F0</color>
+    <color name="game_go_color_score_text">#7DC79A</color>
+    <color name="game_go_color_label_text">#9AA0A6</color>
+    <color name="game_go_color_diff_1">#7DC79A</color>
+    <color name="game_go_color_diff_2">#FFB74D</color>
+    <color name="game_go_color_diff_3">#EF9A9A</color>
+    <color name="game_go_color_diff_4">#BA68C8</color>
+    <color name="game_go_color_diff_inactive">#616161</color>
+    <color name="game_go_color_button_text">#FFFFFF</color>
+
+    <!-- 井字棋：UI 颜色（深色变体） -->
+    <color name="game_tic_color_bg">#1B1E22</color>
+    <color name="game_tic_color_status_text">#E4E6F0</color>
+    <color name="game_tic_color_diff_label">#7DC79A</color>
+
+    <!-- 跳棋：UI 颜色（深色变体） -->
+    <color name="game_checkers_color_bg">#1B1E22</color>
+    <color name="game_checkers_color_status_text">#E4E6F0</color>
+    <color name="game_checkers_color_diff_label">#7DC79A</color>
+
+    <!-- 中国象棋：UI 颜色（深色变体） -->
+    <color name="game_chinesechess_color_red_piece">#EF9A9A</color>
+    <color name="game_chinesechess_color_black_piece">#E4E6F0</color>
+    <color name="game_chinesechess_color_timer_critical">#EF5350</color>
+    <color name="game_chinesechess_color_timer_warning">#FF8A65</color>
+    <color name="game_chinesechess_color_timer_normal">#E4E6F0</color>
+
+    <!-- 斗地主：UI 颜色（深色变体） -->
+    <color name="game_doudizhu_color_connection_ok">#81C784</color>
+</resources>

@@ -12,6 +12,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -118,13 +119,13 @@ public class TicTacToeActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_tic_color_bg));
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_tic_color_status_text));
         tvStatus.setPadding(0, 24, 0, 12);
         tvStatus.setText(R.string.game_tic_select_difficulty);
 
@@ -132,7 +133,7 @@ public class TicTacToeActivity extends BaseGameActivity {
         tvDifficultyLabel = new TextView(this);
         tvDifficultyLabel.setGravity(Gravity.CENTER);
         tvDifficultyLabel.setTextSize(14f);
-        tvDifficultyLabel.setTextColor(0xFF5B8A72);
+        tvDifficultyLabel.setTextColor(ContextCompat.getColor(this, R.color.game_tic_color_diff_label));
         tvDifficultyLabel.setPadding(0, 8, 0, 16);
 
         // 菜单面板

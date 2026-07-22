@@ -26,4 +26,12 @@
     <string name="game_tiles_ach_streak_5_desc">连续成功消除5对</string>
     <string name="game_tiles_ach_10_levels">连连看大师</string>
     <string name="game_tiles_ach_10_levels_desc">累计通过10关</string>
+
+    <!-- UI 文案 -->
+    <string name="game_tiles_status_hint">找出相同的牌消除！</string>
+    <string name="game_tiles_start">开始游戏</string>
+    <string name="game_tiles_level_hint">关卡 %1$d - 找出相同的牌！</string>
+    <string name="game_tiles_next_level">下一关（关卡 %1$d）</string>
+    <string name="game_tiles_level_complete">🎉 关卡 %1$d 通关！用了 %2$d 步，耗时 %3$d 秒</string>
+    <string name="game_tiles_stats">关卡：%1$d | 剩余：%2$d对 | 步数：%3$d</string>
 </resources>

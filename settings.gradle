@@ -1,4 +1,11 @@
 pluginManagement {
+    def flutterPropertiesFile = file('flutter_module/.android/local.properties')
+    if (flutterPropertiesFile.exists()) {
+        def flutterProperties = new Properties()
+        flutterPropertiesFile.withInputStream { flutterProperties.load(it) }
+        def flutterSdkPath = flutterProperties.getProperty('flutter.sdk')
+        if (flutterSdkPath) includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
+    }
     repositories {
         google()
         mavenCentral()
@@ -67,3 +74,16 @@ include ':module-store:feature:games:games:hall'
 include ':module-store:feature:games:games:chinesechess'
 include ':module-store:feature:games:games:klotski'
 include ':module-store:feature:games:games:tts'
+
+// Flutter Add-to-App module. The generated .android directory is recreated by
+// `flutter pub get`; keeping the check explicit makes a missing SDK/bootstrap
+// step fail with a useful message instead of an opaque Gradle project error.
+def flutterModuleRoot = new File(rootDir, 'flutter_module')
+def flutterIncludeScript = new File(flutterModuleRoot, 'host_include.gradle')
+if (!flutterIncludeScript.exists()) {
+    throw new GradleException(
+        "Flutter module bootstrap is missing. Run " +
+        "D:\\Developmment\\flutter\\bin\\flutter.bat pub get in ${flutterModuleRoot}."
+    )
+}
+apply from: flutterIncludeScript

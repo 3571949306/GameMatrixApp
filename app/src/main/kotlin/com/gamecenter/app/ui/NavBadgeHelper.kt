@@ -3,14 +3,15 @@ package com.gamecenter.app.ui
 import android.content.Context
 import com.gamecenter.app.R
 import com.gamecenter.app.games.achievement.DailyChallengeManager
-import com.gamecenter.app.games.achievement.DailyCheckInManager
 import com.google.android.material.badge.BadgeDrawable
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 /**
  * Batch 9-4 (NAV_BADGE_UNREAD): 底部导航未读消息红点徽章计算器。
  *
- * 未读数 = 每日挑战未完成(0/1) + 今日未签到(0/1) + 连胜活动待续(>0 时计 1)
+ * 未读数 = 每日挑战未完成(0/1) + 连胜活动待续(>0 时计 1)
+ *
+ * 注：2026-07-22 起签到改为自动记录登录天数，不再有"未签到"状态，红点逻辑移除。
  *
  * 受 [com.gamecenter.app.BuildConfig.NAV_BADGE_UNREAD] feature flag 控制。
  * 由 MainActivity 在 onCreate / onResume 时调用 [updateBadges]。
@@ -51,8 +52,9 @@ object NavBadgeHelper {
     /**
      * 计算当前未读数：
      * 1. 每日挑战未完成 → +1
-     * 2. 今日未签到 → +1
-     * 3. 当前连胜为 0（待续上） → +1
+     * 2. 当前连胜为 0（待续上） → +1
+     *
+     * 注：2026-07-22 起签到改为自动记录登录天数，不再有"未签到"状态。
      */
     private fun computeUnreadCount(context: Context): Int {
         var count = 0
@@ -62,12 +64,7 @@ object NavBadgeHelper {
             if (!challenge.completed && challenge.progress < challenge.target) count++
         } catch (_: Exception) { /* ignore */ }
 
-        // 2. 今日签到
-        try {
-            if (!DailyCheckInManager.getInstance(context).isCheckedInToday()) count++
-        } catch (_: Exception) { /* ignore */ }
-
-        // 3. 连胜活动
+        // 2. 连胜活动
         try {
             val streak = com.gamecenter.app.games.achievement.StreakTracker
                 .getInstance(context).getCurrentStreak()

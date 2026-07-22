@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 根布局改为 FrameLayout：包裹 NestedScrollView（垂直滚动） + FloatingActionButton 浮层。
-     解决原 ConstraintLayout 垂直链堆叠导致 tab_layout/rv_games 被推出屏幕外的问题。
-     所有 View id、?attr/、@dimen/、@string/、@drawable/、@style/ 引用全部保留不变。 -->
+<!-- 首页 V2 游戏活力风重设计 (HOME_REVAMP_V2, 2026-07-22)
+     - 游戏霓虹配色（深紫→品红→暖橙 浅色；深紫黑→品红紫→霓虹紫 深色）
+     - 3 层信息架构：L1 沉浸式 Hero（问候/搜索/今日推荐大图卡/统计）→ L2 快速入口带（继续游玩/最近游玩/每日卡片）→ L3 游戏列表（筛选/Tab/网格）
+     - 弱化：时长提醒、最近成就、Hero Banner 轮播（保留 id 但默认 GONE）
+     - 保留全部 37 个原 id，GamesFragment.java 业务逻辑不变
+     - 浅色/深色主题由 values/colors.xml + values-night/colors.xml 的 home_v2_* 色板自动适配 -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -21,240 +24,297 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- ===== 顶栏（Feature E HOME_CARD_ENHANCE：渐变背景 + 问候 + 通知 + 头像） ===== -->
+            <!-- ============================================================ -->
+            <!-- L1 沉浸式 Hero 区：游戏霓虹渐变，融合问候/搜索/今日推荐大图卡/统计 -->
+            <!-- ============================================================ -->
+            <!-- top_bar id 保留（原顶栏容器），现扩展为 Hero 区根容器 -->
             <LinearLayout
                 android:id="@+id/top_bar"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/spacing_64"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="@dimen/spacing_16"
-                android:paddingEnd="@dimen/spacing_16"
-                android:background="@drawable/bg_top_bar_gradient">
-
-                <!-- 左侧问候 + 副标题 -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/tv_greeting"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/home_top_bar_greeting_morning"
-                        android:textColor="@color/top_bar_on_gradient"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_subtitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="1dp"
-                        android:text="@string/home_top_bar_subtitle"
-                        android:textColor="@color/top_bar_on_gradient_variant"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
-                <!-- 通知按钮 -->
-                <ImageButton
-                    android:id="@+id/btn_notification"
-                    android:layout_width="@dimen/icon_size_large"
-                    android:layout_height="@dimen/icon_size_large"
-                    android:layout_marginEnd="@dimen/spacing_8"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/home_top_notification"
-                    android:scaleType="centerInside"
-                    app:srcCompat="@drawable/ic_notification"
-                    app:tint="@color/top_bar_on_gradient" />
-
-                <!-- 头像占位（圆形） -->
-                <FrameLayout
-                    android:id="@+id/btn_avatar"
-                    android:layout_width="@dimen/icon_size_large"
-                    android:layout_height="@dimen/icon_size_large"
-                    android:background="@drawable/bg_avatar_circle"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/home_top_avatar"
-                        android:scaleType="centerInside"
-                        app:srcCompat="@drawable/ic_avatar_placeholder"
-                        app:tint="@color/top_bar_on_gradient" />
-                </FrameLayout>
-
-            </LinearLayout>
-
-            <!-- ===== 搜索栏 ===== -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/search_layout"
-                style="@style/Widget.GameMatrix.Search"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_16"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:layout_marginEnd="@dimen/spacing_16"
-                android:hint="@string/search_game_hint"
-                app:startIconDrawable="@drawable/ic_search">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_game_search"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:imeOptions="actionSearch"
-                    android:maxLines="1"
-                    android:singleLine="true"
-                    android:textSize="14sp"
-                    android:textColor="?attr/colorOnSurface" />
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- ===== Batch 8-1 (SEARCH_HISTORY_CHIPS): 搜索历史 Chip 流（默认隐藏，有历史且搜索框为空时显示） ===== -->
-            <LinearLayout
-                android:id="@+id/search_history_section"
-                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginStart="@dimen/spacing_16"
-                android:layout_marginEnd="@dimen/spacing_16"
-                android:layout_marginTop="@dimen/spacing_4"
-                android:visibility="gone">
+                android:background="@drawable/bg_home_v2_hero"
+                android:paddingTop="@dimen/spacing_20"
+                android:paddingStart="@dimen/spacing_20"
+                android:paddingEnd="@dimen/spacing_20"
+                android:paddingBottom="@dimen/spacing_16">
 
+                <!-- Hero 顶行：问候语 + 通知 + 头像 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="@dimen/spacing_16">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/search_history_section_title"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/btn_search_history_clear"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="@dimen/spacing_8"
-                        android:paddingEnd="@dimen/spacing_8"
-                        android:paddingTop="@dimen/spacing_4"
-                        android:paddingBottom="@dimen/spacing_4"
-                        android:text="@string/search_history_clear"
-                        android:textColor="?attr/colorPrimary"
-                        android:textSize="11sp"
-                        android:background="?attr/selectableItemBackground"
+                        <TextView
+                            android:id="@+id/tv_greeting"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/home_v2_hero_on_color"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            tools:text="下午好，玩家" />
+
+                        <TextView
+                            android:id="@+id/tv_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_2"
+                            android:textColor="@color/home_v2_hero_on_color_variant"
+                            android:textSize="12sp"
+                            tools:text="今天玩点什么？" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/btn_notification"
+                        android:layout_width="@dimen/icon_size_large"
+                        android:layout_height="@dimen/icon_size_large"
+                        android:layout_marginEnd="@dimen/spacing_12"
+                        android:src="@drawable/ic_notification"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/notifications"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:tint="@color/home_v2_hero_on_color" />
+
+                    <ImageView
+                        android:id="@+id/btn_avatar"
+                        android:layout_width="@dimen/icon_size_xlarge"
+                        android:layout_height="@dimen/icon_size_xlarge"
+                        android:src="@drawable/ic_avatar_placeholder"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/profile"
                         android:clickable="true"
                         android:focusable="true" />
                 </LinearLayout>
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_search_history"
+                <!-- 搜索药丸（search_layout id 保留） -->
+                <LinearLayout
+                    android:id="@+id/search_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:singleLine="false" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_home_v2_search_pill"
+                    android:paddingStart="@dimen/spacing_16"
+                    android:paddingEnd="@dimen/spacing_16"
+                    android:paddingTop="@dimen/spacing_12"
+                    android:paddingBottom="@dimen/spacing_12"
+                    android:layout_marginBottom="@dimen/spacing_16">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:layout_marginEnd="@dimen/spacing_12"
+                        android:src="@drawable/ic_search"
+                        android:contentDescription="@null"
+                        app:tint="@color/home_v2_search_pill_hint" />
+
+                    <EditText
+                        android:id="@+id/et_game_search"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:hint="@string/search_game_hint"
+                        android:textColorHint="@color/home_v2_search_pill_hint"
+                        android:textColor="@color/home_v2_search_pill_text"
+                        android:textSize="14sp"
+                        android:inputType="text"
+                        android:imeOptions="actionSearch"
+                        android:maxLines="1" />
+                </LinearLayout>
+
+                <!-- 搜索历史区（search_history_section id 保留，默认隐藏） -->
+                <LinearLayout
+                    android:id="@+id/search_history_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_8">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/search_history_section_title"
+                            android:textColor="@color/home_v2_hero_on_color_variant"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/btn_search_history_clear"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="@dimen/spacing_8"
+                            android:paddingEnd="@dimen/spacing_8"
+                            android:paddingTop="@dimen/spacing_4"
+                            android:paddingBottom="@dimen/spacing_4"
+                            android:text="@string/home_recent_clear"
+                            android:textColor="@color/home_v2_hero_on_color"
+                            android:textSize="11sp"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true" />
+                    </LinearLayout>
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_search_history"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- 今日推荐大图卡（game_of_day_section id 保留，Hero 内嵌大图卡） -->
+                <FrameLayout
+                    android:id="@+id/game_of_day_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_12"
+                    android:visibility="gone">
+
+                    <include layout="@layout/layout_home_game_of_day" />
+                </FrameLayout>
+
+                <!-- 快速统计行（quick_stats_section id 保留，Hero 内嵌） -->
+                <LinearLayout
+                    android:id="@+id/quick_stats_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_home_v2_stat_pill"
+                    android:padding="@dimen/spacing_12">
+
+                    <!-- 今日时长 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_stat_playtime_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/home_v2_hero_on_color"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            tools:text="0h 0m" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_2"
+                            android:text="@string/home_stat_today_playtime"
+                            android:textColor="@color/home_v2_hero_on_color_variant"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <!-- 连胜 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_stat_streak_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/home_v2_hero_on_color"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            tools:text="0 天" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_2"
+                            android:text="@string/home_stat_streak"
+                            android:textColor="@color/home_v2_hero_on_color_variant"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <!-- 成就 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_stat_achievements_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/home_v2_hero_on_color"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            tools:text="0" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_2"
+                            android:text="@string/home_stat_achievements"
+                            android:textColor="@color/home_v2_hero_on_color_variant"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 游戏时长提醒（playtime_reminder_section id 保留，默认隐藏，V2 弱化） -->
+                <FrameLayout
+                    android:id="@+id/playtime_reminder_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_8"
+                    android:visibility="gone">
+
+                    <include layout="@layout/layout_home_playtime_reminder" />
+                </FrameLayout>
             </LinearLayout>
 
-            <!-- ===== Batch 10-1 (HOME_QUICK_STATS_BAR): 首页快速统计栏（默认隐藏） ===== -->
-            <FrameLayout
-                android:id="@+id/quick_stats_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:visibility="gone">
+            <!-- ============================================================ -->
+            <!-- L2 快速入口带：继续游玩 + 最近游玩 + 每日卡片（卡片化设计）       -->
+            <!-- ============================================================ -->
 
-                <include layout="@layout/layout_home_quick_stats" />
-            </FrameLayout>
-
-            <!-- ===== Batch 11-3 (HOME_PLAYTIME_REMINDER): 今日时长休息提醒卡片（默认隐藏） ===== -->
-            <FrameLayout
-                android:id="@+id/playtime_reminder_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:visibility="gone">
-
-                <include layout="@layout/layout_home_playtime_reminder" />
-            </FrameLayout>
-
-            <!-- ===== Batch 10-2 (HOME_GAME_OF_DAY): 今日推荐卡片（默认隐藏） ===== -->
-            <FrameLayout
-                android:id="@+id/game_of_day_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:visibility="gone">
-
-                <include layout="@layout/layout_home_game_of_day" />
-            </FrameLayout>
-
-            <!-- ===== Batch 12-1 (HOME_RESUME_GAME_CARD): 首页"继续游玩"卡片（默认隐藏） ===== -->
+            <!-- 继续游玩（resume_game_section id 保留，默认隐藏，空状态由 GamesFragment 显示引导） -->
             <FrameLayout
                 android:id="@+id/resume_game_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_8"
+                android:layout_marginStart="@dimen/spacing_16"
+                android:layout_marginEnd="@dimen/spacing_16"
+                android:layout_marginTop="@dimen/spacing_16"
                 android:visibility="gone">
 
                 <include layout="@layout/layout_home_resume_game" />
             </FrameLayout>
 
-            <!-- ===== Batch 8-4 (HOME_HERO_BANNER): 首页英雄横幅轮播（默认隐藏，用 RecyclerView + PagerSnapHelper 实现） ===== -->
-            <FrameLayout
-                android:id="@+id/hero_banner_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:visibility="gone">
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_hero_banner"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:clipToPadding="false"
-                    android:overScrollMode="never" />
-
-                <!-- 指示器 -->
-                <LinearLayout
-                    android:id="@+id/hero_indicator_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|center_horizontal"
-                    android:layout_marginBottom="@dimen/spacing_8"
-                    android:orientation="horizontal" />
-            </FrameLayout>
-
-            <!-- ===== Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER): 最近解锁成就横幅（默认隐藏） ===== -->
-            <FrameLayout
-                android:id="@+id/recent_achievement_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:visibility="gone">
-
-                <include layout="@layout/layout_home_recent_achievement" />
-            </FrameLayout>
-
-            <!-- ===== Feature C (HOME_REVAMP): 最近游玩区域 ===== -->
+            <!-- 最近游玩（recent_games_section id 保留，横向卡片带） -->
             <LinearLayout
                 android:id="@+id/recent_games_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="@dimen/spacing_8"
+                android:layout_marginTop="@dimen/spacing_12"
                 android:visibility="gone">
 
-                <!-- 标题行 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -289,7 +349,6 @@
                         android:focusable="true" />
                 </LinearLayout>
 
-                <!-- 最近游玩横向滚动列表 -->
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -306,12 +365,15 @@
                 </HorizontalScrollView>
             </LinearLayout>
 
-            <!-- ===== 包 D-2 (HOME_DAILY_CARDS): 每日挑战 + 连胜概览卡片容器（默认隐藏） ===== -->
+            <!-- 每日挑战 + 连胜卡片（daily_cards_section id 保留，默认隐藏） -->
             <LinearLayout
                 android:id="@+id/daily_cards_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:layout_marginStart="@dimen/spacing_16"
+                android:layout_marginEnd="@dimen/spacing_16"
+                android:layout_marginTop="@dimen/spacing_8"
                 android:visibility="gone">
 
                 <include
@@ -323,14 +385,57 @@
                     layout="@layout/card_streak_summary" />
             </LinearLayout>
 
-            <!-- ===== 包 B (HOME_CARD_ENHANCE): 收藏筛选 chip 行（默认隐藏） ===== -->
+            <!-- Hero Banner 轮播（hero_banner_section id 保留，V2 弱化为 GONE 占位） -->
+            <LinearLayout
+                android:id="@+id/hero_banner_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginStart="@dimen/spacing_16"
+                android:layout_marginEnd="@dimen/spacing_16"
+                android:layout_marginTop="@dimen/spacing_8"
+                android:visibility="gone">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_hero_banner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:overScrollMode="never" />
+
+                <LinearLayout
+                    android:id="@+id/hero_indicator_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingTop="@dimen/spacing_8" />
+            </LinearLayout>
+
+            <!-- 最近成就（recent_achievement_section id 保留，V2 弱化为 GONE 占位） -->
+            <FrameLayout
+                android:id="@+id/recent_achievement_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_16"
+                android:layout_marginEnd="@dimen/spacing_16"
+                android:layout_marginTop="@dimen/spacing_8"
+                android:visibility="gone">
+
+                <include layout="@layout/layout_home_recent_achievement" />
+            </FrameLayout>
+
+            <!-- ============================================================ -->
+            <!-- L3 游戏列表区：筛选 Chip + Tab + 网格                          -->
+            <!-- ============================================================ -->
+
+            <!-- 收藏筛选 chip 行（chip_group_filter id 保留，默认隐藏） -->
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/chip_group_filter"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_16"
                 android:layout_marginEnd="@dimen/spacing_16"
-                android:layout_marginTop="@dimen/spacing_4"
+                android:layout_marginTop="@dimen/spacing_8"
                 android:visibility="gone"
                 app:singleSelection="true">
 
@@ -351,7 +456,7 @@
                     android:text="@string/filter_favorites_only" />
             </com.google.android.material.chip.ChipGroup>
 
-            <!-- ===== 分类标签 ===== -->
+            <!-- 分类标签（tab_scroll / tab_layout id 保留） -->
             <HorizontalScrollView
                 android:id="@+id/tab_scroll"
                 android:layout_width="match_parent"
@@ -371,7 +476,7 @@
 
             </HorizontalScrollView>
 
-            <!-- ===== 游戏区域 overlay 容器：SwipeRefreshLayout(游戏网格) + shimmer + empty_state 叠加 ===== -->
+            <!-- 游戏区域 overlay 容器：SwipeRefreshLayout(游戏网格) + shimmer + empty_state 叠加 -->
             <FrameLayout
                 android:id="@+id/game_area_container"
                 android:layout_width="match_parent"
@@ -379,13 +484,11 @@
                 android:layout_marginTop="@dimen/spacing_4"
                 android:minHeight="@dimen/home_game_grid_min_height">
 
-                <!-- ===== Batch 9-2 (HOME_PULL_REFRESH): 下拉刷新容器（包裹游戏网格） ===== -->
                 <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                     android:id="@+id/swipe_refresh_games"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
-                    <!-- ===== 游戏网格 ===== -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_games"
                         android:layout_width="match_parent"
@@ -400,7 +503,6 @@
                         tools:listitem="@layout/item_game_card" />
                 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-                <!-- Batch 7-2 (ANIM_SHIMMER_LOADING): 骨架屏容器（默认隐藏，加载时显示） -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_shimmer"
                     android:layout_width="match_parent"
@@ -415,7 +517,6 @@
                     app:spanCount="2"
                     tools:visibility="visible" />
 
-                <!-- 空状态 -->
                 <TextView
                     android:id="@+id/tv_empty_state"
                     android:layout_width="match_parent"
@@ -428,7 +529,6 @@
                     android:textSize="14sp"
                     android:visibility="gone" />
 
-                <!-- Batch 7-3 (EMPTY_STATE_ILLUSTRATION): 精美空状态插图容器 -->
                 <include
                     android:id="@+id/empty_state_illustration"
                     layout="@layout/layout_empty_state"
@@ -443,16 +543,18 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!-- ===== Batch 10-3 (RANDOM_GAME_FAB): 随机游戏悬浮按钮（默认隐藏） ===== -->
+    <!-- 随机游戏 FAB（fab_random_game id 保留，默认隐藏） -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_random_game"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="@dimen/spacing_16"
-        android:layout_marginBottom="@dimen/spacing_16"
-        android:contentDescription="@string/random_game_fab_desc"
+        android:layout_marginBottom="@dimen/spacing_80"
+        android:src="@drawable/ic_dice"
+        android:contentDescription="@string/random"
         android:visibility="gone"
-        app:srcCompat="@drawable/ic_fab_dice" />
+        app:tint="@color/home_v2_hero_on_color"
+        app:backgroundTint="@color/home_v2_hero_center" />
 
 </FrameLayout>

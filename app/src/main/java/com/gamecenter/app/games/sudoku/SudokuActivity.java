@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -48,6 +49,16 @@ public class SudokuActivity extends BaseGameActivity {
     /** 难度挖洞数：简单30，中等40，困难50，专家60 */
     private static final int[] HOLE_COUNTS = {30, 40, 50, 60};
 
+    /** 唯一解验证：挖洞尝试上限，避免极端难度下耗时过长 */
+    private static final int MAX_DIG_ATTEMPTS = 200;
+    /** 唯一解验证：countSolutions 搜索节点上限，超过则视为非唯一（保守回退） */
+    private static final int SOLVER_NODE_LIMIT = 5000;
+    /** 唯一解验证：计数上限，找到 2 个解即判定多解 */
+    private static final int UNIQUE_SOLUTION_LIMIT = 2;
+
+    /** 笔记功能 feature flag（规则17：新增功能尽量带 flag） */
+    private static final boolean NOTES_FEATURE_ENABLED = true;
+
     // 游戏状态
     private int[][] solution = new int[GRID_SIZE][GRID_SIZE];
     private int[][] board = new int[GRID_SIZE][GRID_SIZE];
@@ -57,6 +68,8 @@ public class SudokuActivity extends BaseGameActivity {
     private int currentDifficultyIndex = 0;
     private int hintsUsed = 0;
     private int puzzlesSolved = 0;
+    /** 笔记模式开关：开启后点数字键记候选，不填入答案 */
+    private boolean notesMode = false;
 
     private Random random = new Random();
 
@@ -68,6 +81,7 @@ public class SudokuActivity extends BaseGameActivity {
     private LinearLayout menuPanel;
     private LinearLayout gamePanel;
     private MaterialButton btnHint;
+    private MaterialButton btnNotes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,18 +114,18 @@ public class SudokuActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_bg));
 
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_text));
         tvStatus.setPadding(0, 24, 0, 8);
 
         tvDifficulty = new TextView(this);
         tvDifficulty.setGravity(Gravity.CENTER);
         tvDifficulty.setTextSize(14f);
-        tvDifficulty.setTextColor(0xFF5B8A72);
+        tvDifficulty.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_difficulty));
         tvDifficulty.setPadding(0, 4, 0, 16);
 
         // 菜单面板
@@ -133,7 +147,7 @@ public class SudokuActivity extends BaseGameActivity {
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.setMargins(0, 8, 0, 8);
             btn.setLayoutParams(lp);
-            btn.setBackgroundColor(0xFF5B8A72);
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_difficulty));
             btn.setOnClickListener(v -> startGameWithDifficulty(idx));
             menuPanel.addView(btn);
         }
@@ -167,8 +181,8 @@ public class SudokuActivity extends BaseGameActivity {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(btnSize, btnSize);
             lp.setMargins(4, 4, 4, 4);
             btn.setLayoutParams(lp);
-            btn.setBackgroundColor(0xFFFBF9F6);
-            btn.setTextColor(0xFF2D2D2D);
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_num));
+            btn.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_num_text));
             btn.setOnClickListener(v -> inputNumber(num));
             numPadPanel.addView(btn);
         }
@@ -179,8 +193,8 @@ public class SudokuActivity extends BaseGameActivity {
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(btnSize, btnSize);
         clearLp.setMargins(4, 4, 4, 4);
         btnClear.setLayoutParams(clearLp);
-        btnClear.setBackgroundColor(0xFFFEE2E2);
-        btnClear.setTextColor(0xFFDC2626);
+        btnClear.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_clear));
+        btnClear.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_clear_text));
         btnClear.setOnClickListener(v -> inputNumber(0));
         numPadPanel.addView(btnClear);
 
@@ -205,6 +219,20 @@ public class SudokuActivity extends BaseGameActivity {
 
         btnRow.addView(btnHint);
         btnRow.addView(btnRestart);
+
+        // 笔记模式开关（feature flag 控制）
+        if (NOTES_FEATURE_ENABLED) {
+            btnNotes = new MaterialButton(this);
+            btnNotes.setText(R.string.game_sudoku_notes_off);
+            LinearLayout.LayoutParams notesLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            notesLp.setMargins(16, 0, 16, 0);
+            btnNotes.setLayoutParams(notesLp);
+            btnNotes.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_notes));
+            btnNotes.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_notes_text));
+            btnNotes.setOnClickListener(v -> toggleNotesMode());
+            btnRow.addView(btnNotes);
+        }
 
         gamePanel.addView(sudokuView);
         gamePanel.addView(numPadPanel);
@@ -243,19 +271,13 @@ public class SudokuActivity extends BaseGameActivity {
             }
         }
 
-        // 挖洞
-        int holes = HOLE_COUNTS[difficultyIndex];
-        List<Integer> positions = new ArrayList<>();
-        for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-            positions.add(i);
-        }
-        Collections.shuffle(positions, random);
-        for (int i = 0; i < holes && i < positions.size(); i++) {
-            int pos = positions.get(i);
-            int r = pos / GRID_SIZE;
-            int c = pos % GRID_SIZE;
-            board[r][c] = 0;
-            isGiven[r][c] = false;
+        // 挖洞（对称挖洞 + 唯一解验证）
+        digHoles(board, HOLE_COUNTS[difficultyIndex]);
+        // 根据挖洞后的棋盘重算 isGiven 标记
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                isGiven[r][c] = board[r][c] != 0;
+            }
         }
 
         menuPanel.setVisibility(View.GONE);
@@ -270,9 +292,37 @@ public class SudokuActivity extends BaseGameActivity {
         tvDifficulty.setText(diffNames[difficultyIndex]);
         tvStatus.setText(R.string.game_sudoku_playing);
 
+        // 重置笔记模式
+        notesMode = false;
+        updateNotesButton();
+
         sudokuView.setBoard(board, isGiven);
         isGameRunning = true;
         gameStartTime = System.currentTimeMillis();
+    }
+
+    /**
+     * 切换笔记模式开/关，并更新按钮文案。
+     */
+    private void toggleNotesMode() {
+        notesMode = !notesMode;
+        updateNotesButton();
+    }
+
+    /**
+     * 根据笔记模式状态刷新按钮文案与底色。
+     */
+    private void updateNotesButton() {
+        if (btnNotes == null) return;
+        if (notesMode) {
+            btnNotes.setText(R.string.game_sudoku_notes_on);
+            btnNotes.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_notes_on));
+            btnNotes.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_notes_on_text));
+        } else {
+            btnNotes.setText(R.string.game_sudoku_notes_off);
+            btnNotes.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_notes));
+            btnNotes.setTextColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_notes_text));
+        }
     }
 
     /**
@@ -331,16 +381,140 @@ public class SudokuActivity extends BaseGameActivity {
     }
 
     /**
+     * 计算棋盘解的数量（上限 limit，节点上限 nodeLimit）。
+     * <p>在传入棋盘的副本上回溯求解，不修改原始棋盘。当搜索节点超过 nodeLimit 时
+     * 返回 limit+1，调用方可据此保守判定为"非唯一解"。</p>
+     *
+     * @param board     待求解棋盘（0 表示空格）
+     * @param limit     计数上限，到达即停止（通常传 2）
+     * @param nodeLimit 搜索节点上限，超过则放弃精确计数
+     * @return 解的数量；若超过 nodeLimit 则返回 limit+1
+     */
+    private int countSolutions(int[][] board, int limit, int nodeLimit) {
+        int[][] copy = new int[GRID_SIZE][GRID_SIZE];
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(board[r], 0, copy[r], 0, GRID_SIZE);
+        }
+        int[] count = {0};
+        int[] nodes = {0};
+        solveCount(copy, limit, nodeLimit, count, nodes);
+        if (nodes[0] > nodeLimit) {
+            return limit + 1;
+        }
+        return count[0];
+    }
+
+    /**
+     * 回溯求解并计数。找到 limit 个解或超过 nodeLimit 时提前终止。
+     */
+    private boolean solveCount(int[][] grid, int limit, int nodeLimit,
+                               int[] count, int[] nodes) {
+        if (nodes[0] > nodeLimit) return true;
+        nodes[0]++;
+
+        // 找到第一个空格
+        int row = -1;
+        int col = -1;
+        for (int r = 0; r < GRID_SIZE && row == -1; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                if (grid[r][c] == 0) {
+                    row = r;
+                    col = c;
+                    break;
+                }
+            }
+        }
+        // 没有空格：找到一个完整解
+        if (row == -1) {
+            count[0]++;
+            return count[0] >= limit;
+        }
+        for (int num = 1; num <= 9; num++) {
+            if (isValidPlacement(grid, row, col, num)) {
+                grid[row][col] = num;
+                if (solveCount(grid, limit, nodeLimit, count, nodes)) {
+                    grid[row][col] = 0;
+                    return true;
+                }
+                grid[row][col] = 0;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 对称挖洞 + 唯一解验证。
+     * <p>中心对称（180°）挖洞：挖 (r,c) 时同步挖 (8-r,8-c)。每次挖洞后用
+     * countSolutions 验证仍唯一解才保留，否则恢复。受 MAX_DIG_ATTEMPTS 上限约束，
+     * 实际挖洞数可能少于 targetHoles（这保证了唯一性优先于难度）。</p>
+     */
+    private void digHoles(int[][] board, int targetHoles) {
+        List<Integer> positions = new ArrayList<>();
+        for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+            positions.add(i);
+        }
+        Collections.shuffle(positions, random);
+
+        int dug = 0;
+        int attempts = 0;
+        for (int pos : positions) {
+            if (dug >= targetHoles || attempts >= MAX_DIG_ATTEMPTS) break;
+            attempts++;
+            int r = pos / GRID_SIZE;
+            int c = pos % GRID_SIZE;
+            if (board[r][c] == 0) continue;
+
+            int r2 = GRID_SIZE - 1 - r;
+            int c2 = GRID_SIZE - 1 - c;
+            int saved1 = board[r][c];
+            int saved2 = board[r2][c2];
+
+            board[r][c] = 0;
+            boolean dugPartner = false;
+            if (!(r == r2 && c == c2) && board[r2][c2] != 0) {
+                board[r2][c2] = 0;
+                dugPartner = true;
+            }
+
+            int solutions = countSolutions(board, UNIQUE_SOLUTION_LIMIT, SOLVER_NODE_LIMIT);
+            if (solutions == 1) {
+                dug++;
+                if (dugPartner) dug++;
+            } else {
+                // 多解或节点超限：恢复本次挖洞
+                board[r][c] = saved1;
+                if (dugPartner) board[r2][c2] = saved2;
+            }
+        }
+    }
+
+    /**
      * 输入数字
      */
     private void inputNumber(int num) {
         if (selectedRow < 0 || selectedCol < 0) return;
         if (isGiven[selectedRow][selectedCol]) return;
 
+        // 笔记模式：数字键切换候选标记，清除键清空该格笔记
+        if (NOTES_FEATURE_ENABLED && notesMode) {
+            if (num == 0) {
+                sudokuView.clearNotes(selectedRow, selectedCol);
+            } else {
+                sudokuView.toggleNote(selectedRow, selectedCol, num);
+            }
+            return;
+        }
+
         board[selectedRow][selectedCol] = num;
         boolean hasError = num != 0 && !isValidPlacement(board, selectedRow, selectedCol, num);
         sudokuView.setError(selectedRow, selectedCol, hasError);
         sudokuView.updateCell(selectedRow, selectedCol, num);
+
+        // 正常填入数字时：清除该格笔记，并从同行/列/宫的笔记中移除该数字
+        if (num != 0 && NOTES_FEATURE_ENABLED) {
+            sudokuView.clearNotes(selectedRow, selectedCol);
+            sudokuView.removeNoteFromPeers(selectedRow, selectedCol, num);
+        }
 
         // 检查是否完成
         if (num != 0 && !hasError && isBoardComplete()) {
@@ -409,10 +583,10 @@ public class SudokuActivity extends BaseGameActivity {
     @Override
     public List<DifficultyLevel> getDifficultyLevels() {
         List<DifficultyLevel> levels = new ArrayList<>();
-        levels.add(new DifficultyLevel("简单", 1, "挖30个格子", true));
-        levels.add(new DifficultyLevel("中等", 2, "挖40个格子", false));
-        levels.add(new DifficultyLevel("困难", 3, "挖50个格子", false));
-        levels.add(new DifficultyLevel("专家", 4, "挖60个格子", false));
+        levels.add(new DifficultyLevel(getString(R.string.game_sudoku_diff_easy), 1, getString(R.string.game_sudoku_diff_easy_desc), true));
+        levels.add(new DifficultyLevel(getString(R.string.game_sudoku_diff_medium), 2, getString(R.string.game_sudoku_diff_medium_desc), false));
+        levels.add(new DifficultyLevel(getString(R.string.game_sudoku_diff_hard), 3, getString(R.string.game_sudoku_diff_hard_desc), false));
+        levels.add(new DifficultyLevel(getString(R.string.game_sudoku_expert), 4, getString(R.string.game_sudoku_diff_expert_desc), false));
         return levels;
     }
 

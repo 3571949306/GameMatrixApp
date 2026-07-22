@@ -1,22 +1,26 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # Feature Flags 索引 - GameMatrixApp
 
 > 本文档索引项目所有 Feature Flag，包括用途、引入版本、退役计划。
 > 规则：Flag 超过 3 个月未关闭 = 应该删除代码（保留功能）。
 
-**最后更新**: 2026-07-20
-**Flag 总数**: 73 个（基础设施 10 + 加法升级 58 + 混合架构 5）
-**默认值分布**: 69 个 true / 4 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`、`ENABLE_CATALOG_SIGNATURE`）
+**最后更新**: 2026-07-22
+**Flag 总数**: 75 个（基础设施 11 + 加法升级 58 + 混合架构 5 + 首页沉浸式改版 1）
+**默认值分布**: 70 个 true / 5 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`、`ENABLE_CATALOG_SIGNATURE`、`ENABLE_FLUTTER_MODULE_STORE`）
 **声明位置**: `app/build.gradle` → `defaultConfig`（`buildTypes` 中无覆盖）
 
 ---
 
 ## 索引表
 
-### 一、基础设施 Flag（10 个）
+### 一、基础设施 Flag（11 个）
 
 | Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
 |-----------|--------|----------|------|----------|------|
 | `ENABLE_MODULE_SYSTEM` | true | T08（APK 体积优化阶段） | 框架 APK 体积优化：启用模块系统按需下载，配合 `MODULE_CACHE_DIR` 与 `MAX_MODULE_CACHE_SIZE` | 长期保留 | 活跃 |
+| `ENABLE_FLUTTER_MODULE_STORE` | false（源码回退值） | Flutter-first 商店（2026-07-21） | 在 `ModuleStoreActivity` 中挂载缓存 Flutter Engine 的 Fragment；失败、关闭或显式强制旧商店时渲染原生 UI。Release 启用时强制 Catalog 验签 | stable vc595 已通过生产参数启用；Catalog V8、模块包、Android 11–15 与生产灰度均完成 | 生产 100%/stable 已启用 |
 | `ENABLE_MIMO_TTS` | true | Phase 1（早期） | MiMo TTS 能力注入开关 | 长期保留 | 活跃 |
 | `TEST_MODE` | false | 早期基础设施 | 自动化测试模式：开启后跳过首次启动权限说明弹窗、简化更新提示（Debug 构建运行 UI 测试时使用） | 长期保留 | 活跃 |
 | `GOMOKU_ENHANCED` | true | 五子棋增强阶段 | 五子棋增强功能：界面优化、AI 增强、先手选择、计时、音效等 | 待评估（已稳定，可考虑退役） | 待评估 |
@@ -49,7 +53,7 @@
 
 | Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
 |-----------|--------|----------|------|----------|------|
-| `DAILY_CHECKIN` | true | 1.4.1（加法升级第三轮 Batch 5） | 每日签到（头像菜单入口 + DialogFragment 签到弹窗 + 累计签到天数） | 待评估 | 活跃 |
+| `DAILY_CHECKIN` | true | 1.4.1（加法升级第三轮 Batch 5） | 每日登录天数自动记录（2026-07-22 起由手动签到改为自动记录，用户进入游戏大厅即后台记录，无弹窗无按钮。记录连续登录天数/累计登录天数/最佳连续登录天数） | 待评估 | 活跃 |
 | `NOTIFICATIONS_CENTER` | true | 1.4.1（加法升级第三轮 Batch 5） | 通知中心（顶栏通知按钮打开 NotificationsDialog） | 待评估 | 活跃 |
 | `PROFILE_FRAGMENT` | true | 1.4.1（加法升级第三轮 Batch 5） | 个人中心 Fragment（底部导航"Me"项） | 待评估 | 活跃 |
 | `HOME_DAILY_CARDS` | true | 1.4.1（加法升级第三轮 Batch 5） | 首页每日卡片（每日挑战 + 连胜概览双卡片） | 待评估 | 活跃 |
@@ -146,9 +150,21 @@
 |-----------|--------|----------|------|----------|------|
 | `ENABLE_CATALOG_SIGNATURE` | false | 1.4.1（混合架构 P3） | Ed25519 远程目录签名验证（当前兼容模式，默认关闭，验证失败仅记录日志不阻止使用） | 正式上线并稳定后改为 true，再评估是否退役 | 活跃 |
 | `ENABLE_TRANSACTIONAL_INSTALL` | true | 1.4.1（混合架构 P3） | 事务性模块安装（`staging/current/last_good/quarantine` 目录结构，原子提升 + 自动回滚） | 长期保留 | 活跃 |
-| `ENABLE_P4_DYNAMIC_NAVIGATION` | true | 1.4.1（混合架构 P4） | 模块声明式动态底部导航（`ModuleNavigationContribution` + `BottomNavigationManager`） | 长期保留 | 活跃 |
+| `ENABLE_P4_DYNAMIC_NAVIGATION` | true | 1.4.1（混合架构 P4） | 模块声明式动态底部导航（`ModuleNavigationContribution` + `BottomNavigationManager`）。2026-07-21 修复兜底逻辑：对已安装但未贡献 `NavigationContribution` 的 browser/ai/vpn 模块，`BottomNavigationManager.refreshNavigation()` 会通过 `ModuleManager.getInstalledModuleIds()` 动态添加 tab，点击时跳转到 `ModuleShellFragment`，保持 6 tab 完整体验 | 长期保留 | 活跃 |
 | `ENABLE_P5_STORE_OWNED_UPDATE` | true | 1.4.1（混合架构 P5） | Store-Owned 批量模块更新（远程目录为权威源 + 依赖拓扑排序 + 失败回滚） | 长期保留 | 活跃 |
 | `ENABLE_P6_UNITY_MODULE` | true | 1.4.1（混合架构 P6） | Unity 模块架构支持（`UnityModuleLauncher` 接口 + 注册中心 + 占位启动器） | Unity SDK 接入稳定后评估 | 活跃 |
+
+### 十四、首页沉浸式改版（1 个，2026-07-22）
+
+| Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
+|-----------|--------|----------|------|----------|------|
+| `HOME_IMMERSIVE_REVAMP` | true | 1.4.1（首页沉浸式改版，2026-07-22） | 首页沉浸式 Hero 区 + 卡片流设计：240dp 三色渐变 Hero 背景（融合问候/头像/通知/药丸搜索/统计/今日推荐/继续游玩）、圆角 20dp 卡片流、空状态引导卡片（`resumeGameSection` 空数据时显示引导文案而非隐藏）。重写 `fragment_games.xml` 保留全部 36 个原 id，新增 `home_immersive_*` 色板（浅色/深色双适配）+ 6 个 drawable。`GamesFragment.refreshResumeGameCard()` 空状态走引导分支 | Flutter 化首页接入后评估退役 | 活跃 |
+
+### 十五、首页 V2 游戏活力风重设计（1 个，2026-07-22）
+
+| Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
+|-----------|--------|----------|------|----------|------|
+| `HOME_REVAMP_V2` | true | 1.4.1（首页 V2 游戏活力风重设计，2026-07-22） | 首页 V2 游戏霓虹风重设计：3 层信息架构（L1 沉浸式 Hero 区 / L2 快速入口带 / L3 游戏列表区），霓虹配色系统（浅色 深紫 #6B2FB3 → 品红 #E91E63 → 暖橙 #FF6B35；深色 深紫黑 #1A0B2E → 品红紫 #4A1A5E → 霓虹紫 #7C4DFF）。今日推荐大图卡（160dp，游戏图标 alpha 0.35 背景 + 底部渐变蒙版 + 徽章/名称/描述/立即开玩按钮）。重写 `fragment_games.xml`（保留全部 37 个原 id）+ `layout_home_game_of_day.xml`，新增 `home_v2_*` 色板（浅色/深色双适配）+ 8 个 drawable + 1 个 anim（Hero 进入动画）。`GamesFragment.refreshResumeGameCard()` 空状态走 V2 引导分支。Hero Banner 轮播 / 最近成就 section 在 V2 中弱化为 GONE 占位以保留 id 兼容 | Flutter 化首页接入后评估退役 | 活跃 |
 
 ---
 
@@ -223,7 +239,7 @@
 
 - `app/build.gradle` 第 194–307 行（`defaultConfig` 中所有 `buildConfigField "boolean"` 声明）
 - `docs/AI_CONTEXT.md` 第 304–374 行（Feature Flag 章节，含九轮加法升级详细说明）
-- 实际总数：**73 个 boolean Flag**（基础设施 10 + 加法升级 58 + 混合架构 5），全部声明于 `defaultConfig`，`buildTypes` 中无覆盖
+- 实际总数：**76 个 boolean Flag**（基础设施 11 + 加法升级 58 + 混合架构 5 + 首页沉浸式改版 1 + 首页 V2 游戏活力风重设计 1），全部声明于 `defaultConfig`，`buildTypes` 中无覆盖
 
 ---
 

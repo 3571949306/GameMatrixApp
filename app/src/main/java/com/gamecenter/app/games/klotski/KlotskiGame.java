@@ -331,6 +331,8 @@ public class KlotskiGame {
             reset();
         }
         moves = 0;
+        // 2026-07-22: 清空打乱过程中产生的历史记录，避免撤销回到打乱中间状态
+        moveHistory.clear();
     }
 
     /**

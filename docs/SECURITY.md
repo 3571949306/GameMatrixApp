@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # Security Policy
 
 ## Supported Versions
@@ -35,12 +38,20 @@ If you accidentally commit a secret, rotate the secret **immediately** and
 follow GitHub's guide to remove the secret from git history:
 https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
 
+## Flutter-first Module Store Security Boundary
+
+- Flutter only receives typed catalog/state/result objects through Pigeon; it cannot receive private file paths or directly operate APK/DEX, services, Unity runtime, signing keys, or module directories.
+- `ModuleCoreFacade` is the single business entry. `ModuleManager` remains authoritative for installed versions, enabled state, download, verification, installation and rollback.
+- Formal non-built-in Catalog V2 records must map to the authoritative manifest/downloader; otherwise the operation fails with `package_not_registered` before queue/progress events are emitted.
+- Web/Asset packages use private `staging/current/last_good/quarantine` directories with traversal, entry count, size and compression-ratio limits. Web content uses a virtual HTTPS origin with JavaScript and bridge disabled by default.
+- `CatalogSignatureVerifier` receives 1–3 validated Ed25519 public keys from the Release build. Stable vc594 uses the production trust profile; Catalog V8 signature headers and negative verification paths are live. Private key material remains DPAPI-protected and must never enter source, APKs, VPS files, or logs.
+
 ## 安全更新历史
 
 ### 循环24：Netty 安全升级（commit f978f06）
 
 - **时间**：循环24
-- **当前版本**：versionCode=567 / versionName=1.4.1
+- **当时版本**：versionCode=567 / versionName=1.4.1（循环24历史记录；当前版本以 `version.properties` 为准）
 - **关联 commit**：`f978f06` 循环24 修复 Netty 漏洞
 - **改动**：Netty `4.1.134.Final` → `4.1.135.Final`
 - **依赖性质**：Netty 是 Gradle / MediaPipe / Robolectric 的传递依赖，仅在构建期/测试期使用，**不进入 APK runtime**。升级是为了消除 Dependabot 告警并保持构建链路合规。

@@ -1,7 +1,6 @@
 package com.gamecenter.app.database
 
 import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
@@ -18,6 +17,9 @@ import org.junit.Assert.assertEquals
  * 3. 跨多个版本连续 migration 也 work
  *
  * 详细文档: https://developer.android.com/training/data-storage/room/migrating-db-versions
+ *
+ * <p>当前 schema (v1): 表 `game_stats`，列: id, gameType, result, durationMs, timestamp。
+ * 当需要升级到 v2 时，在 [DatabaseMigrations] 中添加 MIGRATION_1_2 并取消下方测试注释。</p>
  */
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigrationTest {
@@ -31,40 +33,50 @@ class AppDatabaseMigrationTest {
     )
 
     /**
-     * 示例: 验证 v1 直接打开 (还没升级过)
-     * 1. 在 schemas/ 下放 v1.json (KSP 自动生成, 在 build/ 目录)
-     * 2. 拷贝到 app/schemas/com.gamecenter.app.database.AppDatabase/1.json
-     * 3. 跑这个测试
+     * 验证 v1 数据库可以正常创建并插入数据。
+     *
+     * 这是当前唯一活跃的测试——确保 v1 schema 与 Entity 定义一致。
+     * 当 @Database version 升到 2 时，取消下方 migration_1_2_works 的注释并实现 MIGRATION_1_2。
      */
     @Test
-    fun migration_1_2_works() {
-        // 创建一个 v1 的 db
+    fun v1_schema_creates_and_inserts_correctly() {
         helper.createDatabase(TEST_DB, 1).use { db ->
-            // 插点测试数据
             db.execSQL("""
-                INSERT INTO GameStatsEntity (gameId, wins, losses, lastPlayedAt)
-                VALUES ('gomoku', 5, 3, 1000)
+                INSERT INTO game_stats (gameType, result, durationMs, timestamp)
+                VALUES ('gomoku', 'WIN', 120000, 1000)
             """.trimIndent())
         }
 
-        // 用 Migration 升级到 v2
-        helper.runMigrationsAndValidate(TEST_DB, 2, true, MIGRATION_1_2).use { db ->
-            // 验证数据没丢
-            val cursor = db.query("SELECT wins FROM GameStatsEntity WHERE gameId = 'gomoku'")
+        helper.runMigrationsAndValidate(TEST_DB, 1, true).use { db ->
+            val cursor = db.query("SELECT gameType, result FROM game_stats WHERE gameType = 'gomoku'")
             cursor.moveToFirst()
-            assertEquals(5, cursor.getInt(0))
+            assertEquals("gomoku", cursor.getString(0))
+            assertEquals("WIN", cursor.getString(1))
         }
     }
 
-    /**
-     * 占位的 Migration - 实际用时按你的 schema diff 写
-     */
-    companion object {
-        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
-            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                // 例: 加一个新列
-                // db.execSQL("ALTER TABLE GameStatsEntity ADD COLUMN draws INTEGER NOT NULL DEFAULT 0")
-            }
+    /*
+     * === 模板：当 schema 从 v1 升级到 v2 时取消注释 ===
+     *
+     * 步骤：
+     * 1. 在 DatabaseMigrations.kt 中定义 MIGRATION_1_2
+     * 2. 将 @Database version 改为 2
+     * 3. 取消下方注释并调整 SQL
+     *
+    @Test
+    fun migration_1_2_works() {
+        helper.createDatabase(TEST_DB, 1).use { db ->
+            db.execSQL("""
+                INSERT INTO game_stats (gameType, result, durationMs, timestamp)
+                VALUES ('gomoku', 'WIN', 120000, 1000)
+            """.trimIndent())
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 2, true, DatabaseMigrations.MIGRATION_1_2).use { db ->
+            val cursor = db.query("SELECT gameType FROM game_stats WHERE gameType = 'gomoku'")
+            cursor.moveToFirst()
+            assertEquals("gomoku", cursor.getString(0))
         }
     }
+    */
 }

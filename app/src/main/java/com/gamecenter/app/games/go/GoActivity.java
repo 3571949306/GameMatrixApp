@@ -13,6 +13,7 @@ import android.widget.Toast;
 import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -21,6 +22,8 @@ import com.google.android.material.button.MaterialButton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class GoActivity extends BaseGameActivity {
 
@@ -42,6 +45,15 @@ public class GoActivity extends BaseGameActivity {
     private final List<MaterialButton> difficultyButtons = new ArrayList<>();
     private long aiThinkStartMs = 0L;
 
+    /** AI 计算线程池：将 MCTS/Minimax 等耗时搜索移出主线程，避免卡顿/ANR。 */
+    private ExecutorService aiExecutor;
+
+    /** AI 是否正在思考（防止重复触发与重复落子）。 */
+    private volatile boolean aiThinking = false;
+
+    /** AI 回合代际：pause/restart/destroy 时自增，使过期计算不再回写 UI。 */
+    private volatile long aiGeneration = 0;
+
     /** 新手引导序列（首次开始游戏后弹出，3 步引导） */
     private com.gamecenter.app.ui.onboarding.CoachmarkSequence onboardingSequence;
 
@@ -50,6 +62,7 @@ public class GoActivity extends BaseGameActivity {
         super.onCreate(savedInstanceState);
         game = new GoGame();
         ai = new GoAI();
+        aiExecutor = Executors.newSingleThreadExecutor();
         onboardingSequence = new com.gamecenter.app.ui.onboarding.CoachmarkSequence(
                 this,
                 com.gamecenter.app.ui.onboarding.GoOnboarding.steps,
@@ -81,12 +94,12 @@ public class GoActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_go_color_bg));
 
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_status_text));
         tvStatus.setPadding(0, 24, 0, 8);
         // 给状态栏打上稳定 id，供 Coachmark 定位（围棋新手引导第 2 步目标）
         tvStatus.setId(R.id.go_status_view);
@@ -94,7 +107,7 @@ public class GoActivity extends BaseGameActivity {
         tvScore = new TextView(this);
         tvScore.setGravity(Gravity.CENTER);
         tvScore.setTextSize(14f);
-        tvScore.setTextColor(0xFF5B8A72);
+        tvScore.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_score_text));
         tvScore.setPadding(0, 4, 0, 16);
 
         menuPanel = new LinearLayout(this);
@@ -105,7 +118,7 @@ public class GoActivity extends BaseGameActivity {
 
         MaterialButton btnStart = new MaterialButton(this);
         btnStart.setText(R.string.game_go_start);
-        btnStart.setBackgroundColor(0xFF5B8A72);
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_go_color_score_text));
         btnStart.setOnClickListener(v -> startNewGame());
         menuPanel.addView(btnStart);
 
@@ -197,26 +210,52 @@ public class GoActivity extends BaseGameActivity {
     private void onCellClick(int row, int col) {
         if (game.isGameOver() || !isGameRunning) return;
         if (game.getCurrentPlayer() != GoGame.BLACK) return;
+        if (aiThinking) return;
 
         if (game.playMove(row, col)) {
             moveCount++;
             goView.setBoard(game.getBoard());
             goView.setLastMove(row, col);
             updateScoreDisplay();
-
-            tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty, getDifficultyName(ai.getDifficulty())));
-            aiThinkStartMs = System.currentTimeMillis();
-            handler.postDelayed(this::aiMove, 300);
+            startAiTurn();
         }
     }
 
-    private void aiMove() {
-        if (game.isGameOver()) return;
+    /**
+     * 启动 AI 回合。
+     * <p>将耗时搜索（大师难度 MCTS 约 1.5s）放到后台线程执行，
+     * 计算完成后通过主线程 Handler 回写棋盘，彻底消除主线程卡顿/ANR。</p>
+     */
+    private void startAiTurn() {
+        if (aiThinking) return;
+        aiThinking = true;
+        aiThinkStartMs = System.currentTimeMillis();
+        tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty, getDifficultyName(ai.getDifficulty())));
 
-        long thinkMs = System.currentTimeMillis() - aiThinkStartMs;
-        Log.i("GoAI", "难度=" + ai.getDifficulty() + " 思考耗时=" + thinkMs + "ms");
+        final long gen = ++aiGeneration;
+        aiExecutor.execute(() -> {
+            if (gen != aiGeneration) return;
+            if (game.isGameOver()) {
+                handler.post(() -> aiThinking = false);
+                return;
+            }
+            int[] bestMove = ai.findBestAiMove(game);
+            long thinkMs = System.currentTimeMillis() - aiThinkStartMs;
+            Log.i("GoAI", "难度=" + ai.getDifficulty() + " 思考耗时=" + thinkMs + "ms");
+            handler.post(() -> applyAiMove(bestMove, thinkMs, gen));
+        });
+    }
 
-        int[] bestMove = ai.findBestAiMove(game);
+    /**
+     * 主线程回写 AI 着法结果。
+     */
+    private void applyAiMove(int[] bestMove, long thinkMs, long gen) {
+        if (gen != aiGeneration) return;
+        if (game.isGameOver()) {
+            aiThinking = false;
+            return;
+        }
+
         if (bestMove == null) {
             game.passMove();
             tvStatus.setText(R.string.game_go_ai_passed);
@@ -226,15 +265,17 @@ public class GoActivity extends BaseGameActivity {
             goView.setLastMove(bestMove[0], bestMove[1]);
 
             if (ai.getDifficulty() >= 4 && thinkMs > 100) {
-                Toast.makeText(this, "AI 思考 " + thinkMs + "ms", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.game_go_ai_think_ms, thinkMs), Toast.LENGTH_SHORT).show();
             }
         }
 
         if (game.isGameOver()) {
+            aiThinking = false;
             onGameEnd();
             return;
         }
 
+        aiThinking = false;
         tvStatus.setText(R.string.game_go_your_turn);
         updateScoreDisplay();
     }
@@ -247,7 +288,7 @@ public class GoActivity extends BaseGameActivity {
             return;
         }
         tvStatus.setText(R.string.game_go_ai_thinking);
-        handler.postDelayed(this::aiMove, 300);
+        startAiTurn();
     }
 
     private void resign() {
@@ -306,6 +347,9 @@ public class GoActivity extends BaseGameActivity {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
 
+        // 最高分持久化（按累计得分记录）
+        recordHighScore(currentScore);
+
         showGameEndDialog(playerWins, (int) blackTerritory, (int) whiteTerritory);
     }
 
@@ -318,7 +362,7 @@ public class GoActivity extends BaseGameActivity {
                 winnerText + "\n\n" +
                 getString(R.string.game_go_end_moves) + ": " + moveCount + "\n" +
                 getString(R.string.game_go_end_duration) + ": " + formatDuration(elapsed) + "\n" +
-                "黑方(你): " + blackTerritory + "  |  白方(AI): " + whiteTerritory);
+                getString(R.string.game_go_end_score, blackTerritory, whiteTerritory));
         builder.setPositiveButton(R.string.game_go_end_restart, (d, w) -> startNewGame());
         builder.setNegativeButton(R.string.game_go_back_home, (d, w) -> finish());
         builder.setCancelable(false);
@@ -334,7 +378,7 @@ public class GoActivity extends BaseGameActivity {
         TextView label = new TextView(this);
         label.setText(R.string.game_go_difficulty_label);
         label.setTextSize(13f);
-        label.setTextColor(0xFF757575);
+        label.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_label_text));
         label.setPadding(0, 12, 0, 6);
         parent.addView(label);
 
@@ -348,8 +392,13 @@ public class GoActivity extends BaseGameActivity {
                 getString(R.string.game_go_diff_3),
                 getString(R.string.game_go_diff_4)
         };
-        int[] colorActive = {0xFF5B8A72, 0xFFFFA726, 0xFFEF5350, 0xFF8E24AA};
-        int colorInactive = 0xFF9E9E9E;
+        int[] colorActive = {
+                ContextCompat.getColor(this, R.color.game_go_color_diff_1),
+                ContextCompat.getColor(this, R.color.game_go_color_diff_2),
+                ContextCompat.getColor(this, R.color.game_go_color_diff_3),
+                ContextCompat.getColor(this, R.color.game_go_color_diff_4)
+        };
+        int colorInactive = ContextCompat.getColor(this, R.color.game_go_color_diff_inactive);
 
         for (int row = 0; row < 2; row++) {
             LinearLayout rowLayout = new LinearLayout(this);
@@ -362,7 +411,7 @@ public class GoActivity extends BaseGameActivity {
                 btn.setText(names[idx - 1]);
                 btn.setTextSize(12f);
                 btn.setBackgroundColor(idx == ai.getDifficulty() ? colorActive[idx - 1] : colorInactive);
-                btn.setTextColor(0xFFFFFFFF);
+                btn.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_button_text));
                 btn.setMinWidth(0);
                 btn.setPadding(24, 8, 24, 8);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -381,22 +430,27 @@ public class GoActivity extends BaseGameActivity {
 
     public void setAiDifficulty(int level) {
         ai.setDifficulty(level);
-        int[] colorActive = {0xFF5B8A72, 0xFFFFA726, 0xFFEF5350, 0xFF8E24AA};
-        int colorInactive = 0xFF9E9E9E;
+        int[] colorActive = {
+                ContextCompat.getColor(this, R.color.game_go_color_diff_1),
+                ContextCompat.getColor(this, R.color.game_go_color_diff_2),
+                ContextCompat.getColor(this, R.color.game_go_color_diff_3),
+                ContextCompat.getColor(this, R.color.game_go_color_diff_4)
+        };
+        int colorInactive = ContextCompat.getColor(this, R.color.game_go_color_diff_inactive);
         for (int i = 0; i < difficultyButtons.size(); i++) {
             difficultyButtons.get(i).setBackgroundColor(
                     i + 1 == level ? colorActive[i] : colorInactive);
         }
-        Toast.makeText(this, "AI 难度: " + getDifficultyName(level), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.game_go_ai_difficulty_toast, getDifficultyName(level)), Toast.LENGTH_SHORT).show();
     }
 
     private String getDifficultyName(int level) {
         switch (level) {
-            case 1: return "简单（随机）";
-            case 2: return "普通（贪心）";
-            case 3: return "困难（Minimax-2）";
-            case 4: return "大师（MCTS）";
-            default: return "未知";
+            case 1: return getString(R.string.game_go_diff_name_1);
+            case 2: return getString(R.string.game_go_diff_name_2);
+            case 3: return getString(R.string.game_go_diff_name_3);
+            case 4: return getString(R.string.game_go_diff_name_4);
+            default: return getString(R.string.game_go_diff_name_unknown);
         }
     }
 
@@ -423,7 +477,12 @@ public class GoActivity extends BaseGameActivity {
     @Override
     protected void endGame() {
         isGameRunning = false;
+        aiGeneration++;
+        aiThinking = false;
         handler.removeCallbacksAndMessages(null);
+        if (aiExecutor != null) {
+            aiExecutor.shutdownNow();
+        }
         if (gameStartTime > 0) {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
@@ -437,7 +496,11 @@ public class GoActivity extends BaseGameActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        aiGeneration++;
         handler.removeCallbacksAndMessages(null);
+        if (aiExecutor != null) {
+            aiExecutor.shutdownNow();
+        }
         if (onboardingSequence != null) {
             onboardingSequence.destroy();
             onboardingSequence = null;

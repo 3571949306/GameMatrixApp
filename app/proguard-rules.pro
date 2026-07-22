@@ -54,6 +54,10 @@
 
 # ============ 模块系统 ============
 
+# FlutterEngine 通过反射调用这个生成类的固定 registerWith 方法。R8 可以优化
+# 插件实现，但不得重命名或裁剪该反射入口，否则 Release 会静默跳过全部插件注册。
+-keep class io.flutter.plugins.GeneratedPluginRegistrant { *; }
+
 # 模块接口（动态加载，不能混淆）
 -keep interface com.gamecenter.app.interfaces.IModule { *; }
 -keep interface com.gamecenter.app.interfaces.IModuleLoader { *; }
@@ -166,4 +170,3 @@
 -keepclassmembers class ** {
     @androidx.compose.runtime.Composable <methods>;
 }
-

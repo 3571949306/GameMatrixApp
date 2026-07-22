@@ -25,4 +25,19 @@
     <string name="game_rock_ach_all_choices_desc">使用过全部三种手势</string>
     <string name="game_rock_ach_20_rounds">猜拳老手</string>
     <string name="game_rock_ach_20_rounds_desc">累计完成20局猜拳</string>
+
+    <!-- UI 文本 -->
+    <string name="game_rock_status_init">选择你的手势！</string>
+    <string name="game_rock_stats_init">胜：0 | 负：0 | 平：0</string>
+    <string name="game_rock_btn_rock">✊ 石头</string>
+    <string name="game_rock_btn_scissors">✌️ 剪刀</string>
+    <string name="game_rock_btn_paper">🖐 布</string>
+    <string name="game_rock_btn_restart">再来一局</string>
+    <string name="game_rock_choice_rock">石头</string>
+    <string name="game_rock_choice_scissors">剪刀</string>
+    <string name="game_rock_choice_paper">布</string>
+    <string name="game_rock_result_draw">平局！双方都出了%1$s</string>
+    <string name="game_rock_result_win">你赢了！%1$s 胜 %2$s</string>
+    <string name="game_rock_result_lose">你输了！%1$s 胜 %2$s</string>
+    <string name="game_rock_stats_format">胜：%1$d | 负：%2$d | 平：%3$d</string>
 </resources>

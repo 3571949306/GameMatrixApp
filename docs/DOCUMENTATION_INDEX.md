@@ -1,6 +1,22 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp 全局文档索引
 
-项目全部文档的中枢链接。最后更新：2026-07-20。
+项目全部文档的中枢链接。最后更新：2026-07-21。所有文档均已加入 Flutter-first 状态或历史快照提示；Flutter 化的权威事实以本页列出的 `docs/flutter-store/` 文档集为准。
+
+## docs/flutter-store — Flutter-first 模块商店权威文档
+
+| 文档 | 描述 |
+|---|---|
+| [MIGRATION_STATUS.md](/docs/flutter-store/MIGRATION_STATUS.md) | 总进度、范围边界、收尾验收与发布判断（首要真值） |
+| [ARCHITECTURE.md](/docs/flutter-store/ARCHITECTURE.md) | Add-to-App、缓存 Engine、Facade、状态源和安全边界 |
+| [CATALOG_V2.md](/docs/flutter-store/CATALOG_V2.md) | Catalog V2 协议、旧目录适配和验签阻塞 |
+| [BRIDGE_API.md](/docs/flutter-store/BRIDGE_API.md) | Pigeon Host/Flutter API 与事件合同 |
+| [RUNTIME_HANDLERS.md](/docs/flutter-store/RUNTIME_HANDLERS.md) | 六类 Runtime 生命周期、能力与限制 |
+| [TEST_PLAN.md](/docs/flutter-store/TEST_PLAN.md) | 自动化、真机证据和未覆盖矩阵 |
+| [ROLLBACK.md](/docs/flutter-store/ROLLBACK.md) | 功能开关、旧商店、安装事务和回滚路径 |
+| [BASELINE.md](/docs/flutter-store/BASELINE.md) | 任务开始时的工具链、工作树和测试基线 |
 
 ## 根目录 (Root)
 
@@ -25,7 +41,7 @@
 | [项目改进建议书.md](/docs/项目改进建议书.md) | 项目改进建议书 v7 |
 | [game_center_app_ai_roadmap.md](/docs/game_center_app_ai_roadmap.md) | AI 开发路线图 |
 | [DONT_DO_THIS.md](/docs/DONT_DO_THIS.md) | 写给 AI / 协作者：不要做 |
-| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（73 个：基础设施 10 + 加法升级 58 + 混合架构 5），含用途、引入版本、退役计划与治理规则 |
+| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（74 个，包含默认关闭的 Flutter 商店开关），含用途、引入版本、退役计划与治理规则 |
 | [PUBLISH_GUIDE.md](/docs/PUBLISH_GUIDE.md) | 发布指南 |
 | [SECURITY.md](/docs/SECURITY.md) | 安全策略 |
 | [NETWORK_LAYER.md](/docs/NETWORK_LAYER.md) | 网络层架构 |

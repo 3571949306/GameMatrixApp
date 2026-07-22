@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # AI_CONTEXT.md — GameMatrix App 项目上下文
 
 > 本文档供后续 AI 编程助手（Trae / Codex / Claude 等）阅读。

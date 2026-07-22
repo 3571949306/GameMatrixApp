@@ -26,4 +26,13 @@
     <string name="game_flappy_ach_score_50_desc">得分达到50分</string>
     <string name="game_flappy_ach_10_games">飞翔达人</string>
     <string name="game_flappy_ach_10_games_desc">累计完成10局飞翔小鸟</string>
+
+    <!-- UI 文案 -->
+    <string name="game_flappy_diff_easy">简单</string>
+    <string name="game_flappy_diff_easy_desc">管道更慢，间隙更大</string>
+    <string name="game_flappy_diff_normal">普通</string>
+    <string name="game_flappy_diff_normal_desc">标准难度</string>
+    <string name="game_flappy_diff_hard">困难</string>
+    <string name="game_flappy_diff_hard_desc">管道更快，间隙更小</string>
+    <string name="game_flappy_tap_to_start">点击屏幕开始飞翔！</string>
 </resources>

@@ -39,7 +39,6 @@ public class TetrisActivity extends BaseGameActivity {
     // ==================== 常量 ====================
 
     private static final String GAME_ID_VALUE = "tetris";
-    private static final String GAME_NAME_VALUE = "俄罗斯方块";
 
     // ==================== 游戏组件 ====================
 
@@ -69,7 +68,7 @@ public class TetrisActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return GAME_NAME_VALUE;
+        return getString(R.string.game_tetris_name);
     }
 
     @Nullable
@@ -212,11 +211,11 @@ public class TetrisActivity extends BaseGameActivity {
     @Override
     public List<DifficultyLevel> getDifficultyLevels() {
         List<DifficultyLevel> levels = new ArrayList<>();
-        levels.add(new DifficultyLevel("简单", 1, "下落速度慢，适合新手",
+        levels.add(new DifficultyLevel(getString(R.string.game_tetris_diff_easy), 1, getString(R.string.game_tetris_diff_easy_desc),
                 0, 0, 0.3f, false));
-        levels.add(new DifficultyLevel("普通", 2, "标准下落速度，均衡挑战",
+        levels.add(new DifficultyLevel(getString(R.string.game_tetris_diff_normal), 2, getString(R.string.game_tetris_diff_normal_desc),
                 0, 0, 0.5f, true));
-        levels.add(new DifficultyLevel("困难", 3, "下落速度快，反应挑战",
+        levels.add(new DifficultyLevel(getString(R.string.game_tetris_diff_hard), 3, getString(R.string.game_tetris_diff_hard_desc),
                 0, 0, 0.8f, false));
         return levels;
     }
@@ -225,6 +224,6 @@ public class TetrisActivity extends BaseGameActivity {
     public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
                                     @NonNull DifficultyLevel newLevel) {
         if (tetrisView != null) tetrisView.setSpeedFactor(newLevel.difficultyFactor);
-        Toast.makeText(this, "难度已切换为：" + newLevel.name, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.game_tetris_difficulty_changed, newLevel.name), Toast.LENGTH_SHORT).show();
     }
 }

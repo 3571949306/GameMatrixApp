@@ -8,6 +8,10 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.core.content.ContextCompat;
+
+import com.gamecenter.app.R;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -34,8 +38,8 @@ public class FlappyView extends View {
     private static final float GRAVITY = 0.5f;
     private static final float JUMP_FORCE = -8f;
     private static final float PIPE_WIDTH = 60f;
-    private static final float PIPE_GAP = 180f;
-    private static final float PIPE_SPEED = 3f;
+    private float pipeGap = 180f;
+    private float pipeSpeed = 3f;
     private static final float PIPE_INTERVAL = 300f;
 
     // ==================== 游戏状态 ====================
@@ -65,11 +69,19 @@ public class FlappyView extends View {
 
     private void init() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        setBackgroundColor(0xFF81D4FA);
+        setBackgroundColor(ContextCompat.getColor(getContext(), R.color.game_flappy_color_bg));
     }
 
     public void setOnGameListener(OnGameListener listener) {
         this.listener = listener;
+    }
+
+    /**
+     * 设置管道速度与间隙（由 Activity 根据难度调用）。
+     */
+    public void setPipeConfig(float speed, float gap) {
+        this.pipeSpeed = speed;
+        this.pipeGap = gap;
     }
 
     // ==================== 游戏控制 ====================
@@ -144,14 +156,14 @@ public class FlappyView extends View {
             float gapCenter = pipe[1];
 
             // 上管道
-            canvas.drawRect(x, 0, x + PIPE_WIDTH, gapCenter - PIPE_GAP / 2, paint);
+            canvas.drawRect(x, 0, x + PIPE_WIDTH, gapCenter - pipeGap / 2, paint);
             // 下管道
-            canvas.drawRect(x, gapCenter + PIPE_GAP / 2, x + PIPE_WIDTH, viewHeight, paint);
+            canvas.drawRect(x, gapCenter + pipeGap / 2, x + PIPE_WIDTH, viewHeight, paint);
 
             // 管道边缘装饰
             paint.setColor(0xFF388E3C);
-            canvas.drawRect(x - 4, gapCenter - PIPE_GAP / 2 - 16, x + PIPE_WIDTH + 4, gapCenter - PIPE_GAP / 2, paint);
-            canvas.drawRect(x - 4, gapCenter + PIPE_GAP / 2, x + PIPE_WIDTH + 4, gapCenter + PIPE_GAP / 2 + 16, paint);
+            canvas.drawRect(x - 4, gapCenter - pipeGap / 2 - 16, x + PIPE_WIDTH + 4, gapCenter - pipeGap / 2, paint);
+            canvas.drawRect(x - 4, gapCenter + pipeGap / 2, x + PIPE_WIDTH + 4, gapCenter + pipeGap / 2 + 16, paint);
             paint.setColor(0xFF4CAF50);
         }
 
@@ -178,7 +190,7 @@ public class FlappyView extends View {
         // 未开始时显示提示
         if (!gameStarted) {
             paint.setTextSize(24);
-            canvas.drawText("点击屏幕开始飞翔！", viewWidth / 2, viewHeight / 2 + 80, paint);
+            canvas.drawText(getContext().getString(R.string.game_flappy_tap_to_start), viewWidth / 2, viewHeight / 2 + 80, paint);
         }
     }
 
@@ -193,23 +205,23 @@ public class FlappyView extends View {
 
         // 管道移动
         for (int i = pipes.size() - 1; i >= 0; i--) {
-            pipes.get(i)[0] -= PIPE_SPEED;
+            pipes.get(i)[0] -= pipeSpeed;
             if (pipes.get(i)[0] + PIPE_WIDTH < 0) {
                 pipes.remove(i);
             }
         }
 
         // 生成新管道
-        nextPipeX -= PIPE_SPEED;
+        nextPipeX -= pipeSpeed;
         if (nextPipeX <= viewWidth) {
-            float gapCenter = PIPE_GAP / 2 + random.nextFloat() * (viewHeight - PIPE_GAP - 100);
+            float gapCenter = pipeGap / 2 + random.nextFloat() * (viewHeight - pipeGap - 100);
             pipes.add(new float[]{viewWidth, gapCenter});
             nextPipeX = viewWidth + PIPE_INTERVAL;
         }
 
         // 得分判定
         for (float[] pipe : pipes) {
-            if (pipe[0] + PIPE_WIDTH < birdX && pipe[0] + PIPE_WIDTH + PIPE_SPEED >= birdX) {
+            if (pipe[0] + PIPE_WIDTH < birdX && pipe[0] + PIPE_WIDTH + pipeSpeed >= birdX) {
                 score++;
                 if (listener != null) {
                     listener.onScoreChanged(score);
@@ -227,8 +239,8 @@ public class FlappyView extends View {
         for (float[] pipe : pipes) {
             float x = pipe[0];
             float gapCenter = pipe[1];
-            float topPipeBottom = gapCenter - PIPE_GAP / 2;
-            float bottomPipeTop = gapCenter + PIPE_GAP / 2;
+            float topPipeBottom = gapCenter - pipeGap / 2;
+            float bottomPipeTop = gapCenter + pipeGap / 2;
 
             if (birdX + BIRD_SIZE > x && birdX - BIRD_SIZE < x + PIPE_WIDTH) {
                 if (birdY - BIRD_SIZE < topPipeBottom || birdY + BIRD_SIZE > bottomPipeTop) {

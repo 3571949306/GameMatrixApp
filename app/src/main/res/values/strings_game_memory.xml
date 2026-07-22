@@ -34,4 +34,12 @@
     <string name="game_memory_ach_no_mistake_desc">无失误通关（无翻错）</string>
     <string name="game_memory_ach_master">记忆大师</string>
     <string name="game_memory_ach_master_desc">累计完成10次通关</string>
+
+    <!-- 难度名称与描述（本地化提取） -->
+    <string name="game_memory_diff_easy">简单</string>
+    <string name="game_memory_diff_normal">普通</string>
+    <string name="game_memory_diff_hard">困难</string>
+    <string name="game_memory_diff_easy_desc">4x4 共 8 对</string>
+    <string name="game_memory_diff_normal_desc">4x5 共 10 对</string>
+    <string name="game_memory_diff_hard_desc">4x6 共 12 对</string>
 </resources>

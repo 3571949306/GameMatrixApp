@@ -1,17 +1,17 @@
 package com.gamecenter.app.modules
 
 import android.content.Context
+import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.core.animation.addListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.gamecenter.app.BuildConfig
-import com.gamecenter.app.R
 import com.gamecenter.app.core.common.ModuleRegistry
-import com.gamecenter.app.core.common.NavigationSlot
+import com.gamecenter.app.navigation.BottomNavigationCatalog
+import com.gamecenter.app.navigation.BottomNavigationPreferences
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 /**
@@ -32,67 +32,33 @@ class BottomNavigationManager(
 
     companion object {
         private const val TAG = "BottomNavigationManager"
-        private const val MAX_BOTTOM_NAV_ITEMS = 6
     }
 
-    private val menuIdToContribution = mutableMapOf<Int, ModuleRegistry.NavigationContributionEntry>()
+    private val menuIdToItem = mutableMapOf<Int, BottomNavigationCatalog.Item>()
+    private val contributionIdToMenuId = mutableMapOf<String, Int>()
+    private val preferences = BottomNavigationPreferences(context)
     private var currentFragmentTag: String? = null
 
     /**
      * 刷新底部导航菜单。
      * 应在模块安装/卸载后调用。
+     *
+     * 可用入口由 [BottomNavigationCatalog] 统一发现，再应用用户本机的排序与隐藏偏好。
+     * 游戏大厅始终保留，宿主最多展示六项。
      */
     fun refreshNavigation() {
-        menuIdToContribution.clear()
+        val previouslySelected = currentFragmentTag
+        menuIdToItem.clear()
+        contributionIdToMenuId.clear()
         navView.menu.clear()
 
-        // 收集模块贡献
-        val contributions = ModuleRegistry.getNavigationContributionsForSlot(context, NavigationSlot.BOTTOM_NAV)
-            .filter { it.contribution.isEnabled() }
-            .sortedBy { it.contribution.getOrder() }
-            .take(MAX_BOTTOM_NAV_ITEMS - 2) // 预留游戏大厅和"我的"
-
-        // 强制插入游戏大厅作为第一个入口（如果模块未声明）
+        val items = preferences.visibleItems(BottomNavigationCatalog.discover(context))
         var nextMenuId = 1
-        var gamesAdded = false
-        var toolsAdded = false
-
-        // 如果模块贡献了游戏大厅，优先使用模块贡献
-        for (entry in contributions) {
-            val id = nextMenuId++
-            menuIdToContribution[id] = entry
-            val title = entry.contribution.getTitle(context)
-            val iconRes = entry.contribution.getIconResId().takeIf { it != 0 }
-                ?: R.drawable.ic_games
-            navView.menu.add(Menu.NONE, id, Menu.NONE, title).setIcon(iconRes)
-
-            if (entry.contribution.getContributionId() == "games_hall") {
-                gamesAdded = true
-            }
-            if (entry.contribution.getContributionId() == "tools") {
-                toolsAdded = true
-            }
-        }
-
-        // 兜底：如果没有模块贡献游戏大厅，添加内置游戏大厅
-        if (!gamesAdded) {
-            val gamesId = nextMenuId++
-            navView.menu.add(Menu.NONE, gamesId, Menu.NONE, R.string.nav_games)
-                .setIcon(R.drawable.ic_games)
-        }
-
-        // 兜底：P4 动态工具区，如果没有模块贡献工具箱，添加内置工具区入口
-        if (BuildConfig.ENABLE_P4_DYNAMIC_TOOLS && !toolsAdded && navView.menu.size() < MAX_BOTTOM_NAV_ITEMS) {
-            val toolsId = nextMenuId++
-            navView.menu.add(Menu.NONE, toolsId, Menu.NONE, R.string.nav_tools)
-                .setIcon(R.drawable.ic_tools)
-        }
-
-        // 兜底：添加"我的"入口
-        if (BuildConfig.PROFILE_FRAGMENT && navView.menu.size() < MAX_BOTTOM_NAV_ITEMS) {
-            val profileId = nextMenuId++
-            navView.menu.add(Menu.NONE, profileId, Menu.NONE, R.string.nav_profile)
-                .setIcon(R.drawable.ic_nav_profile)
+        for (entry in items) {
+            val menuId = nextMenuId++
+            menuIdToItem[menuId] = entry
+            contributionIdToMenuId[entry.id] = menuId
+            navView.menu.add(Menu.NONE, menuId, Menu.NONE, entry.title).setIcon(entry.iconResId)
         }
 
         navView.setOnItemSelectedListener { item ->
@@ -112,33 +78,27 @@ class BottomNavigationManager(
             }
         }
 
-        // 默认选中第一个
-        if (navView.menu.size() > 0 && currentFragmentTag == null) {
-            navView.selectedItemId = navView.menu.getItem(0).itemId
+        // 保留当前入口；如果它被用户隐藏或卸载，安全回到游戏大厅。
+        val selectedId = previouslySelected?.let(contributionIdToMenuId::get)
+            ?: contributionIdToMenuId[BottomNavigationCatalog.GAMES_HALL_ID]
+            ?: menuIdToItem.keys.firstOrNull()
+        if (selectedId != null) {
+            navView.selectedItemId = selectedId
         }
 
-        Log.d(TAG, "底部导航已刷新: ${navView.menu.size()} 个 item")
+        Log.d(TAG, "底部导航已刷新: ${navView.menu.size()} 个 item, ids=${items.map { it.id }}")
     }
 
     /**
      * 导航到指定菜单 ID 对应的 Fragment。
+     *
+     * 动态 APK 一律经 ModuleShellFragment 承载，避免宿主 FragmentManager 在进程恢复时
+     * 使用错误 ClassLoader；宿主内置贡献仍可直接创建 Fragment。
      */
     fun navigateTo(menuId: Int): Boolean {
-        Log.d(TAG, "navigateTo called: menuId=$menuId, map=${menuIdToContribution.keys}")
-        val entry = menuIdToContribution[menuId]
-
-        val fragment: Fragment
-        val tag: String
-
-        if (entry != null) {
-            tag = entry.contribution.getContributionId()
-            fragment = ModuleRegistry.createFragmentForContribution(context, entry)
-                ?: return false
-        } else {
-            // 使用兜底 Fragment
-            tag = getFallbackTag(menuId) ?: return false
-            fragment = createFallbackFragment(tag) ?: return false
-        }
+        val item = menuIdToItem[menuId] ?: return false
+        val tag = item.id
+        val fragment = createFragment(item) ?: return false
 
         val transaction = fragmentManager.beginTransaction()
 
@@ -169,35 +129,42 @@ class BottomNavigationManager(
      */
     fun getCurrentContributionId(): String? {
         val menuId = navView.selectedItemId
-        return menuIdToContribution[menuId]?.contribution?.getContributionId()
+        return menuIdToItem[menuId]?.id ?: currentFragmentTag
     }
 
-    private fun getFallbackTag(menuId: Int): String? {
-        val title = navView.menu.findItem(menuId)?.title?.toString() ?: return null
-        return when {
-            title == context.getString(R.string.nav_games) -> "games_hall"
-            title == context.getString(R.string.nav_tools) -> "tools"
-            title == context.getString(R.string.nav_profile) -> "profile"
-            else -> null
-        }
+    /** 供深链、返回键和自定义排序后按稳定贡献 ID 选择入口。 */
+    fun selectContribution(contributionId: String): Boolean {
+        val menuId = contributionIdToMenuId[contributionId] ?: return false
+        navView.selectedItemId = menuId
+        return true
     }
 
-    private fun createFallbackFragment(tag: String): Fragment? {
+    private fun createFragment(item: BottomNavigationCatalog.Item): Fragment? {
         return try {
-            when (tag) {
-                "games_hall" -> {
+            when (item.destinationKind) {
+                BottomNavigationCatalog.DestinationKind.CONTRIBUTION -> {
+                    val contribution = item.contributionEntry ?: return null
+                    ModuleRegistry.createFragmentForContribution(context, contribution)
+                }
+                BottomNavigationCatalog.DestinationKind.MODULE_SHELL -> {
+                    com.gamecenter.app.features.ModuleShellFragment().apply {
+                        arguments = Bundle().apply {
+                            putString(com.gamecenter.app.features.ModuleShellFragment.ARG_MODULE_ID, item.moduleId)
+                        }
+                    }
+                }
+                BottomNavigationCatalog.DestinationKind.GAMES_HALL -> {
                     if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
                         com.gamecenter.app.features.DynamicGamesHallFragment()
                     } else {
                         com.gamecenter.app.GamesFragment()
                     }
                 }
-                "tools" -> com.gamecenter.app.features.DynamicToolsFragment()
-                "profile" -> com.gamecenter.app.ProfileFragment()
-                else -> null
+                BottomNavigationCatalog.DestinationKind.TOOLS -> com.gamecenter.app.features.DynamicToolsFragment()
+                BottomNavigationCatalog.DestinationKind.PROFILE -> com.gamecenter.app.ProfileFragment()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "创建兜底 Fragment 失败: $tag", e)
+            Log.e(TAG, "创建底部导航 Fragment 失败: ${item.id}", e)
             null
         }
     }

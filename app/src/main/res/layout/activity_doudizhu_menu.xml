@@ -28,6 +28,64 @@
         android:shadowRadius="4"
         android:layout_marginBottom="80dp" />
 
+    <!-- 难度选择标题 -->
+    <TextView
+        android:id="@+id/tvDifficultyLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/difficulty"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#FFD700"
+        android:layout_marginBottom="12dp" />
+
+    <!-- 难度选择按钮组（横向） -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnDiffEasy"
+            android:layout_width="90dp"
+            android:layout_height="48dp"
+            android:text="@string/doudizhu_diff_easy"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:background="@drawable/btn_gold_gradient"
+            android:foreground="@drawable/ripple_gold"
+            android:elevation="6dp"
+            android:layout_marginEnd="12dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnDiffNormal"
+            android:layout_width="90dp"
+            android:layout_height="48dp"
+            android:text="@string/doudizhu_diff_normal"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:background="@drawable/btn_gold_gradient"
+            android:foreground="@drawable/ripple_gold"
+            android:elevation="6dp"
+            android:layout_marginEnd="12dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnDiffHard"
+            android:layout_width="90dp"
+            android:layout_height="48dp"
+            android:text="@string/doudizhu_diff_hard"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:background="@drawable/btn_gold_gradient"
+            android:foreground="@drawable/ripple_gold"
+            android:elevation="6dp" />
+    </LinearLayout>
+
     <!-- 单机模式按钮 -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnSinglePlayer"

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.gamecenter.app.database.DatabaseMigrations
 
 @Database(
     entities = [ModuleEntity::class],
@@ -24,7 +25,10 @@ abstract class ModuleDatabase : RoomDatabase() {
                     context.applicationContext,
                     ModuleDatabase::class.java,
                     "module_database"
-                ).build()
+                )
+                    .addMigrations(*DatabaseMigrations.ALL_MIGRATIONS)
+                    .fallbackToDestructiveMigrationOnDowngrade(true)
+                    .build()
                 INSTANCE = instance
                 instance
             }

@@ -128,10 +128,15 @@ public class GomokuActivity extends AppCompatActivity {
     private volatile boolean aiThinking = false;
     private volatile long aiGeneration = 0;
 
-    /** 难度名称数组，与 1-4 档按钮对应 */
-    private static final String[] DIFFICULTY_NAMES = {
-            "低", "中", "高", "大师"
-    };
+    /** 难度名称数组，与 1-4 档按钮对应（从资源读取，支持本地化） */
+    private String[] getDifficultyNames() {
+        return new String[]{
+                getString(R.string.game_gomoku_diff_low),
+                getString(R.string.game_gomoku_diff_medium),
+                getString(R.string.game_gomoku_diff_high),
+                getString(R.string.game_gomoku_diff_master)
+        };
+    }
 
     /** 对局开始时间戳（elapsedRealtime） */
     private long gameStartElapsedMs = 0L;
@@ -330,8 +335,8 @@ public class GomokuActivity extends AppCompatActivity {
     private void selectDifficulty(int difficulty) {
         aiDifficulty = Math.max(1, Math.min(difficulty, MAX_AI_DIFFICULTY));
         if (tvDifficultyLabel != null) {
-            tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[aiDifficulty - 1]
-                    + " (" + aiDifficulty + "/" + MAX_AI_DIFFICULTY + ")");
+            tvDifficultyLabel.setText(getString(R.string.game_gomoku_difficulty_label,
+                    getDifficultyNames()[aiDifficulty - 1], aiDifficulty, MAX_AI_DIFFICULTY));
         }
         // 更新难度按钮选中态（LinearLayout 用 setSelected 触发 selector）
         int[] ids = {
@@ -386,6 +391,12 @@ public class GomokuActivity extends AppCompatActivity {
         if (game.getCurrentPlayer() != playerColor) return;
         if (aiThinking) return;
         if (!game.isValidMove(x, y)) return;
+        // 禁手判定（仅黑方）：玩家走出禁手则提示并拒绝落子
+        if (playerColor == GomokuGame.BLACK && game.isForbiddenMovesEnabled()
+                && game.isForbiddenMove(x, y)) {
+            Toast.makeText(this, forbiddenToastText(game.getForbiddenType(x, y)), Toast.LENGTH_SHORT).show();
+            return;
+        }
         gomokuView.clearHint();
         game.makeMove(x, y, playerColor);
         game.switchPlayer();
@@ -417,6 +428,14 @@ public class GomokuActivity extends AppCompatActivity {
             Runnable applyMove = () -> {
                 if (currentGen != aiGeneration) return;
                 if (bestMove != null) {
+                    // 禁手判定（黑方）：AI 若走出禁手则判负（玩家胜）
+                    if (aiPlayer == GomokuGame.BLACK && game.isForbiddenMovesEnabled()
+                            && game.isForbiddenMove(bestMove[0], bestMove[1])) {
+                        game.setGameOver(playerColor);
+                        gomokuView.invalidate();
+                        stopTimer();
+                        return;
+                    }
                     game.makeMove(bestMove[0], bestMove[1], aiPlayer);
                     game.switchPlayer();
                     game.checkGameOver();
@@ -444,6 +463,19 @@ public class GomokuActivity extends AppCompatActivity {
     }
 
     /**
+     * 将禁手类型转换为中文提示文本。
+     */
+    private String forbiddenToastText(GomokuGame.ForbiddenType type) {
+        if (type == null) return getString(R.string.game_gomoku_forbidden);
+        switch (type) {
+            case THREE_THREE: return getString(R.string.game_gomoku_forbidden_three_three);
+            case FOUR_FOUR: return getString(R.string.game_gomoku_forbidden_four_four);
+            case OVERLINE: return getString(R.string.game_gomoku_forbidden_overline);
+            default: return getString(R.string.game_gomoku_forbidden);
+        }
+    }
+
+    /**
      * 处理悔棋操作，撤销最多5手（玩家+AI各一手为一手）。
      */
     private void handleUndo() {
@@ -461,7 +493,7 @@ public class GomokuActivity extends AppCompatActivity {
         final long currentGen = aiGeneration;
         
         // 显示提示加载中
-        Toast.makeText(this, "大师思考中...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.game_gomoku_master_thinking, Toast.LENGTH_SHORT).show();
         
         aiExecutor.execute(() -> {
             // 使用大师级 AI 获取最佳走法
@@ -478,7 +510,7 @@ public class GomokuActivity extends AppCompatActivity {
                         // 将坐标 (x,y) 转换为棋盘标记，例如 A1, H8
                         char colLabel = (char) ('A' + hint[0]);
                         int rowLabel = 15 - hint[1];
-                        String message = String.format(Locale.getDefault(), "💡 大师建议: %c%d\n%s", colLabel, rowLabel, analysis);
+                        String message = getString(R.string.game_gomoku_master_hint, colLabel, rowLabel, analysis);
                         Toast.makeText(GomokuActivity.this, message, Toast.LENGTH_LONG).show();
                     }
                 });
@@ -492,14 +524,14 @@ public class GomokuActivity extends AppCompatActivity {
     private void handleResign() {
         if (game.isGameOver() || aiThinking) return;
         new AlertDialog.Builder(this)
-                .setTitle("认输")
-                .setMessage("确定要认输吗？将记录为AI获胜。")
-                .setPositiveButton("确定认输", (d, w) -> {
+                .setTitle(R.string.game_gomoku_resign_title)
+                .setMessage(R.string.game_gomoku_resign_message)
+                .setPositiveButton(R.string.game_gomoku_resign_confirm, (d, w) -> {
                     game.setGameOver(aiPlayer);
                     stopTimer();
                     gomokuView.invalidate();
                 })
-                .setNegativeButton("继续对局", null)
+                .setNegativeButton(R.string.game_gomoku_resign_cancel, null)
                 .show();
     }
 
@@ -512,10 +544,10 @@ public class GomokuActivity extends AppCompatActivity {
             return;
         }
         new AlertDialog.Builder(this)
-                .setTitle("重新开始")
-                .setMessage("确定要重新开始当前对局吗？")
-                .setPositiveButton("确定", (d, w) -> handleRestart())
-                .setNegativeButton("取消", null)
+                .setTitle(R.string.game_gomoku_restart_title)
+                .setMessage(R.string.game_gomoku_restart_message)
+                .setPositiveButton(R.string.game_gomoku_restart_confirm, (d, w) -> handleRestart())
+                .setNegativeButton(R.string.game_gomoku_restart_cancel, null)
                 .show();
     }
 
@@ -548,11 +580,11 @@ public class GomokuActivity extends AppCompatActivity {
      */
     private void showExitConfirmDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("退出对局")
-                .setMessage("当前对局尚未结束，确定要退出吗？")
-                .setPositiveButton("退出", (d, w) -> finish())
-                .setNegativeButton("重新开始", (d, w) -> handleRestart())
-                .setNeutralButton("继续对局", null)
+                .setTitle(R.string.game_gomoku_exit_title)
+                .setMessage(R.string.game_gomoku_exit_message)
+                .setPositiveButton(R.string.game_gomoku_exit_confirm, (d, w) -> finish())
+                .setNegativeButton(R.string.game_gomoku_exit_restart, (d, w) -> handleRestart())
+                .setNeutralButton(R.string.game_gomoku_exit_continue, null)
                 .show();
     }
 

@@ -10,6 +10,10 @@ import androidx.annotation.NonNull;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
+import com.gamecenter.app.games.model.DifficultyLevel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 飞机大战游戏 Activity（继承 BaseGameActivity）。
@@ -38,6 +42,7 @@ public class PlaneActivity extends BaseGameActivity {
     private Handler handler = new Handler(Looper.getMainLooper());
     private int currentWave = 1;
     private int totalGames = 0;
+    private float difficultyFactor = 0.5f;
 
     private static final long FRAME_INTERVAL_MS = 16;
     private final Runnable gameLoop = new Runnable() {
@@ -61,25 +66,28 @@ public class PlaneActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "飞机大战";
+        return getString(R.string.game_plane_name);
     }
 
     @Override
     protected void initGame() {
         planeView = new PlaneView(this);
+        applyDifficulty();
 
         planeView.setOnGameListener(new PlaneView.OnGameListener() {
             @Override
             public void onScoreChanged(int score) {
-                updateScore(currentScore + score);
+                updateScore(score);
+                // 同步当前波次（修复 currentWave 恒为 1 的死逻辑）
+                currentWave = planeView.getWave();
             }
 
             @Override
             public void onGameOver(int score) {
                 handler.removeCallbacks(gameLoop);
                 totalGames++;
-                currentScore += score;
-                updateScore(currentScore);
+                updateScore(score);
+                recordHighScore(score);
 
                 usageStore.recordLoss(getGameId());
 
@@ -106,6 +114,7 @@ public class PlaneActivity extends BaseGameActivity {
         isGameRunning = true;
         isGamePaused = false;
         gameStartTime = System.currentTimeMillis();
+        currentWave = 1;
         planeView.startGame(currentWave);
         handler.post(gameLoop);
     }
@@ -143,6 +152,31 @@ public class PlaneActivity extends BaseGameActivity {
     @Override
     protected void checkAchievement(@NonNull String eventType, @NonNull Object... params) {
         achievementManager.checkAndUnlock(eventType, params);
+    }
+
+    @NonNull
+    @Override
+    public List<DifficultyLevel> getDifficultyLevels() {
+        List<DifficultyLevel> levels = new ArrayList<>();
+        levels.add(new DifficultyLevel(getString(R.string.game_plane_diff_easy), 1, getString(R.string.game_plane_diff_easy_desc), 0, 0, 0.3f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_plane_diff_normal), 2, getString(R.string.game_plane_diff_normal_desc), 0, 0, 0.5f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_plane_diff_hard), 3, getString(R.string.game_plane_diff_hard_desc), 0, 0, 0.8f, false));
+        return levels;
+    }
+
+    @Override
+    public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
+                                    @NonNull DifficultyLevel newLevel) {
+        difficultyFactor = newLevel.difficultyFactor;
+        applyDifficulty();
+    }
+
+    /**
+     * 根据当前难度因子配置 PlaneView（影响敌机速度/生成间隔）。
+     */
+    private void applyDifficulty() {
+        if (planeView == null) return;
+        planeView.setDifficultyFactor(difficultyFactor);
     }
 
     @Override

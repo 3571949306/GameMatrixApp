@@ -1,5 +1,328 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp - 版本更新日志
 
+## [全方位美化收尾：动作类深屏背景资源化 + 控制按键图标主题色化] - 2026-07-22
+
+### 变更
+
+- **动作类深屏背景资源化（3 个 View）**：BreakoutView `#1a1a2e`、BrotatoView `#1B1B2F`、PlaneView `#0D1B2A`（蓝紫黑/深蓝）→ `R.color.game_screen_bg`（中性深灰，浅深色自适应），补 `import ContextCompat` + `import R`；FlappyView 浅蓝天空 `#81D4FA` 保留（经典天空氛围功能色）；砖块/敌机/子弹/玩家等功能强调色保留。
+- **游戏内控制按键图标主题色化（7 个图标）**：`ic_pause/ic_refresh/ic_home/ic_forward/ic_close/ic_settings/ic_back` 的 fillColor 由硬编码 `#5F6368` → `?attr/colorControlNormal`，浅色灰/深色浅灰自动跟随主题；pathData 逐字保留。
+- **棋牌/益智功能性棋盘色保留**：Go 木色 `#DEB887`、2048 米色 `#BBADA0`、数独/推箱子/井字米色 `#F5F0E8`、扫雷绿 `#5B8A72` 等传统游戏认知色按已确认策略保留，不改动。
+
+### 验证与发布
+
+- `:app:assembleDebug` BUILD SUCCESSFUL in 46s；纯资源 + 3 处 View 资源化 + 7 图标 fillColor 改主题属性，不改游戏逻辑。
+- 回滚用 `git checkout` 对应文件。
+
+---
+
+## [全方位图标/图案美化：launcher 矢量化 + 游戏图标统一 + 游戏屏主题对齐] - 2026-07-22
+
+### 变更
+
+- **app launcher 矢量化**：精修 `ic_launcher_foreground` 为 adaptive 安全区设计（72dp 内品牌蓝圆角矩形 + 白 GM 字母），`ic_launcher.xml` 由 PNG `ic_launcher_logo` 改指向矢量，与 `ic_launcher_round` 统一；旧 PNG 无引用已删除。
+- **25 个游戏图标背景统一**：圆角 r4→r8 + 硬编码分类色→`@color/category_*_start` token（棋牌 7 / 益智 11 / 动作 7），内容 pathData 逐字保留以严格保持图标与游戏内容相关性；9 个非圆角矩形背景模式图标（写实棋盘/24dp 主题色）跳过。
+- **Snake/Tetris 深色游戏屏主题对齐**：背景/网格硬编码蓝紫黑 `#1A1A2E`/`#2A2A4E` 资源化为 `game_screen_bg/grid`（浅色中性深灰 #1B1B1F、深色对齐主题 #0E1016），浅深色自适应；蛇/方块/食物等功能色保留。
+
+### 验证与发布
+
+- `:app:assembleDebug` BUILD SUCCESSFUL in 31s；图标内容 pathData 与原文件逐字一致；Snake/Tetris 浅深色自适应。
+- 纯资源 + 2 处 View 资源化（不改游戏逻辑），回滚用 `git checkout` 对应文件。
+
+---
+
+## [中国象棋 AI 增强（内嵌版 v2.0）] - 2026-07-22
+
+### 变更
+
+- 重写 `app/src/main/java/com/gamecenter/app/games/chinesechess/ChineseChessAI.java`（v1.0 → v2.0）。在既有 Minimax + Alpha-Beta 剪枝基础上叠加：
+  - **静态搜索（Quiescence Search）**：搜索边界仅对吃子序列（及被将军时的全部应着）继续展开，消除"地平线效应"（避免末端吃大子却看不见随后被反吃）。
+  - **将军延伸（Check Extension）**：被将军时本层不递减深度，提升杀棋识别；受 `CHECK_EXTENSION_PLY_LIMIT` 上限保护，避免长将/循环导致深度爆炸。
+  - **MVV-LVA 走法排序**：优先搜索"以大吃小"，显著提升剪枝效率、在相同时间内达到更深等效搜索。
+  - **机动性项**：评估函数新增双方伪合法着法数之差，保留子力价值 + 棋子价值表（PST）位置加成。
+  - **将死距离评分**：`MATE_SCORE - ply`，优先更快将死 / 更晚被将死（象棋困毙亦判负）。
+- 修复两处**真实正确性缺陷**（经离线 JDK 21 测试桩运行期捕获并修复）：
+  1. **根节点取舍方向错误**：AI 固定执黑，minimax 返回红方视角评分，原代码却取 `score > bestScore`（最大化）；应取最小化（`score < bestScore` 且初值 `Integer.MAX_VALUE`）。旧逻辑使 AI 近乎随机走子。
+  2. **白脸将（对脸）检测对方将错误**：`isInCheck` 白脸将分支原调用 `findKing(b, attacker > 0 ? 1 : 2)`，传入 `2` 会解析为"走子方自身将"→ 红方恒被判被将军且无合法着法 → 所有根着法被计为必杀（-999999）→ AI 实际随机。改为 `findKing(b, attacker)` 正确解析敌方将。
+
+### 验证与发布
+
+- 离线验证：JDK 21 `javac` 编译通过（COMPILE_OK）；自建行为测试桩 **全部通过（ALL TESTS PASSED）**——自由吃子偏好、50 随机局面合法性、取消中断、计时、自对弈稳定性（27 回合）；运行期捕获并验证修复上述两处缺陷。修复后根节点能正确选出必杀着法（评分 `-999991` = `MATE_SCORE - 9`，即 9 层内强制将死）。离线冷 JVM 单线程（无置换表）计时：depth6 开局约 32s、depth8 残局约 173s，真机 ART 通常更快；最高难度（depth8）在低端机可能偏慢，属已知权衡（内嵌版未含置换表）。
+- 完整 `:app` 全量构建仍受 Flutter 环境问题阻断（与本次改动无关，预存），需在标准 Android Studio + Flutter 环境产出完整 APK。
+
+---
+
+## [UI 美化：Material3 简约克制一致性收敛] - 2026-07-22
+
+### 变更
+
+- 全局品牌色统一：drawable 层 14 个文件硬编码旧 Google 蓝 `#1A73E8`/`#1557B0`/`#4285F4`/`#B4C6E7` 统一为品牌色引用 `@color/brand_primary` 等，自动跟随浅深色主题。
+- `colors.xml` / `values-night/colors.xml`：gomoku/chess/ai 共 9 处旧蓝 → `@color/brand_primary`/`brand_primary_dark`；删除无引用违规紫 `purple_500`（浅色 `#7B1FA2` + 深色 `#B39DDB`）。
+- 收敛过艳渐变回到 Material3 简约克制：`HOME_REVAMP_V2` 霓虹紫红橙、`HOME_IMMERSIVE` 过艳紫蓝、`module_hero_gradient` 紫 → 品牌蓝紫克制系，浅深色同步；V2 深色卡片表面从紫黑收敛为中性深灰蓝（对齐 `md_theme_surface`）。
+- 修正 `bg_category_tag_arcade` 一致性 bug（街机分类标签误用蓝 → 街机红 `@color/category_arcade_start`）。
+- 工具箱调色板 `item_tool_color.xml` 的功能性预设色板（红橙黄绿蓝紫粉青白黑）保留不动。
+
+### 验证与发布
+
+- `:app:assembleDebug` BUILD SUCCESSFUL in 2m 23s；AAPT 资源校验通过，所有 `@color/` 引用正确解析，无新增 lint 错误。
+- drawable 层 `#1A73E8` 残留 = 0；colors.xml `#E91E63`/`purple_500` 残留 = 0。
+- 纯资源色值替换，不改逻辑/布局结构/id，回滚用 `git checkout -- app/src/main/res/`。
+
+---
+
+## [模块化底部导航与用户自定义] - 2026-07-22
+
+### 变更
+
+- Android 宿主可从上次成功的可信 Catalog 缓存恢复 `navigationContribution`，安装的新 Android 功能模块无需再次更新宿主即可贡献底部入口。
+- 动态 APK 入口统一通过 `ModuleShellFragment` 延迟加载；远程图标只能使用宿主白名单键，不能注入动态 APK 资源 ID。
+- 设置新增“底部导航”：支持拖拽排序、隐藏和恢复默认，最多显示 6 项；游戏大厅作为安全入口始终保留。
+- 深链与返回键改为按稳定 contribution ID 导航，不再假设游戏大厅位于第一项。
+- Flutter 商店继续只负责安装交互；Catalog 信任、安装状态、底部导航与运行时仍由 Android 权威端管理。
+
+### 验证与发布
+
+- Android 单测、`lintDebug`、Flutter-enabled Debug、`flutter analyze`、6 个 Flutter 测试、生产 `lintVitalRelease`、R8、资源收缩和正式 Release 构建通过。
+- API 35 上从 vc594 保留数据升级到 vc595 成功；隐藏、排序、返回即时刷新、冷启动持久化和恢复默认均通过。
+- 修复 R8 重命名 Flutter `GeneratedPluginRegistrant.registerWith` 导致的 Release 反射注册错误，最终流程无该错误及目标崩溃签名。
+- stable vc595 已上传 VPS；公网完整 APK 回下载与本地 SHA-256 一致。
+
+### 模块声明
+
+```json
+"navigationContribution": {
+  "slot": "bottom_nav",
+  "title": "新专区",
+  "icon": "extension",
+  "order": 15,
+  "enabled": true
+}
+```
+
+---
+
+## [模块商店响应速度优化] - 2026-07-22
+
+### 变更
+
+- Flutter-first 商店直接嵌入原 `ModuleStoreActivity`，移除入口处额外 Activity 跳转与销毁。
+- Catalog 缓存读取、校验后目录解析和权威清单合并移出 Android 主线程，降低首屏卡顿。
+- 4 项 Flutter UI 偏好并行读取；筛选结果按状态变更缓存，避免同一帧重复过滤和排序。
+- 商店页面改为单一显式监听，避免 `InheritedNotifier` 与 `AnimatedBuilder` 双重重建。
+- 下载进度事件不再逐帧跨 Pigeon 查询完整模块；首页只在下载任务数量变化时更新，下载卡片保持独立进度刷新。
+- 新增偏好并发、可见列表缓存和下载进度桥接调用回归测试。
+
+### 验证
+
+- `flutter analyze` 0 问题，Flutter 6 个测试通过。
+- Android 404 个单测通过；`lintDebug`、Flutter-enabled Debug、生产信任双 ABI Release 与 `lintVitalRelease` 通过。
+- API 35 搜索过滤、上下滚动和 34 模块目录渲染通过，应用 PID 的目标 FATAL 为 0。
+
+---
+
+## [签到改为自动记录登录天数] - 2026-07-22
+
+### 变更
+
+- **去掉签到弹窗**：移除 `DailyCheckInDialog` 及其布局/背景资源，用户进入游戏大厅不再弹出签到对话框。
+- **去掉手动签到入口**：头像菜单删除"每日签到"项，不再要求用户主动点击签到。
+- **改为自动记录登录天数**：`DailyCheckInManager` 新增 `recordLoginDay()` 方法，用户进入游戏大厅时后台自动记录当天登录（幂等，同一天多次进入只记一次）。
+- **新增登录天数统计字段**：`best_consecutive_days`（最佳连续登录天数），与原有 `consecutive_days` / `total_checkin_days` 共同构成完整登录统计。
+- **废弃积分奖励逻辑**：`checkInToday()` / `CheckInResult` / `total_points` 递增逻辑移除（单机 app 不需要积分系统）；`getTotalPoints()` 保留读取历史值供迁移展示。
+- **通知中心更新**：签到条目由"今日还未签到 / 已签到"红绿状态改为"登录天数 / 累计 X 天 · 连续 Y 天"中性展示。
+- **导航红点更新**：`NavBadgeHelper` 移除"未签到 +1 红点"逻辑（不再有未签到状态）。
+- **新增字符串**（中英双语）：`auto_login_days_title` / `auto_login_days_desc` / `auto_login_days_toast`。
+- **Feature flag**：`DAILY_CHECKIN` 保留，语义由"每日签到"改为"每日自动登录记录"。
+
+### 修改文件
+
+- 修改：`DailyCheckInManager.java` / `GamesFragment.java` / `NavBadgeHelper.kt` / `NotificationsDialog.kt`
+- 修改：`values/strings.xml` / `values-en/strings.xml` / `docs/FEATURE_FLAGS.md`
+- 删除：`DailyCheckInDialog.kt` / `dialog_daily_checkin.xml` / `bg_checkin_card.xml`
+- 新增：`docs/pending_delete_checkin_files.md`
+
+### 验证
+
+- 构建 `:app:assembleDebug` 成功
+- 真机小米 ares 安装成功，启动无签到弹窗，SharedPreferences 自动写入登录记录，通知中心显示"登录天数"，logcat 无异常
+
+---
+
+## [首页 V2 游戏活力风重设计] - 2026-07-22
+
+### 变更
+
+- 新增 `HOME_REVAMP_V2` feature flag（默认 true，与 `HOME_IMMERSIVE_REVAMP` 并存，可单独回退），首页（游戏大厅）V2 游戏霓虹风重设计。
+- **3 层信息架构**：L1 沉浸式 Hero 区（问候 / 头像 / 通知 / 药丸搜索 / 搜索历史 / 今日推荐大图卡 / 快速统计 / 继续游玩）→ L2 快速入口带（最近游玩 / 每日卡片）→ L3 游戏列表区（筛选 Chip / Tab / 网格 / 空状态 / FAB）。
+- **游戏霓虹配色系统**：浅色 深紫 #6B2FB3 → 品红 #E91E63 → 暖橙 #FF6B35；深色 深紫黑 #1A0B2E → 品红紫 #4A1A5E → 霓虹紫 #7C4DFF。浅色 / 深色双适配。
+- **今日推荐大图卡**：重写 `layout_home_game_of_day.xml` 为 160dp 大图卡（游戏图标 alpha 0.35 背景 + 底部渐变蒙版 + 徽章 / 名称 / 描述 / 立即开玩按钮）。
+- 重写 `fragment_games.xml`：**保留全部 37 个原 id**，Hero Banner 轮播 / 最近成就 section 在 V2 中弱化为 GONE 占位以兼容 `GamesFragment.java` 的 `findViewById` 引用。FAB 使用 `home_v2_hero_center` 作为 backgroundTint。
+- 新增 Hero 区进入动画 `home_v2_hero_enter.xml`（渐显 + 上移 300ms，decelerate_quad 插值器）。
+- 新增 `home_v2_*` 霓虹色板（浅色 / 深色双适配）+ 8 个 drawable 资源。
+- `GamesFragment.refreshResumeGameCard()` 新增 `HOME_REVAMP_V2` 分支，空数据走 V2 引导文案。
+- 新增 3 个字符串（中英双语）。
+
+### 修改文件
+
+- `app/build.gradle`（新增 `HOME_REVAMP_V2` flag）
+- `app/src/main/java/com/gamecenter/app/GamesFragment.java`（`refreshResumeGameCard()` 空状态新增 V2 分支）
+- `app/src/main/res/layout/fragment_games.xml`（完整重写，保留 37 个 id）
+- `app/src/main/res/layout/layout_home_game_of_day.xml`（重写为 160dp 大图卡）
+- `app/src/main/res/values/colors.xml` + `values-night/colors.xml`（`home_v2_*` 霓虹色板）
+- `app/src/main/res/values/strings.xml` + `values-en/strings.xml`（3 个新字符串）
+- `app/src/main/res/drawable/bg_home_v2_*.xml`（8 个新建 drawable）
+- `app/src/main/res/anim/home_v2_hero_enter.xml`（1 个新建 anim）
+- `docs/FEATURE_FLAGS.md` / `修改记录.md` / `CHANGELOG.md`
+
+### 验证
+
+- `:app:assembleDebug -PautoBumpVersion=false --stacktrace` 构建成功（33s，446 actionable tasks，38 executed）。
+- 真机小米 ares（M2012K10C，`192.168.10.50:32909`）安装成功，浅色 / 深色双主题截图保存至 `test_artifacts/screen_home_v2_light.png` / `test_artifacts/screen_home_v2_dark.png`。
+- logcat 无 FATAL EXCEPTION（仅 Mediatek CTA 平台警告，与本次改动无关）。
+
+### 回滚
+
+- 快速回退：将 `app/build.gradle` 中 `HOME_REVAMP_V2` 改为 `false`，重新构建即可回到 `HOME_IMMERSIVE_REVAMP` 视觉。
+- 完全回退：`git checkout` 上述 18 个文件 + `git clean -fd` 新增的 drawable / anim 文件。
+
+---
+
+## [首页沉浸式改版（方案 A）] - 2026-07-22
+
+### 变更
+
+- 新增 `HOME_IMMERSIVE_REVAMP` feature flag（默认 true），首页（游戏大厅）沉浸式 Hero 区 + 卡片流重写。
+- 重写 `fragment_games.xml`：240dp 三色渐变 Hero 背景，融合问候/头像/通知/药丸搜索/搜索历史/快速统计/继续游玩/今日推荐；下方圆角 20dp 卡片流（Hero Banner / 最近成就 / 最近游玩 / 每日卡片 / 筛选 Chip / Tab / 游戏列表 / 空状态 / FAB）。**保留全部 36 个原 id**，仅重构视觉层级。
+- `GamesFragment.refreshResumeGameCard()` 空状态走引导分支：`HOME_IMMERSIVE_REVAMP=true` 时空数据显示"开始你的第一局游戏"引导卡片而非 `setVisibility(GONE)`，避免首屏空白。
+- 新增 `home_immersive_*` 品牌色板（浅色深蓝紫渐变 + 深色双适配）+ 6 个 drawable 资源。
+- 新增 5 个字符串（中英双语）。
+
+### 修改文件
+
+- `app/build.gradle`（新增 `HOME_IMMERSIVE_REVAMP` flag）
+- `app/src/main/java/com/gamecenter/app/GamesFragment.java`（`refreshResumeGameCard()` 空状态分支）
+- `app/src/main/res/layout/fragment_games.xml`（完整重写，保留 36 个 id，修正 8 处资源引用 + 3 处 include 引用）
+- `app/src/main/res/values/colors.xml` + `values-night/colors.xml`（`home_immersive_*` 色板）
+- `app/src/main/res/values/strings.xml` + `values-en/strings.xml`（5 个新字符串）
+- `app/src/main/res/drawable/bg_home_immersive_*.xml`（6 个新建 drawable）
+- `docs/FEATURE_FLAGS.md` / `修改记录.md` / `CHANGELOG.md`
+
+### 验证
+
+- `:app:assembleDebug` 构建成功（首次失败：3 处 include 引用 `layout_playtime_reminder`/`layout_game_of_day`/`layout_resume_game` 未找到 → 修正为 `layout_home_*` 前缀后成功）。
+- 真机小米 ares（M2012K10C）安装后游戏列表正常渲染，浅色/深色主题切换正常。
+- logcat 无 FATAL EXCEPTION。
+
+### 回滚
+
+- Feature Flag 回退：`app/build.gradle` 中 `HOME_IMMERSIVE_REVAMP` 改为 `"false"`。
+- 完全回退：`git checkout --` 上述代码与资源文件，删除 6 个新建 drawable。
+
+## [P4 动态导航兜底逻辑修复] - 2026-07-21
+
+### 变更
+
+- 修复 P4 动态底部导航（`BottomNavigationManager`）在模块未贡献 `NavigationContribution` 时只显示 3 个 tab 的问题。
+- 对已安装但未贡献 NavigationContribution 的 browser/ai/vpn 模块，通过 `ModuleManager.getInstalledModuleIds()` 动态添加 tab，点击时跳转 `ModuleShellFragment`，恢复 6 tab 完整体验。
+- `ModuleShellFragment.inferModuleIdFromTag()` 支持直接 module ID 形式 tag（"browser"/"ai"/"vpn"等）。
+- 保留 P4 动态导航架构，作为 Flutter 化首页未来扩展点的稳定底座（不关闭 `ENABLE_P4_DYNAMIC_NAVIGATION`）。
+
+### 修改文件
+
+- `app/src/main/java/com/gamecenter/app/modules/BottomNavigationManager.kt`（重写 `refreshNavigation()` / `navigateTo()` / `createFallbackFragment()`，新增 3 个辅助方法）
+- `app/src/main/java/com/gamecenter/app/features/ModuleShellFragment.kt`（`inferModuleIdFromTag()` 兼容 P4 tag）
+- `docs/FEATURE_FLAGS.md` / `修改记录.md` / `CHANGELOG.md`
+
+### 验证
+
+- `:app:assembleDebug` 构建成功。
+- 真机小米 ares（M2012K10C）安装后底部导航恢复 6 tab：游戏大厅 / 浏览器 / AI 助手 / 科学上网 / 工具箱 / 我的。
+- 6 个 tab 逐个切换全部成功，browser/vpn 模块加载 EntryPoint 正常。
+- logcat 无 FATAL EXCEPTION。
+
+### 回滚
+
+- Git：`git checkout --` 上述 5 个文件
+- 应急：将 `app/build.gradle` 中 `ENABLE_P4_DYNAMIC_NAVIGATION` 改为 `"false"`，回退到 Navigation 组件方式
+
+## [Flutter-first Multi-runtime Module Store 收尾] - 2026-07-21
+
+### 变更
+
+- 新增 `flutter_module/` Add-to-App 商店，Flutter 负责首页、详情、搜索/筛选、已安装、更新与下载管理 UI。
+- 新增 Pigeon 双端类型桥接、缓存 Engine `game_matrix_main_engine` 与默认关闭的 `ENABLE_FLUTTER_MODULE_STORE`。
+- 新增 Catalog V2、旧目录适配、`ModuleCoreFacade`、六类 Runtime Handler 以及 Web/Asset 安全事务安装框架。
+- 保留 `ModuleStoreActivity` 原生旧商店；Flutter 初始化失败、开关关闭或显式回退时继续使用旧入口。
+- 未登记到权威 `ModuleManager` 清单的正式 V2 非内置包返回 `package_not_registered`，不会伪造排队或下载进度。
+
+### 验证
+
+- Flutter analyze 无问题、3 个 Flutter 测试通过。
+- Android 全量单测、lint、Debug 构建通过；lint XML 无当前 Error。
+- Catalog Ed25519 RFC 向量、精确字节篡改、密钥轮换和错误密钥负向测试通过；Web/Asset/Unity Content 生命周期、归档 manifest、Flutter 路由白名单、Native Service controller 和压缩炸弹测试通过。
+- `lintVitalRelease`、R8、资源收缩、APK v2 签名和双 ABI staging Release 通过；APK 同时包含 ARM64/x86_64 Flutter AOT 库。
+- Android 11/API 30、12/API 31、14/API 34 各完成双 ABI 签名 Release 20 次进出；最新 Android 15/API 35 完成 40 次进出；小米 M2012K10C / Android 13 完成 80 次 Debug 进出、详情、状态页、语言/主题和旧商店回退，所有目标日志均无致命错误。
+
+### 发布状态
+
+- stable `versionCode 593` / `versionName 1.4.1` 已发布，正式包名为 `com.gamecenter.app`，Flutter 商店与生产 Catalog 强制验签已启用。
+- Catalog V8、Ed25519 `X-Catalog-Signature`、34 项正式目录、动态 APK 与受控 Web/Asset/Unity 灰度包均已上线；灰度验证条目已从最终目录移除。
+- 公网 APK 必须完成全量回下载、逐字节一致、包名/版本/ABI/证书复核；最终不可自引用的大小与 SHA-256 记录在权威 `docs/flutter-store/MIGRATION_STATUS.md`。
+- 本轮未改动棋类 AI 业务代码，未执行 Git 提交或推送；已在用户授权下完成 VPS 原子发布与公网验收。
+
+## [模块商店签名修复 + tts_voice/wrongbook 分类可下载] - 2026-07-20
+
+### 🎯 目标
+修复模块商店下载模块时显示"签名验证失败"的问题，让 5 个动态模块（tools / ai / vpn / tts_voice / wrongbook）均能在小米 ares 真机正常下载安装并通过签名校验。
+
+### 🛠 主要变更
+
+#### 1. 模块签名配置补齐
+为以下 4 个模块的 `build.gradle` 添加 `signingConfigs.release`（从 `keystore.properties` 读取 STORE_FILE/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD，启用 v1+v2 签名）：
+- `module-store/feature/tools/tools/build.gradle`
+- `module-store/feature/tools/ai/build.gradle`
+- `module-store/feature/tools/vpn/build.gradle`
+- `module-store/feature/games/games/tts/build.gradle`
+
+原本这 4 个模块构建时默认用 Android Debug 证书签名，与主 APK 的发布证书 `gamecenter.jks`（SHA-256: `d058a18f9e89a29b5339eda27ece3ff9f78e0dbefe605d551e7745f724d2eddc`）不一致，导致 `ModuleSignatureVerifier` 校验失败。
+
+#### 2. TtsModuleEntryPoint.java 修复
+`feature/games/games/tts/src/main/java/com/gamecenter/app/tts/TtsModuleEntryPoint.java` 显式覆盖 Kotlin 接口 `FeatureModule` 的所有默认方法（`createUnityLauncher`、`shouldPreload`、`getModuleType`、`getDependencies`、`getRequiredPermissions`、`isEnabled`），否则 Java 实现编译失败。
+
+#### 3. catalog.json + modules.json 更新
+- `app/src/main/assets/catalog.json`：`catalogVersion` 1→2→3，5 个模块的 `fileSize` 和 `sha256` 全部对齐新签名 APK；`tts_voice.storeCategory` 由 `"voice"` 改为 `"tools"`；`wrongbook.storeCategory` 由 `"wrongbook"` 改为 `"tools"`，让这两个模块能在"工具箱"tab 下显示（原 `voice` / `wrongbook` 不在商店硬编码的 6 个分类内，导致 UI 无法显示）。
+- `app/src/main/assets/modules.json`：`version` 21→22→23，同上字段对齐。
+
+#### 4. 服务器文件更新
+- 5 个新签名 APK 上传至 `/var/www/modules/`：`feature_tools_v100.apk`、`feature_ai_v100.apk`、`vpn-debug.apk`、`feature_tts_voice_v101.apk`、`feature_wrongbook_v100.apk`
+- `modules.json` v23 和 `catalog.json` v3 上传至 `/var/www/modules/` 和 `/var/www/`（root path 兜底，规避客户端 `catalogUrl` 推导 bug）
+- 旧 debug 签名 APK 备份到 `/var/www/modules/archive/debug-signed-20260720/`
+- nginx 配置新增 `location = /catalog.json` 路由到 9001 端口（修复 `MODULES_URL=https://hk-update.tcp0053.shop/modules.json` 推导 `catalogUrl` 缺 `/modules/` 段的 bug）
+
+### ✅ 真机回归测试结果（小米 ares M2012K10C，主 APK vc=591）
+
+| 模块 | 文件 | 大小 | SHA-256 校验 | 签名校验 | 事务安装 |
+|---|---|---|---|---|---|
+| tools | feature_tools_v100.apk | 682414 | ✅ | ✅ | ✅ |
+| ai | feature_ai_v100.apk | 690730 | ✅ | ✅ | ✅ |
+| vpn | vpn-debug.apk | 639382 | ✅ | ✅ | ✅ |
+| tts_voice | feature_tts_voice_v101.apk | 647378 | ✅ | ✅ | ✅ |
+| wrongbook | feature_wrongbook_v100.apk | 6138762 | ✅ | ✅ | ✅ |
+
+所有 5 个模块的 `ModuleSigVerifier` 日志均显示：`签名者证书校验通过: <file>.apk, sha256=d058a18f9e89a29b5339eda27ece3ff9f78e0dbefe605d551e7745f724d2eddc`
+
+### ⚠️ 已知遗留问题
+1. **`StoreCatalogRepository.catalogUrl` 推导 bug**：当 `MODULES_URL` 形如 `https://host/modules.json` 时，推导出 `catalogUrl=https://host/catalog.json`（缺 `/modules/` 段），目前通过 nginx 加 `location = /catalog.json` 路由 + 服务器 root path 放 `catalog.json` 兜底。彻底修复需在 `StoreCatalogRepository.kt` 改用 `MODULES_URL.substringBeforeLast('/') + "/catalog.json"`（保留 `/modules/` 段）。
+2. **`ModuleDownloader.getModuleFileCompat` 兼容性误判**：`files/modules/` 根目录下残留的 APK（未走事务安装）会被 `isModuleInstalled` 误判为已安装，导致 UI 显示"打开"而非"下载"按钮。彻底修复需在 `getModuleFileCompat` 中限制只检查 `current/` 子目录，或在 `isModuleInstalled` 中先校验 `KEY_INSTALLED_MODULES` 再走文件兜底。
+
+### 🔁 回滚方法
+- 本地代码：`git checkout -- app/src/main/assets/catalog.json app/src/main/assets/modules.json module-store/feature/tools/tools/build.gradle module-store/feature/tools/ai/build.gradle module-store/feature/tools/vpn/build.gradle module-store/feature/games/games/tts/build.gradle module-store/feature/games/games/tts/src/main/java/com/gamecenter/app/tts/TtsModuleEntryPoint.java`
+- 服务器：`/var/www/modules/archive/debug-signed-20260720/` 内有旧 debug 签名 APK 和旧 `modules.json` v21，可手动覆盖恢复
+- nginx：`02-hk-update.conf.bak.YYYYMMDD_HHMMSS` 备份在 `/etc/nginx/conf.d/`
+
+---
 ## [混合架构 P0-P6 改造完成 + 部署测试] - 2026-07-20
 
 ### 🎯 目标
@@ -43,7 +366,7 @@
 - Feature Flag：`ENABLE_P6_UNITY_MODULE`（默认 true）
 
 #### 部署测试
-- 为便于 ADB 直接启动，`ModuleStoreActivity` 临时设为 `exported=true`
+- 为便于当时 ADB 直接启动，`ModuleStoreActivity` 曾临时设为 `exported=true`；该状态已撤销，当前 Activity 为非导出并应从 App 内入口测试
 - 真机测试完成后恢复为 `exported=false`
 
 ### 📝 修改文件

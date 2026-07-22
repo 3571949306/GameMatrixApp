@@ -12,11 +12,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
+import com.gamecenter.app.games.model.DifficultyLevel;
 import com.google.android.material.button.MaterialButton;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -58,6 +62,8 @@ public class WhackActivity extends BaseGameActivity {
     private int timeRemaining = GAME_DURATION_SEC;
     private int currentMolePos = -1;
     private long moleIntervalMs = INITIAL_MOLE_INTERVAL_MS;
+    /** 当前难度对应的起始地鼠出现间隔（毫秒），由难度因子决定 */
+    private float difficultyFactor = INITIAL_MOLE_INTERVAL_MS;
     private boolean moleVisible = false;
     private boolean gameActive = false;
 
@@ -80,7 +86,7 @@ public class WhackActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "打地鼠";
+        return getString(R.string.game_whack_name);
     }
 
     @Override
@@ -126,6 +132,24 @@ public class WhackActivity extends BaseGameActivity {
         achievementManager.checkAndUnlock(eventType, params);
     }
 
+    @NonNull
+    @Override
+    public List<DifficultyLevel> getDifficultyLevels() {
+        List<DifficultyLevel> levels = new ArrayList<>();
+        // difficultyFactor 直接编码为起始地鼠出现间隔（毫秒）
+        levels.add(new DifficultyLevel(getString(R.string.game_whack_diff_easy), 1, getString(R.string.game_whack_diff_easy_desc), 0, 0, 1800f, false));
+        levels.add(new DifficultyLevel(getString(R.string.game_whack_diff_normal), 2, getString(R.string.game_whack_diff_normal_desc), 0, 0, 1500f, true));
+        levels.add(new DifficultyLevel(getString(R.string.game_whack_diff_hard), 3, getString(R.string.game_whack_diff_hard_desc), 0, 0, 1000f, false));
+        return levels;
+    }
+
+    @Override
+    public void onDifficultyChanged(@NonNull DifficultyLevel oldLevel,
+                                    @NonNull DifficultyLevel newLevel) {
+        // 保存难度因子（起始间隔），在 startNewGame 时应用
+        difficultyFactor = newLevel.difficultyFactor;
+    }
+
     // ==================== 游戏视图创建 ====================
 
     /**
@@ -135,31 +159,31 @@ public class WhackActivity extends BaseGameActivity {
         LinearLayout root = new android.widget.LinearLayout(this);
         root.setOrientation(android.widget.LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_bg));
         root.setPadding(32, 32, 32, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_whack_color_text_primary));
         tvStatus.setPadding(0, 16, 0, 8);
-        tvStatus.setText("点击开始，消灭地鼠！");
+        tvStatus.setText(getString(R.string.game_whack_status_init));
 
         // 计时器
         tvTimer = new TextView(this);
         tvTimer.setGravity(Gravity.CENTER);
         tvTimer.setTextSize(24f);
-        tvTimer.setTextColor(0xFFE53935);
-        tvTimer.setText("⏱ " + GAME_DURATION_SEC + "秒");
+        tvTimer.setTextColor(ContextCompat.getColor(this, R.color.game_whack_color_timer));
+        tvTimer.setText(getString(R.string.game_whack_timer_format, GAME_DURATION_SEC));
 
         // 分数显示
         tvScore = new TextView(this);
         tvScore.setGravity(Gravity.CENTER);
         tvScore.setTextSize(16f);
-        tvScore.setTextColor(0xFF5B8A72);
+        tvScore.setTextColor(ContextCompat.getColor(this, R.color.game_whack_color_text_secondary));
         tvScore.setPadding(0, 8, 0, 16);
-        tvScore.setText("得分：0");
+        tvScore.setText(getString(R.string.game_whack_score_init));
 
         // 网格
         gridLayout = new GridLayout(this);
@@ -180,7 +204,7 @@ public class WhackActivity extends BaseGameActivity {
             btn.setLayoutParams(params);
             btn.setText("🕳");
             btn.setTextSize(28f);
-            btn.setBackgroundColor(0xFF8D6E63);
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hole));
             btn.setOnClickListener(v -> onMoleClick(index));
             moleButtons[i] = btn;
             gridLayout.addView(btn);
@@ -188,8 +212,8 @@ public class WhackActivity extends BaseGameActivity {
 
         // 开始按钮
         btnStart = new MaterialButton(this);
-        btnStart.setText("开始游戏");
-        btnStart.setBackgroundColor(0xFF5B8A72);
+        btnStart.setText(getString(R.string.game_whack_btn_start));
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_btn_start));
         btnStart.setTextColor(Color.WHITE);
         btnStart.setOnClickListener(v -> startNewGame());
 
@@ -213,21 +237,22 @@ public class WhackActivity extends BaseGameActivity {
         missCount = 0;
         consecutiveHits = 0;
         timeRemaining = GAME_DURATION_SEC;
-        moleIntervalMs = INITIAL_MOLE_INTERVAL_MS;
+        // 起始间隔由当前难度因子决定（简单 1800 / 普通 1500 / 困难 1000）
+        moleIntervalMs = (long) difficultyFactor;
         currentMolePos = -1;
         moleVisible = false;
         gameActive = true;
         totalGames++;
 
         btnStart.setVisibility(View.GONE);
-        tvStatus.setText("打地鼠！");
-        tvScore.setText("得分：0");
-        tvTimer.setText("⏱ " + GAME_DURATION_SEC + "秒");
+        tvStatus.setText(getString(R.string.game_whack_status_play));
+        tvScore.setText(getString(R.string.game_whack_score_init));
+        tvTimer.setText(getString(R.string.game_whack_timer_format, GAME_DURATION_SEC));
 
         // 重置所有格子
         for (int i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
             moleButtons[i].setText("🕳");
-            moleButtons[i].setBackgroundColor(0xFF8D6E63);
+            moleButtons[i].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hole));
             moleButtons[i].setEnabled(true);
         }
 
@@ -244,7 +269,7 @@ public class WhackActivity extends BaseGameActivity {
             public void run() {
                 if (!gameActive || isGamePaused) return;
                 timeRemaining--;
-                tvTimer.setText("⏱ " + timeRemaining + "秒");
+                tvTimer.setText(getString(R.string.game_whack_timer_format, timeRemaining));
 
                 if (timeRemaining <= 0) {
                     onGameEnd();
@@ -280,7 +305,7 @@ public class WhackActivity extends BaseGameActivity {
         // 隐藏之前的地鼠
         if (currentMolePos >= 0) {
             moleButtons[currentMolePos].setText("🕳");
-            moleButtons[currentMolePos].setBackgroundColor(0xFF8D6E63);
+            moleButtons[currentMolePos].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hole));
         }
 
         // 随机选择新位置
@@ -293,7 +318,7 @@ public class WhackActivity extends BaseGameActivity {
         final int finalMolePos = newPos;
         moleVisible = true;
         moleButtons[currentMolePos].setText("🐹");
-        moleButtons[currentMolePos].setBackgroundColor(0xFF4CAF50);
+        moleButtons[currentMolePos].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_mole));
 
         // 设置超时自动消失
         handler.postDelayed(() -> {
@@ -303,7 +328,7 @@ public class WhackActivity extends BaseGameActivity {
                 missCount++;
                 consecutiveHits = 0;
                 moleButtons[finalMolePos].setText("🕳");
-                moleButtons[finalMolePos].setBackgroundColor(0xFF8D6E63);
+                moleButtons[finalMolePos].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hole));
                 showNextMole();
             }
         }, moleIntervalMs);
@@ -324,16 +349,16 @@ public class WhackActivity extends BaseGameActivity {
             currentScore = score;
 
             moleButtons[index].setText("💥");
-            moleButtons[index].setBackgroundColor(0xFFFFEB3B);
+            moleButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hit));
 
-            tvScore.setText("得分：" + score);
+            tvScore.setText(getString(R.string.game_whack_score_format, score));
             updateScore(score);
 
             // 短暂显示击中效果
             handler.postDelayed(() -> {
                 if (gameActive) {
                     moleButtons[index].setText("🕳");
-                    moleButtons[index].setBackgroundColor(0xFF8D6E63);
+                    moleButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hole));
                     showNextMole();
                 }
             }, 300);
@@ -354,11 +379,11 @@ public class WhackActivity extends BaseGameActivity {
         // 隐藏最后的地鼠
         if (currentMolePos >= 0) {
             moleButtons[currentMolePos].setText("🕳");
-            moleButtons[currentMolePos].setBackgroundColor(0xFF8D6E63);
+            moleButtons[currentMolePos].setBackgroundColor(ContextCompat.getColor(this, R.color.game_whack_color_hole));
         }
 
-        tvStatus.setText("⏰ 时间到！得分：" + score);
-        btnStart.setText("再来一局");
+        tvStatus.setText(getString(R.string.game_whack_status_end, score));
+        btnStart.setText(getString(R.string.game_whack_btn_restart));
         btnStart.setVisibility(View.VISIBLE);
 
         // 成就检查
@@ -377,6 +402,9 @@ public class WhackActivity extends BaseGameActivity {
         }
 
         usageStore.recordWin(getGameId());
+
+        // 最高分持久化
+        recordHighScore(score);
     }
 
     @Override

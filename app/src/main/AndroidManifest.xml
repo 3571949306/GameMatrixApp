@@ -163,6 +163,12 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".settings.BottomNavigationSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".games.achievement.AchievementCenterActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
@@ -187,10 +193,24 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".modules.bridge.FlutterModuleStoreActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|locale|layoutDirection|fontScale|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".modules.InstalledModulesActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".modules.runtime.WebModuleActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="unspecified" />
 
         <!-- P6: Unity 模块占位启动 Activity -->
         <activity

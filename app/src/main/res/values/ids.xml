@@ -12,4 +12,7 @@
 
     <!-- 通用 onboarding 入口（设置页"新手引导"按钮） -->
     <item name="btn_onboarding_reset" type="id" />
+
+    <!-- Flutter-first 模块商店宿主容器 -->
+    <item name="flutter_module_store_container" type="id" />
 </resources>

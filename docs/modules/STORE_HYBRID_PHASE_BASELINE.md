@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22; historical -->
+> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+
 # 模块商店混合架构改造 - 基线文档（P0）
 
 > 本文档记录混合架构改造（P0/P1/P2）开始前的基线状态，用于回滚对照和验收基线比较。

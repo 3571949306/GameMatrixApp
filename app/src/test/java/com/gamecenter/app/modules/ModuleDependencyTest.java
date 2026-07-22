@@ -18,6 +18,8 @@ import com.gamecenter.app.core.common.ModuleManifest;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * 模块依赖解析测试（TD-05）。
@@ -52,7 +54,7 @@ public class ModuleDependencyTest {
         // 注意：P1.5 之后 ModuleManifest 新增 10 个字段（minAppVersionCode, required,
         // shortDescription, screenshots, changelog, permissionsDescription, tags,
         // sortOrder, featured, enabled）。Java 测试需显式传入全部参数。
-        ModuleManifest coreCommon = new ModuleManifest(
+        ModuleManifest coreCommon = createManifest(
                 "core_common",
                 "通用基础库",
                 "通用基础库",
@@ -92,7 +94,7 @@ public class ModuleDependencyTest {
         manifests.put("core_common", coreCommon);
 
         // 创建网络模块（依赖 core_common）
-        ModuleManifest coreNetwork = new ModuleManifest(
+        ModuleManifest coreNetwork = createManifest(
                 "core_network",
                 "网络库",
                 "网络请求库",
@@ -132,7 +134,7 @@ public class ModuleDependencyTest {
         manifests.put("core_network", coreNetwork);
 
         // 创建游戏模块（依赖 core_common 和 core_network）
-        ModuleManifest gameDoudizhu = new ModuleManifest(
+        ModuleManifest gameDoudizhu = createManifest(
                 "game_doudizhu",
                 "斗地主",
                 "经典斗地主游戏",
@@ -172,7 +174,7 @@ public class ModuleDependencyTest {
         manifests.put("game_doudizhu", gameDoudizhu);
 
         // 创建循环依赖模块 A
-        ModuleManifest moduleA = new ModuleManifest(
+        ModuleManifest moduleA = createManifest(
                 "module_A",
                 "模块A",
                 "测试循环依赖",
@@ -212,7 +214,7 @@ public class ModuleDependencyTest {
         manifests.put("module_A", moduleA);
 
         // 创建循环依赖模块 B（依赖 A，形成循环）
-        ModuleManifest moduleB = new ModuleManifest(
+        ModuleManifest moduleB = createManifest(
                 "module_B",
                 "模块B",
                 "测试循环依赖",
@@ -253,6 +255,64 @@ public class ModuleDependencyTest {
 
         // 创建依赖解析器
         resolver = new ModuleDependencyResolver(manifests);
+    }
+
+    /**
+     * Java cannot use Kotlin default constructor arguments. Build the canonical
+     * manifest through its JSON adapter so this test tracks schema additions
+     * without repeating the entire Kotlin constructor forever.
+     */
+    private static ModuleManifest createManifest(
+            String id, String name, String description, String versionName, int versionCode,
+            String entryClass, String fileName, long fileSize, String sha256, String downloadUrl,
+            String fallbackUrl, String githubUrl, String iconUrl, String category,
+            int minAppVersion, int minAppVersionCode, List<?> depends, boolean required,
+            String type, String gameId, String gameCategory, String gameDesc, String activityClass,
+            boolean builtIn, String storeCategory, boolean isBaseFramework, int builtInVersionCode,
+            String shortDescription, List<?> screenshots, String changelog,
+            List<?> permissionsDescription, List<?> tags, int sortOrder, boolean featured,
+            boolean enabled) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("id", id);
+            json.put("name", name);
+            json.put("description", description);
+            json.put("versionName", versionName);
+            json.put("versionCode", versionCode);
+            json.put("entryClass", entryClass);
+            json.put("fileName", fileName);
+            json.put("fileSize", fileSize);
+            json.put("sha256", sha256);
+            json.put("downloadUrl", downloadUrl);
+            json.put("fallbackUrl", fallbackUrl);
+            json.put("githubUrl", githubUrl);
+            json.put("iconUrl", iconUrl);
+            json.put("category", category);
+            json.put("minAppVersion", minAppVersion);
+            json.put("minAppVersionCode", minAppVersionCode);
+            json.put("depends", new JSONArray(depends));
+            json.put("required", required);
+            json.put("type", type);
+            json.put("gameId", gameId);
+            json.put("gameCategory", gameCategory);
+            json.put("gameDesc", gameDesc);
+            json.put("activityClass", activityClass);
+            json.put("builtIn", builtIn);
+            json.put("storeCategory", storeCategory);
+            json.put("isBaseFramework", isBaseFramework);
+            json.put("builtInVersionCode", builtInVersionCode);
+            json.put("shortDescription", shortDescription);
+            json.put("screenshots", new JSONArray(screenshots));
+            json.put("changelog", changelog);
+            json.put("permissionsDescription", new JSONArray(permissionsDescription));
+            json.put("tags", new JSONArray(tags));
+            json.put("sortOrder", sortOrder);
+            json.put("featured", featured);
+            json.put("enabled", enabled);
+            return ModuleManifest.Companion.fromJson(json);
+        } catch (Exception error) {
+            throw new IllegalArgumentException("Unable to create test manifest", error);
+        }
     }
 
     /**
@@ -427,7 +487,7 @@ public class ModuleDependencyTest {
     @Test
     public void testResolveDependencies_DepNotFound() {
         // 创建一个依赖不存在的模块
-        ModuleManifest testModule = new ModuleManifest(
+        ModuleManifest testModule = createManifest(
                 "test_module",
                 "测试模块",
                 "依赖不存在的模块",

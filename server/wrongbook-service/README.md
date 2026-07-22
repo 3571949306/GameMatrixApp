@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # GameMatrixApp 错题本后端服务
 
 百度智能云 OCR + 智谱 BigModel GLM 解题服务，为 GameMatrixApp 安卓端的错题本模块提供云端 OCR 与 AI 解题能力。

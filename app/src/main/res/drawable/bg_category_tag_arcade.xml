@@ -2,6 +2,6 @@
 <!-- 街机类标签背景 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#1A73E8" />
+    <solid android:color="@color/category_arcade_start" />
     <corners android:radius="8dp" />
 </shape>

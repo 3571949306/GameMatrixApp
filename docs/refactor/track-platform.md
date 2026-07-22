@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # Track: 整体模块化架构 + UI 主题改造
 
 > 调研日期: 2026-06-04
@@ -6,7 +9,7 @@
 > 协作轨道: 横向支撑，覆盖 AI / VPN / Tools 之外的架构层
 > 受众: Mavis orchestrator + 后续 track-ai/track-vpn/track-tools 实施者
 > 状态: 调研完成，待用户评审
-> 当前版本: versionCode=567 / versionName=1.4.1 (lastStable=465/1.4.0)
+> 当前工作树/生产版本: versionCode=595 / versionName=1.4.1 (lastStable=594/1.4.1)
 > 项目根: d:\Developmment\GameMatrixApp
 
 ---

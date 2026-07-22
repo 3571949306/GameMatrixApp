@@ -1,6 +1,8 @@
 package com.gamecenter.app.modules.store
 
 import android.util.Log
+import com.gamecenter.app.BuildConfig
+import com.google.crypto.tink.subtle.Base64
 import com.google.crypto.tink.subtle.Ed25519Verify
 import java.security.GeneralSecurityException
 
@@ -28,46 +30,62 @@ interface CatalogSignatureVerifier {
  * Ed25519目录签名验证器实现。
  * 
  * 使用Tink库进行Ed25519签名验证。
- * 公钥硬编码在代码中，私钥仅保存在VPS发布环境。
+ * 公钥由构建环境注入，私钥仅允许存在于受控发布环境。
  * 
  * 安全说明：
  * - 公钥可以公开，不影响安全性
  * - 私钥必须严格保护，不能泄露
- * - 后续可以实现密钥轮换机制
+ * - 支持同时注入当前和下一把公钥完成无停机轮换
  * 
  * @author AI Assistant
  * @since 2026-07-20
  */
-class Ed25519CatalogSignatureVerifier : CatalogSignatureVerifier {
-    
+class Ed25519CatalogSignatureVerifier(
+    publicKeys: List<ByteArray>
+) : CatalogSignatureVerifier {
+
     companion object {
         private const val TAG = "Ed25519CatalogSigVerifier"
-        
-        // Ed25519公钥（32字节，Base64编码）
-        // TODO: 替换为实际生成的公钥
-        // 生成方法：使用Tink的Ed25519KeyPairGenerator生成密钥对
-        // 示例代码：
-        // val keyPair = Ed25519KeyPairGenerator.generateKeyPair()
-        // val publicKey = Base64.encodeToString(keyPair.publicKey, Base64.NO_WRAP)
-        private const val PUBLIC_KEY_BASE64 = "MCowBQYDK2VwAyEA" + // Ed25519公钥前缀
-            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" // 占位符，需要替换为实际公钥
+
+        private const val PUBLIC_KEY_LENGTH_BYTES = 32
+
+        fun fromBase64List(encodedKeys: String): Ed25519CatalogSignatureVerifier {
+            val decodedKeys = encodedKeys
+                .split(',')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .map { Base64.decode(it, Base64.NO_WRAP) }
+            return Ed25519CatalogSignatureVerifier(decodedKeys)
+        }
     }
-    
-    private val publicKeyBytes: ByteArray = android.util.Base64.decode(PUBLIC_KEY_BASE64, android.util.Base64.NO_WRAP)
-    
+
+    private val verifiers: List<Ed25519Verify> = publicKeys.map { publicKey ->
+        require(publicKey.size == PUBLIC_KEY_LENGTH_BYTES) {
+            "Ed25519 public keys must contain exactly $PUBLIC_KEY_LENGTH_BYTES raw bytes"
+        }
+        require(publicKey.any { it.toInt() != 0 }) {
+            "The all-zero Ed25519 placeholder key is forbidden"
+        }
+        Ed25519Verify(publicKey.copyOf())
+    }.also {
+        require(it.isNotEmpty()) { "At least one Ed25519 public key is required" }
+    }
+
     override fun verify(catalog: String, signature: String): Boolean {
         return try {
-            // 解码签名
-            val signatureBytes = android.util.Base64.decode(signature, android.util.Base64.NO_WRAP)
-            
-            // 创建Ed25519验证器
-            val verifier = Ed25519Verify(publicKeyBytes)
-            
-            // 验证签名
-            verifier.verify(signatureBytes, catalog.toByteArray(Charsets.UTF_8))
-            
-            Log.d(TAG, "目录签名验证通过")
-            true
+            val signatureBytes = Base64.decode(signature, Base64.NO_WRAP)
+            val messageBytes = catalog.toByteArray(Charsets.UTF_8)
+            verifiers.any { verifier ->
+                try {
+                    verifier.verify(signatureBytes, messageBytes)
+                    true
+                } catch (_: GeneralSecurityException) {
+                    false
+                }
+            }.also { verified ->
+                if (verified) Log.d(TAG, "目录签名验证通过")
+                else Log.e(TAG, "目录签名验证失败")
+            }
         } catch (e: GeneralSecurityException) {
             Log.e(TAG, "目录签名验证失败: ${e.message}", e)
             false
@@ -81,8 +99,8 @@ class Ed25519CatalogSignatureVerifier : CatalogSignatureVerifier {
 /**
  * 目录签名验证管理器。
  * 
- * 根据BuildConfig开关决定是否强制验证签名。
- * 当前处于兼容模式（不强制验证），后续可以启用强制验证。
+ * 根据 BuildConfig 开关决定是否强制验证签名。公钥由构建环境注入，
+ * 可同时携带当前和下一把公钥以支持无停机轮换；客户端永不持有私钥。
  * 
  * @author AI Assistant
  * @since 2026-07-20
@@ -91,7 +109,11 @@ object CatalogSignatureVerifierManager {
     
     private const val TAG = "CatalogSigVerifierMgr"
     
-    private val verifier: CatalogSignatureVerifier = Ed25519CatalogSignatureVerifier()
+    private val verifier: CatalogSignatureVerifier by lazy {
+        Ed25519CatalogSignatureVerifier.fromBase64List(
+            BuildConfig.CATALOG_ED25519_PUBLIC_KEYS_BASE64
+        )
+    }
     
     /**
      * 验证目录签名。
@@ -113,8 +135,16 @@ object CatalogSignatureVerifierManager {
             }
         }
         
-        // 验证签名
-        val isValid = verifier.verify(catalog, signature)
+        val isValid = try {
+            verifier.verify(catalog, signature)
+        } catch (e: Exception) {
+            Log.e(TAG, "目录信任配置无效: ${e.message}")
+            return if (forceVerify) {
+                VerifyResult.Failure("目录信任配置无效")
+            } else {
+                VerifyResult.Warning("目录信任配置无效，兼容模式允许继续")
+            }
+        }
         
         return if (isValid) {
             Log.d(TAG, "目录签名验证通过")

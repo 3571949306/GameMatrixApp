@@ -19,6 +19,8 @@ import android.view.animation.BounceInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 
+import com.gamecenter.app.R;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -642,7 +644,7 @@ public class DouDiZhuEffectsView extends View {
         textPaint.setShadowLayer(4, 2, 2, Color.parseColor("#B8860B"));
 
         float textY = centerY - lineSpacing - 30;
-        canvas.drawText("连对", centerX, textY, textPaint);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_effect_consecutive_pairs), centerX, textY, textPaint);
         textPaint.setAlpha(255);
         textPaint.setShadowLayer(0, 0, 0, 0);
     }

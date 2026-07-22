@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -74,7 +75,7 @@ public class DiceActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "骰子";
+        return getString(R.string.game_dice_name);
     }
 
     @Override
@@ -123,23 +124,23 @@ public class DiceActivity extends BaseGameActivity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_dice_color_bg));
         root.setPadding(32, 32, 32, 32);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(20f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_dice_color_text_primary));
         tvStatus.setPadding(0, 16, 0, 24);
-        tvStatus.setText("点击骰子开始游戏！");
+        tvStatus.setText(getString(R.string.game_dice_status_start));
 
         // 玩家区域
         TextView tvPlayerLabel = new TextView(this);
         tvPlayerLabel.setGravity(Gravity.CENTER);
         tvPlayerLabel.setTextSize(16f);
-        tvPlayerLabel.setTextColor(0xFF5B8A72);
-        tvPlayerLabel.setText("🎮 你的骰子");
+        tvPlayerLabel.setTextColor(ContextCompat.getColor(this, R.color.game_dice_color_text_secondary));
+        tvPlayerLabel.setText(getString(R.string.game_dice_player_label));
 
         tvPlayerDice = new TextView(this);
         tvPlayerDice.setGravity(Gravity.CENTER);
@@ -151,8 +152,8 @@ public class DiceActivity extends BaseGameActivity {
         TextView tvAiLabel = new TextView(this);
         tvAiLabel.setGravity(Gravity.CENTER);
         tvAiLabel.setTextSize(16f);
-        tvAiLabel.setTextColor(0xFF5B8A72);
-        tvAiLabel.setText("🤖 电脑的骰子");
+        tvAiLabel.setTextColor(ContextCompat.getColor(this, R.color.game_dice_color_text_secondary));
+        tvAiLabel.setText(getString(R.string.game_dice_ai_label));
 
         tvAiDice = new TextView(this);
         tvAiDice.setGravity(Gravity.CENTER);
@@ -164,9 +165,9 @@ public class DiceActivity extends BaseGameActivity {
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_dice_color_text_secondary));
         tvStats.setPadding(0, 8, 0, 24);
-        tvStats.setText("总分：0 | 胜：0 | 负：0 | 平：0");
+        tvStats.setText(getString(R.string.game_dice_stats_format, 0, 0, 0, 0));
 
         // 按钮区域
         LinearLayout buttonArea = new LinearLayout(this);
@@ -174,8 +175,8 @@ public class DiceActivity extends BaseGameActivity {
         buttonArea.setGravity(Gravity.CENTER);
 
         btnRoll = new MaterialButton(this);
-        btnRoll.setText("🎲 掷骰子");
-        btnRoll.setBackgroundColor(0xFF5B8A72);
+        btnRoll.setText(getString(R.string.game_dice_btn_roll));
+        btnRoll.setBackgroundColor(ContextCompat.getColor(this, R.color.game_dice_color_btn_primary));
         btnRoll.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams rollParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         rollParams.setMargins(8, 0, 8, 0);
@@ -183,8 +184,8 @@ public class DiceActivity extends BaseGameActivity {
         btnRoll.setOnClickListener(v -> onRollDice());
 
         btnDoubleUp = new MaterialButton(this);
-        btnDoubleUp.setText("💰 加倍");
-        btnDoubleUp.setBackgroundColor(0xFFFF9800);
+        btnDoubleUp.setText(getString(R.string.game_dice_btn_double));
+        btnDoubleUp.setBackgroundColor(ContextCompat.getColor(this, R.color.game_dice_color_btn_double));
         btnDoubleUp.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams doubleParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         doubleParams.setMargins(8, 0, 8, 0);
@@ -193,8 +194,8 @@ public class DiceActivity extends BaseGameActivity {
         btnDoubleUp.setOnClickListener(v -> onDoubleUp());
 
         btnNextRound = new MaterialButton(this);
-        btnNextRound.setText("下一局");
-        btnNextRound.setBackgroundColor(0xFF5B8A72);
+        btnNextRound.setText(getString(R.string.game_dice_btn_next_round));
+        btnNextRound.setBackgroundColor(ContextCompat.getColor(this, R.color.game_dice_color_btn_primary));
         btnNextRound.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams nextParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         nextParams.setMargins(8, 0, 8, 0);
@@ -221,6 +222,8 @@ public class DiceActivity extends BaseGameActivity {
 
     /**
      * 掷骰子
+     * <p>仅掷骰并展示结果预览，不结算分数；结算推迟到玩家决定是否加倍后点击"下一局"时一次性完成，
+     * 避免同一局被结算两次。</p>
      */
     private void onRollDice() {
         if (!isGameRunning || isGamePaused) return;
@@ -235,51 +238,49 @@ public class DiceActivity extends BaseGameActivity {
         tvPlayerDice.setText(DICE_FACES[playerDice1 - 1] + " " + DICE_FACES[playerDice2 - 1]);
         tvAiDice.setText(DICE_FACES[aiDice1 - 1] + " " + DICE_FACES[aiDice2 - 1]);
 
-        int playerTotal = playerDice1 + playerDice2;
-        int aiTotal = aiDice1 + aiDice2;
-
-        // 判断胜负
         totalRounds++;
         roundActive = true;
+        isDoubleUp = false;
 
         // 显示加倍按钮
         btnRoll.setVisibility(View.GONE);
         btnDoubleUp.setVisibility(View.VISIBLE);
         btnNextRound.setVisibility(View.VISIBLE);
 
-        // 判断并显示结果
-        resolveRound(playerTotal, aiTotal, false);
+        // 仅显示结果预览，不结算
+        tvStatus.setText(previewResultText(playerDice1 + playerDice2, aiDice1 + aiDice2));
     }
 
     /**
      * 加倍
+     * <p>只标记当前局为加倍状态并刷新预览，不重新掷骰、不二次结算；
+     * 最终结算时分数 ×2。</p>
      */
     private void onDoubleUp() {
         if (!roundActive) return;
         isDoubleUp = true;
         btnDoubleUp.setVisibility(View.GONE);
-
-        int playerTotal = playerDice1 + playerDice2;
-        int aiTotal = aiDice1 + aiDice2;
-
-        // 掷新的骰子
-        playerDice1 = random.nextInt(6) + 1;
-        playerDice2 = random.nextInt(6) + 1;
-        aiDice1 = random.nextInt(6) + 1;
-        aiDice2 = random.nextInt(6) + 1;
-
-        tvPlayerDice.setText(DICE_FACES[playerDice1 - 1] + " " + DICE_FACES[playerDice2 - 1]);
-        tvAiDice.setText(DICE_FACES[aiDice1 - 1] + " " + DICE_FACES[aiDice2 - 1]);
-
-        playerTotal = playerDice1 + playerDice2;
-        aiTotal = aiDice1 + aiDice2;
-
-        resolveRound(playerTotal, aiTotal, true);
-        roundActive = false;
+        tvStatus.setText(previewResultText(playerDice1 + playerDice2, aiDice1 + aiDice2));
     }
 
     /**
-     * 判定结果
+     * 生成本局结果预览文本（不修改任何状态）。
+     */
+    private String previewResultText(int playerTotal, int aiTotal) {
+        int multiplier = isDoubleUp ? 2 : 1;
+        if (playerTotal > aiTotal) {
+            int points = playerTotal * multiplier;
+            return getString(R.string.game_dice_result_win, playerTotal, aiTotal, points);
+        } else if (playerTotal < aiTotal) {
+            return getString(R.string.game_dice_result_lose, playerTotal, aiTotal);
+        } else {
+            int points = playerTotal * multiplier;
+            return getString(R.string.game_dice_result_draw, playerTotal, points);
+        }
+    }
+
+    /**
+     * 最终结算（仅在"下一局"时调用一次，应用加倍倍率）。
      */
     private void resolveRound(int playerTotal, int aiTotal, boolean doubled) {
         String resultText;
@@ -290,18 +291,19 @@ public class DiceActivity extends BaseGameActivity {
             winStreak++;
             int points = playerTotal * multiplier;
             currentScore += points;
-            resultText = "你赢了！" + playerTotal + " vs " + aiTotal + " (+" + points + "分)";
+            resultText = getString(R.string.game_dice_result_win, playerTotal, aiTotal, points);
             checkAchievement("win", playerWins);
             checkAchievement("streak", winStreak);
+            usageStore.recordWin(getGameId());
         } else if (playerTotal < aiTotal) {
             aiWins++;
             winStreak = 0;
-            resultText = "你输了！" + playerTotal + " vs " + aiTotal;
+            resultText = getString(R.string.game_dice_result_lose, playerTotal, aiTotal);
         } else {
             draws++;
-            int points = playerTotal;
+            int points = playerTotal * multiplier;
             currentScore += points;
-            resultText = "平局！都是" + playerTotal + "点 (+" + points + "分)";
+            resultText = getString(R.string.game_dice_result_draw, playerTotal, points);
         }
 
         // 成就：掷出12点
@@ -317,21 +319,27 @@ public class DiceActivity extends BaseGameActivity {
         checkAchievement("rounds", totalRounds);
 
         tvStatus.setText(resultText);
-        tvStats.setText("总分：" + currentScore + " | 胜：" + playerWins + " | 负：" + aiWins + " | 平：" + draws);
+        tvStats.setText(getString(R.string.game_dice_stats_format, currentScore, playerWins, aiWins, draws));
         updateScore(currentScore);
     }
 
     /**
      * 下一局
+     * <p>对本局进行最终结算（仅一次，应用加倍倍率），然后重置 UI 进入下一局。</p>
      */
     private void onNextRound() {
-        roundActive = false;
+        if (roundActive) {
+            int playerTotal = playerDice1 + playerDice2;
+            int aiTotal = aiDice1 + aiDice2;
+            resolveRound(playerTotal, aiTotal, isDoubleUp);
+            roundActive = false;
+        }
         isDoubleUp = false;
         btnDoubleUp.setVisibility(View.GONE);
         btnNextRound.setVisibility(View.GONE);
         btnRoll.setVisibility(View.VISIBLE);
         tvPlayerDice.setText("⚀ ⚀");
         tvAiDice.setText("⚀ ⚀");
-        tvStatus.setText("点击骰子开始游戏！");
+        tvStatus.setText(getString(R.string.game_dice_status_start));
     }
 }

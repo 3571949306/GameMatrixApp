@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.ViewGroup
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -13,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentContainerView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -131,6 +133,7 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     private var storeViewModel: StoreViewModel? = null
 
     companion object {
+        private const val FLUTTER_STORE_FRAGMENT_TAG = "flutter_module_store"
         const val CATEGORY_GAMES = "game"
         const val CATEGORY_BROWSER = "browser"
         const val CATEGORY_TOOLS = "tools"
@@ -190,10 +193,17 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         /** 搜索历史最大保留条数 */
         const val SEARCH_HISTORY_MAX = 5
         const val SEARCH_HISTORY_KEY = "history"
+        const val EXTRA_FORCE_LEGACY_STORE = "force_legacy_module_store"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.ENABLE_FLUTTER_MODULE_STORE &&
+            !intent.getBooleanExtra(EXTRA_FORCE_LEGACY_STORE, false) &&
+            showFlutterStore()
+        ) {
+            return
+        }
         setContentView(R.layout.activity_module_store)
 
         val toolbar = findViewById<MaterialToolbar>(R.id.moduleToolbar)
@@ -291,6 +301,29 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         uiConfigRepository.getCachedConfig()?.let { uiConfigObserver(it) }
 
         refreshModules()
+    }
+
+    private fun showFlutterStore(): Boolean = runCatching {
+        com.gamecenter.app.modules.bridge.FlutterStoreEngineManager.getOrCreate(applicationContext)
+        val container = FragmentContainerView(this).apply {
+            id = R.id.flutter_module_store_container
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        setContentView(container)
+        if (supportFragmentManager.findFragmentByTag(FLUTTER_STORE_FRAGMENT_TAG) == null) {
+            val fragment = com.gamecenter.app.modules.bridge.FlutterModuleStoreFeature()
+                .createFragment(this)
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.flutter_module_store_container, fragment, FLUTTER_STORE_FRAGMENT_TAG)
+                .commitNow()
+        }
+        true
+    }.getOrElse { error ->
+        Log.e("ModuleStoreActivity", "Flutter store embedding failed; using legacy store", error)
+        false
     }
 
     override fun onDestroy() {

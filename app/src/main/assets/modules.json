@@ -1,5 +1,8 @@
 {
-  "version": 21,
+  "schemaVersion": 2,
+  "catalogVersion": 8,
+  "version": 28,
+  "generatedAt": "2026-07-21T06:23:29Z",
   "modules": [
     {
       "id": "games_hall",
@@ -28,7 +31,12 @@
       "required": true,
       "storeCategory": "game",
       "isBaseFramework": true,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "browser",
@@ -57,7 +65,12 @@
       "required": false,
       "storeCategory": "browser",
       "isBaseFramework": true,
-      "builtInVersionCode": 587
+      "builtInVersionCode": 587,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "tools",
@@ -67,11 +80,11 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.modules.ToolsModuleEntryPoint",
       "fileName": "feature_tools_v100.apk",
-      "fileSize": 951622,
-      "sha256": "82c6fcc798ad710c3fe81e82061b29121a9301d0fb5b03aeb6149431e0ea4e8c",
+      "fileSize": 682414,
+      "sha256": "904af0808c287b2d5221acee12c7373a936768007009b9bd527caa4104e428c8",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tools_v100.apk",
-      "fallbackUrl": "https://hk-relay.tcp0053.shop/modules/feature_tools_v100.apk",
-      "githubUrl": "https://github.com/3571949306/GameMatrixApp/releases/download/modules-v1/feature_tools_v100.apk",
+      "fallbackUrl": "",
+      "githubUrl": "",
       "iconUrl": "",
       "category": "tool",
       "minAppVersion": 492,
@@ -86,7 +99,18 @@
       "required": false,
       "storeCategory": "tools",
       "isBaseFramework": true,
-      "builtInVersionCode": 0
+      "builtInVersionCode": 0,
+      "runtimeType": "android",
+      "deliveryType": "apk",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": [],
+      "package": {
+        "fileName": "feature_tools_v100.apk",
+        "fileSize": 682414,
+        "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tools_v100.apk",
+        "sha256": "904af0808c287b2d5221acee12c7373a936768007009b9bd527caa4104e428c8"
+      }
     },
     {
       "id": "ai",
@@ -96,11 +120,11 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.modules.AiModuleEntryPoint",
       "fileName": "feature_ai_v100.apk",
-      "fileSize": 913690,
-      "sha256": "f47d248ab96393fd9560ef37e12a89c90847f65bf39317298c4240740abd0937",
+      "fileSize": 690730,
+      "sha256": "09c41b32ddf059c34a650e1d0239856afd8d0a4a7824b5e5c4a498e304ebc681",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_ai_v100.apk",
-      "fallbackUrl": "https://hk-relay.tcp0053.shop/modules/feature_ai_v100.apk",
-      "githubUrl": "https://github.com/3571949306/GameMatrixApp/releases/download/modules-v1/feature_ai_v100.apk",
+      "fallbackUrl": "",
+      "githubUrl": "",
       "iconUrl": "",
       "category": "tool",
       "minAppVersion": 492,
@@ -115,7 +139,18 @@
       "required": false,
       "storeCategory": "ai",
       "isBaseFramework": true,
-      "builtInVersionCode": 0
+      "builtInVersionCode": 0,
+      "runtimeType": "android",
+      "deliveryType": "apk",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": [],
+      "package": {
+        "fileName": "feature_ai_v100.apk",
+        "fileSize": 690730,
+        "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_ai_v100.apk",
+        "sha256": "09c41b32ddf059c34a650e1d0239856afd8d0a4a7824b5e5c4a498e304ebc681"
+      }
     },
     {
       "id": "wrongbook",
@@ -125,11 +160,11 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.wrongbook.WrongBookModuleEntryPoint",
       "fileName": "feature_wrongbook_v100.apk",
-      "fileSize": 6138757,
-      "sha256": "64165d6a85d0b94c7cc19ea43b6505626afaa4f69c73673d4d3327872a339991",
+      "fileSize": 6138762,
+      "sha256": "b6c4be70db6bc2b491c1bec6a4ede32ddd47b9ff6290d9ed82fde034751c3ac0",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
-      "fallbackUrl": "https://hk-relay.tcp0053.shop/modules/feature_wrongbook_v100.apk",
-      "githubUrl": "https://github.com/3571949306/GameMatrixApp/releases/download/modules-v1/feature_wrongbook_v100.apk",
+      "fallbackUrl": "",
+      "githubUrl": "",
       "iconUrl": "",
       "category": "tool",
       "minAppVersion": 492,
@@ -142,9 +177,20 @@
       "gameDesc": "",
       "builtIn": false,
       "required": false,
-      "storeCategory": "wrongbook",
+      "storeCategory": "tools",
       "isBaseFramework": false,
-      "builtInVersionCode": 0
+      "builtInVersionCode": 0,
+      "runtimeType": "android",
+      "deliveryType": "apk",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": [],
+      "package": {
+        "fileName": "feature_wrongbook_v100.apk",
+        "fileSize": 6138762,
+        "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
+        "sha256": "b6c4be70db6bc2b491c1bec6a4ede32ddd47b9ff6290d9ed82fde034751c3ac0"
+      }
     },
     {
       "id": "tts_voice",
@@ -154,11 +200,11 @@
       "versionCode": 101,
       "entryClass": "com.gamecenter.app.tts.TtsModuleEntryPoint",
       "fileName": "feature_tts_voice_v101.apk",
-      "fileSize": 841226,
-      "sha256": "a03b0a2e96c2810d59a33ea428c186c010362b85894e3f7656b8adeca677faee",
+      "fileSize": 647378,
+      "sha256": "3cdd51a59ffc1ac477029202602edbfa6fbbe8c76364d3bc0178084a7f06b6d4",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v101.apk",
-      "fallbackUrl": "https://hk-relay.tcp0053.shop/modules/feature_tts_voice_v101.apk",
-      "githubUrl": "https://github.com/3571949306/GameMatrixApp/releases/download/modules-v1/feature_tts_voice_v101.apk",
+      "fallbackUrl": "",
+      "githubUrl": "",
       "iconUrl": "",
       "category": "tool",
       "minAppVersion": 492,
@@ -171,9 +217,20 @@
       "gameDesc": "",
       "builtIn": false,
       "required": false,
-      "storeCategory": "voice",
+      "storeCategory": "tools",
       "isBaseFramework": false,
-      "builtInVersionCode": 0
+      "builtInVersionCode": 0,
+      "runtimeType": "android",
+      "deliveryType": "apk",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": [],
+      "package": {
+        "fileName": "feature_tts_voice_v101.apk",
+        "fileSize": 647378,
+        "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v101.apk",
+        "sha256": "3cdd51a59ffc1ac477029202602edbfa6fbbe8c76364d3bc0178084a7f06b6d4"
+      }
     },
     {
       "id": "vpn",
@@ -183,11 +240,11 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.vpn.VpnModuleEntryPoint",
       "fileName": "vpn-debug.apk",
-      "fileSize": 840065,
-      "sha256": "05e80e0206ac92dba01b6f96e663512e255adcea87ed57ce14ce949bb3bf3843",
+      "fileSize": 639382,
+      "sha256": "383fd7d284d47c47432b34eb482f203822eb0a526be0599bc68f0b3d6c879ce9",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/vpn-debug.apk",
-      "fallbackUrl": "https://hk-relay.tcp0053.shop/modules/vpn-debug.apk",
-      "githubUrl": "https://github.com/3571949306/GameMatrixApp/releases/download/modules-v1/vpn-debug.apk",
+      "fallbackUrl": "",
+      "githubUrl": "",
       "iconUrl": "",
       "category": "tool",
       "minAppVersion": 492,
@@ -202,7 +259,19 @@
       "required": false,
       "storeCategory": "vpn",
       "isBaseFramework": false,
-      "builtInVersionCode": 0
+      "builtInVersionCode": 0,
+      "runtimeType": "native_service",
+      "deliveryType": "apk",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": [],
+      "serviceType": "vpn",
+      "package": {
+        "fileName": "vpn-debug.apk",
+        "fileSize": 639382,
+        "downloadUrl": "https://hk-update.tcp0053.shop/modules/vpn-debug.apk",
+        "sha256": "383fd7d284d47c47432b34eb482f203822eb0a526be0599bc68f0b3d6c879ce9"
+      }
     },
     {
       "id": "gomoku",
@@ -231,7 +300,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "chinesechess",
@@ -260,7 +334,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "go",
@@ -289,7 +368,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "doudizhu",
@@ -318,7 +402,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "blackjack",
@@ -347,7 +436,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "checkers",
@@ -376,7 +470,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "dice",
@@ -405,7 +504,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "rock",
@@ -434,7 +538,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "game_2048",
@@ -463,7 +572,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "sudoku",
@@ -492,7 +606,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "klotski",
@@ -521,7 +640,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "sokoban",
@@ -550,7 +674,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "pipeline",
@@ -579,7 +708,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "minesweeper",
@@ -608,7 +742,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "match",
@@ -637,7 +776,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "memory",
@@ -666,7 +810,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "breakout",
@@ -695,7 +844,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "tiles",
@@ -724,7 +878,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "tetris",
@@ -753,7 +912,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "snake",
@@ -782,7 +946,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "flappy",
@@ -811,7 +980,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "brotato",
@@ -840,7 +1014,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "plane",
@@ -869,7 +1048,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "reaction",
@@ -898,7 +1082,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "guess",
@@ -927,7 +1116,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "tic",
@@ -956,7 +1150,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     },
     {
       "id": "whack",
@@ -985,7 +1184,12 @@
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100
+      "builtInVersionCode": 100,
+      "runtimeType": "android",
+      "deliveryType": "builtin",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": []
     }
   ]
 }

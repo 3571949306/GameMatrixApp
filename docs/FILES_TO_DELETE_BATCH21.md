@@ -1,3 +1,6 @@
+<!-- flutter-store-doc-sync: 2026-07-22 -->
+> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+
 # Batch 21 待删除文件清单
 
 按用户规则 22，以下文件原计划在 Batch 21 任务结束之后删除。但编译验证发现 Hilt 模块仍引用，**暂不删除**。

@@ -10,6 +10,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -88,7 +89,7 @@ public class TilesActivity extends BaseGameActivity {
     @NonNull
     @Override
     protected String getGameName() {
-        return "麻将连连看";
+        return getString(R.string.game_tiles_name);
     }
 
     @Override
@@ -137,24 +138,24 @@ public class TilesActivity extends BaseGameActivity {
         LinearLayout root = new android.widget.LinearLayout(this);
         root.setOrientation(android.widget.LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F0E8);
+        root.setBackgroundColor(ContextCompat.getColor(this, R.color.game_tiles_color_bg));
         root.setPadding(16, 16, 16, 16);
 
         // 状态文本
         tvStatus = new TextView(this);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF2D2D2D);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.game_tiles_color_text_primary));
         tvStatus.setPadding(0, 8, 0, 8);
-        tvStatus.setText("找出相同的牌消除！");
+        tvStatus.setText(getString(R.string.game_tiles_status_hint));
 
         // 统计
         tvStats = new TextView(this);
         tvStats.setGravity(Gravity.CENTER);
         tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF5B8A72);
+        tvStats.setTextColor(ContextCompat.getColor(this, R.color.game_tiles_color_accent));
         tvStats.setPadding(0, 4, 0, 12);
-        tvStats.setText("关卡：1 | 剩余：12对");
+        tvStats.setText(getString(R.string.game_tiles_stats, currentLevel, pairCount, moveCount));
 
         // 网格
         gridLayout = new GridLayout(this);
@@ -164,8 +165,8 @@ public class TilesActivity extends BaseGameActivity {
 
         // 开始按钮
         btnStart = new MaterialButton(this);
-        btnStart.setText("开始游戏");
-        btnStart.setBackgroundColor(0xFF5B8A72);
+        btnStart.setText(getString(R.string.game_tiles_start));
+        btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_tiles_color_accent));
         btnStart.setTextColor(Color.WHITE);
         btnStart.setOnClickListener(v -> startNewGame());
 
@@ -238,14 +239,14 @@ public class TilesActivity extends BaseGameActivity {
             btn.setLayoutParams(params);
             btn.setText("?");
             btn.setTextSize(14f);
-            btn.setTextColor(0xFF5B8A72);
-            btn.setBackgroundColor(0xFFFBF9F6);
+            btn.setTextColor(ContextCompat.getColor(this, R.color.game_tiles_color_accent));
+            btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_tiles_color_tile_bg));
             btn.setOnClickListener(v -> onTileClick(index));
             tileButtons[i] = btn;
             gridLayout.addView(btn);
         }
 
-        tvStatus.setText("关卡 " + currentLevel + " - 找出相同的牌！");
+        tvStatus.setText(getString(R.string.game_tiles_level_hint, currentLevel));
         updateStatsDisplay();
     }
 
@@ -303,15 +304,15 @@ public class TilesActivity extends BaseGameActivity {
     private void revealTile(int index) {
         tileRevealed[index] = true;
         tileButtons[index].setText(SIMPLE_SYMBOLS[tileValues[index]]);
-        tileButtons[index].setTextColor(0xFF2D2D2D);
-        tileButtons[index].setBackgroundColor(0xFFE8F5E9);
+        tileButtons[index].setTextColor(ContextCompat.getColor(this, R.color.game_tiles_color_text_primary));
+        tileButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_tiles_color_tile_revealed_bg));
     }
 
     private void hideTile(int index) {
         tileRevealed[index] = false;
         tileButtons[index].setText("?");
-        tileButtons[index].setTextColor(0xFF5B8A72);
-        tileButtons[index].setBackgroundColor(0xFFFBF9F6);
+        tileButtons[index].setTextColor(ContextCompat.getColor(this, R.color.game_tiles_color_accent));
+        tileButtons[index].setBackgroundColor(ContextCompat.getColor(this, R.color.game_tiles_color_tile_bg));
     }
 
     /**
@@ -324,9 +325,9 @@ public class TilesActivity extends BaseGameActivity {
 
         int score = Math.max(200 - moveCount * 5, 20) * currentLevel;
         currentScore += score;
-        updateScore(score);
+        updateScore(currentScore);
 
-        tvStatus.setText("🎉 关卡 " + currentLevel + " 通关！用了 " + moveCount + " 步，耗时 " + elapsedSec + " 秒");
+        tvStatus.setText(getString(R.string.game_tiles_level_complete, currentLevel, moveCount, elapsedSec));
 
         checkAchievement("win", currentLevel);
         checkAchievement("score", moveCount);
@@ -339,11 +340,11 @@ public class TilesActivity extends BaseGameActivity {
 
         currentLevel++;
 
-        btnStart.setText("下一关（关卡 " + currentLevel + "）");
+        btnStart.setText(getString(R.string.game_tiles_next_level, currentLevel));
         btnStart.setVisibility(View.VISIBLE);
     }
 
     private void updateStatsDisplay() {
-        tvStats.setText("关卡：" + currentLevel + " | 剩余：" + (pairCount - matchedPairs) + "对 | 步数：" + moveCount);
+        tvStats.setText(getString(R.string.game_tiles_stats, currentLevel, pairCount - matchedPairs, moveCount));
     }
 }
