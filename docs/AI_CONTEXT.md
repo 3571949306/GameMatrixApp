@@ -6,8 +6,8 @@
 > 本文档合并了原 `AI_CONTEXT.md`、`PROJECT_CONTEXT.md`、`AI_ONBOARDING.md`、`项目AI接手说明.md` 四个文档，供 AI 编程助手和新开发者阅读。
 
 **最后更新**: 2026-07-23
-**当前工作树/生产版本**: versionCode=598, versionName=1.4.1
-**上次稳定版**: versionCode=598, versionName=1.4.1
+**当前工作树/生产版本**: versionCode=599, versionName=1.4.1
+**上次稳定版**: versionCode=599, versionName=1.4.1
 
 ---
 
@@ -296,7 +296,7 @@ git push origin main
 python tools/upload_to_vps.py --channel release
 
 # 上传到 GitHub Releases
-python tools/upload_to_github_release.py --apk app/build/outputs/apk/release/app-release.apk --version-name 1.4.1
+python tools/upload_to_github_release.py --apk app/build/outputs/apk/release/app-release.apk --metadata app/build/outputs/apk/release/version.json --version-name 1.4.1 --version-code 599 --changelog-file RELEASE_NOTES.md
 ```
 
 ---
@@ -305,9 +305,9 @@ python tools/upload_to_github_release.py --apk app/build/outputs/apk/release/app
 
 ### 8.1 version.properties
 ```properties
-versionCode=598          # 内部版本号（每次构建自动递增）
+versionCode=599          # 内部版本号（每次构建自动递增）
 versionName=1.4.1        # 展示版本号
-lastStableVersionCode=594
+lastStableVersionCode=599
 lastStableVersionName=1.4.1
 betaNoticeVersionGap=3
 ```
