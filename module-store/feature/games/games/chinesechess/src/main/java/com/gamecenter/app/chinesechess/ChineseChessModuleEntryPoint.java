@@ -40,12 +40,12 @@ public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureMod
 
     @Override
     public String getVersion() {
-        return "2.0.0";
+        return "3.0.0";
     }
 
     @Override
     public String getDescription() {
-        return "经典中国象棋对弈游戏，支持单机与联机入口。";
+        return "经典中国象棋对弈游戏，5级AI难度，支持提示、复盘、主题学习。";
     }
 
     @Override

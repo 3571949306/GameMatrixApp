@@ -160,8 +160,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.wrongbook.WrongBookModuleEntryPoint",
       "fileName": "feature_wrongbook_v100.apk",
-      "fileSize": 6138754,
-      "sha256": "5934a798060978f27b52b4a061614455720fac3733a4d81ede07c6d53fa64d78",
+      "fileSize": 6138761,
+      "sha256": "bd9a2794f151b389683a228348ef0b5643e8fdc2e5c503ed6e54ee203e1ea5e4",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -187,9 +187,9 @@
       "dependencies": [],
       "package": {
         "fileName": "feature_wrongbook_v100.apk",
-        "fileSize": 6138754,
+        "fileSize": 6138761,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
-        "sha256": "5934a798060978f27b52b4a061614455720fac3733a4d81ede07c6d53fa64d78"
+        "sha256": "bd9a2794f151b389683a228348ef0b5643e8fdc2e5c503ed6e54ee203e1ea5e4"
       }
     },
     {
@@ -310,9 +310,9 @@
     {
       "id": "chinesechess",
       "name": "Chinese Chess",
-      "description": "Built-in Chinese chess game.",
-      "versionName": "1.0.0",
-      "versionCode": 100,
+      "description": "中国象棋，5级AI难度，支持提示、复盘、主题学习。",
+      "versionName": "3.0.0",
+      "versionCode": 300,
       "entryClass": "",
       "fileName": "",
       "fileSize": 0,
@@ -329,12 +329,12 @@
       "activityClass": "com.gamecenter.app.games.chinesechess.ChineseChessActivity",
       "gameId": "chinesechess",
       "gameCategory": "classics",
-      "gameDesc": "Classic Chinese chess game",
+      "gameDesc": "中国象棋，5级AI难度，支持提示、复盘、主题学习",
       "builtIn": true,
       "required": false,
       "storeCategory": "game",
       "isBaseFramework": false,
-      "builtInVersionCode": 100,
+      "builtInVersionCode": 300,
       "runtimeType": "android",
       "deliveryType": "builtin",
       "minHostVersionCode": 492,
