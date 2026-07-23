@@ -33,11 +33,15 @@ def parse_args() -> argparse.Namespace:
         description="Upload APK, version.json, modules.json, and module APKs to VPS."
     )
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="VPS upload config JSON")
-    parser.add_argument("--apk", required=True, help="Built app-release.apk path")
-    parser.add_argument("--version", required=True, help="Generated version.json path")
+    parser.add_argument("--apk", help="Built app-release.apk path")
+    parser.add_argument("--version", help="Generated version.json path")
     parser.add_argument("--channel", default="beta", help="beta, release, or stable")
     parser.add_argument("--modules-json", help="Module catalog JSON to publish")
     parser.add_argument("--module-dir", help="Directory containing module APK files")
+    parser.add_argument(
+        "--store-ui",
+        help="store-ui.json path to publish alongside modules.json (module store UI config)",
+    )
     parser.add_argument(
         "--module-remote-dir",
         help="Remote directory served by /modules.json and /modules/*.apk",
@@ -84,10 +88,11 @@ def collect_uploads(args: argparse.Namespace, cfg: dict) -> list[tuple[Path, str
     app_name = "app-release.apk" if channel == "release" else "app-beta.apk"
     version_name = "version-release.json" if channel == "release" else "version-beta.json"
     version_code = ""
-    try:
-        version_code = str(json.loads(Path(args.version).read_text(encoding="utf-8-sig")).get("versionCode") or "")
-    except Exception:
-        version_code = ""
+    if args.version:
+        try:
+            version_code = str(json.loads(Path(args.version).read_text(encoding="utf-8-sig")).get("versionCode") or "")
+        except Exception:
+            version_code = ""
     app_public_path = app_name + (f"?v={version_code}" if version_code else "")
     remote_dir = cfg["remoteDir"].rstrip("/")
     default_module_remote_dir = (
@@ -104,15 +109,21 @@ def collect_uploads(args: argparse.Namespace, cfg: dict) -> list[tuple[Path, str
         "version.json" if channel == "release" else "version.json?acceptBeta=true"
     )
 
-    uploads: list[tuple[Path, str, str]] = [
-        (Path(args.apk), remote_join(remote_dir, app_name), app_public_path),
-        (Path(args.version), remote_join(remote_dir, version_name), version_name),
-        (Path(args.version), remote_join(remote_dir, "version.json"), compatibility_version_public_path),
-    ]
+    uploads: list[tuple[Path, str, str]] = []
+    if args.apk:
+        uploads.append((Path(args.apk), remote_join(remote_dir, app_name), app_public_path))
+    if args.version:
+        uploads.append((Path(args.version), remote_join(remote_dir, version_name), version_name))
+        uploads.append((Path(args.version), remote_join(remote_dir, "version.json"), compatibility_version_public_path))
 
     if args.modules_json:
         uploads.append(
             (Path(args.modules_json), remote_join(module_remote_dir, "modules.json"), "modules.json")
+        )
+
+    if args.store_ui:
+        uploads.append(
+            (Path(args.store_ui), remote_join(module_remote_dir, "store-ui.json"), "store-ui.json")
         )
 
     module_files: list[Path] = []
@@ -249,10 +260,15 @@ def upload_atomic(sftp: paramiko.SFTPClient, src: Path, remote_path: str) -> Non
     temp_path = remote_path + ".tmp"
     sftp.put(str(src), temp_path)
     try:
-        sftp.remove(remote_path)
-    except FileNotFoundError:
-        pass
-    sftp.rename(temp_path, remote_path)
+        sftp.posix_rename(temp_path, remote_path)
+    except (AttributeError, OSError):
+        # Older SFTP servers may not support POSIX rename. Keep this fallback for
+        # compatibility, while preferring the atomic replacement path above.
+        try:
+            sftp.remove(remote_path)
+        except FileNotFoundError:
+            pass
+        sftp.rename(temp_path, remote_path)
 
 
 def public_url(base: str, public_path: str) -> str:
@@ -276,6 +292,11 @@ def verify_version_payload(data: bytes, src: Path) -> None:
     local_json = json.loads(src.read_text(encoding="utf-8-sig"))
     for key in ("versionCode", "versionName", "channel", "isBeta", "apkName"):
         if public_json.get(key) != local_json.get(key):
+            raise RuntimeError(
+                f"{key} mismatch: public={public_json.get(key)!r}, local={local_json.get(key)!r}"
+            )
+    for key in ("fileSize", "sha256", "githubReleaseTag"):
+        if key in local_json and public_json.get(key) != local_json.get(key):
             raise RuntimeError(
                 f"{key} mismatch: public={public_json.get(key)!r}, local={local_json.get(key)!r}"
             )
@@ -321,18 +342,21 @@ def http_check(url: str, src: Path, public_path: str) -> None:
                         f"size mismatch: public={public_size}, local={src.stat().st_size}"
                     )
 
-    if src.stat().st_size <= 10 * 1024 * 1024:
-        request = urllib.request.Request(url, headers=headers, method="GET")
-        with urllib.request.urlopen(request, timeout=30) as response:
-            data = response.read()
-        if len(data) != src.stat().st_size:
-            raise RuntimeError(
-                f"body size mismatch: public={len(data)}, local={src.stat().st_size}"
-            )
-        remote_hash = sha256_bytes(data)
-        local_hash = sha256_file(src)
-        if remote_hash != local_hash:
-            raise RuntimeError(f"sha256 mismatch: public={remote_hash}, local={local_hash}")
+    request = urllib.request.Request(url, headers=headers, method="GET")
+    digest = hashlib.sha256()
+    body_size = 0
+    with urllib.request.urlopen(request, timeout=120) as response:
+        while chunk := response.read(1024 * 1024):
+            body_size += len(chunk)
+            digest.update(chunk)
+    if body_size != src.stat().st_size:
+        raise RuntimeError(
+            f"body size mismatch: public={body_size}, local={src.stat().st_size}"
+        )
+    remote_hash = digest.hexdigest()
+    local_hash = sha256_file(src)
+    if remote_hash != local_hash:
+        raise RuntimeError(f"sha256 mismatch: public={remote_hash}, local={local_hash}")
 
 
 def run_post_upload_commands(client: paramiko.SSHClient, cfg: dict) -> None:

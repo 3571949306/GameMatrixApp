@@ -73,7 +73,13 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_public(base: str, catalog: Path, signature: str, public_key: str) -> None:
+def verify_public(
+    base: str,
+    catalog: Path,
+    signature: str,
+    public_key: str,
+    module_dir: Path,
+) -> None:
     sys.path.insert(0, str(TOOLS_DIR.parent / "scripts"))
     from catalog_signing import verify_catalog_signature
 
@@ -96,6 +102,30 @@ def verify_public(base: str, catalog: Path, signature: str, public_key: str) -> 
             raise RuntimeError(f"public {endpoint} signature header mismatch")
         if not verify_catalog_signature(body, header_signature, public_key):
             raise RuntimeError(f"public {endpoint} signature verification failed")
+
+    parsed = json.loads(expected.decode("utf-8"))
+    for module in parsed["modules"]:
+        if module.get("deliveryType") == "builtin":
+            continue
+        package = module["package"]
+        filename = package["fileName"]
+        local_package = module_dir / filename
+        if not local_package.is_file():
+            raise RuntimeError(f"local package is missing during public verification: {filename}")
+        request = urllib.request.Request(
+            package["downloadUrl"],
+            headers={"Cache-Control": "no-cache", "User-Agent": "GameMatrixDeploy/1.0"},
+        )
+        digest = hashlib.sha256()
+        size = 0
+        with urllib.request.urlopen(request, timeout=120) as response:
+            while chunk := response.read(1024 * 1024):
+                size += len(chunk)
+                digest.update(chunk)
+        if size != local_package.stat().st_size or size != package["fileSize"]:
+            raise RuntimeError(f"public package size mismatch: {filename}")
+        if digest.hexdigest().lower() != package["sha256"].lower():
+            raise RuntimeError(f"public package SHA-256 mismatch: {filename}")
 
 
 def main() -> int:
@@ -173,7 +203,7 @@ def main() -> int:
             sftp.close()
         client.close()
 
-    verify_public(cfg["publicBaseUrl"], args.catalog, signature, public_key)
+    verify_public(cfg["publicBaseUrl"], args.catalog, signature, public_key, args.module_dir)
     print(
         f"Production Catalog V2 deployed and verified: modules={len(catalog['modules'])} "
         f"backup={backup_dir}"

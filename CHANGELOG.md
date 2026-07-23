@@ -3,6 +3,40 @@
 
 # GameMatrixApp - 版本更新日志
 
+## [stable vc598：更新与模块发布链路修复] - 2026-07-23
+
+### 变更
+
+- 修复“检查更新”入口、GitHub Release 回退与 APK 的 SHA-256 校验。
+- 更新发布元数据生成方式，确保中文公告始终是可解析的 JSON。
+- 重新签名并校验模块 Catalog；错题本和 VPN 模块的文件大小与 SHA-256 已统一。
+- 稳定版 APK 改为 ARM64-only，并在发布前验证体积、ABI 和 Flutter 调试符号。
+- 发布脚本改为原子上传并从公网逐字节复核 APK、元数据和模块包。
+
+## [stable vc597 正式版发布：模块商店性能优化 + store-ui 远程下发 + 文档全量同步] - 2026-07-23
+
+### 变更
+
+- **模块商店性能优化（`MODULE_STORE_PERF_OPT`）**：`ModuleManager.kt` 新增安装状态内存级缓存，消除主线程 N+1 文件 IO（每次列表刷新不再逐个读取磁盘安装态），商店滚动/切换分类更流畅。受 Feature Flag 控制，可关闭回退。
+- **store-ui.json 远程下发**：`tools/upload_to_vps.py` 新增 `--store-ui` 参数，支持将商店 UI 配置（`store-ui.json`）随 `modules.json` 一并上传到 VPS；`--apk`/`--version` 改为可选，便于单独发布模块商店资源而不强制重传 APK。
+- **模块商店 UI 调整**：`activity_module_store.xml` 重构布局（794 行调整），`ModuleAdapter.kt` / `ModuleStoreActivity.kt` 配套适配，改善商店列表展示。
+- **文档全量同步**：基于源码核对修正 6 份文档与代码不一致项（见下）：
+  - `compileSdk` 35 → 36（`app/build.gradle` 实际值）
+  - `versionCode` 595 → 597、`lastStableVersionCode` 594 保持
+  - `FEATURE_FLAGS.md` 补齐 8 个此前未登记的 Flag（`MODULE_STORE_PERF_OPT`、`GAME_REVAMP_2026`、`STORE_REMOTE_CATALOG`、`STORE_REMOTE_UI`、`STORE_SECTION_RENDERER`、`ENABLE_P4_DYNAMIC_GAMES_HALL`、`ENABLE_P4_DYNAMIC_TOOLS`、`BOTTOM_NAV_CUSTOMIZATION`），总数 75 → 88
+  - `PUBLISH_GUIDE.md` 修正脚本路径（`工具/` → `tools/`）、版本号示例、标注 GitHub Release 上传脚本缺失现状
+  - `DOCUMENTATION_INDEX.md` 更新 Flag 计数与最后更新日期
+
+### 验证与发布
+
+- `:app:assembleRelease -PupdateChannel=stable` 构建签名 Release APK（`app/gamecenter.jks`），channel=stable, isBeta=false。
+- 上传香港 VPS（`hk-update.tcp0053.shop`）：APK + version.json + modules.json + store-ui.json + 3 个模块 APK（browser/wrongbook/vpn），8 个产物全部 HTTP 验证通过。
+- GitHub Release 备用通道：vc597 的错误大体积资产已被 vc598 的 ARM64 正式包取代。
+- 真机小米 ares (M2012K10C) 安装验证：跳过（MIUI USB 安装限制 INSTALL_FAILED_USER_RESTRICTED，需用户手动开启权限后自行测试）。
+- 回滚：`git checkout` 对应文件；或 VPS 端恢复上一版 `app-release.apk` + `version.json`；GitHub Release 可通过 `gh release delete v1.4.1-vc597` 删除。
+
+---
+
 ## [全方位美化收尾：动作类深屏背景资源化 + 控制按键图标主题色化] - 2026-07-22
 
 ### 变更

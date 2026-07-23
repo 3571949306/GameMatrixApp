@@ -6,10 +6,10 @@
 > 本文档索引项目所有 Feature Flag，包括用途、引入版本、退役计划。
 > 规则：Flag 超过 3 个月未关闭 = 应该删除代码（保留功能）。
 
-**最后更新**: 2026-07-22
-**Flag 总数**: 75 个（基础设施 11 + 加法升级 58 + 混合架构 5 + 首页沉浸式改版 1）
-**默认值分布**: 70 个 true / 5 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`、`ENABLE_CATALOG_SIGNATURE`、`ENABLE_FLUTTER_MODULE_STORE`）
-**声明位置**: `app/build.gradle` → `defaultConfig`（`buildTypes` 中无覆盖）
+**最后更新**: 2026-07-23
+**Flag 总数**: 88 个（基础设施 11 + 加法升级 58 + 混合架构 11 + 首页沉浸式改版 1 + 首页 V2 1 + 模块商店增强 4 + 游戏改造 1 + 商店混合架构 3）
+**默认值分布**: 81 个 true / 7 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`、`ENABLE_CATALOG_SIGNATURE`、`ENABLE_FLUTTER_MODULE_STORE`、`STORE_SECTION_RENDERER`、`ENABLE_P4_DYNAMIC_GAMES_HALL`）
+**声明位置**: `app/build.gradle` → `defaultConfig`（`buildTypes` 中 debug 覆盖 `TEST_MODE`/`BROWSER_WEBVIEW_DEBUG` 为 true）
 
 ---
 
@@ -166,6 +166,34 @@
 |-----------|--------|----------|------|----------|------|
 | `HOME_REVAMP_V2` | true | 1.4.1（首页 V2 游戏活力风重设计，2026-07-22） | 首页 V2 游戏霓虹风重设计：3 层信息架构（L1 沉浸式 Hero 区 / L2 快速入口带 / L3 游戏列表区），霓虹配色系统（浅色 深紫 #6B2FB3 → 品红 #E91E63 → 暖橙 #FF6B35；深色 深紫黑 #1A0B2E → 品红紫 #4A1A5E → 霓虹紫 #7C4DFF）。今日推荐大图卡（160dp，游戏图标 alpha 0.35 背景 + 底部渐变蒙版 + 徽章/名称/描述/立即开玩按钮）。重写 `fragment_games.xml`（保留全部 37 个原 id）+ `layout_home_game_of_day.xml`，新增 `home_v2_*` 色板（浅色/深色双适配）+ 8 个 drawable + 1 个 anim（Hero 进入动画）。`GamesFragment.refreshResumeGameCard()` 空状态走 V2 引导分支。Hero Banner 轮播 / 最近成就 section 在 V2 中弱化为 GONE 占位以保留 id 兼容 | Flutter 化首页接入后评估退役 | 活跃 |
 
+### 十六、游戏全面改造（1 个，2026-07-22）
+
+| Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
+|-----------|--------|----------|------|----------|------|
+| `GAME_REVAMP_2026` | true | 1.4.1（游戏全面改造，2026-07-22） | 游戏全面改造总开关：成就系统修复（`AchievementManager` 统一高分持久化）、9 款游戏难度系统补全、8 款游戏功能 Bug 修复、27 款游戏主题/本地化合规重构。与 `ACHIEVEMENT_V2` 协同 | 改造稳定后评估退役 | 活跃 |
+
+### 十七、模块商店增强（4 个，Batch 21 + 性能优化）
+
+| Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
+|-----------|--------|----------|------|----------|------|
+| `MODULE_STORE_FILTER` | true | 1.4.1（Batch 21） | 模块商店分类筛选（按 storeCategory 过滤） | 待评估 | 活跃 |
+| `MODULE_STORE_SEARCH_HISTORY` | true | 1.4.1（Batch 21） | 模块商店搜索历史（持久化 + 点击回填 + 清除） | 待评估 | 活跃 |
+| `MODULE_STORE_DETAIL_ENHANCE` | true | 1.4.1（Batch 21） | 模块商店详情增强（详情面板信息扩展） | 待评估 | 活跃 |
+| `MODULE_STORE_PERF_OPT` | true | 1.4.1（性能优化，2026-07-22） | 模块商店性能优化：`ModuleManager.kt` 安装状态内存级缓存，消除主线程 N+1 文件 IO，列表刷新更流畅 | 待评估 | 活跃 |
+
+### 十八、商店混合架构补充（6 个，P2/P4）
+
+> 下列 Flag 与第十三节混合架构 P3/P5/P6（含 `ENABLE_P4_DYNAMIC_NAVIGATION`）配套，共同构成 P0-P6 完整开关集。
+
+| Flag 名称 | 默认值 | 引入版本 | 用途 | 退役计划 | 状态 |
+|-----------|--------|----------|------|----------|------|
+| `STORE_REMOTE_CATALOG` | true | 1.4.1（混合架构 P1/P2） | 远程目录开关：开启后商店从服务端拉取 catalog.json，关闭后退回旧 assets/modules.json 硬编码目录 | 长期保留 | 活跃 |
+| `STORE_REMOTE_UI` | true | 1.4.1（混合架构 P2） | 远程 UI 配置开关：开启后商店布局/区块从服务端 store-ui.json 驱动，关闭后退回硬编码布局 | 长期保留 | 活跃 |
+| `STORE_SECTION_RENDERER` | false | 1.4.1（混合架构 P2） | 区块渲染器开关：开启后按服务端配置动态渲染商店区块；默认关闭，待服务端区块协议稳定后启用 | 服务端区块协议稳定后改 true | 待评估 |
+| `ENABLE_P4_DYNAMIC_GAMES_HALL` | false | 1.4.1（混合架构 P4） | 动态游戏大厅开关：开启后游戏大厅从模块贡献动态构建；默认关闭，游戏大厅保持宿主内置 | 评估模块贡献稳定性后启用 | 待评估 |
+| `ENABLE_P4_DYNAMIC_TOOLS` | true | 1.4.1（混合架构 P4） | 动态工具区开关：开启后工具区从模块贡献动态构建 | 长期保留 | 活跃 |
+| `BOTTOM_NAV_CUSTOMIZATION` | true | 1.4.1（混合架构 P4） | 底部导航用户自定义：支持拖拽排序/隐藏/恢复默认，最多显示 6 项；游戏大厅强制可见 | 长期保留 | 活跃 |
+
 ---
 
 ## 治理规则
@@ -237,9 +265,9 @@
 
 ## 数据来源
 
-- `app/build.gradle` 第 194–307 行（`defaultConfig` 中所有 `buildConfigField "boolean"` 声明）
-- `docs/AI_CONTEXT.md` 第 304–374 行（Feature Flag 章节，含九轮加法升级详细说明）
-- 实际总数：**76 个 boolean Flag**（基础设施 11 + 加法升级 58 + 混合架构 5 + 首页沉浸式改版 1 + 首页 V2 游戏活力风重设计 1），全部声明于 `defaultConfig`，`buildTypes` 中无覆盖
+- `app/build.gradle` `defaultConfig` 中所有 `buildConfigField "boolean"` 声明（第 271–484 行）
+- `docs/AI_CONTEXT.md` Feature Flag 章节（含九轮加法升级详细说明）
+- 实际总数：**88 个 boolean Flag**（基础设施 11 + 加法升级 58 + 混合架构 11 [P3/P5/P6 共 5 + P2/P4 补充 6] + 首页沉浸式改版 1 + 首页 V2 1 + 模块商店增强 4 + 游戏改造 1 + Flutter 商店 1），全部声明于 `defaultConfig`，`buildTypes` 中 debug 覆盖 `TEST_MODE`/`BROWSER_WEBVIEW_DEBUG` 为 true
 
 ---
 

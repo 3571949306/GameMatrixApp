@@ -5,11 +5,11 @@
 
 > 本文档合并了原根目录的 7 个审计/修复文档（问题清单、执行规划、项目审计报告、最终报告、待确认操作清单、待删除清单、测试方案），提供项目当前状态的完整视图。
 
-**最后更新**: 2026-07-22
-**当前工作树/生产版本**: versionCode=595, versionName=1.4.1
-**上次稳定版**: versionCode=594, versionName=1.4.1  
-**审计起始**: 2026-06-19 (versionCode=451)  
-**修复轮次**: 24 轮循环 + 混合架构 P0-P6 + Flutter-first 模块商店（2026-07-21）
+**最后更新**: 2026-07-23
+**当前工作树/生产版本**: versionCode=598, versionName=1.4.1
+**上次稳定版**: versionCode=598, versionName=1.4.1
+**审计起始**: 2026-06-19 (versionCode=451)
+**修复轮次**: 24 轮循环 + 混合架构 P0-P6 + Flutter-first 模块商店（2026-07-21）+ stable vc598 更新与模块发布链路修复（2026-07-23）
 **工作树说明**: 当前存在本任务及用户并行修改；不得用旧 commit 或“clean”文档声明替代实时状态
 
 ---
@@ -50,7 +50,7 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
 ### 1.3 Android SDK
 - **minSdk**: 24 (Android 7.0)
 - **targetSdk**: 35 (Android 15)
-- **compileSdk**: 35
+- **compileSdk**: 36
 
 ### 1.4 模块结构
 - **核心模块**: 9 个（common, network, update, security, module-host, moduleloader, modulestore, online, app）
@@ -78,14 +78,14 @@ Android 游戏中心应用，采用模块化架构，支持动态加载游戏模
 ```
 ✅ Debug 构建: 正常
 ✅ Flutter-first 双 ABI staging Release：lintVital、R8、资源收缩、V2 签名、APK 内容和 Android 11–15 安装/进入均已验证
-✅ 当前工作树/生产版本号: 593 / 1.4.1
-✅ 上次稳定版: 592 / 1.4.1
+✅ 当前工作树/生产版本号: 598 / 1.4.1
+✅ 上次稳定版: 598 / 1.4.1
 ✅ 编译错误: 0
 ✅ R8 混淆: 已启用
 ✅ 资源收缩: 已启用
 ✅ ABI 拆分: arm64-v8a
 ✅ Lint 模式: 严格（abortOnError true）
-⚠️ 工作区: 44 modified + 11 untracked（混合架构 P3-P6 改造未提交）
+⚠️ 工作区: 模块商店性能优化（MODULE_STORE_PERF_OPT）+ store-ui.json 上传支持 + 商店 UI 调整（未提交）
 ```
 
 ### 2.2 安全状态 ✅

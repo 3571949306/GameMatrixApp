@@ -6,6 +6,7 @@ import android.util.Log;
 import com.gamecenter.app.update.BuildConfig;
 import com.gamecenter.app.SettingsManager;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 应用更新检查器，负责从多个更新源检查是否有新版本可用。
@@ -55,6 +58,11 @@ public class UpdateChecker {
     static final String HK_BASE_URL = BuildConfig.SERVER_URL;
     /** 下载源：GitHub Releases（最终备用源） */
     static final String GITHUB_RELEASES_BASE_URL = "https://github.com/3571949306/GameMatrixApp/releases/latest";
+    /** GitHub Releases API：不能把网页地址当成旧版更新 API 使用。 */
+    static final String GITHUB_LATEST_RELEASE_API_URL =
+            "https://api.github.com/repos/3571949306/GameMatrixApp/releases/latest";
+    private static final Pattern GITHUB_VERSION_CODE_PATTERN =
+            Pattern.compile("(?:^|[-_])vc(\\d+)(?:$|[-_])", Pattern.CASE_INSENSITIVE);
 
     /** SharedPreferences 文件名，用于存储更新配置 */
     static final String PREF_NAME = "update_config";
@@ -290,15 +298,72 @@ public class UpdateChecker {
     public UpdateInfo checkGitHubRelease(Context context, String baseUrl, LocalVersion localVersion,
                                           boolean acceptBeta, int connectTimeout, int readTimeout) {
         try {
-            Log.d(TAG, "Checking GitHub release (stable only)...");
-            UpdateInfo info = checkLegacyApi(context, baseUrl, localVersion, false, connectTimeout, readTimeout);
-            if (info != null) {
-                return info;
+            Log.d(TAG, "Checking GitHub Releases API (stable only)...");
+            JSONObject release = fetchJson(GITHUB_LATEST_RELEASE_API_URL,
+                    GITHUB_CONNECT_TIMEOUT, GITHUB_READ_TIMEOUT);
+            String tag = release.optString("tag_name", "").trim();
+            int versionCode = parseGitHubVersionCode(tag);
+            if (versionCode <= 0) {
+                throw new IllegalStateException("GitHub Release tag does not contain a version code: " + tag);
             }
+
+            JSONArray assets = release.optJSONArray("assets");
+            JSONObject apkAsset = null;
+            if (assets != null) {
+                for (int index = 0; index < assets.length(); index++) {
+                    JSONObject asset = assets.optJSONObject(index);
+                    if (asset != null && "app-release.apk".equals(asset.optString("name"))) {
+                        apkAsset = asset;
+                        break;
+                    }
+                }
+            }
+            if (apkAsset == null) {
+                throw new IllegalStateException("GitHub Release does not contain app-release.apk");
+            }
+
+            String digest = apkAsset.optString("digest", "").trim();
+            String sha256 = digest.regionMatches(true, 0, "sha256:", 0, 7)
+                    ? digest.substring(7) : "";
+            JSONObject normalized = new JSONObject();
+            normalized.put("versionCode", versionCode);
+            normalized.put("versionName", githubVersionName(tag));
+            normalized.put("channel", "stable");
+            normalized.put("releaseTag", tag);
+            normalized.put("downloadUrl", apkAsset.optString("browser_download_url", ""));
+            normalized.put("fileSize", apkAsset.optLong("size", 0));
+            normalized.put("sha256", sha256);
+            normalized.put("changelog", release.optString("body", ""));
+            normalized.put("forceUpdate", false);
+
+            UpdateInfo info = UpdateInfo.fromJson(normalized);
+            if (info.getDownloadUrl().isEmpty() || info.getSha256().isEmpty()) {
+                throw new IllegalStateException("GitHub Release asset is missing a download URL or SHA-256");
+            }
+            info.setSourceVersionUrl(GITHUB_LATEST_RELEASE_API_URL);
+            info.setLocalVersion(localVersion.versionCode, localVersion.versionName);
+            applyUpdatePolicy(info, localVersion, acceptBeta);
+            saveLastCheck(context);
+            return info;
         } catch (Exception e) {
             Log.w(TAG, "GitHub release check failed: " + e.getMessage());
         }
         return null;
+    }
+
+    static int parseGitHubVersionCode(String tag) {
+        Matcher matcher = GITHUB_VERSION_CODE_PATTERN.matcher(tag == null ? "" : tag);
+        if (!matcher.find()) return 0;
+        try {
+            return Integer.parseInt(matcher.group(1));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private static String githubVersionName(String tag) {
+        if (tag == null) return "";
+        return tag.replaceFirst("(?i)^v", "").replaceFirst("(?i)-vc\\d+$", "");
     }
 
     /**
@@ -496,7 +561,8 @@ public class UpdateChecker {
         if (downloadUrl == null || downloadUrl.trim().isEmpty()) {
             if (baseUrl.equals(GITHUB_RELEASES_BASE_URL)) {
                 // GitHub 源：使用标准 Releases 下载路径
-                String tag = info.getVersionName();
+                String tag = info.getReleaseTag();
+                if (tag.isEmpty()) tag = "v" + info.getVersionName() + "-vc" + info.getVersionCode();
                 String apkName = info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
                 if (tag == null || tag.isEmpty()) {
                     downloadUrl = "https://github.com/3571949306/GameMatrixApp/releases/latest/download/" + apkName;

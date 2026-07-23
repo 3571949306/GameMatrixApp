@@ -706,8 +706,12 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     }
 
     private fun applyCategoryFilter() {
+        // MODULE_STORE_PERF_OPT: 一次性获取安装状态和版本，避免 N+1 主线程 IO
+        val installedIds = ModuleManager.getInstalledModuleIds(this)
+        val installedVersions = buildInstalledVersionsMapFromCache(installedIds)
+
         val categoryFiltered = if (currentCategory == CATEGORY_INSTALLED) {
-            allModules.filter { ModuleManager.isModuleInstalled(this, it.id) }
+            allModules.filter { installedIds.contains(it.id) }
         } else {
             val baseFrameworks = allModules.filter { it.storeCategory == currentCategory && it.isBaseFramework }
             val otherModules = allModules.filter { it.storeCategory == currentCategory && !it.isBaseFramework }
@@ -722,7 +726,7 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
 
         // Batch 21: 应用筛选（feature flag 控制）
         val filterApplied = if (BuildConfig.MODULE_STORE_FILTER) {
-            applyModuleFilter(categoryAndSubFiltered)
+            applyModuleFilterWithCache(categoryAndSubFiltered, installedIds, installedVersions)
         } else {
             categoryAndSubFiltered
         }
@@ -738,9 +742,12 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             filterApplied
         }
 
+        // MODULE_STORE_PERF_OPT: 先更新 adapter 的 installedIds/versions，再提交列表。
+        // 这样 DiffUtil 在比较 areContentsTheSame 时能拿到最新的安装状态，
+        // 避免 updateModules 之后再 notifyItemRangeChanged 触发全量重绑。
+        adapter.installedVersions = installedVersions
+        adapter.updateInstalledIds(installedIds)
         adapter.updateModules(finalFiltered)
-        adapter.updateInstalledIds(ModuleManager.getInstalledModuleIds(this))
-        adapter.installedVersions = buildInstalledVersionsMap()
         if (finalFiltered.isEmpty()) {
             emptyContainer.visibility = View.VISIBLE
         } else {
@@ -750,16 +757,22 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
 
     /**
      * Batch 21: 应用筛选：按安装状态 / 大小 / 版本
+     * MODULE_STORE_PERF_OPT: 使用缓存的 installedIds/installedVersions，避免 N+1 IO
      */
-    private fun applyModuleFilter(modules: List<ModuleManifest>): List<ModuleManifest> {
+    private fun applyModuleFilterWithCache(
+        modules: List<ModuleManifest>,
+        installedIds: Set<String>,
+        installedVersions: Map<String, Int>
+    ): List<ModuleManifest> {
         return modules.filter { module ->
             // 安装状态筛选
+            val isInstalled = installedIds.contains(module.id)
             val stateMatch = when (filterState) {
-                FILTER_STATE_INSTALLED -> ModuleManager.isModuleInstalled(this, module.id)
-                FILTER_STATE_NOT_INSTALLED -> !ModuleManager.isModuleInstalled(this, module.id)
+                FILTER_STATE_INSTALLED -> isInstalled
+                FILTER_STATE_NOT_INSTALLED -> !isInstalled
                 FILTER_STATE_UPDATABLE -> {
-                    val installedV = ModuleManager.getInstalledVersionCode(this, module.id)
-                    ModuleManager.isModuleInstalled(this, module.id) && installedV in 1 until module.versionCode
+                    val installedV = installedVersions[module.id] ?: 0
+                    isInstalled && installedV in 1 until module.versionCode
                 }
                 else -> true
             }
@@ -1032,6 +1045,8 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
                 } else {
                     // P1.4: 合并 catalog 中的扩展字段（changelog/screenshots/permissions 等）到 manifest
                     allModules = sortModules(mergeCatalogModules(modules))
+                    // MODULE_STORE_PERF_OPT: 模块列表就绪后初始化安装状态缓存（内存级，后续切 tab 零 IO）
+                    ModuleManager.ensureInstalledCache(applicationContext)
                     applyCategoryFilter()
                 }
                 firstCallback = false
@@ -1082,14 +1097,17 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     /** 三栏统计卡片：总数 / 已安装 / 有更新 */
     private fun updateStatsBar() {
         val total = allModules.size
-        val installed = allModules.count { ModuleManager.isModuleInstalled(this, it.id) }
+        // MODULE_STORE_PERF_OPT: 使用缓存避免 N+1 IO
+        val installedIds = ModuleManager.getInstalledModuleIds(this)
+        val installedVersions = buildInstalledVersionsMapFromCache(installedIds)
+        val installed = allModules.count { installedIds.contains(it.id) }
         // Batch 21 修复：
         // 1. 内置模块不参与"有更新"统计（其版本随宿主升级）
         // 2. installedVersion > 0 才算有效（避免文件存在但无版本记录被误判为待更新）
         val updatable = allModules.count { module ->
             !module.builtIn &&
-            ModuleManager.isModuleInstalled(this, module.id) &&
-            ModuleManager.getInstalledVersionCode(this, module.id).let { it > 0 && it < module.versionCode }
+            installedIds.contains(module.id) &&
+            (installedVersions[module.id] ?: 0).let { it > 0 && it < module.versionCode }
         }
         statTotalCount.text = total.toString()
         statInstalledCount.text = installed.toString()
@@ -1215,23 +1233,27 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         val candidates = allModules.filter { !it.isBaseFramework && it.storeCategory != "vpn" }
         if (candidates.isEmpty()) return emptyList()
 
+        // MODULE_STORE_PERF_OPT: 使用缓存避免 N+1 IO
+        val installedIds = ModuleManager.getInstalledModuleIds(this)
+        val installedVersions = buildInstalledVersionsMapFromCache(installedIds)
+
         // 1. 未安装的高版本模块（最多 3 个，按版本号降序）
         val notInstalled = candidates
-            .filter { !ModuleManager.isModuleInstalled(this, it.id) }
+            .filter { !installedIds.contains(it.id) }
             .sortedByDescending { it.versionCode }
             .take(3)
 
         // 2. 有更新的模块（排除内置模块 + 要求 installedVersion > 0）
         val hasUpdate = candidates.filter { module ->
             !module.builtIn &&
-            ModuleManager.isModuleInstalled(this, module.id) &&
-            ModuleManager.getInstalledVersionCode(this, module.id).let { it > 0 && it < module.versionCode }
+            installedIds.contains(module.id) &&
+            (installedVersions[module.id] ?: 0).let { it > 0 && it < module.versionCode }
         }
 
         // 3. 各分类取一个已安装的代表（去重）
         val seenCategories = mutableSetOf<String>()
         val categoryReps = candidates
-            .filter { ModuleManager.isModuleInstalled(this, it.id) }
+            .filter { installedIds.contains(it.id) }
             .sortedByDescending { it.versionCode }
             .filter { seenCategories.add(it.storeCategory) }
             .take(2)
@@ -1343,6 +1365,20 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             if (version > 0) {
                 map[module.id] = version
             }
+        }
+        return map
+    }
+
+    /**
+     * MODULE_STORE_PERF_OPT: 基于 installedIds 缓存构建版本映射，
+     * 避免对每个模块单独调用 getInstalledVersionCode（走内存缓存而非 N 次 SP 读）。
+     */
+    private fun buildInstalledVersionsMapFromCache(installedIds: Set<String>): Map<String, Int> {
+        if (!BuildConfig.MODULE_STORE_PERF_OPT) return buildInstalledVersionsMap()
+        val map = mutableMapOf<String, Int>()
+        for (id in installedIds) {
+            val version = ModuleManager.getInstalledVersionCode(this, id)
+            if (version > 0) map[id] = version
         }
         return map
     }

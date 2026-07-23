@@ -92,6 +92,8 @@ def shouldSkipReleaseLint = (project.findProperty("skipReleaseLint") ?: "false")
 def uploadPythonExecutable = (project.findProperty("uploadPython") ?: System.getenv("PYTHON") ?: "python").toString()
 def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?: "true").toString().toBoolean()
 def flutterStoreEnabled = (project.findProperty("enableFlutterModuleStore") ?: "false").toString().toBoolean()
+def flutterNdkVersion = (project.findProperty("flutterNdkVersion") ?: "28.2.13676358").toString().trim()
+def releaseApkMaxSizeMb = (project.findProperty("releaseApkMaxSizeMb") ?: "120").toString().trim()
 def catalogSignatureEnabled = (project.findProperty("enableCatalogSignature") ?: "false").toString().toBoolean()
 def catalogSigningProfile = (project.findProperty("catalogSigningProfile") ?: "development").toString().trim().toLowerCase()
 def useStagingApplicationIdSuffix = (
@@ -102,6 +104,22 @@ def flutterTargetPlatforms = (project.findProperty("target-platform") ?: "")
         .split(',')
         .collect { it.trim() }
         .findAll { !it.isEmpty() }
+def flutterTargetToAndroidAbi = [
+        "android-arm"  : "armeabi-v7a",
+        "android-arm64": "arm64-v8a",
+        "android-x64"  : "x86_64"
+]
+def unsupportedFlutterTargetPlatforms = flutterTargetPlatforms.findAll {
+    !flutterTargetToAndroidAbi.containsKey(it)
+}
+if (!unsupportedFlutterTargetPlatforms.isEmpty()) {
+    throw new GradleException(
+            "Unsupported -Ptarget-platform value(s): ${unsupportedFlutterTargetPlatforms.join(', ')}"
+    )
+}
+def requestedAndroidAbis = flutterTargetPlatforms.collect {
+    flutterTargetToAndroidAbi[it]
+}.unique()
 def catalogEd25519PublicKeys = (
         project.findProperty("catalogEd25519PublicKeys")
                 ?: System.getenv("GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS")
@@ -119,23 +137,19 @@ def lastStableVersionName = currentVersionChannel == "stable"
         ? currentVersionName
         : (!configuredLastStableVersionName.isEmpty() ? configuredLastStableVersionName : currentVersionName)
 
-def changelogFile = file("${rootDir}/CHANGELOG.md")
-def legacyChangelogFile = file("${rootDir}/changelog.txt")
+def releaseNotesFile = file("${rootDir}/RELEASE_NOTES.md")
 
 // ============================================================
 // Section 2: Helper Functions
 // ============================================================
 
-def readChangelogText = {
-    def source = changelogFile.exists() ? changelogFile : legacyChangelogFile
-    return source.exists() ? source.getText("UTF-8").trim() : ""
-}
-
-def readBuildConfigChangelogText = {
-    def full = readChangelogText()
-    def maxChars = 24000
-    if (full.length() <= maxChars) return full
-    return full.substring(0, maxChars) + "\n\n... changelog truncated in BuildConfig; full text is bundled in version.json ..."
+def readReleaseNotesText = {
+    if (!releaseNotesFile.exists()) {
+        throw new GradleException(
+                "Missing RELEASE_NOTES.md. User-facing update text must not use the full CHANGELOG.md."
+        )
+    }
+    return releaseNotesFile.getText("UTF-8").trim()
 }
 
 def toJavaStringLiteral = { String value ->
@@ -187,6 +201,20 @@ def validateCatalogTrustConfig = {
 }
 
 validateCatalogTrustConfig()
+if (releaseSigningRequired && currentVersionChannel == "stable") {
+    if (!flutterStoreEnabled) {
+        throw new GradleException(
+                "A stable Release must enable the production Flutter module store with " +
+                        "-PenableFlutterModuleStore=true."
+        )
+    }
+    if (flutterTargetPlatforms != ["android-arm64"]) {
+        throw new GradleException(
+                "A stable Release must be an ARM64-only user APK. Set " +
+                        "-Ptarget-platform=android-arm64; build x86_64 separately for emulator QA."
+        )
+    }
+}
 if (releaseSigningRequired && flutterStoreEnabled) {
     if (!catalogSignatureEnabled) {
         throw new GradleException(
@@ -213,24 +241,47 @@ if (releaseSigningRequired && flutterStoreEnabled) {
     }
 }
 
-def buildVersionJsonText = {
+def sha256Of = { File artifact ->
+    def digest = java.security.MessageDigest.getInstance('SHA-256')
+    artifact.withInputStream { input ->
+        byte[] buffer = new byte[1024 * 1024]
+        int read
+        while ((read = input.read(buffer)) != -1) {
+            digest.update(buffer, 0, read)
+        }
+    }
+    return digest.digest().collect { String.format('%02x', it) }.join('')
+}
+
+def buildVersionJsonText = { boolean includeArtifactIntegrity = false ->
     def vc = android.defaultConfig.versionCode
     def vn = android.defaultConfig.versionName
     def channel = currentVersionChannel
     def beta = channel == "beta"
     def apkName = beta ? "app-beta.apk" : "app-release.apk"
-    def cl = toJsonString(readChangelogText())
-    return "{\n" +
-            "  \"versionCode\": ${vc},\n" +
-            "  \"versionName\": \"${toJsonString(vn)}\",\n" +
-            "  \"channel\": \"${channel}\",\n" +
-            "  \"isBeta\": ${beta},\n" +
-            "  \"lastStableVersionCode\": ${lastStableVersionCode},\n" +
-            "  \"lastStableVersionName\": \"${toJsonString(lastStableVersionName)}\",\n" +
-            "  \"betaNoticeVersionGap\": ${configuredBetaNoticeVersionGap},\n" +
-            "  \"apkName\": \"${apkName}\",\n" +
-            "  \"changelog\": \"${cl}\"\n" +
-            "}\n"
+    // Let the JSON encoder escape user-facing release text. Manual string
+    // interpolation can leave literal line breaks in `changelog`, which makes
+    // the update metadata unreadable by the installed app.
+    def payload = new LinkedHashMap<String, Object>()
+    payload.versionCode = vc
+    payload.versionName = vn
+    payload.channel = channel
+    payload.isBeta = beta
+    payload.lastStableVersionCode = lastStableVersionCode
+    payload.lastStableVersionName = lastStableVersionName
+    payload.betaNoticeVersionGap = configuredBetaNoticeVersionGap
+    payload.apkName = apkName
+    payload.githubReleaseTag = "v${vn}-vc${vc}"
+    payload.changelog = readReleaseNotesText()
+    if (includeArtifactIntegrity) {
+        def releaseApk = file("${buildDir}/outputs/apk/release/app-release.apk")
+        if (!releaseApk.isFile()) {
+            throw new GradleException("Release APK is required before generating publishable version.json")
+        }
+        payload.fileSize = releaseApk.length()
+        payload.sha256 = sha256Of(releaseApk)
+    }
+    return groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(payload)) + "\n"
 }
 
 // ============================================================
@@ -240,6 +291,9 @@ def buildVersionJsonText = {
 android {
     namespace "com.gamecenter.app"
     compileSdk 36
+    // The host packages Flutter's prebuilt native libraries, so the host must
+    // select the same installed NDK that Flutter expects for symbol stripping.
+    ndkVersion flutterNdkVersion
 
     signingConfigs {
         release {
@@ -266,6 +320,14 @@ android {
         versionName currentVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         resConfigs "zh-rCN", "en"
+        if (!requestedAndroidAbis.isEmpty()) {
+            // Flutter's target selection does not filter every host dependency
+            // (for example MediaPipe). Mirror it at the host NDK layer.
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(requestedAndroidAbis)
+            }
+        }
 
         // 模块系统配置（T08：框�?APK 体积优化�?
         buildConfigField "boolean", "ENABLE_MODULE_SYSTEM", "true"
@@ -446,6 +508,8 @@ android {
         buildConfigField "boolean", "MODULE_STORE_FILTER", "true"
         buildConfigField "boolean", "MODULE_STORE_SEARCH_HISTORY", "true"
         buildConfigField "boolean", "MODULE_STORE_DETAIL_ENHANCE", "true"
+        // 模块商店性能优化：内存级缓存消除主线程 N+1 文件 IO（2026-07-22）
+        buildConfigField "boolean", "MODULE_STORE_PERF_OPT", "true"
 
         // ===== 混合架构 P1/P2：远程目录 + 远程 UI 配置 + 区块渲染器 =====
         // 默认开启，关闭后商店退回旧 assets/modules.json + 硬编码布局
@@ -480,7 +544,9 @@ android {
         // 开启后支持 Unity launcher / content 模块类型
         buildConfigField "boolean", "ENABLE_P6_UNITY_MODULE", "true"
 
-        buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readBuildConfigChangelogText())
+        // Keep the existing API field name for compatibility, but expose only the concise
+        // user-facing announcement. Developer history stays in CHANGELOG.md.
+        buildConfigField "String", "CHANGELOG", toJavaStringLiteral(readReleaseNotesText())
         buildConfigField "String", "VERSION_CHANNEL", "\"${currentVersionChannel}\""
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
         buildConfigField "String", "RELAY_URL", toJavaStringLiteral(configuredRelayUrl ?: "https://your-server.example.com/api/ddz-relay")
@@ -745,7 +811,7 @@ task generateBundledVersionJson {
     inputs.property("lastStableVersionCode", lastStableVersionCode)
     inputs.property("lastStableVersionName", lastStableVersionName)
     inputs.property("betaNoticeVersionGap", configuredBetaNoticeVersionGap)
-    inputs.property("changelogText", readChangelogText())
+    inputs.property("releaseNotesText", readReleaseNotesText())
     outputs.file(new File(generatedVersionAssetDir, "version.json"))
     doLast {
         generatedVersionAssetDir.mkdirs()
@@ -755,14 +821,15 @@ task generateBundledVersionJson {
 }
 
 task generateVersionJson {
-    dependsOn generateBundledVersionJson
+    dependsOn generateBundledVersionJson, 'assembleRelease'
+    inputs.file(file("${buildDir}/outputs/apk/release/app-release.apk"))
     doLast {
         def debugApkDir = file("${buildDir}/outputs/apk/debug")
         def releaseApkDir = file("${buildDir}/outputs/apk/release")
         debugApkDir.mkdirs()
         releaseApkDir.mkdirs()
-        new File(debugApkDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
-        new File(releaseApkDir, "version.json").setText(buildVersionJsonText(), "UTF-8")
+        new File(debugApkDir, "version.json").setText(buildVersionJsonText(true), "UTF-8")
+        new File(releaseApkDir, "version.json").setText(buildVersionJsonText(true), "UTF-8")
         println "Generated version.json: vc=${android.defaultConfig.versionCode}"
     }
 }
@@ -771,10 +838,44 @@ task generateVersionJson {
 // Section 6: Publish & Upload Tasks
 // ============================================================
 
+task validateReleaseNotes(type: Exec) {
+    group = "verification"
+    description = "Validate concise, user-facing release notes before publishing"
+    workingDir rootDir
+
+    def validationArgs = [
+            file("${rootDir}/tools/validate_release_notes.py").absolutePath,
+            releaseNotesFile.absolutePath
+    ]
+    if (currentVersionChannel == "stable") {
+        validationArgs.addAll([
+                "--version-file", versionPropsFile.absolutePath
+        ])
+    }
+    commandLine([uploadPythonExecutable] + validationArgs)
+}
+
+task validateReleaseApk(type: Exec) {
+    group = "verification"
+    description = "Build and validate the release APK size, ABI set, and Flutter symbols"
+    dependsOn 'assembleRelease'
+    workingDir rootDir
+
+    def validationArgs = [
+            file("${rootDir}/tools/validate_release_apk.py").absolutePath,
+            file("${buildDir}/outputs/apk/release/app-release.apk").absolutePath,
+            "--max-size-mb", releaseApkMaxSizeMb
+    ]
+    if (currentVersionChannel == "stable") {
+        validationArgs.addAll(["--expected-abi", "arm64-v8a"])
+    }
+    commandLine([uploadPythonExecutable] + validationArgs)
+}
+
 task uploadReleaseArtifactsToVps(type: Exec) {
     group = "publishing"
     description = "Upload release APK and version.json to the configured update VPS"
-    dependsOn generateVersionJson, ':module-store:feature:tools:vpn:assembleDebug'
+    dependsOn generateVersionJson, validateReleaseNotes, validateReleaseApk
     workingDir rootDir
 
     def uploadChannel = currentVersionChannel == "stable" ? "release" : "beta"
@@ -782,10 +883,7 @@ task uploadReleaseArtifactsToVps(type: Exec) {
             file("${rootDir}/tools/upload_to_vps.py").absolutePath,
             "--apk", file("${buildDir}/outputs/apk/release/app-release.apk").absolutePath,
             "--version", file("${buildDir}/outputs/apk/release/version.json").absolutePath,
-            "--channel", uploadChannel,
-            "--modules-json", file("${projectDir}/src/main/assets/modules.json").absolutePath,
-            "--module-dir", file("${projectDir}/src/main/assets/modules").absolutePath,
-            "--module-apk", file("${rootDir}/module-store/feature/tools/vpn/build/outputs/apk/debug/vpn-debug.apk").absolutePath
+            "--channel", uploadChannel
     ]
     if (shouldUploadDryRun) {
         args.add("--dry-run")
@@ -799,7 +897,7 @@ task uploadReleaseArtifactsToVps(type: Exec) {
 task uploadApkToGitHubRelease {
     group = "publishing"
     description = "Upload APK to GitHub Releases (only for stable channel)"
-    dependsOn generateVersionJson
+    dependsOn generateVersionJson, validateReleaseNotes, validateReleaseApk
     doLast {
         if (currentVersionChannel != "stable") {
             println "Skipping GitHub Release upload: only stable channel triggers release"
@@ -814,16 +912,15 @@ task uploadApkToGitHubRelease {
         if (!apkFile.exists()) {
             throw new GradleException("APK file not found: ${apkFile.absolutePath}")
         }
-        def changelogSource = changelogFile.exists() ? changelogFile : legacyChangelogFile
-
         def args = [
                 uploadPythonExecutable,
-                file("${rootDir}/工具/upload_to_github_release.py").absolutePath,
+                file("${rootDir}/tools/upload_to_github_release.py").absolutePath,
                 "--apk", apkFile.absolutePath,
                 "--version-name", currentVersionName,
-                "--changelog-file", changelogSource.absolutePath
+                "--version-code", android.defaultConfig.versionCode.toString(),
+                "--changelog-file", releaseNotesFile.absolutePath
         ]
-        println "Uploading APK to GitHub Releases: v${currentVersionName}"
+        println "Uploading APK to GitHub Releases: v${currentVersionName}-vc${android.defaultConfig.versionCode}"
         def process = args.execute()
         process.waitFor()
         if (process.exitValue() != 0) {
@@ -840,8 +937,11 @@ task uploadApkToGitHubRelease {
 // AI / maintainer command guide:
 // - Normal local compile only: .\gradlew.bat :app:assembleDebug
 // - Build and publish beta to VPS only (internal build): .\gradlew.bat :app:buildAndUploadDebugToVps
-// - Publish official release (uploads to VPS + GitHub Releases):
-//   .\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
+// - Validate an official ARM64 release locally:
+//   .\gradlew.bat :app:validateReleaseApk -PupdateChannel=stable
+//       -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64
+// - Publish official release (uploads to VPS + GitHub Releases): use the same
+//   production flags with :app:buildAndUploadToVpsAndGitHub.
 // - Do not change versionName for routine beta uploads; versionCode bumps automatically.
 //
 // 双版本分发说明：
@@ -851,7 +951,7 @@ task uploadApkToGitHubRelease {
 task uploadReleaseToVps {
     group = "publishing"
     description = "Build release APK, generate version.json, and upload both files to the update VPS"
-    dependsOn 'assembleRelease'
+    dependsOn 'validateReleaseApk'
     finalizedBy 'uploadReleaseArtifactsToVps'
 }
 
@@ -864,7 +964,7 @@ task buildAndUploadReleaseToVps {
 task buildAndUploadToVpsAndGitHub {
     group = "publishing"
     description = "Build, upload to VPS and GitHub Releases (stable channel only)"
-    dependsOn 'assembleRelease'
+    dependsOn 'validateReleaseApk'
     doLast {
         if (currentVersionChannel != "stable") {
             println "Warning: This task is intended for stable releases. Current channel: ${currentVersionChannel}"
@@ -974,8 +1074,8 @@ task bundlePreinstalledModules() {
                         .collect { String.format('%02x', it) }
                         .join('')
                 def updatedBlock = moduleBlock
-                        .replaceFirst(/"fileSize"\s*:\s*\d+/, "\"fileSize\": ${srcApk.length()}")
-                        .replaceFirst(/"sha256"\s*:\s*"[^"]*"/, "\"sha256\": \"${moduleSha256}\"")
+                        .replaceAll(/"fileSize"\s*:\s*\d+/, "\"fileSize\": ${srcApk.length()}")
+                        .replaceAll(/"sha256"\s*:\s*"[^"]*"/, "\"sha256\": \"${moduleSha256}\"")
                 if (updatedBlock != moduleBlock) {
                     manifestFile.setText(manifestText.replace(moduleBlock, updatedBlock), 'UTF-8')
                 }

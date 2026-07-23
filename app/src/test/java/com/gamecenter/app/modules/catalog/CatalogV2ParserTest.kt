@@ -24,6 +24,13 @@ class CatalogV2ParserTest {
     }
 
     @Test
+    fun `keeps a signature validated remote cache online`() {
+        val catalog = CatalogV2Parser.parse(formalCatalog(), "signed_cache")
+
+        assertFalse(catalog.offline)
+    }
+
+    @Test
     fun `rejects insecure package URL`() {
         val raw = formalCatalog().replace("https://example.test/tool.zip", "http://example.test/tool.zip")
 

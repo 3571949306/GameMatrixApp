@@ -3,7 +3,7 @@
 
 # GameMatrixApp 全局文档索引
 
-项目全部文档的中枢链接。最后更新：2026-07-21。所有文档均已加入 Flutter-first 状态或历史快照提示；Flutter 化的权威事实以本页列出的 `docs/flutter-store/` 文档集为准。
+项目全部文档的中枢链接。最后更新：2026-07-23。所有文档均已加入 Flutter-first 状态或历史快照提示；Flutter 化的权威事实以本页列出的 `docs/flutter-store/` 文档集为准。
 
 ## docs/flutter-store — Flutter-first 模块商店权威文档
 
@@ -23,7 +23,8 @@
 | 文档 | 描述 |
 |---|---|
 | [README.md](/README.md) | 项目总览、功能介绍 |
-| [CHANGELOG.md](/CHANGELOG.md) | 版本更新日志 |
+| [RELEASE_NOTES.md](/RELEASE_NOTES.md) | 当前版本面向用户的简短更新公告 |
+| [CHANGELOG.md](/CHANGELOG.md) | 完整开发历史，不直接作为 Release 公告 |
 | [CODE_WIKI.md](/CODE_WIKI.md) | 详细代码架构说明 |
 | [CLOUD-BUILD.md](/CLOUD-BUILD.md) | 云编译 & VPS 部署指南 |
 | [修改记录.md](/修改记录.md) | 24 轮修复循环的完整变更历史 |
@@ -41,7 +42,7 @@
 | [项目改进建议书.md](/docs/项目改进建议书.md) | 项目改进建议书 v7 |
 | [game_center_app_ai_roadmap.md](/docs/game_center_app_ai_roadmap.md) | AI 开发路线图 |
 | [DONT_DO_THIS.md](/docs/DONT_DO_THIS.md) | 写给 AI / 协作者：不要做 |
-| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（74 个，包含默认关闭的 Flutter 商店开关），含用途、引入版本、退役计划与治理规则 |
+| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（88 个，含默认关闭的 Flutter 商店/区块渲染器/动态游戏大厅开关），含用途、引入版本、退役计划与治理规则 |
 | [PUBLISH_GUIDE.md](/docs/PUBLISH_GUIDE.md) | 发布指南 |
 | [SECURITY.md](/docs/SECURITY.md) | 安全策略 |
 | [NETWORK_LAYER.md](/docs/NETWORK_LAYER.md) | 网络层架构 |
