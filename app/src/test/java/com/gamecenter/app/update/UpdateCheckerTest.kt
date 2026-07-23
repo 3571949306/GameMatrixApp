@@ -6,12 +6,18 @@ import org.junit.Test
 class UpdateCheckerTest {
 
     @Test
-    fun `extracts version code from published GitHub tag`() {
-        assertEquals(598, UpdateChecker.parseGitHubVersionCode("v1.4.1-vc598"))
+    fun `uses a version metadata asset for the GitHub fallback`() {
+        assertEquals(
+            "https://github.com/3571949306/GameMatrixApp/releases/latest/download/version.json",
+            UpdateChecker.GITHUB_VERSION_JSON_URL
+        )
     }
 
     @Test
-    fun `rejects GitHub tag without internal version code`() {
-        assertEquals(0, UpdateChecker.parseGitHubVersionCode("v1.4.1"))
+    fun `does not append a second suffix to a metadata URL`() {
+        assertEquals(
+            UpdateChecker.GITHUB_VERSION_JSON_URL,
+            UpdateChecker().buildVersionJsonUrl(UpdateChecker.GITHUB_VERSION_JSON_URL, false)
+        )
     }
 }
