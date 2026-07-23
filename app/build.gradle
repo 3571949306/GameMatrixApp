@@ -916,6 +916,7 @@ task uploadApkToGitHubRelease {
                 uploadPythonExecutable,
                 file("${rootDir}/tools/upload_to_github_release.py").absolutePath,
                 "--apk", apkFile.absolutePath,
+                "--metadata", file("${buildDir}/outputs/apk/release/version.json").absolutePath,
                 "--version-name", currentVersionName,
                 "--version-code", android.defaultConfig.versionCode.toString(),
                 "--changelog-file", releaseNotesFile.absolutePath
