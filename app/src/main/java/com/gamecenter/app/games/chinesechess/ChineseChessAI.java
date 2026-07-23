@@ -14,7 +14,9 @@ import java.util.Random;
  *
  * <p>基于 Minimax + Alpha-Beta 剪枝算法实现 AI 决策，并叠加以下增强以提升棋力与正确性：
  * <ul>
- *   <li>4 个难度级别对应搜索深度 2/4/6/8；</li>
+ *   <li>5 个难度级别对应搜索深度 1/2/3/4/6；</li>
+ *   <li>随机性机制：根据难度级别选择评分差异阈值内的候选走法，增加对局多样性；</li>
+ *   <li>开局库：前几步使用预设走法，避免开局走法固定；</li>
  *   <li>静态搜索（Quiescence Search）：仅在搜索边界对吃子序列继续展开，消除"地平线效应"
  *       （避免 AI 在搜索末端吃掉大子却看不见随后被反吃）；</li>
  *   <li>将军延伸（Check Extension）：被将军时额外展开一层，提升战术与杀棋识别；</li>
@@ -51,7 +53,18 @@ public class ChineseChessAI implements GameAI {
     };
 
     /** 难度配置（搜索深度） */
-    private static final int[] SEARCH_DEPTHS = {2, 4, 6, 8};
+    private static final int[] SEARCH_DEPTHS = {1, 2, 3, 4, 6};
+
+    /** 开局库走法 */
+    private static final int[][] OPENING_MOVES = {
+        {9, 4, 7, 4},  // 炮二平五
+        {9, 2, 7, 2},  // 炮二平三
+        {9, 6, 7, 6},  // 炮八平五
+        {9, 1, 7, 1},  // 马二进三
+        {9, 7, 7, 7},  // 马八进七
+        {6, 0, 5, 0},  // 兵七进一
+        {6, 8, 5, 8},  // 兵三进一
+    };
 
     /** 将死分数（远大于最大子力评估，确保对将死给予最高优先级） */
     private static final int MATE_SCORE = 1_000_000;
@@ -75,10 +88,10 @@ public class ChineseChessAI implements GameAI {
     /**
      * 创建 AI 实例
      *
-     * @param difficulty 难度等级（1-4）
+     * @param difficulty 难度等级（1-5）
      */
     public ChineseChessAI(int difficulty) {
-        this.difficulty = Math.max(1, Math.min(4, difficulty));
+        this.difficulty = Math.max(1, Math.min(5, difficulty));
         this.searchDepth = SEARCH_DEPTHS[this.difficulty - 1];
     }
 
@@ -107,7 +120,11 @@ public class ChineseChessAI implements GameAI {
     @Nullable
     public int[] getBestMove(@NonNull int[][] boardState, int difficulty, int aiSide) {
         cancelled = false;
-        int depth = Math.max(2, Math.min(8, SEARCH_DEPTHS[Math.max(0, Math.min(difficulty - 1, 3))]));
+        int depth = Math.max(1, Math.min(6, SEARCH_DEPTHS[Math.max(0, Math.min(difficulty - 1, 4))]));
+
+        // 尝试开局库
+        int[] openingMove = getOpeningMove(boardState, aiSide);
+        if (openingMove != null) return openingMove;
 
         // 生成 AI 方的合法走法（过滤送将/白脸将的着法）
         List<int[]> moves = generateLegalMoves(boardState, aiSide);
@@ -120,8 +137,8 @@ public class ChineseChessAI implements GameAI {
         // 注意符号约定：minimax 返回的是"红方视角"评分（越大对红方越有利）。
         // AI 执红时最大化该评分，执黑时最小化。
         boolean maximize = (aiSide == 1);
-        int bestScore = maximize ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-        List<int[]> bestMoves = new ArrayList<>();
+        List<int[]> allMoves = new ArrayList<>();
+        List<Integer> allScores = new ArrayList<>();
 
         for (int[] move : moves) {
             if (cancelled) break;
@@ -134,29 +151,100 @@ public class ChineseChessAI implements GameAI {
             // Minimax 搜索（根走子后轮到对方，isMax = !maximize）
             int score = minimax(newBoard, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, !maximize, 1);
 
-            if (maximize) {
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMoves.clear();
-                    bestMoves.add(move);
-                } else if (score == bestScore) {
-                    bestMoves.add(move);
-                }
-            } else {
-                if (score < bestScore) {
-                    bestScore = score;
-                    bestMoves.clear();
-                    bestMoves.add(move);
-                } else if (score == bestScore) {
-                    bestMoves.add(move);
-                }
-            }
+            allMoves.add(move);
+            allScores.add(maximize ? score : -score);
         }
 
         thinking = false;
-        if (bestMoves.isEmpty()) return null;
-        // 从最佳走法中随机选择一个，增加对局多样性
-        return bestMoves.get(random.nextInt(bestMoves.size()));
+        if (allMoves.isEmpty()) return null;
+        // 使用随机选择策略，根据难度级别选择候选走法
+        return selectMoveWithRandomness(allMoves, allScores, difficulty);
+    }
+
+    /**
+     * 根据难度选择候选走法：收集所有走法和评分，然后根据难度阈值随机选择
+     */
+    private int[] selectMoveWithRandomness(List<int[]> moves, List<Integer> scores, int difficulty) {
+        int bestScore = scores.stream().max(Integer::compareTo).orElse(0);
+        int threshold = getThresholdForDifficulty(difficulty);
+
+        List<int[]> candidates = new ArrayList<>();
+        for (int i = 0; i < moves.size(); i++) {
+            if (Math.abs(scores.get(i) - bestScore) <= threshold) {
+                candidates.add(moves.get(i));
+            }
+        }
+        return candidates.get(random.nextInt(candidates.size()));
+    }
+
+    /**
+     * 根据难度级别返回评分差异阈值
+     */
+    private int getThresholdForDifficulty(int difficulty) {
+        switch (difficulty) {
+            case 1: return 200;  // 入门
+            case 2: return 100;  // 初级
+            case 3: return 50;   // 中级
+            case 4: return 20;   // 高级
+            case 5: return 0;    // 大师
+            default: return 50;
+        }
+    }
+
+    /**
+     * 获取开局走法
+     */
+    private int[] getOpeningMove(int[][] board, int aiSide) {
+        if (!isOpeningPosition(board)) return null;
+        return OPENING_MOVES[random.nextInt(OPENING_MOVES.length)];
+    }
+
+    /**
+     * 判断是否为开局位置
+     */
+    private boolean isOpeningPosition(int[][] board) {
+        int moveCount = 0;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                if (board[r][c] != getInitialPiece(r, c)) moveCount++;
+            }
+        }
+        return moveCount <= 4; // 前4步内
+    }
+
+    /**
+     * 获取初始棋盘位置的棋子
+     */
+    private int getInitialPiece(int row, int col) {
+        // 黑方（上方）
+        if (row == 0) {
+            if (col == 0 || col == 8) return -5; // 车
+            if (col == 1 || col == 7) return -4; // 马
+            if (col == 2 || col == 6) return -3; // 相
+            if (col == 3 || col == 5) return -2; // 仕
+            if (col == 4) return -1; // 将
+        }
+        if (row == 2) {
+            if (col == 1 || col == 7) return -6; // 炮
+        }
+        if (row == 3) {
+            if (col == 0 || col == 2 || col == 4 || col == 6 || col == 8) return -7; // 卒
+        }
+        // 红方（下方）
+        if (row == 9) {
+            if (col == 0 || col == 8) return 5; // 车
+            if (col == 1 || col == 7) return 4; // 马
+            if (col == 2 || col == 6) return 3; // 相
+            if (col == 3 || col == 5) return 2; // 仕
+            if (col == 4) return 1; // 帅
+        }
+        if (row == 7) {
+            if (col == 1 || col == 7) return 6; // 炮
+        }
+        if (row == 6) {
+            if (col == 0 || col == 2 || col == 4 || col == 6 || col == 8) return 7; // 兵
+        }
+        return 0;
     }
 
     /**

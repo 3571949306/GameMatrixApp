@@ -83,6 +83,13 @@ public class ChineseChessView extends View {
     /** 当前提示走法 [fromR, fromC, toR, toC] */
     private int[] hintMove;
 
+    /** 增强提示：起点位置 */
+    private int hintFromRow = -1, hintFromCol = -1;
+    /** 增强提示：终点位置 */
+    private int hintToRow = -1, hintToCol = -1;
+    /** 增强提示：是否激活 */
+    private boolean enhancedHintActive = false;
+
     /** 游戏是否结束 */
     private boolean gameOver = false;
 
@@ -168,6 +175,19 @@ public class ChineseChessView extends View {
      */
     public void setAiThinking(boolean thinking) {
         this.aiThinking = thinking;
+        invalidate();
+    }
+
+    /**
+     * 设置选中棋子位置（供外部调用，如提示执行）。
+     *
+     * @param row 行号（0-9）
+     * @param col 列号（0-8）
+     */
+    public void setSelected(int row, int col) {
+        this.selectedRow = row;
+        this.selectedCol = col;
+        computeValidMoves();
         invalidate();
     }
     
@@ -532,24 +552,93 @@ public class ChineseChessView extends View {
             paintAiThinking.setFakeBoldText(false);
         }
 
-        // 绘制提示路径
-        if (hintMove != null && hintMove.length == 4) {
-            Paint paintHint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            paintHint.setColor(Color.argb(180, 76, 175, 80)); // 绿色透明
-            paintHint.setStyle(Paint.Style.STROKE);
-            paintHint.setStrokeWidth(cellSize * 0.1f);
-            
+        // 绘制增强提示（起点绿色高亮 + 终点蓝色高亮 + 箭头）
+        if (enhancedHintActive && hintFromRow >= 0 && hintFromCol >= 0 && hintToRow >= 0 && hintToCol >= 0) {
+            float fromX = offsetX + hintFromCol * cellSize;
+            float fromY = offsetY + hintFromRow * cellSize;
+            float toX = offsetX + hintToCol * cellSize;
+            float toY = offsetY + hintToRow * cellSize;
+
+            // 起点：绿色半透明圆圈
+            Paint paintFromHighlight = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paintFromHighlight.setColor(Color.argb(120, 76, 175, 80));
+            paintFromHighlight.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(fromX, fromY, cellSize * 0.48f, paintFromHighlight);
+            // 起点：绿色描边
+            paintFromHighlight.setColor(Color.argb(200, 76, 175, 80));
+            paintFromHighlight.setStyle(Paint.Style.STROKE);
+            paintFromHighlight.setStrokeWidth(cellSize * 0.06f);
+            canvas.drawCircle(fromX, fromY, cellSize * 0.48f, paintFromHighlight);
+
+            // 终点：蓝色半透明圆圈
+            Paint paintToHighlight = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paintToHighlight.setColor(Color.argb(120, 33, 150, 243));
+            paintToHighlight.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(toX, toY, cellSize * 0.48f, paintToHighlight);
+            // 终点：蓝色描边
+            paintToHighlight.setColor(Color.argb(200, 33, 150, 243));
+            paintToHighlight.setStyle(Paint.Style.STROKE);
+            paintToHighlight.setStrokeWidth(cellSize * 0.06f);
+            canvas.drawCircle(toX, toY, cellSize * 0.48f, paintToHighlight);
+
+            // 箭头：从起点到终点
+            Paint paintArrow = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paintArrow.setColor(Color.argb(220, 76, 175, 80));
+            paintArrow.setStyle(Paint.Style.STROKE);
+            paintArrow.setStrokeWidth(cellSize * 0.08f);
+            paintArrow.setStrokeCap(Paint.Cap.ROUND);
+
+            // 计算箭头方向
+            float dx = toX - fromX;
+            float dy = toY - fromY;
+            float length = (float) Math.sqrt(dx * dx + dy * dy);
+            if (length > 0) {
+                float unitX = dx / length;
+                float unitY = dy / length;
+
+                // 箭头起点偏移（避免与起点圆圈重叠）
+                float arrowStartX = fromX + unitX * cellSize * 0.5f;
+                float arrowStartY = fromY + unitY * cellSize * 0.5f;
+                // 箭头终点偏移（避免与终点圆圈重叠）
+                float arrowEndX = toX - unitX * cellSize * 0.5f;
+                float arrowEndY = toY - unitY * cellSize * 0.5f;
+
+                // 绘制箭头线
+                canvas.drawLine(arrowStartX, arrowStartY, arrowEndX, arrowEndY, paintArrow);
+
+                // 绘制箭头头部（V形）
+                float arrowHeadSize = cellSize * 0.18f;
+                float perpX = -unitY * arrowHeadSize;
+                float perpY = unitX * arrowHeadSize;
+                Paint paintArrowHead = new Paint(Paint.ANTI_ALIAS_FLAG);
+                paintArrowHead.setColor(Color.argb(220, 76, 175, 80));
+                paintArrowHead.setStyle(Paint.Style.FILL);
+                canvas.drawLine(arrowEndX, arrowEndY,
+                        arrowEndX - unitX * arrowHeadSize * 1.5f + perpX,
+                        arrowEndY - unitY * arrowHeadSize * 1.5f + perpY, paintArrow);
+                canvas.drawLine(arrowEndX, arrowEndY,
+                        arrowEndX - unitX * arrowHeadSize * 1.5f - perpX,
+                        arrowEndY - unitY * arrowHeadSize * 1.5f - perpY, paintArrow);
+            }
+        }
+        // 兼容旧版提示路径
+        else if (hintMove != null && hintMove.length == 4) {
+            Paint paintHintLegacy = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paintHintLegacy.setColor(Color.argb(180, 76, 175, 80)); // 绿色透明
+            paintHintLegacy.setStyle(Paint.Style.STROKE);
+            paintHintLegacy.setStrokeWidth(cellSize * 0.1f);
+
             float startX = offsetX + hintMove[1] * cellSize;
             float startY = offsetY + hintMove[0] * cellSize;
             float endX = offsetX + hintMove[3] * cellSize;
             float endY = offsetY + hintMove[2] * cellSize;
-            
-            canvas.drawLine(startX, startY, endX, endY, paintHint);
-            
+
+            canvas.drawLine(startX, startY, endX, endY, paintHintLegacy);
+
             // 终点画个圆环
-            paintHint.setStyle(Paint.Style.STROKE);
-            paintHint.setStrokeWidth(cellSize * 0.08f);
-            canvas.drawCircle(endX, endY, cellSize * 0.4f, paintHint);
+            paintHintLegacy.setStyle(Paint.Style.STROKE);
+            paintHintLegacy.setStrokeWidth(cellSize * 0.08f);
+            canvas.drawCircle(endX, endY, cellSize * 0.4f, paintHintLegacy);
         }
     }
 
@@ -1099,6 +1188,17 @@ public class ChineseChessView extends View {
     }
 
     /**
+     * 获取最后一步走法坐标。
+     * @return [fromRow, fromCol, toRow, toCol]，无走法时返回 null
+     */
+    @Nullable
+    public int[] getLastMove() {
+        if (moveHistory.isEmpty()) return null;
+        int[] last = moveHistory.get(moveHistory.size() - 1);
+        return new int[]{last[0], last[1], last[2], last[3]};
+    }
+
+    /**
      * 格式化一步走法为中文棋谱。
      * 规则：棋子名 + 起始位置编号 + 动作（前/平/后）+ 目标位置编号
      * 红方从右到左（己方视角），黑方从左到右（己方视角）。
@@ -1334,4 +1434,60 @@ public class ChineseChessView extends View {
         this.hintMove = move;
         invalidate();
     }
+
+    /**
+     * 设置增强提示：高亮起点（绿色）和终点（蓝色），绘制箭头。
+     *
+     * @param move [fromR, fromC, toR, toC]
+     */
+    public void setEnhancedHint(int[] move) {
+        if (move != null && move.length >= 4) {
+            this.hintFromRow = move[0];
+            this.hintFromCol = move[1];
+            this.hintToRow = move[2];
+            this.hintToCol = move[3];
+            this.enhancedHintActive = true;
+        }
+        invalidate();
+    }
+
+    /**
+     * 清除增强提示
+     */
+    public void clearEnhancedHint() {
+        this.enhancedHintActive = false;
+        this.hintFromRow = -1;
+        this.hintFromCol = -1;
+        this.hintToRow = -1;
+        this.hintToCol = -1;
+        this.hintMove = null;
+        invalidate();
+    }
+
+    /**
+     * 获取棋盘的 cellSize 和偏移量（供外部绘制使用）
+     *
+     * @return [cellSize, offsetX, offsetY]，如果视图未初始化则返回 null
+     */
+    @Nullable
+    public float[] getBoardMetrics() {
+        int w = getWidth(), h = getHeight();
+        if (w <= 0 || h <= 0) return null;
+        float cellW = (float) w / (COLS + 1);
+        float cellH = (float) h / (ROWS + 1);
+        float cellSize = Math.min(cellW, cellH);
+        float offsetX = (w - cellSize * (COLS - 1)) / 2f;
+        float offsetY = (h - cellSize * (ROWS - 1)) / 2f;
+        return new float[]{cellSize, offsetX, offsetY};
+    }
+
+    /**
+     * 获取棋盘常量 COLS
+     */
+    public int getCols() { return COLS; }
+
+    /**
+     * 获取棋盘常量 ROWS
+     */
+    public int getRows() { return ROWS; }
 }

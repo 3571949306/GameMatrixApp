@@ -32,6 +32,13 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.gamecenter.app.games.chinesechess.GameReviewAnalyzer;
+import com.gamecenter.app.games.chinesechess.HintTutorialManager;
+import com.gamecenter.app.games.chinesechess.GameRecorder;
+import com.gamecenter.app.games.chinesechess.GameRecord;
+import com.gamecenter.app.games.chinesechess.ReviewResult;
+import com.gamecenter.app.games.chinesechess.TutorialStep;
+
 /**
  * 中国象棋游戏 Activity（v3.0 UI 升级版，2026-06-23）。
  *
@@ -113,6 +120,28 @@ public class ChineseChessActivity extends BaseGameActivity {
     private ChineseChessAI masterAi;
     private int aiDifficulty = 2;
 
+    // ==================== 提示限制器 ====================
+
+    private HintLimiter hintLimiter;
+
+    // ==================== 对局记录 ====================
+    private GameRecorder gameRecorder;
+
+    // ==================== 异步提示计算器 ====================
+
+    private HintAsyncCalculator hintAsyncCalculator;
+    private HintCache hintCache;
+    private View btnHint;
+    private volatile boolean hintCalculating = false;
+
+    // ==================== 提示视觉反馈 ====================
+
+    private HintVisualManager hintVisualManager;
+
+    // ==================== 复盘和引导 ====================
+    private GameReviewAnalyzer reviewAnalyzer;
+    private HintTutorialManager tutorialManager;
+
     // ==================== 线程管理 ====================
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -184,19 +213,46 @@ public class ChineseChessActivity extends BaseGameActivity {
         masterAi = new ChineseChessAI(4); // 大师级提示专用
         aiExecutor = Executors.newSingleThreadExecutor();
 
+        // 初始化复盘分析器
+        try {
+            reviewAnalyzer = new GameReviewAnalyzer(aiDifficulty);
+        } catch (Exception e) {
+            Log.w(TAG, "GameReviewAnalyzer初始化失败", e);
+        }
+
+        // 初始化新手引导
+        tutorialManager = new HintTutorialManager(this);
+
         chessView.setOnPlayerMoveListener(this::handlePlayerMove);
         chessView.setOnGameOverListener(this::handleGameOver);
         chessView.setOnMoveSoundListener(this::playMoveSound);
 
+        // 初始化提示视觉反馈管理器
+        hintVisualManager = new HintVisualManager(chessView);
+        hintVisualManager.setOnHintExecuteListener(this::handleHintExecute);
+        hintVisualManager.setOnHintCancelListener(this::handleHintCancel);
+
+        // 初始化异步提示计算器
+        hintCache = new HintCache();
+        hintAsyncCalculator = new HintAsyncCalculator(hintCache, aiExecutor);
+
+        // 初始化对局记录
+        try {
+            gameRecorder = new GameRecorder(this);
+        } catch (Exception e) {
+            Log.w(TAG, "GameRecorder初始化失败", e);
+        }
+
         initSoundPool();
         registerPredictiveBack();
 
+        btnHint = findViewById(R.id.btn_hint);
         findViewById(R.id.btn_start_game).setOnClickListener(v -> startGame());
         findViewById(R.id.btn_undo).setOnClickListener(v -> handleUndo());
         findViewById(R.id.btn_restart).setOnClickListener(v -> handleRestart());
         findViewById(R.id.btn_resign).setOnClickListener(v -> handleResign());
         findViewById(R.id.btn_draw).setOnClickListener(v -> handleOfferDraw());
-        findViewById(R.id.btn_hint).setOnClickListener(v -> handleHint());
+        btnHint.setOnClickListener(v -> handleHint());
 
         updateTimerDisplay(1);
         updateTimerDisplay(2);
@@ -257,14 +313,38 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     @Override
     protected void startGame() {
+        // 检查是否需要显示新手引导
+        if (tutorialManager != null && tutorialManager.shouldShowTutorial()) {
+            showTutorial();
+            return; // 引导完成后才能开始游戏
+        }
+        
         if (selectedDifficultyIndex < 0) {
             Toast.makeText(this, R.string.chinese_chess_select_difficulty, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        aiDifficulty = selectedDifficultyIndex + 1;
+        // 4个按钮映射到5级难度：1→1, 2→2, 3→3, 4→5（跳过4级，直接大师）
+        int[] difficultyMapping = {1, 2, 3, 5};
+        aiDifficulty = difficultyMapping[selectedDifficultyIndex];
         ai = new ChineseChessAI(aiDifficulty);
         currentDifficultyIndex = selectedDifficultyIndex;
+
+        // 开始录制对局
+        if (gameRecorder != null) {
+            try {
+                gameRecorder.startRecording(aiDifficulty);
+            } catch (Exception e) {
+                Log.w(TAG, "开始录制失败", e);
+            }
+        }
+
+        // 初始化提示限制器
+        if (hintLimiter == null) {
+            hintLimiter = new HintLimiter(this);
+        } else {
+            hintLimiter.resetGameHints();
+        }
 
         // 切换视图
         difficultyPanel.setVisibility(View.GONE);
@@ -285,6 +365,13 @@ public class ChineseChessActivity extends BaseGameActivity {
         isGamePaused = false;
         gameStartTime = System.currentTimeMillis();
         chessView.startNewGame();
+        if (hintVisualManager != null) {
+            hintVisualManager.clearHint();
+        }
+        // 清除提示缓存（新对局）
+        if (hintCache != null) {
+            hintCache.clear();
+        }
 
         updateTimerDisplay(1);
         updateTimerDisplay(2);
@@ -299,6 +386,14 @@ public class ChineseChessActivity extends BaseGameActivity {
         aiThinking = false;
         chessView.setAiThinking(false);
         mainHandler.removeCallbacks(timerRunnable);
+        if (hintVisualManager != null) {
+            hintVisualManager.clearHint();
+        }
+        // 取消进行中的提示计算
+        if (hintAsyncCalculator != null) {
+            hintAsyncCalculator.cancelCalculation();
+        }
+        hintCalculating = false;
     }
 
     @Override
@@ -381,6 +476,24 @@ public class ChineseChessActivity extends BaseGameActivity {
     private void handlePlayerMove() {
         if (!isGameRunning() || isGamePaused()) return;
         if (chessView.isGameOver()) return;
+
+        // 重置当前步的提示次数
+        if (hintLimiter != null) {
+            hintLimiter.resetMoveHints();
+        }
+
+        // 记录走法
+        if (gameRecorder != null) {
+            try {
+                int[] lastMove = chessView.getLastMove();
+                if (lastMove != null) {
+                    int score = ai != null ? evaluateCurrentBoard() : 0;
+                    gameRecorder.recordMove(lastMove, score);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "记录走法失败", e);
+            }
+        }
 
         // 走法历史更新
         appendMoveHistory();
@@ -523,6 +636,17 @@ public class ChineseChessActivity extends BaseGameActivity {
     // ==================== 游戏结束 ====================
 
     private void handleGameOver(int winner) {
+        // 结束录制对局
+        if (gameRecorder != null) {
+            try {
+                GameResult result = (winner == 1) ? GameResult.WIN :
+                                   (winner == 2) ? GameResult.LOSE : GameResult.DRAW;
+                gameRecorder.endRecording(result);
+            } catch (Exception e) {
+                Log.w(TAG, "结束录制失败", e);
+            }
+        }
+
         mainHandler.removeCallbacks(timerRunnable);
         isGameRunning = false;
         aiThinking = false;
@@ -538,7 +662,20 @@ public class ChineseChessActivity extends BaseGameActivity {
             usageStore.recordLoss(GAME_ID_VALUE);
             checkAchievement("loss");
         }
+
         showGameOverDialog(winner);
+        
+        // 显示复盘提示
+        if (reviewAnalyzer != null && gameRecorder != null) {
+            try {
+                GameRecord record = gameRecorder.getCurrentRecord();
+                if (record != null && record.getMoves().size() > 0) {
+                    showReviewOption(record);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "复盘分析失败", e);
+            }
+        }
     }
 
     /**
@@ -627,6 +764,11 @@ public class ChineseChessActivity extends BaseGameActivity {
         updateTimerDisplay(2);
         mainHandler.removeCallbacks(timerRunnable);
         mainHandler.postDelayed(timerRunnable, 1000L);
+
+        // 重置提示限制器
+        if (hintLimiter != null) {
+            hintLimiter.resetGameHints();
+        }
     }
 
     /**
@@ -683,28 +825,306 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private void handleHint() {
         if (chessView.isGameOver() || aiThinking || chessView.getCurrentSide() != 1) return;
+        if (hintCalculating) return; // 防止重复点击
 
+        // 清除之前的提示
+        hintVisualManager.clearHint();
+
+        // 检查提示次数限制
+        if (!hintLimiter.canUseHint()) {
+            hintLimiter.useHint(); // 这会显示Toast提示
+            return;
+        }
+
+        // 使用提示
+        hintLimiter.useHint();
+
+        // 显示加载状态
+        hintCalculating = true;
         Toast.makeText(this, R.string.game_chinesechess_master_thinking, Toast.LENGTH_SHORT).show();
+
         final long currentGen = aiGeneration;
+        int[][] board = chessView.getBoardState();
 
-        aiExecutor.execute(() -> {
-            int[][] originalBoard = chessView.getBoardState();
-            // 使用大师级 AI 从红方视角计算最佳走法（难度4，aiSide=1）
-            int[] bestMove = masterAi.getBestMove(originalBoard, 4, 1);
-
-            final int[] finalBestMove = bestMove;
-            mainHandler.post(() -> {
+        hintAsyncCalculator.calculateHintAsync(board, 1, 4, new HintAsyncCalculator.HintCallback() {
+            @Override
+            public void onHintReady(HintResult result) {
+                hintCalculating = false;
                 if (currentGen != aiGeneration) return;
-                if (finalBestMove != null && finalBestMove.length >= 4) {
-                    // 显示走法箭头
-                    chessView.setHintMove(finalBestMove);
-
-                    // 将坐标转为象棋术语
-                    String notation = getNotation(originalBoard, finalBestMove, 1);
-                    Toast.makeText(ChineseChessActivity.this, getString(R.string.game_chinesechess_master_hint, notation), Toast.LENGTH_LONG).show();
+                if (result.getMove() != null && result.getMove().length >= 4) {
+                    // 使用 HintVisualManager 显示增强提示
+                    hintVisualManager.showHint(result.getMove(), result.getExplanation());
                 }
-            });
+                // 记录提示
+                if (gameRecorder != null && result != null) {
+                    try {
+                        gameRecorder.recordHint(result);
+                    } catch (Exception e) {
+                        Log.w(TAG, "记录提示失败", e);
+                    }
+                }
+            }
+
+            @Override
+            public void onHintError(String error) {
+                hintCalculating = false;
+                Toast.makeText(ChineseChessActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
         });
+    }
+
+    /**
+     * 处理提示执行：用户点击"执行走法"按钮后自动走棋。
+     */
+    private void handleHintExecute(int[] move) {
+        if (move == null || move.length < 4) return;
+        if (chessView.isGameOver() || aiThinking || chessView.getCurrentSide() != 1) return;
+
+        int fromR = move[0], fromC = move[1];
+        int toR = move[2], toC = move[3];
+
+        // 选中起始位置的棋子
+        chessView.setSelected(fromR, fromC);
+
+        // 模拟点击目标位置触发走棋
+        android.graphics.PointF targetPoint = getCellCenter(toR, toC);
+        if (targetPoint != null) {
+            android.view.MotionEvent downEvent = android.view.MotionEvent.obtain(
+                    0, 0, android.view.MotionEvent.ACTION_DOWN,
+                    targetPoint.x, targetPoint.y, 0);
+            chessView.dispatchTouchEvent(downEvent);
+            downEvent.recycle();
+        }
+
+        // 清除提示
+        hintVisualManager.clearHint();
+    }
+
+    /**
+     * 处理提示取消：用户点击"取消"按钮。
+     */
+    private void handleHintCancel() {
+        hintVisualManager.clearHint();
+    }
+
+    /**
+     * 获取指定单元格的中心像素坐标。
+     */
+    private android.graphics.PointF getCellCenter(int row, int col) {
+        float[] metrics = chessView.getBoardMetrics();
+        if (metrics == null) return null;
+        float cellSize = metrics[0];
+        float offsetX = metrics[1];
+        float offsetY = metrics[2];
+        float x = offsetX + col * cellSize;
+        float y = offsetY + row * cellSize;
+        return new android.graphics.PointF(x, y);
+    }
+
+    /**
+     * 设置棋盘选中位置（供提示执行使用）。
+     */
+    private void setSelected(int row, int col) {
+        // 通过反射或公开方法设置选中位置
+        // 由于 ChineseChessView 没有公开 setSelected 方法，
+        // 我们使用触摸事件模拟
+        android.graphics.PointF center = getCellCenter(row, col);
+        if (center != null) {
+            android.view.MotionEvent downEvent = android.view.MotionEvent.obtain(
+                    0, 0, android.view.MotionEvent.ACTION_DOWN,
+                    center.x, center.y, 0);
+            chessView.dispatchTouchEvent(downEvent);
+            downEvent.recycle();
+        }
+    }
+
+    /**
+     * 生成提示解释文本。
+     * 根据走法特征分析可能的战术意图。
+     */
+    private String generateHintExplanation(int[][] board, int[] move) {
+        if (move == null || move.length < 4) return "";
+
+        int fromR = move[0], fromC = move[1];
+        int toR = move[2], toC = move[3];
+
+        int piece = board[fromR][fromC];
+        int target = board[toR][toC];
+
+        if (piece == 0) return "";
+
+        boolean isRed = piece > 0;
+        int type = Math.abs(piece);
+        String pieceName = ChineseChessView.getPieceName(type, isRed);
+
+        StringBuilder sb = new StringBuilder();
+
+        // 检查是否吃子
+        if (target != 0) {
+            int targetType = Math.abs(target);
+            boolean targetIsRed = target > 0;
+            String targetName = ChineseChessView.getPieceName(targetType, targetIsRed);
+            sb.append("吃掉对方").append(targetName);
+        }
+
+        // 检查是否将军
+        int[][] testBoard = copyBoard(board);
+        testBoard[toR][toC] = testBoard[fromR][fromC];
+        testBoard[fromR][fromC] = 0;
+        int opponentSide = isRed ? 2 : 1;
+        if (isInCheckOnBoard(testBoard, opponentSide)) {
+            if (sb.length() > 0) sb.append("，");
+            sb.append("形成将军");
+        }
+
+        // 如果没有特殊效果，给出基本描述
+        if (sb.length() == 0) {
+            sb.append(pieceName).append("移动到目标位置");
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * 检查棋盘上指定方是否被将军。
+     */
+    private boolean isInCheckOnBoard(int[][] board, int side) {
+        // 查找将/帅位置
+        int target = (side == 1) ? 1 : -1; // KING = 1
+        int kingRow = -1, kingCol = -1;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                if (Math.abs(board[r][c]) == 1) {
+                    if ((side == 1 && board[r][c] > 0) || (side == 2 && board[r][c] < 0)) {
+                        kingRow = r;
+                        kingCol = c;
+                        break;
+                    }
+                }
+            }
+            if (kingRow >= 0) break;
+        }
+
+        if (kingRow < 0) return false;
+
+        // 检查对方棋子是否能攻击到将/帅
+        int attackerSide = (side == 1) ? -1 : 1;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                if (board[r][c] == 0) continue;
+                if ((attackerSide > 0 && board[r][c] > 0) || (attackerSide < 0 && board[r][c] < 0)) {
+                    // 简化的攻击检测
+                    if (canAttackSimple(board, r, c, kingRow, kingCol)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 简化的攻击检测（用于将军判断）。
+     */
+    private boolean canAttackSimple(int[][] board, int fromR, int fromC, int toR, int toC) {
+        int piece = board[fromR][fromC];
+        if (piece == 0) return false;
+
+        int type = Math.abs(piece);
+        int dr = toR - fromR;
+        int dc = toC - fromC;
+
+        switch (type) {
+            case 1: // 将/帅
+                return Math.abs(dr) + Math.abs(dc) == 1;
+            case 2: // 仕/士
+                return Math.abs(dr) == 1 && Math.abs(dc) == 1;
+            case 3: // 相/象
+                return Math.abs(dr) == 2 && Math.abs(dc) == 2;
+            case 4: // 马
+                return (Math.abs(dr) == 2 && Math.abs(dc) == 1) || (Math.abs(dr) == 1 && Math.abs(dc) == 2);
+            case 5: // 车
+                if (dr != 0 && dc != 0) return false;
+                return isPathClearSimple(board, fromR, fromC, toR, toC);
+            case 6: // 炮
+                if (dr != 0 && dc != 0) return false;
+                int count = countPiecesBetweenSimple(board, fromR, fromC, toR, toC);
+                return count == 1; // 吃子时必须隔一个
+            case 7: // 兵/卒
+                if (piece > 0) { // 红方
+                    if (fromR >= 5) return dr == -1 && dc == 0; // 未过河
+                    return (dr == -1 && dc == 0) || (dr == 0 && Math.abs(dc) == 1);
+                } else { // 黑方
+                    if (fromR <= 4) return dr == 1 && dc == 0;
+                    return (dr == 1 && dc == 0) || (dr == 0 && Math.abs(dc) == 1);
+                }
+        }
+        return false;
+    }
+
+    /**
+     * 简化的路径检测。
+     */
+    private boolean isPathClearSimple(int[][] board, int r1, int c1, int r2, int c2) {
+        if (r1 == r2) {
+            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+            for (int c = minC + 1; c < maxC; c++) {
+                if (board[r1][c] != 0) return false;
+            }
+        } else {
+            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+            for (int r = minR + 1; r < maxR; r++) {
+                if (board[r][c1] != 0) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 简化的棋子计数。
+     */
+    private int countPiecesBetweenSimple(int[][] board, int r1, int c1, int r2, int c2) {
+        int count = 0;
+        if (r1 == r2) {
+            int minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+            for (int c = minC + 1; c < maxC; c++) {
+                if (board[r1][c] != 0) count++;
+            }
+        } else {
+            int minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+            for (int r = minR + 1; r < maxR; r++) {
+                if (board[r][c1] != 0) count++;
+            }
+        }
+        return count;
+    }
+
+    private int evaluateCurrentBoard() {
+        if (ai == null) return 0;
+        int[][] board = chessView.getBoardState();
+        int score = 0;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                int piece = board[r][c];
+                if (piece == 0) continue;
+                int type = Math.abs(piece);
+                int[] values = {0, 10000, 200, 200, 400, 900, 450, 100};
+                score += (piece > 0 ? 1 : -1) * values[type];
+            }
+        }
+        return score;
+    }
+
+    /**
+     * 复制棋盘。
+     */
+    private int[][] copyBoard(int[][] src) {
+        int[][] copy = new int[10][9];
+        for (int r = 0; r < 10; r++) {
+            System.arraycopy(src[r], 0, copy[r], 0, 9);
+        }
+        return copy;
     }
 
     /**
@@ -850,6 +1270,94 @@ public class ChineseChessActivity extends BaseGameActivity {
         }
     }
 
+    private void showTutorial() {
+        if (tutorialManager == null) return;
+
+        tutorialManager.startTutorial(new HintTutorialManager.OnTutorialListener() {
+            @Override
+            public void onTutorialStep(int stepIndex, TutorialStep step) {
+                // 显示引导步骤
+                Log.d(TAG, "引导步骤: " + step.getTitle());
+                showTutorialStep(step);
+            }
+
+            @Override
+            public void onTutorialComplete() {
+                tutorialManager.markTutorialShown();
+                Toast.makeText(ChineseChessActivity.this,
+                    "引导完成！现在可以开始游戏了", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onTutorialSkip() {
+                tutorialManager.markTutorialShown();
+            }
+        });
+    }
+
+    private TutorialDialog tutorialDialog;
+
+    private void showTutorialStep(TutorialStep step) {
+        if (tutorialDialog == null) {
+            tutorialDialog = new TutorialDialog(this);
+        }
+        tutorialDialog.setStep(step);
+        tutorialDialog.setOnNextClickListener(v -> {
+            if (tutorialManager != null) {
+                tutorialManager.nextStep();
+            }
+        });
+        tutorialDialog.setOnSkipClickListener(v -> {
+            if (tutorialManager != null) {
+                tutorialManager.skipTutorial();
+            }
+        });
+        tutorialDialog.show();
+    }
+
+    private void showReviewOption(GameRecord record) {
+        new AlertDialog.Builder(this)
+            .setTitle("复盘分析")
+            .setMessage("是否要查看本局复盘分析？")
+            .setPositiveButton("查看", (dialog, which) -> {
+                performReview(record);
+            })
+            .setNegativeButton("跳过", null)
+            .show();
+    }
+
+    private void performReview(GameRecord record) {
+        if (reviewAnalyzer == null) return;
+        
+        // 在后台线程执行复盘
+        aiExecutor.execute(() -> {
+            try {
+                ReviewResult result = reviewAnalyzer.analyzeGame(record);
+                mainHandler.post(() -> showReviewResult(result));
+            } catch (Exception e) {
+                Log.e(TAG, "复盘分析失败", e);
+                mainHandler.post(() -> Toast.makeText(this, 
+                    "复盘分析失败", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void showReviewResult(ReviewResult result) {
+        String message = String.format(
+            "总步数: %d\n好棋: %d\n失误: %d\n\n%s",
+            result.totalMoves,
+            result.goodMoves,
+            result.mistakes,
+            result.summary
+        );
+        
+        new AlertDialog.Builder(this)
+            .setTitle("复盘报告")
+            .setMessage(message)
+            .setPositiveButton("确定", null)
+            .show();
+    }
+
     // ==================== 音效 ====================
 
     private void initSoundPool() {
@@ -899,6 +1407,16 @@ public class ChineseChessActivity extends BaseGameActivity {
             backInvokedCallback = null;
         }
         mainHandler.removeCallbacksAndMessages(null);
+        if (hintVisualManager != null) {
+            hintVisualManager.release();
+        }
+        // 释放异步提示计算器
+        if (hintAsyncCalculator != null) {
+            hintAsyncCalculator.cancelCalculation();
+        }
+        if (hintCache != null) {
+            hintCache.clear();
+        }
         super.onDestroy();
         if (aiExecutor != null) {
             aiExecutor.shutdownNow();

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_bg_rounded">
+
+    <TextView
+        android:id="@+id/tv_tutorial_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="第 1 步"
+        android:textSize="12sp"
+        android:textColor="#888888"
+        android:layout_gravity="center_horizontal" />
+
+    <TextView
+        android:id="@+id/tv_tutorial_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="引导标题"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tv_tutorial_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="引导描述内容"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:lineSpacingExtra="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="24dp"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/btn_tutorial_skip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="跳过"
+            android:textColor="#888888"
+            android:background="?attr/selectableItemBackground"
+            android:minWidth="80dp" />
+
+        <Button
+            android:id="@+id/btn_tutorial_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="下一步"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/btn_primary"
+            android:layout_marginStart="12dp"
+            android:minWidth="100dp" />
+    </LinearLayout>
+
+</LinearLayout>

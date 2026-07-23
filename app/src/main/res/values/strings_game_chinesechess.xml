@@ -57,4 +57,12 @@
 
     <!-- 走法记谱回退文案 -->
     <string name="game_chinesechess_suggested_move">建议走法</string>
+
+    <!-- AI 提示视觉反馈 -->
+    <string name="chinese_chess_hint_title">AI 提示</string>
+    <string name="chinese_chess_hint_move_label">推荐走法</string>
+    <string name="chinese_chess_hint_explanation_label">走法解释</string>
+    <string name="chinese_chess_hint_execute">执行走法</string>
+    <string name="chinese_chess_hint_cancel">取消</string>
+    <string name="chinese_chess_hint_suggested_move">建议走法</string>
 </resources>
