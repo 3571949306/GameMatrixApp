@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 模块商店主页（Batch 20/21: Hero Banner 轮播 + 三栏统计卡片+趋势 + 分类 tab 图标 + 详情入口） -->
 <!-- P2.4: 根容器 id=moduleStoreRootContainer 供 StoreSectionRendererRegistry.dispatchRender 使用 -->
+<!-- MODULE_STORE_PERF_OPT: 移除 NestedScrollView 包裹，让 RecyclerView 正常回收复用，避免一次性测量所有 item -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -23,432 +24,427 @@
         app:navigationIconTint="?attr/colorOnSurface"
         app:menu="@menu/module_store_menu" />
 
-    <!-- 主内容区：可滚动（Hero + 统计 + 搜索 + Tab + 列表） -->
-    <androidx.core.widget.NestedScrollView
+    <!-- ===== 固定头部区域（不随列表滚动，类似 Google Play Store 设计） ===== -->
+
+    <!-- Hero Banner 精选推荐轮播（Batch 21: ViewPager2 + 指示器） -->
+    <FrameLayout
+        android:id="@+id/heroBannerContainer"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true"
-        android:scrollbars="none">
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginEnd="@dimen/gm_spacing_3"
+        android:layout_marginTop="@dimen/gm_spacing_3"
+        android:visibility="gone">
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/heroViewPager"
+            android:layout_width="match_parent"
+            android:layout_height="180dp" />
+
+        <!-- 页面指示器 -->
+        <LinearLayout
+            android:id="@+id/heroIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="@dimen/gm_spacing_2"
+            android:orientation="horizontal"
+            android:gravity="center" />
+    </FrameLayout>
+
+    <!-- ===== 三栏统计卡片 ===== -->
+    <LinearLayout
+        android:id="@+id/statsBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/gm_spacing_3"
+        android:paddingVertical="@dimen/gm_spacing_2">
+
+        <!-- 总模块数 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="@dimen/gm_spacing_1"
+            android:background="@drawable/module_stat_card_total_bg"
+            android:orientation="vertical"
+            android:padding="@dimen/gm_spacing_3">
+
+            <TextView
+                android:id="@+id/statTotalCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="0" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/module_stat_total"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="10sp" />
+
+            <!-- Batch 21: 趋势子文本 -->
+            <TextView
+                android:id="@+id/statTotalTrend"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/module_stat_total_accent"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="↑ 全部" />
+        </LinearLayout>
+
+        <!-- 已安装 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="@dimen/gm_spacing_1"
+            android:background="@drawable/module_stat_card_installed_bg"
+            android:orientation="vertical"
+            android:padding="@dimen/gm_spacing_3">
+
+            <TextView
+                android:id="@+id/statInstalledCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/success"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="0" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/module_stat_installed"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="10sp" />
+
+            <!-- Batch 21: 百分比子文本 -->
+            <TextView
+                android:id="@+id/statInstalledTrend"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/module_stat_installed_accent"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="88% 已装" />
+        </LinearLayout>
+
+        <!-- 有更新 -->
+        <LinearLayout
+            android:id="@+id/statUpdateCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/module_stat_card_update_bg"
+            android:orientation="vertical"
+            android:padding="@dimen/gm_spacing_3">
+
+            <TextView
+                android:id="@+id/statUpdateCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/warning"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="0" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/module_stat_update"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="10sp" />
+
+            <!-- Batch 21: 待更新提示子文本 -->
+            <TextView
+                android:id="@+id/statUpdateTrend"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/module_stat_update_accent"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="→ 待更新" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 一键更新按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnUpdateAll"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginEnd="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
+        android:minHeight="@dimen/gm_touch_target"
+        android:paddingHorizontal="@dimen/gm_spacing_3"
+        android:text="@string/module_update_all"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <!-- ===== 统计文本（无障碍 live region） ===== -->
+    <TextView
+        android:id="@+id/tvModuleStats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/gm_spacing_3"
+        android:text="@string/module_refreshing"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="11sp"
+        android:accessibilityLiveRegion="polite"
+        android:visibility="gone" />
+
+    <!-- 搜索框 -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/moduleSearchLayout"
+        style="@style/Widget.GameMatrix.Search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:layout_marginEnd="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
+        android:hint="@string/module_search_hint"
+        app:endIconMode="clear_text"
+        app:startIconDrawable="@android:drawable/ic_menu_search">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etModuleSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textSize="14sp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Batch 21: 搜索历史 chip 容器（仅 MODULE_STORE_SEARCH_HISTORY 开启时显示） -->
+    <LinearLayout
+        android:id="@+id/searchHistoryContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginEnd="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <!-- ===== Hero Banner 精选推荐轮播（Batch 21: ViewPager2 + 指示器） ===== -->
-            <FrameLayout
-                android:id="@+id/heroBannerContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/gm_spacing_3"
-                android:layout_marginEnd="@dimen/gm_spacing_3"
-                android:layout_marginTop="@dimen/gm_spacing_3"
-                android:visibility="gone">
-
-                <androidx.viewpager2.widget.ViewPager2
-                    android:id="@+id/heroViewPager"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp" />
-
-                <!-- 页面指示器 -->
-                <LinearLayout
-                    android:id="@+id/heroIndicator"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|center_horizontal"
-                    android:layout_marginBottom="@dimen/gm_spacing_2"
-                    android:orientation="horizontal"
-                    android:gravity="center" />
-            </FrameLayout>
-
-            <!-- ===== 三栏统计卡片 ===== -->
-            <LinearLayout
-                android:id="@+id/statsBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingHorizontal="@dimen/gm_spacing_3"
-                android:paddingVertical="@dimen/gm_spacing_2">
-
-                <!-- 总模块数 -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="@dimen/gm_spacing_1"
-                    android:background="@drawable/module_stat_card_total_bg"
-                    android:orientation="vertical"
-                    android:padding="@dimen/gm_spacing_3">
-
-                    <TextView
-                        android:id="@+id/statTotalCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:text="0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/module_stat_total"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="10sp" />
-
-                    <!-- Batch 21: 趋势子文本 -->
-                    <TextView
-                        android:id="@+id/statTotalTrend"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textColor="@color/module_stat_total_accent"
-                        android:textSize="9sp"
-                        android:textStyle="bold"
-                        android:visibility="gone"
-                        tools:text="↑ 全部" />
-                </LinearLayout>
-
-                <!-- 已安装 -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="@dimen/gm_spacing_1"
-                    android:background="@drawable/module_stat_card_installed_bg"
-                    android:orientation="vertical"
-                    android:padding="@dimen/gm_spacing_3">
-
-                    <TextView
-                        android:id="@+id/statInstalledCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/success"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:text="0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/module_stat_installed"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="10sp" />
-
-                    <!-- Batch 21: 百分比子文本 -->
-                    <TextView
-                        android:id="@+id/statInstalledTrend"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textColor="@color/module_stat_installed_accent"
-                        android:textSize="9sp"
-                        android:textStyle="bold"
-                        android:visibility="gone"
-                        tools:text="88% 已装" />
-                </LinearLayout>
-
-                <!-- 有更新 -->
-                <LinearLayout
-                    android:id="@+id/statUpdateCard"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/module_stat_card_update_bg"
-                    android:orientation="vertical"
-                    android:padding="@dimen/gm_spacing_3">
-
-                    <TextView
-                        android:id="@+id/statUpdateCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/warning"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:text="0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/module_stat_update"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="10sp" />
-
-                    <!-- Batch 21: 待更新提示子文本 -->
-                    <TextView
-                        android:id="@+id/statUpdateTrend"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textColor="@color/module_stat_update_accent"
-                        android:textSize="9sp"
-                        android:textStyle="bold"
-                        android:visibility="gone"
-                        tools:text="→ 待更新" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 一键更新按钮 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUpdateAll"
-                style="@style/Widget.GameMatrix.Button.Tonal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/gm_spacing_3"
-                android:layout_marginEnd="@dimen/gm_spacing_3"
-                android:layout_marginBottom="@dimen/gm_spacing_1"
-                android:minHeight="@dimen/gm_touch_target"
-                android:paddingHorizontal="@dimen/gm_spacing_3"
-                android:text="@string/module_update_all"
-                android:textSize="12sp"
-                android:visibility="gone" />
-
-            <!-- ===== 统计文本（无障碍 live region） ===== -->
             <TextView
-                android:id="@+id/tvModuleStats"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="@dimen/gm_spacing_3"
-                android:text="@string/module_refreshing"
+                android:layout_weight="1"
+                android:text="@string/module_search_history_title"
                 android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="11sp"
-                android:accessibilityLiveRegion="polite"
-                android:visibility="gone" />
+                android:textSize="11sp" />
 
-            <!-- 搜索框 -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/moduleSearchLayout"
-                style="@style/Widget.GameMatrix.Search"
-                android:layout_width="match_parent"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSearchHistoryClear"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/gm_spacing_3"
-                android:layout_marginTop="@dimen/gm_spacing_2"
-                android:layout_marginEnd="@dimen/gm_spacing_3"
-                android:layout_marginBottom="@dimen/gm_spacing_2"
-                android:hint="@string/module_search_hint"
-                app:endIconMode="clear_text"
-                app:startIconDrawable="@android:drawable/ic_menu_search">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etModuleSearch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:maxLines="1"
-                    android:singleLine="true"
-                    android:textSize="14sp" />
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Batch 21: 搜索历史 chip 容器（仅 MODULE_STORE_SEARCH_HISTORY 开启时显示） -->
-            <LinearLayout
-                android:id="@+id/searchHistoryContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginStart="@dimen/gm_spacing_3"
-                android:layout_marginEnd="@dimen/gm_spacing_3"
-                android:layout_marginBottom="@dimen/gm_spacing_1"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/module_search_history_title"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="11sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSearchHistoryClear"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:minHeight="32dp"
-                        android:paddingHorizontal="@dimen/gm_spacing_2"
-                        android:text="@string/module_search_history_clear"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/searchHistoryChips"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:singleLine="false"
-                    app:chipSpacingHorizontal="@dimen/gm_spacing_1"
-                    app:chipSpacingVertical="@dimen/gm_spacing_1" />
-            </LinearLayout>
-
-            <!-- 分类 Tab（含"已安装"独立 tab + 图标） -->
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/moduleCategoryTabs"
-                style="@style/Widget.GameMatrix.Tab"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/colorSurface"
-                android:elevation="@dimen/gm_elevation_1"
-                app:tabMode="scrollable"
-                app:tabGravity="start" />
-
-            <!-- 子分类（游戏分类下显示，含"全部"） -->
-            <HorizontalScrollView
-                android:id="@+id/moduleSubCategoryContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/colorSurfaceVariant"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:id="@+id/moduleSubCategoryTabs"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/gm_touch_target"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="@dimen/gm_spacing_2"
-                    android:paddingEnd="@dimen/gm_spacing_2">
-                </LinearLayout>
-            </HorizontalScrollView>
-
-            <!-- 主列表（无下拉刷新的 NestedScrollView 兼容：直接用 RecyclerView） -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/moduleRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:clipToPadding="false"
-                android:padding="@dimen/gm_spacing_2" />
-
-            <!-- 骨架屏 -->
-            <LinearLayout
-                android:id="@+id/moduleSkeletonContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-                <include layout="@layout/item_module_skeleton" />
-                <include layout="@layout/item_module_skeleton" />
-                <include layout="@layout/item_module_skeleton" />
-                <include layout="@layout/item_module_skeleton" />
-                <include layout="@layout/item_module_skeleton" />
-            </LinearLayout>
-
-            <!-- 空状态（Batch 21: 增强视觉，渐变背景+大图标+描述+CTA） -->
-            <LinearLayout
-                android:id="@+id/moduleEmptyContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:paddingHorizontal="@dimen/gm_spacing_6"
-                android:paddingVertical="@dimen/gm_spacing_7"
-                android:background="@drawable/module_empty_state_bg"
-                android:layout_marginStart="@dimen/gm_spacing_3"
-                android:layout_marginEnd="@dimen/gm_spacing_3"
-                android:layout_marginTop="@dimen/gm_spacing_4"
-                android:layout_marginBottom="@dimen/gm_spacing_4"
-                android:visibility="gone">
-
-                <ImageView
-                    android:layout_width="96dp"
-                    android:layout_height="96dp"
-                    android:src="@drawable/ic_empty_state_search"
-                    android:contentDescription="@null"
-                    app:tint="?attr/colorPrimary" />
-
-                <TextView
-                    android:id="@+id/moduleEmptyTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/gm_spacing_4"
-                    android:text="@string/module_empty_title"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/moduleEmptyText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/gm_spacing_2"
-                    android:text="@string/module_empty"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="13sp"
-                    android:gravity="center" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnEmptyAction"
-                    style="@style/Widget.GameMatrix.Button.Outlined"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/gm_spacing_4"
-                    android:minHeight="@dimen/gm_touch_target"
-                    android:text="@string/module_empty_action"
-                    android:visibility="gone" />
-            </LinearLayout>
-
-            <!-- 错误状态（Batch 21: 增强视觉，渐变背景+大图标+标题+描述+重试） -->
-            <LinearLayout
-                android:id="@+id/moduleErrorContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:paddingHorizontal="@dimen/gm_spacing_6"
-                android:paddingVertical="@dimen/gm_spacing_7"
-                android:background="@drawable/module_error_state_bg"
-                android:layout_marginStart="@dimen/gm_spacing_3"
-                android:layout_marginEnd="@dimen/gm_spacing_3"
-                android:layout_marginTop="@dimen/gm_spacing_4"
-                android:layout_marginBottom="@dimen/gm_spacing_4"
-                android:visibility="gone">
-
-                <ImageView
-                    android:layout_width="96dp"
-                    android:layout_height="96dp"
-                    android:src="@drawable/ic_error_state_cloud"
-                    android:contentDescription="@null"
-                    app:tint="?attr/colorError" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/gm_spacing_4"
-                    android:text="@string/module_error_title"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/moduleErrorText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/gm_spacing_2"
-                    android:gravity="center"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnRetry"
-                    style="@style/Widget.GameMatrix.Button.Tonal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/gm_spacing_4"
-                    android:minHeight="@dimen/gm_touch_target"
-                    android:text="@string/module_retry" />
-            </LinearLayout>
+                android:minWidth="0dp"
+                android:minHeight="32dp"
+                android:paddingHorizontal="@dimen/gm_spacing_2"
+                android:text="@string/module_search_history_clear"
+                android:textSize="11sp" />
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/searchHistoryChips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleLine="false"
+            app:chipSpacingHorizontal="@dimen/gm_spacing_1"
+            app:chipSpacingVertical="@dimen/gm_spacing_1" />
+    </LinearLayout>
+
+    <!-- 分类 Tab（含"已安装"独立 tab + 图标） -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/moduleCategoryTabs"
+        style="@style/Widget.GameMatrix.Tab"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:elevation="@dimen/gm_elevation_1"
+        app:tabMode="scrollable"
+        app:tabGravity="start" />
+
+    <!-- 子分类（游戏分类下显示，含"全部"） -->
+    <HorizontalScrollView
+        android:id="@+id/moduleSubCategoryContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurfaceVariant"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/moduleSubCategoryTabs"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/gm_touch_target"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/gm_spacing_2"
+            android:paddingEnd="@dimen/gm_spacing_2">
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- ===== 可滚动内容区域（RecyclerView 正常回收复用，不再一次性测量所有 item） ===== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- 主列表（MODULE_STORE_PERF_OPT: match_parent + 默认 nestedScrolling=true，正常回收复用） -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/moduleRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="@dimen/gm_spacing_2" />
+
+        <!-- 骨架屏 -->
+        <LinearLayout
+            android:id="@+id/moduleSkeletonContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+            <include layout="@layout/item_module_skeleton" />
+            <include layout="@layout/item_module_skeleton" />
+            <include layout="@layout/item_module_skeleton" />
+            <include layout="@layout/item_module_skeleton" />
+            <include layout="@layout/item_module_skeleton" />
+        </LinearLayout>
+
+        <!-- 空状态（Batch 21: 增强视觉，渐变背景+大图标+描述+CTA） -->
+        <LinearLayout
+            android:id="@+id/moduleEmptyContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/gm_spacing_6"
+            android:paddingVertical="@dimen/gm_spacing_7"
+            android:background="@drawable/module_empty_state_bg"
+            android:layout_marginStart="@dimen/gm_spacing_3"
+            android:layout_marginEnd="@dimen/gm_spacing_3"
+            android:layout_marginTop="@dimen/gm_spacing_4"
+            android:layout_marginBottom="@dimen/gm_spacing_4"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:src="@drawable/ic_empty_state_search"
+                android:contentDescription="@null"
+                app:tint="?attr/colorPrimary" />
+
+            <TextView
+                android:id="@+id/moduleEmptyTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:text="@string/module_empty_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/moduleEmptyText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:text="@string/module_empty"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp"
+                android:gravity="center" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEmptyAction"
+                style="@style/Widget.GameMatrix.Button.Outlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:minHeight="@dimen/gm_touch_target"
+                android:text="@string/module_empty_action"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- 错误状态（Batch 21: 增强视觉，渐变背景+大图标+标题+描述+重试） -->
+        <LinearLayout
+            android:id="@+id/moduleErrorContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/gm_spacing_6"
+            android:paddingVertical="@dimen/gm_spacing_7"
+            android:background="@drawable/module_error_state_bg"
+            android:layout_marginStart="@dimen/gm_spacing_3"
+            android:layout_marginEnd="@dimen/gm_spacing_3"
+            android:layout_marginTop="@dimen/gm_spacing_4"
+            android:layout_marginBottom="@dimen/gm_spacing_4"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:src="@drawable/ic_error_state_cloud"
+                android:contentDescription="@null"
+                app:tint="?attr/colorError" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:text="@string/module_error_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/moduleErrorText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:gravity="center"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRetry"
+                style="@style/Widget.GameMatrix.Button.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:minHeight="@dimen/gm_touch_target"
+                android:text="@string/module_retry" />
+        </LinearLayout>
+    </FrameLayout>
 
     <!-- 下拉刷新 FAB（替代原 SwipeRefreshLayout，因 NestedScrollView 不兼容） -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

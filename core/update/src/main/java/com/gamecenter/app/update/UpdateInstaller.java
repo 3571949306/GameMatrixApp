@@ -66,6 +66,10 @@ public class UpdateInstaller {
                 Log.e(TAG, "Failed to parse APK: " + apkFile.getPath());
                 return false;
             }
+            if (!context.getPackageName().equals(packageInfo.packageName)) {
+                Log.e(TAG, "Downloaded APK package does not match the host app: " + packageInfo.packageName);
+                return false;
+            }
             Log.d(TAG, "APK verified successfully: " + packageInfo.packageName);
             return true;
         } catch (Exception e) {
@@ -163,16 +167,16 @@ public class UpdateInstaller {
         // 打开目录前清理旧 APK
         downloader.cleanOldApks(context);
         File downloadDir = downloader.getPublicDownloadDir(context);
-        
+
         // 确保目录存在
         if (!downloadDir.exists()) {
             downloadDir.mkdirs();
         }
 
         // 检查是否有 APK 文件
-        File[] apkFiles = downloadDir.listFiles((dir, name) -> 
+        File[] apkFiles = downloadDir.listFiles((dir, name) ->
                 name.startsWith("GameMatrix_v") && name.endsWith(".apk"));
-        
+
         if (apkFiles == null || apkFiles.length == 0) {
             // 没有 APK 文件，提示用户
             String message = "当前没有已下载的更新包\n\nAPK 下载位置：\n" + downloadDir.getAbsolutePath();
@@ -182,7 +186,7 @@ public class UpdateInstaller {
 
         // 尝试打开 Download 目录 - 使用更可靠的方法
         boolean opened = false;
-        
+
         // 方式一：使用 FileProvider 打开下载目录（Android 7.0+ 避免 FileUriExposedException）
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -198,7 +202,7 @@ public class UpdateInstaller {
             }
             intent.setDataAndType(uri, "*/*");
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            
+
             if (intent.resolveActivity(context.getPackageManager()) != null) {
                 context.startActivity(intent);
                 opened = true;
@@ -216,10 +220,10 @@ public class UpdateInstaller {
                 // 尝试使用存储访问框架打开下载目录
                 String downloadPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
                 // 注意：这是一个后备方案，实际打开可能需要用户导航
-                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, 
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI,
                         Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ADownload"));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                
+
                 if (intent.resolveActivity(context.getPackageManager()) != null) {
                     context.startActivity(intent);
                     opened = true;
@@ -233,7 +237,7 @@ public class UpdateInstaller {
         if (!opened) {
             String path = downloadDir.getAbsolutePath();
             Toast.makeText(context, "APK 下载目录: " + path, Toast.LENGTH_LONG).show();
-            
+
             // 如果是在 Activity 中调用，显示 Snackbar
             try {
                 if (context instanceof android.app.Activity) {

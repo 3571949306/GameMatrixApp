@@ -15,6 +15,8 @@ class UpdateInfoTest {
             put("downloadUrl", "https://example.com/app.apk")
             put("fileSize", 1000000L)
             put("md5", "abc123")
+            put("sha256", "a".repeat(64))
+            put("githubReleaseTag", "v1.0.0-vc100")
             put("changelog", "Bug fixes")
             put("lastStableVersionCode", 99)
             put("lastStableVersionName", "0.9.0")
@@ -29,6 +31,8 @@ class UpdateInfoTest {
         assertEquals("https://example.com/app.apk", info.getDownloadUrl())
         assertEquals(1000000L, info.getFileSize())
         assertEquals("abc123", info.getMd5())
+        assertEquals("a".repeat(64), info.getSha256())
+        assertEquals("v1.0.0-vc100", info.getReleaseTag())
         assertEquals("Bug fixes", info.getChangelog())
         assertEquals(99, info.getLastStableVersionCode())
         assertEquals("0.9.0", info.getLastStableVersionName())
@@ -49,6 +53,8 @@ class UpdateInfoTest {
         assertEquals("", info.getDownloadUrl())
         assertEquals(0L, info.getFileSize())
         assertEquals("", info.getMd5())
+        assertEquals("", info.getSha256())
+        assertEquals("", info.getReleaseTag())
     }
     
     @Test

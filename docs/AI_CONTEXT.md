@@ -5,9 +5,9 @@
 
 > 本文档合并了原 `AI_CONTEXT.md`、`PROJECT_CONTEXT.md`、`AI_ONBOARDING.md`、`项目AI接手说明.md` 四个文档，供 AI 编程助手和新开发者阅读。
 
-**最后更新**: 2026-07-22
-**当前工作树/生产版本**: versionCode=595, versionName=1.4.1
-**上次稳定版**: versionCode=594, versionName=1.4.1
+**最后更新**: 2026-07-23
+**当前工作树/生产版本**: versionCode=598, versionName=1.4.1
+**上次稳定版**: versionCode=598, versionName=1.4.1
 
 ---
 
@@ -20,7 +20,7 @@
 | 包名 | `com.gamecenter.app` |
 | 语言 | Java 17 (约 55%) + Kotlin 2.0.21 (约 45%，循环23宿主 Kotlin 迁移后) |
 | 构建 | Gradle 8.13 + AGP 8.13.2 |
-| SDK | minSdk 24, targetSdk 35, compileSdk 35 |
+| SDK | minSdk 24, targetSdk 35, compileSdk 36 |
 | DI | Hilt 2.57.2 |
 | 数据库 | Room 2.7.1（浏览器模块 v2 schema 4 张表） |
 | 网络 | OkHttp 4.12.0 |
@@ -305,10 +305,10 @@ python tools/upload_to_github_release.py --apk app/build/outputs/apk/release/app
 
 ### 8.1 version.properties
 ```properties
-versionCode=587          # 内部版本号（每次构建自动递增）
+versionCode=598          # 内部版本号（每次构建自动递增）
 versionName=1.4.1        # 展示版本号
-lastStableVersionCode=465
-lastStableVersionName=1.4.0
+lastStableVersionCode=594
+lastStableVersionName=1.4.1
 betaNoticeVersionGap=3
 ```
 

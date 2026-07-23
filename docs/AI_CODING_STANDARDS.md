@@ -156,7 +156,7 @@ $zip.Dispose()
 发布相关问题必须跑 release：
 
 ```powershell
-.\gradlew.bat :app:assembleRelease --stacktrace
+.\gradlew.bat :app:validateReleaseApk -PupdateChannel=stable -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PenableCatalogSignature=true -PcatalogSigningProfile=production -PautoBumpVersion=false -PautoUploadVps=false -PpublishGitHubRelease=false --stacktrace
 ```
 
 更新 JSON 相关任务不能只看本地 APK。必须检查用户真实访问的：
@@ -288,6 +288,34 @@ module-store/feature/tools/wrongbook/
 - 下载到的 APK 的 manifest 和 SHA-256
 
 如果用户说“用户更新到的版本还是旧版本”，不要只看本地 `version.properties` 或 `assembleRelease` 输出。
+
+### 7.1 面向用户的更新公告
+
+- `RELEASE_NOTES.md` 是 GitHub Release、`version.json` 和应用内更新弹窗的唯一公告来源；`CHANGELOG.md` 只保存开发历史。
+- 公告只说明本次更新给用户带来的变化，使用简短、通俗的中文；默认不写类名、文件路径、构建命令、测试日志、哈希、回滚命令或内部架构术语。
+- 不得把整份 `CHANGELOG.md` 作为 `gh release create --notes-file` 的输入。
+- 不得出现裸写的 GitHub 风格 `@名称`。确需保留技术注解时必须放在反引号中，但面向用户的公告应优先改写为普通语言。
+- 公告最多 1600 个字符、最多 8 条要点，并且必须包含当前 `versionName` 与 `versionCode`。
+- Stable 发布前必须执行：
+
+```powershell
+python tools/validate_release_notes.py RELEASE_NOTES.md --version-file version.properties
+```
+
+- Tag 自动发布必须使用 `RELEASE_NOTES.md` 作为正文，并让校验失败直接阻止发布。
+
+### 7.2 Stable APK 门禁
+
+- Stable APK 只发布 `arm64-v8a`，不得混入 `x86`、`x86_64` 或 `armeabi-v7a`。
+- `flutterNdkVersion` 必须与当前 Flutter SDK 要求的 NDK 版本保持一致，确保 `libflutter.so` 和 `libapp.so` 的调试符号被正确剥离。
+- 不得为了缩小显示体积而开启 legacy JNI packaging。
+- 发布、上传任务必须依赖 `:app:validateReleaseApk`；任何超过 `releaseApkMaxSizeMb`、ABI 集合错误或带 Flutter debug section 的 APK 都必须阻止发布。
+
+### 7.3 README 用户内容规则
+
+- `README.md` 只面向 App 用户，说明功能、下载安装、更新、权限、隐私和常见问题。
+- 不得写入构建命令、CI 状态、测试矩阵、架构说明、内部路径、哈希或发布操作日志。
+- 开发说明必须放在 `docs/`，不得再把 README 改回详细测试报告。
 
 ## 8. 临时文件和日志规则
 

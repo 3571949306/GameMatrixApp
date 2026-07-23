@@ -26,7 +26,8 @@ object CatalogV2Parser {
             catalogVersion = root.optInt("catalogVersion", 0),
             generatedAt = root.optString("generatedAt", ""),
             source = source,
-            offline = source != "remote",
+            // A signature-validated on-disk catalog is a trusted remote cache, not an offline mode.
+            offline = source !in setOf("remote", "signed_cache"),
             modules = parseModules(modulesJson)
         )
         val validation = CatalogSchemaValidator.validate(catalog)

@@ -20,7 +20,7 @@ object LegacyCatalogAdapter {
             catalogVersion = root.optInt("version", root.optInt("catalogVersion", 0)),
             generatedAt = root.optString("generatedAt", ""),
             source = source,
-            offline = source != "remote",
+            offline = source !in setOf("remote", "signed_cache"),
             modules = modules
         )
     }

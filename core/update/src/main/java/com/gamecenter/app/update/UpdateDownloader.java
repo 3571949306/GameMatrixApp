@@ -161,13 +161,15 @@ public class UpdateDownloader {
                 MessageFormat.format("GameMatrix_v{0}_{1}.apk",
                         String.valueOf(info.getVersionCode()), info.getVersionName()));
 
-        // 断点续传检测：若本地已有 MD5 匹配的 APK，直接返回
-        if (apkFile.exists() && !info.getMd5().isEmpty()) {
-            String existingMd5 = computeMd5(apkFile);
-            if (info.getMd5().equalsIgnoreCase(existingMd5)) {
-                return apkFile;
+        // 若本地已有经 SHA-256（旧元数据则回退 MD5）验证的 APK，直接复用。
+        if (apkFile.exists()) {
+            boolean verified = false;
+            if (!info.getSha256().isEmpty()) {
+                verified = info.getSha256().equalsIgnoreCase(computeSha256(apkFile));
+            } else if (!info.getMd5().isEmpty()) {
+                verified = info.getMd5().equalsIgnoreCase(computeMd5(apkFile));
             }
-            // MD5 不匹配，删除旧文件重新下载
+            if (verified) return apkFile;
             apkFile.delete();
         }
 
@@ -253,7 +255,7 @@ public class UpdateDownloader {
                 final long fTotal = totalSize;
                 if (callback != null) callback.onProgress(fDownloaded, fTotal);
                 int percent = totalSize > 0 ? (int) (downloaded * 100 / totalSize) : 0;
-                
+
                 // 计算并显示下载速度
                 String speedStr = "";
                 if (now - lastSpeedCheckTime >= 1000) { // 每秒计算一次速度
@@ -261,14 +263,14 @@ public class UpdateDownloader {
                     long bytesDiff = downloaded - lastSpeedCheckBytes;
                     long speedKb = elapsed > 0 ? (bytesDiff * 1000 / elapsed) / 1024 : 0;
                     if (speedKb > 0) {
-                        speedStr = speedKb >= 1024 ? 
-                            String.format("%.1f MB/s", speedKb / 1024.0) : 
+                        speedStr = speedKb >= 1024 ?
+                            String.format("%.1f MB/s", speedKb / 1024.0) :
                             String.format("%d KB/s", speedKb);
                     }
                     lastSpeedCheckTime = now;
                     lastSpeedCheckBytes = downloaded;
                 }
-                
+
                 notificationHelper.showDownloadNotification(context, percent, info.getVersionName(), speedStr);
                 lastReportTime = now;
             }
@@ -277,12 +279,18 @@ public class UpdateDownloader {
         out.close();
         conn.disconnect();
 
-        // 下载完成后进行双重完整性校验：文件大小 + MD5
+        // 下载完成后进行完整性校验：文件大小 + SHA-256（兼容旧元数据的 MD5）。
         if (totalSize > 0 && apkFile.length() != totalSize) {
             apkFile.delete();
             throw new Exception("下载文件大小不匹配，期望 " + totalSize + " 字节，实际 " + apkFile.length() + " 字节");
         }
-        if (!info.getMd5().isEmpty()) {
+        if (!info.getSha256().isEmpty()) {
+            String actualSha256 = computeSha256(apkFile);
+            if (!info.getSha256().equalsIgnoreCase(actualSha256)) {
+                apkFile.delete();
+                throw new Exception("安装包 SHA-256 校验失败");
+            }
+        } else if (!info.getMd5().isEmpty()) {
             String actualMd5 = computeMd5(apkFile);
             if (!info.getMd5().equalsIgnoreCase(actualMd5)) {
                 apkFile.delete();
@@ -356,7 +364,10 @@ public class UpdateDownloader {
      * @return GitHub Releases 下载 URL
      */
     String buildGitHubAssetUrl(UpdateInfo info) {
-        String tag = info != null ? info.getVersionName() : "";
+        String tag = info != null ? info.getReleaseTag() : "";
+        if ((tag == null || tag.isEmpty()) && info != null) {
+            tag = "v" + info.getVersionName() + "-vc" + info.getVersionCode();
+        }
         String apkName = info != null && info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
         if (tag == null || tag.isEmpty()) {
             return "https://github.com/3571949306/GameMatrixApp/releases/latest/download/" + apkName;
@@ -462,6 +473,26 @@ public class UpdateDownloader {
         }
     }
 
+    String computeSha256(File file) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (FileInputStream input = new FileInputStream(file)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            StringBuilder value = new StringBuilder();
+            for (byte item : digest.digest()) {
+                value.append(String.format("%02x", item));
+            }
+            return value.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
     /**
      * 是否保存到公共 Download 目录，默认开启
      */
@@ -485,7 +516,7 @@ public class UpdateDownloader {
                 }
             }
         }
-        
+
         // 回退到应用私有目录
         File baseDir = null;
         if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {

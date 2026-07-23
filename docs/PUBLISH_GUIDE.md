@@ -7,9 +7,9 @@
 
 源码默认开关保留关闭值以支持安全回退；stable vc595 通过生产参数启用 Flutter 商店。Flutter analyze/test、Android 单测/lint、生产信任双 ABI Release、APK assets/ABI、旧商店回退、Android 11–15 矩阵、线上 Ed25519 Catalog、正式 V2 多 Runtime 包与灰度均已通过。后续发布不得省略这些门禁，发布判断以 `/docs/flutter-store/MIGRATION_STATUS.md` 为准。
 
-> **文档版本**: v1.1.0  
-> **最后更新**: 2026-07-06  
-> **维护者**: GameCenterApp 开发团队  
+> **文档版本**: v1.2.0
+> **最后更新**: 2026-07-23
+> **维护者**: GameCenterApp 开发团队
 
 ---
 
@@ -101,19 +101,19 @@ GameCenterApp 使用 **双版本号系统**：
 
 | 版本号 | 用途 | 示例 | 文件位置 |
 |---------|------|------|---------|
-| **versionCode** | 内部版本号（整数，递增） | `567` | `version.properties` |
+| **versionCode** | 内部版本号（整数，递增） | `598` | `version.properties` |
 | **versionName** | 用户展示版本号（语义化版本） | `1.4.1` | `version.properties` |
 
-> **2026-07-06 复核**：当前实际版本 `versionCode=567 / versionName=1.4.1`，`lastStableVersionCode=465 / lastStableVersionName=1.4.0`。
+> **2026-07-23 复核**：当前实际版本 `versionCode=598 / versionName=1.4.1`，`lastStableVersionCode=598 / lastStableVersionName=1.4.1`。
 
 ### version.properties 格式
 
 ```properties
 # version.properties
-versionCode=567
+versionCode=598
 versionName=1.4.1
-lastStableVersionCode=465
-lastStableVersionName=1.4.0
+lastStableVersionCode=598
+lastStableVersionName=1.4.1
 betaNoticeVersionGap=3
 ```
 
@@ -128,14 +128,16 @@ betaNoticeVersionGap=3
 
 **Stable 版本**：
 
-```bash
+```powershell
 # 1. 手动更新 version.properties
 #    - versionName=1.4.2（例如）
 #    - versionCode=600（例如）
 #    - lastStableVersionCode=567（上一个正式版 versionCode）
 #    - lastStableVersionName=1.4.1（上一个正式版 versionName）
-# 2. 构建并上传
-.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable
+# 2. 先构建并校验 ARM64 正式 APK
+.\gradlew.bat :app:validateReleaseApk -PupdateChannel=stable -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PenableCatalogSignature=true -PcatalogSigningProfile=production -PautoBumpVersion=false -PautoUploadVps=false -PpublishGitHubRelease=false
+# 3. 确认校验通过后再上传
+.\gradlew.bat :app:buildAndUploadToVpsAndGitHub -PupdateChannel=stable -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PenableCatalogSignature=true -PcatalogSigningProfile=production
 ```
 
 ---
@@ -153,13 +155,15 @@ betaNoticeVersionGap=3
 
 ### 2. Release 构建（正式发布）
 
-```bash
-# 构建 Release APK（签名，混淆，资源收缩）
-.\gradlew.bat :app:assembleRelease
+```powershell
+# 构建并校验用户发布用 ARM64 APK（签名、混淆、资源收缩、符号剥离）
+.\gradlew.bat :app:validateReleaseApk -PupdateChannel=stable -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PenableCatalogSignature=true -PcatalogSigningProfile=production -PautoBumpVersion=false -PautoUploadVps=false -PpublishGitHubRelease=false
 
 # 输出位置
 # app/build/outputs/apk/release/app-release.apk
 ```
+
+该门禁会检查 APK 体积、ABI 集合及 Flutter 原生库调试符号。任何一项不符合要求都不得上传。
 
 ### 3. AAB 构建（Google Play�?
 ```bash
@@ -232,7 +236,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            
+
             // 只有�?keystore 存在时才应用签名配置
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
@@ -256,32 +260,64 @@ jarsigner -verify -verbose -certs app/build/outputs/apk/release/app-release.apk
 
 ## 上传部署
 
-### 1. 上传�?VPS 服务�?
-使用 `工具/upload_to_vps.py` 脚本�?
+### 1. 上传到 VPS 服务器
+
+使用 `tools/upload_to_vps.py` 脚本（配置文件位于 `local_private/服务器部署/upload_config_hk.json`）：
+
 ```bash
-# 上传 Beta 版本�?VPS
-python 工具/upload_to_vps.py \
+# 上传 Beta 版本到 VPS
+python tools/upload_to_vps.py \
   --apk app/build/outputs/apk/release/app-release.apk \
   --version app/build/outputs/apk/release/version.json \
   --channel beta
 
-# 上传 Stable 版本�?VPS
-python 工具/upload_to_vps.py \
+# 上传 Stable 版本到 VPS
+python tools/upload_to_vps.py \
   --apk app/build/outputs/apk/release/app-release.apk \
   --version app/build/outputs/apk/release/version.json \
   --channel stable
+
+# 仅发布模块商店资源（不重传 APK）：--apk/--version 可省略
+python tools/upload_to_vps.py \
+  --modules-json app/src/main/assets/modules.json \
+  --store-ui app/src/main/assets/store-ui.json \
+  --module-dir app/src/main/assets/modules \
+  --channel release
 ```
 
-### 2. 上传�?GitHub Releases
+> `app/build.gradle` 的 `uploadReleaseArtifactsToVps` 只发布已校验的主应用 APK 和更新元数据。模块包、Catalog 与签名必须用 `tools/deploy_production_catalog.py` 作为一个可回读验证的独立步骤发布，不能混在主应用上传中。
 
-**仅适用�?Stable 通道**�?
+### 2. 上传到 GitHub Releases
+
+**仅适用于 Stable 通道**。
+
+`RELEASE_NOTES.md` 是唯一允许发布给用户的公告正文。它只描述本次版本给用户带来的变化；完整开发记录继续写入 `CHANGELOG.md`，不得整份复制到 Release。
+
+发布前先校验公告：
+
 ```bash
-# 上传�?GitHub Releases
-python 工具/upload_to_github_release.py \
-  --apk app/build/outputs/apk/release/app-release.apk \
-  --version-name 1.4.0 \
-  --changelog-file CHANGELOG.md
+python tools/validate_release_notes.py RELEASE_NOTES.md \
+  --version-file version.properties \
+  --tag v<versionName>-vc<versionCode>
 ```
+
+校验会阻止过长公告、超过 8 条的要点、裸写的 `@用户名`、版本号不匹配，以及源码文件名、构建日志、哈希和回滚命令等开发者信息。
+
+使用下面的任务发布。它会创建或更新精确的 `v<versionName>-vc<versionCode>` 标签，
+仅上传 `app-release.apk`，并让 GitHub 回传的文件名、大小和 SHA-256 与本地 APK 一致后才报告成功。运行环境需要已有 `GITHUB_TOKEN` 或 `GH_TOKEN`；不要把令牌写入命令、文档或日志。
+
+```powershell
+.\gradlew.bat :app:uploadApkToGitHubRelease `
+  -PupdateChannel=stable `
+  -PenableFlutterModuleStore=true `
+  -Ptarget-platform=android-arm64 `
+  -PenableCatalogSignature=true `
+  -PcatalogSigningProfile=production `
+  -PautoBumpVersion=false `
+  -PautoUploadVps=false
+```
+
+主更新通道为香港 VPS，GitHub Releases 为备用源。两处均发布并完成公网回读后，才算稳定版完成。
 
 ### 3. 上传模块 APK �?VPS
 
@@ -555,7 +591,8 @@ GameCenterApp/
 ├── local.properties            # 服务器配置（不要提交到 Git）
 ├── version.properties          # 版本号配置（单一事实源）
 ├── gamecenter.keystore        # 签名密钥（不要提交到 Git）
-├── CHANGELOG.md              # 版本更新日志
+├── RELEASE_NOTES.md          # 当前版本面向用户的简短公告
+├── CHANGELOG.md              # 完整开发历史（不直接发布）
 ├── README.md                  # 项目说明文档
 ├── CLOUD-BUILD.md             # 云编译 & VPS 部署指南
 └── docs/

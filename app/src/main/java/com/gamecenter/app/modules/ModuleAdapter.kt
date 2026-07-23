@@ -1,6 +1,8 @@
 package com.gamecenter.app.modules
 
 import android.content.Context
+import android.content.res.Configuration
+import android.util.LruCache
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +22,8 @@ import com.gamecenter.app.R
 
 /**
  * 模块列表适配器（Batch 20: 分类渐变图标背景 + NEW 徽章 + 紧凑布局 + 状态 visibility 修复 + 卡片可点击）。
+ *
+ * MODULE_STORE_PERF_OPT: 主题颜色 + 图标资源缓存，消除 onBindViewHolder 中的重复主题属性解析和 getIdentifier 调用。
  */
 class ModuleAdapter(
     private var installedIds: Set<String>,
@@ -79,6 +83,40 @@ class ModuleAdapter(
     private val downloadProgress = mutableMapOf<String, Int>()
     var installedVersions: Map<String, Int> = emptyMap()
 
+    // MODULE_STORE_PERF_OPT: 主题颜色缓存（避免每次 bind 解析 TypedValue）
+    private var cachedThemeColors: ThemeColorCache? = null
+    private var cachedThemeConfig: Int = 0 // Configuration.uiMode & Configuration.UI_MODE_NIGHT_MASK
+
+    // MODULE_STORE_PERF_OPT: 图标资源 id 缓存（避免重复 getIdentifier 反射调用）
+    private val iconResCache = LruCache<String, Int>(64)
+
+    /** 主题颜色缓存容器 */
+    private data class ThemeColorCache(
+        val success: Int,
+        val info: Int,
+        val warning: Int,
+        val onSurfaceVariant: Int
+    )
+
+    /**
+     * 获取或初始化主题颜色缓存。
+     * 当主题模式（日间/夜间）变化时自动重建。
+     */
+    private fun getThemeColors(context: Context): ThemeColorCache {
+        val currentMode = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        val existing = cachedThemeColors
+        if (existing != null && cachedThemeConfig == currentMode) return existing
+        val cache = ThemeColorCache(
+            success = resolveThemeColor(context, R.attr.colorSuccess, R.color.md_theme_on_surface_variant),
+            info = resolveThemeColor(context, R.attr.colorInfo, R.color.md_theme_on_surface_variant),
+            warning = resolveThemeColor(context, R.attr.colorWarning, R.color.md_theme_on_surface_variant),
+            onSurfaceVariant = ContextCompat.getColor(context, R.color.md_theme_on_surface_variant)
+        )
+        cachedThemeColors = cache
+        cachedThemeConfig = currentMode
+        return cache
+    }
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val icon: ImageView = view.findViewById(R.id.moduleItemIcon)
         val iconContainer: FrameLayout = view.findViewById(R.id.moduleIconContainer)
@@ -119,11 +157,12 @@ class ModuleAdapter(
         val installedVersion = installedVersions[module.id] ?: 0
         val hasUpdate = isInstalled && !isBuiltIn && installedVersion < module.versionCode && installedVersion > 0
 
-        // 主题感知语义色（替代硬编码颜色，深色模式自动切换）
-        val successColor = resolveThemeColor(context, R.attr.colorSuccess, R.color.md_theme_on_surface_variant)
-        val infoColor = resolveThemeColor(context, R.attr.colorInfo, R.color.md_theme_on_surface_variant)
-        val warningColor = resolveThemeColor(context, R.attr.colorWarning, R.color.md_theme_on_surface_variant)
-        val onSurfaceVariantColor = ContextCompat.getColor(context, R.color.md_theme_on_surface_variant)
+        // MODULE_STORE_PERF_OPT: 使用缓存的主题颜色（仅主题切换时重建，避免每次 bind 解析 TypedValue）
+        val themeColors = getThemeColors(context)
+        val successColor = themeColors.success
+        val infoColor = themeColors.info
+        val warningColor = themeColors.warning
+        val onSurfaceVariantColor = themeColors.onSurfaceVariant
 
         // 分类 Chip（引用字符串资源，不硬编码）
         val categoryLabelRes = CATEGORY_LABEL_RES[module.storeCategory] ?: R.string.store_category_games
@@ -218,9 +257,15 @@ class ModuleAdapter(
         submitList(newModules)
     }
 
+    /**
+     * MODULE_STORE_PERF_OPT: 更新已安装模块 id 集合。
+     *
+     * 不再调用 notifyItemRangeChanged 触发全量重新绑定。
+     * 安装状态变化通过 updateModules 的 DiffUtil areContentsTheSame 比较（installedVersions 变化时
+     * versionCode 比较会触发 item 刷新）。如需强制刷新，调用 updateModules 重新提交相同列表。
+     */
     fun updateInstalledIds(newInstalledIds: Set<String>) {
         installedIds = newInstalledIds
-        notifyItemRangeChanged(0, itemCount)
     }
 
     fun updateDownloadProgress(moduleId: String, percent: Int) {
@@ -301,15 +346,28 @@ class ModuleAdapter(
     /**
      * 解析模块图标资源 ID。
      * 优先级：ic_<gameId> → ic_game_<gameId> → 分类图标 → 系统默认。
+     * MODULE_STORE_PERF_OPT: 使用 LruCache 缓存结果，避免每次 bind 重复 getIdentifier 调用。
      */
     private fun resolveIconRes(context: Context, module: ModuleManifest): Int {
         val gameId = module.gameId.ifEmpty { module.id }
         if (gameId.isNotEmpty()) {
+            val cacheKey = gameId + "|" + module.storeCategory
+            val cached = iconResCache.get(cacheKey)
+            if (cached != null && cached != 0) return cached
             val pkg = context.packageName
             val direct = context.resources.getIdentifier("ic_$gameId", "drawable", pkg)
-            if (direct != 0) return direct
+            if (direct != 0) {
+                iconResCache.put(cacheKey, direct)
+                return direct
+            }
             val prefixed = context.resources.getIdentifier("ic_game_$gameId", "drawable", pkg)
-            if (prefixed != 0) return prefixed
+            if (prefixed != 0) {
+                iconResCache.put(cacheKey, prefixed)
+                return prefixed
+            }
+            val fallback = CATEGORY_ICONS[module.storeCategory] ?: android.R.drawable.ic_menu_gallery
+            iconResCache.put(cacheKey, fallback)
+            return fallback
         }
         return CATEGORY_ICONS[module.storeCategory] ?: android.R.drawable.ic_menu_gallery
     }

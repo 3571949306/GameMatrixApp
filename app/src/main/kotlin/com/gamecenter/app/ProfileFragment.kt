@@ -138,7 +138,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private fun openSettings() {
         AppSettingsDialog(
             this,
-            null,
+            { (activity as? MainActivity)?.checkUpdate(true) },
             null,
             { exportDataLauncher.launch(DataBackupHelper.defaultFilename()) },
             { importDataLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*")) }
