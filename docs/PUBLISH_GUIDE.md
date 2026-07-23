@@ -101,18 +101,18 @@ GameCenterApp 使用 **双版本号系统**：
 
 | 版本号 | 用途 | 示例 | 文件位置 |
 |---------|------|------|---------|
-| **versionCode** | 内部版本号（整数，递增） | `598` | `version.properties` |
+| **versionCode** | 内部版本号（整数，递增） | `599` | `version.properties` |
 | **versionName** | 用户展示版本号（语义化版本） | `1.4.1` | `version.properties` |
 
-> **2026-07-23 复核**：当前实际版本 `versionCode=598 / versionName=1.4.1`，`lastStableVersionCode=598 / lastStableVersionName=1.4.1`。
+> **2026-07-23 复核**：当前实际版本 `versionCode=599 / versionName=1.4.1`，`lastStableVersionCode=599 / lastStableVersionName=1.4.1`。
 
 ### version.properties 格式
 
 ```properties
 # version.properties
-versionCode=598
+versionCode=599
 versionName=1.4.1
-lastStableVersionCode=598
+lastStableVersionCode=599
 lastStableVersionName=1.4.1
 betaNoticeVersionGap=3
 ```
