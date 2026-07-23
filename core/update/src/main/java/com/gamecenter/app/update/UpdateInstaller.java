@@ -15,6 +15,9 @@ import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
+import com.gamecenter.app.update.BuildConfig;
+import com.gamecenter.app.update.R;
+
 import java.io.File;
 import java.text.MessageFormat;
 
@@ -45,6 +48,12 @@ public class UpdateInstaller {
 
     /**
      * 预检测 APK 文件是否有效
+     * <p>
+     * 2026-07-23 修复：在原有 packageName 校验基础上增加降级检测。
+     * 若 APK 内部 versionCode < 当前已安装 versionCode，直接拒绝安装，
+     * 避免触发系统的 INSTALL_FAILED_VERSION_DOWNGRADE 错误（用户表现为"解析错误"）。
+     * 这一防护兜底所有上层漏检场景，例如用户手动点击历史下载的旧 APK 文件。
+     * </p>
      *
      * @param context 上下文
      * @param apkFile 要检测的 APK 文件
@@ -70,6 +79,36 @@ public class UpdateInstaller {
                 Log.e(TAG, "Downloaded APK package does not match the host app: " + packageInfo.packageName);
                 return false;
             }
+            // 2026-07-23 修复：降级检测
+            // 若 APK versionCode 小于当前已安装 versionCode，系统会拒绝安装并报
+            // INSTALL_FAILED_VERSION_DOWNGRADE，MIUI 等定制系统对外显示为"解析错误"。
+            // 这里提前拦截，给出准确的错误提示。
+            if (BuildConfig.ENABLE_APK_VERSION_CHECK) {
+                int apkVersionCode;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    apkVersionCode = (int) packageInfo.getLongVersionCode();
+                } else {
+                    apkVersionCode = packageInfo.versionCode;
+                }
+                try {
+                    PackageInfo installed = pm.getPackageInfo(context.getPackageName(), 0);
+                    int installedVersionCode;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        installedVersionCode = (int) installed.getLongVersionCode();
+                    } else {
+                        installedVersionCode = installed.versionCode;
+                    }
+                    if (apkVersionCode < installedVersionCode) {
+                        Log.e(TAG, "APK versionCode=" + apkVersionCode
+                                + " is lower than installed versionCode=" + installedVersionCode
+                                + " (downgrade not allowed)");
+                        return false;
+                    }
+                } catch (PackageManager.NameNotFoundException e) {
+                    // 当前应用未安装（例如首次安装场景），跳过降级检测
+                    Log.d(TAG, "Host app not installed, skip downgrade check");
+                }
+            }
             Log.d(TAG, "APK verified successfully: " + packageInfo.packageName);
             return true;
         } catch (Exception e) {
@@ -92,12 +131,13 @@ public class UpdateInstaller {
      */
     public boolean installApk(Context context, File apkFile) {
         if (!apkFile.exists()) {
-            Toast.makeText(context, "安装包不存在", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, context.getString(R.string.update_apk_lost), Toast.LENGTH_SHORT).show();
             return false;
         }
-        // 预检测 APK 有效性
+        // 预检测 APK 有效性（包含降级检测）
         if (!verifyApk(context, apkFile)) {
-            Toast.makeText(context, "安装包无效，请重新下载", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, context.getString(R.string.update_apk_invalid_or_downgrade),
+                    Toast.LENGTH_LONG).show();
             return false;
         }
         Intent intent = new Intent(Intent.ACTION_VIEW);

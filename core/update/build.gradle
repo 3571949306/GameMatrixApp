@@ -56,6 +56,13 @@ def normalizeVersionChannel = { String raw ->
 }
 def currentVersionChannel = normalizeVersionChannel(requestedVersionChannel)
 
+// 2026-07-23: APK versionCode 校验开关
+// 下载完成后读取 APK 内部 versionCode，与服务器声明的 versionCode 比对，
+// 不一致则删除文件并切换源，防止 CDN 缓存陈旧导致下载到旧版本 APK。
+// 同时 UpdateInstaller.verifyApk() 会拦截降级安装，避免 INSTALL_FAILED_VERSION_DOWNGRADE。
+// 默认开启；如需紧急回滚，可在构建时加 -PenableApkVersionCheck=false 关闭。
+def enableApkVersionCheck = (project.findProperty("enableApkVersionCheck") ?: "true").toString().toBoolean()
+
 def toJavaStringLiteral = { String value ->
     return "\"" + value
             .replace("\\", "\\\\")
@@ -78,6 +85,8 @@ android {
         buildConfigField "int", "LAST_STABLE_VERSION_CODE", "${configuredLastStableVersionCode}"
         buildConfigField "String", "LAST_STABLE_VERSION_NAME", toJavaStringLiteral(configuredLastStableVersionName)
         buildConfigField "int", "BETA_NOTICE_VERSION_GAP", "${configuredBetaNoticeVersionGap}"
+        // 2026-07-23: APK versionCode 校验开关（防 CDN 缓存陈旧 + 降级安装）
+        buildConfigField "boolean", "ENABLE_APK_VERSION_CHECK", enableApkVersionCheck.toString()
     }
 
     compileOptions {

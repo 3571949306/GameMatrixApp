@@ -29,4 +29,6 @@
     <string name="update_open_directory">打开目录</string>
     <string name="update_apk_lost">安装包已丢失，请重新下载</string>
     <string name="update_install_permission_needed">需要安装权限才能安装更新，请在设置中授予</string>
+    <!-- 2026-07-23: APK 校验失败提示（降级或损坏） -->
+    <string name="update_apk_invalid_or_downgrade">安装包无效或版本低于已安装版本，请重新检查更新</string>
 </resources>

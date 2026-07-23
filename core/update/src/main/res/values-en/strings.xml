@@ -28,4 +28,6 @@
     <string name="update_open_directory">Open directory</string>
     <string name="update_apk_lost">Installation package lost. Please re-download.</string>
     <string name="update_install_permission_needed">Install permission is required to install updates. Please grant it in Settings.</string>
+    <!-- 2026-07-23: APK verification failed (downgrade or corrupted) -->
+    <string name="update_apk_invalid_or_downgrade">Package is invalid or older than the installed version. Please re-check for updates.</string>
 </resources>

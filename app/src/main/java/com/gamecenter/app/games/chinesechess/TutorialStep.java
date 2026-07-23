@@ -25,6 +25,7 @@ public class TutorialStep {
     private final int highlightArea;
     private final int[] highlightMove;
     private final long delay;
+    private int stepIndex;
 
     /**
      * 构造函数。
@@ -44,6 +45,14 @@ public class TutorialStep {
         this.highlightArea = highlightArea;
         this.highlightMove = highlightMove;
         this.delay = delay;
+    }
+
+    public int getStepIndex() {
+        return stepIndex;
+    }
+
+    public void setStepIndex(int stepIndex) {
+        this.stepIndex = stepIndex;
     }
 
     public StepType getType() {
