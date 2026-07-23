@@ -6,7 +6,6 @@ import android.util.Log;
 import com.gamecenter.app.update.BuildConfig;
 import com.gamecenter.app.SettingsManager;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -22,8 +21,6 @@ import java.util.List;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 应用更新检查器，负责从多个更新源检查是否有新版本可用。
@@ -58,11 +55,12 @@ public class UpdateChecker {
     static final String HK_BASE_URL = BuildConfig.SERVER_URL;
     /** 下载源：GitHub Releases（最终备用源） */
     static final String GITHUB_RELEASES_BASE_URL = "https://github.com/3571949306/GameMatrixApp/releases/latest";
-    /** GitHub Releases API：不能把网页地址当成旧版更新 API 使用。 */
-    static final String GITHUB_LATEST_RELEASE_API_URL =
-            "https://api.github.com/repos/3571949306/GameMatrixApp/releases/latest";
-    private static final Pattern GITHUB_VERSION_CODE_PATTERN =
-            Pattern.compile("(?:^|[-_])vc(\\d+)(?:$|[-_])", Pattern.CASE_INSENSITIVE);
+    /**
+     * GitHub 备用源的发布元数据。使用发布附件而非 API，避免部分设备的
+     * API 域名 TLS 兼容问题；附件本身带有 APK 的 SHA-256 和版本号。
+     */
+    static final String GITHUB_VERSION_JSON_URL =
+            GITHUB_RELEASES_BASE_URL + "/download/version.json";
 
     /** SharedPreferences 文件名，用于存储更新配置 */
     static final String PREF_NAME = "update_config";
@@ -71,19 +69,19 @@ public class UpdateChecker {
     /** 上次检查更新时间的存储键 */
     static final String KEY_LAST_CHECK = "last_check_time";
 
-    // 优化（v1.4.1）：减少超时时间，避免卡住用户界面
+    // 更新检查在后台线程执行。移动网络首次握手可能超过数秒，不能把正常用户误判为失败。
     /** 主源连接超时（毫秒） */
-    static final int PRIMARY_CONNECT_TIMEOUT = 2000;
+    static final int PRIMARY_CONNECT_TIMEOUT = 10000;
     /** 主源读取超时（毫秒） */
-    static final int PRIMARY_READ_TIMEOUT = 3000;
+    static final int PRIMARY_READ_TIMEOUT = 20000;
     /** 备用源连接超时（毫秒），比主源长以应对网络不佳的情况 */
-    static final int FALLBACK_CONNECT_TIMEOUT = 5000;
+    static final int FALLBACK_CONNECT_TIMEOUT = 10000;
     /** 备用源读取超时（毫秒） */
-    static final int FALLBACK_READ_TIMEOUT = 15000;
+    static final int FALLBACK_READ_TIMEOUT = 20000;
     /** GitHub 源连接超时（毫秒） */
-    static final int GITHUB_CONNECT_TIMEOUT = 5000;
+    static final int GITHUB_CONNECT_TIMEOUT = 10000;
     /** GitHub 源读取超时（毫秒） */
-    static final int GITHUB_READ_TIMEOUT = 10000;
+    static final int GITHUB_READ_TIMEOUT = 20000;
 
     /**
      * 单线程线程池，确保更新检查任务串行执行。
@@ -219,29 +217,8 @@ public class UpdateChecker {
         } else {
             // 用户不接受 Beta：只查稳定版
             Log.d(TAG, "Only checking stable version...");
-            UpdateInfo stableInfo = checkSpecificVersion(context, baseUrl, localVersion, false, connectTimeout, readTimeout);
-            if (stableInfo != null) {
-                if (!stableInfo.hasUpdate()) {
-                    // 稳定版无更新时，额外检查 Beta 版本用于通知用户
-                    // 就像"虽然你不想要测试版，但我还是告诉你有新功能可以试试"
-                    Log.d(TAG, "No stable update, checking if there's beta update to notify...");
-                    try {
-                        UpdateInfo betaInfo = checkSpecificVersion(context, baseUrl, localVersion, true, connectTimeout, readTimeout);
-                        if (betaInfo != null && betaInfo.hasUpdate()) {
-                            // 标记 Beta 更新被用户设置阻止，但保留信息用于 UI 提示
-                            Log.d(TAG, "Beta update available but blocked by user setting");
-                            betaInfo.setBetaUpdateBlocked(true);
-                            betaInfo.setBetaUpdateOutdated(isOutdatedAgainstLastStable(betaInfo, localVersion));
-                            betaInfo.setHasUpdate(false);
-                            return betaInfo;
-                        }
-                    } catch (Exception e) {
-                        Log.w(TAG, "Failed to check beta version for notification: " + e.getMessage());
-                    }
-                }
-                return stableInfo;
-            }
-            return null;
+            // 不接受 Beta 的用户不应为一个不会安装的 Beta 请求再等待一次网络超时。
+            return checkSpecificVersion(context, baseUrl, localVersion, false, connectTimeout, readTimeout);
         }
     }
 
@@ -285,7 +262,7 @@ public class UpdateChecker {
 
     /**
      * 检查 GitHub Releases 的更新（仅稳定版）。
-     * 使用旧版 API 接口格式访问 GitHub 更新端点。
+     * 读取 GitHub Release 中随 APK 发布的 version.json。
      *
      * @param context        上下文
      * @param baseUrl        GitHub Releases URL
@@ -297,73 +274,9 @@ public class UpdateChecker {
      */
     public UpdateInfo checkGitHubRelease(Context context, String baseUrl, LocalVersion localVersion,
                                           boolean acceptBeta, int connectTimeout, int readTimeout) {
-        try {
-            Log.d(TAG, "Checking GitHub Releases API (stable only)...");
-            JSONObject release = fetchJson(GITHUB_LATEST_RELEASE_API_URL,
-                    GITHUB_CONNECT_TIMEOUT, GITHUB_READ_TIMEOUT);
-            String tag = release.optString("tag_name", "").trim();
-            int versionCode = parseGitHubVersionCode(tag);
-            if (versionCode <= 0) {
-                throw new IllegalStateException("GitHub Release tag does not contain a version code: " + tag);
-            }
-
-            JSONArray assets = release.optJSONArray("assets");
-            JSONObject apkAsset = null;
-            if (assets != null) {
-                for (int index = 0; index < assets.length(); index++) {
-                    JSONObject asset = assets.optJSONObject(index);
-                    if (asset != null && "app-release.apk".equals(asset.optString("name"))) {
-                        apkAsset = asset;
-                        break;
-                    }
-                }
-            }
-            if (apkAsset == null) {
-                throw new IllegalStateException("GitHub Release does not contain app-release.apk");
-            }
-
-            String digest = apkAsset.optString("digest", "").trim();
-            String sha256 = digest.regionMatches(true, 0, "sha256:", 0, 7)
-                    ? digest.substring(7) : "";
-            JSONObject normalized = new JSONObject();
-            normalized.put("versionCode", versionCode);
-            normalized.put("versionName", githubVersionName(tag));
-            normalized.put("channel", "stable");
-            normalized.put("releaseTag", tag);
-            normalized.put("downloadUrl", apkAsset.optString("browser_download_url", ""));
-            normalized.put("fileSize", apkAsset.optLong("size", 0));
-            normalized.put("sha256", sha256);
-            normalized.put("changelog", release.optString("body", ""));
-            normalized.put("forceUpdate", false);
-
-            UpdateInfo info = UpdateInfo.fromJson(normalized);
-            if (info.getDownloadUrl().isEmpty() || info.getSha256().isEmpty()) {
-                throw new IllegalStateException("GitHub Release asset is missing a download URL or SHA-256");
-            }
-            info.setSourceVersionUrl(GITHUB_LATEST_RELEASE_API_URL);
-            info.setLocalVersion(localVersion.versionCode, localVersion.versionName);
-            applyUpdatePolicy(info, localVersion, acceptBeta);
-            saveLastCheck(context);
-            return info;
-        } catch (Exception e) {
-            Log.w(TAG, "GitHub release check failed: " + e.getMessage());
-        }
-        return null;
-    }
-
-    static int parseGitHubVersionCode(String tag) {
-        Matcher matcher = GITHUB_VERSION_CODE_PATTERN.matcher(tag == null ? "" : tag);
-        if (!matcher.find()) return 0;
-        try {
-            return Integer.parseInt(matcher.group(1));
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
-    }
-
-    private static String githubVersionName(String tag) {
-        if (tag == null) return "";
-        return tag.replaceFirst("(?i)^v", "").replaceFirst("(?i)-vc\\d+$", "");
+        Log.d(TAG, "Checking GitHub Release metadata asset (stable only)...");
+        return checkSpecificVersion(context, GITHUB_VERSION_JSON_URL, localVersion, false,
+                GITHUB_CONNECT_TIMEOUT, GITHUB_READ_TIMEOUT);
     }
 
     /**

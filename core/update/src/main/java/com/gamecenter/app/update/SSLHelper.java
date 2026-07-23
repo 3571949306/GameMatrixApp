@@ -133,6 +133,15 @@ public class SSLHelper {
      * @param conn 要配置的 HTTPS 连接
      */
     public static void applySsl(HttpsURLConnection conn) {
+        String host = conn.getURL().getHost();
+        // Only the configured update host needs the custom policy. Applying a
+        // host allow-list verifier to GitHub (or its redirect hosts) rejects a
+        // perfectly valid platform certificate before Android can verify it.
+        synchronized (SSLHelper.class) {
+            if (!trustedHosts.contains(host)) {
+                return;
+            }
+        }
         SSLSocketFactory factory = getSSLSocketFactory();
         if (factory != null) {
             conn.setSSLSocketFactory(factory);
