@@ -82,8 +82,8 @@ public class HintAsyncCalculator {
         cancelCalculation();
 
         long gen = generationCounter.incrementAndGet();
-        // playerSide: 1=红方 → aiSide=1; 2=黑方 → aiSide=-1
-        int aiSide = (playerSide == 1) ? 1 : -1;
+        // playerSide: 1=红方(玩家) → aiSide=-1(黑方/AI); 2=黑方 → aiSide=1(红方)
+        int aiSide = (playerSide == 1) ? -1 : 1;
 
         Runnable task = () -> {
             long startMs = System.currentTimeMillis();
