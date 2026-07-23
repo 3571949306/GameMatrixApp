@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 中国象棋 AI 提示弹窗布局 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/chess_hint_dialog_bg">
+
+    <!-- 标题 -->
+    <TextView
+        android:id="@+id/tv_hint_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/chinese_chess_hint_title"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#202124"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 走法描述卡片 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/chess_hint_card_bg"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp">
+
+        <!-- 图标 + 标签 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="♟"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chinese_chess_hint_move_label"
+                android:textSize="12sp"
+                android:textColor="#5F6368"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 走法描述 -->
+        <TextView
+            android:id="@+id/tv_hint_move_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#202124"
+            android:textStyle="bold"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- 解释文本卡片 -->
+    <LinearLayout
+        android:id="@+id/layout_explanation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/chess_hint_card_bg"
+        android:padding="12dp"
+        android:layout_marginBottom="16dp">
+
+        <!-- 图标 + 标签 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💡"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chinese_chess_hint_explanation_label"
+                android:textSize="12sp"
+                android:textColor="#5F6368"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 解释内容 -->
+        <TextView
+            android:id="@+id/tv_hint_explanation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="#3C4043"
+            android:lineSpacingExtra="4dp" />
+    </LinearLayout>
+
+    <!-- 按钮栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- 取消按钮 -->
+        <Button
+            android:id="@+id/btn_hint_cancel"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:text="@string/chinese_chess_hint_cancel"
+            android:textSize="14sp"
+            android:textColor="#5F6368"
+            android:background="@drawable/chess_hint_btn_cancel_bg"
+            android:layout_marginEnd="8dp" />
+
+        <!-- 执行按钮 -->
+        <Button
+            android:id="@+id/btn_hint_execute"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:text="@string/chinese_chess_hint_execute"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/chess_hint_btn_execute_bg" />
+    </LinearLayout>
+</LinearLayout>
