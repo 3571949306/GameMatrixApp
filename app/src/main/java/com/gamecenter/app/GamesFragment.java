@@ -1440,9 +1440,12 @@ public class GamesFragment extends Fragment {
 
         allEntries.clear();
         List<GameRegistry.Category> categories = GameRegistry.getCategories(requireContext());
+        Log.d("GamesFragment", "加载游戏: 分类数量=" + categories.size());
         for (GameRegistry.Category cat : categories) {
+            Log.d("GamesFragment", "分类: " + cat.name + ", 游戏数量=" + cat.games.size());
             allEntries.addAll(cat.games);
         }
+        Log.d("GamesFragment", "总游戏数量: " + allEntries.size());
         initTabsIfNeeded();
         filterAndRefresh();
         hasLoadedOnce = true;
