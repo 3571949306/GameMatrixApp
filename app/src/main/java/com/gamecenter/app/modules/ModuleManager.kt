@@ -37,6 +37,10 @@ object ModuleManager {
     private val downloadCallbacks = ConcurrentHashMap<String, ModuleDownloader.Callback>()
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    // MODULE_STORE_PERF_OPT: 内存级缓存，消除主线程 N+1 文件 IO
+    @Volatile private var installedIdsCache: MutableSet<String>? = null
+    @Volatile private var installedVersionCache: MutableMap<String, Int>? = null
+
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -239,12 +243,12 @@ object ModuleManager {
                 Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
                 downloadCallbacks[moduleId]?.onStateChanged(moduleId, "installing")
                 rememberLastGoodVersion(context, manifest)
-                
+
                 // P3: 事务性安装 - 将文件从 staging 移动到 current
                 val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
                     context, manifest, file
                 )
-                
+
                 if (!installResult.isSuccess) {
                     val reason = (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Failure)?.reason ?: "未知原因"
                     Log.e(TAG, "事务安装失败: $moduleId, $reason")
@@ -252,11 +256,11 @@ object ModuleManager {
                     downloadCallbacks.remove(moduleId)
                     return
                 }
-                
+
                 // 获取安装后的 current 文件
                 val installedFile = ModuleDownloader.getInstalledModuleFile(context, manifest)
                 Log.d(TAG, "事务安装成功: $moduleId -> ${installedFile.absolutePath}")
-                
+
                 ModuleLoader.unloadModule(moduleId)
                 markModuleInstalled(context, manifest)
                 if (manifest.type == "game") {
@@ -310,7 +314,58 @@ object ModuleManager {
         Log.d(TAG, "模块 $moduleId 已卸载")
     }
 
+    /**
+     * MODULE_STORE_PERF_OPT: 确保安装状态缓存已初始化（线程安全）。
+     * 首次调用时在当前线程做一次全量扫描（建议在 IO 线程或 Activity.onCreate 调用），
+     * 后续所有 isModuleInstalled / getInstalledVersionCode / getInstalledModuleIds 均走内存。
+     * 关闭 flag 时退化为原逻辑（每次主线程文件 IO）。
+     */
+    fun ensureInstalledCache(context: Context) {
+        if (!BuildConfig.MODULE_STORE_PERF_OPT) return
+        if (installedIdsCache != null && installedVersionCache != null) return
+        synchronized(this) {
+            if (installedIdsCache != null && installedVersionCache != null) return
+            if (manifests.isEmpty()) registerLocalFallbackIfNeeded(context)
+            val appContext = context.applicationContext
+            val p = prefs(appContext)
+            val installed = p.getStringSet(KEY_INSTALLED_MODULES, emptySet())?.toMutableSet() ?: mutableSetOf()
+            val versions = mutableMapOf<String, Int>()
+            for ((id, manifest) in manifests) {
+                if (manifest.builtIn) {
+                    installed.add(id)
+                    val vc = if (manifest.builtInVersionCode > 0) manifest.builtInVersionCode else manifest.versionCode
+                    versions[id] = vc
+                    continue
+                }
+                val savedV = p.getInt(KEY_MODULE_VERSION_PREFIX + id, 0)
+                if (savedV > 0) versions[id] = savedV
+                if (!installed.contains(id) && manifest.fileName.isNotEmpty()) {
+                    val file = ModuleDownloader.getModuleFileCompat(appContext, manifest)
+                    if (file.exists()) installed.add(id)
+                }
+            }
+            installedIdsCache = installed
+            installedVersionCache = versions
+            Log.d(TAG, "安装状态缓存已初始化: ${installed.size} 个已安装模块")
+        }
+    }
+
+    /** MODULE_STORE_PERF_OPT: 失效缓存（安装/卸载/回滚后调用） */
+    fun invalidateInstalledCache() {
+        if (!BuildConfig.MODULE_STORE_PERF_OPT) return
+        installedIdsCache = null
+        installedVersionCache = null
+    }
+
     fun isModuleInstalled(context: Context, moduleId: String): Boolean {
+        if (BuildConfig.MODULE_STORE_PERF_OPT) {
+            val cache = installedIdsCache
+            if (cache != null) return cache.contains(moduleId)
+            // 缓存未初始化，走 ensure（首次访问兜底）
+            ensureInstalledCache(context)
+            return installedIdsCache?.contains(moduleId) ?: false
+        }
+        // 原逻辑（flag 关闭时）
         if (manifests.isEmpty()) registerLocalFallbackIfNeeded(context)
         val installed = prefs(context).getStringSet(KEY_INSTALLED_MODULES, emptySet()) ?: emptySet()
         if (installed.contains(moduleId)) return true
@@ -339,6 +394,13 @@ object ModuleManager {
     }
 
     fun getInstalledVersionCode(context: Context, moduleId: String): Int {
+        if (BuildConfig.MODULE_STORE_PERF_OPT) {
+            val cache = installedVersionCache
+            if (cache != null) return cache[moduleId] ?: 0
+            ensureInstalledCache(context)
+            return installedVersionCache?.get(moduleId) ?: 0
+        }
+        // 原逻辑（flag 关闭时）
         val installedVersion = prefs(context).getInt(KEY_MODULE_VERSION_PREFIX + moduleId, 0)
         if (installedVersion > 0) return installedVersion
         if (manifests.isEmpty()) registerLocalFallbackIfNeeded(context)
@@ -386,6 +448,11 @@ object ModuleManager {
     }
 
     fun getInstalledModuleIds(context: Context): Set<String> {
+        if (BuildConfig.MODULE_STORE_PERF_OPT) {
+            ensureInstalledCache(context)
+            return installedIdsCache?.toSet() ?: emptySet()
+        }
+        // 原逻辑（flag 关闭时）
         if (manifests.isEmpty()) registerLocalFallbackIfNeeded(context)
         val installed = prefs(context).getStringSet(KEY_INSTALLED_MODULES, emptySet())?.toMutableSet() ?: mutableSetOf()
         for ((id, manifest) in manifests) {
@@ -509,6 +576,9 @@ object ModuleManager {
             .putStringSet(KEY_INSTALLED_MODULES, installed)
             .putInt(KEY_MODULE_VERSION_PREFIX + manifest.id, manifest.versionCode)
             .apply()
+        // MODULE_STORE_PERF_OPT: 同步更新内存缓存
+        installedIdsCache?.add(manifest.id)
+        installedVersionCache?.put(manifest.id, manifest.versionCode)
     }
 
     private fun removeInstalledModule(context: Context, moduleId: String) {
@@ -521,6 +591,9 @@ object ModuleManager {
             .remove(KEY_LAST_GOOD_VERSION_PREFIX + moduleId)
             .apply()
         setModuleEnabled(context, moduleId, true)
+        // MODULE_STORE_PERF_OPT: 同步更新内存缓存
+        installedIdsCache?.remove(moduleId)
+        installedVersionCache?.remove(moduleId)
     }
 
     fun cancelDownload(moduleId: String) = ModuleDownloader.cancel(moduleId)

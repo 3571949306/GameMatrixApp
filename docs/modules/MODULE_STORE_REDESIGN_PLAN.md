@@ -570,6 +570,72 @@ The redesign is successful when:
 5. **P6 Unity SDK 接入**: 占位实现已就绪，接入 Unity as a Library 后替换 `PlaceholderUnityModuleLauncher`。
 6. **CI 增强**: 在 `lint-and-test` job 中增加 download → verify → promote → launch → rollback 的集成测试。
 
+## Module Store Performance Optimization (2026-07-22)
+
+> 本节记录模块商店"已安装"标签加载和切换卡顿问题的排查与修复。
+
+### 问题描述
+
+用户反馈：在模块商店点击"已安装"标签时页面加载卡顿明显，从"已安装"切换到其他标签也会卡顿很久。
+
+### 根因分析
+
+通过真机压力测试（8 次连续标签切换）和 logcat 分析，识别出两层性能瓶颈：
+
+**第一层（N+1 主线程 IO，上个会话已修复）**：
+- `ModuleManager` 每次标签切换触发约 90 次 `File.exists()` stat 调用 + 120 次 SharedPreferences 读取
+- 通过 `MODULE_STORE_PERF_OPT` feature flag 引入内存级缓存（`installedIdsCache` / `installedVersionCache`）消除
+
+**第二层（Adapter 重复解析，上个会话已修复）**：
+- `ModuleAdapter.updateInstalledIds` 调用 `notifyItemRangeChanged(0, itemCount)` 触发全量重绑
+- `onBindViewHolder` 中 4 次 `resolveThemeColor`（TypedValue + resolveAttribute）+ 2 次 `getIdentifier`（反射式资源查找）
+- 通过主题颜色缓存（`ThemeColorCache`）、图标 LruCache、移除全量重绑、调整 adapter 调用顺序修复
+
+**第三层（布局测量瓶颈，本次修复）**：
+- logcat 显示 `DecorView onMeasure time too long: 987ms` 和 `716ms`
+- `Choreographer: Skipped 72 frames!` 和 `Skipped 48 frames!`
+- 根本原因：`activity_module_store.xml` 中 RecyclerView 嵌套在 `NestedScrollView` 内，且 `layout_height="wrap_content"` + `nestedScrollingEnabled="false"`，导致 RecyclerView 一次性测量所有 item，无法回收复用
+
+### 修复方案
+
+**布局重构（`activity_module_store.xml`）**：
+- 移除 `NestedScrollView` 包裹层
+- 头部内容（Hero Banner、统计卡片、搜索框、TabLayout、子分类）作为固定头部，不随列表滚动（类似 Google Play Store 设计）
+- RecyclerView 放入 `FrameLayout`（`layout_height=0dp + layout_weight=1`），`layout_height=match_parent`，移除 `nestedScrollingEnabled=false`
+- 空状态/错误状态/骨架屏与 RecyclerView 在同一 FrameLayout 中重叠
+
+### 验证结果
+
+真机：小米 ares (M2012K10C, serial=w4dm4dssby7xcunv)
+
+**修复前**：
+- `DecorView onMeasure time too long: 987ms` / `716ms`
+- `Choreographer: Skipped 72 frames!` / `Skipped 48 frames!`
+
+**修复后**（8 次连续标签切换压力测试）：
+- 无 `Choreographer: Skipped` 日志
+- 无 `onMeasure time too long` 警告
+- 无 `FATAL EXCEPTION`
+- UI 显示正常（Hero Banner、统计卡片、搜索框、TabLayout、模块卡片、FAB 均完整）
+
+### 涉及文件
+
+- `app/src/main/res/layout/activity_module_store.xml`（布局重构）
+- `app/src/main/java/com/gamecenter/app/modules/ModuleAdapter.kt`（主题颜色缓存、图标 LruCache、移除全量重绑）
+- `app/src/main/java/com/gamecenter/app/modules/ModuleStoreActivity.kt`（调整 adapter 调用顺序）
+- `app/src/main/java/com/gamecenter/app/modules/ModuleManager.kt`（内存级安装状态缓存）
+- `app/build.gradle`（`MODULE_STORE_PERF_OPT` feature flag）
+
+### 回滚方法
+
+1. **快速回退（保留代码）**：在 `app/build.gradle` 中将 `MODULE_STORE_PERF_OPT` 设置为 `false`，可禁用内存缓存和 adapter 优化（但布局重构无法通过 flag 回退）
+2. **完全回退**：`git checkout app/src/main/res/layout/activity_module_store.xml app/src/main/java/com/gamecenter/app/modules/ModuleAdapter.kt app/src/main/java/com/gamecenter/app/modules/ModuleStoreActivity.kt app/src/main/java/com/gamecenter/app/modules/ModuleManager.kt app/build.gradle`
+
+### 已知限制
+
+- 头部内容不再随列表滚动（设计取舍：类似 Google Play Store，头部固定以换取列表流畅度）
+- `InstalledModulesActivity.kt` 仍存在类似的 N+1 模式（未在本次修复范围内）
+
 ## Hybrid Store Phase 1 Progress (2026-07-20)
 
 > This section records the hybrid store architecture implementation completed on 2026-07-20.

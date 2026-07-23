@@ -43,6 +43,22 @@ record the decision in the final response.
   Verify the APK asset under `assets/modules/` by size or SHA-256.
 - Do not report success without checking logcat for `FATAL EXCEPTION` after the
   target flow runs.
+- `RELEASE_NOTES.md` is the only user-facing update announcement source for
+  GitHub Releases, `version.json`, and the in-app update prompt. Keep it short,
+  plain-language, and limited to the current release. Never publish the full
+  `CHANGELOG.md`, raw GitHub-style `@mentions`, source paths, build logs, or
+  rollback commands as user-facing notes. Run
+  `python tools/validate_release_notes.py RELEASE_NOTES.md --version-file version.properties`
+  before a stable release.
+- `README.md` is an App user page, not a developer report. Keep it focused on
+  what the App does, installation, updates, permissions, privacy, and common
+  questions. Do not add build commands, CI details, architecture notes, test
+  matrices, internal paths, hashes, or release-operation logs.
+- Stable user APKs must be ARM64-only and pass
+  `python tools/validate_release_apk.py app/build/outputs/apk/release/app-release.apk`.
+  Never publish Flutter debug sections or emulator ABIs in the universal APK.
+  Keep `flutterNdkVersion` aligned with Flutter's required NDK version; do not
+  enable legacy JNI packaging merely to hide an oversized APK.
 - Do not echo secrets from local config, keystore, token, or password files.
 
 ## Standard Verification Commands
@@ -61,6 +77,12 @@ When a preinstalled dynamic module changed:
 ```
 
 When validating the Flutter-first module store, add `-PenableFlutterModuleStore=true -PautoUploadVps=false` to the relevant app tasks, then run `flutter analyze` and `flutter test` from `flutter_module/`. The flag defaults to false and must remain opt-in until the release gates in `docs/flutter-store/MIGRATION_STATUS.md` are complete.
+
+Stable production APK verification:
+
+```powershell
+.\gradlew.bat :app:validateReleaseApk -PupdateChannel=stable -PenableFlutterModuleStore=true -Ptarget-platform=android-arm64 -PenableCatalogSignature=true -PcatalogSigningProfile=production -PautoBumpVersion=false -PautoUploadVps=false -PpublishGitHubRelease=false --stacktrace
+```
 
 Install and smoke test on a connected emulator:
 

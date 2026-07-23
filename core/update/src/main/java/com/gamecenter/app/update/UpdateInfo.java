@@ -35,6 +35,10 @@ public class UpdateInfo {
     private long fileSize;
     /** APK 文件 MD5 校验值 */
     private String md5;
+    /** APK 文件 SHA-256 校验值（稳定发布必须提供） */
+    private String sha256;
+    /** GitHub Release 标签，用于在主源不可用时构造精确的备用下载地址 */
+    private String releaseTag;
     /** 发布渠道（"stable" 或 "beta"） */
     private String channel;
     /** 是否为 Beta 版本 */
@@ -82,6 +86,9 @@ public class UpdateInfo {
         info.forceUpdate = json.optBoolean("forceUpdate", false);
         info.fileSize = json.optLong("fileSize", 0);
         info.md5 = json.optString("md5", "");
+        info.sha256 = json.optString("sha256", "");
+        info.releaseTag = firstNonEmpty(json.optString("githubReleaseTag", ""),
+                json.optString("releaseTag", ""), json.optString("tagName", ""));
         info.channel = resolveChannel(json, info.versionName);
         info.betaRelease = "beta".equals(info.channel);
         // 最新稳定版版本号兼容多种字段名
@@ -116,6 +123,12 @@ public class UpdateInfo {
 
     /** 获取 APK 文件 MD5 校验值 */
     public String getMd5() { return md5; }
+
+    /** 获取 APK 文件 SHA-256 校验值。 */
+    public String getSha256() { return sha256 == null ? "" : sha256; }
+
+    /** 获取 GitHub Release 标签。 */
+    public String getReleaseTag() { return releaseTag == null ? "" : releaseTag; }
 
     /**
      * 获取发布渠道。
