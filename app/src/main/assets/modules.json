@@ -160,8 +160,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.wrongbook.WrongBookModuleEntryPoint",
       "fileName": "feature_wrongbook_v100.apk",
-      "fileSize": 6138761,
-      "sha256": "bd9a2794f151b389683a228348ef0b5643e8fdc2e5c503ed6e54ee203e1ea5e4",
+      "fileSize": 6138758,
+      "sha256": "c68e07d26ec1f0cfe4dfafdb217d89161670d059d454893df73fe0056358e4c0",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -187,9 +187,9 @@
       "dependencies": [],
       "package": {
         "fileName": "feature_wrongbook_v100.apk",
-        "fileSize": 6138761,
+        "fileSize": 6138758,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
-        "sha256": "bd9a2794f151b389683a228348ef0b5643e8fdc2e5c503ed6e54ee203e1ea5e4"
+        "sha256": "c68e07d26ec1f0cfe4dfafdb217d89161670d059d454893df73fe0056358e4c0"
       }
     },
     {

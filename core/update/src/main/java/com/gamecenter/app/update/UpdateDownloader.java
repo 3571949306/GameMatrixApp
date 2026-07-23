@@ -3,6 +3,8 @@ package com.gamecenter.app.update;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -162,15 +164,32 @@ public class UpdateDownloader {
                         String.valueOf(info.getVersionCode()), info.getVersionName()));
 
         // 若本地已有经 SHA-256（旧元数据则回退 MD5）验证的 APK，直接复用。
+        // 2026-07-23 修复：除哈希校验外，额外校验 APK 内部 versionCode 与服务器声明一致，
+        // 防止历史下载的"哈希正确但版本陈旧"APK 被错误复用。
         if (apkFile.exists()) {
-            boolean verified = false;
+            boolean hashVerified = false;
             if (!info.getSha256().isEmpty()) {
-                verified = info.getSha256().equalsIgnoreCase(computeSha256(apkFile));
+                hashVerified = info.getSha256().equalsIgnoreCase(computeSha256(apkFile));
             } else if (!info.getMd5().isEmpty()) {
-                verified = info.getMd5().equalsIgnoreCase(computeMd5(apkFile));
+                hashVerified = info.getMd5().equalsIgnoreCase(computeMd5(apkFile));
             }
-            if (verified) return apkFile;
-            apkFile.delete();
+            if (hashVerified) {
+                if (BuildConfig.ENABLE_APK_VERSION_CHECK) {
+                    int apkVersionCode = readApkVersionCode(context, apkFile);
+                    if (apkVersionCode > 0 && apkVersionCode != info.getVersionCode()) {
+                        Log.w(TAG, "Cached APK versionCode=" + apkVersionCode
+                                + " mismatch server versionCode=" + info.getVersionCode()
+                                + ", deleting and re-downloading");
+                        apkFile.delete();
+                    } else {
+                        return apkFile;
+                    }
+                } else {
+                    return apkFile;
+                }
+            } else {
+                apkFile.delete();
+            }
         }
 
         URL url = new URL(downloadUrl);
@@ -297,7 +316,67 @@ public class UpdateDownloader {
                 throw new Exception("安装包MD5校验失败，期望 " + info.getMd5() + "，实际 " + actualMd5);
             }
         }
+
+        // 2026-07-23 修复：APK 内部 versionCode 校验
+        // 防止 CDN 缓存陈旧导致 SHA-256 匹配但实际是旧版本 APK 的情况。
+        // 例如：version-release.json 标 versionCode=599，但 CDN 返回了 598 的 APK。
+        // SHA-256 不会发现这个问题，因为 598 的 APK 自身 SHA-256 也是正确的。
+        // 通过读取 APK 内部声明的 versionCode 与 JSON 声明比对，一劳永逸地拦截此类降级。
+        if (BuildConfig.ENABLE_APK_VERSION_CHECK) {
+            int apkVersionCode = readApkVersionCode(context, apkFile);
+            if (apkVersionCode <= 0) {
+                Log.w(TAG, "Cannot read versionCode from APK, skip version check");
+            } else if (apkVersionCode != info.getVersionCode()) {
+                String msg = "APK 内部 versionCode=" + apkVersionCode
+                        + " 与服务器声明 versionCode=" + info.getVersionCode() + " 不一致，删除并切换源";
+                apkFile.delete();
+                throw new Exception(msg);
+            } else {
+                Log.d(TAG, "APK versionCode verified: " + apkVersionCode);
+            }
+        }
         return apkFile;
+    }
+
+    /**
+     * 读取 APK 文件内部声明的 versionCode。
+     * <p>
+     * 使用 PackageManager 解析 APK 文件，获取其 manifest 中声明的 versionCode。
+     * 用于在下载完成后校验 APK 实际版本与服务器声明版本是否一致，
+     * 防止 CDN 缓存陈旧或源同步错位导致的"JSON 标 599 但实际下载到 598"问题。
+     * </p>
+     *
+     * @param context 上下文
+     * @param apkFile APK 文件
+     * @return APK 内部声明的 versionCode；解析失败返回 -1
+     */
+    private int readApkVersionCode(Context context, File apkFile) {
+        if (apkFile == null || !apkFile.exists()) return -1;
+        try {
+            PackageManager pm = context.getPackageManager();
+            // 使用 GET_META_DATA 确保能完整解析 AndroidManifest.xml
+            int flags = PackageManager.GET_META_DATA;
+            PackageInfo packageInfo;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                // Android 9+ 使用 PackageInfoFlags，避免 deprecated 警告
+                packageInfo = pm.getPackageArchiveInfo(apkFile.getAbsolutePath(),
+                        PackageManager.PackageInfoFlags.of(flags));
+            } else {
+                packageInfo = pm.getPackageArchiveInfo(apkFile.getAbsolutePath(), flags);
+            }
+            if (packageInfo == null) {
+                Log.w(TAG, "PackageArchiveInfo is null for: " + apkFile.getPath());
+                return -1;
+            }
+            // Android 8+ 使用 longVersionCode，兼容旧版用 versionCode
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return (int) packageInfo.getLongVersionCode();
+            }
+            return packageInfo.versionCode;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to read APK versionCode: " + e.getMessage());
+            return -1;
+        }
     }
 
     /**
