@@ -284,6 +284,28 @@ public class ChineseChessActivity extends BaseGameActivity {
         barRedPlayer.setVisibility(View.GONE);
         barBlackPlayer.setVisibility(View.GONE);
         historyPanel.setVisibility(View.GONE);
+
+        // 棋谱面板点击展开/收起
+        historyPanel.setOnClickListener(v -> toggleHistoryPanel());
+    }
+
+    private boolean historyExpanded = false;
+
+    private void toggleHistoryPanel() {
+        historyExpanded = !historyExpanded;
+        if (historyExpanded) {
+            // 展开
+            historyPanel.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+                    android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                    300));
+            historyPanel.setPadding(8, 8, 8, 8);
+        } else {
+            // 收起
+            historyPanel.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
+                    30,
+                    android.widget.FrameLayout.LayoutParams.WRAP_CONTENT));
+            historyPanel.setPadding(6, 6, 6, 6);
+        }
     }
 
     // ==================== BaseGameActivity 实现 ====================

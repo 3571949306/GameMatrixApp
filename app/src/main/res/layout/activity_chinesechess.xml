@@ -131,18 +131,20 @@
 
     </LinearLayout>
 
-    <!-- 走法历史面板（右侧浮动，可点击展开/收起） -->
+    <!-- 走法历史面板（右侧浮动，默认隐藏，点击展开） -->
     <LinearLayout
         android:id="@+id/history_panel"
-        android:layout_width="40dp"
-        android:layout_height="200dp"
+        android:layout_width="30dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
         android:layout_marginEnd="4dp"
         android:background="@drawable/chess_history_bg"
         android:elevation="4dp"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="4dp"
+        android:padding="6dp"
+        android:clickable="true"
+        android:focusable="true"
         android:visibility="gone">
 
         <TextView
