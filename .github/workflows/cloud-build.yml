@@ -185,7 +185,7 @@ jobs:
 
       - name: Build signed release APK
         run: >-
-          ./gradlew :app:validateReleaseApk
+          ./gradlew :app:generateVersionJson :app:validateReleaseApk
           -PupdateChannel=stable
           -PenableFlutterModuleStore=true
           -Ptarget-platform=android-arm64
@@ -206,7 +206,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-signed
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/version.json
           if-no-files-found: warn
           retention-days: 30
 
@@ -221,7 +223,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/*.apk
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/version.json
           body_path: RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
