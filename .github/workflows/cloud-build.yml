@@ -60,7 +60,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Setup Android SDK (commandline-tools)
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           api-level: 35
           build-tools-version: 35.0.0
@@ -168,7 +168,7 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > gamematrix.jks
           ls -la gamematrix.jks
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           api-level: 35
           build-tools-version: 35.0.0
