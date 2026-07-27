@@ -21,8 +21,8 @@ buildscript {
         classpath 'io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.7'
         classpath 'org.jlleitschuh.gradle:ktlint-gradle:12.1.2'
         // Phase 1.2: 覆盖率
-        classpath 'org.jacoco:org.jacoco.core:0.8.12'
-        classpath 'org.jacoco:org.jacoco.report:0.8.12'
+        classpath 'org.jacoco:org.jacoco.core:0.8.15'
+        classpath 'org.jacoco:org.jacoco.report:0.8.15'
     }
 
     configurations.classpath {
