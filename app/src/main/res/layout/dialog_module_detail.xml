@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 模块详情 BottomSheet（Batch 20: 模块信息 + 多操作按钮） -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- BUG-S002 修复：使用 NestedScrollView 包裹内容，确保操作按钮区在内容超出屏幕时可滚动可见 -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorSurface"
+    android:fillViewport="true">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -353,6 +361,108 @@
             android:orientation="vertical" />
     </LinearLayout>
 
+    <!-- P3-12 (MODULE_STORE_ENHANCE): 用户评分区域 -->
+    <LinearLayout
+        android:id="@+id/detailRatingSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_3">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/module_detail_rating_title"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gm_spacing_1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:id="@+id/detailRatingStarsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+
+            <TextView
+                android:id="@+id/detailRatingValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/gm_spacing_2"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                tools:text="4.2" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/detailRatingHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/module_detail_rating_hint"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- P3-12: 相似模块推荐区域 -->
+    <LinearLayout
+        android:id="@+id/detailSimilarSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_3"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/module_detail_similar_title"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/detailSimilarList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gm_spacing_1"
+            android:orientation="horizontal" />
+    </LinearLayout>
+
+    <!-- P3-12: 版本日志区域（扩展 detailChangelogSection，显示历史版本列表） -->
+    <LinearLayout
+        android:id="@+id/detailVersionHistorySection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_3"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/module_detail_version_history"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/detailVersionHistoryList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gm_spacing_1"
+            android:orientation="vertical" />
+    </LinearLayout>
+
     <!-- 操作按钮区 -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -399,3 +509,4 @@
     </LinearLayout>
 
 </LinearLayout>
+</androidx.core.widget.NestedScrollView>

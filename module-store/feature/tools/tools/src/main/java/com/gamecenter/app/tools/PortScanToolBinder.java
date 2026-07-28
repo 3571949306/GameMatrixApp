@@ -5,36 +5,43 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.gamecenter.app.R;
 import com.google.android.material.button.MaterialButton;
+
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 端口扫描工具绑定器。
+ * 端口扫描工具绑定器（2026-07-25 改进版）。
  * <p>
- * 负责将端口扫描工具的 UI 视图与端口连通性检测逻辑进行绑定。
- * 用户输入目标 IP 和端口范围后，逐个尝试 TCP 连接以判断端口是否开放。
- * 关键设计决策：
+ * 改进点：
  * <ul>
- *   <li>扫描操作在后台线程执行，每扫描 10 个端口刷新一次进度</li>
- *   <li>端口范围上限硬限制为 65535，防止越界</li>
- *   <li>使用短超时（200ms）以加快扫描速度，但可能在网络延迟较高时产生误判</li>
+ *   <li>从单线程顺序扫描改为 ThreadPoolExecutor 并发扫描，可配置并发数（默认 16）</li>
+ *   <li>支持自定义单端口连接超时（默认 300ms）</li>
+ *   <li>支持多种端口范围格式：1-1024 / 80,443,8080 / 1-1024,3306</li>
+ *   <li>结果按端口号排序，分别显示开放/关闭端口</li>
+ *   <li>显示扫描进度和汇总统计</li>
+ *   <li>使用本地化字符串，无硬编码中文</li>
  * </ul>
  * </p>
  */
 public final class PortScanToolBinder implements ToolBinder {
     private static final String TAG = "PortScanToolBinder";
+    /** 并发数上限，防止用户输入过大导致资源耗尽 */
+    private static final int MAX_CONCURRENCY = 64;
+    /** 单次扫描端口上限 */
+    private static final int MAX_TOTAL_PORTS = 65535;
 
-    /**
-     * 绑定端口扫描工具的视图和交互逻辑。
-     * <p>
-     * 查找"开始扫描"按钮并设置点击监听器，点击后触发端口扫描流程。
-     * </p>
-     *
-     * @param context     上下文环境，用于 UI 线程切换
-     * @param contentView 工具页面的根视图，包含 IP 输入框、端口范围输入框、结果文本和操作按钮
-     * @param executor    线程池执行器，用于在后台线程执行扫描操作
-     */
     @Override
     public void bind(Context context, View contentView, ExecutorService executor) {
         if (contentView == null) return;
@@ -42,93 +49,157 @@ public final class PortScanToolBinder implements ToolBinder {
         if (btn != null) btn.setOnClickListener(v -> scanPorts(context, btn, contentView, executor));
     }
 
-    /**
-     * 执行端口扫描流程。
-     * <p>
-     * 流程如下：
-     * <ol>
-     *   <li>禁用按钮，显示"扫描中..."状态</li>
-     *   <li>读取用户输入的 IP 地址和端口范围（格式：起始端口-结束端口）</li>
-     *   <li>在后台线程逐个尝试 TCP 连接，判断端口是否开放</li>
-     *   <li>每扫描 10 个端口刷新一次进度显示</li>
-     *   <li>扫描完成后显示结果并恢复按钮状态</li>
-     * </ol>
-     * </p>
-     *
-     * @param context     上下文环境，用于 UI 线程切换
-     * @param btnStart    "开始扫描"按钮，用于控制启用/禁用和文本状态
-     * @param contentView 根视图，用于查找输入框和结果文本控件
-     * @param executor    线程池执行器，扫描操作在此执行以避免阻塞主线程
-     */
-    private void scanPorts(Context context, MaterialButton btnStart, View contentView, ExecutorService executor) {
-        btnStart.setEnabled(false);
-        btnStart.setText("扫描中...");
+    private void scanPorts(Context context, MaterialButton btnStart, View contentView, ExecutorService callerExecutor) {
         EditText etHost = contentView.findViewById(R.id.et_port_scan_ip);
         EditText etPortRange = contentView.findViewById(R.id.et_port_scan_ports);
+        EditText etTimeout = contentView.findViewById(R.id.et_port_scan_timeout);
+        EditText etConcurrency = contentView.findViewById(R.id.et_port_scan_concurrency);
         TextView tvResult = contentView.findViewById(R.id.tv_port_scan_result);
+        TextView tvProgress = contentView.findViewById(R.id.tv_port_scan_progress);
 
-        String host = etHost != null ? etHost.getText().toString().trim() : "127.0.0.1";
-        String range = etPortRange != null ? etPortRange.getText().toString().trim() : "";
-        // IP 为空时默认扫描本机
+        String host = etHost != null && etHost.getText() != null ? etHost.getText().toString().trim() : "";
         if (host.isEmpty()) host = "127.0.0.1";
-        // 默认扫描 1-1024 端口范围（知名端口）
-        int startPort = 1, endPort = 1024;
-        // 解析端口范围格式："起始端口-结束端口"
-        if (range.contains("-")) {
-            String[] parts = range.split("-");
-            try {
-                startPort = Integer.parseInt(parts[0].trim());
-                endPort = Integer.parseInt(parts[1].trim());
-            } catch (Exception ignored) {
-                Log.w(TAG, "Parse port range failed: " + ignored.getMessage());
-            }
+        String rangeStr = etPortRange != null && etPortRange.getText() != null ? etPortRange.getText().toString().trim() : "";
+        if (rangeStr.isEmpty()) rangeStr = context.getString(R.string.tool_portscan_default_ports);
+
+        int timeout = parsePositive(etTimeout, 300);
+        int concurrency = Math.min(MAX_CONCURRENCY, Math.max(1, parsePositive(etConcurrency, 16)));
+
+        List<Integer> ports = parsePortRange(rangeStr);
+        if (ports.isEmpty() || ports.size() > MAX_TOTAL_PORTS) {
+            Toast.makeText(context, R.string.tool_portscan_invalid_input, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        btnStart.setEnabled(false);
+        btnStart.setText(context.getString(R.string.tool_port_scan_running));
+        if (tvProgress != null) {
+            tvProgress.setVisibility(View.VISIBLE);
+            tvProgress.setText(context.getString(R.string.tool_port_scan_running));
         }
 
         final String fHost = host;
-        final int fStart = startPort;
-        final int fEnd = endPort;
-        executor.execute(() -> {
-            StringBuilder sb = new StringBuilder();
-            // 逐个端口扫描，上限硬限制为 65535
-            for (int p = fStart; p <= fEnd && p <= 65535; p++) {
-                if (isPortOpen(fHost, p, 200)) {
-                    sb.append("  ✅ 端口 ").append(p).append(" 开放\n");
-                }
-                // 每扫描 10 个端口更新一次进度，避免频繁刷新 UI
-                if (p % 10 == 0) {
-                    final String partial = "扫描中... " + p + "/" + fEnd;
+        final int fTimeout = timeout;
+        final int fConcurrency = concurrency;
+        final List<Integer> fPorts = ports;
+
+        // 使用独立的线程池，避免占用调用方 executor
+        ThreadPoolExecutor scanPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(fConcurrency);
+        // 用于汇总结果（线程安全）
+        List<Integer> openPorts = Collections.synchronizedList(new ArrayList<>());
+        List<Integer> closedPorts = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger done = new AtomicInteger(0);
+        int total = fPorts.size();
+
+        // 提交所有扫描任务
+        List<Future<?>> futures = new ArrayList<>();
+        for (Integer port : fPorts) {
+            futures.add(scanPool.submit(() -> {
+                boolean open = isPortOpen(fHost, port, fTimeout);
+                if (open) openPorts.add(port);
+                else closedPorts.add(port);
+                int finished = done.incrementAndGet();
+                // 每 10 个或完成时刷新进度
+                if (finished % 10 == 0 || finished == total) {
                     ToolHelper.safeRunOnUiThread(context, () -> {
-                        if (tvResult != null) tvResult.setText(partial);
+                        if (tvProgress != null) {
+                            tvProgress.setText(finished + "/" + total);
+                        }
                     });
                 }
+            }));
+        }
+
+        // 关闭线程池并在所有任务完成后汇总结果
+        callerExecutor.execute(() -> {
+            for (Future<?> f : futures) {
+                try {
+                    f.get();
+                } catch (Exception e) {
+                    Log.w(TAG, "scan future failed: " + e.getMessage());
+                }
             }
-            // 无开放端口时给出提示
-            final String res = sb.length() == 0 ? "未发现开放端口" : sb.toString().trim();
+            scanPool.shutdown();
+
+            Collections.sort(openPorts);
+            Collections.sort(closedPorts);
+
+            StringBuilder sb = new StringBuilder();
+            for (Integer p : openPorts) {
+                sb.append(context.getString(R.string.tool_portscan_open_format, String.valueOf(p))).append("\n");
+            }
+            for (Integer p : closedPorts) {
+                sb.append(context.getString(R.string.tool_portscan_closed_format, String.valueOf(p))).append("\n");
+            }
+            sb.append("\n").append(context.getString(R.string.tool_portscan_summary_format,
+                    openPorts.size(), closedPorts.size(), total));
+
+            final String resultText = sb.toString();
             ToolHelper.safeRunOnUiThread(context, () -> {
-                if (tvResult != null) tvResult.setText(res);
+                if (tvResult != null) tvResult.setText(resultText);
+                if (tvProgress != null) {
+                    tvProgress.setText(context.getString(R.string.tool_portscan_summary_format,
+                            openPorts.size(), closedPorts.size(), total));
+                }
                 btnStart.setEnabled(true);
                 btnStart.setText(context.getString(R.string.scan));
             });
         });
     }
 
-    /**
-     * 检测指定主机的指定端口是否开放。
-     * <p>
-     * 通过尝试建立 TCP 连接来判断端口状态。如果连接成功则端口开放，否则视为关闭或不可达。
-     * 使用短超时以加快扫描速度，但可能在网络延迟较高时产生假阴性（误判为关闭）。
-     * </p>
-     *
-     * @param host    目标主机地址
-     * @param port    目标端口号
-     * @param timeout 连接超时时间（毫秒）
-     * @return 如果端口开放返回 {@code true}，否则返回 {@code false}
-     */
-    private boolean isPortOpen(String host, int port, int timeout) {
+    /** 解析 EditText 中的正整数值，失败时返回默认值 */
+    private int parsePositive(EditText et, int defaultVal) {
+        if (et == null || et.getText() == null) return defaultVal;
         try {
-            java.net.Socket socket = new java.net.Socket();
-            socket.connect(new java.net.InetSocketAddress(host, port), timeout);
-            socket.close();
+            int v = Integer.parseInt(et.getText().toString().trim());
+            return v > 0 ? v : defaultVal;
+        } catch (Exception e) {
+            return defaultVal;
+        }
+    }
+
+    /**
+     * 解析端口范围字符串，支持以下格式：
+     * <ul>
+     *   <li>"80" — 单个端口</li>
+     *   <li>"1-1024" — 范围</li>
+     *   <li>"80,443,8080" — 列表</li>
+     *   <li>"1-100,3306,8080-8090" — 混合</li>
+     * </ul>
+     */
+    private List<Integer> parsePortRange(String rangeStr) {
+        List<Integer> ports = new ArrayList<>();
+        if (rangeStr == null || rangeStr.isEmpty()) return ports;
+        String[] parts = rangeStr.split(",");
+        for (String part : parts) {
+            part = part.trim();
+            if (part.isEmpty()) continue;
+            if (part.contains("-")) {
+                String[] range = part.split("-");
+                if (range.length != 2) continue;
+                try {
+                    int start = Integer.parseInt(range[0].trim());
+                    int end = Integer.parseInt(range[1].trim());
+                    if (start < 1 || end > 65535 || start > end) continue;
+                    for (int p = start; p <= end; p++) {
+                        if (!ports.contains(p)) ports.add(p);
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            } else {
+                try {
+                    int p = Integer.parseInt(part);
+                    if (p >= 1 && p <= 65535 && !ports.contains(p)) ports.add(p);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return ports;
+    }
+
+    private boolean isPortOpen(String host, int port, int timeout) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeout);
             return true;
         } catch (Exception e) {
             return false;

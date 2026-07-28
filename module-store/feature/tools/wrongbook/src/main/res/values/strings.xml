@@ -190,4 +190,43 @@
     <string name="wrongbook_cloud_restore_failed">云端恢复失败</string>
     <string name="wrongbook_cloud_backup_failed_with_reason">云端备份失败：%1$s</string>
     <string name="wrongbook_cloud_restore_failed_with_reason">云端恢复失败：%1$s</string>
+
+    <!-- 错题本硬编码字符串外置化 -->
+    <string name="wrongbook_saved">错题保存成功！</string>
+    <string name="wrongbook_add_subject">新增科目</string>
+    <string name="wrongbook_rename_subject">重命名科目</string>
+    <string name="wrongbook_subject_name_exists">科目名称已存在</string>
+    <string name="wrongbook_delete_subject">删除科目</string>
+    <string name="wrongbook_delete_subject_msg">确定删除科目“%1$s”吗？这不会删除该科目下的错题，错题会自动划分到“通用”。</string>
+    <string name="wrongbook_no_backup">未找到备份文件，请先点击导出备份</string>
+    <string name="wrongbook_no_subject">暂无科目，请先在右上角添加科目</string>
+    <string name="wrongbook_not_found">未找到错题数据</string>
+    <string name="wrongbook_content_empty">题目内容不能为空</string>
+    <string name="wrongbook_save_success">保存成功</string>
+    <string name="wrongbook_modify_subject">修改科目</string>
+    <string name="wrongbook_filter_subject">筛选科目</string>
+    <string name="wrongbook_sort_method">排序方式</string>
+    <string name="wrongbook_no_data">暂无数据</string>
+    <string name="wrongbook_total_label">共错题</string>
+
+    <!-- #24.4 OCR 云端调用 consent -->
+    <string name="wrongbook_ocr_consent_title">OCR 识别确认</string>
+    <string name="wrongbook_ocr_consent_send">你拍摄的图片将以 Base64 编码上传到云端 OCR 服务进行文字识别。</string>
+    <string name="wrongbook_ocr_consent_purpose">用于识别图片中的文字内容，辅助错题整理。</string>
+    <string name="wrongbook_ocr_consent_local">可使用本地 ML Kit OCR 引擎（在错题本设置中切换），离线识别且不上传图片。</string>
+    <string name="wrongbook_ocr_consent_cost">需要联网，消耗网络流量；按百度 OCR API 配额计费。</string>
+    <string name="wrongbook_ocr_consent_cancel">点击"取消"即可中止；可在错题本设置中切换为本地引擎。</string>
+    <string name="wrongbook_ocr_consent_provider">服务由百度 OCR 或自建后端代理提供。</string>
+    <string name="wrongbook_ocr_consent_retention">图片数据由 OCR 服务方处理，留存策略详见其隐私政策。</string>
+    <string name="wrongbook_ocr_cancelled">已取消云端识别</string>
+
+    <!-- #24.3 错题本 AI 分析云端调用 consent -->
+    <string name="wrongbook_ai_consent_title">AI 分析确认</string>
+    <string name="wrongbook_ai_consent_send">你输入的题目文字将被发送到云端 AI 模型进行分析。</string>
+    <string name="wrongbook_ai_consent_purpose">用于自动识别题型、难度、知识点并生成解析。</string>
+    <string name="wrongbook_ai_consent_cost">需要联网，消耗网络流量；按 AI 提供方定价计费。</string>
+    <string name="wrongbook_ai_consent_cancel">点击"取消"即可中止；可在错题本设置中切换模式。</string>
+    <string name="wrongbook_ai_consent_provider">服务由你配置的 AI 提供方提供（如 DeepSeek、智谱 GLM）。</string>
+    <string name="wrongbook_ai_consent_retention">数据留存策略由 AI 提供方决定，详见其隐私政策。</string>
+    <string name="wrongbook_ai_cancelled">已取消云端分析</string>
 </resources>

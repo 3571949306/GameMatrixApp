@@ -1,25 +1,22 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
-# :core:network Module
+# :core:network 模块
 
 网络层核心：所有 HTTP / WebSocket 通信的中转站。
 
 ## 职责
 
-- 集中管理 OkHttp 客户端（单例 + Hilt 注入）
-- 提供统一拦截器链（header / logging / retry / dedup）
-- 暴露给所有 feature module 用
+- 集中管理 OkHttp 客户端（单例 + Hilt 注入）。
+- 提供统一拦截器链（header / logging / retry / dedup）。
+- 暴露给所有功能模块使用。
 
 ## 关键类
 
 | 类 | 作用 |
 |---|---|
 | `OkHttpClientProvider` | 单例 OkHttp 客户端（HTTP + WebSocket） |
-| `HeaderInterceptor` | 统一 User-Agent / X-Client header |
+| `HeaderInterceptor` | 统一 `User-Agent` / `X-Client` 头 |
 | `NetworkLoggingInterceptor` | 调试日志 |
 | `RequestDeduplicationInterceptor` | 短时间重复请求去重 |
-| `RetryInterceptor` (内嵌) | 网络抖动重试，线性退避 |
+| `RetryInterceptor`（内嵌） | 网络抖动重试，线性退避 |
 | `RelayHttpClient` | 联机 Relay API 专用客户端 |
 | `RemoteP2PUtil` | P2P 远程通信工具 |
 | `NetworkErrorHandler` | 错误码 → 用户消息转换 |
@@ -40,23 +37,23 @@ class MyService @Inject constructor(
 }
 ```
 
-### 不用注入（dynamic module 场景）
+### 不用注入（动态模块场景）
 
-动态加载的 module 用 `compileOnly` 依赖，无法用 Hilt 注入。
-**Phase 2.3+ 应当**改用 `getInstance(context)`（已 deprecated, 等迁移）
+动态加载的模块以 `compileOnly` 依赖，无法用 Hilt 注入。
+**Phase 2.3+** 应改用 `getInstance(context)`（已 `@Deprecated`，等待迁移）。
 
 ```kotlin
-// 暂时
+// 临时
 val provider = OkHttpClientProvider.getInstance(context)
 val client = provider.httpClient
 ```
 
-## 配置项（BuildConfig）
+## 配置项（`BuildConfig`）
 
-- `RELAY_URL` - 联机 Relay 服务器 URL
-- `WS_URL` - WebSocket 服务器 URL
+- `RELAY_URL`：联机 Relay 服务器 URL。
+- `WS_URL`：WebSocket 服务器 URL。
 
-这两个值从 `local.properties` 读:
+这两个值从 `local.properties` 读取：
 
 ```properties
 relay.url=https://your-server.example.com/api/ddz-relay
@@ -65,15 +62,15 @@ ws.url=wss://your-server.example.com/ws
 
 ## 不要做
 
-- ❌ 不要在 module 内自己 `new OkHttpClient.Builder()`（除了 `SecureOkHttpFactory`）
-- ❌ 不要把 `getInstance(context)` 用在新代码（已 deprecated）
-- ❌ 不要忽略 `HeaderInterceptor` 加的 header 优先级（callers 设的优先）
+- ❌ 不要在模块内自行 `new OkHttpClient.Builder()`（`SecureOkHttpFactory` 除外）。
+- ❌ 不要在新代码中使用 `getInstance(context)`（已 `@Deprecated`）。
+- ❌ 不要忽略 `HeaderInterceptor` 添加的 header 优先级（调用方设置的优先）。
 
 ## 参考
 
-- 详细架构: `docs/NETWORK_LAYER.md`
-- 10 个散落 OkHttpClient.Builder 待迁移点见 NET work_LAYER.md
-
+- 详细架构：[`docs/NETWORK_LAYER.md`](../../docs/NETWORK_LAYER.md)
+- 10 个散落的 `OkHttpClient.Builder` 待迁移点见 `NETWORK_LAYER.md`。
 
 ---
-[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
+
+[返回文档索引](../../docs/DOCUMENTATION_INDEX.md)

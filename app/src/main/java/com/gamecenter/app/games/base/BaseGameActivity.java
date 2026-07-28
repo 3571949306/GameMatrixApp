@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
+import com.gamecenter.app.games.LeaderboardStore;
+import com.gamecenter.app.games.PlayTimeManager;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
 import java.util.ArrayList;
@@ -50,6 +52,9 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     /** 成就管理器 */
     protected AchievementManager achievementManager;
 
+    /** 本地排行榜存储（P0-1） */
+    protected LeaderboardStore leaderboardStore;
+
     /** 当前选择的难度等级索引 */
     protected int currentDifficultyIndex = 0;
 
@@ -60,6 +65,9 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         // 需在运行时强制锁定竖屏，以保证旧版本与新版本行为一致。
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setupGameFramework();
+
+        // P2-9 (PLAY_TIME_MANAGEMENT): 进入游戏前检测是否已超出每日限额
+        checkPlayTimeLimit();
 
         // 读取由启动方传入的难度索引（key必须与 GameLauncherHelper.EXTRA_DIFFICULTY_INDEX 一致）
         int difficultyIndex = getIntent().getIntExtra("game_difficulty_index", -1);
@@ -79,6 +87,33 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     }
 
     /**
+     * P2-9: 检查今日游玩时长是否已超出每日限额。若超限且当日未弹过警告，
+     * 弹出警告对话框（不强制阻止游玩，尊重用户选择）。
+     */
+    private void checkPlayTimeLimit() {
+        try {
+            PlayTimeManager mgr = new PlayTimeManager(this);
+            PlayTimeManager.WarnResult warn = mgr.checkLimitAndWarn();
+            if (warn == null) return;
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle(com.gamecenter.app.R.string.play_limit_warn_title)
+                    .setMessage(getString(com.gamecenter.app.R.string.play_limit_warn_msg,
+                            warn.playedMin, warn.limitMin, warn.overMin))
+                    .setPositiveButton(com.gamecenter.app.R.string.play_limit_warn_continue,
+                            (d, w) -> d.dismiss())
+                    .setNegativeButton(com.gamecenter.app.R.string.play_limit_warn_exit,
+                            (d, w) -> {
+                                d.dismiss();
+                                finish();
+                            })
+                    .setCancelable(false)
+                    .show();
+        } catch (Exception ignored) {
+            // 时长管理失败不应阻塞游戏启动
+        }
+    }
+
+    /**
      * 设置游戏框架的基础设施
      */
     private void setupGameFramework() {
@@ -91,6 +126,9 @@ public abstract class BaseGameActivity extends AppCompatActivity {
 
         // 初始化成就管理器
         achievementManager = new AchievementManager(this);
+
+        // P0-1: 初始化本地排行榜存储
+        leaderboardStore = new LeaderboardStore(this);
 
         // 记录游戏打开
         String gameId = getGameId();
@@ -183,6 +221,79 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     protected int getHighScore() {
         if (usageStore == null) return 0;
         return usageStore.getHighScore(getGameId());
+    }
+
+    /**
+     * P0-1: 提交本局分数到本地排行榜。
+     * <p>应在 onGameOver 或 endGame 中调用，传入本局最终得分与本局耗时。</p>
+     * @param score 本局得分（<=0 不入榜）
+     * @param durationMs 本局耗时（毫秒）
+     * @return 入榜排名（1-based），未入榜返回 -1
+     */
+    protected int submitScoreToLeaderboard(int score, long durationMs) {
+        if (leaderboardStore == null) return -1;
+        String gameId = getGameId();
+        if (gameId == null || gameId.isEmpty()) return -1;
+        DifficultyLevel diff = getCurrentDifficulty();
+        int diffIdx = currentDifficultyIndex;
+        String diffName = diff != null ? diff.name : "默认";
+        return leaderboardStore.submitScore(gameId, score, diffIdx, diffName, durationMs);
+    }
+
+    /**
+     * P0-3 / P1-6: 构建本游戏的战绩分享数据。
+     * <p>子类可重写以提供游戏特有的额外字段（如关卡数、连击数等）。
+     * 默认实现从 {@link GameUsageStore} 读取该游戏的常规战绩。</p>
+     */
+    @NonNull
+    protected com.gamecenter.app.games.ShareCardGenerator.Data buildShareCardData() {
+        com.gamecenter.app.games.ShareCardGenerator.Data data =
+                new com.gamecenter.app.games.ShareCardGenerator.Data();
+        String gameId = getGameId();
+        data.gameId = gameId;
+        data.gameName = getGameName();
+        data.highScore = getHighScore();
+        if (usageStore != null) {
+            data.playCount = usageStore.getPlayCount(gameId);
+            data.winCount = usageStore.getWinCount(gameId);
+            data.lossCount = usageStore.getLossCount(gameId);
+            data.playTimeMs = usageStore.getTotalPlayTimeMs(gameId);
+        }
+        return data;
+    }
+
+    /**
+     * P0-3 / P1-6: 触发当前游戏的战绩分享（子线程生成 Bitmap + ACTION_SEND）。
+     */
+    protected void shareGameStats() {
+        final com.gamecenter.app.games.ShareCardGenerator.Data data = buildShareCardData();
+        if (!data.hasData()) {
+            android.widget.Toast.makeText(this,
+                    com.gamecenter.app.R.string.share_card_no_data,
+                    android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new Thread(() -> {
+            com.gamecenter.app.games.ShareCardGenerator generator =
+                    new com.gamecenter.app.games.ShareCardGenerator(this);
+            final android.content.Intent intent = generator.buildShareIntent(data);
+            runOnUiThread(() -> {
+                if (intent != null) {
+                    try {
+                        startActivity(android.content.Intent.createChooser(intent,
+                                getString(com.gamecenter.app.R.string.share_card_chooser_title)));
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(this,
+                                com.gamecenter.app.R.string.share_card_save_failed,
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    android.widget.Toast.makeText(this,
+                            com.gamecenter.app.R.string.share_card_save_failed,
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
     }
 
     /**

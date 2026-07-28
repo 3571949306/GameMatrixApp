@@ -1,17 +1,21 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # GameMatrixApp — Code Wiki
 
-## 2026-07-22 Flutter-first 模块商店架构
+> **当前参考（最后核验：2026-07-27）**  
+> 当前工作版本、最近稳定版、已核验能力和发布门槛见 [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md)。文档层级与历史快照规则见 [`docs/DOCUMENTATION_GOVERNANCE.md`](docs/DOCUMENTATION_GOVERNANCE.md)。
+>
+> 本文记录代码结构与职责边界。下方按日期编写的维护记录是历史快照，不得把其中的版本、完成度或工作树状态视为当前事实。
 
-- **当前工作树/生产版本**：versionCode=595、versionName=1.4.1；工作树包含用户并行修改，不能描述为 clean 或与远端同步。
-- **UI 层**：`flutter_module/lib/`，通过 Pigeon 调用 Android；Flutter 只保存搜索历史、筛选、排序和视图模式等 UI 偏好。
-- **宿主桥接**：`FlutterStoreEngineManager` 缓存唯一 Engine，`ModuleStoreActivity` 直接挂载 `FlutterModuleStoreFeature` 提供的 Flutter Fragment；显式回退时同一 Activity 渲染旧原生商店。
-- **权威后端**：`CatalogV2Repository`、`ModuleCoreFacade`、`ModuleManager` 与 `ModuleRuntimeRegistry`；Flutter 不直接下载或加载动态代码。
-- **状态**：Flutter UI、客户端、六类 Runtime、Android 11–15 矩阵和生产发布闭环均为 100%；stable vc595、签名 Catalog V8、正式模块包与生产灰度已完成，详见 `/docs/flutter-store/MIGRATION_STATUS.md`。
+## 当前架构摘要
 
-## 2026-07-06 Maintenance Notes (循环 17-24)
+- **宿主与导航**：`App.kt` 初始化应用级能力；`MainActivity.kt` 承载宿主导航。动态底部导航由 Android 宿主构建，用户可按已安装能力排序或隐藏入口，游戏大厅强制保留。
+- **模块商店边界**：Flutter Add-to-App 负责商店 UI、路由和局部 UI 偏好；Android 继续负责 Catalog 信任、下载、SHA-256、APK 签名、安装、回滚和 Runtime 生命周期。Flutter 不直接执行动态代码或维护第二套安装状态。
+- **模块运行时**：Android APK、Flutter、Web、Asset、Native Service 与 Unity 由宿主 Runtime 处理路径管理。新模块必须通过权威安装/验证路径接入，不得绕过下载器直接加载外部内容。
+- **下载与安全**：模块下载支持 HTTPS、多源 URL、重试、SHA-256 和 APK signer 验证。`ModuleSignatureVerifier` 已在下载/加载路径调用；生产发布仍需以真实签名产物验证证书同源与端到端安装。
+- **Catalog**：本地 `catalog.json` 与 `modules.json` 都存在，版本不同；目录兼容、远程权威和发布签名必须以当前实现与真实发布验证为准。
+- **主题与体验基础**：明暗主题、颜色/间距/圆角/阴影 token 已建立；旧 XML/自定义 View 的迁移覆盖率需按页面和真机表现持续验证。
+
+## 历史维护记录
+
 
 - **循环 17-19：浏览器循环19重构为原生实现**：新增 `app/src/main/java/com/gamecenter/app/browser/{bridge,core,data,security,ui}/` 包结构；Room 数据库（4 张表：浏览历史/书签/下载/cookie）；安全模块 AdBlocker/DomainTrustManager/JsBridgePolicy；卸载第三方 WebView 依赖。
 - **循环 20：wrongbook 模块预装集成**：新增 `module-store/feature/tools/wrongbook`；预装 APK 路径 `assets/modules/feature_wrongbook_v100.apk`；支持科目管理、复习计划、数据导入导出。
@@ -64,14 +68,13 @@
 
 > **项目名称**: GameMatrixApp  
 > **包名**: `com.gamecenter.app`  
-> **当前工作树/生产版本**: 1.4.1 (versionCode 595)
-> **上次稳定版**: 1.4.1 (versionCode 592)
+> **版本**: 工作版本与最近稳定版均以 `version.properties` 为准；本文上方的“当前架构摘要”与 [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) 是当前参考。  
 > **最低 SDK**: 24 (Android 7.0) | **目标 SDK**: 35  
-> **语言**: Java 约 55% + Kotlin 约 45%（循环23宿主 Kotlin 迁移后）
+> **语言**: Java 约 55% + Kotlin 约 45%（历史估算，需按当前源码重算）  
 > **构建系统**: Gradle 8.13.2 + AGP 8.13.2  
 > **依赖注入**: Hilt (Dagger)  
 > **数据库**: Room（浏览器模块 v2 schema 4 张表）  
-> **GitHub**: `https://github.com/3571949306/GameMatrixApp`（当前工作树非 clean；提交/远端同步状态需实时检查）
+> **GitHub**: `https://github.com/3571949306/GameMatrixApp`（当前工作树与远端同步状态须实时检查）
 
 ---
 

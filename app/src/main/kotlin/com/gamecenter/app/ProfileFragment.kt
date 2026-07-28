@@ -12,6 +12,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.games.GameUsageStore
+import com.gamecenter.app.games.FavoriteGroupsActivity
 import com.gamecenter.app.games.StatsActivity
 import com.gamecenter.app.games.achievement.AchievementCenterActivity
 import com.gamecenter.app.games.achievement.StreakTracker
@@ -52,6 +53,18 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         bindStats(view)
         bindFavorites(view)
         bindQuickEntries(view)
+
+        // BUG-002 复测修复13：XML 布局方案（NestedScrollView + 固定高度 168dp）失败。
+        // 实测 fillViewport=false 时 NestedScrollView 仍把 LinearLayout 压缩到视口高度，
+        // 导致 card_quick_entries 高度从 672px(168dp) 被压缩到 479px，第二行按钮被压缩到 127px。
+        // 最终方案：用代码强制设置 card_quick_entries 高度 = 168dp，绕过 XML 布局测量压缩问题。
+        val density = resources.displayMetrics.density
+        val cardQuickEntries = view.findViewById<View>(R.id.card_quick_entries)
+        cardQuickEntries.post {
+            val params = cardQuickEntries.layoutParams
+            params.height = (168 * density).toInt()  // 168dp 转 px
+            cardQuickEntries.layoutParams = params
+        }
     }
 
     override fun onResume() {
@@ -64,6 +77,20 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
     }
 
+    // BUG-008 根因修复4：KeepStateNavigator 使用 hide()/show() 切换 Fragment，
+    // 不会触发 onResume()/onPause()。因此切换 Tab 到个人中心时 bindFavorites 不被调用，
+    // 导致收藏数据不实时刷新（收藏/取消收藏后切到个人中心仍显示旧值）。
+    // 修复：重写 onHiddenChanged，当 Fragment 变为可见时重新绑定数据。
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden && BuildConfig.PROFILE_FRAGMENT) {
+            view?.let {
+                bindStats(it)
+                bindFavorites(it)
+            }
+        }
+    }
+
     /** 绑定连胜与总对局数据。 */
     private fun bindStats(view: View) {
         val tracker = StreakTracker.getInstance(requireContext())
@@ -71,8 +98,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             tracker.currentStreak.toString()
         view.findViewById<TextView>(R.id.tv_profile_best_streak_value).text =
             tracker.bestStreak.toString()
+        // BUG-005 修复：总对局数改用 GameUsageStore 数据源，与 GameDetailBottomSheet 保持一致。
+        // 之前使用 tracker.totalGames，但 StreakTracker.recordGamePlayed() 从未被调用，
+        // 导致个人中心总对局永远显示 0，与游戏详情页的 playCount 不一致。
+        val usageStore = GameUsageStore(requireContext())
         view.findViewById<TextView>(R.id.tv_profile_total_games_value).text =
-            tracker.totalGames.toString()
+            usageStore.getAllTotalPlayCount().toString()
     }
 
     /** 绑定收藏数量；无收藏时显示提示文案。 */
@@ -88,15 +119,20 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
     /** 绑定收藏卡片与四个快捷入口的点击事件。 */
     private fun bindQuickEntries(view: View) {
-        // 收藏卡片：无收藏时提示，有收藏时简单 Toast 提示前往游戏大厅查看
+        // 收藏卡片：P0-2 打开收藏分组管理界面；无收藏时 Toast 提示
         view.findViewById<View>(R.id.card_favorites).setOnClickListener {
             val count = GameUsageStore(requireContext()).getFavoriteIds().size
-            val resId = if (count == 0) {
-                R.string.profile_no_favorites
+            if (count == 0) {
+                Toast.makeText(requireContext(), R.string.profile_no_favorites,
+                        Toast.LENGTH_SHORT).show()
             } else {
-                R.string.profile_my_favorites
+                try {
+                    startActivity(Intent(requireContext(), FavoriteGroupsActivity::class.java))
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(),
+                            R.string.favorite_groups_unable_open, Toast.LENGTH_SHORT).show()
+                }
             }
-            Toast.makeText(requireContext(), resId, Toast.LENGTH_SHORT).show()
         }
 
         view.findViewById<View>(R.id.btn_profile_stats).setOnClickListener {

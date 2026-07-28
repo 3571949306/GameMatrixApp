@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.GameRegistry;
+import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.games.config.GameConfigLoader;
 import com.gamecenter.app.games.model.AchievementDef;
 import com.gamecenter.app.games.model.GameConfig;
@@ -57,6 +58,8 @@ public class AchievementCenterActivity extends AppCompatActivity {
     private TextView tvTotalSeparator;
     private ProgressBar progressTotal;
     private TextView tvGamesSummary;
+    // P1-5 (ACHIEVEMENT_POINTS): 成就点数总览文本
+    private TextView tvAchievementPoints;
     private RecyclerView rvAchievementGames;
     // Batch 10-4 (ACHIEVEMENT_PROGRESS_RING): 圆环进度头部
     private View ringProgressCard;
@@ -183,7 +186,10 @@ public class AchievementCenterActivity extends AppCompatActivity {
         StreakTracker tracker = StreakTracker.getInstance(this);
         int current = tracker.getCurrentStreak();
         int best = tracker.getBestStreak();
-        int total = tracker.getTotalGames();
+        // BUG-004 修复：总对局数改用 GameUsageStore 数据源，与 ProfileFragment 保持一致。
+        // 之前使用 tracker.getTotalGames()，但 StreakTracker.recordGamePlayed() 从未被调用，
+        // 导致成就中心总对局永远显示 0，与个人中心(22)不一致。
+        int total = new GameUsageStore(this).getAllTotalPlayCount();
 
         TextView tvCurrentTop = card.findViewById(R.id.tv_streak_current);
         TextView tvCurrent = card.findViewById(R.id.tv_streak_current_value);
@@ -209,6 +215,7 @@ public class AchievementCenterActivity extends AppCompatActivity {
         tvTotalSeparator = findViewById(R.id.tv_total_separator);
         progressTotal = findViewById(R.id.progress_total);
         tvGamesSummary = findViewById(R.id.tv_games_summary);
+        tvAchievementPoints = findViewById(R.id.tv_achievement_points);
         rvAchievementGames = findViewById(R.id.rv_achievement_games);
     }
 
@@ -293,6 +300,19 @@ public class AchievementCenterActivity extends AppCompatActivity {
         tvGamesSummary.setText(String.format(
                 getString(R.string.achievement_center_games_summary),
                 gamesWithProgress, gameAchievementInfos.size()));
+
+        // P1-5 (ACHIEVEMENT_POINTS): 显示成就点数总览
+        if (tvAchievementPoints != null) {
+            com.gamecenter.app.games.AchievementPointsCalculator.Result points =
+                    com.gamecenter.app.games.AchievementPointsCalculator.calculate(this);
+            tvAchievementPoints.setText(getString(
+                    R.string.achievement_points_summary_format,
+                    points.totalPoints,
+                    points.bronzeCount,
+                    points.silverCount,
+                    points.goldCount,
+                    points.platinumCount));
+        }
     }
 
     // ==================== 数据模型 ====================

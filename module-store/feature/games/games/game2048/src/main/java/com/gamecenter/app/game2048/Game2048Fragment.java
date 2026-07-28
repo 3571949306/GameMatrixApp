@@ -16,6 +16,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.gamecenter.app.R;
 import com.gamecenter.app.SaveManager;
 import com.gamecenter.app.games.GameUsageStore;
 import org.json.JSONObject;
@@ -101,7 +102,7 @@ public class Game2048Fragment extends Fragment {
         root.addView(buttonBar);
 
         Button btnRestart = new Button(ctx);
-        btnRestart.setText("重新开始");
+        btnRestart.setText(getString(R.string.game_btn_restart));
         LinearLayout.LayoutParams restartLp = new LinearLayout.LayoutParams(
                 (int) (120 * dp), (int) (48 * dp));
         restartLp.setMargins((int) (8 * dp), 0, (int) (8 * dp), 0);
@@ -166,12 +167,12 @@ public class Game2048Fragment extends Fragment {
 
     private void updateScore() {
         int currentScore = game.getScore();
-        tvScore.setText("分数: " + currentScore);
+        tvScore.setText(getString(R.string.game_score_alt_format, currentScore));
         if (currentScore > highScore) {
             highScore = currentScore;
             saveHighScore(highScore);
         }
-        tvHighScore.setText("最高分: " + highScore);
+        tvHighScore.setText(getString(R.string.game_high_score_format, highScore));
         if (game.isGameOver()) {
             game2048View.invalidate();
             usageStore.recordScore(GAME_ID, highScore);

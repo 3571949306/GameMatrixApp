@@ -82,7 +82,7 @@ class SubjectPieChartView @JvmOverloads constructor(
 
             centerTextPaint.color = ContextCompat.getColor(context, R.color.wrongbook_text_tertiary)
             centerTextPaint.textSize = 28f
-            canvas.drawText("暂无数据", cx, cy + 10f, centerTextPaint)
+            canvas.drawText(context.getString(R.string.wrongbook_no_data), cx, cy + 10f, centerTextPaint)
             return
         }
 
@@ -103,7 +103,7 @@ class SubjectPieChartView @JvmOverloads constructor(
         // 绘制圆心文字
         centerTextPaint.textSize = 24f
         centerTextPaint.color = ContextCompat.getColor(context, R.color.wrongbook_text_secondary)
-        canvas.drawText("共错题", cx, cy - 12f, centerTextPaint)
+        canvas.drawText(context.getString(R.string.wrongbook_total_label), cx, cy - 12f, centerTextPaint)
 
         centerTextPaint.textSize = 36f
         centerTextPaint.color = ContextCompat.getColor(context, R.color.wrongbook_text_primary)

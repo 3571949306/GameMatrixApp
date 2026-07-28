@@ -1,23 +1,20 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+# :core:common 模块
 
-# :core:common Module
-
-通用工具类 + 错误处理 + Result 类型。
+通用工具、错误处理与 Result 类型。
 
 ## 职责
 
-- 全项目共享的工具类（字符串、数字、集合）
-- 错误处理统一（AppError + NetworkResult + AppResult）
-- 共享常量
+- 全项目共享的工具类（字符串、数字、集合）。
+- 错误处理统一：`AppError`、`NetworkResult`、`AppResult`。
+- 共享常量。
 
 ## 关键类
 
 | 类 | 作用 |
 |---|---|
 | `AppError` | 10 种错误类型 + 工厂方法 |
-| `NetworkResult<T>` | 网络操作三态 (Success/Failure/Loading) |
-| `AppResult<T>` | 通用三态 (Success/Error/Loading) |
+| `NetworkResult<T>` | 网络操作三态（`Success` / `Failure` / `Loading`） |
+| `AppResult<T>` | 通用三态（`Success` / `Error` / `Loading`） |
 | 各种 `*Utils` | 字符串、日期、加密、JSON 等 |
 
 ## 用法
@@ -36,7 +33,7 @@ suspend fun saveGame(game: Game): AppResult<Unit> = AppResult.of {
 }
 ```
 
-### AppError 子类型
+### `AppError` 子类型
 
 ```kotlin
 sealed class AppError(val code: Int, val message: String, val cause: Throwable?) {
@@ -55,14 +52,14 @@ sealed class AppError(val code: Int, val message: String, val cause: Throwable?)
 
 ## 不要做
 
-- ❌ 不要在 feature module 里再 new 一份 Result 类型
-- ❌ 不要用 boolean 表示成功失败（旧式）
-- ❌ 不要在 catch 块里裸 `printStackTrace()`
+- ❌ 不要在功能模块里再 new 一份 Result 类型。
+- ❌ 不要用 `boolean` 表示成功失败（旧式风格）。
+- ❌ 不要在 `catch` 块里直接 `printStackTrace()`。
 
 ## 参考
 
-- 详细规范: `docs/ERROR_HANDLING.md`
-
+- 详细规范：[`docs/ERROR_HANDLING.md`](../../docs/ERROR_HANDLING.md)
 
 ---
-[🔙 返回文档索引](/docs/DOCUMENTATION_INDEX.md)
+
+[返回文档索引](../../docs/DOCUMENTATION_INDEX.md)

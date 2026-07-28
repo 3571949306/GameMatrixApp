@@ -102,7 +102,11 @@ data class ModuleManifest(
     /** 是否需要重启 */
     val restartRequired: Boolean = false,
     /** 是否允许回滚 */
-    val rollbackAllowed: Boolean = true
+    val rollbackAllowed: Boolean = true,
+    /** 模块详情（#11.1）：价值描述、受众、离线能力、更新/卸载影响等 */
+    val details: ModuleDetail? = null,
+    /** 隐私卡（#11.2）：本地/云端数据、网络域、同步位置、保存期限、删除方式 */
+    val privacy: PrivacyCard? = null
 ) {
 
     /**
@@ -178,6 +182,8 @@ data class ModuleManifest(
         put("rolloutPercent", rolloutPercent)
         put("restartRequired", restartRequired)
         put("rollbackAllowed", rollbackAllowed)
+        details?.let { put("details", it.toJson()) }
+        privacy?.let { put("privacy", it.toJson()) }
     }
 
     companion object {
@@ -228,7 +234,9 @@ data class ModuleManifest(
                 permissions = parseStringArray(json, "permissions"),
                 rolloutPercent = json.optInt("rolloutPercent", 100),
                 restartRequired = json.optBoolean("restartRequired", false),
-                rollbackAllowed = json.optBoolean("rollbackAllowed", true)
+                rollbackAllowed = json.optBoolean("rollbackAllowed", true),
+                details = ModuleDetail.fromJson(json.optJSONObject("details")),
+                privacy = PrivacyCard.fromJson(json.optJSONObject("privacy"))
             )
         }
 

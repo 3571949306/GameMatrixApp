@@ -1,19 +1,21 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # Feature Flags 索引 - GameMatrixApp
 
-> 本文档索引项目所有 Feature Flag，包括用途、引入版本、退役计划。
-> 规则：Flag 超过 3 个月未关闭 = 应该删除代码（保留功能）。
+> **当前参考（最后核验：2026-07-27）**  
+> `defaultConfig` 当前声明 **90** 个唯一布尔 BuildConfig 开关：**83** 个字面量 `true`、**5** 个字面量 `false`、以及 **2** 个由构建参数决定的开关（Flutter 商店与 Catalog 签名）。Debug/build variant 还可覆盖个别值。
+>
+> 本文中的旧 Batch、版本号和退役判断是功能引入历史；实时产品能力和发布状态见 [`CURRENT_STATE.md`](CURRENT_STATE.md)。不要把源码回退值、构建参数值和已发布产物的最终值混为一谈。
 
-**最后更新**: 2026-07-23
-**Flag 总数**: 88 个（基础设施 11 + 加法升级 58 + 混合架构 11 + 首页沉浸式改版 1 + 首页 V2 1 + 模块商店增强 4 + 游戏改造 1 + 商店混合架构 3）
-**默认值分布**: 81 个 true / 7 个 false（`TEST_MODE`、`BROWSER_JS_BRIDGE_ENABLED`、`BROWSER_WEBVIEW_DEBUG`、`ENABLE_CATALOG_SIGNATURE`、`ENABLE_FLUTTER_MODULE_STORE`、`STORE_SECTION_RENDERER`、`ENABLE_P4_DYNAMIC_GAMES_HALL`）
-**声明位置**: `app/build.gradle` → `defaultConfig`（`buildTypes` 中 debug 覆盖 `TEST_MODE`/`BROWSER_WEBVIEW_DEBUG` 为 true）
+## 当前使用规则
+
+- 新开关默认应为关闭，明确灰度目标、验收路径和退役条件后才全量开启。
+- 已稳定的开关应尽快删除条件分支、保留功能本身，避免把正常功能永久包装成实验。
+- 用户可见的开关要按能力成熟度管理：平台基础、模块商店、游戏与学习、浏览器、隐私/网络、仅开发调试。
+- 涉及 Flutter 商店、Catalog 签名或发布通道时，最终值必须从对应构建产物和发布参数核验。
 
 ---
 
-## 索引表
+## 历史索引
+
 
 ### 一、基础设施 Flag（11 个）
 

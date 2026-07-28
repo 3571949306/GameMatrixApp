@@ -1,108 +1,107 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+# GameMatrixApp 文档索引
 
-# GameMatrixApp 全局文档索引
+> **状态**：当前导航
+> **最后核验**：2026-07-27
+> **使用规则**：先读 [`DOCUMENTATION_GOVERNANCE.md`](DOCUMENTATION_GOVERNANCE.md)，再按任务进入相应资料。当前事实以代码、配置和 [`CURRENT_STATE.md`](CURRENT_STATE.md) 为准；路线图和审计是日期化快照，不代替当前实现。
 
-项目全部文档的中枢链接。最后更新：2026-07-23。所有文档均已加入 Flutter-first 状态或历史快照提示；Flutter 化的权威事实以本页列出的 `docs/flutter-store/` 文档集为准。
+## 先读什么
 
-## docs/flutter-store — Flutter-first 模块商店权威文档
+| 目的 | 文档 | 角色 |
+|---|---|---|
+| 了解当前版本、能力、发布门槛和用户路径 | [`CURRENT_STATE.md`](CURRENT_STATE.md) | 当前参考 |
+| 了解文档的权威层级与更新规则 | [`DOCUMENTATION_GOVERNANCE.md`](DOCUMENTATION_GOVERNANCE.md) | 当前规则 |
+| 了解文档语言与术语规范 | [`DEVELOPER_TERMINOLOGY.md`](DEVELOPER_TERMINOLOGY.md) | 当前术语规范 |
+| 了解未来产品定位与体验方向 | [`PRODUCT_DIRECTION_AND_UX.md`](PRODUCT_DIRECTION_AND_UX.md) | 当前产品方向 |
+| 查看当前执行计划 | [`EXECUTION_PLAN_2026H2.md`](EXECUTION_PLAN_2026H2.md) | 第 1–28 条建议的阶段性执行计划 |
+| 了解用户可见功能、安装、权限与隐私 | [`../README.md`](../README.md) | 用户文档 |
+| 查看已发布版本的简短更新说明 | [`../RELEASE_NOTES.md`](../RELEASE_NOTES.md) | 用户发布公告 |
+| 追溯开发历史 | [`../CHANGELOG.md`](../CHANGELOG.md) | 历史记录 |
 
-| 文档 | 描述 |
+## 当前技术参考
+
+| 主题 | 文档 | 说明 |
+|---|---|---|
+| 代码架构与目录职责 | [`../CODE_WIKI.md`](../CODE_WIKI.md) | 代码结构参考；历史维护记录以日期为准 |
+| 项目状态与已知发布门槛 | [`PROJECT_STATUS.md`](PROJECT_STATUS.md) | 当前状态摘要，需与 `CURRENT_STATE.md` 一起阅读 |
+| 功能开关 | [`FEATURE_FLAGS.md`](FEATURE_FLAGS.md) | BuildConfig 开关、默认值和退役规则 |
+| 产品/架构基线 | [`SPEC.md`](SPEC.md) | v1.0 决策基线；实现进度以当前状态为准 |
+| 安全 | [`SECURITY.md`](SECURITY.md) | 安全策略与开发约束 |
+| 网络层 | [`NETWORK_LAYER.md`](NETWORK_LAYER.md) | 网络、联机与服务依赖 |
+| 错误处理 | [`ERROR_HANDLING.md`](ERROR_HANDLING.md) | 错误模型与用户可见错误处理 |
+| Compose 迁移 | [`COMPOSE_MIGRATION.md`](COMPOSE_MIGRATION.md) | 渐进迁移策略 |
+| Room 迁移 | [`ROOM_MIGRATION.md`](ROOM_MIGRATION.md) | 数据库演进约束 |
+| Baseline Profile | [`BASELINE_PROFILE.md`](BASELINE_PROFILE.md) | 启动性能基线 |
+| R8/ProGuard | [`PROGUARD_AUDIT.md`](PROGUARD_AUDIT.md) | 混淆与发布收缩 |
+| 云构建与部署 | [`../CLOUD-BUILD.md`](../CLOUD-BUILD.md) | 构建/部署参考；产物状态须实时复核 |
+| 应用与模块发布 | [`PUBLISH_GUIDE.md`](PUBLISH_GUIDE.md) | 发布流程与验证 |
+| 真机验证 | [`ADB_REAL_DEVICE_TEST_PLAN.md`](ADB_REAL_DEVICE_TEST_PLAN.md) | Android 真机测试矩阵与历史证据 |
+
+## 模块商店与 Flutter 技术资料
+
+以下文档记录 Flutter-first 商店和多 Runtime 的架构/发布证据。文件中关于 vc595、Catalog V8 的内容是当时发布快照；当前版本和实时门槛请回到 [`CURRENT_STATE.md`](CURRENT_STATE.md)。
+
+| 文档 | 主题 |
 |---|---|
-| [MIGRATION_STATUS.md](/docs/flutter-store/MIGRATION_STATUS.md) | 总进度、范围边界、收尾验收与发布判断（首要真值） |
-| [ARCHITECTURE.md](/docs/flutter-store/ARCHITECTURE.md) | Add-to-App、缓存 Engine、Facade、状态源和安全边界 |
-| [CATALOG_V2.md](/docs/flutter-store/CATALOG_V2.md) | Catalog V2 协议、旧目录适配和验签阻塞 |
-| [BRIDGE_API.md](/docs/flutter-store/BRIDGE_API.md) | Pigeon Host/Flutter API 与事件合同 |
-| [RUNTIME_HANDLERS.md](/docs/flutter-store/RUNTIME_HANDLERS.md) | 六类 Runtime 生命周期、能力与限制 |
-| [TEST_PLAN.md](/docs/flutter-store/TEST_PLAN.md) | 自动化、真机证据和未覆盖矩阵 |
-| [ROLLBACK.md](/docs/flutter-store/ROLLBACK.md) | 功能开关、旧商店、安装事务和回滚路径 |
-| [BASELINE.md](/docs/flutter-store/BASELINE.md) | 任务开始时的工具链、工作树和测试基线 |
+| [`flutter-store/ARCHITECTURE.md`](flutter-store/ARCHITECTURE.md) | Add-to-App、Engine、Facade 和权威边界 |
+| [`flutter-store/CATALOG_V2.md`](flutter-store/CATALOG_V2.md) | Catalog V2 协议与签名目录 |
+| [`flutter-store/BRIDGE_API.md`](flutter-store/BRIDGE_API.md) | Pigeon Host/Flutter 合同 |
+| [`flutter-store/RUNTIME_HANDLERS.md`](flutter-store/RUNTIME_HANDLERS.md) | Android、Flutter、Web、Asset、Native Service、Unity Runtime |
+| [`flutter-store/ROLLBACK.md`](flutter-store/ROLLBACK.md) | 功能/安装回滚路径 |
+| [`flutter-store/TEST_PLAN.md`](flutter-store/TEST_PLAN.md) | Flutter 商店测试证据与覆盖边界 |
+| [`flutter-store/BASELINE.md`](flutter-store/BASELINE.md) | Flutter 商店改造基线 |
+| [`modules/MODULE_DEVELOPMENT_GUIDE.md`](modules/MODULE_DEVELOPMENT_GUIDE.md) | 模块作者开发与发布约定 |
+| [`modules/MODULE_STORE_POLICY.md`](modules/MODULE_STORE_POLICY.md) | 模块商店策略 |
+| [`modules/MODULE_STORE_REDESIGN_PLAN.md`](modules/MODULE_STORE_REDESIGN_PLAN.md) | 商店改造计划快照 |
+| [`modules/P3_IMPLEMENTATION_PLAN.md`](modules/P3_IMPLEMENTATION_PLAN.md) | P3 实施计划与验收历史 |
+| [`modules/PUBLISH_GUIDE.md`](modules/PUBLISH_GUIDE.md) | 模块发布指南 |
+| [`modules/STORE_HYBRID_PHASE_BASELINE.md`](modules/STORE_HYBRID_PHASE_BASELINE.md) | 混合商店阶段基线 |
 
-## 根目录 (Root)
+## 用户能力与模块说明
 
-| 文档 | 描述 |
+| 文档 | 说明 |
 |---|---|
-| [README.md](/README.md) | 项目总览、功能介绍 |
-| [RELEASE_NOTES.md](/RELEASE_NOTES.md) | 当前版本面向用户的简短更新公告 |
-| [CHANGELOG.md](/CHANGELOG.md) | 完整开发历史，不直接作为 Release 公告 |
-| [CODE_WIKI.md](/CODE_WIKI.md) | 详细代码架构说明 |
-| [CLOUD-BUILD.md](/CLOUD-BUILD.md) | 云编译 & VPS 部署指南 |
-| [修改记录.md](/修改记录.md) | 24 轮修复循环的完整变更历史 |
-| [AGENTS.md](/AGENTS.md) | AI Coding 规则（必读） |
-| [待删除文件清单.md](/待删除文件清单.md) | 按规则 22 登记的待删除文件清单 |
-| [TEST_ISSUES_2026-06-27.md](/TEST_ISSUES_2026-06-27.md) | 2026-06-27 测试问题记录 |
+| [`module-docs/游戏模块说明.md`](module-docs/游戏模块说明.md) | 游戏模块与大厅 |
+| [`module-docs/浏览器模块说明.md`](module-docs/浏览器模块说明.md) | 浏览器能力、数据与隐私 |
+| [`module-docs/工具箱模块说明.md`](module-docs/工具箱模块说明.md) | 工具箱能力 |
+| [`module-docs/VPN模块说明.md`](module-docs/VPN模块说明.md) | VPN 模块边界与说明 |
+| [`module-docs/错题本模块说明.md`](module-docs/错题本模块说明.md) | 错题本功能与数据流程 |
+| [`module-docs/games_split_summary.md`](module-docs/games_split_summary.md) | 小游戏拆分历史 |
+| [`modules/GAME_EVALUATION_REPORT_2026-07-22.md`](modules/GAME_EVALUATION_REPORT_2026-07-22.md) | 27 款游戏评估快照 |
 
-## docs/ — 主文档
+## 路线图与计划（历史/决策快照）
 
-| 文档 | 描述 |
+这些文件记录提出计划时的版本、问题和估算。它们不宣称实时状态；若内容与实现冲突，以 [`CURRENT_STATE.md`](CURRENT_STATE.md) 和源代码为准。
+
+| 文档 | 主题 |
 |---|---|
-| [AI_CONTEXT.md](/docs/AI_CONTEXT.md) | AI 上下文文档（合并自 4 个文档，供 AI 助手和新开发者阅读） |
-| [PROJECT_STATUS.md](/docs/PROJECT_STATUS.md) | 项目状态总览（合并自 7 个审计文档，包含问题/规划/测试/报告） |
-| [DOCUMENTATION_INDEX.md](/docs/DOCUMENTATION_INDEX.md) | 本文档 — 全局文档索引 |
-| [项目改进建议书.md](/docs/项目改进建议书.md) | 项目改进建议书 v7 |
-| [game_center_app_ai_roadmap.md](/docs/game_center_app_ai_roadmap.md) | AI 开发路线图 |
-| [DONT_DO_THIS.md](/docs/DONT_DO_THIS.md) | 写给 AI / 协作者：不要做 |
-| [FEATURE_FLAGS.md](/docs/FEATURE_FLAGS.md) | Feature Flag 索引（88 个，含默认关闭的 Flutter 商店/区块渲染器/动态游戏大厅开关），含用途、引入版本、退役计划与治理规则 |
-| [PUBLISH_GUIDE.md](/docs/PUBLISH_GUIDE.md) | 发布指南 |
-| [SECURITY.md](/docs/SECURITY.md) | 安全策略 |
-| [NETWORK_LAYER.md](/docs/NETWORK_LAYER.md) | 网络层架构 |
-| [ERROR_HANDLING.md](/docs/ERROR_HANDLING.md) | 错误处理 & Result 类型 |
-| [PROGUARD_AUDIT.md](/docs/PROGUARD_AUDIT.md) | ProGuard / R8 审计 |
-| [GRADLE_BUILD_CACHE.md](/docs/GRADLE_BUILD_CACHE.md) | Gradle Build Cache 配置 |
-| [BASELINE_PROFILE.md](/docs/BASELINE_PROFILE.md) | Baseline Profile (启动加速) |
-| [COMPOSE_MIGRATION.md](/docs/COMPOSE_MIGRATION.md) | Compose 迁移指南 |
-| [ROOM_MIGRATION.md](/docs/ROOM_MIGRATION.md) | Room 数据库迁移 |
-| [UNITY_UPDATE_READINESS_AUDIT.md](/docs/UNITY_UPDATE_READINESS_AUDIT.md) | Unity Update Readiness Audit |
-| [ADB_REAL_DEVICE_TEST_PLAN.md](/docs/ADB_REAL_DEVICE_TEST_PLAN.md) | ADB 真机全量测试计划（含 2026-07-20 小米 ares 测试记录） |
-| [FILES_TO_DELETE_BATCH21.md](/docs/FILES_TO_DELETE_BATCH21.md) | Batch 21 待删除文件清单（Hilt DI 引用暂不删除） |
-| [FILES_TO_REVIEW_HYBRID_STORE.md](/docs/FILES_TO_REVIEW_HYBRID_STORE.md) | 混合商店改造待 Review 文件清单 |
+| [`ROADMAP_MVP_CONVERGENCE.md`](ROADMAP_MVP_CONVERGENCE.md) | 产品定位收束与 MVP 计划 |
+| [`ROADMAP_BUSINESS_SUSTAINABILITY.md`](ROADMAP_BUSINESS_SUSTAINABILITY.md) | 用户价值闭环与商业化探索 |
+| [`ROADMAP_ARCHITECTURE_KOTLIN.md`](ROADMAP_ARCHITECTURE_KOTLIN.md) | 架构收敛与 Kotlin 迁移 |
+| [`ROADMAP_TEST_UPGRADE.md`](ROADMAP_TEST_UPGRADE.md) | 测试体系升级 |
+| [`ROADMAP_SERVER_HA.md`](ROADMAP_SERVER_HA.md) | 服务端高可用 |
+| [`RENOVATION_MASTER_PLAN.md`](RENOVATION_MASTER_PLAN.md) | 全面改造总计划 |
+| [`game_center_app_ai_roadmap.md`](game_center_app_ai_roadmap.md) | AI 发展计划与历史阶段 |
+| [`项目改进建议书.md`](项目改进建议书.md) | 历史改进与风险建议汇总 |
+| [`refactor/MASTER-REFACTOR-PLAN.md`](refactor/MASTER-REFACTOR-PLAN.md) | 重构任务规划 |
+| [`refactor/track-ai.md`](refactor/track-ai.md) | AI 模块重构方案 |
+| [`refactor/track-platform.md`](refactor/track-platform.md) | 平台与主题改造方案 |
+| [`refactor/track-tools.md`](refactor/track-tools.md) | 工具箱改造方案 |
+| [`refactor/track-vpn.md`](refactor/track-vpn.md) | VPN 改造方案 |
 
-## docs/module-docs — 模块说明
+## 历史与审计
 
-| 文档 | 描述 |
-|---|---|
-| [游戏模块说明.md](/docs/module-docs/游戏模块说明.md) | 游戏模块说明（含 hall/chinesechess/game2048/klotski/tts 等动态游戏模块） |
-| [浏览器模块说明.md](/docs/module-docs/浏览器模块说明.md) | 浏览器模块说明（循环19原生重构：bridge/core/data/security/ui） |
-| [工具箱模块说明.md](/docs/module-docs/工具箱模块说明.md) | 工具箱模块说明 |
-| [VPN模块说明.md](/docs/module-docs/VPN模块说明.md) | VPN 模块说明 |
-| [错题本模块说明.md](/docs/module-docs/错题本模块说明.md) | 错题本（wrongbook）模块说明（循环20预装集成，循环21-22全面推进） |
-| [games_split_summary.md](/docs/module-docs/games_split_summary.md) | 小游戏拆分剥离项目总结 |
+- [`archive/`](archive/)：已归档的发布、迁移、性能与网络资料，仅供追溯。
+- [`audits/`](audits/)：日期化审计任务和 walk-through。
+- [`../项目审计_2026-06-19/`](../项目审计_2026-06-19/)：2026-06-19 审计快照。
+- [`compose/spec/`](compose/spec/)：特定 Compose 功能规范。
+- [`superpowers/`](superpowers/)：历史计划和规格。
 
-## docs/modules — 模块商店
+## 文档核验
 
-| 文档 | 描述 |
-|---|---|
-| [MODULE_DEVELOPMENT_GUIDE.md](/docs/modules/MODULE_DEVELOPMENT_GUIDE.md) | 模块开发指南 |
-| [MODULE_STORE_POLICY.md](/docs/modules/MODULE_STORE_POLICY.md) | 模块商店策略 |
-| [MODULE_STORE_REDESIGN_PLAN.md](/docs/modules/MODULE_STORE_REDESIGN_PLAN.md) | 模块商店重新设计计划 |
-| [P3_IMPLEMENTATION_PLAN.md](/docs/modules/P3_IMPLEMENTATION_PLAN.md) | P3 目录签名 + 事务安装实施计划（已完成） |
-| [PUBLISH_GUIDE.md](/docs/modules/PUBLISH_GUIDE.md) | 模块发布指南 |
-| [模块变更日志/](/docs/modules/模块变更日志/) | 各模块变更日志（游戏/浏览器/工具箱/AI/VPN） |
+运行以下命令检查当前文档链接、版本声明和本地 Catalog 摘要：
 
-## docs/refactor — 重构计划
+```bash
+python tools/audit_markdown_docs.py
+```
 
-| 文档 | 描述 |
-|---|---|
-| [MASTER-REFACTOR-PLAN.md](/docs/refactor/MASTER-REFACTOR-PLAN.md) | 完整改造计划 |
-| [track-ai.md](/docs/refactor/track-ai.md) | AI 助手模块改造设计 |
-| [track-platform.md](/docs/refactor/track-platform.md) | 模块化架构 + UI 主题改造 |
-| [track-tools.md](/docs/refactor/track-tools.md) | 工具箱模块化改造设计 |
-| [track-vpn.md](/docs/refactor/track-vpn.md) | VPN 模块改造设计 |
-
-## docs/audits — 审计记录
-
-| 文档 | 描述 |
-|---|---|
-| [2026-06-25/](/docs/audits/2026-06-25/) | 安全审查、漏洞修复、模块重构总结 |
-
-## docs/archive — 历史归档（44 个文档）
-
-历史版本的发布说明、架构设计、测试报告等。内容较旧，仅供参考。
-
-## 其他位置
-
-| 文档 | 描述 |
-|---|---|
-| [项目审计_2026-06-19/](/项目审计_2026-06-19/) | 2026-06-19 审计快照（10 个文档） |
-| [scripts/automated_test/README.md](/scripts/automated_test/README.md) | 自动化测试系统说明 |
-| [docs/superpowers/specs/](/docs/superpowers/specs/) | Modular Shell APK 设计规范 |
+脚本只检查文档一致性；涉及 APK、模块签名、真实下载、安装、更新或回滚时，仍必须按发布/真机测试文档完成实际验证。

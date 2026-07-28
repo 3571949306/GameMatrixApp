@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # GameMatrixApp ADB 真机全量测试计划
+
+> **测试计划与历史证据（最后核验说明：2026-07-27）**  
+> 本文中的 vc595 Flutter 商店结果和设备结果是当时的测试证据，不是当前工作树或当前发布的自动结论。执行前请读取 [`CURRENT_STATE.md`](CURRENT_STATE.md)，以当次 APK、Catalog、签名和连接设备为准。
 
 > 目标设备：小米 ares（M2012K10C）无线调试  
 > 目标版本：当前工作区最新 Debug APK（`app-debug.apk`）  

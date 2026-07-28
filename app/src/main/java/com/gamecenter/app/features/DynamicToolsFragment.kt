@@ -1,5 +1,6 @@
 package com.gamecenter.app.features
 
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -21,6 +22,14 @@ import com.gamecenter.app.core.common.NavigationSlot
  *
  * 从 ModuleRegistry 收集 NavigationSlot.TOOLS_GRID 贡献，
  * 以卡片网格形式展示已安装/已加载的工具模块入口。
+ *
+ * 说明：此 Fragment 仅作为 DestinationKind.TOOLS 的兜底实现，
+ * 用于展示通过 TOOLS_GRID 贡献注册的工具模块卡片（如 AI/VPN/错题本等）。
+ * 内置 28 个工具卡片由 ToolsModuleEntryPoint 的 BOTTOM_NAV 贡献提供，
+ * 由 [com.gamecenter.app.fragments.ToolsFragment] 承载，不在此处显示。
+ *
+ * 主题：支持浅色/深色主题，颜色根据 [isNightMode] 动态切换。
+ * 本地化：所有文本使用字符串资源。
  */
 class DynamicToolsFragment : Fragment() {
 
@@ -66,9 +75,9 @@ class DynamicToolsFragment : Fragment() {
 
         if (contributions.isEmpty()) {
             content.addView(TextView(ctx).apply {
-                text = "暂无工具模块，请前往模块商店下载。"
+                text = getString(R.string.dynamic_tools_empty_state)
                 textSize = 16f
-                setTextColor(Color.rgb(97, 97, 97))
+                setTextColor(colorOnSurface())
                 gravity = Gravity.CENTER
                 setPadding(0, dp(32), 0, dp(32))
             })
@@ -76,9 +85,9 @@ class DynamicToolsFragment : Fragment() {
         }
 
         content.addView(TextView(ctx).apply {
-            text = "工具箱"
+            text = getString(R.string.tools_title)
             textSize = 24f
-            setTextColor(Color.rgb(33, 33, 33))
+            setTextColor(colorOnSurface())
             setPadding(0, dp(8), 0, dp(16))
         })
 
@@ -122,9 +131,9 @@ class DynamicToolsFragment : Fragment() {
             gravity = Gravity.CENTER
             setPadding(dp(8))
             background = GradientDrawable().apply {
-                setColor(Color.WHITE)
+                setColor(colorSurface())
                 cornerRadius = dp(8).toFloat()
-                setStroke(dp(1), Color.rgb(224, 224, 224))
+                setStroke(dp(1), colorSurfaceStroke())
             }
             isClickable = true
             isFocusable = true
@@ -134,7 +143,7 @@ class DynamicToolsFragment : Fragment() {
                     text = title
                     textSize = 14f
                     gravity = Gravity.CENTER
-                    setTextColor(Color.rgb(33, 33, 33))
+                    setTextColor(colorOnSurface())
                     setPadding(0, dp(8), 0, dp(4))
                 }
             )
@@ -153,6 +162,25 @@ class DynamicToolsFragment : Fragment() {
             .addToBackStack(null)
             .commit()
     }
+
+    // ===== 主题感知颜色 =====
+
+    private fun isNightMode(): Boolean {
+        val nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return nightMode == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    /** 卡片背景色：深色模式 #1E1E2E，浅色模式 WHITE */
+    private fun colorSurface(): Int =
+        if (isNightMode()) Color.parseColor("#1E1E2E") else Color.WHITE
+
+    /** 卡片边框色：深色模式 #3A3A4A，浅色模式 #E0E0E0 */
+    private fun colorSurfaceStroke(): Int =
+        if (isNightMode()) Color.parseColor("#3A3A4A") else Color.rgb(224, 224, 224)
+
+    /** 主文字色：深色模式 #E4E6F0，浅色模式 #212121 */
+    private fun colorOnSurface(): Int =
+        if (isNightMode()) Color.parseColor("#E4E6F0") else Color.rgb(33, 33, 33)
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 }

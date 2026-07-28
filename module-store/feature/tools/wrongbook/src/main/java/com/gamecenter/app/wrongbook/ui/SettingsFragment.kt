@@ -169,7 +169,7 @@ class SettingsFragment : BaseWrongBookFragment() {
 
         binding.btnImport.setOnClickListener {
             if (!exportFile.exists()) {
-                Toast.makeText(requireContext(), "未找到备份文件，请先点击导出备份", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_no_backup), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             isExporting = false

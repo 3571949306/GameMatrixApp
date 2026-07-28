@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # MVP 收敛与产品定位收束路线图
+
+> **历史路线图快照（编制：2026-07-19，基线：vc587）**  
+> 本文记录当时的定位诊断、工作量与路线选择。A1/S1/A2 的“未启动/低完成度”表述已被后续实现部分超越；当前实现、版本与发布门槛请看 [`CURRENT_STATE.md`](CURRENT_STATE.md)。产品定位现以本地优先、用户可控制的通用模块平台为准，详见 [`PRODUCT_DIRECTION_AND_UX.md`](PRODUCT_DIRECTION_AND_UX.md)。
 
 > **文档编号**：ROADMAP-MVP-001
 > **覆盖改进项**：P0-1（双层模块框架并存收敛）、P1-4（产品定位漂移）

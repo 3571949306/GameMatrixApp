@@ -30,6 +30,7 @@ public class BrowserController {
 
     // ===== 单 WebView 模式字段（BROWSER_REAL_MULTI_TAB=false） =====
     @Nullable private WebView webView;
+    @Nullable private FrameLayout webViewContainer;
     @Nullable private BrowserWebViewClient webViewClient;
     @Nullable private BrowserChromeClient chromeClient;
     private boolean jsBridgeInjected = false;
@@ -72,6 +73,7 @@ public class BrowserController {
         webView.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
+        this.webViewContainer = container;
         container.addView(webView);
 
         BrowserSettingsManager settingsMgr = BrowserSettingsManager.getInstance(context);
@@ -339,12 +341,22 @@ public class BrowserController {
             return;
         }
         if (webView != null) {
+            // P0 内存泄漏修复：必须先从父容器移除 WebView，再调用 destroy()。
+            // 否则 WebView 仍挂在 ViewGroup 上，Chromium 渲染进程、JS 引擎、
+            // native 组件无法被 GC 回收，单次泄漏可达 30-80MB。
+            // 对比 BrowserWebViewPool 多 Tab 路径已正确执行 removeView。
+            if (webViewContainer != null) {
+                try {
+                    webViewContainer.removeView(webView);
+                } catch (Throwable ignored) {}
+            }
             webView.stopLoading();
             webView.clearHistory();
             webView.removeAllViews();
             webView.destroy();
             webView = null;
         }
+        webViewContainer = null;
         webViewClient = null;
         chromeClient = null;
     }

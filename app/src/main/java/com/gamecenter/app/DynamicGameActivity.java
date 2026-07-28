@@ -14,6 +14,7 @@ import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.ui.GameLauncherHelper;
 import com.gamecenter.app.modules.ModuleLoader;
 import com.gamecenter.app.modules.ModuleManager;
+import com.gamecenter.app.modules.ModuleDownloader;
 import com.gamecenter.app.core.common.ModuleManifest;
 import java.io.File;
 
@@ -74,7 +75,7 @@ public class DynamicGameActivity extends AppCompatActivity {
             return;
         }
 
-        Toast.makeText(this, "游戏未安装，正在前往模块商店…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.dynamic_game_not_installed, Toast.LENGTH_SHORT).show();
         try {
             Intent storeIntent = new Intent(this, com.gamecenter.app.modules.ModuleStoreActivity.class);
             storeIntent.putExtra("filter_game_id", gameId);
@@ -101,7 +102,7 @@ public class DynamicGameActivity extends AppCompatActivity {
         Log.d(TAG, "找到模块: " + manifest.getId() + ", fileName=" + manifest.getFileName());
 
         if (manifest.getFileName() != null && !manifest.getFileName().isEmpty()) {
-            File moduleFile = new File(getFilesDir(), "modules/" + manifest.getFileName());
+            File moduleFile = ModuleDownloader.INSTANCE.getModuleFileCompat(this, manifest);
             Log.d(TAG, "检查模块文件: " + moduleFile.getAbsolutePath() + ", exists=" + moduleFile.exists());
             if (!moduleFile.exists()) {
                 return false;

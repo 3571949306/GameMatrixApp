@@ -49,11 +49,15 @@ class ReviewFragment : BaseWrongBookFragment() {
                 updateProgressUi()
             },
             onSkip = { item ->
-                // 跳过：从当前列表中临时隐藏该项
+                // 跳过：持久化 status="skipped"，避免重新进入复习页时再次出现。
+                // 之前只修改内存列表未调用 repository，导致跳过的题目"复活"。
+                viewModel.skipReview(item.plan)
+
+                // 同时从当前列表中移除，保持即时反馈
                 val currentList = adapter.currentList.toMutableList()
                 currentList.remove(item)
                 adapter.submitList(currentList)
-                
+
                 // 如果跳过导致全部列表为空，则也判定完成复习或显示空态
                 if (currentList.isEmpty()) {
                     binding.emptyView.visibility = View.VISIBLE

@@ -265,6 +265,15 @@ object ModuleManager {
                 markModuleInstalled(context, manifest)
                 if (manifest.type == "game") {
                     registerInstalledGameModules(context)
+                } else if (BuildConfig.PRELOAD_INSTALLED_TOOL_MODULES && manifest.category == "tool") {
+                    // 工具模块下载后立即 load 进内存，使其 TOOLS_GRID 贡献可被 DynamicToolsFragment 收集
+                    // ModuleLoader.loadModule 是幂等的（内部有 loadedModules 缓存）
+                    try {
+                        ModuleLoader.loadModule(context, manifest)
+                        Log.d(TAG, "工具模块已加载: ${manifest.id}")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "工具模块加载失败: ${manifest.id}", e)
+                    }
                 }
                 downloadCallbacks[moduleId]?.onComplete(moduleId, installedFile)
                 downloadCallbacks.remove(moduleId)
@@ -330,6 +339,10 @@ object ModuleManager {
             val p = prefs(appContext)
             val installed = p.getStringSet(KEY_INSTALLED_MODULES, emptySet())?.toMutableSet() ?: mutableSetOf()
             val versions = mutableMapOf<String, Int>()
+            // BUG-007 修复：收集"SP 标记已安装但实际 APK 文件缺失"的模块 id，循环结束后回写 SP 清理脏数据。
+            // 之前只在 !installed.contains(id) 时校验文件存在性（只能加不能减），
+            // 导致历史安装过的模块被外部删除文件后，SP 仍记录为已安装，统计栏显示"6 已安装"但实际只有 3 个 APK。
+            val staleIds = mutableListOf<String>()
             for ((id, manifest) in manifests) {
                 if (manifest.builtIn) {
                     installed.add(id)
@@ -338,11 +351,39 @@ object ModuleManager {
                     continue
                 }
                 val savedV = p.getInt(KEY_MODULE_VERSION_PREFIX + id, 0)
-                if (savedV > 0) versions[id] = savedV
-                if (!installed.contains(id) && manifest.fileName.isNotEmpty()) {
-                    val file = ModuleDownloader.getModuleFileCompat(appContext, manifest)
-                    if (file.exists()) installed.add(id)
+                val fileExists = if (manifest.fileName.isNotEmpty()) {
+                    ModuleDownloader.getModuleFileCompat(appContext, manifest).exists()
+                } else {
+                    false
                 }
+                if (installed.contains(id)) {
+                    // SP 已标记为已安装：必须校验文件是否真的存在，文件缺失则视为脏数据清理
+                    if (!fileExists) {
+                        installed.remove(id)
+                        versions.remove(id)
+                        staleIds.add(id)
+                        Log.w(TAG, "缓存清理: 模块 $id 标记为已安装但 APK 文件不存在，已从缓存移除")
+                    } else if (savedV > 0) {
+                        versions[id] = savedV
+                    }
+                } else {
+                    // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
+                    if (fileExists) {
+                        installed.add(id)
+                        if (savedV > 0) versions[id] = savedV
+                    }
+                }
+            }
+            // 回写清理后的 SP（仅当确有脏数据时才写入，避免无谓 IO）
+            if (staleIds.isNotEmpty()) {
+                val editor = p.edit()
+                editor.putStringSet(KEY_INSTALLED_MODULES, installed)
+                for (id in staleIds) {
+                    editor.remove(KEY_MODULE_VERSION_PREFIX + id)
+                    editor.remove(KEY_LAST_GOOD_VERSION_PREFIX + id)
+                }
+                editor.apply()
+                Log.d(TAG, "已清理 ${staleIds.size} 个失效模块的安装状态缓存: $staleIds")
             }
             installedIdsCache = installed
             installedVersionCache = versions
@@ -442,6 +483,27 @@ object ModuleManager {
 
     fun getAvailableModules(): List<ModuleManifest> = manifests.values.toList()
 
+    /**
+     * P3-12 (MODULE_STORE_ENHANCE): 获取与指定模块相似的其他模块。
+     *
+     * 相似度策略：
+     * 1. 同 storeCategory 优先；
+     * 2. 排除自身、base framework、内置兜底模块；
+     * 3. 取最多 [limit] 个。
+     */
+    fun getSimilarModules(moduleId: String, limit: Int = 6): List<ModuleManifest> {
+        val target = manifests[moduleId] ?: return emptyList()
+        val category = target.storeCategory
+        return manifests.values
+            .asSequence()
+            .filter { it.id != moduleId }
+            .filter { !it.isBaseFramework }
+            .sortedWith(compareByDescending<ModuleManifest> { if (it.storeCategory == category) 1 else 0 }
+                .thenByDescending { it.versionCode })
+            .take(limit)
+            .toList()
+    }
+
     fun getModuleManifest(moduleId: String): ModuleManifest? {
         if (manifests.isEmpty()) registerLocalFallbackIfNeeded()
         return manifests[moduleId]
@@ -526,20 +588,23 @@ object ModuleManager {
         // Batch 21 修复：vpn 硬编码与 assets/modules.json 保持完全一致
         // （sha256/fileName/fallbackUrl/githubUrl 完全对齐）
         // 避免 assets 读取失败时，使用与 modules.json 不一致的 sha256 导致下载后校验失败
+        // 注意：registerAvailableManifests 会不传 context 调用本方法，
+        // 因此硬编码兜底会无条件覆盖 modules.json 已加载的 vpn 条目，
+        // 必须保持此处的字段与 assets/modules.json 中的 vpn 条目完全一致。
         val localModules = listOf(
             ModuleManifest(
                 id = "vpn",
-                name = "VPN服务",
-                description = "安全网络连接服务模块。",
+                name = "VPN",
+                description = "仅远程使用的 VPN 模块，支持代理配置管理与连接控制。",
                 versionName = "1.0.0", versionCode = 100,
                 entryClass = "com.gamecenter.app.vpn.VpnModuleEntryPoint",
-                fileName = "vpn-debug.apk",
-                fileSize = 840065,
-                sha256 = "05e80e0206ac92dba01b6f96e663512e255adcea87ed57ce14ce949bb3bf3843",
-                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "vpn-debug.apk",
-                fallbackUrl = "https://hk-relay.tcp0053.shop/modules/vpn-debug.apk",
-                githubUrl = BuildConfig.GITHUB_RELEASES_URL + "/download/modules-v1/vpn-debug.apk",
-                type = "nav", storeCategory = "vpn",
+                fileName = "vpn-release.apk",
+                fileSize = 640752,
+                sha256 = "fe9c62efe569a4c5824d0bf7d900e7d60588a57ebfe3b695acf9d44552fef306",
+                downloadUrl = "https://hk-update.tcp0053.shop/modules/vpn-release.apk",
+                fallbackUrl = "",
+                githubUrl = "",
+                type = "nav", storeCategory = "device_network",
                 builtIn = false, isBaseFramework = false, iconUrl = ""
             )
         )
@@ -594,6 +659,16 @@ object ModuleManager {
         // MODULE_STORE_PERF_OPT: 同步更新内存缓存
         installedIdsCache?.remove(moduleId)
         installedVersionCache?.remove(moduleId)
+    }
+
+    /**
+     * BUG-007 修复：供 [ModuleLoader] 在加载失败（文件不存在 / SHA-256 校验失败 / 签名失败）时调用，
+     * 主动清理 SP 与内存缓存中的安装状态记录，避免脏数据持续存在导致模块商店统计与实际不符。
+     *
+     * 与 [removeInstalledModule] 行为一致，仅是将其暴露为 public 以便 ModuleLoader 跨对象调用。
+     */
+    fun removeInstalledModulePublic(context: Context, moduleId: String) {
+        removeInstalledModule(context, moduleId)
     }
 
     fun cancelDownload(moduleId: String) = ModuleDownloader.cancel(moduleId)
@@ -698,13 +773,27 @@ object ModuleManager {
                 "puzzle" -> context.getString(R.string.category_puzzle)
                 else -> context.getString(R.string.category_casual)
             }
+            // 优先使用 catalog.json 中的中文名称和描述（本地化方案A），
+            // 模块 APK 内 manifest 的 name/desc 可能仍是英文
+            val catalogModule = try {
+                com.gamecenter.app.modules.store.DefaultStoreCatalogRepository
+                    .getInstance(context).getCachedCatalog()
+                    ?.modules?.find { it.id == manifest.id || it.id == gameId }
+            } catch (e: Exception) {
+                Log.w(TAG, "读取 catalog 查找模块 ${manifest.id} 失败: ${e.message}")
+                null
+            }
+            val displayName = catalogModule?.name?.takeIf { it.isNotEmpty() } ?: manifest.name
+            val displayDesc = catalogModule?.gameDesc?.takeIf { it.isNotEmpty() }
+                ?: catalogModule?.description?.takeIf { it.isNotEmpty() }
+                ?: manifest.gameDesc.ifEmpty { manifest.description }
             GameRegistry.register(GameRegistry.Entry(
                 gameId,
-                getGameIconRes(gameId), manifest.name,
-                manifest.gameDesc.ifEmpty { manifest.description },
+                getGameIconRes(gameId), displayName,
+                displayDesc,
                 activityClass, categoryLabel, categoryKey
             ))
-            Log.d(TAG, "动态注册游戏: ${manifest.name} -> $categoryKey")
+            Log.d(TAG, "动态注册游戏: $displayName -> $categoryKey")
         } catch (e: Exception) {
             Log.w(TAG, "注册游戏失败 ${manifest.id}: ${e.message}")
         }

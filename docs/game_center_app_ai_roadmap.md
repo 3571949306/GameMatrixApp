@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # GameMatrixApp 改造详细计划（Detailed Plan）
+
+> **历史 AI 路线图快照**  
+> 本文的阶段进度、版本、工作树 clean 状态和“未实现”判断来自原始编制时点，不代表当前状态。当前工作树已有 AI/游戏/模块商店/同步等后续实现；实时能力见 [`CURRENT_STATE.md`](CURRENT_STATE.md)，AI 的产品体验方向见 [`PRODUCT_DIRECTION_AND_UX.md`](PRODUCT_DIRECTION_AND_UX.md)。
 
 > **当前进度 (2026-07-21)**：既有 AI/游戏路线保持；模块商店 Flutter UI 与桥接已完成，生产签名/正式 V2 包/多 API 门禁仍在推进。Flutter 化不要求改写游戏 AI。下一阶段仍是扩展自动化与发布门禁。
 >

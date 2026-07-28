@@ -215,9 +215,9 @@ class RecoveryActivity : AppCompatActivity() {
 
     private fun sourceLabel(index: Int): String {
         return when (index) {
-            0 -> "HK VPS"
-            1 -> "GitHub"
-            else -> "Source ${index + 1}"
+            0 -> getString(R.string.recovery_source_hk_vps)
+            1 -> getString(R.string.recovery_source_github)
+            else -> getString(R.string.recovery_source_fallback_format, index + 1)
         }
     }
 

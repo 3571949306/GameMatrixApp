@@ -38,32 +38,35 @@ class ModuleAdapter(
         const val ACTION_ENABLE = 4
         const val ACTION_UNINSTALL = 5
 
-        /** 分类 → 字符串资源（替代硬编码 CATEGORY_LABELS） */
+        /** 分类 → 字符串资源（6 类标准化 storeCategory wireValue） */
         private val CATEGORY_LABEL_RES = mapOf(
-            "game" to R.string.store_category_games,
-            "browser" to R.string.store_category_browser,
-            "tools" to R.string.store_category_tools,
-            "ai" to R.string.store_category_ai,
-            "vpn" to R.string.store_category_vpn,
-            "other" to R.string.store_category_games // 兜底用通用文案
+            "entertainment_versus" to R.string.store_category_entertainment_versus,
+            "learning_organization" to R.string.store_category_learning_organization,
+            "reading_browsing" to R.string.store_category_reading_browsing,
+            "text_creation" to R.string.store_category_text_creation,
+            "device_network" to R.string.store_category_device_network,
+            "personalization" to R.string.store_category_personalization,
+            "other" to R.string.store_category_other
         )
 
-        /** 分类 → 图标（修复 vpn 误用 ic_settings 的 bug） */
+        /** 分类 → 图标（6 类标准化 storeCategory wireValue） */
         private val CATEGORY_ICONS = mapOf(
-            "game" to R.drawable.ic_games,
-            "browser" to R.drawable.ic_browser,
-            "tools" to R.drawable.ic_tools,
-            "ai" to R.drawable.ic_ai,
-            "vpn" to R.drawable.ic_vpn
+            "entertainment_versus" to R.drawable.ic_games,
+            "learning_organization" to R.drawable.ic_nav_wrongbook,
+            "reading_browsing" to R.drawable.ic_browser,
+            "text_creation" to R.drawable.ic_ai,
+            "device_network" to R.drawable.ic_vpn,
+            "personalization" to R.drawable.ic_settings
         )
 
-        /** Batch 20: 分类 → 渐变图标背景 drawable */
+        /** Batch 20: 分类 → 渐变图标背景 drawable（复用现有 6 套渐变） */
         private val CATEGORY_GRADIENTS = mapOf(
-            "game" to R.drawable.module_category_game_gradient,
-            "browser" to R.drawable.module_category_browser_gradient,
-            "tools" to R.drawable.module_category_tools_gradient,
-            "ai" to R.drawable.module_category_ai_gradient,
-            "vpn" to R.drawable.module_category_vpn_gradient,
+            "entertainment_versus" to R.drawable.module_category_game_gradient,
+            "learning_organization" to R.drawable.module_category_tools_gradient,
+            "reading_browsing" to R.drawable.module_category_browser_gradient,
+            "text_creation" to R.drawable.module_category_ai_gradient,
+            "device_network" to R.drawable.module_category_vpn_gradient,
+            "personalization" to R.drawable.module_category_other_gradient,
             "other" to R.drawable.module_category_other_gradient
         )
 
@@ -165,7 +168,7 @@ class ModuleAdapter(
         val onSurfaceVariantColor = themeColors.onSurfaceVariant
 
         // 分类 Chip（引用字符串资源，不硬编码）
-        val categoryLabelRes = CATEGORY_LABEL_RES[module.storeCategory] ?: R.string.store_category_games
+        val categoryLabelRes = CATEGORY_LABEL_RES[module.storeCategory] ?: R.string.store_category_other
         holder.categoryChip.text = context.getString(categoryLabelRes)
         holder.categoryChip.visibility = if (module.isBaseFramework) View.GONE else View.VISIBLE
 

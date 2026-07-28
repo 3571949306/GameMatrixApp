@@ -5,6 +5,7 @@ import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.os.Looper;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
@@ -20,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
 
@@ -103,9 +105,14 @@ public class ChineseChessModuleFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         moduleRes = com.gamecenter.app.modules.ModuleManager.INSTANCE.getModuleResources("chinesechess");
         if (moduleRes == null) {
-            Toast.makeText(requireContext(), "获取模块资源失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.klotski_get_resource_failed, Toast.LENGTH_SHORT).show();
             return new FrameLayout(requireContext());
         }
+
+        // 获取模块的 DexClassLoader，供 LayoutInflater 加载模块内的自定义 View（如 ChineseChessView）
+        // 若不重写 getClassLoader()，LayoutInflater 会使用宿主 ClassLoader，导致 ClassNotFoundException。
+        final ClassLoader moduleClassLoader =
+                com.gamecenter.app.modules.ModuleLoader.INSTANCE.getModuleClassLoader("chinesechess");
 
         // 使用插件资源 Context 覆盖
         Context contextThemeWrapper = new ContextThemeWrapper(requireContext(), com.gamecenter.app.R.style.Theme_GameMatrixApp) {
@@ -118,10 +125,24 @@ public class ChineseChessModuleFragment extends Fragment {
             public AssetManager getAssets() {
                 return moduleRes.getAssetManager();
             }
+
+            @Override
+            public ClassLoader getClassLoader() {
+                // 优先使用模块的 DexClassLoader，使 LayoutInflater 能加载模块自定义 View
+                return moduleClassLoader != null ? moduleClassLoader : super.getClassLoader();
+            }
         };
 
         LayoutInflater localInflater = inflater.cloneInContext(contextThemeWrapper);
         int layoutId = moduleRes.getLayoutResId("activity_chinese_chess");
+        if (layoutId == 0) {
+            // 模块 APK 损坏或资源包名解析失败时 getLayoutResId 返回 0，直接 inflate 会触发
+            // Resources$NotFoundException 闪退。此处兜底返回空 FrameLayout，与 moduleRes==null 分支保持一致。
+            Log.e("ChineseChessModuleFragment",
+                    "布局资源未找到: activity_chinese_chess (moduleRes=" + moduleRes + ")");
+            Toast.makeText(requireContext(), R.string.klotski_get_resource_failed, Toast.LENGTH_SHORT).show();
+            return new FrameLayout(requireContext());
+        }
         View view = localInflater.inflate(layoutId, container, false);
 
         uiHandler = new Handler(Looper.getMainLooper());
@@ -203,7 +224,7 @@ public class ChineseChessModuleFragment extends Fragment {
     private void selectDifficulty(int difficulty) {
         aiDifficulty = Math.max(1, Math.min(difficulty, MAX_AI_DIFFICULTY));
         if (tvDifficultyLabel != null) {
-            tvDifficultyLabel.setText("难度：" + DIFFICULTY_NAMES[aiDifficulty - 1]
+            tvDifficultyLabel.setText(getString(R.string.game_difficulty_format, DIFFICULTY_NAMES[aiDifficulty - 1])
                     + " (" + aiDifficulty + "/" + MAX_AI_DIFFICULTY + ")");
         }
     }
@@ -314,10 +335,16 @@ public class ChineseChessModuleFragment extends Fragment {
         final long startMs = System.currentTimeMillis();
 
         aiExecutor.execute(() -> {
-            int[] result = ai.getBestMove(game);
-            if (result == null) {
+            int[] aiRaw = ai.getBestMove(game.getBoardAsIntArray(), aiDifficulty);
+            int[] result;
+            if (aiRaw != null) {
+                // AI 返回 [fromRow, fromCol, toRow, toCol]（行优先），转换为游戏通用的
+                // [fromX, fromY, toX, toY] = [col, row, col, row] 格式，与 getAllMoves 一致。
+                result = new int[]{aiRaw[1], aiRaw[0], aiRaw[3], aiRaw[2]};
+            } else {
+                // getAllMoves 本身返回 [fromX, fromY, toX, toY]（列优先），无需转换。
                 List<int[]> all = game.getAllMoves(ChineseChessGame.Side.BLACK);
-                if (!all.isEmpty()) result = all.get(0);
+                result = all.isEmpty() ? null : all.get(0);
             }
             final int[] move = result;
 
@@ -403,7 +430,17 @@ public class ChineseChessModuleFragment extends Fragment {
         showStatus("正在计算提示...");
         aiExecutor.execute(() -> {
             ChineseChessAI hintAi = new ChineseChessAI(Math.max(1, Math.min(aiDifficulty, MAX_AI_DIFFICULTY)));
-            int[] move = hintAi.getBestMove(game);
+            // 提示是给红方（人类）的，必须传 aiSide=1（红方）。
+            // ChineseChessAI.getBestMove 返回 [fromRow, fromCol, toRow, toCol]（行优先），
+            // 而游戏其余接口（getLegalMoves/setSelected 等）使用 [x, y] = [col, row]（列优先）。
+            // 此处将 AI 返回值转换为 [fromX, fromY, toX, toY] = [col, row, col, row]，与 getAllMoves 格式对齐。
+            int[] raw = hintAi.getBestMove(game.getBoardAsIntArray(), aiDifficulty, 1);
+            final int[] move;
+            if (raw == null) {
+                move = null;
+            } else {
+                move = new int[]{raw[1], raw[0], raw[3], raw[2]};
+            }
             uiHandler.post(() -> {
                 if (move == null || game.isGameOver() || game.getCurrentSide() != ChineseChessGame.Side.RED) {
                     showStatus("暂无可用提示");

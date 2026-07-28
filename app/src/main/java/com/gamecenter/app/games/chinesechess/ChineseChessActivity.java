@@ -210,7 +210,7 @@ public class ChineseChessActivity extends BaseGameActivity {
         }
 
         ai = new ChineseChessAI(aiDifficulty);
-        masterAi = new ChineseChessAI(4); // 大师级提示专用
+        masterAi = new ChineseChessAI(5); // 大师级提示专用（depth=5，比玩家可选的最高档更强）
         aiExecutor = Executors.newSingleThreadExecutor();
 
         // 初始化复盘分析器
@@ -346,8 +346,9 @@ public class ChineseChessActivity extends BaseGameActivity {
             return;
         }
 
-        // 4个按钮映射到5级难度：1→1, 2→2, 3→3, 4→5（跳过4级，直接大师）
-        int[] difficultyMapping = {1, 2, 3, 5};
+        // 4个按钮映射到4级难度：1→1(简单), 2→2(普通), 3→3(困难), 4→4(大师)
+        // AI 档5（depth=5）保留给提示功能，不暴露给玩家选择
+        int[] difficultyMapping = {1, 2, 3, 4};
         aiDifficulty = difficultyMapping[selectedDifficultyIndex];
         ai = new ChineseChessAI(aiDifficulty);
         currentDifficultyIndex = selectedDifficultyIndex;
@@ -1308,11 +1309,13 @@ public class ChineseChessActivity extends BaseGameActivity {
                 tutorialManager.markTutorialShown();
                 Toast.makeText(ChineseChessActivity.this,
                     "引导完成！现在可以开始游戏了", Toast.LENGTH_SHORT).show();
+                runOnUiThread(() -> startGame());
             }
 
             @Override
             public void onTutorialSkip() {
                 tutorialManager.markTutorialShown();
+                runOnUiThread(() -> startGame());
             }
         });
     }
@@ -1339,12 +1342,12 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private void showReviewOption(GameRecord record) {
         new AlertDialog.Builder(this)
-            .setTitle("复盘分析")
-            .setMessage("是否要查看本局复盘分析？")
-            .setPositiveButton("查看", (dialog, which) -> {
+            .setTitle(getString(R.string.chess_replay_title))
+            .setMessage(getString(R.string.chess_replay_msg))
+            .setPositiveButton(R.string.chess_replay_view, (dialog, which) -> {
                 performReview(record);
             })
-            .setNegativeButton("跳过", null)
+            .setNegativeButton(R.string.chess_replay_skip, null)
             .show();
     }
 
@@ -1374,9 +1377,9 @@ public class ChineseChessActivity extends BaseGameActivity {
         );
         
         new AlertDialog.Builder(this)
-            .setTitle("复盘报告")
+            .setTitle(getString(R.string.chess_replay_report_title))
             .setMessage(message)
-            .setPositiveButton("确定", null)
+            .setPositiveButton(R.string.settings_ok, null)
             .show();
     }
 

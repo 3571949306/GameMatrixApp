@@ -235,7 +235,11 @@ data class NativeModule (
   val dependencies: List<String?>? = null,
   val tags: List<String?>? = null,
   val screenshots: List<String?>? = null,
-  val changelog: List<String?>? = null
+  val changelog: List<String?>? = null,
+  /** 模块详情 JSON 字符串（#11.1）：valueDescription/audience/offlineCapability 等 */
+  val detailsJson: String? = null,
+  /** 隐私卡 JSON 字符串（#11.2）：localData/cloudData/networkDomains 等 */
+  val privacyJson: String? = null
 )
  {
   companion object {
@@ -273,7 +277,9 @@ data class NativeModule (
       val tags = pigeonVar_list[30] as List<String?>?
       val screenshots = pigeonVar_list[31] as List<String?>?
       val changelog = pigeonVar_list[32] as List<String?>?
-      return NativeModule(id, name, shortDescription, description, versionName, versionCode, installedVersionCode, runtime, deliveryType, state, route, entryClass, entry, serviceType, launcherId, iconUrl, category, fileSize, builtIn, required, featured, enabled, updateAvailable, compatible, rollbackAvailable, minHostVersionCode, maxHostVersionCode, permissions, permissionsDescription, dependencies, tags, screenshots, changelog)
+      val detailsJson = pigeonVar_list[33] as String?
+      val privacyJson = pigeonVar_list[34] as String?
+      return NativeModule(id, name, shortDescription, description, versionName, versionCode, installedVersionCode, runtime, deliveryType, state, route, entryClass, entry, serviceType, launcherId, iconUrl, category, fileSize, builtIn, required, featured, enabled, updateAvailable, compatible, rollbackAvailable, minHostVersionCode, maxHostVersionCode, permissions, permissionsDescription, dependencies, tags, screenshots, changelog, detailsJson, privacyJson)
     }
   }
   fun toList(): List<Any?> {
@@ -311,6 +317,8 @@ data class NativeModule (
       tags,
       screenshots,
       changelog,
+      detailsJson,
+      privacyJson,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -321,7 +329,7 @@ data class NativeModule (
       return true
     }
     val other = other as NativeModule
-    return PigeonUtils.deepEquals(this.id, other.id) && PigeonUtils.deepEquals(this.name, other.name) && PigeonUtils.deepEquals(this.shortDescription, other.shortDescription) && PigeonUtils.deepEquals(this.description, other.description) && PigeonUtils.deepEquals(this.versionName, other.versionName) && PigeonUtils.deepEquals(this.versionCode, other.versionCode) && PigeonUtils.deepEquals(this.installedVersionCode, other.installedVersionCode) && PigeonUtils.deepEquals(this.runtime, other.runtime) && PigeonUtils.deepEquals(this.deliveryType, other.deliveryType) && PigeonUtils.deepEquals(this.state, other.state) && PigeonUtils.deepEquals(this.route, other.route) && PigeonUtils.deepEquals(this.entryClass, other.entryClass) && PigeonUtils.deepEquals(this.entry, other.entry) && PigeonUtils.deepEquals(this.serviceType, other.serviceType) && PigeonUtils.deepEquals(this.launcherId, other.launcherId) && PigeonUtils.deepEquals(this.iconUrl, other.iconUrl) && PigeonUtils.deepEquals(this.category, other.category) && PigeonUtils.deepEquals(this.fileSize, other.fileSize) && PigeonUtils.deepEquals(this.builtIn, other.builtIn) && PigeonUtils.deepEquals(this.required, other.required) && PigeonUtils.deepEquals(this.featured, other.featured) && PigeonUtils.deepEquals(this.enabled, other.enabled) && PigeonUtils.deepEquals(this.updateAvailable, other.updateAvailable) && PigeonUtils.deepEquals(this.compatible, other.compatible) && PigeonUtils.deepEquals(this.rollbackAvailable, other.rollbackAvailable) && PigeonUtils.deepEquals(this.minHostVersionCode, other.minHostVersionCode) && PigeonUtils.deepEquals(this.maxHostVersionCode, other.maxHostVersionCode) && PigeonUtils.deepEquals(this.permissions, other.permissions) && PigeonUtils.deepEquals(this.permissionsDescription, other.permissionsDescription) && PigeonUtils.deepEquals(this.dependencies, other.dependencies) && PigeonUtils.deepEquals(this.tags, other.tags) && PigeonUtils.deepEquals(this.screenshots, other.screenshots) && PigeonUtils.deepEquals(this.changelog, other.changelog)
+    return PigeonUtils.deepEquals(this.id, other.id) && PigeonUtils.deepEquals(this.name, other.name) && PigeonUtils.deepEquals(this.shortDescription, other.shortDescription) && PigeonUtils.deepEquals(this.description, other.description) && PigeonUtils.deepEquals(this.versionName, other.versionName) && PigeonUtils.deepEquals(this.versionCode, other.versionCode) && PigeonUtils.deepEquals(this.installedVersionCode, other.installedVersionCode) && PigeonUtils.deepEquals(this.runtime, other.runtime) && PigeonUtils.deepEquals(this.deliveryType, other.deliveryType) && PigeonUtils.deepEquals(this.state, other.state) && PigeonUtils.deepEquals(this.route, other.route) && PigeonUtils.deepEquals(this.entryClass, other.entryClass) && PigeonUtils.deepEquals(this.entry, other.entry) && PigeonUtils.deepEquals(this.serviceType, other.serviceType) && PigeonUtils.deepEquals(this.launcherId, other.launcherId) && PigeonUtils.deepEquals(this.iconUrl, other.iconUrl) && PigeonUtils.deepEquals(this.category, other.category) && PigeonUtils.deepEquals(this.fileSize, other.fileSize) && PigeonUtils.deepEquals(this.builtIn, other.builtIn) && PigeonUtils.deepEquals(this.required, other.required) && PigeonUtils.deepEquals(this.featured, other.featured) && PigeonUtils.deepEquals(this.enabled, other.enabled) && PigeonUtils.deepEquals(this.updateAvailable, other.updateAvailable) && PigeonUtils.deepEquals(this.compatible, other.compatible) && PigeonUtils.deepEquals(this.rollbackAvailable, other.rollbackAvailable) && PigeonUtils.deepEquals(this.minHostVersionCode, other.minHostVersionCode) && PigeonUtils.deepEquals(this.maxHostVersionCode, other.maxHostVersionCode) && PigeonUtils.deepEquals(this.permissions, other.permissions) && PigeonUtils.deepEquals(this.permissionsDescription, other.permissionsDescription) && PigeonUtils.deepEquals(this.dependencies, other.dependencies) && PigeonUtils.deepEquals(this.tags, other.tags) && PigeonUtils.deepEquals(this.screenshots, other.screenshots) && PigeonUtils.deepEquals(this.changelog, other.changelog) && PigeonUtils.deepEquals(this.detailsJson, other.detailsJson) && PigeonUtils.deepEquals(this.privacyJson, other.privacyJson)
   }
 
   override fun hashCode(): Int {
@@ -359,10 +367,12 @@ data class NativeModule (
     result = 31 * result + PigeonUtils.deepHash(this.tags)
     result = 31 * result + PigeonUtils.deepHash(this.screenshots)
     result = 31 * result + PigeonUtils.deepHash(this.changelog)
+    result = 31 * result + PigeonUtils.deepHash(this.detailsJson)
+    result = 31 * result + PigeonUtils.deepHash(this.privacyJson)
     return result
   }
   override fun toString(): String {
-    return "NativeModule(id=$id, name=$name, shortDescription=$shortDescription, description=$description, versionName=$versionName, versionCode=$versionCode, installedVersionCode=$installedVersionCode, runtime=$runtime, deliveryType=$deliveryType, state=$state, route=$route, entryClass=$entryClass, entry=$entry, serviceType=$serviceType, launcherId=$launcherId, iconUrl=$iconUrl, category=$category, fileSize=$fileSize, builtIn=$builtIn, required=$required, featured=$featured, enabled=$enabled, updateAvailable=$updateAvailable, compatible=$compatible, rollbackAvailable=$rollbackAvailable, minHostVersionCode=$minHostVersionCode, maxHostVersionCode=$maxHostVersionCode, permissions=$permissions, permissionsDescription=$permissionsDescription, dependencies=$dependencies, tags=$tags, screenshots=$screenshots, changelog=$changelog)"
+    return "NativeModule(id=$id, name=$name, shortDescription=$shortDescription, description=$description, versionName=$versionName, versionCode=$versionCode, installedVersionCode=$installedVersionCode, runtime=$runtime, deliveryType=$deliveryType, state=$state, route=$route, entryClass=$entryClass, entry=$entry, serviceType=$serviceType, launcherId=$launcherId, iconUrl=$iconUrl, category=$category, fileSize=$fileSize, builtIn=$builtIn, required=$required, featured=$featured, enabled=$enabled, updateAvailable=$updateAvailable, compatible=$compatible, rollbackAvailable=$rollbackAvailable, minHostVersionCode=$minHostVersionCode, maxHostVersionCode=$maxHostVersionCode, permissions=$permissions, permissionsDescription=$permissionsDescription, dependencies=$dependencies, tags=$tags, screenshots=$screenshots, changelog=$changelog, detailsJson=$detailsJson, privacyJson=$privacyJson)"
   }
 }
 

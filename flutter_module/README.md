@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 下文任何关于 vc595 / 已签名 Catalog V8 的陈述均记录 2026-07-22 的发布证据。它不是当前工作树或生产状态的声明；实时事实请查阅项目根目录的 `docs/CURRENT_STATE.md` 与当前实现。
 
 # GameMatrix Flutter Store Module
 
@@ -54,4 +54,4 @@ cd ..
 - 禁止模拟下载进度；所有状态来自 Android 事件。
 - 高频下载进度只更新对应下载监听器；阶段切换时才回查完整权威模块，避免桥接和整页重建风暴。
 - 功能开关默认关闭，旧商店始终保留回退。
-- 生产门禁和实际完成度见 `/docs/flutter-store/MIGRATION_STATUS.md`，桥接细节见 `/docs/flutter-store/BRIDGE_API.md`。
+- 当前发布门槛和实时事实见 `/docs/CURRENT_STATE.md`；vc595 的 Flutter 商店发布证据保留在 `/docs/flutter-store/`；桥接细节见 `/docs/flutter-store/BRIDGE_API.md`。

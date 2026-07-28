@@ -63,7 +63,7 @@ public final class HashToolBinder implements ToolBinder {
             btnMd5.setOnClickListener(v -> {
                 String text = etInput != null ? etInput.getText().toString() : "";
                 if (tvResult != null) {
-                    tvResult.setText("MD5: " + hashText(text, "MD5"));
+                    tvResult.setText(context.getString(R.string.hash_fmt_md5, hashText(text, "MD5")));
                 }
             });
         }
@@ -74,7 +74,7 @@ public final class HashToolBinder implements ToolBinder {
             btnSha1.setOnClickListener(v -> {
                 String text = etInput != null ? etInput.getText().toString() : "";
                 if (tvResult != null) {
-                    tvResult.setText("SHA1: " + hashText(text, "SHA-1"));
+                    tvResult.setText(context.getString(R.string.hash_fmt_sha1, hashText(text, "SHA-1")));
                 }
             });
         }
@@ -85,7 +85,7 @@ public final class HashToolBinder implements ToolBinder {
             btnSha256.setOnClickListener(v -> {
                 String text = etInput != null ? etInput.getText().toString() : "";
                 if (tvResult != null) {
-                    tvResult.setText("SHA256: " + hashText(text, "SHA-256"));
+                    tvResult.setText(context.getString(R.string.hash_fmt_sha256, hashText(text, "SHA-256")));
                 }
             });
         }
@@ -99,17 +99,17 @@ public final class HashToolBinder implements ToolBinder {
                 String hash = etReverse != null ? etReverse.getText().toString().trim() : "";
                 // 边界条件：空输入时提示用户
                 if (hash.isEmpty()) {
-                    Toast.makeText(context, "请输入哈希值", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, R.string.tool_input_hash, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 if (tvReverseResult != null) {
-                    tvReverseResult.setText("查询中...");
+                    tvReverseResult.setText(context.getString(R.string.tool_hash_querying));
                 }
                 // 统一转为小写，确保与字典计算结果格式一致
                 final String normalizedHash = hash.toLowerCase(Locale.ROOT);
                 // 提交到后台线程执行反查，避免网络请求阻塞主线程
                 executorService.execute(() -> {
-                    String result = reverseHashLookup(normalizedHash);
+                    String result = reverseHashLookup(context, normalizedHash);
                     contentView.post(() -> {
                         if (tvReverseResult != null) {
                             tvReverseResult.setText(result);
@@ -149,10 +149,11 @@ public final class HashToolBinder implements ToolBinder {
      * 任一级查找成功即返回结果，两级均失败则返回未找到提示。
      * </p>
      *
+     * @param context 上下文环境，用于获取本地化字符串资源
      * @param hash 待反查的哈希值（已转为小写）
      * @return 反查结果字符串，格式为 "哈希值 -> \"明文\""；未找到时返回提示信息
      */
-    private static String reverseHashLookup(String hash) {
+    private static String reverseHashLookup(Context context, String hash) {
         String local = lookupLocalDictionary(hash);
         if (!local.isEmpty()) {
             return local;
@@ -163,7 +164,7 @@ public final class HashToolBinder implements ToolBinder {
             return online;
         }
 
-        return "未找到\n该哈希值在本地字典和在线数据库中均未匹配。\n建议尝试其他在线工具如:crackstation.net、hashes.org";
+        return context.getString(R.string.tool_hash_not_found);
     }
 
     /**

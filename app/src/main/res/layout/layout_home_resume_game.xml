@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Batch 12-1 (HOME_RESUME_GAME_CARD): 首页"继续游玩"卡片。
      显示最近一次游玩的游戏图标、名称、上次游玩时间、继续按钮。
-     点击卡片或继续按钮直接启动游戏。 -->
+     点击卡片或继续按钮直接启动游戏。
+     HOME_L2_TIGHT_2026_07_24 v2 修订：改为 vertical 布局（图标顶部 + 文字+按钮 下方堆叠），
+     让卡片在 150dp 固定行高的 Row 1 中能撑满高度、消除大片紫色空白。
+     内容总高 ≈ 12(padding top) + 48(icon) + 8(margin) + 14(name) + 4(margin) + 10(time)
+                + 12(margin) + 32(按钮 padding 6+text+padding 6) + 12(padding bottom) ≈ 152dp -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginStart="@dimen/spacing_16"
-    android:layout_marginEnd="@dimen/spacing_16"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:padding="@dimen/spacing_16"
+    android:layout_height="match_parent"
+    android:layout_marginStart="0dp"
+    android:layout_marginEnd="0dp"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:paddingStart="@dimen/spacing_8"
+    android:paddingEnd="@dimen/spacing_8"
+    android:paddingTop="@dimen/spacing_12"
+    android:paddingBottom="@dimen/spacing_12"
     android:background="@drawable/bg_resume_game_gradient"
     android:elevation="2dp">
 
-    <!-- 左侧游戏图标 -->
+    <!-- 顶部游戏图标（48dp 圆形，让卡片更饱满） -->
     <ImageView
         android:id="@+id/iv_resume_icon"
         android:layout_width="48dp"
@@ -24,58 +31,51 @@
         android:scaleType="centerInside"
         tools:src="@drawable/ic_gomoku" />
 
-    <LinearLayout
-        android:layout_width="0dp"
+    <!-- 游戏名称（居中、bold） -->
+    <TextView
+        android:id="@+id/tv_resume_game_name"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="@dimen/spacing_12"
-        android:orientation="vertical">
+        android:layout_marginTop="@dimen/spacing_6"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        tools:text="开始你的第一局游戏" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/home_resume_game_title"
-            android:textColor="@android:color/white"
-            android:alpha="0.85"
-            android:textSize="11sp"
-            android:textStyle="bold" />
+    <!-- 上次游玩时间 -->
+    <TextView
+        android:id="@+id/tv_resume_game_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:alpha="0.85"
+        android:textSize="10sp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        tools:text="从下方推荐中挑选一款" />
 
-        <TextView
-            android:id="@+id/tv_resume_game_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="@android:color/white"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            tools:text="五子棋" />
-
-        <TextView
-            android:id="@+id/tv_resume_game_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="@android:color/white"
-            android:alpha="0.9"
-            android:textSize="11sp"
-            tools:text="3 小时前" />
-    </LinearLayout>
-
-    <!-- 右侧"继续"按钮 -->
+    <!-- "继续"按钮（全宽、紧凑） -->
     <TextView
         android:id="@+id/btn_resume_play"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="@dimen/spacing_16"
-        android:paddingEnd="@dimen/spacing_16"
-        android:paddingTop="@dimen/spacing_8"
-        android:paddingBottom="@dimen/spacing_8"
+        android:layout_marginTop="@dimen/spacing_8"
+        android:gravity="center"
+        android:paddingTop="@dimen/spacing_6"
+        android:paddingBottom="@dimen/spacing_6"
         android:background="@drawable/bg_resume_game_btn"
         android:clickable="true"
         android:focusable="true"
         android:text="@string/home_resume_game_action"
         android:textColor="@android:color/white"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:textStyle="bold" />
 
 </LinearLayout>

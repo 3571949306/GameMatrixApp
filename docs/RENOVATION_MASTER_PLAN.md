@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # GameMatrixApp 全面改造计划（Master Plan）
+
+> **历史总计划快照**  
+> 本文保留制定时的评估、优先级和目标。其版本、完成度、测试数量和 Flutter 发布状态不代表实时工作树；当前事实和发布门槛见 [`CURRENT_STATE.md`](CURRENT_STATE.md)，文档使用规则见 [`DOCUMENTATION_GOVERNANCE.md`](DOCUMENTATION_GOVERNANCE.md)。
 
 > 版本：v1.0 ｜ 编制：郝交付（交付总监）｜ 日期：2026-07-07
 > 输入文档：PRD v1.0（许清楚）｜ 架构与技术可行性文档（高见远）｜ UIUX/设计系统文档（颜好看）

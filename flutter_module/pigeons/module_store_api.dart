@@ -37,6 +37,10 @@ class NativeModule {
   List<String?>? tags;
   List<String?>? screenshots;
   List<String?>? changelog;
+  /// 模块详情 JSON 字符串（#11.1）：valueDescription/audience/offlineCapability 等
+  String? detailsJson;
+  /// 隐私卡 JSON 字符串（#11.2）：localData/cloudData/networkDomains 等
+  String? privacyJson;
 }
 
 class NativeCatalog {

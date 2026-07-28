@@ -201,6 +201,30 @@ public class ChineseChessGame {
     public Piece[][] getBoard() { return board; }
 
     /**
+     * 将棋盘状态转换为整数数组表示，用于 AI 计算。
+     * <p>约定：正值=红子、负值=黑子，绝对值 1..7 对应 将/仕/相/马/车/炮/兵。
+     *
+     * @return 10x9 的整数数组
+     */
+    public int[][] getBoardAsIntArray() {
+        int[][] result = new int[ROWS][COLS];
+        for (int y = 0; y < ROWS; y++) {
+            for (int x = 0; x < COLS; x++) {
+                if (board[y][x] != null) {
+                    int pieceValue = board[y][x].type.ordinal() + 1; // 1..7
+                    if (board[y][x].side == Side.BLACK) {
+                        pieceValue = -pieceValue;
+                    }
+                    result[y][x] = pieceValue;
+                } else {
+                    result[y][x] = 0;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * 获取当前走棋方。
      *
      * @return 当前走棋方阵营

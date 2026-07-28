@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
 import com.gamecenter.app.wrongbook.R
+import com.gamecenter.app.wrongbook.data.MasteryLevel
 import com.gamecenter.app.wrongbook.data.QuestionEntity
 import com.gamecenter.app.wrongbook.databinding.FragmentQuestionDetailBinding
 import org.json.JSONArray
@@ -126,7 +127,7 @@ class QuestionDetailDialogFragment : DialogFragment() {
         // 使用协程或观察 LiveData，在这里我们能直接从 ViewModel 里的错题缓存查找
         val question = viewModel.questions.value?.find { it.id == questionId }
         if (question == null) {
-            Toast.makeText(requireContext(), "未找到错题数据", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_not_found), Toast.LENGTH_SHORT).show()
             dismiss()
             return
         }
@@ -161,9 +162,14 @@ class QuestionDetailDialogFragment : DialogFragment() {
         // 难度
         updateStarsDisplay(q.difficulty)
 
-        // 掌握度
+        // 掌握度（统一阈值与颜色，与列表页/看板页保持一致）
         binding.tvProgressPercent.text = "${q.mastery}%"
         binding.sbMastery.progress = q.mastery
+        val masteryColorRes = MasteryLevel.colorResByMastery(q.mastery)
+        val masteryColor = ContextCompat.getColor(requireContext(), masteryColorRes)
+        binding.tvProgressPercent.setTextColor(masteryColor)
+        // 同步 SeekBar 进度颜色，使详情页与列表页 ProgressBar 视觉表现一致
+        binding.sbMastery.progressTintList = android.content.res.ColorStateList.valueOf(masteryColor)
 
         // 解析
         binding.tvAnalysis.text = q.analysis
@@ -390,7 +396,7 @@ class QuestionDetailDialogFragment : DialogFragment() {
         val mastery = binding.sbMastery.progress
 
         if (rawText.isBlank()) {
-            Toast.makeText(requireContext(), "题目内容不能为空", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_content_empty), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -426,7 +432,7 @@ class QuestionDetailDialogFragment : DialogFragment() {
 
         // 重新显示
         displayQuestion(updated)
-        Toast.makeText(requireContext(), "保存成功", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_save_success), Toast.LENGTH_SHORT).show()
     }
 
     private fun updateFavoriteIcon(fav: Boolean) {
@@ -469,12 +475,12 @@ class QuestionDetailDialogFragment : DialogFragment() {
         val names = subjects.map { it.name }.toTypedArray()
         
         AlertDialog.Builder(requireContext())
-            .setTitle("修改科目")
+            .setTitle(moduleResources.getString(R.string.wrongbook_modify_subject))
             .setItems(names) { _, which ->
                 selectedSubject = names[which]
                 binding.btnChooseSubject.text = selectedSubject
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 

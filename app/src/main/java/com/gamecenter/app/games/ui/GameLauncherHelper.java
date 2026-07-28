@@ -8,7 +8,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.gamecenter.app.DynamicGameActivity;
+import com.gamecenter.app.games.DifficultyRecommender;
 import com.gamecenter.app.games.GameRegistry;
+import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
 import java.util.ArrayList;
@@ -62,8 +64,19 @@ public class GameLauncherHelper {
             return false;
         }
 
+        // P1-4 (DIFFICULTY_RECOMMENDER): 需要难度选择的游戏，根据胜率推荐难度
+        int difficultyIndex = 0;
+        if (needsDifficultySelection(gameId)) {
+            List<DifficultyLevel> levels = getChessDifficultyLevels();
+            GameUsageStore store = new GameUsageStore(context);
+            difficultyIndex = DifficultyRecommender.recommendDifficultyIndex(
+                    store, gameId, levels);
+            DifficultyRecommender.showRecommendToastIfAny(
+                    context, store, gameId, levels, difficultyIndex);
+        }
+
         // 直接启动游戏，难度选择由游戏内部处理
-        startGameActivity(context, gameId, activityClass, 0, false);
+        startGameActivity(context, gameId, activityClass, difficultyIndex, false);
         return true;
     }
 

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">夹层</string>
+    <string name="app_name">游戏中心</string>
     <string name="nav_browser">网页浏览</string>
     <string name="nav_games">游戏大厅</string>
     <string name="nav_tools">工具箱</string>
@@ -42,6 +42,7 @@
     <string name="difficulty_medium">中级</string>
     <string name="difficulty_hard">高级</string>
     <string name="difficulty_hell">地狱</string>
+    <string name="game_tic_difficulty_medium">中等</string>
     <string name="select_difficulty">请选择难度</string>
     <string name="difficulty">难度</string>
 
@@ -186,7 +187,7 @@
     <string name="feedback_copy_recipient"></string>
     <string name="feedback_copied">收件人地址已复制到剪贴板</string>
     <string name="feedback_no_client">未找到邮件客户端，请选择网页版或手动发送</string>
-    <string name="feedback_type_bug">Bug</string>
+    <string name="feedback_type_bug">缺陷</string>
     <string name="feedback_type_feature">功能建议</string>
     <string name="update_check">检查更新</string>
     <string name="update_new_version">发现新版本</string>
@@ -225,7 +226,7 @@
     <string name="update_apk_lost">安装包已丢失，请重新下载</string>
     <string name="update_install_permission_needed">需要安装权限才能安装更新，请在设置中授予</string>
     <string name="permission_dialog_title">权限使用说明</string>
-    <string name="permission_dialog_message">欢迎使用夹层游戏中心！为了提供完整功能，我们需要以下权限：
+    <string name="permission_dialog_message">欢迎使用游戏中心！为了提供完整功能，我们需要以下权限：
 
 • 位置权限：用于局域网联机游戏发现和WiFi地址检测
 • 相机权限：用于工具箱中的二维码扫描功能
@@ -297,7 +298,7 @@
     <string name="settings_source_hk_vps">香港 VPS</string>
     <!-- 2026-06-19: 美国 VPS 已下线，此字符串保留向后兼容（无代码引用），后续可删除 -->
     <string name="settings_source_us_vps">美国 VPS（已废弃）</string>
-    <string name="settings_source_github">GitHub Releases</string>
+    <string name="settings_source_github">GitHub 发布</string>
 
     <!-- 成就系统 -->
     <string name="achievement_first_win_title">初出茅庐</string>
@@ -355,6 +356,9 @@
     <string name="module_refresh">刷新</string>
     <string name="module_store_title">模块商店</string>
     <string name="module_empty">暂无可下载的模块</string>
+    <!-- 动态工具区 -->
+    <string name="dynamic_tools_empty_state">暂无工具模块，请前往模块商店下载。</string>
+    <string name="dynamic_tools_loading">正在加载工具模块…</string>
     <string name="module_empty_title">空空如也</string>
     <string name="module_empty_action">浏览全部模块</string>
     <string name="module_error_title">出错了</string>
@@ -380,6 +384,14 @@
     <string name="store_category_tools">工具箱</string>
     <string name="store_category_ai">AI助手</string>
     <string name="store_category_vpn">VPN</string>
+    <!-- 6 类标准化 storeCategory（按结果组织模块，与 Flutter 商店一致） -->
+    <string name="store_category_entertainment_versus">娱乐与对战</string>
+    <string name="store_category_learning_organization">学习与整理</string>
+    <string name="store_category_reading_browsing">阅读与浏览</string>
+    <string name="store_category_text_creation">文本与创作</string>
+    <string name="store_category_device_network">设备与网络</string>
+    <string name="store_category_personalization">个性化</string>
+    <string name="store_category_other">其他</string>
     <string name="store_base_framework">基础框架</string>
     <string name="store_subcategory_puzzle">益智</string>
     <string name="store_subcategory_casual">休闲</string>
@@ -392,7 +404,7 @@
     <string name="module_update_all_count">一键更新 (%1$d)</string>
     <string name="module_retry">重试</string>
     <string name="module_builtin">内置</string>
-    <string name="module_new_badge">NEW</string>
+    <string name="module_new_badge">新品</string>
     <string name="module_action_download">下载</string>
     <string name="module_action_open">打开</string>
     <string name="module_action_enable">启用</string>
@@ -450,6 +462,13 @@
     <string name="module_detail_changelog">更新日志</string>
     <string name="module_detail_permissions">权限说明</string>
     <string name="module_detail_no_changelog">暂无更新日志</string>
+    <!-- P3-12 模块商店增强：评分/相似推荐/版本历史 -->
+    <string name="module_detail_rating_title">用户评分</string>
+    <string name="module_detail_rating_hint">点击星星给该模块评分</string>
+    <string name="module_detail_rating_done">你已评分：%1$d 星</string>
+    <string name="module_detail_rating_thanks">感谢评分：%1$d 星</string>
+    <string name="module_detail_similar_title">相似模块推荐</string>
+    <string name="module_detail_version_history">版本历史</string>
     <string name="module_detail_perm_internet">网络访问：用于下载模块包和访问在线内容</string>
     <string name="module_detail_perm_storage">存储访问：用于缓存模块资源和保存截图</string>
     <string name="module_detail_perm_notifications">通知权限：用于显示下载进度和更新提醒</string>
@@ -459,6 +478,79 @@
     <string name="module_list_view">列表视图</string>
     <string name="module_check_update_notification_title">发现模块更新</string>
     <string name="module_check_update_notification_text">有 %1$d 个模块可更新，点击查看</string>
+    <!-- P3-14 离线模块预下载 -->
+    <string name="module_preload_title">离线模块预下载</string>
+    <string name="module_preload_summary">在 WiFi 环境下自动预下载你可能需要的模块，提升离线体验</string>
+    <string name="module_preload_allow_cellular">允许使用移动数据预下载</string>
+    <string name="module_preload_allow_cellular_summary">关闭时仅在 WiFi 下预下载</string>
+    <string name="module_preload_last_run">上次预下载时间：%1$s</string>
+    <string name="module_preload_never_run">尚未运行过预下载</string>
+    <string name="module_preload_now">立即触发预下载</string>
+    <string name="module_preload_now_toast">已触发预下载，将在后台执行</string>
+    <string name="module_preload_no_wifi">当前非 WiFi 环境，且未允许移动数据预下载</string>
+    <!-- P3-13 云存档同步 -->
+    <string name="cloud_sync_title">云存档同步</string>
+    <string name="cloud_sync_summary">通过 WebDAV 同步游戏存档到云端</string>
+    <string name="cloud_sync_webdav_url">WebDAV 服务器地址</string>
+    <string name="cloud_sync_webdav_user">用户名</string>
+    <string name="cloud_sync_webdav_pass">密码</string>
+    <string name="cloud_sync_webdav_subdir">子目录</string>
+    <string name="cloud_sync_test_connection">测试连接</string>
+    <string name="cloud_sync_test_success">连接成功</string>
+    <string name="cloud_sync_test_failed">连接失败：%1$s</string>
+    <string name="cloud_sync_upload_now">立即上传</string>
+    <string name="cloud_sync_download_now">立即下载</string>
+    <string name="cloud_sync_sync_now">立即同步</string>
+    <string name="cloud_sync_upload_success">上传成功</string>
+    <string name="cloud_sync_download_success">下载成功</string>
+    <string name="cloud_sync_sync_success">同步成功</string>
+    <string name="cloud_sync_not_configured">尚未配置 WebDAV</string>
+    <string name="cloud_sync_conflict">检测到冲突：云端和本地都有更新，请选择保留哪一份</string>
+    <string name="cloud_sync_conflict_keep_remote">保留云端</string>
+    <string name="cloud_sync_conflict_keep_local">保留本地</string>
+    <string name="cloud_sync_auto_sync">自动同步</string>
+    <string name="cloud_sync_auto_sync_summary">App 启动时自动同步存档</string>
+    <string name="cloud_sync_last_sync">上次同步：%1$s</string>
+    <string name="cloud_sync_never_synced">从未同步</string>
+    <string name="cloud_sync_save_config">保存配置</string>
+    <string name="cloud_sync_clear_config">清除配置</string>
+    <string name="cloud_sync_config_saved">配置已保存</string>
+    <string name="cloud_sync_syncing">正在同步…</string>
+    <string name="cloud_sync_use_local_hint">已选择本地路径。可在「数据与连接中心」导出到本地文件，不上传云端。</string>
+    <string name="cloud_sync_cancelled">已取消云同步</string>
+    <!-- P3-11 新手引导完善 -->
+    <string name="onboarding_welcome_title">欢迎来到游戏矩阵</string>
+    <string name="onboarding_welcome_subtitle">选择你喜欢的游戏类型，我们将为你个性化推荐</string>
+    <string name="onboarding_interest_title">选择你感兴趣的游戏类型</string>
+    <string name="onboarding_interest_subtitle">可多选，随时在设置中修改</string>
+    <string name="onboarding_difficulty_title">评估你的游戏水平</string>
+    <string name="onboarding_difficulty_subtitle">我们将据此调整 AI 难度推荐</string>
+    <string name="onboarding_difficulty_beginner">新手</string>
+    <string name="onboarding_difficulty_beginner_desc">刚开始接触棋类/卡牌游戏</string>
+    <string name="onboarding_difficulty_normal">普通</string>
+    <string name="onboarding_difficulty_normal_desc">有一定经验，熟悉基本规则</string>
+    <string name="onboarding_difficulty_expert">高手</string>
+    <string name="onboarding_difficulty_expert_desc">经验丰富，追求挑战</string>
+    <string name="onboarding_done_title">设置完成！</string>
+    <string name="onboarding_done_subtitle">你的偏好已保存，开始探索吧</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_prev">上一步</string>
+    <string name="onboarding_finish">开始使用</string>
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_interest_chess">棋类</string>
+    <string name="onboarding_interest_card">卡牌</string>
+    <string name="onboarding_interest_puzzle">益智</string>
+    <string name="onboarding_interest_casual">休闲</string>
+    <string name="onboarding_interest_strategy">策略</string>
+    <!-- P3-11 设置页：重置新手引导 -->
+    <string name="onboarding_reset_global">重置全局新手引导（兴趣+难度）</string>
+    <string name="onboarding_reset_all">全部重置（含游戏内引导）</string>
+    <string name="onboarding_reset_doudizhu">斗地主引导</string>
+    <string name="onboarding_reset_go">围棋引导</string>
+    <string name="onboarding_reset_global_toast">已重置，下次启动将重新进入新手引导</string>
+    <string name="onboarding_reset_all_toast">已重置全部引导，下次进入将重新显示</string>
+    <string name="onboarding_reset_doudizhu_toast">已重置，下次进入斗地主将重新显示引导</string>
+    <string name="onboarding_reset_go_toast">已重置，下次进入围棋将重新显示引导</string>
     <string name="module_detail_intro">模块介绍</string>
     <string name="module_detail_info">信息</string>
     <string name="module_detail_version_label">版本</string>
@@ -1885,6 +1977,7 @@
     <string name="home_game_of_day_title">今日推荐</string>
     <string name="home_game_of_day_subtitle">每日精选一款游戏</string>
     <string name="home_game_of_day_play">立即开始</string>
+    <string name="home_featured_play">试玩</string>
     <string name="home_game_of_day_desc_classics">经典耐玩，快来挑战</string>
     <string name="home_game_of_day_desc_puzzle">动脑解谜，乐趣无穷</string>
     <string name="home_game_of_day_desc_casual">轻松休闲，随时上手</string>
@@ -1995,8 +2088,8 @@
 
     <!-- ===== Feature E 首页卡片增强 (HOME_CARD_ENHANCE) ===== -->
     <string name="home_card_hot_badge">热门</string>
-    <string name="home_card_favorite_add">已收藏</string>
-    <string name="home_card_favorite_remove">已取消收藏</string>
+    <string name="home_card_favorite_add">加入收藏</string>
+    <string name="home_card_favorite_remove">取消收藏</string>
     <string name="home_card_rating_label">评分</string>
     <string name="home_card_no_rating">暂无评分</string>
     <string name="home_top_bar_greeting_morning">早上好</string>
@@ -2028,6 +2121,30 @@
     <string name="stats_duration_min_format">%1$d 分钟</string>
     <string name="stats_duration_hour_format">%1$d 小时 %2$d 分钟</string>
     <string name="stats_rank_format">第 %1$d 名</string>
+
+    <!-- P2-8 (STATS_VISUALIZATION): 统计图表 -->
+    <string name="stats_chart_trend_title">近 7 天游玩趋势</string>
+    <string name="stats_chart_trend_subtitle">每日游玩时长（分钟）</string>
+    <string name="stats_chart_pie_title">胜负分布</string>
+    <string name="stats_chart_bar_title">Top 5 游戏时长（分钟）</string>
+    <string name="stats_chart_label_win">胜</string>
+    <string name="stats_chart_label_loss">负</string>
+
+    <!-- P2-9 (PLAY_TIME_MANAGEMENT): 游戏时长管理 -->
+    <string name="play_limit_settings_title">游戏时长管理</string>
+    <string name="play_limit_settings_desc">设置每日游玩限额并查看周报告</string>
+    <string name="play_limit_dialog_title">每日游玩限额</string>
+    <string name="play_limit_option_off">关闭</string>
+    <string name="play_limit_option_format">%1$d 分钟</string>
+    <string name="play_limit_summary_off">未开启</string>
+    <string name="play_limit_summary_format">今日已玩 %1$d / %2$d 分钟</string>
+    <string name="play_limit_warn_title">今日游玩超限</string>
+    <string name="play_limit_warn_msg">今日已游玩 %1$d 分钟（限额 %2$d 分钟，超 %3$d 分钟）。\n长时间游玩对眼睛和身体不好，建议适当休息。</string>
+    <string name="play_limit_warn_continue">继续游玩</string>
+    <string name="play_limit_warn_exit">退出游戏</string>
+    <string name="play_limit_weekly_report_title">本周游玩报告</string>
+    <string name="play_limit_weekly_report_btn">查看周报告</string>
+    <string name="play_limit_settings_section">游戏时长</string>
 
     <!-- ===== Batch 5：每日签到 + 通知中心 + 个人中心 + 主页每日卡片 ===== -->
     <!-- 每日签到（2026-07-22 起改为自动记录登录天数，旧字符串保留兼容） -->
@@ -2091,6 +2208,9 @@
     <string name="game_detail_play_now">立即开始</string>
     <string name="game_detail_favorite_add">加入收藏</string>
     <string name="game_detail_favorite_remove">取消收藏</string>
+    <!-- BUG-008 修复：收藏切换 Toast 文案（与按钮 contentDescription 区分） -->
+    <string name="game_detail_favorite_added">已加入收藏</string>
+    <string name="game_detail_favorite_removed">已取消收藏</string>
     <string name="game_detail_stats_label">游戏战绩</string>
     <string name="game_detail_play_count_format">总对局：%1$d 次</string>
     <string name="game_detail_win_loss_format">胜 %1$d / 负 %2$d</string>
@@ -2100,6 +2220,85 @@
     <string name="game_detail_high_score_format">最高分：%1$d</string>
     <string name="game_detail_category_label">分类</string>
     <string name="game_detail_play_time_now_format">%1$d 分钟</string>
+
+    <!-- ===== P0-1: LEADERBOARD 本地排行榜 ===== -->
+    <string name="leaderboard_title">排行榜</string>
+    <string name="leaderboard_tab_global">总榜</string>
+    <string name="leaderboard_empty_title">还没有记录</string>
+    <string name="leaderboard_empty_subtitle">玩一局，留下你的第一个记录！</string>
+    <string name="leaderboard_rank_format">第 %1$d 名</string>
+    <string name="leaderboard_score_format">%1$d 分</string>
+    <string name="leaderboard_meta_format">%1$s · %2$s</string>
+    <string name="leaderboard_duration_minutes_format">%1$d 分钟</string>
+    <string name="leaderboard_duration_seconds_format">%1$d 秒</string>
+    <string name="leaderboard_global_high_score">最高分</string>
+    <string name="leaderboard_global_total_score">累计分</string>
+    <string name="leaderboard_global_entries">入榜数</string>
+    <string name="leaderboard_global_game_label">游戏</string>
+    <string name="leaderboard_clear">清空榜单</string>
+    <string name="leaderboard_clear_confirm">确定清空所有排行榜记录吗？此操作不可撤销。</string>
+    <string name="leaderboard_clear_confirm_positive">清空</string>
+    <string name="leaderboard_clear_confirm_negative">取消</string>
+    <string name="leaderboard_entry_rank_medal_1">🥇</string>
+    <string name="leaderboard_entry_rank_medal_2">🥈</string>
+    <string name="leaderboard_entry_rank_medal_3">🥉</string>
+    <string name="leaderboard_new_record_toast">新纪录！第 %1$d 名</string>
+    <string name="leaderboard_not_ranked_toast">未入榜，继续努力！</string>
+    <string name="leaderboard_unable_open">无法打开排行榜</string>
+
+    <!-- ===== P0-2: FAVORITE_GROUPS 收藏分组管理 ===== -->
+    <string name="favorite_groups_title">收藏分组</string>
+    <string name="favorite_groups_smart_section">智能分组（按分类）</string>
+    <string name="favorite_groups_custom_section">自定义分组</string>
+    <string name="favorite_groups_empty">暂无分组，点击右上角添加</string>
+    <string name="favorite_groups_add">新建分组</string>
+    <string name="favorite_groups_add_hint">分组名称</string>
+    <string name="favorite_groups_add_positive">创建</string>
+    <string name="favorite_groups_rename">重命名</string>
+    <string name="favorite_groups_delete">删除分组</string>
+    <string name="favorite_groups_delete_confirm">删除分组 "%1$s"？分组内的游戏将自动移至"默认分组"。</string>
+    <string name="favorite_groups_default_name">默认分组</string>
+    <string name="favorite_groups_count_format">%1$d 款</string>
+    <string name="favorite_groups_empty_in_group">该分组下还没有游戏</string>
+    <string name="favorite_groups_name_empty">分组名称不能为空</string>
+    <string name="favorite_groups_name_duplicate">分组名称已存在</string>
+    <string name="favorite_groups_unable_open">无法打开分组管理</string>
+    <string name="favorite_groups_select">选择分组</string>
+    <string name="favorite_groups_select_hint">将该收藏加入哪个分组？</string>
+    <string name="favorite_groups_smart_classics">经典</string>
+    <string name="favorite_groups_smart_puzzle">益智</string>
+    <string name="favorite_groups_smart_casual">休闲</string>
+    <string name="favorite_groups_smart_other">其他</string>
+
+    <!-- ===== P0-3 (SHARE_CARD): 通用分享卡片 ===== -->
+    <string name="share_card_title">战绩分享</string>
+    <string name="share_card_app_name">GameMatrix</string>
+    <string name="share_card_high_score_label">最高分</string>
+    <string name="share_card_play_count_label">总对局</string>
+    <string name="share_card_win_loss_label">胜负</string>
+    <string name="share_card_play_time_label">总时长</string>
+    <string name="share_card_chooser_title">分享到…</string>
+    <string name="share_card_save_success">战绩卡片已生成，选择分享方式</string>
+    <string name="share_card_save_failed">分享卡片生成失败</string>
+    <string name="share_card_no_data">暂无战绩，无法生成分享卡片</string>
+    <string name="share_card_format_win_loss">%1$d 胜 %2$d 负</string>
+    <string name="share_card_format_minutes">%1$d 分钟</string>
+    <string name="share_card_footer">来 GameMatrix 一起挑战吧！</string>
+    <string name="share_card_action">分享战绩</string>
+
+    <!-- ===== P1-4: DIFFICULTY_RECOMMENDER 难度推荐 ===== -->
+    <string name="diff_rec_toast_easier">最近胜率较低，已为你切换到 %1$s 难度</string>
+    <string name="diff_rec_toast_harder">最近胜率不错，已为你升级到 %1$s 难度</string>
+    <string name="diff_rec_min_games_hint">再玩 %1$d 局即可启用难度推荐</string>
+
+    <!-- ===== P1-5 (ACHIEVEMENT_POINTS): 成就点数系统 ===== -->
+    <string name="achievement_points_label">成就点数</string>
+    <string name="achievement_points_format">%1$d 分</string>
+    <string name="achievement_points_bronze">铜 ×%1$d</string>
+    <string name="achievement_points_silver">银 ×%1$d</string>
+    <string name="achievement_points_gold">金 ×%1$d</string>
+    <string name="achievement_points_platinum">铂 ×%1$d</string>
+    <string name="achievement_points_summary_format">总点数 %1$d（铜%2$d/银%3$d/金%4$d/铂%5$d）</string>
 
     <!-- ===== Batch 7-2: ANIM_SHIMMER_LOADING 骨架屏 ===== -->
     <string name="shimmer_loading_hint">加载中…</string>
@@ -2150,6 +2349,7 @@
     <string name="error_stats_not_found">游戏统计未找到</string>
     <string name="error_settings_open_failed">设置页面打开失败</string>
     <string name="error_achievement_not_found">成就中心未找到</string>
+    <string name="error_wrongbook_open_failed">错题本模块未安装或打开失败，请前往模块商店确认</string>
     <string name="error_game_launch_failed_format">游戏启动失败: %1$s</string>
 
     <!-- ===== Batch 8-1: SEARCH_HISTORY_CHIPS 搜索历史 Chip 流 ===== -->
@@ -2194,5 +2394,656 @@
     <string name="unity_module_placeholder_title">Unity 模块：%1$s</string>
     <string name="unity_module_placeholder_desc">当前为占位实现，未集成 Unity 运行时。真实 Unity 模块将在后续版本提供。</string>
     <string name="unity_module_not_supported">当前设备不支持运行该 Unity 模块</string>
+
+    <!-- 模块错误消息本地化（方案B） -->
+    <string name="module_error_not_found">模块未找到</string>
+    <string name="module_error_action_refresh_catalog">刷新模块目录</string>
+    <string name="module_error_action_resolve_compat">解决兼容性要求</string>
+    <string name="module_error_action_update_host">更新宿主应用</string>
+    <string name="module_error_catalog_v2_not_registered">此 Catalog V2 包未在权威下载器注册</string>
+    <string name="module_error_action_publish_manifest">启用下载前请发布签名清单映射</string>
+    <string name="module_error_no_update">没有更新的兼容版本</string>
+    <string name="module_error_action_retry_legacy">重试或使用旧版商店</string>
+    <string name="module_error_action_retry_install">重试安装</string>
+    <string name="module_error_action_retry_download">重试下载</string>
+    <string name="module_error_download_verify_first">安装前请先下载并校验 APK</string>
+    <string name="module_error_required_no_uninstall">必要模块无法卸载</string>
+    <string name="module_error_asset_not_installed">资源包未安装</string>
+    <string name="module_error_asset_consumers_notified">已通知资源消费者</string>
+    <string name="module_error_host_incompatible">宿主应用版本不兼容</string>
+    <string name="module_error_unable_to_enable">无法启用 %1$s</string>
+    <string name="module_error_required_no_disable">必要模块无法禁用</string>
+    <string name="module_error_update_host_flutter_route">请更新宿主应用以添加此 Flutter 路由</string>
+    <string name="module_error_required_routes_no_remove">必要路由无法移除</string>
+    <string name="module_error_enable_before_open">打开前请先启用该模块</string>
+    <string name="module_error_entry_not_start">模块入口未启动</string>
+    <string name="module_error_native_service_not_installed">原生服务包未安装</string>
+    <string name="module_error_required_services_no_uninstall">必要服务无法卸载</string>
+    <string name="module_error_archive_missing">已校验的包文件缺失</string>
+    <string name="module_error_unable_preserve_runtime">无法保留当前运行时包</string>
+    <string name="module_error_unable_activate_staged">无法激活暂存的包</string>
+    <string name="module_error_unable_quarantine">无法隔离当前包</string>
+    <string name="module_error_unable_restore_last_good">无法恢复上一个良好版本</string>
+    <string name="module_error_unable_remove_runtime_dir">无法移除隔离的运行时目录</string>
+    <string name="module_error_unity_not_installed">Unity 内容未安装</string>
+    <string name="module_error_missing_dependencies">缺少依赖: %1$s</string>
+    <string name="module_error_rollback_unavailable">没有可用的上一个良好版本</string>
+    <string name="module_error_route_not_compiled">此 Flutter 路由未编译到当前宿主版本</string>
+    <string name="module_error_manifest_mapping_missing">没有可用的 Android 清单映射</string>
+    <string name="module_error_package_mapping_missing">没有可用的包映射</string>
+    <string name="module_error_web_entry_missing">Web 入口 %1$s 缺失</string>
+    <string name="module_error_no_last_good_package">不存在 last_good 包</string>
+    <string name="module_error_unity_launcher_unavailable">没有注册兼容的 Unity 启动器</string>
+    <string name="module_error_required_unity_no_remove">必要的 Unity 内容无法移除</string>
+    <string name="module_error_web_entry_not_found">已安装的 Web 入口缺失</string>
+    <string name="module_error_service_type_unsupported">没有为 %1$s 注册宿主控制器</string>
+
+    <!-- ===== 全量本地化：硬编码英文文本迁移（2026-07-24） ===== -->
+    <!-- 通用版本号格式 -->
+    <string name="version_format_simple">v%1$s</string>
+    <string name="version_format_with_code">v%1$s（内部版本 %2$d）</string>
+
+    <!-- 关于对话框 -->
+    <string name="about_gamecenter_title">关于 GameCenter</string>
+    <string name="about_gamecenter_message">GameCenter — 游戏中心\n\n一个模块化的游戏平台，\n所有游戏内容通过模块商店下载。\n\n服务器: %1$s\n模块存储: /data/data/包名/files/modules/</string>
+    <string name="about_with_version_format">关于 %1$s v%2$s</string>
+
+    <!-- 发布通道后缀 -->
+    <string name="channel_beta_suffix"> 测试版</string>
+
+    <!-- License 标签 -->
+    <string name="license_label">许可证：%1$s</string>
+
+    <!-- Recovery 下载源标签 -->
+    <string name="recovery_source_hk_vps">香港 VPS</string>
+    <string name="recovery_source_github">GitHub</string>
+    <string name="recovery_source_fallback_format">下载源 %1$d</string>
+
+    <!-- 剪贴板标签 -->
+    <string name="clipboard_label_version">GameMatrix 版本信息</string>
+    <string name="clipboard_label_color">颜色信息</string>
+
+    <!-- 颜色取色工具 -->
+    <string name="color_fmt_hex">HEX：%1$s</string>
+    <string name="color_fmt_rgb">RGB：%1$d, %2$d, %3$d</string>
+    <string name="color_fmt_argb">ARGB：%1$d, %2$d, %3$d, %4$d</string>
+    <string name="color_fmt_hsl">HSL：%1$d°, %2$d%%, %3$d%%</string>
+    <string name="color_fmt_hsv">HSV：%1$d°, %2$d%%, %3$d%%</string>
+    <string name="color_fmt_int">INT：0x%1$s</string>
+    <string name="color_fmt_css_rgba">CSS：rgba(%1$d,%2$d,%3$d,%4$.2f)</string>
+    <string name="color_fmt_css_rgb">CSS：rgb(%1$d,%2$d,%3$d)</string>
+    <string name="tool_color_copy_success">已复制颜色信息</string>
+
+    <!-- 哈希工具 -->
+    <string name="hash_fmt_md5">MD5：%1$s</string>
+    <string name="hash_fmt_sha1">SHA-1：%1$s</string>
+    <string name="hash_fmt_sha256">SHA-256：%1$s</string>
+
+    <!-- Ping 工具 -->
+    <string name="tool_ping_button_idle">Ping</string>
+    <string name="tool_ping_button_running">Ping 中…</string>
+    <string name="tool_ping_failed">失败：%1$s</string>
+
+    <!-- 工具默认值与提示 -->
+    <string name="tool_dns_default_domain">example.com</string>
+    <string name="tool_wifi_code_format_hint">WiFi 码格式：SSID,密码,加密方式，可省略加密方式默认 WPA</string>
+    <string name="tool_dns_input_hint">请输入域名</string>
+    <string name="tool_dns_querying">正在查询 DNS…</string>
+    <string name="tool_diag_report_copied">诊断报告已复制</string>
+    <string name="tool_file_read_failed">无法读取文件</string>
+    <string name="tool_diag_share_title">分享诊断报告</string>
+    <string name="tool_net_read_failed">读取失败：%1$s</string>
+
+    <!-- 诊断报告 -->
+    <string name="diag_clipboard_label">GameMatrix 诊断报告</string>
+    <string name="diag_report_title">GameMatrixApp 诊断报告</string>
+    <string name="diag_generation_time">生成时间：%1$s</string>
+    <string name="diag_app_version">应用版本：%1$s（%2$d）</string>
+    <string name="diag_system_version">系统版本：Android %1$s / API %2$d</string>
+    <string name="diag_device_model">设备型号：%1$s %2$s</string>
+    <string name="diag_network">网络：%1$s</string>
+    <string name="diag_wifi_ip">WiFi IP：%1$s</string>
+    <string name="diag_dns">DNS：%1$s</string>
+    <string name="diag_battery">电池：%1$s</string>
+    <string name="diag_network_check_time">网络体检时间：%1$s</string>
+    <string name="diag_dns_connectivity">DNS 连通性：%1$s</string>
+    <string name="diag_https_connectivity">HTTPS 连通性：%1$s</string>
+    <string name="diag_public_ip">公网 IP：%1$s</string>
+    <string name="diag_status_ms_format">%1$d ms</string>
+    <string name="diag_status_failed">失败</string>
+    <string name="diag_conclusion_all_ok">结论：网络基础连通性正常。</string>
+    <string name="diag_conclusion_https_bad">结论：DNS 可达，但 HTTPS 连接异常，建议检查代理、VPN 或防火墙。</string>
+    <string name="diag_conclusion_all_bad">结论：DNS 和外网连接均异常，建议检查 WiFi/移动网络或路由器。</string>
+    <string name="diag_file_size">大小：%1$d 字节</string>
+    <string name="diag_file_md5">MD5：%1$s</string>
+    <string name="diag_file_sha1">SHA-1：%1$s</string>
+    <string name="diag_file_sha256">SHA-256：%1$s</string>
+    <string name="diag_file_hash_failed">文件哈希计算失败：%1$s</string>
+    <string name="diag_dns_query_header">DNS 查询：%1$s</string>
+    <string name="diag_dns_no_record">无记录，状态码：%1$d</string>
+    <string name="diag_net_unavailable">不可用</string>
+    <string name="diag_net_not_connected">未连接</string>
+    <string name="diag_net_unknown">未知网络</string>
+    <string name="diag_net_wifi">WiFi</string>
+    <string name="diag_net_cellular">移动数据</string>
+    <string name="diag_net_ethernet">以太网</string>
+    <string name="diag_net_vpn">VPN</string>
+    <string name="diag_net_other">其他</string>
+
+    <!-- AI 助手 -->
+    <string name="ai_assistant_label">AI助手</string>
+    <string name="gemma_terms_title">Gemma 模型条款与本地 AI 说明</string>
+    <string name="gemma_view_terms">查看条款</string>
+    <string name="gemma_agree_download">同意并下载</string>
+
+    <!-- Compose 设置页 -->
+    <string name="settings_dynamic_color_title">动态取色</string>
+    <string name="settings_dynamic_color_desc">Android 12+ 跟随壁纸取色（Phase 2 接入）</string>
+    <string name="settings_language_follow_system">跟随系统</string>
+    <string name="settings_language_chinese">中文</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_default_game">默认游戏</string>
+    <string name="settings_default_game_not_set">（未设置）</string>
+
+    <!-- 通用游戏模块字符串（供动态游戏模块 Fragment 使用） -->
+    <string name="game_diff_easy">简单</string>
+    <string name="game_diff_normal">普通</string>
+    <string name="game_diff_medium">中等</string>
+    <string name="game_diff_hard">困难</string>
+    <string name="game_btn_restart">重新开始</string>
+    <string name="game_btn_start">开始游戏</string>
+    <string name="game_btn_play_again">再玩一次</string>
+    <string name="game_btn_undo">撤销</string>
+    <string name="game_btn_reset">重玩</string>
+    <string name="game_btn_back_menu">返回菜单</string>
+    <string name="game_btn_next_round">下一局</string>
+    <string name="game_btn_roll">掷骰子</string>
+    <string name="game_btn_double_up">加倍</string>
+    <string name="game_btn_guess">猜测</string>
+    <string name="game_btn_new_game">新游戏</string>
+    <string name="game_btn_rules">规则说明</string>
+    <string name="game_score_format">分: %1$d</string>
+    <string name="game_score_init">分: 0</string>
+    <string name="game_high_score_format">最高分: %1$d</string>
+    <string name="game_high_score_init">最高分: 0</string>
+    <string name="game_score_alt_format">分数: %1$d</string>
+    <string name="game_score_alt_init">分数: 0</string>
+    <string name="game_best_format">最高: %1$d</string>
+    <string name="game_best_init">最高: 0</string>
+    <string name="game_wave_format">波次 %1$d</string>
+    <string name="game_wave_init">波次 1</string>
+    <string name="game_level_format">第 %1$d 关</string>
+    <string name="game_select_level">选择关卡</string>
+    <string name="game_select_difficulty_start">请选择难度并开始游戏</string>
+    <string name="game_click_to_start">点击开始按钮启动游戏</string>
+    <string name="game_in_progress">游戏进行中！</string>
+    <string name="game_pick_difficulty">请选择难度</string>
+    <string name="game_your_turn">轮到你了</string>
+    <string name="game_ai_turn">AI 回合</string>
+    <string name="game_you_win">你赢了！</string>
+    <string name="game_ai_wins">AI 赢了</string>
+    <string name="game_player_label">玩家</string>
+    <string name="game_ai_label">电脑</string>
+    <string name="game_status_click_roll">点击掷骰子开始游戏</string>
+    <string name="game_mines_remaining_format">剩余雷: %1$d</string>
+    <string name="game_mines_remaining_init">剩余雷: 10</string>
+    <string name="game_wins_format">胜 %1$d</string>
+    <string name="game_wins_init">胜 0</string>
+    <string name="game_mines_status_init">点击翻开，长按标记</string>
+    <string name="game_mines_win_format">胜利！用时 %1$ds</string>
+    <string name="game_mines_lose">踩雷了！点击重新开始</string>
+    <string name="game_match_easy">简单 4x4</string>
+    <string name="game_match_normal">普通 4x5</string>
+    <string name="game_match_hard">困难 4x6</string>
+    <string name="game_match_status">游戏进行中，翻开两张相同的卡牌</string>
+    <string name="game_guess_easy">简单 0-100</string>
+    <string name="game_guess_normal">普通 0-500</string>
+    <string name="game_guess_hard">困难 0-1000</string>
+    <string name="game_guess_hint">请输入数字</string>
+    <string name="game_guess_invalid">请输入有效数字</string>
+    <string name="game_sokoban_status">推动箱子到目标点</string>
+    <string name="game_sokoban_win_format">通关！步数 %1$d</string>
+    <string name="game_sokoban_moves_format">步数 %1$d | 推动 %2$d</string>
+    <string name="game_tetris_diff_format">难度: %1$s</string>
+    <string name="game_whack_time_format">时间: %1$d</string>
+    <string name="game_chess_status_init">点击开始按钮开始游戏</string>
+    <string name="game_checkers_status_pick">请选择难度</string>
+    <string name="game_difficulty_format">难度：%1$s</string>
+    <string name="game_difficulty_with_name_format">难度: %1$s</string>
+
+    <!-- 游戏模块标题 -->
+    <string name="game_title_brotato">土豆兄弟</string>
+    <string name="game_title_dice">骰子对决</string>
+    <string name="game_title_checkers">跳棋</string>
+    <string name="game_title_flappy">飞翔的小鸟</string>
+    <string name="game_title_match">配对消除</string>
+    <string name="game_title_memory">记忆翻牌</string>
+    <string name="game_title_minesweeper">扫雷</string>
+    <string name="game_title_guess">猜数字</string>
+    <string name="game_title_sokoban">推箱子</string>
+    <string name="game_title_tetris">俄罗斯方块</string>
+    <string name="game_title_doudizhu">斗地主</string>
+    <string name="game_title_doudizhu_subtitle">经典三人扑克对战</string>
+    <string name="game_doudizhu_single">单机模式</string>
+    <string name="game_doudizhu_single_wip">单机模式开发中，敬请期待</string>
+    <string name="game_doudizhu_rules_title">斗地主规则</string>
+    <string name="game_doudizhu_rules_msg">斗地主是一种三人扑克牌游戏。一副牌54张，玩家分为地主（1人）和农民（2人）。</string>
+    <string name="game_doudizhu_got_it">知道了</string>
+    <string name="game_sudoku_complete">数独完成！</string>
+
+    <!-- 中国象棋联机 -->
+    <string name="chess_online_title">中国象棋 - 联机对战</string>
+    <string name="chess_online_create_room">创建房间</string>
+    <string name="chess_online_join_room">加入房间</string>
+    <string name="chess_online_chat_hint">输入消息...</string>
+    <string name="chess_online_send">发送</string>
+    <string name="chess_online_leave">离开房间</string>
+    <string name="chess_online_creating">正在创建云房间...</string>
+    <string name="chess_online_room_created">房间已创建</string>
+    <string name="chess_online_room_code_format">房间码: %1$s</string>
+    <string name="chess_online_create_failed">创建房间失败</string>
+    <string name="chess_online_joining_format">正在加入房间: %1$s</string>
+    <string name="chess_online_opponent_joined">对手已加入!</string>
+    <string name="chess_online_opponent_left_format">对手已断开: %1$s</string>
+    <string name="chess_online_connected_host">已连接到主机</string>
+    <string name="chess_online_disconnected_format">连接断开: %1$s</string>
+    <string name="chess_online_server_error_format">服务器错误: %1$s</string>
+    <string name="chess_online_client_error_format">客户端错误: %1$s</string>
+    <string name="chess_online_you_win">你赢了!</string>
+    <string name="chess_online_opponent_wins">对手赢了!</string>
+    <string name="chess_online_game_over">游戏结束</string>
+
+    <!-- 围棋 -->
+    <string name="go_game_over">对局结束</string>
+    <string name="go_play_again">再来一局</string>
+    <string name="go_back_menu">返回菜单</string>
+    <string name="go_difficulty_format">难度: %1$s</string>
+
+    <!-- 游戏大厅通用 -->
+    <string name="hall_tab_all">全部</string>
+    <string name="hall_tab_recent">最近</string>
+    <string name="hall_tab_favorite">收藏</string>
+    <string name="hall_empty_search">没有找到相关游戏</string>
+    <string name="hall_empty_recent">还没有最近游玩</string>
+    <string name="hall_empty_favorite">还没有收藏游戏</string>
+    <string name="hall_empty_default">这里暂时没有游戏</string>
+    <string name="hall_feedback_empty">请先填写反馈内容</string>
+    <string name="hall_feedback_submitting">提交中...</string>
+    <string name="hall_feedback_submit">提交反馈</string>
+    <string name="hall_feedback_success">反馈已提交，感谢你的建议</string>
+    <string name="hall_feedback_vps_failed_format">提交到 VPS 失败，可使用下方邮箱兜底: %1$s</string>
+    <string name="hall_open_browser_failed">无法打开浏览器</string>
+    <string name="hall_open_settings_failed">设置页面打开失败</string>
+    <string name="hall_module_store_not_found">模块商店未找到</string>
+
+    <!-- DynamicGameActivity -->
+    <string name="dynamic_game_not_installed">游戏未安装，正在前往模块商店…</string>
+
+    <!-- SettingsActivity 通用 -->
+    <string name="settings_stats_unavailable">战绩功能暂不可用</string>
+    <string name="settings_clear_cache_title">清除缓存</string>
+    <string name="settings_clear_cache_msg">确定要清除所有缓存数据吗？</string>
+    <string name="settings_clear_cache_confirm">清除</string>
+    <string name="settings_app_language">应用语言</string>
+    <string name="settings_language_saved_restart">语言设置已保存，重启生效</string>
+    <string name="settings_server_unreachable">无法连接</string>
+    <string name="settings_tutorial_title">新手引导</string>
+
+    <!-- Stats -->
+    <string name="stats_intro">游戏战绩会统计已安装游戏的游玩记录。</string>
+    <string name="stats_achievement_not_found">成就中心未找到</string>
+
+    <!-- InstalledModules -->
+    <string name="module_builtin_no_update_format">%1$s 为内置模块，更新请通过应用商店获取新版应用</string>
+    <string name="module_update_done_format">%1$s 更新完成</string>
+    <string name="module_update_failed_format">更新失败: %1$s</string>
+
+    <!-- ModuleAdapter -->
+    <string name="module_update_button_format">更新 v%1$s</string>
+
+    <!-- 游戏教程 -->
+    <string name="tutorial_gomoku_title">五子棋玩法</string>
+    <string name="tutorial_gomoku_msg">黑棋先手，点击棋盘落子。先在横、竖或斜线上连成五子的一方获胜。</string>
+    <string name="tutorial_klotski_title">华容道玩法</string>
+    <string name="tutorial_klotski_msg">滑动方块，帮助曹操（最大方块）从底部中央的出口逃出。\n\n• 红色方块为曹操，目标是移动到底部出口\n• 其他武将挡住了去路，需要巧妙移动\n• 点击提示按钮可以获得最优解指引\n• 打乱按钮可以生成新的可解局面</string>
+    <string name="tutorial_chess_title">中国象棋玩法</string>
+    <string name="tutorial_chess_msg">经典中国象棋，红方先走。\n\n• 将/帅：在九宫内移动，不能出九宫\n• 士/仕：斜行一格，不出九宫\n• 象/相：斜行两格，不能过河\n• 马：一直一斜，蹩马腿规则生效\n• 车：直线移动，无限格数\n• 炮：移动同车，吃子需隔一子\n• 兵/卒：未过河前进一步，过河可横移\n\n点击棋子查看可走位置，点击目标格落子。</string>
+
+    <!-- GameStartDialog -->
+    <string name="game_start_subtitle">选择难度开始游戏</string>
+
+    <!-- 中国象棋复盘 -->
+    <string name="chess_replay_title">复盘分析</string>
+    <string name="chess_replay_msg">是否要查看本局复盘分析？</string>
+    <string name="chess_replay_view">查看</string>
+    <string name="chess_replay_skip">跳过</string>
+    <string name="chess_replay_report_title">复盘报告</string>
+
+    <!-- 错题本 -->
+    <string name="wrongbook_saved">错题保存成功！</string>
+    <string name="wrongbook_add_subject">新增科目</string>
+    <string name="wrongbook_confirm">确定</string>
+    <string name="wrongbook_subject_exists">科目已存在</string>
+    <string name="wrongbook_rename_subject">重命名科目</string>
+    <string name="wrongbook_subject_name_exists">科目名称已存在</string>
+    <string name="wrongbook_delete_subject">删除科目</string>
+    <string name="wrongbook_delete_subject_msg">确定删除科目"%1$s"吗？这不会删除该科目下的错题，错题会自动划分到"通用"。</string>
+    <string name="wrongbook_delete">删除</string>
+    <string name="wrongbook_no_backup">未找到备份文件，请先点击导出备份</string>
+    <string name="wrongbook_no_subject">暂无科目，请先在右上角添加科目</string>
+    <string name="wrongbook_not_found">未找到错题数据</string>
+    <string name="wrongbook_content_empty">题目内容不能为空</string>
+    <string name="wrongbook_save_success">保存成功</string>
+    <string name="wrongbook_modify_subject">修改科目</string>
+    <string name="wrongbook_filter_subject">筛选科目</string>
+    <string name="wrongbook_sort_method">排序方式</string>
+    <string name="wrongbook_no_data">暂无数据</string>
+    <string name="wrongbook_total_label">共错题</string>
+
+    <!-- 工具类 -->
+    <string name="tool_color_invalid">无效颜色值</string>
+    <string name="tool_clipboard_input_empty">请输入内容</string>
+    <string name="tool_clipboard_set">已设置</string>
+    <string name="tool_clipboard_cleared">已清空</string>
+    <string name="tool_input_text">请输入文本</string>
+    <string name="tool_input_json">请输入 JSON 文本</string>
+    <string name="tool_input_hash">请输入哈希值</string>
+    <string name="tool_input_qr_content">请输入二维码内容</string>
+    <string name="tool_input_regex_two_lines">请输入：第一行正则，第二行文本</string>
+    <string name="tool_need_two_lines">需要两行：regex + 文本</string>
+    <string name="tool_result_copied">结果已复制</string>
+    <string name="tool_copied">已复制</string>
+    <string name="tool_perms_copied">权限与隐私说明已复制</string>
+    <string name="tool_sysinfo_copied">已复制完整系统信息到剪贴板</string>
+    <string name="tool_diag_diagnosing">正在体检网络...</string>
+    <string name="tool_diag_generating">正在生成诊断报告...</string>
+    <string name="tool_diag_lan_prefix_hint">请输入前三段网段，例如 192.168.1</string>
+    <string name="tool_diag_scanning_format">正在扫描 %1$s.1-254...</string>
+    <string name="tool_diag_timestamp_format">秒: %1$d\n毫秒: %2$d\n本地时间: %3$s</string>
+    <string name="tool_diag_timestamp_convert_format">本地时间: %1$s\nUTC: %2$s</string>
+    <string name="tool_diag_timestamp_failed_format">时间戳转换失败: %1$s</string>
+    <string name="tool_diag_file_format">文件: %1$s</string>
+    <string name="tool_diag_hashing">正在计算文件哈希...</string>
+    <string name="tool_diag_card_format">名片码格式: 姓名,电话,邮箱，可省略邮箱</string>
+    <string name="tool_diag_qr_reading">正在识别二维码图片...</string>
+    <string name="tool_diag_color_err">颜色格式错误，请输入 #RRGGBB 或 #AARRGGBB</string>
+    <string name="tool_diag_color_analyzing">正在分析图片主色...</string>
+    <string name="tool_diag_process_failed_format">处理失败: %1$s</string>
+    <string name="tool_diag_qr_failed_format">二维码生成失败: %1$s</string>
+    <string name="tool_hash_querying">查询中...</string>
+    <string name="tool_hash_not_found">未找到\n该哈希值在本地字典和在线数据库中均未匹配。\n建议尝试其他在线工具如:crackstation.net、hashes.org</string>
+    <string name="tool_qr_failed_format">生成失败: %1$s</string>
+    <string name="tool_traceroute_running">追踪中...</string>
+    <string name="tool_traceroute_start">追踪</string>
+    <string name="tool_speedtest_running">测试中...</string>
+    <string name="tool_speedtest_server_format">下载测试: %1$s</string>
+    <string name="tool_speedtest_failed">测试失败</string>
+    <string name="tool_speedtest_short_failed">失败</string>
+    <string name="tool_port_scan_running">扫描中...</string>
+    <string name="tool_ip_fetch_failed">获取失败</string>
+    <string name="tool_ip_check_network">请检查网络连接后重试</string>
+    <string name="tool_screen_res_format">分辨率: %1$dx%2$d px</string>
+    <string name="tool_screen_dpi_format">DPI / 密度: %.0f x %.0f dpi</string>
+    <string name="tool_screen_size_format">屏幕尺寸: %.2f 英寸</string>
+    <string name="tool_screen_ratio_format">宽高比: %1$d:%2$d</string>
+    <string name="tool_screen_refresh_format">刷新率: %1$d Hz</string>
+    <string name="tool_wifi_type_format">网络类型: %1$s</string>
+    <string name="tool_wifi_signal_format">信号强度: %1$s</string>
+    <string name="tool_wifi_operator_format">运营商: %1$s</string>
+    <string name="tool_url_encode_label">URL 编码（长按切换解码）</string>
+    <string name="tool_json_format_label">格式化 JSON</string>
+    <string name="tool_regex_test_label">测试正则（输入 regex + 待匹配文本，第二行）</string>
+    <string name="tool_load_failed_format">该工具暂时无法加载：%1$s</string>
+
+    <!-- 工具箱：工具名称与描述（用于 ToolSectionStore） -->
+    <string name="tool_name_network_diagnosis">一键网络体检</string>
+    <string name="tool_name_diagnostic_report">诊断报告导出</string>
+    <string name="tool_name_dns_lookup">DNS查询</string>
+    <string name="tool_name_lan_scan">局域网设备扫描</string>
+    <string name="tool_name_text_codec">编码/时间戳/JSON</string>
+    <string name="tool_name_file_hash">文件哈希</string>
+    <string name="tool_name_qr_plus">二维码增强</string>
+    <string name="tool_name_color_plus">颜色增强</string>
+    <string name="tool_name_permission_privacy">权限与隐私说明</string>
+    <string name="tool_name_ip">IP地址信息</string>
+    <string name="tool_name_dns_config">DNS服务器配置</string>
+    <string name="tool_name_wifi">WiFi信号</string>
+    <string name="tool_name_speedtest">网络测速</string>
+    <string name="tool_name_portscan">端口扫描</string>
+    <string name="tool_name_battery">电池信息</string>
+    <string name="tool_name_device">设备信息</string>
+    <string name="tool_name_ping">Ping工具</string>
+    <string name="tool_name_traceroute">路由追踪</string>
+    <string name="tool_name_subnet">子网计算器</string>
+    <string name="tool_name_screen">屏幕信息</string>
+    <string name="tool_name_sensor">传感器信息</string>
+    <string name="tool_name_hash">哈希计算器</string>
+    <string name="tool_name_clipboard">剪贴板工具</string>
+    <string name="tool_name_color">颜色取色器</string>
+    <string name="tool_name_sysinfo">手机系统详细信息</string>
+    <string name="tool_name_regex_test">正则测试</string>
+    <string name="tool_file_pick_unavailable">文件选择器暂不可用</string>
+
+    <!-- 工具箱：阶段3 新增工具（受 ENABLE_TOOLS_ENHANCEMENT 控制） -->
+    <string name="tool_name_unit_converter">单位换算</string>
+    <string name="tool_desc_unit_converter">长度、重量、温度等常用单位互转</string>
+    <string name="tool_name_radix_converter">进制转换</string>
+    <string name="tool_desc_radix_converter">二进制/八进制/十进制/十六进制互转</string>
+    <string name="tool_name_password_generator">密码生成器</string>
+    <string name="tool_desc_password_generator">可配置长度与字符集的随机密码生成</string>
+    <string name="tool_name_uuid_generator">UUID 生成器</string>
+    <string name="tool_desc_uuid_generator">生成 UUID v4 / v7</string>
+    <string name="tool_name_crypto_tool">加密/解密</string>
+    <string name="tool_desc_crypto_tool">AES、DES、消息摘要与编解码</string>
+    <string name="tool_name_jwt_parser">JWT 解析</string>
+    <string name="tool_desc_jwt_parser">解码 JWT 头部与载荷</string>
+
+    <!-- 工具箱：阶段2 新增/调整字符串 -->
+    <string name="tool_regex_pattern_hint">输入正则表达式</string>
+    <string name="tool_regex_text_hint">输入待匹配文本</string>
+    <string name="tool_regex_match_count_format">共 %1$d 处匹配</string>
+    <string name="tool_regex_no_match">无匹配</string>
+    <string name="tool_regex_syntax_error_format">正则语法错误：%1$s</string>
+    <string name="tool_regex_match_item_format">匹配 #%1$d: \"%2$s\" @ %3$d-%4$d</string>
+    <string name="tool_portscan_host_hint">主机或 IP（如 127.0.0.1）</string>
+    <string name="tool_portscan_ports_hint">端口范围（如 1-1024 或 80,443）</string>
+    <string name="tool_portscan_timeout_hint">单端口超时(ms)</string>
+    <string name="tool_portscan_concurrency_hint">并发数</string>
+    <string name="tool_portscan_open_format">开放: %1$s</string>
+    <string name="tool_portscan_closed_format">关闭: %1$s</string>
+    <string name="tool_portscan_summary_format">扫描完成：开放 %1$d / 关闭 %2$d / 总计 %3$d</string>
+    <string name="tool_portscan_invalid_input">请输入有效的主机和端口范围</string>
+    <string name="tool_portscan_default_ports">1-1024</string>
+    <string name="tool_sysinfo_view_detail">查看完整详情</string>
+    <string name="tool_sysinfo_close">关闭</string>
+    <string name="tool_unit_category_length">长度</string>
+    <string name="tool_unit_category_weight">重量</string>
+    <string name="tool_unit_category_temperature">温度</string>
+    <string name="tool_unit_category_area">面积</string>
+    <string name="tool_unit_category_volume">体积</string>
+    <string name="tool_unit_category_speed">速度</string>
+    <string name="tool_unit_category_data">数据</string>
+    <string name="tool_unit_from">从</string>
+    <string name="tool_unit_to">到</string>
+    <string name="tool_unit_result_label">结果</string>
+    <string name="tool_unit_invalid_value">请输入有效数值</string>
+    <string name="tool_radix_input_hint">输入数字</string>
+    <string name="tool_radix_base_format">%1$d 进制</string>
+    <string name="tool_radix_invalid_format">%1$d 进制输入无效</string>
+    <string name="tool_password_length">长度</string>
+    <string name="tool_password_upper">A-Z</string>
+    <string name="tool_password_lower">a-z</string>
+    <string name="tool_password_digits">0-9</string>
+    <string name="tool_password_symbols">!@#$%</string>
+    <string name="tool_password_generate">生成</string>
+    <string name="tool_password_copy">复制</string>
+    <string name="tool_password_length_invalid">长度需在 4-64 之间</string>
+    <string name="tool_password_no_charset">至少选择一种字符集</string>
+    <string name="tool_uuid_generate_v4">生成 UUID v4</string>
+    <string name="tool_uuid_generate_v7">生成 UUID v7</string>
+    <string name="tool_uuid_copy">复制</string>
+    <string name="tool_crypto_algorithm">算法</string>
+    <string name="tool_crypto_mode">模式</string>
+    <string name="tool_crypto_key">密钥</string>
+    <string name="tool_crypto_input">输入</string>
+    <string name="tool_crypto_output">输出</string>
+    <string name="tool_crypto_encrypt">加密</string>
+    <string name="tool_crypto_decrypt">解密</string>
+    <string name="tool_crypto_copy">复制</string>
+    <string name="tool_crypto_invalid_key">密钥无效</string>
+    <string name="tool_crypto_failed_format">操作失败：%1$s</string>
+    <string name="tool_jwt_input_hint">粘贴 JWT</string>
+    <string name="tool_jwt_decode">解码</string>
+    <string name="tool_jwt_copy">复制</string>
+    <string name="tool_jwt_invalid">JWT 格式无效</string>
+    <string name="tool_jwt_header_label">Header</string>
+    <string name="tool_jwt_payload_label">Payload</string>
+    <string name="tool_jwt_signature_label">Signature</string>
+    <string name="tool_jwt_copied">已复制到剪贴板</string>
+
+    <!-- AI 助手 -->
+    <string name="ai_clear_history">清空历史</string>
+    <string name="ai_model_list_failed_format">模型清单获取失败: %1$s</string>
+    <string name="ai_no_local_models">服务器暂无可用本地模型</string>
+    <string name="ai_local_models">本地模型</string>
+    <string name="ai_local_model_detail">本地模型详情</string>
+    <string name="ai_view_terms">查看条款</string>
+    <string name="ai_enable">启用</string>
+    <string name="ai_download">下载</string>
+    <string name="ai_no_cloud_models">暂无云端模型</string>
+    <string name="ai_cloud_models">云端模型</string>
+    <string name="ai_enabled_format">已启用 %1$s</string>
+    <string name="ai_downloaded_format">模型已下载: %1$s</string>
+    <string name="ai_download_failed_format">模型下载失败: %1$s</string>
+    <string name="ai_no_export_content">没有可导出的内容</string>
+    <string name="ai_role_user">你</string>
+    <string name="ai_synthesizing_voice">正在合成语音…</string>
+
+    <!-- VPN -->
+    <string name="vpn_perm_required">需要 VPN 权限才能连接</string>
+    <string name="vpn_node_deleted">节点已删除</string>
+    <string name="vpn_add_node">添加节点</string>
+    <string name="vpn_add">添加</string>
+    <string name="vpn_node_added">节点已添加</string>
+    <string name="vpn_connecting">正在连接...</string>
+    <string name="vpn_bg_start_failed">无法在后台启动 VPN 服务，请保持应用在前台后重试</string>
+    <string name="vpn_channel_desc">VPN 连接正在运行</string>
+    <string name="vpn_content_connecting">VPN 连接中</string>
+
+    <!-- Klotski -->
+    <string name="klotski_get_resource_failed">获取模块资源失败</string>
+    <string name="klotski_win_format">恭喜！总步数：%1$d</string>
+    <string name="klotski_reset">已重置到初始状态</string>
+    <string name="klotski_shuffled">已通过合法移动打乱，保证可解</string>
+    <string name="klotski_already_won">已经获胜，无需提示!</string>
+    <string name="klotski_computing">正在计算中，请稍候...</string>
+    <string name="klotski_hint_tip">按箭头移动后，再点提示查看下一步</string>
+    <string name="klotski_compute_retry">计算未完成，请重试</string>
+    <string name="klotski_moves_format">步数：%1$d</string>
+
+    <!-- TTS -->
+    <string name="tts_input_hint">请输入需要合成的文字…</string>
+    <string name="tts_start_record">⏺  开始录音</string>
+    <string name="tts_stop_record">⏹  停止录音</string>
+    <string name="tts_start_synthesis">🚀  开始合成</string>
+    <string name="tts_play">▶  播放</string>
+    <string name="tts_pause">⏸  暂停</string>
+    <string name="tts_save">💾  保存到手机</string>
+    <string name="tts_recording">  录音中…</string>
+    <string name="tts_no_record">  未录音</string>
+    <string name="tts_recorded_format">  ✅ 已录制 %1$d KB</string>
+    <string name="tts_record_failed_format">录音失败: %1$s</string>
+    <string name="tts_record_saved_clone">录音已保存，可用于声音克隆</string>
+    <string name="tts_record_failed_short">  ⚠️ 录音失败或太短</string>
+    <string name="tts_need_record_perm">需要录音权限</string>
+    <string name="tts_input_empty">请输入要合成的文字</string>
+    <string name="tts_text_too_long">文字过长（≤5000字）</string>
+    <string name="tts_need_record_sample">请先录制声音样本</string>
+    <string name="tts_generated_format">✅ 已生成  %1$d KB  ·  %2$s</string>
+    <string name="tts_save_audio_failed_format">保存音频失败: %1$s</string>
+    <string name="tts_synth_failed_format">❌ 合成失败：%1$s</string>
+    <string name="tts_play_failed_format">播放失败: %1$s</string>
+    <string name="tts_saved_path_format">✅ 已保存: %1$s</string>
+    <string name="tts_saved_to_music">已保存到 Music 文件夹</string>
+    <string name="tts_save_failed_format">保存失败: %1$s</string>
+
+    <!-- HistoryAdapter (浏览器) -->
+    <string name="history_visit_count_format">访问 %1$d 次</string>
+
+    <!-- DataConnectionCenter (#23 数据与连接中心) -->
+    <string name="data_center_title">数据与连接中心</string>
+    <string name="data_center_back">返回</string>
+    <string name="data_center_export">导出数据</string>
+    <string name="data_center_clear_cache">清除缓存</string>
+    <string name="data_center_loading">正在聚合数据…</string>
+    <string name="data_center_empty">暂无数据可展示</string>
+    <string name="data_center_summary">摘要</string>
+    <string name="data_center_cache_size">缓存大小</string>
+    <string name="data_center_network_modules">涉及云端的模块</string>
+    <string name="data_center_active_downloads">活跃下载</string>
+    <string name="data_center_section_permissions">已授权权限</string>
+    <string name="data_center_section_network_modules">已启用联网模块</string>
+    <string name="data_center_section_sync">最近同步</string>
+    <string name="data_center_section_downloads">下载记录</string>
+    <string name="data_center_section_local_data">本地数据</string>
+    <string name="data_center_sync_never">从未同步</string>
+    <string name="data_center_sync_not_configured">未配置云同步</string>
+    <string name="data_center_sync_success">同步成功</string>
+    <string name="data_center_sync_conflict">存在冲突</string>
+    <string name="data_center_sync_failure">同步失败</string>
+    <string name="data_center_sync_auto_on">自动同步已开启</string>
+    <string name="data_center_sync_auto_off">自动同步已关闭</string>
+    <string name="data_center_export_success">已导出到：%1$s</string>
+    <string name="data_center_export_failed">导出失败：%1$s</string>
+    <string name="data_center_clear_confirm">确定要清除所有缓存数据吗？（不会删除已安装模块）</string>
+    <string name="data_center_clear_success">已清理 %1$s 缓存</string>
+    <string name="data_center_clear_failed">清理失败：%1$s</string>
+    <string name="data_center_permission_dangerous">危险</string>
+    <string name="data_center_no_modules">暂无已安装模块涉及云端</string>
+    <string name="data_center_no_downloads">暂无下载记录</string>
+    <string name="data_center_no_local_data">暂无本地数据声明</string>
+    <string name="data_center_no_permissions">暂无已授权权限</string>
+
+    <!-- ConsentDialog (#24 云端调用前明示) -->
+    <string name="consent_default_title">云端调用确认</string>
+    <string name="consent_label_send">发送什么</string>
+    <string name="consent_label_purpose">为什么</string>
+    <string name="consent_label_local">可否本地</string>
+    <string name="consent_label_cost">费用/网络</string>
+    <string name="consent_label_cancel">如何取消</string>
+    <string name="consent_agree_cloud">同意云端</string>
+    <string name="consent_use_local">改用本地</string>
+    <string name="consent_dont_ask_again">不再提示</string>
+
+    <!-- AI 云端调用 consent (#24.3) -->
+    <string name="consent_ai_title">AI 云端调用确认</string>
+    <string name="consent_ai_send">你输入的文本内容将被发送到云端 AI 模型进行推理。</string>
+    <string name="consent_ai_purpose">用于生成 AI 回复、推理结果或文本摘要。</string>
+    <string name="consent_ai_local">可使用本地 Gemma 模型（在设置中下载），离线推理且不上传数据。</string>
+    <string name="consent_ai_cost">需要联网，消耗网络流量；在免费额度内不收费，超额后按 API 定价计费。</string>
+    <string name="consent_ai_cancel">点击"取消"即可中止；可在 AI 设置中切换为本地优先。</string>
+    <string name="consent_ai_provider">服务由你配置的 AI 提供方提供（如 DeepSeek、OpenAI 兼容接口）。</string>
+    <string name="consent_ai_retention">数据留存策略由 AI 提供方决定，详见其隐私政策。</string>
+    <string name="consent_ai_use_local_toast">已切换到本地优先模式</string>
+
+    <!-- OCR 云端调用 consent (#24.4) -->
+    <string name="consent_ocr_title">OCR 识别确认</string>
+    <string name="consent_ocr_send">你拍摄的图片将以 Base64 编码上传到云端 OCR 服务进行文字识别。</string>
+    <string name="consent_ocr_purpose">用于识别图片中的文字内容，辅助错题整理。</string>
+    <string name="consent_ocr_local">可使用本地 ML Kit OCR 引擎（在错题本设置中切换），离线识别且不上传图片。</string>
+    <string name="consent_ocr_cost">需要联网，消耗网络流量；按百度 OCR API 配额计费。</string>
+    <string name="consent_ocr_cancel">点击"取消"即可中止；可在错题本设置中切换为本地引擎。</string>
+    <string name="consent_ocr_provider">服务由百度 OCR 或自建后端代理提供。</string>
+    <string name="consent_ocr_retention">图片数据由 OCR 服务方处理，留存策略详见其隐私政策。</string>
+
+    <!-- WebDAV 同步 consent (#24.5) -->
+    <string name="consent_sync_title">云存档同步确认</string>
+    <string name="consent_sync_send">你的游戏存档、设置等用户数据（JSON 格式）将被上传到你配置的 WebDAV 服务器。</string>
+    <string name="consent_sync_purpose">用于跨设备同步数据，或在云端保留备份。</string>
+    <string name="consent_sync_local">可使用本地备份（在数据与连接中心导出到本地文件），不上传到云端。</string>
+    <string name="consent_sync_cost">需要联网，消耗网络流量；不产生额外费用（WebDAV 服务器由你自行管理）。</string>
+    <string name="consent_sync_cancel">点击"取消"即可中止；可在设置中关闭自动同步。</string>
+    <string name="consent_sync_provider">数据发送到你配置的 WebDAV 服务器。</string>
+    <string name="consent_sync_retention">数据保留在 WebDAV 服务器上，直到你手动删除或覆盖。</string>
 
 </resources>

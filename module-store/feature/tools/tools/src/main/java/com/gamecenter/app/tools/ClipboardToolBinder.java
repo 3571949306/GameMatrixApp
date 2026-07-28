@@ -76,13 +76,13 @@ public final class ClipboardToolBinder implements ToolBinder {
             btnSet.setOnClickListener(v -> {
                 String text = etSet != null ? etSet.getText().toString() : "";
                 if (text.isEmpty()) {
-                    Toast.makeText(context, "请输入内容", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, R.string.tool_clipboard_input_empty, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
                     cm.setPrimaryClip(ClipData.newPlainText("tools", text));
-                    Toast.makeText(context, "已设置", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, R.string.tool_clipboard_set, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -96,9 +96,9 @@ public final class ClipboardToolBinder implements ToolBinder {
                     // Android 没有直接清空剪贴板的 API，通过设置空文本实现
                     cm.setPrimaryClip(ClipData.newPlainText("", ""));
                     if (tvContent != null) {
-                        tvContent.setText("已清空");
+                        tvContent.setText(context.getString(R.string.tool_clipboard_cleared));
                     }
-                    Toast.makeText(context, "已清空", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, R.string.tool_clipboard_cleared, Toast.LENGTH_SHORT).show();
                 }
             });
         }

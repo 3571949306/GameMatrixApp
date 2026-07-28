@@ -45,7 +45,22 @@ public class KlotskiModuleEntryPoint implements ModuleInterface, FeatureModule {
 
     @Override
     public String getDescription() {
-        return "经典华容道滑块益智游戏，移动方块帮助曹操从出口逃脱。";
+        return "经典华容道滑块益智游戏";
+    }
+
+    @Override
+    public String getModuleType() {
+        return "game";
+    }
+
+    @Override
+    public List<String> getRequiredPermissions() {
+        return java.util.Collections.emptyList();
+    }
+
+    @Override
+    public List<String> getDependencies() {
+        return java.util.Collections.emptyList();
     }
 
     @Override

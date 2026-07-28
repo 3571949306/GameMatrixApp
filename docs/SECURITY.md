@@ -1,50 +1,48 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+# 安全策略
 
-# Security Policy
+> **当前参考（最后核验：2026-07-27）**  
+> 当前安全实现与发布门槛见 [`CURRENT_STATE.md`](CURRENT_STATE.md)。旧 vc595 Flutter 商店发布证据不是当前工作树的自动安全结论；安全相关变更必须以代码、签名产物和真实验证为准。
 
-## Supported Versions
+## 支持版本
 
-| Version | Supported          |
+| 版本 | 支持状态            |
 | ------- | ------------------ |
 | 1.4.x   | :white_check_mark: |
 | < 1.4.0 | :x:                |
 
-## Reporting a Vulnerability
+## 报告漏洞
 
-If you discover a security vulnerability in GameMatrixApp, please report it
-privately via GitHub Security Advisories:
+如果你发现 GameMatrixApp 的安全漏洞，请通过 GitHub Security Advisories 私下报告：
 
 https://github.com/3571949306/GameMatrixApp/security/advisories/new
 
-**Do not** open a public issue for security vulnerabilities.
+**不要**为安全漏洞开启公开 issue。
 
-We aim to:
-- Acknowledge new reports within 3 business days
-- Provide a fix or mitigation within 14 days for high-severity issues
-- Credit reporters in the release notes (unless you prefer to remain anonymous)
+我们的目标：
+- 在 3 个工作日内确认新报告
+- 对高危问题在 14 天内提供修复或缓解方案
+- 在发布说明中致谢报告者（除非你希望匿名）
 
-## Secrets Management
+## 密钥管理
 
-This project uses the following convention for secrets and API keys:
+本项目对密钥和 API key 使用以下约定：
 
-- API keys and tokens live in `local.properties` (gitignored)
-- They're injected into `BuildConfig` at compile time via `app/build.gradle`
-- `keystore.properties` (gitignored) holds release signing config
-- The `release-key.jks` keystore is **never** committed
-- Production deploys use Play App Signing where applicable
+- API key 和令牌存放在 `local.properties`（已 gitignore）
+- 它们在编译期通过 `app/build.gradle` 注入到 `BuildConfig`
+- `keystore.properties`（已 gitignore）保存 release 签名配置
+- `release-key.jks` keystore **绝不**入库
+- 生产部署在适用时使用 Play App Signing
 
-If you accidentally commit a secret, rotate the secret **immediately** and
-follow GitHub's guide to remove the secret from git history:
+如果不慎提交了密钥，请**立即**轮换密钥，并按 GitHub 指南从 git 历史中清除：
 https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
 
-## Flutter-first Module Store Security Boundary
+## Flutter-first 模块商店安全边界
 
-- Flutter only receives typed catalog/state/result objects through Pigeon; it cannot receive private file paths or directly operate APK/DEX, services, Unity runtime, signing keys, or module directories.
-- `ModuleCoreFacade` is the single business entry. `ModuleManager` remains authoritative for installed versions, enabled state, download, verification, installation and rollback.
-- Formal non-built-in Catalog V2 records must map to the authoritative manifest/downloader; otherwise the operation fails with `package_not_registered` before queue/progress events are emitted.
-- Web/Asset packages use private `staging/current/last_good/quarantine` directories with traversal, entry count, size and compression-ratio limits. Web content uses a virtual HTTPS origin with JavaScript and bridge disabled by default.
-- `CatalogSignatureVerifier` receives 1–3 validated Ed25519 public keys from the Release build. Stable vc594 uses the production trust profile; Catalog V8 signature headers and negative verification paths are live. Private key material remains DPAPI-protected and must never enter source, APKs, VPS files, or logs.
+- Flutter 只通过 Pigeon 接收带类型的 catalog/state/result 对象；不能接收私有文件路径，也不能直接操作 APK/DEX、服务、Unity 运行时、签名密钥或模块目录。
+- `ModuleCoreFacade` 是唯一业务入口。`ModuleManager` 仍是已安装版本、启用状态、下载、验证、安装和回滚的权威。
+- 正式非内置 Catalog V2 记录必须映射到权威 manifest/downloader；否则在队列/进度事件发出之前就以 `package_not_registered` 失败。
+- Web/Asset 包使用私有 `staging/current/last_good/quarantine` 目录，并强制路径遍历、条目数、大小和压缩比限制。Web 内容使用虚拟 HTTPS origin，默认禁用 JavaScript 和 bridge。
+- `CatalogSignatureVerifier` 从 Release 构建接收 1–3 把已验证的 Ed25519 公钥。stable vc594 使用生产信任 profile；Catalog V8 签名 header 和否定验证路径已上线。私钥材料由 DPAPI 保护，绝不得进入源码、APK、VPS 文件或日志。
 
 ## 安全更新历史
 

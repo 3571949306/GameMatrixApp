@@ -177,16 +177,10 @@
                         android:layout_height="wrap_content" />
                 </LinearLayout>
 
-                <!-- 今日推荐大图卡（game_of_day_section id 保留，Hero 内嵌大图卡） -->
-                <FrameLayout
-                    android:id="@+id/game_of_day_section"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/spacing_12"
-                    android:visibility="gone">
-
-                    <include layout="@layout/layout_home_game_of_day" />
-                </FrameLayout>
+                <!-- 今日推荐大图卡（game_of_day_section）已移除（HOME_NO_TODAY_FEATURED_2026_07_24）
+                     移除原因：与 L2 跳棋/今日精选/连胜记录等内容重复，挤占首屏。
+                     GamesFragment 中 initGameOfDay/refreshGameOfDay 代码保留（含 null check），
+                     XML 节点删后 findViewById 返回 null，方法早返回，不再渲染。 -->
 
                 <!-- 快速统计行（quick_stats_section id 保留，Hero 内嵌） -->
                 <LinearLayout
@@ -290,21 +284,102 @@
             </LinearLayout>
 
             <!-- ============================================================ -->
-            <!-- L2 快速入口带：继续游玩 + 最近游玩 + 每日卡片（卡片化设计）       -->
-            <!-- ============================================================ -->
+            <!-- L2 快速入口带（重构 HOME_L2_GRID_2026_07_24 v7）：
+                 两行 × 两列 × 四象限的紧凑方阵，用"固定行高 + 子 view match_parent"
+                 实现同行两卡必然等高（消除割裂感）：
+                   - 外层 vertical LinearLayout（单一 marginStart/End=16dp + marginTop=12dp）
+                   - Row 1 / Row 2 各为 horizontal LinearLayout，固定 layout_height=190dp
+                   - Row 内左右两 card 都用"FrameLayout/LinearLayout 包装 + 内部 include(match_parent)"
+                     → 每个卡片都 match_parent 撑满 190dp 行高，同行两卡必然等高
+                   - 左/右各 weight=1（占 50%）；Row 间 marginTop=6dp；卡片间 marginEnd/Start=6dp
+                 注：include 必须包一层容器，避免"include 直接作子 view + match_parent"解析失效。
+                 全部 id 保留，GamesFragment.findViewById 关系不变。
+                 daily_cards_section 退化为"每日挑战单卡容器"，仍作 VISIBLE 开关。 -->
 
-            <!-- 继续游玩（resume_game_section id 保留，默认隐藏，空状态由 GamesFragment 显示引导） -->
-            <FrameLayout
-                android:id="@+id/resume_game_section"
+            <!-- L2 整体外层容器：单一外边距，让 2×2 网格视觉��体 -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:layout_marginStart="@dimen/spacing_16"
                 android:layout_marginEnd="@dimen/spacing_16"
-                android:layout_marginTop="@dimen/spacing_16"
-                android:visibility="gone">
+                android:layout_marginTop="@dimen/spacing_12">
 
-                <include layout="@layout/layout_home_resume_game" />
-            </FrameLayout>
+                <!-- Row 1（固定行高 150dp）：继续游玩（左半）+ 每日挑战（右半） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:orientation="horizontal">
+
+                    <!-- 继续游玩（左半：weight=1，包装层 match_parent 撑满行高） -->
+                    <FrameLayout
+                    android:id="@+id/resume_game_section"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="@dimen/spacing_4"
+                    android:visibility="gone">
+
+                        <include
+                            layout="@layout/layout_home_resume_game"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+                    </FrameLayout>
+
+                    <!-- 每日挑战（右半：weight=1，daily_cards_section 退化为单卡容器） -->
+                    <LinearLayout
+                        android:id="@+id/daily_cards_section"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/spacing_4"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <include
+                            android:id="@+id/card_daily_challenge_include"
+                            layout="@layout/card_daily_challenge"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Row 2（自适应高度 = streak 决定）：今日精选（左半）+ 连胜记录（右半） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_4"
+                    android:orientation="horizontal">
+
+                    <!-- 今日精选（左半：weight=1，wrap_content 自适应） -->
+                    <FrameLayout
+                        android:id="@+id/card_today_featured_include"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="@dimen/spacing_4">
+
+                        <include
+                            layout="@layout/card_today_featured"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
+                    </FrameLayout>
+
+                    <!-- 连胜记录（右半：weight=1，wrap_content 自适应，Row 2 高度 = streak） -->
+                    <FrameLayout
+                        android:id="@+id/card_streak_summary_include"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/spacing_4">
+
+                        <include
+                            layout="@layout/card_streak_summary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- 最近游玩（recent_games_section id 保留，横向卡片带） -->
             <LinearLayout
@@ -363,26 +438,6 @@
                         android:paddingEnd="@dimen/spacing_16" />
 
                 </HorizontalScrollView>
-            </LinearLayout>
-
-            <!-- 每日挑战 + 连胜卡片（daily_cards_section id 保留，默认隐藏） -->
-            <LinearLayout
-                android:id="@+id/daily_cards_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginStart="@dimen/spacing_16"
-                android:layout_marginEnd="@dimen/spacing_16"
-                android:layout_marginTop="@dimen/spacing_8"
-                android:visibility="gone">
-
-                <include
-                    android:id="@+id/card_daily_challenge_include"
-                    layout="@layout/card_daily_challenge" />
-
-                <include
-                    android:id="@+id/card_streak_summary_include"
-                    layout="@layout/card_streak_summary" />
             </LinearLayout>
 
             <!-- Hero Banner 轮播（hero_banner_section id 保留，V2 弱化为 GONE 占位） -->
@@ -484,15 +539,10 @@
                 android:layout_marginTop="@dimen/spacing_4"
                 android:minHeight="@dimen/home_game_grid_min_height">
 
-                <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                    android:id="@+id/swipe_refresh_games"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-
-                    <androidx.recyclerview.widget.RecyclerView
+                <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_games"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false"
                         android:paddingStart="@dimen/spacing_12"
                         android:paddingEnd="@dimen/spacing_12"
@@ -501,12 +551,11 @@
                         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
                         app:spanCount="2"
                         tools:listitem="@layout/item_game_card" />
-                </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_shimmer"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"
                     android:paddingStart="@dimen/spacing_12"
                     android:paddingEnd="@dimen/spacing_12"

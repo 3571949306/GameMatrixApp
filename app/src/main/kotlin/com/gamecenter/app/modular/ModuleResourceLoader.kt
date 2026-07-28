@@ -49,6 +49,17 @@ class ModuleResourceLoader(
                     )
                     return null
                 }
+                // 同时添加宿主 APK 路径，使模块 Resources 能访问宿主的 Material 主题等资源。
+                // 否则模块布局 inflate 时，引用宿主主题属性（如 textAppearance）会触发
+                // Resources$NotFoundException 闪退。
+                val hostApkPath = context.applicationContext.applicationInfo.sourceDir
+                if (hostApkPath != null) {
+                    try {
+                        addAssetPathMethod.invoke(am, hostApkPath)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to add host APK path to module AssetManager: ${e.message}")
+                    }
+                }
                 am
             } catch (e: NoSuchMethodException) {
                 // 私有 API 在未来 Android 版本可能被封禁，此处捕获后返回 null 避免崩溃
@@ -90,7 +101,7 @@ class ModuleResourceLoader(
                 moduleId = moduleId,
                 resources = moduleResources,
                 assetManager = assetManager,
-                packageName = getModulePackageName(moduleResources)
+                packageName = getModulePackageName(apkPath, moduleResources)
             )
 
             resourceCache[moduleId] = moduleRes
@@ -112,11 +123,21 @@ class ModuleResourceLoader(
         Log.d(TAG, "Resources unloaded for module: $moduleId")
     }
 
-    private fun getModulePackageName(resources: Resources): String {
+    private fun getModulePackageName(apkPath: String, resources: Resources): String {
+        // 优先通过 PackageManager 从 APK 的 AndroidManifest.xml 直接读取包名，最可靠。
+        val pmPackageName = try {
+            val pm = context.applicationContext.packageManager
+            val info = pm.getPackageArchiveInfo(apkPath, 0)
+            info?.packageName
+        } catch (e: Exception) {
+            null
+        }
+        if (!pmPackageName.isNullOrEmpty()) {
+            return pmPackageName
+        }
+        // 回退方案：通过 Resources.getIdentifier 反查 app_name 所属包名
         return try {
-            val appResId = resources.getIdentifier(
-                "app_name", "string", "android"
-            )
+            val appResId = resources.getIdentifier("app_name", "string", "")
             if (appResId != 0) {
                 resources.getResourcePackageName(appResId)
             } else {

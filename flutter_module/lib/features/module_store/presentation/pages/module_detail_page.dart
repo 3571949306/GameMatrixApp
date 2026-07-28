@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/store_strings.dart';
 import '../../../../core/bridge/module_store_api.g.dart';
+import '../../domain/module_detail_models.dart';
 import '../../domain/module_extensions.dart';
 import '../../state/store_controller.dart';
 
@@ -93,12 +94,14 @@ class _DetailScaffold extends StatelessWidget {
             runSpacing: 8,
             children: [
               Chip(label: Text(module.safeState)),
-              Chip(label: Text(module.safeCategory)),
+              Chip(label: Text(module.storeCategoryDisplayName)),
               ...?module.tags?.whereType<String>().map(
                 (tag) => Chip(label: Text(tag)),
               ),
             ],
           ),
+          _DetailsSection(detail: ModuleDetail.fromJson(module.detailsJson)),
+          _PrivacyCardSection(card: PrivacyCard.fromJson(module.privacyJson)),
           if (screenshots.isNotEmpty) ...[
             const SizedBox(height: 22),
             SizedBox(
@@ -143,6 +146,209 @@ class _DetailScaffold extends StatelessWidget {
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.all(14),
         child: _ActionBar(module: module),
+      ),
+    );
+  }
+}
+
+/// 模块详情区块（#11.5）：展示价值描述、受众、离线能力、更新/卸载影响、亮点与限制。
+class _DetailsSection extends StatelessWidget {
+  const _DetailsSection({required this.detail});
+  final ModuleDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!detail.hasContent) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, size: 20),
+              const SizedBox(width: 6),
+              Text('模块详情', style: theme.textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (detail.valueDescription.isNotEmpty)
+            _DetailField(label: '价值描述', value: detail.valueDescription),
+          if (detail.audience.isNotEmpty)
+            _DetailField(label: '目标受众', value: detail.audience),
+          if (detail.offlineCapability.isNotEmpty)
+            _DetailField(label: '离线能力', value: detail.offlineCapability),
+          if (detail.updateImpact.isNotEmpty)
+            _DetailField(label: '更新影响', value: detail.updateImpact),
+          if (detail.uninstallImpact.isNotEmpty)
+            _DetailField(label: '卸载影响', value: detail.uninstallImpact),
+          if (detail.highlights.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('核心亮点', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            ...detail.highlights.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.star, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(item)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (detail.limitations.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('已知限制', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            ...detail.limitations.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(item)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailField extends StatelessWidget {
+  const _DetailField({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+}
+
+/// 隐私卡区块（#11.5）：展示本地/云端数据、网络域、同步位置、保存期限、删除方式。
+class _PrivacyCardSection extends StatelessWidget {
+  const _PrivacyCardSection({required this.card});
+  final PrivacyCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!card.hasContent) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Card(
+        color: theme.colorScheme.secondaryContainer,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.privacy_tip_outlined,
+                    size: 20,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '隐私卡',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (card.localData.isNotEmpty)
+                _PrivacyField(label: '本地数据', value: card.localData),
+              if (card.cloudData.isNotEmpty)
+                _PrivacyField(label: '云端数据', value: card.cloudData),
+              if (card.networkDomains.isNotEmpty)
+                _PrivacyField(
+                  label: '网络域',
+                  value: card.networkDomains.join('、'),
+                ),
+              if (card.syncLocation.isNotEmpty)
+                _PrivacyField(label: '同步位置', value: card.syncLocation),
+              if (card.retentionPeriod.isNotEmpty)
+                _PrivacyField(label: '保存期限', value: card.retentionPeriod),
+              if (card.deletionMethod.isNotEmpty)
+                _PrivacyField(label: '删除方式', value: card.deletionMethod),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacyField extends StatelessWidget {
+  const _PrivacyField({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer.withValues(
+                  alpha: 0.7,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

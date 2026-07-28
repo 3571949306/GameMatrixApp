@@ -1,6 +1,7 @@
 package com.gamecenter.app.fragments;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
@@ -13,6 +14,8 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -21,6 +24,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.ColorSchemeManager;
 import com.gamecenter.app.R;
 import com.gamecenter.app.SettingsManager;
@@ -29,7 +33,6 @@ import com.gamecenter.app.tools.BatteryToolBinder;
 import com.gamecenter.app.tools.ClipboardToolBinder;
 import com.gamecenter.app.tools.ColorPickerToolBinder;
 import com.gamecenter.app.tools.ColorPlusToolBinder;
-import com.gamecenter.app.tools.DeviceToolBinder;
 import com.gamecenter.app.tools.DiagnosticReportToolBinder;
 import com.gamecenter.app.tools.DnsLookupToolBinder;
 import com.gamecenter.app.tools.DnsToolBinder;
@@ -42,28 +45,30 @@ import com.gamecenter.app.tools.PermissionPrivacyToolBinder;
 import com.gamecenter.app.tools.PingToolBinder;
 import com.gamecenter.app.tools.PortScanToolBinder;
 import com.gamecenter.app.tools.QrPlusToolBinder;
-import com.gamecenter.app.tools.QrToolBinder;
 import com.gamecenter.app.tools.ScreenToolBinder;
 import com.gamecenter.app.tools.SensorToolBinder;
 import com.gamecenter.app.tools.SpeedTestToolBinder;
 import com.gamecenter.app.tools.SubnetToolBinder;
 import com.gamecenter.app.tools.SystemInfoToolBinder;
 import com.gamecenter.app.tools.TextCodecToolBinder;
-import com.gamecenter.app.tools.UrlEncodeToolBinder;
 import com.gamecenter.app.tools.RegexTestToolBinder;
-import com.gamecenter.app.tools.JsonFormatToolBinder;
-import com.gamecenter.app.tools.Base64ToolBinder;
 import com.gamecenter.app.tools.ToolBinder;
 import com.gamecenter.app.tools.ToolHelper;
 import com.gamecenter.app.tools.ToolSection;
 import com.gamecenter.app.tools.ToolSectionStore;
 import com.gamecenter.app.tools.TracerouteToolBinder;
+import com.gamecenter.app.tools.WifiToolBinder;
+import com.gamecenter.app.tools.UnitConverterToolBinder;
+import com.gamecenter.app.tools.RadixConverterToolBinder;
+import com.gamecenter.app.tools.PasswordGeneratorToolBinder;
+import com.gamecenter.app.tools.UuidGeneratorToolBinder;
+import com.gamecenter.app.tools.CryptoToolBinder;
+import com.gamecenter.app.tools.JwtParserToolBinder;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import com.gamecenter.app.tools.WifiToolBinder;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -115,10 +120,53 @@ public class ToolsFragment extends Fragment {
     /** 用于执行工具中耗时操作的线程池 */
     private ExecutorService executor;
 
+    /**
+     * 文件/图片选择回调接口，用于 file_hash/qr_plus/color_plus 工具。
+     * 当用户选择文件后，此回调被调用以处理选中的 Uri。
+     */
+    public interface PickFileCallback {
+        void onFilePicked(Uri uri);
+    }
+
+    /** 当前待处理文件选择回调（由 Binder 设置，由 ActivityResultLauncher 触发） */
+    private PickFileCallback pendingPickFileCallback;
+    /** 共享的文件选择 Launcher，支持任意类型文件/图片 */
+    private ActivityResultLauncher<String[]> pickFileLauncher;
+
+    /**
+     * 触发系统文件选择器。
+     * 由 Binder 通过 ToolsFragment 实例调用，传入回调。
+     *
+     * @param callback 文件选择完成后的回调
+     * @param mimeTypes 允许的 MIME 类型（如 image 或 所有类型）
+     */
+    public void requestPickFile(PickFileCallback callback, String[] mimeTypes) {
+        this.pendingPickFileCallback = callback;
+        pickFileLauncher.launch(mimeTypes);
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         executor = Executors.newCachedThreadPool();
+        // 注册文件选择 Launcher，必须在 onCreate 或之前调用
+        // 用于 file_hash（任意文件）、qr_plus/color_plus（图片）工具
+        pickFileLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                uri -> {
+                    PickFileCallback cb = pendingPickFileCallback;
+                    pendingPickFileCallback = null;
+                    if (cb != null && uri != null) {
+                        try {
+                            // 授予持久化读取权限，避免后续读取失败
+                            requireContext().getContentResolver().takePersistableUriPermission(
+                                    uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } catch (SecurityException ignored) {
+                            // 部分设备不支持 takePersistableUriPermission，忽略错误
+                        }
+                        cb.onFilePicked(uri);
+                    }
+                });
     }
 
     @Override
@@ -151,10 +199,9 @@ public class ToolsFragment extends Fragment {
         binders.put("wifi", new WifiToolBinder());
         binders.put("speedtest", new SpeedTestToolBinder());
         binders.put("portscan", new PortScanToolBinder());
-        binders.put("qr", new QrToolBinder());
         batteryToolBinder = new BatteryToolBinder();
         binders.put("battery", batteryToolBinder);
-        binders.put("device", new DeviceToolBinder());
+        // 2026-07-25: device 工具已合并到 sysinfo，不再单独注册 DeviceToolBinder
         binders.put("ping", new PingToolBinder());
         binders.put("traceroute", new TracerouteToolBinder());
         binders.put("subnet", new SubnetToolBinder());
@@ -164,11 +211,16 @@ public class ToolsFragment extends Fragment {
         binders.put("clipboard", new ClipboardToolBinder());
         binders.put("color", new ColorPickerToolBinder());
         binders.put("sysinfo", new SystemInfoToolBinder());
-        // 2026-06-23: 新增 4 个工具
-        binders.put("url_encode", new UrlEncodeToolBinder());
         binders.put("regex_test", new RegexTestToolBinder());
-        binders.put("json_format", new JsonFormatToolBinder());
-        binders.put("base64", new Base64ToolBinder());
+        // 阶段3：新增 6 个工具（受 ENABLE_TOOLS_ENHANCEMENT flag 控制）
+        if (BuildConfig.ENABLE_TOOLS_ENHANCEMENT) {
+            binders.put("unit_converter", new UnitConverterToolBinder());
+            binders.put("radix_converter", new RadixConverterToolBinder());
+            binders.put("password_generator", new PasswordGeneratorToolBinder());
+            binders.put("uuid_generator", new UuidGeneratorToolBinder());
+            binders.put("crypto_tool", new CryptoToolBinder());
+            binders.put("jwt_parser", new JwtParserToolBinder());
+        }
     }
 
     @Nullable
@@ -565,6 +617,9 @@ public class ToolsFragment extends Fragment {
             if (binder != null) {
                 Context ctx = getContext();
                 if (ctx != null) {
+                    // 在 contentView 的 tag 中存储 ToolsFragment 引用，
+                    // 供需要文件选择器的 Binder（file_hash/qr_plus/color_plus）使用
+                    contentView.setTag(R.id.tag_tools_fragment, ToolsFragment.this);
                     binder.bind(ctx, contentView, executor);
                     // 2026-06-23: 记录使用次数（用于按热度排序）
                     if (store != null) store.incrementUsage(section.id);
@@ -583,7 +638,7 @@ public class ToolsFragment extends Fragment {
             TextView errorView = new TextView(context);
             int padding = (int) (12 * context.getResources().getDisplayMetrics().density);
             errorView.setPadding(padding, padding, padding, padding);
-            errorView.setText("该工具暂时无法加载：" + section.title);
+            errorView.setText(context.getString(R.string.tool_load_failed_format, section.title));
             errorView.setTextColor(0xFFB00020);
             errorView.setTextSize(14);
             return errorView;

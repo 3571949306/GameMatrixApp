@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 模块标识字符串，供 ModuleResourceLoader.getModulePackageName 反查模块包名使用。
+         名称本身不直接展示给用户（用户可见的模块名由宿主 app 的 strings.xml 提供）。
+         若缺少此条目，getModulePackageName 会返回空串，导致 getLayoutResId 等
+         资源查找全部返回 0，进而触发 Resources$NotFoundException: Resource ID #0x0 闪退。 -->
+    <string name="app_name">华容道</string>
+</resources>

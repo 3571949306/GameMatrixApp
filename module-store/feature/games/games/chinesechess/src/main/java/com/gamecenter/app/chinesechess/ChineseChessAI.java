@@ -1,4 +1,4 @@
-package com.gamecenter.app.games.chinesechess;
+package com.gamecenter.app.chinesechess;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -52,18 +52,25 @@ public class ChineseChessAI implements GameAI {
         100    // 兵/卒
     };
 
-    /** 难度配置（搜索深度） */
-    private static final int[] SEARCH_DEPTHS = {1, 2, 3, 4, 6};
+    /** 难度配置（搜索深度） - 大师档从6降到5，避免过长时间思考 */
+    private static final int[] SEARCH_DEPTHS = {1, 2, 3, 4, 5};
 
-    /** 开局库走法 */
+    /** 开局库走法 - 14种常见开局，增加开局多样性 */
     private static final int[][] OPENING_MOVES = {
-        {9, 4, 7, 4},  // 炮二平五
-        {9, 2, 7, 2},  // 炮二平三
-        {9, 6, 7, 6},  // 炮八平五
-        {9, 1, 7, 1},  // 马二进三
-        {9, 7, 7, 7},  // 马八进七
-        {6, 0, 5, 0},  // 兵七进一
-        {6, 8, 5, 8},  // 兵三进一
+        {9, 4, 7, 4},  // 炮二平五（中炮）
+        {9, 2, 7, 2},  // 炮二平三（兵底炮）
+        {9, 6, 7, 6},  // 炮八平五（反手中炮）
+        {9, 1, 7, 1},  // 马二进三（起马）
+        {9, 7, 7, 7},  // 马八进七（起马）
+        {6, 0, 5, 0},  // 兵七进一（仙人指路）
+        {6, 8, 5, 8},  // 兵三进一（仙人指路）
+        {9, 4, 7, 4},  // 炮二平五（中炮，重复以增加概率）
+        {7, 1, 7, 2},  // 马二进三变体
+        {7, 7, 7, 6},  // 马八进七变体
+        {6, 2, 5, 2},  // 兵七进一变体
+        {6, 6, 5, 6},  // 兵三进一变体
+        {9, 0, 7, 0},  // 车一进一（横车）
+        {9, 8, 7, 8}   // 车九进一（横车）
     };
 
     /** 将死分数（远大于最大子力评估，确保对将死给予最高优先级） */
@@ -193,10 +200,21 @@ public class ChineseChessAI implements GameAI {
 
     /**
      * 获取开局走法
+     * <p>OPENING_MOVES 以红方视角定义（行号 6~9）。当 AI 执黑（aiSide=-1）时，
+     * 需将行号按棋盘上下镜像（r -> 9 - r），否则黑方会返回红方走法导致坐标错乱。
+     *
+     * @param board  当前棋盘
+     * @param aiSide AI 执子方：1=红方，-1=黑方
+     * @return 开局走法 [fromRow, fromCol, toRow, toCol]，非开局位置返回 null
      */
     private int[] getOpeningMove(int[][] board, int aiSide) {
         if (!isOpeningPosition(board)) return null;
-        return OPENING_MOVES[random.nextInt(OPENING_MOVES.length)];
+        int[] m = OPENING_MOVES[random.nextInt(OPENING_MOVES.length)];
+        if (aiSide == -1) {
+            // 黑方走法：行号上下镜像，列号不变
+            return new int[]{9 - m[0], m[1], 9 - m[2], m[3]};
+        }
+        return m;
     }
 
     /**

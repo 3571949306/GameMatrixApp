@@ -75,4 +75,15 @@ class OcrService(context: Context) {
         val engine = engines[currentEngine] ?: engines["local"]!!
         return engine.recognize(context, imageUri, accurate)
     }
+
+    /**
+     * 强制使用本地引擎执行 OCR（用于 consent 选择"改用本地"时）。
+     */
+    suspend fun recognizeLocal(context: Context, imageUri: Uri, accurate: Boolean = false): OcrResult {
+        return engines["local"]!!.recognize(context, imageUri, accurate)
+    }
+
+    /** 当前是否为云端引擎（baidu / scnet） */
+    val isCloudEngine: Boolean
+        get() = currentEngine != "local" && engines.containsKey(currentEngine)
 }

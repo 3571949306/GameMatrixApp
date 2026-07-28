@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.gamecenter.app.wrongbook.R
+import com.gamecenter.app.wrongbook.data.MasteryLevel
 import com.gamecenter.app.wrongbook.data.QuestionEntity
 import com.gamecenter.app.wrongbook.databinding.ItemQuestionBinding
 import org.json.JSONArray
@@ -73,14 +74,10 @@ class QuestionAdapter(
             binding.tvSubject.text = item.subject
             binding.tvContent.text = item.rawText
 
-            // 掌握度
+            // 掌握度（统一阈值，详见 MasteryLevel）
             binding.pbMastery.progress = item.mastery
             binding.tvMasteryPercent.text = "${item.mastery}%"
-            val masteryColor = when {
-                item.mastery >= 80 -> R.color.wrongbook_mastery_high
-                item.mastery >= 50 -> R.color.wrongbook_mastery_mid
-                else -> R.color.wrongbook_mastery_low
-            }
+            val masteryColor = MasteryLevel.colorResByMastery(item.mastery)
             binding.pbMastery.progressTintList = ColorStateList.valueOf(
                 ContextCompat.getColor(context, masteryColor)
             )

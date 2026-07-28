@@ -1,14 +1,16 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # GameMatrixApp — 云编译 & VPS 部署指南
+
+> **当前参考（最后核验：2026-07-27）**  
+> 工作版本与最近稳定版以 [`version.properties`](version.properties) 为准；当前工作版本不是已发布声明。发布状态、模块签名门槛和文档层级见 [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md) 与 [`docs/DOCUMENTATION_GOVERNANCE.md`](docs/DOCUMENTATION_GOVERNANCE.md)。
+>
+> 本指南中的 vc595 Flutter 商店构建和发布信息是历史证据。实际构建参数、Catalog 签名、Flutter 入口和发布产物必须在每次发布时重新验证。
 
 > **本项目** : GameMatrixApp — Android 多模块游戏中心，含 DDZ、WebSocket Relay、模块化（ClassLoader + DexClassLoader）框架
 > **本指南** : 用 GitHub Actions 在云端编译 APK，再用 openclaw / VPS 接收 artifact
-> **最后更新** : 2026-07-06 (循环 19-24 复核)
-> **当前工作树/生产版本**：versionCode=595 / versionName=1.4.1（lastStable=594/1.4.1，以 `version.properties` 为准）
+> **最后更新** : 2026-07-06 (循环 19-24 复核；当前构建与部署参数须实时验证)
+> **版本语义**：请从 `version.properties` 区分工作版本与最近稳定版；不要将本指南中记录的历史版本当作当前生产版本。
 >
-> **Flutter 商店说明**：CI/云构建默认仍构建旧商店入口。验证 Flutter-first 商店时必须显式传入 `-PenableFlutterModuleStore=true`；生产签名和正式 V2 包门禁完成前不得把它改为默认开启。
+> **Flutter 商店说明**：Flutter 商店的构建参数、默认值和发布门槛随构建任务变化；需要验证时显式传入相关参数，并以当次产物/签名/Catalog 验证结果为准。
 
 ---
 

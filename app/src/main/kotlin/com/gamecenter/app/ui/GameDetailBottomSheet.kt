@@ -1,6 +1,7 @@
 package com.gamecenter.app.ui
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.text.format.DateUtils
 import android.view.LayoutInflater
@@ -14,6 +15,9 @@ import com.gamecenter.app.R
 import com.gamecenter.app.games.GameRatingStore
 import com.gamecenter.app.games.GameRegistry
 import com.gamecenter.app.games.GameUsageStore
+import com.gamecenter.app.games.FavoriteGroupStore
+import com.gamecenter.app.games.LeaderboardActivity
+import com.gamecenter.app.games.ShareCardGenerator
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import java.util.concurrent.TimeUnit
@@ -85,16 +89,28 @@ class GameDetailBottomSheet(
 
         // 收藏按钮
         val btnFav = view.findViewById<ImageView>(R.id.btn_detail_favorite)
+        // BUG-008 修复：收藏按钮的 contentDescription 必须随状态变化，否则无障碍用户无法得知当前是"加入收藏"还是"取消收藏"。
+        // 同时修复 toggleFavorite 后用 !wasFav 推断新状态的脆弱逻辑：若 SP 写入失败，UI 会与存储错位。
+        // 现改为切换后重新读取权威值，确保 UI 与 GameUsageStore 数据一致（个人中心/游戏大厅读到的是同一份数据）。
         updateFavoriteIcon(btnFav, store.isFavorite(entry.id))
         btnFav.setOnClickListener {
             val wasFav = store.isFavorite(entry.id)
             store.toggleFavorite(entry.id)
-            val nowFav = !wasFav
+            // BUG-008 修复：重新读取权威值，避免推断错误；同时确保 UI 与存储一致
+            val nowFav = store.isFavorite(entry.id)
             updateFavoriteIcon(btnFav, nowFav)
+            // P0-2 (FAVORITE_GROUPS): 新增收藏时让用户选择分组；取消收藏时清理映射
+            if (nowFav && !wasFav) {
+                promptSelectGroup(ctx, entry.id)
+            } else if (!nowFav && wasFav) {
+                FavoriteGroupStore(ctx).removeGame(entry.id)
+            }
+            // BUG-008 修复：Toast 消息逻辑之前是反的（nowFav=true 显示"加入收藏"，应显示"已加入收藏"）。
+            // 现修正为：收藏成功显示"已加入收藏"，取消收藏显示"已取消收藏"。
             Toast.makeText(
                 ctx,
-                if (nowFav) R.string.game_detail_favorite_add
-                else R.string.game_detail_favorite_remove,
+                if (nowFav) R.string.game_detail_favorite_added
+                else R.string.game_detail_favorite_removed,
                 Toast.LENGTH_SHORT
             ).show()
             onFavoriteToggled.onToggled()
@@ -104,6 +120,24 @@ class GameDetailBottomSheet(
         view.findViewById<MaterialButton>(R.id.btn_detail_play).setOnClickListener {
             dismissAllowingStateLoss()
             onPlay.onPlay(entry)
+        }
+
+        // P0-1 (LEADERBOARD): 查看排行榜
+        view.findViewById<MaterialButton>(R.id.btn_detail_leaderboard)?.setOnClickListener {
+            val intent = Intent(ctx, LeaderboardActivity::class.java).apply {
+                putExtra(LeaderboardActivity.EXTRA_GAME_ID, entry.id)
+            }
+            try {
+                startActivity(intent)
+                dismissAllowingStateLoss()
+            } catch (e: Exception) {
+                Toast.makeText(ctx, R.string.leaderboard_unable_open, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // P0-3 (SHARE_CARD): 分享战绩
+        view.findViewById<MaterialButton>(R.id.btn_detail_share)?.setOnClickListener {
+            shareGameStats(ctx, store)
         }
 
         // Batch 11-1 (GAME_RATING_SYSTEM): 用户评分区块
@@ -130,10 +164,22 @@ class GameDetailBottomSheet(
 
         fun refreshStars(current: Int) {
             for (i in 0 until 5) {
-                stars[i]?.setImageResource(
+                val starView = stars[i]
+                starView?.setImageResource(
                     if (i < current) R.drawable.ic_star_filled
                     else R.drawable.ic_star_border
                 )
+                // BUG-006 修复：动态格式化每颗星星的 contentDescription。
+                // 之前布局 XML 中静态引用 @string/game_rating_star_desc（="%1$d 星"），
+                // 占位符不会被替换，TalkBack 朗读"%1$d 星"，且 5 颗星描述完全相同无法区分。
+                // 现按 i+1 格式化为"1 星"~"5 星"，并附加当前是否选中的状态，便于无障碍用户识别。
+                val starNum = i + 1
+                val starDesc = ctx.getString(R.string.game_rating_star_desc, starNum)
+                starView?.contentDescription = if (i < current) {
+                    "$starDesc（${ctx.getString(R.string.game_rating_my_rating_label)})"
+                } else {
+                    starDesc
+                }
             }
             tvStatus.text = if (current > 0) {
                 ctx.getString(R.string.game_rating_my_rating_label) + ": " +
@@ -217,6 +263,69 @@ class GameDetailBottomSheet(
             if (isFavorite) R.drawable.ic_favorite_filled
             else R.drawable.ic_favorite
         )
+        // BUG-008 修复：同步更新 contentDescription，使无障碍服务能正确朗读当前收藏状态。
+        // 之前 contentDescription 为布局 XML 静态值，无论收藏与否都朗读"加入收藏"，与图标状态不符。
+        btn.contentDescription = btn.context.getString(
+            if (isFavorite) R.string.game_detail_favorite_remove
+            else R.string.game_detail_favorite_add
+        )
+    }
+
+    /** P0-2 (FAVORITE_GROUPS): 收藏成功后弹窗让用户选择分组（可选操作，取消则归入默认分组）。 */
+    private fun promptSelectGroup(ctx: Context, gameId: String) {
+        val store = FavoriteGroupStore(ctx)
+        val groups = store.groups
+        if (groups.isEmpty()) return
+        val labels = arrayOfNulls<String>(groups.size)
+        for (i in groups.indices) {
+            labels[i] = groups[i].name
+        }
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.favorite_groups_select)
+            .setMessage(R.string.favorite_groups_select_hint)
+            .setItems(labels) { _, which ->
+                if (which in groups.indices) {
+                    store.setGameGroup(gameId, groups[which].id)
+                }
+            }
+            .setNegativeButton(R.string.leaderboard_clear_confirm_negative, null)
+            .show()
+    }
+
+    /** P0-3 (SHARE_CARD): 构建战绩数据并启动分享 Intent。 */
+    private fun shareGameStats(ctx: Context, store: GameUsageStore) {
+        val data = ShareCardGenerator.Data().apply {
+            gameName = entry.name
+            gameId = entry.id
+            gameIconRes = entry.iconRes
+            highScore = store.getHighScore(entry.id)
+            playCount = store.getPlayCount(entry.id)
+            winCount = store.getWinCount(entry.id)
+            lossCount = store.getLossCount(entry.id)
+            playTimeMs = store.getTotalPlayTimeMs(entry.id)
+        }
+        if (!data.hasData()) {
+            Toast.makeText(ctx, R.string.share_card_no_data, Toast.LENGTH_SHORT).show()
+            return
+        }
+        // 生成 Bitmap 在子线程，避免阻塞 UI
+        Thread {
+            val generator = ShareCardGenerator(ctx)
+            val intent = generator.buildShareIntent(data)
+            activity?.runOnUiThread {
+                if (intent != null) {
+                    try {
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(ctx, R.string.share_card_save_failed,
+                                Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(ctx, R.string.share_card_save_failed,
+                            Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
     }
 
     private fun categoryLabel(key: String): String {

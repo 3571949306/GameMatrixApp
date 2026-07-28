@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.gamecenter.app.vpn.R
 import com.gamecenter.app.vpn.adapter.NodeAdapter
 import com.gamecenter.app.vpn.model.Node
 import com.gamecenter.app.vpn.model.ProtocolType
@@ -41,7 +42,7 @@ class VpnFragment : Fragment() {
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             pendingNodeId?.let { connectToNode(it) }
         } else {
-            Toast.makeText(requireContext(), "需要 VPN 权限才能连接", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.vpn_perm_required, Toast.LENGTH_SHORT).show()
         }
         pendingNodeId = null
     }
@@ -55,7 +56,7 @@ class VpnFragment : Fragment() {
         nodeRepo = NodeRepository(requireContext())
         adapter = NodeAdapter(nodes,
             onNodeClick = { startVpnConnection(it) },
-            onNodeDelete = { nodeRepo.deleteNode(it.id); refreshNodes(); Toast.makeText(requireContext(), "节点已删除", Toast.LENGTH_SHORT).show() }
+            onNodeDelete = { nodeRepo.deleteNode(it.id); refreshNodes(); Toast.makeText(requireContext(), R.string.vpn_node_deleted, Toast.LENGTH_SHORT).show() }
         )
         recycler.adapter = adapter
         recycler.layoutManager = LinearLayoutManager(requireContext())
@@ -112,13 +113,13 @@ class VpnFragment : Fragment() {
             minLines = 3
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("添加节点")
+            .setTitle(R.string.vpn_add_node)
             .setView(editText)
-            .setPositiveButton("添加") { _, _ ->
+            .setPositiveButton(R.string.vpn_add) { _, _ ->
                 val input = editText.text.toString().trim()
                 if (input.isNotEmpty()) parseAndAddNode(input)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -139,7 +140,7 @@ class VpnFragment : Fragment() {
                 port = 443
             ))
             refreshNodes()
-            Toast.makeText(requireContext(), "节点已添加", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.vpn_node_added, Toast.LENGTH_SHORT).show()
         } catch (_: Exception) {}
     }
 
@@ -166,10 +167,10 @@ class VpnFragment : Fragment() {
         // ContextCompat.startForegroundService 安全地启动前台服务。
         try {
             ContextCompat.startForegroundService(requireContext(), intent)
-            Toast.makeText(requireContext(), "正在连接...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.vpn_connecting, Toast.LENGTH_SHORT).show()
         } catch (e: IllegalStateException) {
             // Android 14+ 后台启动前台服务被系统拒绝
-            Toast.makeText(requireContext(), "无法在后台启动 VPN 服务，请保持应用在前台后重试", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), R.string.vpn_bg_start_failed, Toast.LENGTH_LONG).show()
         }
     }
 }

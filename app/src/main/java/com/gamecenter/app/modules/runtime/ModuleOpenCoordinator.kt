@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import com.gamecenter.app.DynamicGameActivity
 import com.gamecenter.app.MainActivity
+import com.gamecenter.app.R
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.modules.catalog.CatalogModule
 
@@ -12,9 +13,9 @@ object ModuleOpenCoordinator {
 
     fun openAndroid(context: Context, module: CatalogModule): RuntimeResult {
         val manifest = module.legacyManifest
-            ?: return RuntimeResult(false, "manifest_missing", "No Android manifest mapping is available")
+            ?: return RuntimeResult(false, "manifest_missing", context.getString(R.string.module_error_manifest_mapping_missing))
         if (!ModuleManager.isModuleEnabled(context, module.id)) {
-            return RuntimeResult(false, "module_disabled", "Enable the module before opening it")
+            return RuntimeResult(false, "module_disabled", context.getString(R.string.module_error_enable_before_open))
         }
         if (manifest.type == "nav" && (manifest.isBaseFramework || module.id in hostNavigationIds)) {
             val intent = Intent(context, MainActivity::class.java)
@@ -43,7 +44,7 @@ object ModuleOpenCoordinator {
         return if (ModuleManager.startModule(context, module.id)) {
             RuntimeResult(true)
         } else {
-            RuntimeResult(false, "module_start_failed", "The module entry point did not start")
+            RuntimeResult(false, "module_start_failed", context.getString(R.string.module_error_entry_not_start))
         }
     }
 }

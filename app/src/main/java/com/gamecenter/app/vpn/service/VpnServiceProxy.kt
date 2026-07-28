@@ -79,7 +79,7 @@ class VpnServiceProxy : VpnService() {
         }
         val notif = NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("VPN 连接中")
+            .setContentText(getString(R.string.vpn_content_connecting))
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

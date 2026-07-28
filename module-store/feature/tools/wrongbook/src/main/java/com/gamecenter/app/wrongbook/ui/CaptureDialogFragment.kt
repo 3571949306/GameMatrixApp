@@ -255,6 +255,8 @@ class CaptureDialogFragment : DialogFragment() {
     /**
      * 识别当前图片。
      *
+     * #24.4: 当使用云端 OCR 引擎时，先弹 consent 明示数据去向与本地替代。
+     *
      * @param accurate true 表示高精度识别（后端切换 accurate 接口）
      */
     private fun recognizeCurrentImage(accurate: Boolean) {
@@ -263,11 +265,59 @@ class CaptureDialogFragment : DialogFragment() {
             showSnackbar("请先选择图片")
             return
         }
+        // 云端引擎需先获取 consent
+        if (viewModel.isCloudOcrEngine) {
+            val consent = buildOcrConsent()
+            if (com.gamecenter.app.ui.ConsentDialog.needsConsent(requireContext(), consent)) {
+                showOcrConsent(uri, accurate)
+                return
+            }
+        }
+        startRecognition(uri, accurate, forceLocal = false)
+    }
+
+    /** #24.4: 启动 OCR 识别（隐藏按钮、显示进度条） */
+    private fun startRecognition(uri: Uri, accurate: Boolean, forceLocal: Boolean) {
         binding.pbStep2Ocr.visibility = View.VISIBLE
         binding.btnStep2Recognize.visibility = View.GONE
         binding.btnStep2ReRecognize.visibility = View.GONE
         binding.btnStep2Accurate.visibility = View.GONE
-        viewModel.recognizeImage(uri, accurate)
+        viewModel.recognizeImage(uri, accurate, forceLocal)
+    }
+
+    /** #24.4: 弹出 OCR consent 弹窗 */
+    private fun showOcrConsent(uri: Uri, accurate: Boolean) {
+        com.gamecenter.app.ui.ConsentDialog.show(requireActivity(), buildOcrConsent()) { decision ->
+            when (decision) {
+                com.gamecenter.app.core.common.ConsentDecision.AGREE_CLOUD ->
+                    startRecognition(uri, accurate, forceLocal = false)
+                com.gamecenter.app.core.common.ConsentDecision.USE_LOCAL ->
+                    startRecognition(uri, accurate, forceLocal = true)
+                com.gamecenter.app.core.common.ConsentDecision.REFUSE ->
+                    Toast.makeText(
+                        requireContext(),
+                        moduleResources.getString(R.string.wrongbook_ocr_cancelled),
+                        Toast.LENGTH_SHORT
+                    ).show()
+            }
+        }
+    }
+
+    /** #24.4: 构建 OCR consent 组件 */
+    private fun buildOcrConsent(): com.gamecenter.app.core.common.ConsentComponent {
+        val res = moduleResources
+        return com.gamecenter.app.core.common.ConsentComponent(
+            scope = "ocr_cloud",
+            versionCode = 1,
+            title = res.getString(R.string.wrongbook_ocr_consent_title),
+            sendData = res.getString(R.string.wrongbook_ocr_consent_send),
+            purpose = res.getString(R.string.wrongbook_ocr_consent_purpose),
+            localAlternative = res.getString(R.string.wrongbook_ocr_consent_local),
+            costAndNetwork = res.getString(R.string.wrongbook_ocr_consent_cost),
+            cancelHint = res.getString(R.string.wrongbook_ocr_consent_cancel),
+            providerInfo = res.getString(R.string.wrongbook_ocr_consent_provider),
+            dataRetention = res.getString(R.string.wrongbook_ocr_consent_retention)
+        )
     }
 
     private fun analyzeCurrentText() {
@@ -276,10 +326,64 @@ class CaptureDialogFragment : DialogFragment() {
             showSnackbar("题目文字不能为空")
             return
         }
+        // #24.3: 云端 AI 分析需先获取 consent（本地模式尚未实现，无"改用本地"选项）
+        if (viewModel.isCloudAiMode) {
+            val consent = buildAiAnalysisConsent()
+            if (com.gamecenter.app.ui.ConsentDialog.needsConsent(requireContext(), consent)) {
+                showAiAnalysisConsent(text)
+                return
+            }
+        }
+        startAiAnalysis(text)
+    }
+
+    /** #24.3: 启动 AI 分析 */
+    private fun startAiAnalysis(text: String) {
         binding.shimmerAnalysis.shimmerContainer.visibility = View.VISIBLE
         binding.layoutStep4Result.visibility = View.GONE
         startShimmerAnimation(binding.shimmerAnalysis.shimmerContainer)
         viewModel.analyzeText(text)
+    }
+
+    /** #24.3: 弹出 AI 分析 consent 弹窗 */
+    private fun showAiAnalysisConsent(text: String) {
+        com.gamecenter.app.ui.ConsentDialog.show(requireActivity(), buildAiAnalysisConsent()) { decision ->
+            when (decision) {
+                com.gamecenter.app.core.common.ConsentDecision.AGREE_CLOUD ->
+                    startAiAnalysis(text)
+                com.gamecenter.app.core.common.ConsentDecision.REFUSE ->
+                    Toast.makeText(
+                        requireContext(),
+                        moduleResources.getString(R.string.wrongbook_ai_cancelled),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                com.gamecenter.app.core.common.ConsentDecision.USE_LOCAL -> {
+                    // 本地模式尚未实现，提示用户
+                    Toast.makeText(
+                        requireContext(),
+                        moduleResources.getString(R.string.wrongbook_ai_cancelled),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    /** #24.3: 构建 AI 分析 consent 组件（无本地替代，localAlternative 为空） */
+    private fun buildAiAnalysisConsent(): com.gamecenter.app.core.common.ConsentComponent {
+        val res = moduleResources
+        return com.gamecenter.app.core.common.ConsentComponent(
+            scope = "wrongbook_ai_cloud",
+            versionCode = 1,
+            title = res.getString(R.string.wrongbook_ai_consent_title),
+            sendData = res.getString(R.string.wrongbook_ai_consent_send),
+            purpose = res.getString(R.string.wrongbook_ai_consent_purpose),
+            localAlternative = "",
+            costAndNetwork = res.getString(R.string.wrongbook_ai_consent_cost),
+            cancelHint = res.getString(R.string.wrongbook_ai_consent_cancel),
+            providerInfo = res.getString(R.string.wrongbook_ai_consent_provider),
+            dataRetention = res.getString(R.string.wrongbook_ai_consent_retention)
+        )
     }
 
     /**
@@ -396,7 +500,7 @@ class CaptureDialogFragment : DialogFragment() {
                 aiModel = viewModel.currentAiModel
             )
             if (success) {
-                Toast.makeText(requireContext(), "错题保存成功！", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_saved), Toast.LENGTH_SHORT).show()
                 dismiss()
             } else {
                 showSnackbar("错题保存失败，请重试")

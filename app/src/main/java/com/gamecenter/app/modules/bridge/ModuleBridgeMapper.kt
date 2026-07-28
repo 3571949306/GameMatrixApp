@@ -50,7 +50,8 @@ class ModuleBridgeMapper(
             serviceType = value.serviceType,
             launcherId = value.launcherId,
             iconUrl = value.legacyManifest?.iconUrl.orEmpty(),
-            category = value.category,
+            // 优先使用标准化 storeCategory（6 类结果分类），回退到旧版 category
+            category = value.storeCategory?.wireValue ?: value.category,
             fileSize = value.packageInfo.fileSize,
             builtIn = value.deliveryType.wireValue == "builtin",
             required = value.required,
@@ -66,7 +67,9 @@ class ModuleBridgeMapper(
             dependencies = value.dependencies,
             tags = value.tags,
             screenshots = value.screenshots,
-            changelog = value.changelog
+            changelog = value.changelog,
+            detailsJson = value.details?.takeIf { it.hasContent }?.toJson()?.toString(),
+            privacyJson = value.privacy?.takeIf { it.hasContent }?.toJson()?.toString()
         )
     }
 

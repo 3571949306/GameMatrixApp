@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Feature A: 每日挑战卡片 -->
+<!-- Feature A: 每日挑战卡片
+     HOME_L2_V4_2026_07_24 修订：标题行从 horizontal（icon+title+badge 并排）改为 vertical，
+     让 title 占满卡片全宽（312dp - padding 24dp = 288dp），
+     避免 "每日挑战" 四字在 312dp 窄列里被挤成单字竖排的空洞。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,14 +10,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginTop="8dp"
-    android:padding="20dp"
+    android:layout_marginStart="0dp"
+    android:layout_marginEnd="0dp"
+    android:layout_marginTop="0dp"
+    android:padding="@dimen/spacing_8"
     android:background="@drawable/bg_daily_challenge_card"
     android:elevation="3dp">
 
-    <!-- 标题行 -->
+    <!-- 标题区：icon+title 在顶行，status badge 放下一行（badge 不挤占 title 横向空间） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -22,8 +25,8 @@
         android:gravity="center_vertical">
 
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_daily_challenge"
             app:tint="@color/daily_challenge_card_text"
             android:contentDescription="@string/daily_challenge_title" />
@@ -32,36 +35,43 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="8dp"
             android:text="@string/daily_challenge_title"
             android:textColor="@color/daily_challenge_card_text"
             android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_daily_challenge_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:background="@color/daily_challenge_card_progress_bg"
-            android:textColor="@color/daily_challenge_card_text"
-            android:textSize="11sp"
             android:textStyle="bold"
-            tools:text="未完成" />
+            android:singleLine="true"
+            android:ellipsize="end" />
     </LinearLayout>
+
+    <!-- 状态徽章（独立一行，不再挤占标题空间） -->
+    <TextView
+        android:id="@+id/tv_daily_challenge_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:background="@color/daily_challenge_card_progress_bg"
+        android:textColor="@color/daily_challenge_card_text"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        tools:text="未完成" />
 
     <!-- 挑战描述 -->
     <TextView
         android:id="@+id/tv_daily_challenge_desc"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:textColor="@color/daily_challenge_card_text_secondary"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:lineSpacingExtra="2dp"
+        android:maxLines="2"
+        android:ellipsize="end"
         tools:text="玩 3 局五子棋" />
 
     <!-- 进度条 -->
@@ -70,7 +80,7 @@
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="6dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="6dp"
         android:max="100"
         android:progress="0"
         android:progressTint="@color/daily_challenge_card_text"
@@ -81,8 +91,8 @@
         android:id="@+id/tv_daily_challenge_progress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:textColor="@color/daily_challenge_card_text_secondary"
-        android:textSize="12sp"
+        android:textSize="11sp"
         tools:text="进度：0 / 3" />
 </LinearLayout>

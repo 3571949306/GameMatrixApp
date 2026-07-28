@@ -159,36 +159,36 @@ public final class ColorPickerToolBinder implements ToolBinder {
 
             // 更新多格式颜色文本
             if (tvRgb != null) {
-                tvRgb.setText("RGB: " + r + ", " + g + ", " + b);
+                tvRgb.setText(context.getString(R.string.color_fmt_rgb, r, g, b));
             }
             if (tvArgb != null) {
-                tvArgb.setText("ARGB: " + a + ", " + r + ", " + g + ", " + b);
+                tvArgb.setText(context.getString(R.string.color_fmt_argb, a, r, g, b));
             }
 
             // 计算 HSL 值（需要从 RGB 转换，Android 未提供原生 API）
             float[] hsl = new float[3];
             rgbToHsl(r, g, b, hsl);
             if (tvHsl != null) {
-                tvHsl.setText(String.format("HSL: %d°, %d%%, %d%%",
+                tvHsl.setText(context.getString(R.string.color_fmt_hsl,
                         Math.round(hsl[0]), Math.round(hsl[1] * 100), Math.round(hsl[2] * 100)));
             }
 
             if (tvHsv != null) {
-                tvHsv.setText(String.format("HSV: %d°, %d%%, %d%%",
+                tvHsv.setText(context.getString(R.string.color_fmt_hsv,
                         Math.round(currentHsv[0]), Math.round(currentHsv[1] * 100), Math.round(currentHsv[2] * 100)));
             }
 
             if (tvInt != null) {
-                tvInt.setText("INT: 0x" + Integer.toHexString(color).toUpperCase());
+                tvInt.setText(context.getString(R.string.color_fmt_int, Integer.toHexString(color).toUpperCase()));
             }
 
             // CSS 格式：半透明时使用 rgba()，不透明时使用 rgb()
             if (tvCss != null) {
                 float alphaF = a / 255f;
                 if (alphaF < 1f) {
-                    tvCss.setText(String.format("CSS: rgba(%d,%d,%d,%.2f)", r, g, b, alphaF));
+                    tvCss.setText(context.getString(R.string.color_fmt_css_rgba, r, g, b, alphaF));
                 } else {
-                    tvCss.setText(String.format("CSS: rgb(%d,%d,%d)", r, g, b));
+                    tvCss.setText(context.getString(R.string.color_fmt_css_rgb, r, g, b));
                 }
             }
 
@@ -284,7 +284,7 @@ public final class ColorPickerToolBinder implements ToolBinder {
                     Color.RGBToHSV(r, g, b, currentHsv);
                     updateAll.run();
                 } catch (Exception e) {
-                    Toast.makeText(context, "无效颜色值", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, R.string.tool_color_invalid, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -302,20 +302,20 @@ public final class ColorPickerToolBinder implements ToolBinder {
                 String hex = a < 255
                         ? String.format("#%02X%02X%02X%02X", a, r, g, b)
                         : String.format("#%02X%02X%02X", r, g, b);
-                builder.append("HEX: ").append(hex).append("\n");
-                builder.append("RGB: ").append(r).append(", ").append(g).append(", ").append(b).append("\n");
-                builder.append("ARGB: ").append(a).append(", ").append(r).append(", ").append(g).append(", ").append(b).append("\n");
+                builder.append(context.getString(R.string.color_fmt_hex, hex)).append("\n");
+                builder.append(context.getString(R.string.color_fmt_rgb, r, g, b)).append("\n");
+                builder.append(context.getString(R.string.color_fmt_argb, a, r, g, b)).append("\n");
                 float[] hsl = new float[3];
                 rgbToHsl(r, g, b, hsl);
-                builder.append(String.format("HSL: %d°, %d%%, %d%%\n",
-                        Math.round(hsl[0]), Math.round(hsl[1] * 100), Math.round(hsl[2] * 100)));
-                builder.append(String.format("HSV: %d°, %d%%, %d%%\n",
-                        Math.round(currentHsv[0]), Math.round(currentHsv[1] * 100), Math.round(currentHsv[2] * 100)));
-                builder.append("INT: 0x").append(Integer.toHexString(color).toUpperCase());
+                builder.append(context.getString(R.string.color_fmt_hsl,
+                        Math.round(hsl[0]), Math.round(hsl[1] * 100), Math.round(hsl[2] * 100))).append("\n");
+                builder.append(context.getString(R.string.color_fmt_hsv,
+                        Math.round(currentHsv[0]), Math.round(currentHsv[1] * 100), Math.round(currentHsv[2] * 100))).append("\n");
+                builder.append(context.getString(R.string.color_fmt_int, Integer.toHexString(color).toUpperCase()));
                 ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
-                    cm.setPrimaryClip(ClipData.newPlainText("color", builder.toString()));
-                    Toast.makeText(context, "已复制颜色信息", Toast.LENGTH_SHORT).show();
+                    cm.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.clipboard_label_color), builder.toString()));
+                    Toast.makeText(context, R.string.tool_color_copy_success, Toast.LENGTH_SHORT).show();
                 }
             });
         }

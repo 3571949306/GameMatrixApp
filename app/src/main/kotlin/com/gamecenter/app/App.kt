@@ -161,6 +161,13 @@ class App : Application() {
         moduleLifecycleManager = ModuleLifecycleManager.getInstance(this)
         moduleLifecycleManager.initialize()
         Log.i("App", "模块系统已初始化")
+
+        // P3-14 (OFFLINE_MODULE_PRELOAD): 初始化模块预下载管理器（WiFi 环境下自动预下载）
+        runCatching {
+            com.gamecenter.app.modules.ModulePreDownloadManager.init(this)
+        }.onFailure { e ->
+            Log.w("App", "模块预下载管理器初始化失败: ${e.message}")
+        }
     }
 
     /**

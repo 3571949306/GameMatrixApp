@@ -49,6 +49,21 @@ public class Game2048ModuleEntryPoint implements ModuleInterface, FeatureModule 
     }
 
     @Override
+    public String getModuleType() {
+        return "game";
+    }
+
+    @Override
+    public List<String> getRequiredPermissions() {
+        return java.util.Collections.emptyList();
+    }
+
+    @Override
+    public List<String> getDependencies() {
+        return java.util.Collections.emptyList();
+    }
+
+    @Override
     public boolean isRunning() {
         return running;
     }

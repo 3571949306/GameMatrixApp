@@ -2,34 +2,42 @@ package com.gamecenter.app.tools;
 
 import android.content.Context;
 import android.view.View;
+import android.widget.Toast;
+
+import com.gamecenter.app.R;
+import com.gamecenter.app.fragments.ToolsFragment;
+
 import java.util.concurrent.ExecutorService;
 
 /**
  * 颜色增强工具绑定器，实现 {@link ToolBinder} 接口。
  * <p>
- * 采用委托模式，将实际的 UI 绑定逻辑委托给 {@link AdvancedToolBinders#bindColorPlus} 方法。
- * <p>
  * 颜色增强工具提供 WCAG 对比度计算和图片取色功能，具体实现位于
- * {@link AdvancedToolBinders} 中，本类仅作为 ToolBinder 接口的适配器，
- * 使颜色增强工具可以与其他工具统一管理。
+ * {@link AdvancedToolBinders#bindColorPlus} 中。
+ * </p>
  * <p>
- * 注意：pickImageListener 参数传入 null，表示此绑定器不直接处理图片选择，
- * 图片选择逻辑需要由调用方通过 {@link AdvancedToolBinders#handleColorImageResult} 单独处理。
+ * 修复（2026-07-25）：之前传入 null 导致"图片取色"按钮无响应。
+ * 直接从 contentView 的 tag_tools_fragment 获取 ToolsFragment 实例，
+ * 通过共享 ActivityResultLauncher 接入图片选择器，
+ * 结果回调 {@link AdvancedToolBinders#handleColorImageResult}。
+ * </p>
  */
 public class ColorPlusToolBinder implements ToolBinder {
 
-    /**
-     * 绑定颜色增强工具的 UI 交互。
-     * <p>
-     * 委托给 {@link AdvancedToolBinders#bindColorPlus}，第三个参数（pickImageListener）
-     * 传入 null，图片选择功能需由外部调用方单独配置。
-     *
-     * @param context     上下文
-     * @param contentView 工具页面的根视图
-     * @param executor    线程池（由 AdvancedToolBinders 内部按需使用）
-     */
     @Override
     public void bind(Context context, View contentView, ExecutorService executor) {
-        AdvancedToolBinders.bindColorPlus(context, contentView, null);
+        ToolsFragment fragment = (ToolsFragment) contentView.getTag(R.id.tag_tools_fragment);
+        if (fragment == null) {
+            AdvancedToolBinders.bindColorPlus(context, contentView, v ->
+                    Toast.makeText(context, R.string.tool_file_pick_unavailable, Toast.LENGTH_SHORT).show());
+            return;
+        }
+        AdvancedToolBinders.bindColorPlus(context, contentView, v ->
+                fragment.requestPickFile(uri -> {
+                    ExecutorService used = (executor != null && !executor.isShutdown())
+                            ? executor
+                            : java.util.concurrent.Executors.newSingleThreadExecutor();
+                    used.execute(() -> AdvancedToolBinders.handleColorImageResult(context, contentView, uri, used));
+                }, new String[]{"image/*"}));
     }
 }

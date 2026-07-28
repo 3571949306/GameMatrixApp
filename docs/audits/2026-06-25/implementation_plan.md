@@ -1,5 +1,5 @@
 <!-- flutter-store-doc-sync: 2026-07-22; historical -->
-> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+> 历史快照：保留用于上下文，不代表当前发布事实。Flutter-first 模块商店生产完成度为 100%；当前事实见 `/docs/CURRENT_STATE.md`。
 
 # GameMatrixApp 安全审查报告与漏洞修复计划
 
@@ -26,7 +26,7 @@
 
 ---
 
-## 🛠 Proposed Changes
+## 🛠 建议的改动
 
 为彻底根除上述安全隐患，我提议进行如下代码改造：
 
@@ -40,7 +40,7 @@
 - **严格证书校验**：引入全局可信证书公钥的 SHA-256 指纹白名单机制。
 - 对每个模块的签名进行哈希摘要运算，并要求提取出的签名公钥指纹必须与白名单中（例如官方开发者签名）匹配，否则直接判定为非法模块。
 
-## User Review Required
+## 需要用户确认
 
 > [!WARNING]
 > 修复 `ModuleVerifier.java` 中的签名验证需要配置一组**可信证书指纹（Trusted Certificate Fingerprint）**。
@@ -48,9 +48,9 @@
 >
 > 针对路径穿越，我们统一使用 `{ModuleID}.apk` 作为本地文件名，不再信任服务端的 fileName。请确认此规则是否满足您的分发需求。
 
-## Verification Plan
+## 验证计划
 
-### Automated Tests
+### 自动化测试
 - 新增单元测试：拦截带有 `../` 的恶意文件名路径，确保安全防御生效。
 - 新增单元测试：伪造假证书签名的 APK 送入 `ModuleVerifier`，断言其正确抛出 `VERIFY_ERROR_SIGNATURE_FAILED`。
 

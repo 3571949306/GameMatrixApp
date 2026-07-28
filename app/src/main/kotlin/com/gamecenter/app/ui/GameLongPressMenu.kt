@@ -28,8 +28,24 @@ import com.gamecenter.app.games.ui.GameLauncherHelper
  */
 object GameLongPressMenu {
 
-    /** 弹出长按菜单。 */
-    fun show(context: Context, anchor: android.view.View, entry: GameRegistry.Entry) {
+    /** 收藏状态切换回调（BUG-008 修复：用于通知调用方刷新卡片图标，避免长按菜单与卡片状态不同步）。 */
+    fun interface OnFavoriteToggledListener {
+        fun onToggled()
+    }
+
+    /**
+     * 弹出长按菜单。
+     *
+     * @param onFavoriteToggled 可选回调：用户在长按菜单中切换收藏后触发，
+     *        调用方（如 [com.gamecenter.app.GamesFragment]）可据此刷新卡片图标。
+     *        BUG-008 修复前该回调不存在，长按切换收藏后卡片心形图标不刷新，与 ProfileFragment 显示的收藏数不一致。
+     */
+    fun show(
+        context: Context,
+        anchor: android.view.View,
+        entry: GameRegistry.Entry,
+        onFavoriteToggled: OnFavoriteToggledListener = OnFavoriteToggledListener {}
+    ) {
         if (!BuildConfig.GAME_LONG_PRESS_MENU) return
         val popup = PopupMenu(context, anchor)
         val menu = popup.menu
@@ -53,12 +69,15 @@ object GameLongPressMenu {
                     true
                 }
                 MenuId.FAVORITE -> {
-                    val wasFav = store.isFavorite(entry.id)
+                    // BUG-008 修复：切换后重新读取权威状态，避免 wasFav 与实际写入结果不一致；
+                    // 同时通过回调通知调用方刷新卡片图标，避免长按菜单切换后卡片状态滞后。
                     store.toggleFavorite(entry.id)
+                    val nowFav = store.isFavorite(entry.id)
                     Toast.makeText(context,
-                        if (wasFav) R.string.home_card_favorite_remove
-                        else R.string.home_card_favorite_add,
+                        if (nowFav) R.string.home_card_favorite_add
+                        else R.string.home_card_favorite_remove,
                         Toast.LENGTH_SHORT).show()
+                    onFavoriteToggled.onToggled()
                     true
                 }
                 MenuId.SHARE -> {

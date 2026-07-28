@@ -67,6 +67,33 @@
         "enabled": { "type": "boolean" }
       }
     },
+    "moduleDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "模块详情（#11.1）：安装前向用户完整披露模块信息",
+      "properties": {
+        "valueDescription": { "type": "string", "description": "价值描述：模块解决什么问题、给用户带来什么结果" },
+        "audience": { "type": "string", "description": "目标受众：如学生、开发者、游戏玩家" },
+        "offlineCapability": { "type": "string", "description": "离线能力：是否可离线使用，哪些功能需要联网" },
+        "updateImpact": { "type": "string", "description": "更新影响：更新时会改动什么（数据/配置/缓存）" },
+        "uninstallImpact": { "type": "string", "description": "卸载影响：卸载后会遗留什么（数据/配置）" },
+        "highlights": { "type": "array", "items": { "type": "string" }, "description": "亮点列表：3-5 条核心功能要点" },
+        "limitations": { "type": "array", "items": { "type": "string" }, "description": "已知限制：如性能、兼容性、使用约束" }
+      }
+    },
+    "privacyCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "隐私卡（#11.2）：安装前向用户明示模块的数据行为，与 #23 数据与连接中心共用",
+      "properties": {
+        "localData": { "type": "string", "description": "本地数据：模块在设备上存储了什么" },
+        "cloudData": { "type": "string", "description": "云端数据：模块会向云端发送什么内容" },
+        "networkDomains": { "type": "array", "items": { "type": "string" }, "description": "网络域：模块连接的域名/IP 列表" },
+        "syncLocation": { "type": "string", "description": "同步位置：数据同步到哪（如 WebDAV、厂商云、无）" },
+        "retentionPeriod": { "type": "string", "description": "保存期限：数据保留多久（如 '会话级'/'30 天'/'直到卸载'）" },
+        "deletionMethod": { "type": "string", "description": "删除方式：如何删除数据（如 '卸载即清除'/'设置内一键清除'）" }
+      }
+    },
     "module": {
       "type": "object",
       "additionalProperties": true,
@@ -94,6 +121,11 @@
         "minHostVersionCode": { "type": "integer", "minimum": 0 },
         "maxHostVersionCode": { "type": "integer", "minimum": 0 },
         "category": { "type": "string" },
+        "storeCategory": {
+          "type": "string",
+          "enum": ["entertainment_versus", "learning_organization", "reading_browsing", "text_creation", "device_network", "personalization"],
+          "description": "商店结果分类：按用户完成的任务类型组织模块"
+        },
         "permissions": { "type": "array", "items": { "type": "string" } },
         "permissionsDescription": { "type": "array", "items": { "$ref": "#/$defs/permission" } },
         "dependencies": { "type": "array", "items": { "type": "string" } },
@@ -102,7 +134,9 @@
         "changelog": { "type": "array", "items": { "type": "string" } },
         "navigationContribution": { "$ref": "#/$defs/navigationContribution" },
         "package": { "$ref": "#/$defs/package" },
-        "assets": { "$ref": "#/$defs/assets" }
+        "assets": { "$ref": "#/$defs/assets" },
+        "details": { "$ref": "#/$defs/moduleDetail", "description": "模块详情（可选但建议填写）" },
+        "privacy": { "$ref": "#/$defs/privacyCard", "description": "隐私卡（可选但建议填写）" }
       },
       "allOf": [
         {

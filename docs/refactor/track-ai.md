@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 下文任何关于 vc595 / 已签名 Catalog V8 的陈述均记录 2026-07-22 的发布证据。它不是当前工作树或生产状态的声明；实时事实请查阅项目根目录的 `docs/CURRENT_STATE.md` 与当前实现。
 
 # AI 助手模块改造设计 (track-ai)
 
@@ -11,7 +11,7 @@
 
 ---
 
-## 0. TL;DR — 关键发现 (Read this first)
+## 0. TL;DR — 关键发现（请先阅读本节）
 
 任务描述假设 AI 助手模块在 `app/src/main/java/com/GameMatrix/app/ai/`，并列出 `AiTaskRouter.java / AiFragment.java / AiApiClient.java / MediaPipeLocalLlmEngine.java / AiTemplateManager.java / AiLegalNotices.java / TaskStatus.java / AiErrorCode.java` 等 Java 源文件。**调研结果显示这个假设已经过时**。当前架构是:
 

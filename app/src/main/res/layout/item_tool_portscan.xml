@@ -1,19 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 2026-07-25: 端口扫描改进布局 —— 支持超时/并发配置 + 并发扫描 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="horizontal">
-        <com.google.android.material.textfield.TextInputLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2" android:hint="目标IP">
-            <com.google.android.material.textfield.TextInputEditText android:id="@+id/et_port_scan_ip" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textUri" />
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="@string/tool_portscan_host_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_port_scan_ip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textUri" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tool_portscan_ports_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_port_scan_ports"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:text="@string/tool_portscan_default_ports" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/tool_portscan_timeout_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_port_scan_timeout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="300" />
+
         </com.google.android.material.textfield.TextInputLayout>
-        <com.google.android.material.textfield.TextInputLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:hint="端口">
-            <com.google.android.material.textfield.TextInputEditText android:id="@+id/et_port_scan_ports" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="1-100" android:inputType="text" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:hint="@string/tool_portscan_concurrency_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_port_scan_concurrency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="16" />
+
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton android:id="@+id/btn_start_port_scan" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/scan" />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_start_port_scan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/scan" />
 
-    <TextView android:id="@+id/tv_port_scan_result" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="扫描结果将显示在这里" android:textColor="?android:attr/textColorPrimary" android:textSize="14sp" />
+    <TextView
+        android:id="@+id/tv_port_scan_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="?attr/colorSurfaceVariant"
+        android:maxHeight="220dp"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tv_port_scan_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="4dp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textIsSelectable="true"
+            android:textSize="13sp" />
+
+    </ScrollView>
 </LinearLayout>

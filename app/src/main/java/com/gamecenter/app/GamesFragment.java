@@ -24,13 +24,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.games.GameRatingStore;
 import com.gamecenter.app.games.GameRegistry;
+import com.gamecenter.app.games.GameRecommender;
 import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.games.RecentGamesManager;
 import com.gamecenter.app.games.achievement.AchievementCenterActivity;
@@ -114,13 +114,13 @@ public class GamesFragment extends Fragment {
     private TextView tvStatStreakValue;
     private TextView tvStatAchievementsValue;
 
-    // Batch 10-2 (HOME_GAME_OF_DAY): 今日推荐
-    private View gameOfDaySection;
-    private ImageView ivGameOfDayIcon;
-    private TextView tvGameOfDayName;
-    private TextView tvGameOfDayDesc;
-    private View btnGameOfDayPlay;
-    private GameRegistry.Entry gameOfDayEntry;
+    // Feature T (HOME_L2_FEATURED_TODAY_2026_07_24): L2 今日精选（与 L1 今日推荐互补的另一款推荐）
+    private View cardTodayFeatured;
+    private ImageView ivTodayFeaturedIcon;
+    private TextView tvTodayFeaturedName;
+    private TextView tvTodayFeaturedDesc;
+    private View btnTodayFeaturedPlay;
+    private GameRegistry.Entry todayFeaturedEntry;
 
     // Batch 10-3 (RANDOM_GAME_FAB): 随机游戏 FAB
     private com.google.android.material.floatingactionbutton.FloatingActionButton fabRandomGame;
@@ -392,10 +392,10 @@ public class GamesFragment extends Fragment {
             initQuickStats(v);
         }
 
-        // Batch 10-2 (HOME_GAME_OF_DAY): 今日推荐卡片
-        if (BuildConfig.HOME_GAME_OF_DAY) {
-            initGameOfDay(v);
-        }
+        // Batch 10-2 (HOME_GAME_OF_DAY): 今日推荐卡片已移除（HOME_NO_TODAY_FEATURED_2026_07_24）
+
+        // Feature T (HOME_L2_FEATURED_TODAY): L2 今日精选（与 L1 今日推荐错开，填补空白）
+        initTodayFeatured(v);
 
         // Batch 10-3 (RANDOM_GAME_FAB): 随机游戏 FAB
         if (BuildConfig.RANDOM_GAME_FAB) {
@@ -479,71 +479,91 @@ public class GamesFragment extends Fragment {
     }
 
     /**
-     * Batch 10-2 (HOME_GAME_OF_DAY): 初始化今日推荐卡片。
-     * 基于当日日期 hash 选取一款游戏，每天稳定不变。
+     * Feature T (HOME_L2_FEATURED_TODAY_2026_07_24): 初始化 L2 今日精选卡片。
+     * 选取与 L1 今日推荐不同的另一款游戏，确保两处推荐内容不重复。
      */
-    private void initGameOfDay(View v) {
-        gameOfDaySection = v.findViewById(R.id.game_of_day_section);
-        if (gameOfDaySection == null) return;
-        ivGameOfDayIcon = gameOfDaySection.findViewById(R.id.iv_game_of_day_icon);
-        tvGameOfDayName = gameOfDaySection.findViewById(R.id.tv_game_of_day_name);
-        tvGameOfDayDesc = gameOfDaySection.findViewById(R.id.tv_game_of_day_desc);
-        btnGameOfDayPlay = gameOfDaySection.findViewById(R.id.btn_game_of_day_play);
+    private void initTodayFeatured(View v) {
+        cardTodayFeatured = v.findViewById(R.id.card_today_featured_include);
+        if (cardTodayFeatured == null) return;
+        ivTodayFeaturedIcon = cardTodayFeatured.findViewById(R.id.iv_today_featured_icon);
+        tvTodayFeaturedName = cardTodayFeatured.findViewById(R.id.tv_today_featured_name);
+        tvTodayFeaturedDesc = cardTodayFeatured.findViewById(R.id.tv_today_featured_desc);
+        btnTodayFeaturedPlay = cardTodayFeatured.findViewById(R.id.btn_today_featured_play);
 
-        refreshGameOfDay();
+        refreshTodayFeatured();
 
-        if (btnGameOfDayPlay != null) {
-            btnGameOfDayPlay.setOnClickListener(btn -> {
-                if (gameOfDayEntry != null) {
-                    launchGame(gameOfDayEntry);
-                }
-            });
-        }
-        // 整张卡片也可点击
-        gameOfDaySection.setOnClickListener(card -> {
-            if (gameOfDayEntry != null) {
-                launchGame(gameOfDayEntry);
+        // 点击"试玩"按钮或整张卡片都启动游戏
+        View.OnClickListener playListener = btn -> {
+            if (todayFeaturedEntry != null) {
+                launchGame(todayFeaturedEntry);
             }
-        });
+        };
+        if (btnTodayFeaturedPlay != null) {
+            btnTodayFeaturedPlay.setOnClickListener(playListener);
+        }
+        cardTodayFeatured.setOnClickListener(playListener);
     }
 
     /**
-     * Batch 10-2: 重新计算今日推荐游戏。
-     * 当 allEntries 为空时直接隐藏卡片。
+     * Feature T: 重新计算 L2 今日精选。
+     * <p>P3-10 (DAILY_RECOMMENDER) 升级：使用基于偏好的推荐算法
+     * （收藏/频次/胜率/新鲜度/分类多样性/日期扰动）替代原始 hash 取模。
+     * 兼容性：推荐失败时回退到原 hash 算法。</p>
+     * allEntries 为空时隐藏卡片。
      */
-    private void refreshGameOfDay() {
-        if (gameOfDaySection == null) return;
+    private void refreshTodayFeatured() {
+        if (cardTodayFeatured == null) return;
         if (allEntries == null || allEntries.isEmpty()) {
-            gameOfDaySection.setVisibility(View.GONE);
+            cardTodayFeatured.setVisibility(View.GONE);
             return;
         }
-        // 基于日期的稳定 hash（同一天打开应用看到同一款游戏）
+
+        // P3-10: 读取昨日推荐分类，用于多样性加成
+        SharedPreferences prefs = requireContext()
+                .getSharedPreferences("daily_recommender", android.content.Context.MODE_PRIVATE);
         Calendar cal = Calendar.getInstance();
         long dayKey = cal.get(Calendar.YEAR) * 10000L
                 + (cal.get(Calendar.MONTH) + 1) * 100L
                 + cal.get(Calendar.DAY_OF_MONTH);
-        int idx = (int) (Math.abs(dayKey) % allEntries.size());
-        gameOfDayEntry = allEntries.get(idx);
-        gameOfDaySection.setVisibility(View.VISIBLE);
+        String todayKey = String.valueOf(dayKey);
+        String lastRunDay = prefs.getString("last_run_day", "");
+        String yesterdayCategory = prefs.getString("yesterday_category", null);
 
-        if (ivGameOfDayIcon != null && gameOfDayEntry.iconRes != 0) {
-            ivGameOfDayIcon.setImageResource(gameOfDayEntry.iconRes);
+        // 优先使用偏好推荐
+        GameRegistry.Entry recommended = null;
+        try {
+            recommended = GameRecommender.recommendOne(requireContext(), yesterdayCategory);
+        } catch (Exception e) {
+            // 回退到 hash 算法
         }
-        if (tvGameOfDayName != null) {
-            tvGameOfDayName.setText(gameOfDayEntry.name);
+        if (recommended == null) {
+            int idx = (int) (Math.abs(dayKey * 7L + 3L) % allEntries.size());
+            recommended = allEntries.get(idx);
         }
-        if (tvGameOfDayDesc != null) {
-            // 根据分类选择描述
-            int descRes;
-            String cat = gameOfDayEntry.categoryKey;
-            if (GameRegistry.CATEGORY_PUZZLE.equals(cat)) {
-                descRes = R.string.home_game_of_day_desc_puzzle;
-            } else if (GameRegistry.CATEGORY_CASUAL.equals(cat)) {
-                descRes = R.string.home_game_of_day_desc_casual;
-            } else {
-                descRes = R.string.home_game_of_day_desc_classics;
+        todayFeaturedEntry = recommended;
+
+        // P3-10: 跨日时把今日分类保存为昨日分类
+        if (!todayKey.equals(lastRunDay)) {
+            prefs.edit()
+                    .putString("yesterday_category", todayFeaturedEntry.category)
+                    .putString("last_run_day", todayKey)
+                    .apply();
+        }
+
+        cardTodayFeatured.setVisibility(View.VISIBLE);
+
+        if (ivTodayFeaturedIcon != null && todayFeaturedEntry.iconRes != 0) {
+            ivTodayFeaturedIcon.setImageResource(todayFeaturedEntry.iconRes);
+        }
+        if (tvTodayFeaturedName != null) {
+            tvTodayFeaturedName.setText(todayFeaturedEntry.name);
+        }
+        if (tvTodayFeaturedDesc != null) {
+            String desc = todayFeaturedEntry.desc;
+            if (desc == null || desc.isEmpty()) {
+                desc = todayFeaturedEntry.category;
             }
-            tvGameOfDayDesc.setText(descRes);
+            tvTodayFeaturedDesc.setText(desc);
         }
     }
 
@@ -564,11 +584,24 @@ public class GamesFragment extends Fragment {
         });
     }
 
+    /** 上次随机游戏点击时间戳，用于防抖（避免快速连点触发多次启动）。 */
+    private long lastRandomGameClickTime = 0;
+    /** 防抖间隔（毫秒）：两次点击间隔少于此值则忽略。 */
+    private static final long RANDOM_GAME_DEBOUNCE_MS = 800;
+
     /**
      * Batch 10-3: 从 allEntries 随机抽取一款游戏启动。
      * 若列表为空，弹出"暂无可启动的游戏"提示。
+     * 含防抖保护：800ms 内重复点击仅触发一次，避免快速连点导致
+     * 多个 Activity 被启动引发崩溃恢复模式。
      */
     private void launchRandomGame() {
+        long now = System.currentTimeMillis();
+        if (now - lastRandomGameClickTime < RANDOM_GAME_DEBOUNCE_MS) {
+            return;
+        }
+        lastRandomGameClickTime = now;
+
         if (allEntries == null || allEntries.isEmpty()) {
             Toast.makeText(requireContext(),
                     R.string.random_game_no_available, Toast.LENGTH_SHORT).show();
@@ -948,44 +981,13 @@ public class GamesFragment extends Fragment {
 
     /**
      * 初始化首页下拉刷新：使用主题色 4 段循环刷新头，刷新回调重新加载游戏列表 + 顶栏数据。
+     *
+     * <p>注意：SwipeRefreshLayout 已从 fragment_games.xml 临时移除（排查 rv_games 高度为 0 的问题），
+     * 当前方法为空实现，下拉刷新暂不可用。恢复布局中 swipe_refresh_games 后需同步恢复原逻辑。</p>
      */
     private void setupPullRefresh(View v) {
-        androidx.swiperefreshlayout.widget.SwipeRefreshLayout srl =
-                v.findViewById(R.id.swipe_refresh_games);
-        if (srl == null) return;
-        // 4 段主题色循环，刷新头视觉与品牌一致
-        int[] colors = new int[]{
-                getResources().getColor(R.color.top_bar_gradient_start, requireContext().getTheme()),
-                getResources().getColor(R.color.top_bar_gradient_end, requireContext().getTheme()),
-                getResources().getColor(R.color.brand_primary, requireContext().getTheme()),
-                getResources().getColor(R.color.brand_secondary, requireContext().getTheme())
-        };
-        try {
-            srl.setColorSchemeColors(colors[0], colors[1], colors[2], colors[3]);
-        } catch (Exception e) {
-            // 颜色读不到时回退到单色
-            srl.setColorSchemeColors(colors[2]);
-        }
-        srl.setOnRefreshListener(() -> {
-            // 重新加载游戏列表 + 已安装模块 + 顶栏数据
-            try {
-                if (requireContext() != null) {
-                    ModuleManager.INSTANCE.registerInstalledGameModules(requireContext());
-                }
-                loadGames();
-                if (BuildConfig.HOME_REVAMP) updateRecentGames();
-                if (BuildConfig.HOME_DAILY_CARDS && rootView != null) {
-                    bindDailyChallengeCard(rootView);
-                    bindStreakSummaryCard(rootView);
-                }
-                Toast.makeText(requireContext(),
-                        R.string.home_pull_refresh_done, Toast.LENGTH_SHORT).show();
-            } catch (Exception e) {
-                Log.w(TAG, "下拉刷新失败", e);
-            } finally {
-                srl.setRefreshing(false);
-            }
-        });
+        // SwipeRefreshLayout 已从布局移除，下拉刷新暂不可用
+        Log.d(TAG, "setupPullRefresh: SwipeRefreshLayout 已从布局移除，跳过初始化");
     }
 
     // ===== Batch 8-1 (SEARCH_HISTORY_CHIPS) =====
@@ -1205,8 +1207,14 @@ public class GamesFragment extends Fragment {
      * 停止 Hero banner 自动轮播。
      */
     private void stopHeroAutoScroll() {
-        if (heroAutoScrollHandler != null && heroAutoScrollRunnable != null) {
-            heroAutoScrollHandler.removeCallbacks(heroAutoScrollRunnable);
+        if (heroAutoScrollHandler != null) {
+            // 移除轮播 Runnable
+            if (heroAutoScrollRunnable != null) {
+                heroAutoScrollHandler.removeCallbacks(heroAutoScrollRunnable);
+            }
+            // P1 内存泄漏修复：同时移除通过方法引用（this::startHeroAutoScroll）提交的
+            // 延迟任务。方法引用隐式持有 Fragment，若不移除会导致 Fragment 无法回收。
+            heroAutoScrollHandler.removeCallbacksAndMessages(null);
         }
     }
 
@@ -1290,13 +1298,22 @@ public class GamesFragment extends Fragment {
                         return true;
                     } else if (id == 7) {
                         // 错题本（从底部导航移到头像菜单）
+                        // P1 #3 修复：原 NavController.navigate() 在 P4 动态导航 +
+                        // KeepStateNavigator 架构下会抛 "No current destination found"。
+                        // 改用 BottomNavigationManager.openModule() 直接管理 Fragment
+                        // show/hide，与底部导航 tab 切换一致；返回键由
+                        // setupBackToGamesHandler 自动切回游戏大厅。
+                        boolean opened = false;
                         try {
-                            NavHostFragment.findNavController(GamesFragment.this)
-                                    .navigate(R.id.navigation_wrongbook);
+                            opened = ((MainActivity) requireActivity())
+                                    .openModuleFromMenu("wrongbook");
                         } catch (Exception e) {
                             Log.e(TAG, "打开错题本失败", e);
+                        }
+                        if (!opened) {
                             Toast.makeText(requireContext(),
-                                    R.string.nav_wrongbook, Toast.LENGTH_SHORT).show();
+                                    R.string.error_wrongbook_open_failed,
+                                    Toast.LENGTH_SHORT).show();
                         }
                         return true;
                     }
@@ -1363,7 +1380,7 @@ public class GamesFragment extends Fragment {
                     startActivity(intent);
                 } catch (Exception e) {
                     Log.e(TAG, "启动模块商店失败", e);
-                    Toast.makeText(requireContext(), "模块商店未找到", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.hall_module_store_not_found, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -1435,7 +1452,8 @@ public class GamesFragment extends Fragment {
 
     private void loadGames() {
         // Batch 7-2 (ANIM_SHIMMER_LOADING): 仅首次加载时显示骨架屏
-        boolean showShimmer = BuildConfig.ANIM_SHIMMER_LOADING && !hasLoadedOnce;
+        // 临时禁用 shimmer 排查 rv_games 高度为 0 的问题
+        boolean showShimmer = false; // BuildConfig.ANIM_SHIMMER_LOADING && !hasLoadedOnce;
         if (showShimmer) showShimmer();
 
         allEntries.clear();
@@ -1455,10 +1473,13 @@ public class GamesFragment extends Fragment {
             rvGames.postDelayed(this::hideShimmer, 600);
         }
 
-        // Batch 10-2 (HOME_GAME_OF_DAY): 游戏列表加载完成后刷新今日推荐
-        if (BuildConfig.HOME_GAME_OF_DAY) {
-            refreshGameOfDay();
-        }
+        // Batch 10-2 (HOME_GAME_OF_DAY): 今日推荐已移除（HOME_NO_TODAY_FEATURED_2026_07_24）
+
+        // Feature T (HOME_L2_FEATURED_TODAY): 游戏列表加载完成后刷新 L2 今日精选
+        // onViewCreated 中的 initTodayFeatured 跑得比 onResume 的 loadGames 早，
+        // 首次调用时 allEntries 还是空，refreshTodayFeatured 会把卡片设 GONE；
+        // 这里再调一次，让 allEntries 填充后把卡片恢复 VISIBLE 并绑定数据。
+        refreshTodayFeatured();
     }
 
     /**
@@ -1491,7 +1512,19 @@ public class GamesFragment extends Fragment {
             rvShimmer.setAlpha(1f);
             rvShimmer.setVisibility(View.GONE);
         }
-        if (rvGames != null) rvGames.setVisibility(View.VISIBLE);
+        if (rvGames != null) {
+            rvGames.setVisibility(View.VISIBLE);
+            // 从 GONE 切换到 VISIBLE 时主动触发重新布局，
+            // 避免 wrap_content 在父容器中测量为 0
+            rvGames.requestLayout();
+            // 强制 adapter 重新刷新数据，确保 RecyclerView 在 VISIBLE 后创建 item view
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+            Log.d(TAG, "hideShimmer: rvGames 可见性已恢复，强制刷新 adapter");
+            // 重新过滤并刷新，确保 RecyclerView 在 VISIBLE 后正确测量 item 高度
+            filterAndRefresh();
+        }
     }
 
     private void initTabsIfNeeded() {
@@ -1519,12 +1552,11 @@ public class GamesFragment extends Fragment {
                     || (usageStore != null && usageStore.isFavorite(e.id));
             if (catMatch && kwMatch && favMatch) filtered.add(e);
         }
+        Log.d("GamesFragment", "过滤后游戏数量: " + filtered.size() + ", 当前分类: " + currentCategoryKey);
         // Batch 11-4 (GAME_FAVORITE_REORDER): 开启收藏置顶后，已收藏游戏排在前面
         if (BuildConfig.GAME_FAVORITE_REORDER && requireContext() != null) {
-            List<GameRegistry.Entry> reordered = GameFavoriteReorderHelper.INSTANCE
+            filtered = GameFavoriteReorderHelper.INSTANCE
                     .sortEntries(requireContext(), filtered);
-            filtered.clear();
-            filtered.addAll(reordered);
         }
         adapter.setEntries(filtered);
         updateEmptyState(filtered.isEmpty());
@@ -1801,8 +1833,17 @@ public class GamesFragment extends Fragment {
             // Batch 9-1 (GAME_LONG_PRESS_MENU): 长按弹出上下文菜单（分享/收藏/桌面快捷方式）
             if (BuildConfig.GAME_LONG_PRESS_MENU) {
                 h.itemView.setOnLongClickListener(v -> {
+                    // BUG-008 修复：传入收藏切换回调，长按菜单切换收藏后立即刷新对应卡片图标，
+                    // 避免长按取消收藏后卡片心形图标仍显示已收藏，与个人中心/详情页状态不一致。
+                    // GameCardAdapter 为静态内部类，无法直接引用外部 adapter 字段，故使用 this.notifyItemChanged。
                     com.gamecenter.app.ui.GameLongPressMenu.INSTANCE.show(
-                            h.itemView.getContext(), v, e);
+                            h.itemView.getContext(), v, e,
+                            () -> {
+                                int favPos = h.getBindingAdapterPosition();
+                                if (favPos != RecyclerView.NO_POSITION) {
+                                    notifyItemChanged(favPos);
+                                }
+                            });
                     return true;
                 });
             }
@@ -1870,6 +1911,11 @@ public class GamesFragment extends Fragment {
 
         private void updateFavoriteIcon(ImageView btn, boolean isFavorite) {
             btn.setImageResource(isFavorite ? R.drawable.ic_favorite_filled : R.drawable.ic_favorite);
+            // BUG-a11y 修复：同步更新 contentDescription，使无障碍服务能正确朗读当前收藏状态。
+            // 之前只更新 imageResource，contentDescription 始终为 XML 静态值"加入收藏"，
+            // 与已收藏状态下的图标（实心心形）不符，无障碍用户无法得知当前已收藏。
+            btn.setContentDescription(btn.getContext().getString(
+                    isFavorite ? R.string.home_card_favorite_remove : R.string.home_card_favorite_add));
         }
 
         /**

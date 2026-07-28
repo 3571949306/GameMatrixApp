@@ -91,6 +91,8 @@ class CoachmarkSequence @JvmOverloads constructor(
             finish(completed = true)
             return
         }
+        // P0 内存泄漏修复：Activity 销毁后不再执行重试，避免 postDelayed lambda 持有已销毁的 Activity
+        if (activity.isFinishing || activity.isDestroyed) return
         val step = steps[index]
         val target = activity.findViewById<View>(step.targetViewId)
         // 目标 View 还没布局好或找不到，等一帧再试（最多 20 次 ≈ 1.2s）
@@ -102,6 +104,8 @@ class CoachmarkSequence @JvmOverloads constructor(
                 return
             }
             activity.window.decorView.postDelayed({
+                // P0 内存泄漏修复：重试前检查 Activity 是否已销毁
+                if (activity.isFinishing || activity.isDestroyed) return@postDelayed
                 showStepWithRetry(index, retryCount + 1)
             }, 60)
             return
@@ -175,6 +179,8 @@ class CoachmarkSequence @JvmOverloads constructor(
 
     /** Activity 销毁时务必调用，避免 window 泄漏 */
     fun destroy() {
+        // P0 内存泄漏修复：destroy 后重试 lambda 内的 isFinishing/isDestroyed 检查会短路，
+        // 不会继续执行；此处只需清理 overlayView。
         overlayView?.let { view ->
             (view.parent as? android.view.ViewGroup)?.removeView(view)
         }

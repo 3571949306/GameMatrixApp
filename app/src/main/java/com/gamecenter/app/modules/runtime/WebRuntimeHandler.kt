@@ -2,6 +2,7 @@ package com.gamecenter.app.modules.runtime
 
 import android.content.Context
 import android.content.Intent
+import com.gamecenter.app.R
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.modules.catalog.CatalogModule
 import com.gamecenter.app.modules.catalog.RuntimeType
@@ -12,7 +13,7 @@ class WebRuntimeHandler : BaseRuntimeHandler(RuntimeType.WEB) {
 
     override fun open(context: Context, module: CatalogModule): RuntimeResult {
         val entry = SecureArchiveInstaller.currentDirectory(context, module.id).resolve(module.entry)
-        if (!entry.isFile) return RuntimeResult(false, "entry_missing", "The installed Web entry is missing")
+        if (!entry.isFile) return RuntimeResult(false, "entry_missing", context.getString(R.string.module_error_web_entry_not_found))
         context.startActivity(
             Intent(context, WebModuleActivity::class.java)
                 .putExtra(WebModuleActivity.EXTRA_MODULE_ID, module.id)

@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # 用户价值闭环与商业化探索路线图
+
+> **历史路线图快照（编制：2026-07-19，基线：vc587）**  
+> 本文用于保留当时的商业化假设、用户闭环设计和估算，不宣称当前实现状态。当前已存在 WebDAV 同步、排行榜、回放等能力，产品方向以 [`PRODUCT_DIRECTION_AND_UX.md`](PRODUCT_DIRECTION_AND_UX.md) 和 [`CURRENT_STATE.md`](CURRENT_STATE.md) 为准。任何统计或商业化方案都必须以明确选择加入、数据最小化和本地优先为前提。
 
 > **文档编号**：ROADMAP-BIZ-001
 > **覆盖改进项**：P3-10（用户价值闭环）、P3-11（商业化探索）

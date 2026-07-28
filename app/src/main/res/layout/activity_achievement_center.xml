@@ -140,6 +140,17 @@
             android:textSize="12sp"
             android:textColor="@color/eye_care_text_hint"
             tools:text="8 / 27 个游戏有成就进度" />
+
+        <!-- P1-5 (ACHIEVEMENT_POINTS): 成就点数总览 -->
+        <TextView
+            android:id="@+id/tv_achievement_points"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            tools:text="总点数 320（铜5/银3/金2/铂0）" />
     </LinearLayout>
 
     <!-- 游戏成就列表 -->

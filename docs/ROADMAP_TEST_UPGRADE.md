@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # 测试体系升级路线图
+
+> **历史路线图快照（编制：2026-07-19，基线：vc587）**  
+> 本文保留当时的测试规模、风险和升级建议。测试文件/用例计数与通过状态必须按当前源码和实际执行结果重新统计，不能将本文件中的数字作为永久基线；当前发布门槛见 [`CURRENT_STATE.md`](CURRENT_STATE.md)。
 
 > **文档编号**：ROADMAP-TEST-001
 > **覆盖改进项**：P2-7（测试体系升级）

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature T: 今日精选 L2 卡片"试玩"按钮背景（白色药丸，深绿文字） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/today_featured_card_btn_bg" />
+    <corners android:radius="14dp" />
+</shape>

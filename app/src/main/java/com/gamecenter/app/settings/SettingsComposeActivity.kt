@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.gamecenter.app.BuildConfig
+import com.gamecenter.app.R
 import com.gamecenter.app.ui.theme.GameMatrixTheme
 
 /**
@@ -113,8 +114,8 @@ private fun SettingsRoot(onBack: () -> Unit) {
 
     SettingsScreen(
         state = SettingsUiState(
-            languageLabel = languageLabel(prefs.getInt("app_language", 0)),
-            defaultGameLabel = "（未设置）",
+            languageLabel = languageLabel(context, prefs.getInt("app_language", 0)),
+            defaultGameLabel = context.getString(R.string.settings_default_game_not_set),
             themeMode = themeMode,
             dynamicColorEnabled = dynamicColor,
             soundEnabled = soundEnabled,
@@ -125,34 +126,32 @@ private fun SettingsRoot(onBack: () -> Unit) {
     )
 }
 
-private fun languageLabel(idx: Int): String = when (idx) {
-    1 -> "中文"
-    2 -> "English"
-    else -> "跟随系统"
+private fun languageLabel(context: Context, idx: Int): String = when (idx) {
+    1 -> context.getString(R.string.settings_language_chinese)
+    2 -> context.getString(R.string.settings_language_english)
+    else -> context.getString(R.string.settings_language_follow_system)
 }
 
 private fun showLanguageDialog(context: Context, onPick: (Int) -> Unit) {
     if (context !is android.app.Activity) return
-    val items = arrayOf("跟随系统", "中文", "English")
+    val items = arrayOf(
+        context.getString(R.string.settings_language_follow_system),
+        context.getString(R.string.settings_language_chinese),
+        context.getString(R.string.settings_language_english)
+    )
     AlertDialog.Builder(context)
-        .setTitle("应用语言")
+        .setTitle(R.string.settings_select_language)
         .setItems(items) { _, which -> onPick(which) }
-        .setNegativeButton("取消", null)
+        .setNegativeButton(R.string.settings_cancel, null)
         .show()
 }
 
 private fun showAboutDialog(context: Context) {
     if (context !is android.app.Activity) return
     AlertDialog.Builder(context)
-        .setTitle("关于 GameCenter")
-        .setMessage(
-            "GameCenter — 游戏中心\n\n" +
-                    "一个模块化的游戏平台，\n" +
-                    "所有游戏内容通过模块商店下载。\n\n" +
-                    "服务器: ${BuildConfig.MODULE_HOST}\n" +
-                    "模块存储: /data/data/包名/files/modules/"
-        )
-        .setPositiveButton("确定", null)
+        .setTitle(R.string.about_gamecenter_title)
+        .setMessage(context.getString(R.string.about_gamecenter_message, BuildConfig.MODULE_HOST))
+        .setPositiveButton(R.string.settings_ok, null)
         .show()
 }
 
@@ -160,7 +159,7 @@ private fun showLicenseDialog(context: Context, license: OpenSourceLicense) {
     if (context !is android.app.Activity) return
     AlertDialog.Builder(context)
         .setTitle(license.name)
-        .setMessage("License: ${license.license}")
-        .setPositiveButton("确定", null)
+        .setMessage(context.getString(R.string.license_label, license.license))
+        .setPositiveButton(R.string.settings_ok, null)
         .show()
 }

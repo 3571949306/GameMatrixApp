@@ -85,7 +85,7 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     }
 
     private var allModules: List<ModuleManifest> = emptyList()
-    private var currentCategory: String = CATEGORY_GAMES
+    private var currentCategory: String = CATEGORY_ENTERTAINMENT_VERSUS
     private var currentSubCategory: String = SUBCATEGORY_ALL
     private var searchKeyword: String = ""
     private var isGridView = false
@@ -99,6 +99,7 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     // Batch 21: 搜索历史
     private lateinit var searchHistoryContainer: View
     private lateinit var searchHistoryChips: ChipGroup
+    private var etModuleSearch: com.google.android.material.textfield.TextInputEditText? = null
     private val searchHistoryPrefs by lazy {
         getSharedPreferences("module_search_history", MODE_PRIVATE)
     }
@@ -134,19 +135,22 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
 
     companion object {
         private const val FLUTTER_STORE_FRAGMENT_TAG = "flutter_module_store"
-        const val CATEGORY_GAMES = "game"
-        const val CATEGORY_BROWSER = "browser"
-        const val CATEGORY_TOOLS = "tools"
-        const val CATEGORY_AI = "ai"
-        const val CATEGORY_VPN = "vpn"
+        // 6 类标准化 storeCategory wireValue（与 Flutter 商店一致，按结果组织模块）
+        const val CATEGORY_ENTERTAINMENT_VERSUS = "entertainment_versus"
+        const val CATEGORY_LEARNING_ORGANIZATION = "learning_organization"
+        const val CATEGORY_READING_BROWSING = "reading_browsing"
+        const val CATEGORY_TEXT_CREATION = "text_creation"
+        const val CATEGORY_DEVICE_NETWORK = "device_network"
+        const val CATEGORY_PERSONALIZATION = "personalization"
         const val CATEGORY_INSTALLED = "installed"
 
         private val CATEGORIES = listOf(
-            Triple(CATEGORY_GAMES, R.string.store_category_games, R.drawable.ic_games),
-            Triple(CATEGORY_BROWSER, R.string.store_category_browser, R.drawable.ic_browser),
-            Triple(CATEGORY_TOOLS, R.string.store_category_tools, R.drawable.ic_tools),
-            Triple(CATEGORY_AI, R.string.store_category_ai, R.drawable.ic_ai),
-            Triple(CATEGORY_VPN, R.string.store_category_vpn, R.drawable.ic_vpn),
+            Triple(CATEGORY_ENTERTAINMENT_VERSUS, R.string.store_category_entertainment_versus, R.drawable.ic_games),
+            Triple(CATEGORY_LEARNING_ORGANIZATION, R.string.store_category_learning_organization, R.drawable.ic_nav_wrongbook),
+            Triple(CATEGORY_READING_BROWSING, R.string.store_category_reading_browsing, R.drawable.ic_browser),
+            Triple(CATEGORY_TEXT_CREATION, R.string.store_category_text_creation, R.drawable.ic_ai),
+            Triple(CATEGORY_DEVICE_NETWORK, R.string.store_category_device_network, R.drawable.ic_vpn),
+            Triple(CATEGORY_PERSONALIZATION, R.string.store_category_personalization, R.drawable.ic_settings),
             Triple(CATEGORY_INSTALLED, R.string.module_category_installed, R.drawable.ic_checkin_calendar)
         )
 
@@ -256,11 +260,13 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         recyclerView.adapter = adapter
 
         // 搜索防抖（300ms）
-        val etModuleSearch = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etModuleSearch)
-        etModuleSearch.addTextChangedListener(object : android.text.TextWatcher {
+        etModuleSearch = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etModuleSearch)
+        etModuleSearch?.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 searchKeyword = s?.toString()?.trim() ?: ""
+                // 搜索状态变化时立即更新子分类可见性（搜索中隐藏子分类 chips）
+                updateSubCategoryVisibility()
                 searchRunnable?.let { searchHandler.removeCallbacks(it) }
                 val r = Runnable {
                     applyCategoryFilter()
@@ -275,7 +281,7 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         // Batch 21: 搜索框聚焦时显示搜索历史
-        etModuleSearch.setOnFocusChangeListener { _, hasFocus ->
+        etModuleSearch?.setOnFocusChangeListener { _, hasFocus ->
             updateSearchHistoryVisibility(hasFocus)
         }
 
@@ -340,6 +346,9 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         storeViewModel?.destroy()
         storeViewModel = null
         heroHandler.removeCallbacks(heroAutoScrollRunnable)
+        // P2 内存泄漏修复：清理搜索防抖 Handler 中可能残留的延迟任务
+        searchHandler.removeCallbacksAndMessages(null)
+        searchRunnable = null
     }
 
     // ====== P2.4/P2.6: StoreRendererHost 实现 ======
@@ -457,11 +466,12 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
 
     /** 根据分类 ID 解析字符串资源（未知分类返回 0，调用方降级） */
     private fun resolveCategoryStringRes(categoryId: String): Int = when (categoryId) {
-        CATEGORY_GAMES -> R.string.store_category_games
-        CATEGORY_BROWSER -> R.string.store_category_browser
-        CATEGORY_TOOLS -> R.string.store_category_tools
-        CATEGORY_AI -> R.string.store_category_ai
-        CATEGORY_VPN -> R.string.store_category_vpn
+        CATEGORY_ENTERTAINMENT_VERSUS -> R.string.store_category_entertainment_versus
+        CATEGORY_LEARNING_ORGANIZATION -> R.string.store_category_learning_organization
+        CATEGORY_READING_BROWSING -> R.string.store_category_reading_browsing
+        CATEGORY_TEXT_CREATION -> R.string.store_category_text_creation
+        CATEGORY_DEVICE_NETWORK -> R.string.store_category_device_network
+        CATEGORY_PERSONALIZATION -> R.string.store_category_personalization
         CATEGORY_INSTALLED -> R.string.module_category_installed
         else -> 0
     }
@@ -474,11 +484,12 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             if (resId != 0) return resId
         }
         return when (categoryId) {
-            CATEGORY_GAMES -> R.drawable.ic_games
-            CATEGORY_BROWSER -> R.drawable.ic_browser
-            CATEGORY_TOOLS -> R.drawable.ic_tools
-            CATEGORY_AI -> R.drawable.ic_ai
-            CATEGORY_VPN -> R.drawable.ic_vpn
+            CATEGORY_ENTERTAINMENT_VERSUS -> R.drawable.ic_games
+            CATEGORY_LEARNING_ORGANIZATION -> R.drawable.ic_nav_wrongbook
+            CATEGORY_READING_BROWSING -> R.drawable.ic_browser
+            CATEGORY_TEXT_CREATION -> R.drawable.ic_ai
+            CATEGORY_DEVICE_NETWORK -> R.drawable.ic_vpn
+            CATEGORY_PERSONALIZATION -> R.drawable.ic_settings
             CATEGORY_INSTALLED -> R.drawable.ic_checkin_calendar
             else -> 0
         }
@@ -696,7 +707,11 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     }
 
     private fun updateSubCategoryVisibility() {
-        subCategoryContainer.visibility = if (currentCategory == CATEGORY_GAMES) View.VISIBLE else View.GONE
+        // 游戏子分类（益智/休闲/经典）仅对"娱乐与对战"分类显示；
+        // 搜索状态下隐藏子分类，因为搜索结果跨所有分类，子分类筛选无意义。
+        subCategoryContainer.visibility = if (
+            currentCategory == CATEGORY_ENTERTAINMENT_VERSUS && searchKeyword.isEmpty()
+        ) View.VISIBLE else View.GONE
     }
 
     private fun resetSubCategoryChips() {
@@ -710,36 +725,49 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         val installedIds = ModuleManager.getInstalledModuleIds(this)
         val installedVersions = buildInstalledVersionsMapFromCache(installedIds)
 
-        val categoryFiltered = if (currentCategory == CATEGORY_INSTALLED) {
-            allModules.filter { installedIds.contains(it.id) }
-        } else {
-            val baseFrameworks = allModules.filter { it.storeCategory == currentCategory && it.isBaseFramework }
-            val otherModules = allModules.filter { it.storeCategory == currentCategory && !it.isBaseFramework }
-            baseFrameworks + otherModules
-        }
-
-        val categoryAndSubFiltered = if (currentCategory == CATEGORY_GAMES && GAME_SUBCATEGORIES.contains(currentSubCategory)) {
-            categoryFiltered.filter { it.gameCategory == currentSubCategory }
-        } else {
-            categoryFiltered
-        }
-
-        // Batch 21: 应用筛选（feature flag 控制）
-        val filterApplied = if (BuildConfig.MODULE_STORE_FILTER) {
-            applyModuleFilterWithCache(categoryAndSubFiltered, installedIds, installedVersions)
-        } else {
-            categoryAndSubFiltered
-        }
-
+        // 搜索全局化修复：当有搜索关键词时，跨所有分类搜索，避免"在工具箱分类搜索 2048 无结果"的体验问题。
+        // 搜索状态下忽略 currentCategory 和 currentSubCategory，直接在 allModules 基础上过滤。
         val finalFiltered = if (searchKeyword.isNotEmpty()) {
-            filterApplied.filter {
+            val searchBase = if (BuildConfig.MODULE_STORE_FILTER) {
+                applyModuleFilterWithCache(allModules, installedIds, installedVersions)
+            } else {
+                allModules
+            }
+            searchBase.filter {
                 it.name.contains(searchKeyword, ignoreCase = true) ||
                 it.description.contains(searchKeyword, ignoreCase = true) ||
                 it.gameId.contains(searchKeyword, ignoreCase = true) ||
                 it.gameCategory.contains(searchKeyword, ignoreCase = true)
             }
         } else {
-            filterApplied
+            val categoryFiltered = if (currentCategory == CATEGORY_INSTALLED) {
+                allModules.filter { installedIds.contains(it.id) }
+            } else {
+                // NEW-001 修复：storeCategory 比较使用忽略大小写，避免远程 catalog 返回 "Games"/"GAME" 等大小写不一致时
+                // 严格相等比较失败导致列表为空。同时保留 baseFramework 排序逻辑。
+                val catLower = currentCategory.lowercase()
+                val baseFrameworks = allModules.filter {
+                    it.storeCategory?.lowercase() == catLower && it.isBaseFramework
+                }
+                val otherModules = allModules.filter {
+                    it.storeCategory?.lowercase() == catLower && !it.isBaseFramework
+                }
+                baseFrameworks + otherModules
+            }
+
+            val categoryAndSubFiltered = if (currentCategory == CATEGORY_ENTERTAINMENT_VERSUS && GAME_SUBCATEGORIES.contains(currentSubCategory)) {
+                val subLower = currentSubCategory.lowercase()
+                categoryFiltered.filter { it.gameCategory?.lowercase() == subLower }
+            } else {
+                categoryFiltered
+            }
+
+            // Batch 21: 应用筛选（feature flag 控制）
+            if (BuildConfig.MODULE_STORE_FILTER) {
+                applyModuleFilterWithCache(categoryAndSubFiltered, installedIds, installedVersions)
+            } else {
+                categoryAndSubFiltered
+            }
         }
 
         // MODULE_STORE_PERF_OPT: 先更新 adapter 的 installedIds/versions，再提交列表。
@@ -748,9 +776,13 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         adapter.installedVersions = installedVersions
         adapter.updateInstalledIds(installedIds)
         adapter.updateModules(finalFiltered)
+        // NEW-001 修复：空列表时同时隐藏 RecyclerView 显示 emptyContainer，避免两者在 FrameLayout 中层叠
+        // 造成"列表区域看似空白但 emptyContainer 又被 RecyclerView 遮挡"的视觉异常。
         if (finalFiltered.isEmpty()) {
+            recyclerView.visibility = View.GONE
             emptyContainer.visibility = View.VISIBLE
         } else {
+            recyclerView.visibility = View.VISIBLE
             emptyContainer.visibility = View.GONE
         }
     }
@@ -969,7 +1001,8 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
                 isCheckable = false
                 isClickable = true
                 setOnClickListener {
-                    val etSearch = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etModuleSearch)
+                    // BUG-S003 修复：搜索框可能尚未初始化或已被回收，需 null 检查
+                    val etSearch = etModuleSearch ?: return@setOnClickListener
                     etSearch.setText(keyword)
                     etSearch.setSelection(keyword.length)
                     searchHistoryContainer.visibility = View.GONE

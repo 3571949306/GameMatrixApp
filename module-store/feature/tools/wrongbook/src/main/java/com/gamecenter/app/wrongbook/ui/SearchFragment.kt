@@ -153,7 +153,7 @@ class SearchFragment : DialogFragment() {
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle("筛选科目")
+            .setTitle(moduleResources.getString(R.string.wrongbook_filter_subject))
             .setSingleChoiceItems(names.toTypedArray(), selectedIdx) { dialog, which ->
                 currentSubject = if (which == 0) null else names[which]
                 binding.btnFilterSubject.text = currentSubject ?: "全部科目"
@@ -161,7 +161,7 @@ class SearchFragment : DialogFragment() {
                 performSearch()
                 dialog.dismiss()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -175,14 +175,14 @@ class SearchFragment : DialogFragment() {
         val selectedIdx = sortTypes.indexOf(currentSort).coerceAtLeast(0)
 
         AlertDialog.Builder(requireContext())
-            .setTitle("排序方式")
+            .setTitle(moduleResources.getString(R.string.wrongbook_sort_method))
             .setSingleChoiceItems(sorts, selectedIdx) { dialog, which ->
                 currentSort = sortTypes[which]
                 binding.btnFilterSort.text = sorts[which].substringBefore(" (")
                 performSearch()
                 dialog.dismiss()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 

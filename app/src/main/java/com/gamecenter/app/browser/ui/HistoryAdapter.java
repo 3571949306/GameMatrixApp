@@ -157,7 +157,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             int count = item.getVisitCount();
             if (count > 1) {
                 h.tvCount.setVisibility(View.VISIBLE);
-                h.tvCount.setText("\u8bbf\u95ee " + count + " \u6b21");
+                h.tvCount.setText(h.itemView.getContext().getString(R.string.history_visit_count_format, count));
             } else {
                 h.tvCount.setVisibility(View.GONE);
             }

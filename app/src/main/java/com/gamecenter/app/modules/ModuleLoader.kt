@@ -32,6 +32,11 @@ object ModuleLoader {
         }
         if (!moduleFile.exists()) {
             Log.e(TAG, "模块文件不存在: ${moduleFile.absolutePath}")
+            // BUG-007 修复：文件不存在时主动清理 SP 中的安装状态缓存，避免脏数据持续存在。
+            // 之前仅记录日志后返回，导致 SP 仍认为该模块已安装，模块商店统计与实际不符。
+            if (!manifest.builtIn) {
+                ModuleManager.removeInstalledModulePublic(context, manifest.id)
+            }
             return null
         }
 
@@ -55,12 +60,21 @@ object ModuleLoader {
             if (manifest.sha256.isNotEmpty()) {
                 moduleFile.delete()
             }
+            // BUG-007 修复：SHA-256 校验失败并删除文件后，同步清理 SP 安装状态缓存。
+            // 之前仅删除文件不清理 SP，下次 ensureInstalledCache 仍会因 SP 残留而认为模块已安装。
+            if (!manifest.builtIn) {
+                ModuleManager.removeInstalledModulePublic(context, manifest.id)
+            }
             return null
         }
 
         if (!verifyApkSignature(context, moduleFile)) {
             Log.e(TAG, "模块签名比对失败，拒绝装载: ${manifest.id}")
             moduleFile.delete()
+            // BUG-007 修复：签名校验失败并删除文件后，同步清理 SP 安装状态缓存。
+            if (!manifest.builtIn) {
+                ModuleManager.removeInstalledModulePublic(context, manifest.id)
+            }
             return null
         }
 

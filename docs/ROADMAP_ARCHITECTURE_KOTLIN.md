@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # 架构收敛与 Kotlin 迁移时间表
+
+> **历史路线图快照（编制：2026-07-19，基线：vc587）**  
+> 本文记录当时的语言比例、迁移目标与估算。当前工作树、模块迁移状态和实际测试数量可能已变化；实时判断请看 [`CURRENT_STATE.md`](CURRENT_STATE.md)。文中的 vc595 Flutter 商店表述是历史发布证据，不是当前版本声明。
 
 > **文档编号**：ROADMAP-ARCH-KT-001
 > **覆盖改进项**：P2-8（架构收敛与 Kotlin 迁移）

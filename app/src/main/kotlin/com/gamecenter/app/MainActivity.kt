@@ -198,9 +198,14 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * P4: 预加载内置核心模块，确保它们的导航贡献被注册到 ModuleRegistry。
+     *
+     * 包含 tools 模块：其 ToolsModuleEntryPoint 贡献 BOTTOM_NAV（id="tools"），
+     * 用于显示内置 28 个工具卡片。若不 load，BottomNavigationCatalog 会兜底
+     * 加入 DestinationKind.TOOLS -> DynamicToolsFragment（只显示 TOOLS_GRID 贡献，
+     * 不显示内置工具），导致工具箱 tab 内容不符合预期。
      */
     private fun loadBuiltInCoreModules() {
-        val coreModules = listOf("games_hall", "browser")
+        val coreModules = listOf("games_hall", "browser", "tools")
         for (moduleId in coreModules) {
             try {
                 ModuleManager.loadModule(this, moduleId)
@@ -282,10 +287,15 @@ class MainActivity : AppCompatActivity() {
         for (moduleId in coreModules) {
             if (!ModuleManager.isModuleInstalled(this, moduleId)) {
                 Handler(Looper.getMainLooper()).postDelayed({
+                    // P0 内存泄漏修复：postDelayed lambda 捕获 this@MainActivity，
+                    // 若 Activity 在 1000ms 内销毁，会导致 MainActivity 及其 View 树泄漏。
+                    // 与同文件 handleGameShortcutIntent 保持一致的生命周期检查。
+                    if (isFinishing || isDestroyed) return@postDelayed
                     ModuleManager.downloadModule(this, moduleId, object : com.gamecenter.app.modules.ModuleDownloader.Callback {
                         override fun onProgress(id: String, downloaded: Long, total: Long, speed: Long) {}
                         override fun onComplete(id: String, file: File) {
                             runOnUiThread {
+                                if (isFinishing || isDestroyed) return@runOnUiThread
                                 val navView = findViewById<BottomNavigationView>(R.id.nav_view)
                                 if (navView != null) {
                                     if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
@@ -728,6 +738,15 @@ class MainActivity : AppCompatActivity() {
             return super.onSupportNavigateUp()
         }
         return navController?.navigateUp() ?: false || super.onSupportNavigateUp()
+    }
+
+    /**
+     * 打开不在底部导航菜单中的模块（如错题本）。
+     * 由 GamesFragment 头像菜单等入口调用。
+     */
+    fun openModuleFromMenu(moduleId: String): Boolean {
+        val manager = bottomNavigationManager ?: return false
+        return manager.openModule(moduleId)
     }
 
     companion object {

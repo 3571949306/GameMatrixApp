@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P0-2 (FAVORITE_GROUPS): 分组列表项（含 Section Header 与 Group Row 两种类型共用根布局） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Section Header（仅 type=header 可见） -->
+    <TextView
+        android:id="@+id/tv_section_header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="@dimen/spacing_16"
+        android:paddingEnd="@dimen/spacing_16"
+        android:paddingTop="@dimen/spacing_12"
+        android:paddingBottom="@dimen/spacing_6"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:textAllCaps="true"
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:text="自定义分组" />
+
+    <!-- 分组行 -->
+    <LinearLayout
+        android:id="@+id/row_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/spacing_16"
+        android:paddingEnd="@dimen/spacing_16"
+        android:paddingTop="@dimen/spacing_12"
+        android:paddingBottom="@dimen/spacing_12"
+        android:background="?attr/selectableItemBackground">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_group_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="默认分组" />
+
+            <TextView
+                android:id="@+id/tv_group_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp"
+                tools:text="3 款" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btn_more"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="6dp"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_menu_more"
+            android:contentDescription="@string/favorite_groups_rename" />
+    </LinearLayout>
+</LinearLayout>

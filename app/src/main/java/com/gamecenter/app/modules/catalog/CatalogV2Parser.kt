@@ -1,6 +1,8 @@
 package com.gamecenter.app.modules.catalog
 
+import com.gamecenter.app.core.common.ModuleDetail
 import com.gamecenter.app.core.common.NavigationContribution
+import com.gamecenter.app.core.common.PrivacyCard
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -73,6 +75,7 @@ object CatalogV2Parser {
             minHostVersionCode = json.optInt("minHostVersionCode", 0),
             maxHostVersionCode = json.optInt("maxHostVersionCode", 0),
             category = json.optString("category", "other"),
+            storeCategory = StoreCategory.fromWire(json.optString("storeCategory", "")),
             permissions = parsePermissions(json.optJSONArray("permissionsDescription"), json.optJSONArray("permissions")),
             dependencies = stringList(json.optJSONArray("dependencies")),
             tags = stringList(json.optJSONArray("tags")),
@@ -93,7 +96,9 @@ object CatalogV2Parser {
                 url = assetsJson.optString("url", ""),
                 sha256 = assetsJson.optString("sha256", ""),
                 signature = assetsJson.optString("signature", "")
-            )
+            ),
+            details = ModuleDetail.fromJson(json.optJSONObject("details")),
+            privacy = PrivacyCard.fromJson(json.optJSONObject("privacy"))
         )
     }
 

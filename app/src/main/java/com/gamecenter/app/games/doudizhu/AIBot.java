@@ -197,7 +197,13 @@ public class AIBot {
      *
      * <p>在原有决策基础上，难度因子 {@code difficultyFactor} 影响 AI 的随机性与激进程度：</p>
      * <ul>
-     *   <li>低难度（factor &lt; 1.0，如 0.6）：接牌时以一定概率放弃，模拟被动、易错的弱 AI</li>
+     *   <li>低难度（factor &lt; 1.0，如 0.6）：
+     *     <ul>
+     *       <li>接牌时以一定概率放弃（被动、易错）</li>
+     *       <li>首发出牌时按概率选非最优牌（出偏大的累赘牌，模拟新手失误）</li>
+     *       <li>首手开局时按概率从多个候选中随机选，避免每局开局走法雷同</li>
+     *     </ul>
+     *   </li>
      *   <li>普通难度（factor = 1.0）：保持原有最优决策</li>
      *   <li>高难度（factor &gt; 1.0）：始终不放弃、保持最优，更激进</li>
      * </ul>
@@ -226,6 +232,10 @@ public class AIBot {
         // 首发出牌（上家没有出牌或选择不出）
         if (previousCards == null || previousCards.isEmpty()) {
             decided = decideLeadPlay(hs, context);
+            // 修复：低难度首发出牌也要应用随机性（之前只对接牌生效，导致低难度 AI 首发同样强）
+            if (decided != null && difficultyFactor < 1.0f) {
+                decided = applyLeadPlayVariety(decided, hs, difficultyFactor);
+            }
         } else {
             // 获取上家牌型和主牌权重，用于接牌决策
             CardType previousType = GameRuleUtil.getCardType(previousCards);
@@ -240,6 +250,72 @@ public class AIBot {
             float passChance = (1.0f - difficultyFactor) * 0.35f;
             if (Math.random() < passChance) {
                 return null;
+            }
+        }
+        return decided;
+    }
+
+    /**
+     * 首发出牌随机化（仅低难度启用）。
+     * <p>
+     * 解决两个问题：
+     * <ul>
+     *   <li>"难度分级不明显"：低难度 AI 首发原本和普通难度一样强，现在按概率替换为非最优牌，
+     *       让低难度 AI 更易被战胜。</li>
+     *   <li>"开局步骤几乎一样"：当原决策是单牌时，按概率从手牌中其他单牌候选里加权随机选一张，
+     *       增加开局多样性。</li>
+     * </ul>
+     *
+     * <p>策略：
+     * <ul>
+     *   <li>概率 = (1.0 - factor) * 0.5，最高约 20%（factor=0.6 时）</li>
+     *   <li>原决策是单牌时，从手牌中其他单牌候选里选一张权重略大的牌替换</li>
+     *   <li>原决策是对子/三带等组合时，按概率替换为更大的同类组合</li>
+     *   <li>不替换王炸/炸弹（保留保护机制）</li>
+     * </ul>
+     *
+     * @param decided          原最优决策
+     * @param hs               手牌结构
+     * @param difficultyFactor 难度因子
+     * @return 可能被替换后的决策
+     */
+    private static List<Card> applyLeadPlayVariety(List<Card> decided, HandStructure hs, float difficultyFactor) {
+        // 概率检查
+        float varietyChance = (1.0f - difficultyFactor) * 0.5f;
+        if (Math.random() >= varietyChance) return decided;
+        // 不动炸弹/王炸
+        if (decided == null || decided.isEmpty()) return decided;
+        int decidedWeight = decided.get(0).getWeight();
+        // 大小王权重为 16/17，不动
+        if (decidedWeight >= 16) return decided;
+
+        // 原决策是单牌：从手牌中其他单牌里选一张略大的替换（模拟"出错牌"）
+        if (decided.size() == 1 && !hs.singles.isEmpty()) {
+            // 候选：权重比原决策稍大（最多+3）、不超过 K 的单牌
+            List<Card> candidates = new ArrayList<>();
+            for (Card c : hs.singles) {
+                if (c.getWeight() > decidedWeight && c.getWeight() <= decidedWeight + 3
+                        && c.getWeight() < 13) {
+                    candidates.add(c);
+                }
+            }
+            if (!candidates.isEmpty()) {
+                Card picked = candidates.get((int) (Math.random() * candidates.size()));
+                return new ArrayList<>(Collections.singletonList(picked));
+            }
+        }
+        // 原决策是对子：从手牌其他对子里选略大的替换
+        if (decided.size() == 2 && !hs.pairs.isEmpty()) {
+            List<List<Card>> candidates = new ArrayList<>();
+            for (List<Card> pair : hs.pairs) {
+                if (pair.isEmpty()) continue;
+                int w = pair.get(0).getWeight();
+                if (w > decidedWeight && w <= decidedWeight + 3 && w < 13) {
+                    candidates.add(pair);
+                }
+            }
+            if (!candidates.isEmpty()) {
+                return new ArrayList<>(candidates.get((int) (Math.random() * candidates.size())));
             }
         }
         return decided;

@@ -162,7 +162,15 @@ public class DailyChallengeManager {
             }
         }
 
+        // BUG-004 修复：检查是否存在任意成就定义，若没有则跳过 TYPE_UNLOCK_ACHIEVEMENTS 类型
+        // 否则每日挑战会显示"解锁 N 个新成就"，但成就中心显示 0/0，造成数据矛盾
+        boolean hasAnyAchievements = hasAnyAchievementDefinitions();
+
         int type = rnd.nextInt(3); // 0/1/2 三种挑战类型
+        if (type == TYPE_UNLOCK_ACHIEVEMENTS && !hasAnyAchievements) {
+            // 当前没有任何成就定义，降级为"玩 N 局"挑战
+            type = TYPE_PLAY_ROUNDS;
+        }
 
         if (type == TYPE_UNLOCK_ACHIEVEMENTS || allGames.isEmpty()) {
             // 选"解锁成就"挑战，不需要绑定具体游戏
@@ -181,6 +189,28 @@ public class DailyChallengeManager {
         editor.putInt(KEY_PROGRESS, 0);
         editor.putBoolean(KEY_COMPLETED, false);
         editor.apply();
+    }
+
+    /**
+     * BUG-004 修复：检查当前是否存在任意成就定义。
+     * 通过 GameConfigLoader 加载所有游戏配置，若全部无 achievements 则返回 false。
+     */
+    private boolean hasAnyAchievementDefinitions() {
+        try {
+            com.gamecenter.app.games.config.GameConfigLoader loader =
+                    new com.gamecenter.app.games.config.GameConfigLoader(appContext);
+            java.util.List<com.gamecenter.app.games.model.GameConfig> configs = loader.loadAllConfigs();
+            if (configs == null) return false;
+            for (com.gamecenter.app.games.model.GameConfig config : configs) {
+                if (config.achievements != null && !config.achievements.isEmpty()) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // 加载失败时降级保守返回 true，避免影响原有逻辑
+            return true;
+        }
+        return false;
     }
 
     @NonNull

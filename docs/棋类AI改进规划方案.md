@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 下文任何关于 vc595 / 已签名 Catalog V8 的陈述均记录 2026-07-22 的发布证据。它不是当前工作树或生产状态的声明；实时事实请查阅项目根目录的 `docs/CURRENT_STATE.md` 与当前实现。
 
 # GameMatrixApp 棋类人机对战 AI 改进规划方案（含执行进度）
 
@@ -157,3 +157,64 @@ sandbox 无法跑通完整 Android 构建（见第 4 节 Flutter 阻断）。为
 | `app/.../games/chinesechess/ChineseChessAI.java` | 实现 `GameAI`、思考态；2026-07-22 升级 v2.0（静态搜索/将军延伸/MVV-LVA/机动性/将死距离评分）+ 修复根节点取舍方向与白脸将敌方将解析两处缺陷 |
 | `core/common/.../GameAI.java` | 新增统一 AI 控制接口 |
 | `app/.../modules/ModuleDependencyDownloader.java` | 补 `onStateChanged` 重写（预存阻断修复） |
+
+---
+
+## 7. 2026-07-25 AI 难度分级与开局随机性重写
+
+> 用户反馈："目前人机程序难度分级实际体验不明显，都很难，同时人机每次开局走的步骤几乎一样，没有新意"
+> 本节记录 6 款游戏（五子棋/中国象棋/围棋/井字棋/跳棋/斗地主）AI 的难度梯度与开局多样性重写。
+
+### 7.1 难度梯度设计原则
+
+难度分级的核心三要素：
+1. **搜索深度**（控制算力）：低难度浅搜（depth=2），高难度深搜（depth=8）
+2. **搜索时间**（控制强度）：低难度短时（200ms），高难度长时（5000ms）
+3. **随机走子概率/范围**（控制失误率）：低难度从评分前 N 名中随机选（N=5），高难度选最优（N=1）
+
+三者配合实现平滑难度曲线，单一维度调整效果不明显。
+
+### 7.2 开局随机性设计原则
+
+两种实现方式：
+1. **加权随机选择**：五子棋 13 位置 / 井字棋 9 位置，权重递减（中心高、边角低）
+2. **开局库 + 随机选择**：中国象棋 14 种开局走法，加权随机
+
+权重设计让"中心/最佳位置"权重高、"边角/冷门"权重低，既保证开局合理性又增加多样性。
+
+### 7.3 各游戏 AI 改进详情
+
+| 游戏 | 难度档位 | 低难度配置 | 高难度配置 | 开局随机性 |
+|---|---|---|---|---|
+| 五子棋 | 4 档 | 200ms, depth=2, 随机前5名 | 5000ms, depth=8, 最优 | 13 位置加权随机（天元4/一线3/二线2/三线1） |
+| 中国象棋 | 4 档 | 档1（入门） | 档4（高级） | 14 种开局走法加权随机 |
+| 围棋 | 4 级 | 随机走子 | MCTS 1500ms | 星位/边星/天元/小目多位置随机 |
+| 井字棋 | 3 档 | 80%随机+20%必胜/必堵 | 完整 Minimax | 9 位置加权随机（角3/中心2/边1） |
+| 跳棋 | 3 档 | 随机走子 | Minimax depth=4+α-β | 困难档多等价走法随机选择 |
+| 斗地主 | 难度因子 | factor=0.6, 接牌35%放弃+首发20%出错 | factor=1.0, 最优决策 | 首发出牌按概率选非最优牌 |
+
+### 7.4 关键 Bug 修复
+
+1. **中国象棋 UI 档位跳过 bug**：原 UI 档位映射 `{1,2,3,5}` 跳过了 AI 档4，导致难度跨度大；修复为 `{1,2,3,4}`，暴露所有非大师档，使难度梯度平滑。
+2. **斗地主 difficultyFactor bug**：原难度因子仅对接牌生效，首发出牌无随机性，导致低难度 AI 首发和普通难度一样强；新增 `applyLeadPlayVariety` 方法，对低难度首发出牌也应用随机性。
+3. **围棋 MCTS 主线程卡顿**：MCTS 算法在主线程执行导致 UI 卡顿；迁移到 `aiExecutor` 后台线程执行。
+
+### 7.5 编译与真机验证
+
+- **编译验证**：`:app:assembleDebug -PautoBumpVersion=false` BUILD SUCCESSFUL（1m 38s），所有 6 个游戏模块 APK 编译通过。
+- **真机验证（小米 ares f0363bc0）**：
+  - 跳棋：启动成功，显示 3 档难度（简单/中等/困难），选择简单档后游戏正常进行，AI 响应玩家走子，无 FATAL EXCEPTION。
+  - 代码审查：6 款游戏的 AI 改进均已到位（开局随机+难度梯度），通过 Grep 验证关键代码模式。
+
+### 7.6 app 版与 module-store 版代码同步
+
+所有 6 款游戏的 AI 代码在 app 内嵌版和 module-store 版保持一致：
+
+| 游戏 | app 版路径 | module-store 版路径 |
+|---|---|---|
+| 五子棋 | `app/.../games/gomoku/GomokuAI.java` | `module-store/.../gomoku/GomokuAI.java` |
+| 中国象棋 | `app/.../games/chinesechess/ChineseChessAI.java` | `module-store/.../chinesechess/ChineseChessAI.java` |
+| 围棋 | `app/.../games/go/GoAI.java` | `module-store/.../go/GoAI.java` |
+| 井字棋 | `app/.../games/tic/TicTacToeActivity.java` | `module-store/.../tic/TicTacToeGame.java` |
+| 跳棋 | `app/.../games/checkers/CheckersActivity.java` | `module-store/.../checkers/CheckersGame.java` |
+| 斗地主 | `app/.../games/doudizhu/AIBot.java` | `module-store/.../doudizhu/AIBot.java` |

@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P3-11 新手引导：兴趣选择 + 难度自评 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface">
+
+    <!-- 顶部：进度指示 + 跳过 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_3">
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/onboarding_progress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:indicatorColor="?attr/colorPrimary"
+            app:trackColor="?attr/colorSurfaceVariant"
+            app:trackThickness="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_skip"
+            style="@style/Widget.GameMatrix.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/gm_spacing_2"
+            android:text="@string/onboarding_skip"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- 内容区域（4 页切换） -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- 第 1 页：欢迎 -->
+        <LinearLayout
+            android:id="@+id/page_welcome"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/gm_spacing_6"
+            android:visibility="visible">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:src="@drawable/ic_games"
+                app:tint="?attr/colorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_5"
+                android:text="@string/onboarding_welcome_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_3"
+                android:gravity="center"
+                android:text="@string/onboarding_welcome_subtitle"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 第 2 页：兴趣选择 -->
+        <LinearLayout
+            android:id="@+id/page_interest"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/gm_spacing_5"
+            android:paddingTop="@dimen/gm_spacing_6"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/onboarding_interest_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_1"
+                android:text="@string/onboarding_interest_subtitle"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_interest"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_5"
+                app:singleSelection="false"
+                app:chipSpacingHorizontal="@dimen/gm_spacing_2"
+                app:chipSpacingVertical="@dimen/gm_spacing_2">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_chess"
+                    style="@style/Widget.GameMatrix.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/onboarding_interest_chess" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_card"
+                    style="@style/Widget.GameMatrix.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/onboarding_interest_card" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_puzzle"
+                    style="@style/Widget.GameMatrix.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/onboarding_interest_puzzle" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_casual"
+                    style="@style/Widget.GameMatrix.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/onboarding_interest_casual" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_strategy"
+                    style="@style/Widget.GameMatrix.Chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/onboarding_interest_strategy" />
+            </com.google.android.material.chip.ChipGroup>
+        </LinearLayout>
+
+        <!-- 第 3 页：难度自评 -->
+        <LinearLayout
+            android:id="@+id/page_difficulty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/gm_spacing_5"
+            android:paddingTop="@dimen/gm_spacing_6"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/onboarding_difficulty_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_1"
+                android:text="@string/onboarding_difficulty_subtitle"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp" />
+
+            <RadioGroup
+                android:id="@+id/rg_difficulty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_5">
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/rb_beginner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:padding="@dimen/gm_spacing_3"
+                    android:text="@string/onboarding_difficulty_beginner"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="44dp"
+                    android:layout_marginBottom="@dimen/gm_spacing_2"
+                    android:text="@string/onboarding_difficulty_beginner_desc"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/rb_normal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/gm_spacing_3"
+                    android:text="@string/onboarding_difficulty_normal"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="44dp"
+                    android:layout_marginBottom="@dimen/gm_spacing_2"
+                    android:text="@string/onboarding_difficulty_normal_desc"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.radiobutton.MaterialRadioButton
+                    android:id="@+id/rb_expert"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/gm_spacing_3"
+                    android:text="@string/onboarding_difficulty_expert"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="44dp"
+                    android:text="@string/onboarding_difficulty_expert_desc"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- 第 4 页：完成 -->
+        <LinearLayout
+            android:id="@+id/page_done"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/gm_spacing_6"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@android:drawable/ic_dialog_info"
+                app:tint="?attr/colorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_5"
+                android:text="@string/onboarding_done_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_3"
+                android:gravity="center"
+                android:text="@string/onboarding_done_subtitle"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 底部导航按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingBottom="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_2">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_prev"
+            style="@style/Widget.GameMatrix.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="@dimen/gm_touch_target"
+            android:text="@string/onboarding_prev"
+            android:visibility="invisible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_next"
+            style="@style/Widget.GameMatrix.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/gm_spacing_2"
+            android:minHeight="@dimen/gm_touch_target"
+            android:text="@string/onboarding_next" />
+    </LinearLayout>
+</LinearLayout>
