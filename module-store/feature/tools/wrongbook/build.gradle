@@ -73,7 +73,7 @@ dependencies {
     implementation libs.androidx.appcompat
     implementation libs.google.material
     implementation libs.androidx.recyclerview
-    implementation libs.androidx.fragment.ktx
+    implementation 'androidx.fragment:fragment-ktx:1.7.1'
     implementation libs.androidx.lifecycle.viewmodel.ktx
     implementation libs.androidx.lifecycle.runtime.ktx
     implementation libs.room.runtime

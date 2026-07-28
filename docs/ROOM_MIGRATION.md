@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # Room 数据库迁移
+
+> **当前技术参考（最后核验：2026-07-27）**  
+> 本文记录 Room 迁移约定。vc595 Flutter 商店记录属于历史发布证据；实际数据库 schema、版本和迁移测试必须以当前源码/生成 schema 为准，并与 [`CURRENT_STATE.md`](CURRENT_STATE.md) 一起阅读。
 
 ## Phase 2.2 状态
 

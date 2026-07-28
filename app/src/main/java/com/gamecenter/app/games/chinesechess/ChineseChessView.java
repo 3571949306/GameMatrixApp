@@ -657,6 +657,11 @@ public class ChineseChessView extends View {
         int boardH = Math.max(1, (int) (boardBottom - boardTop));
 
         if (woodBitmap == null || woodBitmap.getWidth() != boardW || woodBitmap.getHeight() != boardH) {
+            // P0 内存泄漏修复：尺寸变化时先回收旧 Bitmap，避免原生内存堆积。
+            // Bitmap 原生内存不计入 Java heap，GC 回收滞后，长会话多次尺寸变化会持续增长 PSS。
+            if (woodBitmap != null && !woodBitmap.isRecycled()) {
+                woodBitmap.recycle();
+            }
             woodBitmap = createWoodBitmap(boardW, boardH);
             woodShader = new android.graphics.BitmapShader(
                     woodBitmap, android.graphics.Shader.TileMode.CLAMP,
@@ -1490,4 +1495,19 @@ public class ChineseChessView extends View {
      * 获取棋盘常量 ROWS
      */
     public int getRows() { return ROWS; }
+
+    /**
+     * P0 内存泄漏修复：View detach 时回收木纹背景 Bitmap，避免原生内存泄漏。
+     * 未覆写此方法时，woodBitmap 会一直被本实例引用，直到 View 对象被 GC
+     * （Bitmap 原生内存 GC 回收滞后，长会话场景易导致 PSS 持续增长）。
+     */
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (woodBitmap != null && !woodBitmap.isRecycled()) {
+            woodBitmap.recycle();
+        }
+        woodBitmap = null;
+        woodShader = null;
+    }
 }

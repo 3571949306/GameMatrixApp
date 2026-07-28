@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vpn_perm_required">VPN permission is required to connect</string>
+    <string name="vpn_node_deleted">Node deleted</string>
+    <string name="vpn_add_node">Add Node</string>
+    <string name="vpn_add">Add</string>
+    <string name="vpn_node_added">Node added</string>
+    <string name="vpn_connecting">Connecting...</string>
+    <string name="vpn_bg_start_failed">Cannot start VPN service in background. Please keep the app in foreground and try again</string>
+</resources>

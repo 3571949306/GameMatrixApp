@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 下文任何关于 vc595 / 已签名 Catalog V8 的陈述均记录 2026-07-22 的发布证据。它不是当前工作树或生产状态的声明；实时事实请查阅项目根目录的 `docs/CURRENT_STATE.md` 与当前实现。
 
 # GameMatrixApp 安全审计报告
 
@@ -133,9 +133,9 @@
 
 ### 4.5 本地敏感文件风险提示
 
-- `local.properties` 含真实 MiMo API Key：`sk-cq6d3s1j5bcbxxt162woa1xw79a8baye9idgx2bxpwlf9t2y`
-- `keystore.properties` 密码极弱：`gamecenter123`
-- `server/wrongbook-service/.env` 含测试 token：`test-token-for-emulator-20260711`
+- `local.properties` 曾包含真实 MiMo API Key（已脱敏；应轮换）
+- `keystore.properties` 曾使用弱密码（已脱敏；应更换）
+- `server/wrongbook-service/.env` 曾包含测试 token（已脱敏；应轮换）
 
 **建议**:
 1. 正式发布前更换 `keystore.properties` 为强密码

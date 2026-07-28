@@ -2,6 +2,7 @@ package com.gamecenter.app.tools;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -352,41 +353,41 @@ public final class ToolSectionStore {
      */
     private List<ToolSection> defaultSections() {
         List<ToolSection> sections = new ArrayList<>();
-        sections.add(new ToolSection("network_diagnosis", "一键网络体检", R.layout.item_tool_network_diagnosis, true, "network", ""));
-        sections.add(new ToolSection("diagnostic_report", "诊断报告导出", R.layout.item_tool_diagnostic_report, true, "network", ""));
-        sections.add(new ToolSection("dns_lookup", "DNS查询", R.layout.item_tool_dns_lookup, true, "network", ""));
-        sections.add(new ToolSection("lan_scan", "局域网设备扫描", R.layout.item_tool_lan_scan, true, "network", ""));
-        sections.add(new ToolSection("text_codec", "编码/时间戳/JSON", R.layout.item_tool_text_codec, true, "tool", ""));
-        sections.add(new ToolSection("file_hash", "文件哈希", R.layout.item_tool_file_hash, true, "tool", ""));
-        sections.add(new ToolSection("qr_plus", "二维码增强", R.layout.item_tool_qr_plus, true, "tool", ""));
-        sections.add(new ToolSection("color_plus", "颜色增强", R.layout.item_tool_color_plus, true, "tool", ""));
-        sections.add(new ToolSection("permission_privacy", "权限与隐私说明", R.layout.item_tool_permission_privacy, true, "tool", ""));
-        sections.add(new ToolSection("ip", "IP地址信息", R.layout.item_tool_ip, true, "network", ""));
-        sections.add(new ToolSection("dns", "DNS服务器", R.layout.item_tool_dns, true, "network", ""));
-        sections.add(new ToolSection("wifi", "WiFi信号", R.layout.item_tool_wifi, true, "network", ""));
-        sections.add(new ToolSection("speedtest", "网络测速", R.layout.item_tool_speedtest, true, "network", ""));
-        sections.add(new ToolSection("portscan", "端口扫描", R.layout.item_tool_portscan, true, "network", ""));
-        sections.add(new ToolSection("qr", "二维码工具", R.layout.item_tool_qr, true, "tool", ""));
-        sections.add(new ToolSection("battery", "电池信息", R.layout.item_tool_battery, true, "device", ""));
-        sections.add(new ToolSection("device", "设备信息", R.layout.item_tool_device, true, "device", ""));
-        sections.add(new ToolSection("ping", "Ping工具", R.layout.item_tool_ping, true, "network", ""));
-        sections.add(new ToolSection("traceroute", "路由追踪", R.layout.item_tool_traceroute, true, "network", ""));
-        sections.add(new ToolSection("subnet", "子网计算器", R.layout.item_tool_subnet, true, "network", ""));
-        sections.add(new ToolSection("screen", "屏幕信息", R.layout.item_tool_screen, true, "device", ""));
-        sections.add(new ToolSection("sensor", "传感器信息", R.layout.item_tool_sensor, true, "device", ""));
-        sections.add(new ToolSection("hash", "哈希计算器", R.layout.item_tool_hash, true, "tool", ""));
-        sections.add(new ToolSection("clipboard", "剪贴板工具", R.layout.item_tool_clipboard, true, "network", ""));
-        sections.add(new ToolSection("color", "颜色取色器", R.layout.item_tool_color, true, "tool", ""));
-        sections.add(new ToolSection("sysinfo", "手机系统详细信息", R.layout.item_tool_sysinfo, true, "device", ""));
-        // 2026-06-23: 新增 4 个工具（URL/正则/JSON/Base64）
-        sections.add(new ToolSection("url_encode", "URL编解码", R.layout.item_tool_text_transform,
-                true, "tool", "URL 编码/解码（长按切换）"));
-        sections.add(new ToolSection("regex_test", "正则测试", R.layout.item_tool_text_transform,
-                true, "tool", "正则表达式测试（第一行 regex，第二行文本）"));
-        sections.add(new ToolSection("json_format", "JSON格式化", R.layout.item_tool_text_transform,
-                true, "tool", "JSON 美化/校验（缩进显示）"));
-        sections.add(new ToolSection("base64", "Base64编解码", R.layout.item_tool_text_transform,
-                true, "tool", "Base64 编码/解码（长按切换）"));
+        sections.add(new ToolSection("network_diagnosis", appContext.getString(R.string.tool_name_network_diagnosis), R.layout.item_tool_network_diagnosis, true, "network", ""));
+        sections.add(new ToolSection("diagnostic_report", appContext.getString(R.string.tool_name_diagnostic_report), R.layout.item_tool_diagnostic_report, true, "network", ""));
+        sections.add(new ToolSection("dns_lookup", appContext.getString(R.string.tool_name_dns_lookup), R.layout.item_tool_dns_lookup, true, "network", ""));
+        sections.add(new ToolSection("lan_scan", appContext.getString(R.string.tool_name_lan_scan), R.layout.item_tool_lan_scan, true, "network", ""));
+        sections.add(new ToolSection("text_codec", appContext.getString(R.string.tool_name_text_codec), R.layout.item_tool_text_codec, true, "tool", ""));
+        sections.add(new ToolSection("file_hash", appContext.getString(R.string.tool_name_file_hash), R.layout.item_tool_file_hash, true, "tool", ""));
+        sections.add(new ToolSection("qr_plus", appContext.getString(R.string.tool_name_qr_plus), R.layout.item_tool_qr_plus, true, "tool", ""));
+        sections.add(new ToolSection("color_plus", appContext.getString(R.string.tool_name_color_plus), R.layout.item_tool_color_plus, true, "tool", ""));
+        sections.add(new ToolSection("permission_privacy", appContext.getString(R.string.tool_name_permission_privacy), R.layout.item_tool_permission_privacy, true, "tool", ""));
+        sections.add(new ToolSection("ip", appContext.getString(R.string.tool_name_ip), R.layout.item_tool_ip, true, "network", ""));
+        sections.add(new ToolSection("dns", appContext.getString(R.string.tool_name_dns_config), R.layout.item_tool_dns, true, "network", ""));
+        sections.add(new ToolSection("wifi", appContext.getString(R.string.tool_name_wifi), R.layout.item_tool_wifi, true, "network", ""));
+        sections.add(new ToolSection("speedtest", appContext.getString(R.string.tool_name_speedtest), R.layout.item_tool_speedtest, true, "network", ""));
+        sections.add(new ToolSection("portscan", appContext.getString(R.string.tool_name_portscan), R.layout.item_tool_portscan, true, "network", ""));
+        sections.add(new ToolSection("battery", appContext.getString(R.string.tool_name_battery), R.layout.item_tool_battery, true, "device", ""));
+        // 2026-07-25: device 工具已合并到 sysinfo（SystemInfoToolBinder 同时显示设备品牌/型号/系统版本）
+        sections.add(new ToolSection("ping", appContext.getString(R.string.tool_name_ping), R.layout.item_tool_ping, true, "network", ""));
+        sections.add(new ToolSection("traceroute", appContext.getString(R.string.tool_name_traceroute), R.layout.item_tool_traceroute, true, "network", ""));
+        sections.add(new ToolSection("subnet", appContext.getString(R.string.tool_name_subnet), R.layout.item_tool_subnet, true, "network", ""));
+        sections.add(new ToolSection("screen", appContext.getString(R.string.tool_name_screen), R.layout.item_tool_screen, true, "device", ""));
+        sections.add(new ToolSection("sensor", appContext.getString(R.string.tool_name_sensor), R.layout.item_tool_sensor, true, "device", ""));
+        sections.add(new ToolSection("hash", appContext.getString(R.string.tool_name_hash), R.layout.item_tool_hash, true, "tool", ""));
+        sections.add(new ToolSection("clipboard", appContext.getString(R.string.tool_name_clipboard), R.layout.item_tool_clipboard, true, "tool", ""));
+        sections.add(new ToolSection("color", appContext.getString(R.string.tool_name_color), R.layout.item_tool_color, true, "tool", ""));
+        sections.add(new ToolSection("sysinfo", appContext.getString(R.string.tool_name_sysinfo), R.layout.item_tool_sysinfo, true, "device", ""));
+        sections.add(new ToolSection("regex_test", appContext.getString(R.string.tool_name_regex_test), R.layout.item_tool_regex_test, true, "tool", ""));
+        // 阶段3：新增 6 个工具（受 ENABLE_TOOLS_ENHANCEMENT flag 控制）
+        if (BuildConfig.ENABLE_TOOLS_ENHANCEMENT) {
+            sections.add(new ToolSection("unit_converter", appContext.getString(R.string.tool_name_unit_converter), R.layout.item_tool_unit_converter, true, "tool", appContext.getString(R.string.tool_desc_unit_converter)));
+            sections.add(new ToolSection("radix_converter", appContext.getString(R.string.tool_name_radix_converter), R.layout.item_tool_radix_converter, true, "tool", appContext.getString(R.string.tool_desc_radix_converter)));
+            sections.add(new ToolSection("password_generator", appContext.getString(R.string.tool_name_password_generator), R.layout.item_tool_password_generator, true, "tool", appContext.getString(R.string.tool_desc_password_generator)));
+            sections.add(new ToolSection("uuid_generator", appContext.getString(R.string.tool_name_uuid_generator), R.layout.item_tool_uuid_generator, true, "tool", appContext.getString(R.string.tool_desc_uuid_generator)));
+            sections.add(new ToolSection("crypto_tool", appContext.getString(R.string.tool_name_crypto_tool), R.layout.item_tool_crypto_tool, true, "tool", appContext.getString(R.string.tool_desc_crypto_tool)));
+            sections.add(new ToolSection("jwt_parser", appContext.getString(R.string.tool_name_jwt_parser), R.layout.item_tool_jwt_parser, true, "tool", appContext.getString(R.string.tool_desc_jwt_parser)));
+        }
         return sections;
     }
 

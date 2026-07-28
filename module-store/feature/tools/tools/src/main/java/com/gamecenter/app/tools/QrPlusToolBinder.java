@@ -2,36 +2,42 @@ package com.gamecenter.app.tools;
 
 import android.content.Context;
 import android.view.View;
+import android.widget.Toast;
+
+import com.gamecenter.app.R;
+import com.gamecenter.app.fragments.ToolsFragment;
+
 import java.util.concurrent.ExecutorService;
 
 /**
  * 二维码增强工具绑定器。
  * <p>
- * 这是工具箱模块中"二维码增强"功能的入口类。相比基础的二维码生成工具（QrToolBinder），
- * 增强版提供了更多功能（如扫描识别、历史记录等）。
+ * 增强版二维码工具，提供生成、扫描识别、历史记录等功能。
+ * 完整绑定逻辑委托给 {@link AdvancedToolBinders#bindQrPlus}，
+ * 图片选择通过 ToolsFragment 的共享 ActivityResultLauncher 完成，
+ * 结果回调 {@link AdvancedToolBinders#handleQrImageResult} 识别二维码。
  * </p>
  * <p>
- * 该工具的完整绑定逻辑委托给 AdvancedToolBinders.bindQrPlus 实现，
- * 本类仅作为 ToolBinder 接口的薄包装（就像一个门牌，指引用户找到真正的办公室），
- * 保持工具绑定框架的一致性。第三个参数传 null 表示无额外的配置选项。
+ * 修复（2026-07-25）：之前传入 null 导致"识别图片"按钮无响应。
+ * 直接从 contentView 的 tag_tools_fragment 获取 ToolsFragment 实例。
  * </p>
  */
 public class QrPlusToolBinder implements ToolBinder {
 
-    /**
-     * 绑定二维码增强工具的视图和逻辑。
-     * <p>
-     * 这个方法不做实际工作，只是把任务"转交"给 AdvancedToolBinders.bindQrPlus 处理。
-     * 第三个参数传 null 表示没有额外的配置选项。
-     * </p>
-     *
-     * @param context     上下文环境，用于获取系统服务和资源
-     * @param contentView 工具页面的根视图，包含需要绑定的 UI 控件
-     * @param executor    线程池执行器（本工具未使用，因绑定逻辑由 AdvancedToolBinders 内部管理）
-     */
     @Override
     public void bind(Context context, View contentView, ExecutorService executor) {
-        // 委托给 AdvancedToolBinders 执行实际的绑定逻辑，null 表示无额外配置
-        AdvancedToolBinders.bindQrPlus(context, contentView, null);
+        ToolsFragment fragment = (ToolsFragment) contentView.getTag(R.id.tag_tools_fragment);
+        if (fragment == null) {
+            AdvancedToolBinders.bindQrPlus(context, contentView, v ->
+                    Toast.makeText(context, R.string.tool_file_pick_unavailable, Toast.LENGTH_SHORT).show());
+            return;
+        }
+        AdvancedToolBinders.bindQrPlus(context, contentView, v ->
+                fragment.requestPickFile(uri -> {
+                    ExecutorService used = (executor != null && !executor.isShutdown())
+                            ? executor
+                            : java.util.concurrent.Executors.newSingleThreadExecutor();
+                    used.execute(() -> AdvancedToolBinders.handleQrImageResult(context, contentView, uri, used));
+                }, new String[]{"image/*"}));
     }
 }

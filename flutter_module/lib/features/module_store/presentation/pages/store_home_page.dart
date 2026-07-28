@@ -92,15 +92,25 @@ class _StoreHomePageState extends State<StoreHomePage> {
                           ModuleCard(module: modules[index], compact: true),
                     ),
                   )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 24),
-                    sliver: SliverList.builder(
-                      itemCount: modules.length,
-                      itemBuilder: (_, index) =>
-                          ModuleCard(module: modules[index]),
+                else ...[
+                  // 列表模式：按 storeCategory 分组渲染（按结果组织模块）
+                  for (final group in groupModulesByStoreCategory(modules)) ...[
+                    SliverToBoxAdapter(
+                      child: _CategoryHeader(
+                        title: group.key,
+                        count: group.value.length,
+                      ),
                     ),
-                  ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 16),
+                      sliver: SliverList.builder(
+                        itemCount: group.value.length,
+                        itemBuilder: (_, index) =>
+                            ModuleCard(module: group.value[index]),
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           );
@@ -302,7 +312,9 @@ class _SearchAndFilters extends StatelessWidget {
                             padding: const EdgeInsets.only(right: 6),
                             child: ChoiceChip(
                               label: Text(
-                                category == 'all' ? strings.all : category,
+                                category == 'all'
+                                    ? strings.all
+                                    : storeCategoryDisplayNameOf(category),
                               ),
                               selected: controller.filters.category == category,
                               onSelected: (_) =>
@@ -475,6 +487,47 @@ class _OfflineBanner extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// 分组标题：显示 storeCategory 中文名与该组模块数量。
+class _CategoryHeader extends StatelessWidget {
+  const _CategoryHeader({required this.title, required this.count});
+  final String title;
+  final int count;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$count',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ErrorState extends StatelessWidget {

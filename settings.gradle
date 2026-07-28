@@ -73,7 +73,33 @@ include ':module-store:feature:tools:wrongbook'
 include ':module-store:feature:games:games:hall'
 include ':module-store:feature:games:games:chinesechess'
 include ':module-store:feature:games:games:klotski'
+// TTS 模块：layout 资源已补齐（activity_tts.xml + @id/root），重新启用
+// 修复 TtsFragment.dp() NPE：ctx 在 onCreateView() 开头初始化
 include ':module-store:feature:games:games:tts'
+// Phase 2-4: 游戏模块化迁移 — 所有游戏均通过模块商店下载
+include ':module-store:feature:games:games:snake'
+include ':module-store:feature:games:games:tic'
+include ':module-store:feature:games:games:whack'
+include ':module-store:feature:games:games:reaction'
+include ':module-store:feature:games:games:rock'
+include ':module-store:feature:games:games:dice'
+include ':module-store:feature:games:games:guess'
+include ':module-store:feature:games:games:tiles'
+include ':module-store:feature:games:games:memory'
+include ':module-store:feature:games:games:match'
+include ':module-store:feature:games:games:blackjack'
+include ':module-store:feature:games:games:flappy'
+include ':module-store:feature:games:games:brotato'
+include ':module-store:feature:games:games:plane'
+include ':module-store:feature:games:games:pipeline'
+include ':module-store:feature:games:games:sokoban'
+include ':module-store:feature:games:games:minesweeper'
+include ':module-store:feature:games:games:tetris'
+include ':module-store:feature:games:games:sudoku'
+include ':module-store:feature:games:games:go'
+include ':module-store:feature:games:games:checkers'
+include ':module-store:feature:games:games:gomoku'
+include ':module-store:feature:games:games:doudizhu'
 
 // Flutter Add-to-App module. The generated .android directory is recreated by
 // `flutter pub get`; keeping the check explicit makes a missing SDK/bootstrap

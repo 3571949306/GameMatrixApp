@@ -69,11 +69,11 @@ public final class ScreenToolBinder implements ToolBinder {
             // 通过最大公约数化简宽高比，如 1080x1920 → 9:16
             int ratio = ToolHelper.gcd(w, h);
 
-            if (tvRes != null) tvRes.setText("分辨率: " + w + "x" + h + " px");
-            if (tvDpi != null) tvDpi.setText(String.format(Locale.getDefault(), "DPI / 密度: %.0f x %.0f dpi", xdpi, ydpi));
-            if (tvSize != null) tvSize.setText(String.format(Locale.getDefault(), "屏幕尺寸: %.2f 英寸", diagonalInch));
-            if (tvRatio != null) tvRatio.setText(String.format(Locale.getDefault(), "宽高比: %d:%d", w / ratio, h / ratio));
-            if (tvRefresh != null) tvRefresh.setText("刷新率: " + refresh + " Hz");
+            if (tvRes != null) tvRes.setText(context.getString(R.string.tool_screen_res_format, w, h));
+            if (tvDpi != null) tvDpi.setText(context.getString(R.string.tool_screen_dpi_format, xdpi, ydpi));
+            if (tvSize != null) tvSize.setText(context.getString(R.string.tool_screen_size_format, diagonalInch));
+            if (tvRatio != null) tvRatio.setText(context.getString(R.string.tool_screen_ratio_format, w / ratio, h / ratio));
+            if (tvRefresh != null) tvRefresh.setText(context.getString(R.string.tool_screen_refresh_format, refresh));
         }
     }
 }

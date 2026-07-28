@@ -1,6 +1,7 @@
 package com.gamecenter.app.modules.runtime
 
 import android.content.Context
+import com.gamecenter.app.R
 import com.gamecenter.app.modules.catalog.CatalogModule
 import com.gamecenter.app.modules.catalog.DeliveryType
 import com.gamecenter.app.modules.catalog.RuntimeType
@@ -19,9 +20,9 @@ object SecureArchiveInstaller {
 
     fun install(context: Context, module: CatalogModule): RuntimeResult {
         val manifest = module.legacyManifest
-            ?: return RuntimeResult(false, "manifest_missing", "No package mapping is available")
+            ?: return RuntimeResult(false, "manifest_missing", context.getString(R.string.module_error_package_mapping_missing))
         val archive = TransactionInstaller.getCurrentFile(context, manifest)
-        if (!archive.isFile) return RuntimeResult(false, "archive_missing", "The verified package archive is missing")
+        if (!archive.isFile) return RuntimeResult(false, "archive_missing", context.getString(R.string.module_error_archive_missing))
 
         val root = runtimeRoot(context, module.id)
         val staging = File(root, "staging")
@@ -40,7 +41,7 @@ object SecureArchiveInstaller {
         ) {
             staging.deleteRecursively()
             rejectPackage(context, manifest, archive)
-            return RuntimeResult(false, "entry_missing", "Web entry ${module.entry} is missing")
+            return RuntimeResult(false, "entry_missing", context.getString(R.string.module_error_web_entry_missing, module.entry))
         }
         validateContentManifest(module, staging)?.let { invalid ->
             staging.deleteRecursively()
@@ -51,12 +52,12 @@ object SecureArchiveInstaller {
         if (current.exists() && !current.renameTo(lastGood)) {
             staging.deleteRecursively()
             rejectPackage(context, manifest, archive)
-            return RuntimeResult(false, "backup_failed", "Unable to preserve the current runtime package")
+            return RuntimeResult(false, "backup_failed", context.getString(R.string.module_error_unable_preserve_runtime))
         }
         if (!staging.renameTo(current)) {
             if (lastGood.exists()) lastGood.renameTo(current)
             rejectPackage(context, manifest, archive)
-            return RuntimeResult(false, "atomic_switch_failed", "Unable to activate the staged package")
+            return RuntimeResult(false, "atomic_switch_failed", context.getString(R.string.module_error_unable_activate_staged))
         }
         current.walkTopDown().forEach { it.setReadOnly() }
         return RuntimeResult(true)
@@ -66,20 +67,20 @@ object SecureArchiveInstaller {
         val root = runtimeRoot(context, moduleId)
         val current = File(root, "current")
         val lastGood = File(root, "last_good")
-        if (!lastGood.isDirectory) return RuntimeResult(false, "rollback_unavailable", "No last_good package exists")
+        if (!lastGood.isDirectory) return RuntimeResult(false, "rollback_unavailable", context.getString(R.string.module_error_no_last_good_package))
         val quarantine = File(root, "quarantine/${System.currentTimeMillis()}")
         quarantine.parentFile?.mkdirs()
         if (current.exists() && !current.renameTo(quarantine)) {
-            return RuntimeResult(false, "quarantine_failed", "Unable to quarantine the current package")
+            return RuntimeResult(false, "quarantine_failed", context.getString(R.string.module_error_unable_quarantine))
         }
         return if (lastGood.renameTo(current)) RuntimeResult(true)
-        else RuntimeResult(false, "rollback_failed", "Unable to restore last_good")
+        else RuntimeResult(false, "rollback_failed", context.getString(R.string.module_error_unable_restore_last_good))
     }
 
     fun uninstall(context: Context, moduleId: String): RuntimeResult {
         val root = runtimeRoot(context, moduleId)
         return if (!root.exists() || root.deleteRecursively()) RuntimeResult(true)
-        else RuntimeResult(false, "uninstall_failed", "Unable to remove the isolated runtime directory")
+        else RuntimeResult(false, "uninstall_failed", context.getString(R.string.module_error_unable_remove_runtime_dir))
     }
 
     fun currentDirectory(context: Context, moduleId: String): File =

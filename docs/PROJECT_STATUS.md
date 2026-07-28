@@ -1,20 +1,19 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+# 项目状态总览 - GameMatrixApp
 
-# 项目状态总览 - GameMatrix App
+> **当前参考（最后核验：2026-07-27）**  
+> 工作版本为 `1.4.1 / vc645`，最近稳定版为 `1.4.1 / vc600`，均以 [`version.properties`](../version.properties) 为准。工作版本不是已发布声明；当前工作树含并行开发变更。
+>
+> 本文合并了历史审计与修复记录。历史段落中的版本、测试结果和“完成”结论是当时快照；当前能力与发布门槛见 [`CURRENT_STATE.md`](CURRENT_STATE.md)，文档层级见 [`DOCUMENTATION_GOVERNANCE.md`](DOCUMENTATION_GOVERNANCE.md)。
 
-> 本文档合并了原根目录的 7 个审计/修复文档（问题清单、执行规划、项目审计报告、最终报告、待确认操作清单、待删除清单、测试方案），提供项目当前状态的完整视图。
+## 当前摘要
 
-**最后更新**: 2026-07-23
-**当前工作树/生产版本**: versionCode=599, versionName=1.4.1
-**上次稳定版**: versionCode=599, versionName=1.4.1
-**审计起始**: 2026-06-19 (versionCode=451)
-**修复轮次**: 24 轮循环 + 混合架构 P0-P6 + Flutter-first 模块商店（2026-07-21）+ stable vc599 更新兼容性修复（2026-07-23）
-**工作树说明**: 当前存在本任务及用户并行修改；不得用旧 commit 或“clean”文档声明替代实时状态
+- **平台能力**：Android 宿主 + 模块商店 + Flutter Add-to-App 商店 UI；Android 仍负责 Catalog 信任、下载、安装、回滚和 Runtime 生命周期。
+- **当前发布门槛**：模块发布签名与内置证书同源、Catalog 的远程权威/兼容行为、以及下载到更新/回滚的真实设备链路，都必须以当前产物验证，不能仅引用历史报告。
+- **体验方向**：项目按通用模块平台演进，游戏、学习、浏览、AI、工具和连接能力以本地优先、按需安装、可管理数据为共同体验标准；详见 [`PRODUCT_DIRECTION_AND_UX.md`](PRODUCT_DIRECTION_AND_UX.md)。
 
 ---
 
-## 目录
+## 历史状态与审计记录
 
 1. [项目概览](#1-项目概览)
 2. [当前状态](#2-当前状态)

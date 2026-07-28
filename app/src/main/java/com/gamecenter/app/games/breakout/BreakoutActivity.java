@@ -78,9 +78,27 @@ public class BreakoutActivity extends BaseGameActivity {
             @Override
             public void onGameOver(boolean win) {
                 handler.removeCallbacks(gameLoop);
-                usageStore.recordLoss(getGameId());
+                // BUG-005 修复：根据 win 参数判断记录胜场还是负场，之前忽略 win 一律 recordLoss，
+                // 导致 5 次对局但胜 0/负 0（实际上负场应被记录）。
+                if (win) {
+                    usageStore.recordWin(getGameId());
+                } else {
+                    usageStore.recordLoss(getGameId());
+                }
                 checkAchievement("game_over", breakoutView.getScore());
                 checkAchievement("rounds", totalLevels);
+                // BUG-005 剩余修复：游戏自然结束时（球掉光触发 onGameOver）也要记录 play_time。
+                // 之前 onGameOver 末尾设置 isGameRunning = false，导致 onDestroy 中
+                // if (isGameRunning) 判断为 false，endGame() 不会被调用，recordPlayTime 未执行。
+                // 修复：在 isGameRunning 置 false 之前先调用 endGame()，确保 play_time 被记录。
+                // 注意：endGame() 内部会判断 gameStartTime > 0 才记录，且重复调用安全。
+                long duration = gameStartTime > 0 ? System.currentTimeMillis() - gameStartTime : 0L;
+                endGame();
+                // P0-1: 提交本局分数到本地排行榜
+                int finalScore = breakoutView != null ? breakoutView.getScore() : currentScore;
+                if (finalScore > 0) {
+                    submitScoreToLeaderboard(finalScore, duration);
+                }
                 isGameRunning = false;
             }
 
@@ -160,7 +178,44 @@ public class BreakoutActivity extends BaseGameActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // BUG-005 根因修复：进入游戏后自动调用 startGame()，确保 gameStartTime 被设置、
+        // isGameRunning = true，否则 onDestroy 中的 endGame() 不会调用 recordPlayTime，
+        // 且 onGameOver 永远不会触发，导致胜负数据/总时长始终为 0。
+        // 之前依赖用户点击屏幕触发 startGame，但 BreakoutView.onTouchEvent 在 gameRunning=false
+        // 时直接 return true，没有任何入口启动游戏。
+        if (!isGameRunning) {
+            startGame();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // BUG-005 修复：onPause 时暂停游戏循环，避免后台运行浪费 CPU。
+        // 不调用 endGame()，因为用户可能只是切到后台，会再回来（onResume 会判断 isGameRunning）。
+        if (isGameRunning && !isGamePaused) {
+            pauseGame();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
+        // BUG-005 修复：onDestroy 中先调用 endGame() 再清理 handler，
+        // 确保用户中途退出时 recordPlayTime 仍会被调用，避免总时长不被记录。
+        // 之前 onDestroy 只清理 handler，导致 endGame 永远不会被调用，总时长始终为 0。
+        if (isGameRunning) {
+            // BUG-005 剩余修复：用户中途退出（BACK/离开 Activity）时，BreakoutView.onGameOver
+            // 不会被触发（onGameOver 仅在 lives<=0 球掉光时调用）。这导致总对局=3 但胜 0/负 0，
+            // 因为 recordWin/recordLoss 从未被调用。
+            // 修复：onDestroy 时如果游戏还在运行（即 onGameOver 未触发），视为本局失败，
+            // 记录一次负场，使胜负数据与总对局匹配。
+            // 注意：onGameOver 中会设置 isGameRunning=false，因此若 onGameOver 已被触发，
+            // 此处 if (isGameRunning) 为 false，不会重复记录，避免双重计入。
+            usageStore.recordLoss(getGameId());
+            endGame();
+        }
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
     }

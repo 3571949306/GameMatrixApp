@@ -130,19 +130,19 @@ class SubjectManagementFragment : DialogFragment() {
             setSingleLine(true)
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("新增科目")
+            .setTitle(moduleResources.getString(R.string.wrongbook_add_subject))
             .setView(input)
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton(moduleResources.getString(R.string.wrongbook_confirm)) { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) {
                     if (viewModel.subjects.value?.any { it.name.equals(name, true) } == true) {
-                        Toast.makeText(requireContext(), "科目已存在", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_subject_exists), Toast.LENGTH_SHORT).show()
                     } else {
                         viewModel.ensureSubject(name)
                     }
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -153,30 +153,30 @@ class SubjectManagementFragment : DialogFragment() {
             setSelection(subject.name.length)
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("重命名科目")
+            .setTitle(moduleResources.getString(R.string.wrongbook_rename_subject))
             .setView(input)
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton(moduleResources.getString(R.string.wrongbook_confirm)) { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty() && name != subject.name) {
                     if (viewModel.subjects.value?.any { it.name.equals(name, true) } == true) {
-                        Toast.makeText(requireContext(), "科目名称已存在", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_subject_name_exists), Toast.LENGTH_SHORT).show()
                     } else {
                         viewModel.updateSubject(subject.copy(name = name))
                     }
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
     private fun showDeleteDialog(subject: SubjectEntity) {
         AlertDialog.Builder(requireContext())
-            .setTitle("删除科目")
-            .setMessage("确定删除科目“${subject.name}”吗？这不会删除该科目下的错题，错题会自动划分到“通用”。")
-            .setPositiveButton("删除") { _, _ ->
+            .setTitle(moduleResources.getString(R.string.wrongbook_delete_subject))
+            .setMessage(moduleResources.getString(R.string.wrongbook_delete_subject_msg, subject.name))
+            .setPositiveButton(moduleResources.getString(R.string.wrongbook_delete)) { _, _ ->
                 viewModel.deleteSubject(subject)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 

@@ -99,9 +99,6 @@ public final class AdvancedToolBinders {
     /** 二维码生成的默认尺寸（像素），720px 在清晰度和生成速度间取得平衡 */
     private static final int QR_SIZE = 720;
 
-    /** 诊断报告的剪贴板标签，用于标识复制到剪贴板的内容来源 */
-    private static final String REPORT_LABEL = "GameMatrix diagnostics";
-
     // 私有构造函数：防止外部 new AdvancedToolBinders()，因为所有方法都是静态的
     private AdvancedToolBinders() {
     }
@@ -125,7 +122,7 @@ public final class AdvancedToolBinders {
         MaterialButton button = contentView.findViewById(R.id.btn_network_diagnose);
         if (button == null) return;
         button.setOnClickListener(v -> {
-            setText(result, "正在体检网络...");
+            setText(result, context.getString(R.string.tool_diag_diagnosing));
             executor.execute(() -> {
                 String text = buildNetworkDiagnosis(context);
                 postText(contentView, result, text);
@@ -159,7 +156,7 @@ public final class AdvancedToolBinders {
 
         if (generate != null) {
             generate.setOnClickListener(v -> {
-                setText(result, "正在生成诊断报告...");
+                setText(result, context.getString(R.string.tool_diag_generating));
                 executor.execute(() -> {
                     String report = buildDiagnosticReport(context);
                     latest[0] = report;
@@ -171,8 +168,8 @@ public final class AdvancedToolBinders {
             copy.setOnClickListener(v -> {
                 // 若尚未生成报告，则先自动生成一次
                 if (latest[0].isEmpty()) latest[0] = buildDiagnosticReport(context);
-                copyText(context, REPORT_LABEL, latest[0]);
-                Toast.makeText(context, "诊断报告已复制", Toast.LENGTH_SHORT).show();
+                copyText(context, context.getString(R.string.diag_clipboard_label), latest[0]);
+                Toast.makeText(context, R.string.tool_diag_report_copied, Toast.LENGTH_SHORT).show();
             });
         }
         if (share != null) {
@@ -180,11 +177,11 @@ public final class AdvancedToolBinders {
                 if (latest[0].isEmpty()) latest[0] = buildDiagnosticReport(context);
                 Intent intent = new Intent(Intent.ACTION_SEND);
                 intent.setType("text/plain");
-                intent.putExtra(Intent.EXTRA_SUBJECT, REPORT_LABEL);
+                intent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.diag_clipboard_label));
                 intent.putExtra(Intent.EXTRA_TEXT, latest[0]);
                 // 从非 Activity 上下文启动需要添加 NEW_TASK 标志
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(Intent.createChooser(intent, "分享诊断报告").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                context.startActivity(Intent.createChooser(intent, context.getString(R.string.tool_diag_share_title)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             });
         }
     }
@@ -206,17 +203,17 @@ public final class AdvancedToolBinders {
         if (button == null) return;
         // 默认填充示例域名，降低用户使用门槛
         if (domainInput != null && TextUtils.isEmpty(domainInput.getText())) {
-            domainInput.setText("example.com");
+            domainInput.setText(context.getString(R.string.tool_dns_default_domain));
         }
         button.setOnClickListener(v -> {
             String domain = domainInput != null ? domainInput.getText().toString().trim() : "";
             if (domain.isEmpty()) {
-                Toast.makeText(context, "请输入域名", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, R.string.tool_dns_input_hint, Toast.LENGTH_SHORT).show();
                 return;
             }
-            setText(result, "正在查询 DNS...");
+            setText(result, context.getString(R.string.tool_dns_querying));
             executor.execute(() -> {
-                String lookup = lookupDns(domain);
+                String lookup = lookupDns(context, domain);
                 postText(contentView, result, lookup);
             });
         });
@@ -245,10 +242,10 @@ public final class AdvancedToolBinders {
             String prefix = prefixInput != null ? prefixInput.getText().toString().trim() : "";
             // 校验输入格式：必须是三段数字，如 192.168.1
             if (!prefix.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}")) {
-                Toast.makeText(context, "请输入前三段网段，例如 192.168.1", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, R.string.tool_diag_lan_prefix_hint, Toast.LENGTH_SHORT).show();
                 return;
             }
-            setText(result, "正在扫描 " + prefix + ".1-254...");
+            setText(result, context.getString(R.string.tool_diag_scanning_format, prefix));
             executor.execute(() -> {
                 String scanResult = scanLan(prefix);
                 postText(contentView, result, scanResult);
@@ -290,7 +287,7 @@ public final class AdvancedToolBinders {
         if (timestampNow != null) {
             timestampNow.setOnClickListener(v -> {
                 long now = System.currentTimeMillis();
-                setText(result, "秒: " + (now / 1000) + "\n毫秒: " + now + "\n本地时间: " + formatDate(now));
+                setText(result, context.getString(R.string.tool_diag_timestamp_format, (now / 1000), now, formatDate(now)));
             });
         }
 
@@ -303,9 +300,9 @@ public final class AdvancedToolBinders {
                     long value = Long.parseLong(text.trim());
                     // 10位及以下视为秒级时间戳，需乘以1000转为毫秒
                     long millis = text.trim().length() <= 10 ? value * 1000L : value;
-                    setText(result, "本地时间: " + formatDate(millis) + "\nUTC: " + formatUtc(millis));
+                    setText(result, context.getString(R.string.tool_diag_timestamp_convert_format, formatDate(millis), formatUtc(millis)));
                 } catch (Exception e) {
-                    setText(result, "时间戳转换失败: " + e.getMessage());
+                    setText(result, context.getString(R.string.tool_diag_timestamp_failed_format, e.getMessage()));
                 }
             });
         }
@@ -315,7 +312,7 @@ public final class AdvancedToolBinders {
             copy.setOnClickListener(v -> {
                 String text = result != null ? result.getText().toString() : "";
                 copyText(context, "tool-result", text);
-                Toast.makeText(context, "结果已复制", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, R.string.tool_result_copied, Toast.LENGTH_SHORT).show();
             });
         }
     }
@@ -351,8 +348,8 @@ public final class AdvancedToolBinders {
         if (contentView == null || uri == null) return;
         TextView nameView = contentView.findViewById(R.id.tv_file_hash_name);
         TextView resultView = contentView.findViewById(R.id.tv_file_hash_result);
-        setText(nameView, "文件: " + getDisplayName(context, uri));
-        setText(resultView, "正在计算文件哈希...");
+        setText(nameView, context.getString(R.string.tool_diag_file_format, getDisplayName(context, uri)));
+        setText(resultView, context.getString(R.string.tool_diag_hashing));
         executor.execute(() -> {
             String text = hashFile(context, uri);
             postText(contentView, resultView, text);
@@ -406,7 +403,7 @@ public final class AdvancedToolBinders {
             wifi.setOnClickListener(v -> {
                 String[] parts = readInput(input).split(",", -1);
                 if (parts.length < 2) {
-                    setText(result, "WiFi码格式: SSID,密码,加密方式，可省略加密方式默认 WPA");
+                    setText(result, context.getString(R.string.tool_wifi_code_format_hint));
                     return;
                 }
                 // 若未指定加密方式或为空，默认使用 WPA
@@ -424,7 +421,7 @@ public final class AdvancedToolBinders {
             vcard.setOnClickListener(v -> {
                 String[] parts = readInput(input).split(",", -1);
                 if (parts.length < 2) {
-                    setText(result, "名片码格式: 姓名,电话,邮箱，可省略邮箱");
+                    setText(result, context.getString(R.string.tool_diag_card_format));
                     return;
                 }
                 String email = parts.length >= 3 ? parts[2].trim() : "";
@@ -452,7 +449,7 @@ public final class AdvancedToolBinders {
     public static void handleQrImageResult(Context context, View contentView, Uri uri, ExecutorService executor) {
         if (contentView == null || uri == null) return;
         TextView resultView = contentView.findViewById(R.id.tv_qr_plus_result);
-        setText(resultView, "正在识别二维码图片...");
+        setText(resultView, context.getString(R.string.tool_diag_qr_reading));
         executor.execute(() -> {
             String text;
             try (InputStream input = context.getContentResolver().openInputStream(uri)) {
@@ -502,7 +499,7 @@ public final class AdvancedToolBinders {
                             "对比度: %.2f:1\nWCAG AA 正文: %s\nWCAG AA 大字号: %s\n前景: %s\n背景: %s",
                             ratio, aaSmall, aaLarge, toHex(fg), toHex(bg)));
                 } catch (Exception e) {
-                    setText(result, "颜色格式错误，请输入 #RRGGBB 或 #AARRGGBB");
+                    setText(result, context.getString(R.string.tool_diag_color_err));
                 }
             });
         }
@@ -528,7 +525,7 @@ public final class AdvancedToolBinders {
         if (contentView == null || uri == null) return;
         TextView resultView = contentView.findViewById(R.id.tv_color_plus_result);
         View preview = contentView.findViewById(R.id.v_color_plus_image);
-        setText(resultView, "正在分析图片主色...");
+        setText(resultView, context.getString(R.string.tool_diag_color_analyzing));
         executor.execute(() -> {
             String text;
             int color = Color.TRANSPARENT;
@@ -580,8 +577,8 @@ public final class AdvancedToolBinders {
             copy.setOnClickListener(v -> {
                 String text = desc != null ? desc.getText().toString() : "";
                 copyText(context, "privacy-note", text);
-                setText(result, "权限与隐私说明已复制");
-                Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show();
+                setText(result, context.getString(R.string.tool_perms_copied));
+                Toast.makeText(context, R.string.tool_copied, Toast.LENGTH_SHORT).show();
             });
         }
     }
@@ -597,25 +594,25 @@ public final class AdvancedToolBinders {
      */
     private static String buildNetworkDiagnosis(Context context) {
         StringBuilder sb = new StringBuilder();
-        sb.append("网络体检时间: ").append(formatDate(System.currentTimeMillis())).append("\n\n");
+        sb.append(context.getString(R.string.diag_network_check_time, formatDate(System.currentTimeMillis()))).append("\n\n");
         sb.append(getNetworkSummary(context)).append("\n");
-        sb.append("WiFi IP: ").append(getWifiIp(context)).append("\n");
-        sb.append("DNS: ").append(TextUtils.join(", ", getDnsServers(context))).append("\n\n");
+        sb.append(context.getString(R.string.diag_wifi_ip, getWifiIp(context))).append("\n");
+        sb.append(context.getString(R.string.diag_dns, TextUtils.join(", ", getDnsServers(context)))).append("\n\n");
 
         // 使用阿里 DNS 和百度分别测试 DNS 和 HTTPS 连通性
         long dnsTcp = tcpPing("223.5.5.5", 53, 2500);
         long webTcp = tcpPing("www.baidu.com", 443, 3500);
-        sb.append("DNS连通性: ").append(dnsTcp >= 0 ? dnsTcp + " ms" : "失败").append("\n");
-        sb.append("HTTPS连通性: ").append(webTcp >= 0 ? webTcp + " ms" : "失败").append("\n");
-        sb.append("公网IP: ").append(fetchPublicIp()).append("\n\n");
+        sb.append(context.getString(R.string.diag_dns_connectivity, dnsTcp >= 0 ? context.getString(R.string.diag_status_ms_format, dnsTcp) : context.getString(R.string.diag_status_failed))).append("\n");
+        sb.append(context.getString(R.string.diag_https_connectivity, webTcp >= 0 ? context.getString(R.string.diag_status_ms_format, webTcp) : context.getString(R.string.diag_status_failed))).append("\n");
+        sb.append(context.getString(R.string.diag_public_ip, fetchPublicIp())).append("\n\n");
 
         // 根据连通性测试结果给出诊断结论
         if (dnsTcp >= 0 && webTcp >= 0) {
-            sb.append("结论: 网络基础连通性正常。");
+            sb.append(context.getString(R.string.diag_conclusion_all_ok));
         } else if (dnsTcp >= 0) {
-            sb.append("结论: DNS 可达，但 HTTPS 连接异常，建议检查代理、VPN 或防火墙。");
+            sb.append(context.getString(R.string.diag_conclusion_https_bad));
         } else {
-            sb.append("结论: DNS 和外网连接均异常，建议检查 WiFi/移动网络或路由器。");
+            sb.append(context.getString(R.string.diag_conclusion_all_bad));
         }
         return sb.toString();
     }
@@ -630,15 +627,15 @@ public final class AdvancedToolBinders {
      */
     private static String buildDiagnosticReport(Context context) {
         StringBuilder sb = new StringBuilder();
-        sb.append("GameMatrixApp 诊断报告\n");
-        sb.append("生成时间: ").append(formatDate(System.currentTimeMillis())).append("\n");
-        sb.append("应用版本: ").append(BuildConfig.VERSION_NAME).append(" (").append(BuildConfig.VERSION_CODE).append(")\n");
-        sb.append("系统版本: Android ").append(Build.VERSION.RELEASE).append(" / API ").append(Build.VERSION.SDK_INT).append("\n");
-        sb.append("设备型号: ").append(Build.BRAND).append(" ").append(Build.MODEL).append("\n");
-        sb.append("网络: ").append(getNetworkSummary(context)).append("\n");
-        sb.append("WiFi IP: ").append(getWifiIp(context)).append("\n");
-        sb.append("DNS: ").append(TextUtils.join(", ", getDnsServers(context))).append("\n");
-        sb.append("电池: ").append(getBatterySummary(context)).append("\n");
+        sb.append(context.getString(R.string.diag_report_title)).append("\n");
+        sb.append(context.getString(R.string.diag_generation_time, formatDate(System.currentTimeMillis()))).append("\n");
+        sb.append(context.getString(R.string.diag_app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)).append("\n");
+        sb.append(context.getString(R.string.diag_system_version, Build.VERSION.RELEASE, Build.VERSION.SDK_INT)).append("\n");
+        sb.append(context.getString(R.string.diag_device_model, Build.BRAND, Build.MODEL)).append("\n");
+        sb.append(context.getString(R.string.diag_network, getNetworkSummary(context))).append("\n");
+        sb.append(context.getString(R.string.diag_wifi_ip, getWifiIp(context))).append("\n");
+        sb.append(context.getString(R.string.diag_dns, TextUtils.join(", ", getDnsServers(context)))).append("\n");
+        sb.append(context.getString(R.string.diag_battery, getBatterySummary(context))).append("\n");
         sb.append("\n");
         sb.append(buildNetworkDiagnosis(context));
         return sb.toString();
@@ -656,20 +653,20 @@ public final class AdvancedToolBinders {
     private static String getNetworkSummary(Context context) {
         try {
             ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm == null) return "不可用";
+            if (cm == null) return context.getString(R.string.diag_net_unavailable);
             Network network = cm.getActiveNetwork();
-            if (network == null) return "未连接";
+            if (network == null) return context.getString(R.string.diag_net_not_connected);
             NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-            if (caps == null) return "未知网络";
+            if (caps == null) return context.getString(R.string.diag_net_unknown);
             List<String> parts = new ArrayList<>();
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) parts.add("WiFi");
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) parts.add("移动数据");
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) parts.add("以太网");
-            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) parts.add("VPN");
-            if (parts.isEmpty()) parts.add("其他");
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) parts.add(context.getString(R.string.diag_net_wifi));
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) parts.add(context.getString(R.string.diag_net_cellular));
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) parts.add(context.getString(R.string.diag_net_ethernet));
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) parts.add(context.getString(R.string.diag_net_vpn));
+            if (parts.isEmpty()) parts.add(context.getString(R.string.diag_net_other));
             return TextUtils.join("+", parts);
         } catch (Exception e) {
-            return "读取失败: " + e.getMessage();
+            return context.getString(R.string.tool_net_read_failed, e.getMessage());
         }
     }
 
@@ -802,8 +799,8 @@ public final class AdvancedToolBinders {
      * @param domain 要查询的域名
      * @return 格式化的 DNS 查询结果文本
      */
-    private static String lookupDns(String domain) {
-        StringBuilder sb = new StringBuilder("DNS 查询: ").append(domain).append("\n");
+    private static String lookupDns(Context context, String domain) {
+        StringBuilder sb = new StringBuilder(context.getString(R.string.diag_dns_query_header, domain)).append("\n");
         // 查询五种常见的 DNS 记录类型
         String[] types = {"A", "AAAA", "CNAME", "MX", "TXT"};
         for (String type : types) {
@@ -815,7 +812,7 @@ public final class AdvancedToolBinders {
                 JSONObject json = new JSONObject(httpGet(url));
                 JSONArray answers = json.optJSONArray("Answer");
                 if (answers == null || answers.length() == 0) {
-                    sb.append("无记录，状态码: ").append(json.optInt("Status", -1)).append("\n");
+                    sb.append(context.getString(R.string.diag_dns_no_record, json.optInt("Status", -1))).append("\n");
                     continue;
                 }
                 for (int i = 0; i < answers.length(); i++) {
@@ -927,7 +924,7 @@ public final class AdvancedToolBinders {
             try {
                 setText(result, transform.apply(readInput(input)));
             } catch (Exception e) {
-                setText(result, "处理失败: " + e.getMessage());
+                setText(result, contentView.getContext().getString(R.string.tool_diag_process_failed_format, e.getMessage()));
             }
         });
     }
@@ -964,7 +961,7 @@ public final class AdvancedToolBinders {
      */
     private static String hashFile(Context context, Uri uri) {
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
-            if (input == null) return "无法读取文件";
+            if (input == null) return context.getString(R.string.tool_file_read_failed);
             MessageDigest md5 = MessageDigest.getInstance("MD5");
             MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -979,12 +976,12 @@ public final class AdvancedToolBinders {
                 sha256.update(buffer, 0, read);
                 total += read;
             }
-            return "大小: " + total + " bytes\n"
-                    + "MD5: " + hex(md5.digest()) + "\n"
-                    + "SHA-1: " + hex(sha1.digest()) + "\n"
-                    + "SHA-256: " + hex(sha256.digest());
+            return context.getString(R.string.diag_file_size, total) + "\n"
+                    + context.getString(R.string.diag_file_md5, hex(md5.digest())) + "\n"
+                    + context.getString(R.string.diag_file_sha1, hex(sha1.digest())) + "\n"
+                    + context.getString(R.string.diag_file_sha256, hex(sha256.digest()));
         } catch (Exception e) {
-            return "文件哈希计算失败: " + e.getMessage();
+            return context.getString(R.string.diag_file_hash_failed, e.getMessage());
         }
     }
 
@@ -1001,7 +998,7 @@ public final class AdvancedToolBinders {
      */
     private static void renderQr(Context context, ImageView preview, TextView result, String text) {
         if (text == null || text.trim().isEmpty()) {
-            Toast.makeText(context, "请输入二维码内容", Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, R.string.tool_input_qr_content, Toast.LENGTH_SHORT).show();
             return;
         }
         try {
@@ -1012,7 +1009,7 @@ public final class AdvancedToolBinders {
             }
             setText(result, text);
         } catch (Exception e) {
-            setText(result, "二维码生成失败: " + e.getMessage());
+            setText(result, context.getString(R.string.tool_diag_qr_failed_format, e.getMessage()));
         }
     }
 

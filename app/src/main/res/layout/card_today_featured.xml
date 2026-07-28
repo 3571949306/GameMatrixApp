@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature T (HOME_L2_FEATURED_TODAY_2026_07_24 v4):
+     今日精选 半宽紧凑卡片（用于 L2 Row 2 左半，与连胜记录并列）。
+     总高 ~80-90dp：padding 10dp + 标题行 18dp + gap 6dp + 游戏行 32dp + padding 10dp
+     内容：左侧 32dp 圆形图标 + 中间名称 + 右侧"立即开始"药丸按钮
+     去掉了 desc 行（半宽空间不够），但保留 id 以兼容 GamesFragment（desc 字段设为 GONE）
+     翡翠绿渐变背景（bg_today_featured_card），白色文字。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_today_featured"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_6"
+    android:background="@drawable/bg_today_featured_card"
+    android:elevation="3dp">
+
+    <!-- 标题行：星标 + 今日精选 + 右侧徽章 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_star_filled"
+            app:tint="@color/today_featured_card_text"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="@string/home_v2_featured_today"
+            android:textColor="@color/today_featured_card_text"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:background="@color/today_featured_card_btn_bg"
+            android:text="@string/module_hero_badge"
+            android:textColor="@color/today_featured_card_btn_text"
+            android:textSize="8sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <!-- 游戏行：图标 + 名称 + 紧凑按钮（半宽版：去掉 desc，按钮缩小） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_4"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/iv_today_featured_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@color/today_featured_card_btn_bg"
+            android:padding="3dp"
+            android:scaleType="centerInside"
+            android:contentDescription="@null"
+            tools:src="@drawable/ic_game" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/spacing_6"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_today_featured_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/today_featured_card_text"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end"
+                tools:text="五子棋" />
+
+            <!-- desc 字段保留 id 以兼容 GamesFragment；半宽下也展示以填充卡片底部 -->
+            <TextView
+                android:id="@+id/tv_today_featured_desc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/today_featured_card_text_secondary"
+                android:textSize="10sp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                tools:text="经典策略，老少皆宜"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btn_today_featured_play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_6"
+            android:background="@drawable/bg_today_featured_btn"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="@string/home_game_of_day_play"
+            android:textColor="@color/today_featured_card_btn_text"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+</LinearLayout>

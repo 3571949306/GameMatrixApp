@@ -243,6 +243,7 @@
 <string name="difficulty_easy">"Easy"</string>
 <string name="difficulty_hard">"Hard"</string>
 <string name="difficulty_medium">"Medium"</string>
+<string name="game_tic_difficulty_medium">"Medium"</string>
 <string name="doudizhu_diff_easy">"Easy"</string>
 <string name="doudizhu_diff_normal">"Normal"</string>
 <string name="doudizhu_diff_hard">"Hard"</string>
@@ -1509,6 +1510,7 @@
     <string name="game_breakout">Breakout</string>
     <string name="game_brotato">Survival Shooter</string>
     <string name="game_checkers">Checkers</string>
+    <string name="game_checkers_difficulty_medium">Medium</string>
     <string name="game_dice">Dice Game</string>
     <string name="game_doudizhu">Dou Dizhu</string>
     <string name="game_doudizhu_desc">Classic three-player card game</string>
@@ -1666,6 +1668,9 @@
     <string name="module_back">Back</string>
     <string name="module_close">Close</string>
     <string name="module_empty">No modules available</string>
+    <!-- Dynamic tools section -->
+    <string name="dynamic_tools_empty_state">No tool modules installed. Please download from Module Store.</string>
+    <string name="dynamic_tools_loading">Loading tool modules…</string>
     <string name="module_empty_title">Nothing here</string>
     <string name="module_empty_action">Browse all modules</string>
     <string name="module_error_title">Something went wrong</string>
@@ -1774,6 +1779,14 @@ You can grant all permissions for the best experience, or grant them individuall
     <string name="store_category_games">Games</string>
     <string name="store_category_tools">Tools</string>
     <string name="store_category_vpn">VPN</string>
+    <!-- 6 standardized storeCategory (organize modules by outcome, aligned with Flutter store) -->
+    <string name="store_category_entertainment_versus">Entertainment &amp; Versus</string>
+    <string name="store_category_learning_organization">Learning &amp; Organization</string>
+    <string name="store_category_reading_browsing">Reading &amp; Browsing</string>
+    <string name="store_category_text_creation">Text &amp; Creation</string>
+    <string name="store_category_device_network">Device &amp; Network</string>
+    <string name="store_category_personalization">Personalization</string>
+    <string name="store_category_other">Other</string>
     <string name="store_subcategory_casual">Casual</string>
     <string name="store_subcategory_classics">Classics</string>
     <string name="store_subcategory_puzzle">Puzzle</string>
@@ -2200,5 +2213,581 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="unity_module_placeholder_title">"Unity Module: %1$s"</string>
     <string name="unity_module_placeholder_desc">"This is a placeholder; Unity runtime is not integrated yet. Real Unity modules will be available in a future release."</string>
     <string name="unity_module_not_supported">"This device does not support running this Unity module"</string>
+
+    <!-- Module error message localization (Plan B) -->
+    <string name="module_error_not_found">Module not found</string>
+    <string name="module_error_action_refresh_catalog">Refresh the catalog</string>
+    <string name="module_error_action_resolve_compat">Resolve compatibility requirements</string>
+    <string name="module_error_action_update_host">Update the host app</string>
+    <string name="module_error_catalog_v2_not_registered">This Catalog V2 package is not registered with the authoritative downloader</string>
+    <string name="module_error_action_publish_manifest">Publish a signed manifest mapping before enabling downloads</string>
+    <string name="module_error_no_update">No newer compatible version is available</string>
+    <string name="module_error_action_retry_legacy">Retry or use the legacy store</string>
+    <string name="module_error_action_retry_install">Retry installation</string>
+    <string name="module_error_action_retry_download">Retry the download</string>
+    <string name="module_error_download_verify_first">Download and verify the APK before installing</string>
+    <string name="module_error_required_no_uninstall">Required modules cannot be uninstalled</string>
+    <string name="module_error_asset_not_installed">The asset package is not installed</string>
+    <string name="module_error_asset_consumers_notified">Asset consumers were notified</string>
+    <string name="module_error_host_incompatible">The host app version is not compatible</string>
+    <string name="module_error_unable_to_enable">Unable to enable %1$s</string>
+    <string name="module_error_required_no_disable">Required modules cannot be disabled</string>
+    <string name="module_error_update_host_flutter_route">Update the host app to add this Flutter route</string>
+    <string name="module_error_required_routes_no_remove">Required routes cannot be removed</string>
+    <string name="module_error_enable_before_open">Enable the module before opening it</string>
+    <string name="module_error_entry_not_start">The module entry point did not start</string>
+    <string name="module_error_native_service_not_installed">The native service package is not installed</string>
+    <string name="module_error_required_services_no_uninstall">Required services cannot be uninstalled</string>
+    <string name="module_error_archive_missing">The verified package archive is missing</string>
+    <string name="module_error_unable_preserve_runtime">Unable to preserve the current runtime package</string>
+    <string name="module_error_unable_activate_staged">Unable to activate the staged package</string>
+    <string name="module_error_unable_quarantine">Unable to quarantine the current package</string>
+    <string name="module_error_unable_restore_last_good">Unable to restore last_good</string>
+    <string name="module_error_unable_remove_runtime_dir">Unable to remove the isolated runtime directory</string>
+    <string name="module_error_unity_not_installed">Unity content is not installed</string>
+    <string name="module_error_missing_dependencies">Missing dependencies: %1$s</string>
+    <string name="module_error_rollback_unavailable">No verified last_good version is available</string>
+    <string name="module_error_route_not_compiled">The Flutter route is not compiled into this host version</string>
+    <string name="module_error_manifest_mapping_missing">No Android manifest mapping is available</string>
+    <string name="module_error_package_mapping_missing">No package mapping is available</string>
+    <string name="module_error_web_entry_missing">Web entry %1$s is missing</string>
+    <string name="module_error_no_last_good_package">No last_good package exists</string>
+    <string name="module_error_unity_launcher_unavailable">No compatible Unity launcher is registered</string>
+    <string name="module_error_required_unity_no_remove">Required Unity content cannot be removed</string>
+    <string name="module_error_web_entry_not_found">The installed Web entry is missing</string>
+    <string name="module_error_service_type_unsupported">No host controller is registered for %1$s</string>
+
+    <!-- ===== Full localization: hardcoded English text migration (2026-07-24) ===== -->
+    <!-- Common version format -->
+    <string name="version_format_simple">v%1$s</string>
+    <string name="version_format_with_code">v%1$s (build %2$d)</string>
+
+    <!-- About dialog -->
+    <string name="about_gamecenter_title">About GameCenter</string>
+    <string name="about_gamecenter_message">GameCenter — Game Hub\n\nA modular gaming platform.\nAll game content is downloaded via the module store.\n\nServer: %1$s\nModule storage: /data/data/package_name/files/modules/</string>
+    <string name="about_with_version_format">About %1$s v%2$s</string>
+
+    <!-- Channel suffix -->
+    <string name="channel_beta_suffix"> Beta</string>
+
+    <!-- License label -->
+    <string name="license_label">License: %1$s</string>
+
+    <!-- Recovery source labels -->
+    <string name="recovery_source_hk_vps">HK VPS</string>
+    <string name="recovery_source_github">GitHub</string>
+    <string name="recovery_source_fallback_format">Source %1$d</string>
+
+    <!-- Clipboard labels -->
+    <string name="clipboard_label_version">GameMatrix version</string>
+    <string name="clipboard_label_color">color</string>
+
+    <!-- Color picker tool -->
+    <string name="color_fmt_hex">HEX: %1$s</string>
+    <string name="color_fmt_rgb">RGB: %1$d, %2$d, %3$d</string>
+    <string name="color_fmt_argb">ARGB: %1$d, %2$d, %3$d, %4$d</string>
+    <string name="color_fmt_hsl">HSL: %1$d°, %2$d%%, %3$d%%</string>
+    <string name="color_fmt_hsv">HSV: %1$d°, %2$d%%, %3$d%%</string>
+    <string name="color_fmt_int">INT: 0x%1$s</string>
+    <string name="color_fmt_css_rgba">CSS: rgba(%1$d,%2$d,%3$d,%4$.2f)</string>
+    <string name="color_fmt_css_rgb">CSS: rgb(%1$d,%2$d,%3$d)</string>
+    <string name="tool_color_copy_success">Color info copied</string>
+
+    <!-- Hash tool -->
+    <string name="hash_fmt_md5">MD5: %1$s</string>
+    <string name="hash_fmt_sha1">SHA-1: %1$s</string>
+    <string name="hash_fmt_sha256">SHA-256: %1$s</string>
+
+    <!-- Ping tool -->
+    <string name="tool_ping_button_idle">Ping</string>
+    <string name="tool_ping_button_running">Pinging…</string>
+    <string name="tool_ping_failed">Failed: %1$s</string>
+
+    <!-- Tool defaults & hints -->
+    <string name="tool_dns_default_domain">example.com</string>
+    <string name="tool_wifi_code_format_hint">WiFi code format: SSID,password,encryption; encryption optional (defaults to WPA)</string>
+    <string name="tool_dns_input_hint">Please enter a domain</string>
+    <string name="tool_dns_querying">Querying DNS…</string>
+    <string name="tool_diag_report_copied">Diagnostic report copied</string>
+    <string name="tool_file_read_failed">Cannot read file</string>
+    <string name="tool_diag_share_title">Share diagnostic report</string>
+    <string name="tool_net_read_failed">Read failed: %1$s</string>
+
+    <!-- Diagnostic report -->
+    <string name="diag_clipboard_label">GameMatrix diagnostics</string>
+    <string name="diag_report_title">GameMatrixApp Diagnostic Report</string>
+    <string name="diag_generation_time">Generated: %1$s</string>
+    <string name="diag_app_version">App version: %1$s (%2$d)</string>
+    <string name="diag_system_version">System: Android %1$s / API %2$d</string>
+    <string name="diag_device_model">Device: %1$s %2$s</string>
+    <string name="diag_network">Network: %1$s</string>
+    <string name="diag_wifi_ip">WiFi IP: %1$s</string>
+    <string name="diag_dns">DNS: %1$s</string>
+    <string name="diag_battery">Battery: %1$s</string>
+    <string name="diag_network_check_time">Network check time: %1$s</string>
+    <string name="diag_dns_connectivity">DNS connectivity: %1$s</string>
+    <string name="diag_https_connectivity">HTTPS connectivity: %1$s</string>
+    <string name="diag_public_ip">Public IP: %1$s</string>
+    <string name="diag_status_ms_format">%1$d ms</string>
+    <string name="diag_status_failed">Failed</string>
+    <string name="diag_conclusion_all_ok">Conclusion: Basic network connectivity is normal.</string>
+    <string name="diag_conclusion_https_bad">Conclusion: DNS reachable, but HTTPS connection is abnormal. Check proxy, VPN, or firewall.</string>
+    <string name="diag_conclusion_all_bad">Conclusion: Both DNS and external network are abnormal. Check WiFi/mobile network or router.</string>
+    <string name="diag_file_size">Size: %1$d bytes</string>
+    <string name="diag_file_md5">MD5: %1$s</string>
+    <string name="diag_file_sha1">SHA-1: %1$s</string>
+    <string name="diag_file_sha256">SHA-256: %1$s</string>
+    <string name="diag_file_hash_failed">File hash calculation failed: %1$s</string>
+    <string name="diag_dns_query_header">DNS query: %1$s</string>
+    <string name="diag_dns_no_record">No records, status: %1$d</string>
+    <string name="diag_net_unavailable">Unavailable</string>
+    <string name="diag_net_not_connected">Not connected</string>
+    <string name="diag_net_unknown">Unknown network</string>
+    <string name="diag_net_wifi">WiFi</string>
+    <string name="diag_net_cellular">Mobile data</string>
+    <string name="diag_net_ethernet">Ethernet</string>
+    <string name="diag_net_vpn">VPN</string>
+    <string name="diag_net_other">Other</string>
+
+    <!-- AI assistant -->
+    <string name="ai_assistant_label">AI Assistant</string>
+    <string name="gemma_terms_title">Gemma Model Terms &amp; Local AI Notice</string>
+    <string name="gemma_view_terms">View Terms</string>
+    <string name="gemma_agree_download">Agree &amp; Download</string>
+
+    <!-- Compose settings -->
+    <string name="settings_dynamic_color_title">Dynamic color</string>
+    <string name="settings_dynamic_color_desc">Android 12+ wallpaper-based color (Phase 2)</string>
+    <string name="settings_language_follow_system">Follow system</string>
+    <string name="settings_language_chinese">Chinese</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_default_game">Default game</string>
+    <string name="settings_default_game_not_set">(Not set)</string>
+    <string name="home_featured_play">Try</string>
+
+    <!-- Common game module strings -->
+    <string name="game_diff_easy">Easy</string>
+    <string name="game_diff_normal">Normal</string>
+    <string name="game_diff_medium">Medium</string>
+    <string name="game_diff_hard">Hard</string>
+    <string name="game_btn_restart">Restart</string>
+    <string name="game_btn_start">Start Game</string>
+    <string name="game_btn_play_again">Play Again</string>
+    <string name="game_btn_undo">Undo</string>
+    <string name="game_btn_reset">Reset</string>
+    <string name="game_btn_back_menu">Back to Menu</string>
+    <string name="game_btn_next_round">Next Round</string>
+    <string name="game_btn_roll">Roll Dice</string>
+    <string name="game_btn_double_up">Double Up</string>
+    <string name="game_btn_guess">Guess</string>
+    <string name="game_btn_new_game">New Game</string>
+    <string name="game_btn_rules">Rules</string>
+    <string name="game_score_format">Score: %1$d</string>
+    <string name="game_score_init">Score: 0</string>
+    <string name="game_high_score_format">High Score: %1$d</string>
+    <string name="game_high_score_init">High Score: 0</string>
+    <string name="game_score_alt_format">Score: %1$d</string>
+    <string name="game_score_alt_init">Score: 0</string>
+    <string name="game_best_format">Best: %1$d</string>
+    <string name="game_best_init">Best: 0</string>
+    <string name="game_wave_format">Wave %1$d</string>
+    <string name="game_wave_init">Wave 1</string>
+    <string name="game_level_format">Level %1$d</string>
+    <string name="game_select_level">Select Level</string>
+    <string name="game_select_difficulty_start">Select difficulty and start</string>
+    <string name="game_click_to_start">Click Start to play</string>
+    <string name="game_in_progress">Game in progress!</string>
+    <string name="game_pick_difficulty">Please select difficulty</string>
+    <string name="game_your_turn">Your turn</string>
+    <string name="game_ai_turn">AI\'s turn</string>
+    <string name="game_you_win">You win!</string>
+    <string name="game_ai_wins">AI wins</string>
+    <string name="game_player_label">Player</string>
+    <string name="game_ai_label">Computer</string>
+    <string name="game_status_click_roll">Click roll to start</string>
+    <string name="game_mines_remaining_format">Mines left: %1$d</string>
+    <string name="game_mines_remaining_init">Mines left: 10</string>
+    <string name="game_wins_format">Wins %1$d</string>
+    <string name="game_wins_init">Wins 0</string>
+    <string name="game_mines_status_init">Tap to reveal, long-press to flag</string>
+    <string name="game_mines_win_format">Win! Time %1$ds</string>
+    <string name="game_mines_lose">Boom! Tap to restart</string>
+    <string name="game_match_easy">Easy 4x4</string>
+    <string name="game_match_normal">Normal 4x5</string>
+    <string name="game_match_hard">Hard 4x6</string>
+    <string name="game_match_status">In progress, flip two matching cards</string>
+    <string name="game_guess_easy">Easy 0-100</string>
+    <string name="game_guess_normal">Normal 0-500</string>
+    <string name="game_guess_hard">Hard 0-1000</string>
+    <string name="game_guess_hint">Enter a number</string>
+    <string name="game_guess_invalid">Please enter a valid number</string>
+    <string name="game_sokoban_status">Push boxes to targets</string>
+    <string name="game_sokoban_win_format">Clear! Moves %1$d</string>
+    <string name="game_sokoban_moves_format">Moves %1$d | Pushes %2$d</string>
+    <string name="game_tetris_diff_format">Difficulty: %1$s</string>
+    <string name="game_whack_time_format">Time: %1$d</string>
+    <string name="game_chess_status_init">Click Start to play</string>
+    <string name="game_checkers_status_pick">Select difficulty</string>
+    <string name="game_difficulty_format">Difficulty: %1$s</string>
+    <string name="game_difficulty_with_name_format">Difficulty: %1$s</string>
+
+    <!-- Game module titles -->
+    <string name="game_title_brotato">Brotato</string>
+    <string name="game_title_dice">Dice Duel</string>
+    <string name="game_title_checkers">Checkers</string>
+    <string name="game_title_flappy">Flappy Bird</string>
+    <string name="game_title_match">Match</string>
+    <string name="game_title_memory">Memory</string>
+    <string name="game_title_minesweeper">Minesweeper</string>
+    <string name="game_title_guess">Guess Number</string>
+    <string name="game_title_sokoban">Sokoban</string>
+    <string name="game_title_tetris">Tetris</string>
+    <string name="game_title_doudizhu">Dou Dizhu</string>
+    <string name="game_title_doudizhu_subtitle">Classic 3-player poker</string>
+    <string name="game_doudizhu_single">Single Player</string>
+    <string name="game_doudizhu_single_wip">Single player coming soon</string>
+    <string name="game_doudizhu_rules_title">Dou Dizhu Rules</string>
+    <string name="game_doudizhu_rules_msg">Dou Dizhu is a 3-player card game. 54 cards, players split into Landlord (1) and Farmers (2).</string>
+    <string name="game_doudizhu_got_it">Got it</string>
+    <string name="game_sudoku_complete">Sudoku complete!</string>
+
+    <!-- Chinese Chess Online -->
+    <string name="chess_online_title">Chinese Chess - Online</string>
+    <string name="chess_online_create_room">Create Room</string>
+    <string name="chess_online_join_room">Join Room</string>
+    <string name="chess_online_chat_hint">Type a message...</string>
+    <string name="chess_online_send">Send</string>
+    <string name="chess_online_leave">Leave Room</string>
+    <string name="chess_online_creating">Creating cloud room...</string>
+    <string name="chess_online_room_created">Room created</string>
+    <string name="chess_online_room_code_format">Room code: %1$s</string>
+    <string name="chess_online_create_failed">Failed to create room</string>
+    <string name="chess_online_joining_format">Joining room: %1$s</string>
+    <string name="chess_online_opponent_joined">Opponent joined!</string>
+    <string name="chess_online_opponent_left_format">Opponent left: %1$s</string>
+    <string name="chess_online_connected_host">Connected to host</string>
+    <string name="chess_online_disconnected_format">Disconnected: %1$s</string>
+    <string name="chess_online_server_error_format">Server error: %1$s</string>
+    <string name="chess_online_client_error_format">Client error: %1$s</string>
+    <string name="chess_online_you_win">You win!</string>
+    <string name="chess_online_opponent_wins">Opponent wins!</string>
+    <string name="chess_online_game_over">Game Over</string>
+
+    <!-- Go -->
+    <string name="go_game_over">Game Over</string>
+    <string name="go_play_again">Play Again</string>
+    <string name="go_back_menu">Back to Menu</string>
+    <string name="go_difficulty_format">Difficulty: %1$s</string>
+
+    <!-- Games Hall -->
+    <string name="hall_tab_all">All</string>
+    <string name="hall_tab_recent">Recent</string>
+    <string name="hall_tab_favorite">Favorites</string>
+    <string name="hall_empty_search">No games found</string>
+    <string name="hall_empty_recent">No recent games</string>
+    <string name="hall_empty_favorite">No favorite games</string>
+    <string name="hall_empty_default">No games here yet</string>
+    <string name="hall_feedback_empty">Please enter feedback first</string>
+    <string name="hall_feedback_submitting">Submitting...</string>
+    <string name="hall_feedback_submit">Submit Feedback</string>
+    <string name="hall_feedback_success">Feedback submitted, thanks!</string>
+    <string name="hall_feedback_vps_failed_format">Submit to VPS failed, fallback via email: %1$s</string>
+    <string name="hall_open_browser_failed">Cannot open browser</string>
+    <string name="hall_open_settings_failed">Failed to open settings</string>
+    <string name="hall_module_store_not_found">Module store not found</string>
+
+    <!-- DynamicGameActivity -->
+    <string name="dynamic_game_not_installed">Game not installed, opening module store…</string>
+
+    <!-- Settings -->
+    <string name="settings_stats_unavailable">Stats unavailable</string>
+    <string name="settings_clear_cache_title">Clear Cache</string>
+    <string name="settings_clear_cache_msg">Clear all cache data?</string>
+    <string name="settings_clear_cache_confirm">Clear</string>
+    <string name="settings_app_language">App Language</string>
+    <string name="settings_language_saved_restart">Language saved, restart to apply</string>
+    <string name="settings_server_unreachable">Unreachable</string>
+    <string name="settings_tutorial_title">Tutorial</string>
+
+    <!-- Stats -->
+    <string name="stats_intro">Stats track play records of installed games.</string>
+    <string name="stats_achievement_not_found">Achievement center not found</string>
+
+    <!-- InstalledModules -->
+    <string name="module_builtin_no_update_format">%1$s is built-in, update via app store</string>
+    <string name="module_update_done_format">%1$s updated</string>
+    <string name="module_update_failed_format">Update failed: %1$s</string>
+
+    <!-- ModuleAdapter -->
+    <string name="module_update_button_format">Update v%1$s</string>
+
+    <!-- Tutorials -->
+    <string name="tutorial_gomoku_title">How to play Gomoku</string>
+    <string name="tutorial_gomoku_msg">Black moves first, tap to place. First to connect 5 in a row/column/diagonal wins.</string>
+    <string name="tutorial_klotski_title">How to play Klotski</string>
+    <string name="tutorial_klotski_msg">Slide blocks to help Cao Cao (the largest block) escape through the bottom-center exit.\n\n• Red block is Cao Cao, target is the bottom exit\n• Other generals block the way, move them cleverly\n• Tap Hint for an optimal solution\n• Tap Shuffle for a new solvable layout</string>
+    <string name="tutorial_chess_title">How to play Chinese Chess</string>
+    <string name="tutorial_chess_msg">Classic Chinese Chess, Red moves first.\n\n• General: stays in the palace, cannot leave\n• Advisor: moves one step diagonally inside palace\n• Elephant: moves two diagonally, cannot cross river\n• Horse: one straight + one diagonal, blocked leg rule applies\n• Chariot: moves any number of squares in a line\n• Cannon: moves like chariot, but needs a screen to capture\n• Soldier: advances forward, can move sideways after crossing river\n\nTap a piece to see legal moves, tap target square to move.</string>
+
+    <!-- GameStartDialog -->
+    <string name="game_start_subtitle">Pick a difficulty to start</string>
+
+    <!-- Chess replay -->
+    <string name="chess_replay_title">Replay Analysis</string>
+    <string name="chess_replay_msg">View replay analysis of this game?</string>
+    <string name="chess_replay_view">View</string>
+    <string name="chess_replay_skip">Skip</string>
+    <string name="chess_replay_report_title">Replay Report</string>
+
+    <!-- Wrongbook -->
+    <string name="wrongbook_saved">Saved!</string>
+    <string name="wrongbook_add_subject">New Subject</string>
+    <string name="wrongbook_confirm">OK</string>
+    <string name="wrongbook_subject_exists">Subject already exists</string>
+    <string name="wrongbook_rename_subject">Rename Subject</string>
+    <string name="wrongbook_subject_name_exists">Subject name exists</string>
+    <string name="wrongbook_delete_subject">Delete Subject</string>
+    <string name="wrongbook_delete_subject_msg">Delete subject \"%1$s\"? Questions under it will be moved to \"General\".</string>
+    <string name="wrongbook_delete">Delete</string>
+    <string name="wrongbook_no_backup">No backup found, export first</string>
+    <string name="wrongbook_no_subject">No subjects yet, add one at top-right</string>
+    <string name="wrongbook_not_found">Question not found</string>
+    <string name="wrongbook_content_empty">Content cannot be empty</string>
+    <string name="wrongbook_save_success">Saved</string>
+    <string name="wrongbook_modify_subject">Change Subject</string>
+    <string name="wrongbook_filter_subject">Filter Subject</string>
+    <string name="wrongbook_sort_method">Sort By</string>
+    <string name="wrongbook_no_data">No data</string>
+    <string name="wrongbook_total_label">Total</string>
+
+    <!-- Tools -->
+    <string name="tool_color_invalid">Invalid color</string>
+    <string name="tool_clipboard_input_empty">Please enter content</string>
+    <string name="tool_clipboard_set">Set</string>
+    <string name="tool_clipboard_cleared">Cleared</string>
+    <string name="tool_input_text">Please enter text</string>
+    <string name="tool_input_json">Please enter JSON</string>
+    <string name="tool_input_hash">Please enter a hash</string>
+    <string name="tool_input_qr_content">Please enter QR content</string>
+    <string name="tool_input_regex_two_lines">Line 1: regex, Line 2: text</string>
+    <string name="tool_need_two_lines">Need 2 lines: regex + text</string>
+    <string name="tool_result_copied">Result copied</string>
+    <string name="tool_copied">Copied</string>
+    <string name="tool_perms_copied">Privacy notice copied</string>
+    <string name="tool_sysinfo_copied">Full system info copied</string>
+    <string name="tool_diag_diagnosing">Diagnosing network...</string>
+    <string name="tool_diag_generating">Generating report...</string>
+    <string name="tool_diag_lan_prefix_hint">Enter first 3 octets, e.g. 192.168.1</string>
+    <string name="tool_diag_scanning_format">Scanning %1$s.1-254...</string>
+    <string name="tool_diag_timestamp_format">Seconds: %1$d\nMillis: %2$d\nLocal: %3$s</string>
+    <string name="tool_diag_timestamp_convert_format">Local: %1$s\nUTC: %2$s</string>
+    <string name="tool_diag_timestamp_failed_format">Convert failed: %1$s</string>
+    <string name="tool_diag_file_format">File: %1$s</string>
+    <string name="tool_diag_hashing">Computing file hash...</string>
+    <string name="tool_diag_card_format">vCard format: name,phone,email (email optional)</string>
+    <string name="tool_diag_qr_reading">Reading QR image...</string>
+    <string name="tool_diag_color_err">Invalid color, use #RRGGBB or #AARRGGBB</string>
+    <string name="tool_diag_color_analyzing">Analyzing image color...</string>
+    <string name="tool_diag_process_failed_format">Failed: %1$s</string>
+    <string name="tool_diag_qr_failed_format">QR generation failed: %1$s</string>
+    <string name="tool_hash_querying">Querying...</string>
+    <string name="tool_hash_not_found">Not found\nNo match in local dictionary or online DB.\nTry crackstation.net, hashes.org</string>
+    <string name="tool_qr_failed_format">Generation failed: %1$s</string>
+    <string name="tool_traceroute_running">Tracing...</string>
+    <string name="tool_traceroute_start">Trace</string>
+    <string name="tool_speedtest_running">Testing...</string>
+    <string name="tool_speedtest_server_format">Download test: %1$s</string>
+    <string name="tool_speedtest_failed">Test failed</string>
+    <string name="tool_speedtest_short_failed">Failed</string>
+    <string name="tool_port_scan_running">Scanning...</string>
+    <string name="tool_ip_fetch_failed">Fetch failed</string>
+    <string name="tool_ip_check_network">Check network and retry</string>
+    <string name="tool_screen_res_format">Resolution: %1$dx%2$d px</string>
+    <string name="tool_screen_dpi_format">DPI: %.0f x %.0f dpi</string>
+    <string name="tool_screen_size_format">Size: %.2f inch</string>
+    <string name="tool_screen_ratio_format">Ratio: %1$d:%2$d</string>
+    <string name="tool_screen_refresh_format">Refresh: %1$d Hz</string>
+    <string name="tool_wifi_type_format">Network: %1$s</string>
+    <string name="tool_wifi_signal_format">Signal: %1$s</string>
+    <string name="tool_wifi_operator_format">Carrier: %1$s</string>
+    <string name="tool_url_encode_label">URL Encode (long-press to decode)</string>
+    <string name="tool_json_format_label">Format JSON</string>
+    <string name="tool_regex_test_label">Test Regex (regex + text on line 2)</string>
+    <string name="tool_load_failed_format">Tool failed to load: %1$s</string>
+
+    <!-- Toolbox: tool names & descriptions (for ToolSectionStore) -->
+    <string name="tool_name_network_diagnosis">Network Diagnosis</string>
+    <string name="tool_name_diagnostic_report">Diagnostic Report</string>
+    <string name="tool_name_dns_lookup">DNS Lookup</string>
+    <string name="tool_name_lan_scan">LAN Device Scan</string>
+    <string name="tool_name_text_codec">Encode/Timestamp/JSON</string>
+    <string name="tool_name_file_hash">File Hash</string>
+    <string name="tool_name_qr_plus">QR Plus</string>
+    <string name="tool_name_color_plus">Color Plus</string>
+    <string name="tool_name_permission_privacy">Permission &amp; Privacy</string>
+    <string name="tool_name_ip">IP Address Info</string>
+    <string name="tool_name_dns_config">DNS Server Config</string>
+    <string name="tool_name_wifi">WiFi Signal</string>
+    <string name="tool_name_speedtest">Speed Test</string>
+    <string name="tool_name_portscan">Port Scan</string>
+    <string name="tool_name_battery">Battery Info</string>
+    <string name="tool_name_device">Device Info</string>
+    <string name="tool_name_ping">Ping</string>
+    <string name="tool_name_traceroute">Traceroute</string>
+    <string name="tool_name_subnet">Subnet Calculator</string>
+    <string name="tool_name_screen">Screen Info</string>
+    <string name="tool_name_sensor">Sensor Info</string>
+    <string name="tool_name_hash">Hash Calculator</string>
+    <string name="tool_name_clipboard">Clipboard Tool</string>
+    <string name="tool_name_color">Color Picker</string>
+    <string name="tool_name_sysinfo">System Information</string>
+    <string name="tool_name_regex_test">Regex Test</string>
+    <string name="tool_file_pick_unavailable">File picker unavailable</string>
+
+    <!-- Toolbox: phase 3 new tools (gated by ENABLE_TOOLS_ENHANCEMENT) -->
+    <string name="tool_name_unit_converter">Unit Converter</string>
+    <string name="tool_desc_unit_converter">Convert length, weight, temperature and more</string>
+    <string name="tool_name_radix_converter">Radix Converter</string>
+    <string name="tool_desc_radix_converter">Convert between bin/oct/dec/hex</string>
+    <string name="tool_name_password_generator">Password Generator</string>
+    <string name="tool_desc_password_generator">Configurable random password</string>
+    <string name="tool_name_uuid_generator">UUID Generator</string>
+    <string name="tool_desc_uuid_generator">Generate UUID v4 / v7</string>
+    <string name="tool_name_crypto_tool">Crypto Tool</string>
+    <string name="tool_desc_crypto_tool">AES, DES, digest &amp; encoding</string>
+    <string name="tool_name_jwt_parser">JWT Parser</string>
+    <string name="tool_desc_jwt_parser">Decode JWT header and payload</string>
+
+    <!-- Toolbox: phase 2 new/adjusted strings -->
+    <string name="tool_regex_pattern_hint">Regex pattern</string>
+    <string name="tool_regex_text_hint">Text to match</string>
+    <string name="tool_regex_match_count_format">%1$d match(es)</string>
+    <string name="tool_regex_no_match">No match</string>
+    <string name="tool_regex_syntax_error_format">Regex error: %1$s</string>
+    <string name="tool_regex_match_item_format">Match #%1$d: \"%2$s\" @ %3$d-%4$d</string>
+    <string name="tool_portscan_host_hint">Host or IP (e.g. 127.0.0.1)</string>
+    <string name="tool_portscan_ports_hint">Ports (e.g. 1-1024 or 80,443)</string>
+    <string name="tool_portscan_timeout_hint">Timeout (ms)</string>
+    <string name="tool_portscan_concurrency_hint">Concurrency</string>
+    <string name="tool_portscan_open_format">Open: %1$s</string>
+    <string name="tool_portscan_closed_format">Closed: %1$s</string>
+    <string name="tool_portscan_summary_format">Done: open %1$d / closed %2$d / total %3$d</string>
+    <string name="tool_portscan_invalid_input">Invalid host or ports</string>
+    <string name="tool_portscan_default_ports">1-1024</string>
+    <string name="tool_sysinfo_view_detail">View full detail</string>
+    <string name="tool_sysinfo_close">Close</string>
+    <string name="tool_unit_category_length">Length</string>
+    <string name="tool_unit_category_weight">Weight</string>
+    <string name="tool_unit_category_temperature">Temperature</string>
+    <string name="tool_unit_category_area">Area</string>
+    <string name="tool_unit_category_volume">Volume</string>
+    <string name="tool_unit_category_speed">Speed</string>
+    <string name="tool_unit_category_data">Data</string>
+    <string name="tool_unit_from">From</string>
+    <string name="tool_unit_to">To</string>
+    <string name="tool_unit_result_label">Result</string>
+    <string name="tool_unit_invalid_value">Invalid value</string>
+    <string name="tool_radix_input_hint">Enter number</string>
+    <string name="tool_radix_base_format">Base %1$d</string>
+    <string name="tool_radix_invalid_format">Invalid base-%1$d input</string>
+    <string name="tool_password_length">Length</string>
+    <string name="tool_password_upper">A-Z</string>
+    <string name="tool_password_lower">a-z</string>
+    <string name="tool_password_digits">0-9</string>
+    <string name="tool_password_symbols">!@#$%</string>
+    <string name="tool_password_generate">Generate</string>
+    <string name="tool_password_copy">Copy</string>
+    <string name="tool_password_length_invalid">Length must be 4-64</string>
+    <string name="tool_password_no_charset">Select at least one charset</string>
+    <string name="tool_uuid_generate_v4">Generate UUID v4</string>
+    <string name="tool_uuid_generate_v7">Generate UUID v7</string>
+    <string name="tool_uuid_copy">Copy</string>
+    <string name="tool_crypto_algorithm">Algorithm</string>
+    <string name="tool_crypto_mode">Mode</string>
+    <string name="tool_crypto_key">Key</string>
+    <string name="tool_crypto_input">Input</string>
+    <string name="tool_crypto_output">Output</string>
+    <string name="tool_crypto_encrypt">Encrypt</string>
+    <string name="tool_crypto_decrypt">Decrypt</string>
+    <string name="tool_crypto_copy">Copy</string>
+    <string name="tool_crypto_invalid_key">Invalid key</string>
+    <string name="tool_crypto_failed_format">Failed: %1$s</string>
+    <string name="tool_jwt_input_hint">Paste JWT</string>
+    <string name="tool_jwt_decode">Decode</string>
+    <string name="tool_jwt_copy">Copy</string>
+    <string name="tool_jwt_invalid">Invalid JWT</string>
+    <string name="tool_jwt_header_label">Header</string>
+    <string name="tool_jwt_payload_label">Payload</string>
+    <string name="tool_jwt_signature_label">Signature</string>
+    <string name="tool_jwt_copied">Copied to clipboard</string>
+
+    <!-- AI -->
+    <string name="ai_clear_history">Clear History</string>
+    <string name="ai_model_list_failed_format">Model list fetch failed: %1$s</string>
+    <string name="ai_no_local_models">No local models available</string>
+    <string name="ai_local_models">Local Models</string>
+    <string name="ai_local_model_detail">Local Model Details</string>
+    <string name="ai_view_terms">View Terms</string>
+    <string name="ai_enable">Enable</string>
+    <string name="ai_download">Download</string>
+    <string name="ai_no_cloud_models">No cloud models</string>
+    <string name="ai_cloud_models">Cloud Models</string>
+    <string name="ai_enabled_format">Enabled %1$s</string>
+    <string name="ai_downloaded_format">Downloaded: %1$s</string>
+    <string name="ai_download_failed_format">Download failed: %1$s</string>
+    <string name="ai_no_export_content">Nothing to export</string>
+    <string name="ai_role_user">You</string>
+    <string name="ai_synthesizing_voice">Synthesizing voice…</string>
+
+    <!-- VPN -->
+    <string name="vpn_perm_required">VPN permission required</string>
+    <string name="vpn_node_deleted">Node deleted</string>
+    <string name="vpn_add_node">Add Node</string>
+    <string name="vpn_add">Add</string>
+    <string name="vpn_node_added">Node added</string>
+    <string name="vpn_connecting">Connecting...</string>
+    <string name="vpn_bg_start_failed">Cannot start VPN in background, please keep app in foreground and retry</string>
+    <string name="vpn_channel_desc">VPN connection is running</string>
+    <string name="vpn_content_connecting">VPN connecting</string>
+
+    <!-- Klotski -->
+    <string name="klotski_get_resource_failed">Failed to load module resources</string>
+    <string name="klotski_win_format">Solved! Total moves: %1$d</string>
+    <string name="klotski_reset">Reset to initial state</string>
+    <string name="klotski_shuffled">Shuffled with legal moves, solvable</string>
+    <string name="klotski_already_won">Already won, no hint needed!</string>
+    <string name="klotski_computing">Computing, please wait...</string>
+    <string name="klotski_hint_tip">Move along arrow first, then tap hint for next step</string>
+    <string name="klotski_compute_retry">Compute incomplete, retry</string>
+    <string name="klotski_moves_format">Moves: %1$d</string>
+
+    <!-- TTS -->
+    <string name="tts_input_hint">Enter text to synthesize…</string>
+    <string name="tts_start_record">⏺  Start Recording</string>
+    <string name="tts_stop_record">⏹  Stop Recording</string>
+    <string name="tts_start_synthesis">🚀  Synthesize</string>
+    <string name="tts_play">▶  Play</string>
+    <string name="tts_pause">⏸  Pause</string>
+    <string name="tts_save">💾  Save</string>
+    <string name="tts_recording">  Recording…</string>
+    <string name="tts_no_record">  No recording</string>
+    <string name="tts_recorded_format">  ✅ Recorded %1$d KB</string>
+    <string name="tts_record_failed_format">Recording failed: %1$s</string>
+    <string name="tts_record_saved_clone">Recording saved, can be used for voice clone</string>
+    <string name="tts_record_failed_short">  ⚠️ Recording failed or too short</string>
+    <string name="tts_need_record_perm">Recording permission required</string>
+    <string name="tts_input_empty">Please enter text to synthesize</string>
+    <string name="tts_text_too_long">Text too long (≤5000 chars)</string>
+    <string name="tts_need_record_sample">Please record a voice sample first</string>
+    <string name="tts_generated_format">✅ Generated  %1$d KB  ·  %2$s</string>
+    <string name="tts_save_audio_failed_format">Save audio failed: %1$s</string>
+    <string name="tts_synth_failed_format">❌ Synthesis failed: %1$s</string>
+    <string name="tts_play_failed_format">Play failed: %1$s</string>
+    <string name="tts_saved_path_format">✅ Saved: %1$s</string>
+    <string name="tts_saved_to_music">Saved to Music folder</string>
+    <string name="tts_save_failed_format">Save failed: %1$s</string>
+
+    <!-- HistoryAdapter (browser) -->
+    <string name="history_visit_count_format">Visits %1$d</string>
 
 </resources>

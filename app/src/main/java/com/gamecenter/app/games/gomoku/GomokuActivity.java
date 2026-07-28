@@ -27,6 +27,7 @@ import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -100,7 +101,10 @@ public class GomokuActivity extends AppCompatActivity {
 
     /** AI决策引擎 */
     private GomokuAI ai;
-    
+
+    /** P2-7: 对局回放录制器 */
+    private com.gamecenter.app.games.replay.ReplayRecorder replayRecorder;
+
     /** 大师级AI专门用于提示 */
     private GomokuAI masterAi;
 
@@ -374,6 +378,10 @@ public class GomokuActivity extends AppCompatActivity {
         timerHandler.post(timerRunnable);
         gomokuView.invalidate();
 
+        // P2-7: 开始回放录制
+        replayRecorder = new com.gamecenter.app.games.replay.ReplayRecorder(this, GAME_ID);
+        replayRecorder.startRecording(difficulty);
+
         // 若玩家执白，AI先手
         if (playerColor == GomokuGame.WHITE) {
             triggerAiMove();
@@ -399,6 +407,10 @@ public class GomokuActivity extends AppCompatActivity {
         }
         gomokuView.clearHint();
         game.makeMove(x, y, playerColor);
+        // P2-7: 记录走法（Gomoku 用 (x,y)=(列,行)，转成 (row=y,col=x) 统一坐标）
+        if (replayRecorder != null && replayRecorder.isRecording()) {
+            replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(y, x, playerColor));
+        }
         game.switchPlayer();
         gomokuView.animateLastMove();
         playPieceSound();
@@ -437,6 +449,10 @@ public class GomokuActivity extends AppCompatActivity {
                         return;
                     }
                     game.makeMove(bestMove[0], bestMove[1], aiPlayer);
+                    // P2-7: 记录 AI 走法
+                    if (replayRecorder != null && replayRecorder.isRecording()) {
+                        replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(bestMove[1], bestMove[0], aiPlayer));
+                    }
                     game.switchPlayer();
                     game.checkGameOver();
                     gomokuView.animateLastMove();
@@ -613,10 +629,51 @@ public class GomokuActivity extends AppCompatActivity {
      */
     private void handleGameOver(Integer winner) {
         stopTimer();
+        // P2-7: 结束回放录制
+        if (replayRecorder != null && replayRecorder.isRecording()) {
+            String result;
+            if (winner == null) {
+                result = com.gamecenter.app.games.replay.ReplayRecorder.RESULT_DRAW;
+            } else if (winner == playerColor) {
+                result = com.gamecenter.app.games.replay.ReplayRecorder.RESULT_WIN;
+            } else {
+                result = com.gamecenter.app.games.replay.ReplayRecorder.RESULT_LOSS;
+            }
+            replayRecorder.endRecording(result);
+        }
         if (winner != null && winner == playerColor) {
             usageStore.recordWin(GAME_ID);
         } else if (winner != null && winner == aiPlayer) {
             usageStore.recordLoss(GAME_ID);
+        }
+        // P2-7: 提示查看回放
+        if (replayRecorder != null && replayRecorder.hasHistory()) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("对局结束")
+                    .setMessage("是否查看回放？")
+                    .setPositiveButton("查看回放", (d, w) -> {
+                        com.gamecenter.app.games.replay.ReplayRecord rec = replayRecorder.loadLatest();
+                        com.gamecenter.app.games.replay.ReplayDialog.show(this, rec,
+                                new com.gamecenter.app.games.replay.ReplayPlayer.Listener() {
+                                    @Override
+                                    public void onBoardUpdated(int step, List<com.gamecenter.app.games.replay.ReplayMove> played) {
+                                        // 重建棋盘到第 step 步
+                                        game.reset();
+                                        for (com.gamecenter.app.games.replay.ReplayMove m : played) {
+                                            // 统一坐标 (row,col) -> Gomoku (x=col, y=row)
+                                            game.makeMove(m.toCol, m.toRow, m.player);
+                                            game.switchPlayer();
+                                        }
+                                        gomokuView.invalidate();
+                                    }
+                                    @Override
+                                    public void onReplayFinished() {}
+                                    @Override
+                                    public void onReplayReset() {}
+                                });
+                    })
+                    .setNegativeButton("关闭", null)
+                    .show();
         }
     }
 

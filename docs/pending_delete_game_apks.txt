@@ -1,0 +1,37 @@
+# 待删除文件清单
+# 原因：游戏模块改为通过模块商店下载，不再预装到 assets/modules/
+# 创建时间：2026-07-24
+# 执行状态：待删除
+
+以下 game_*.apk 文件需要从 assets/modules/ 目录删除（保留 feature_*.apk）：
+
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_2048_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_blackjack_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_brotato_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_checkers_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_chinesechess_v300.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_dice_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_doudizhu_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_flappy_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_go_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_gomoku_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_guess_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_klotski_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_match_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_memory_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_minesweeper_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_pipeline_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_plane_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_reaction_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_rock_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_snake_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_sokoban_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_sudoku_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_tetris_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_tic_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_tiles_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\game_whack_v100.apk
+
+保留的文件（工具模块，仍需预装）：
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\feature_wrongbook_v100.apk
+d:\Developmment\GameMatrixApp\app\src\main\assets\modules\feature_browser_v100.apk

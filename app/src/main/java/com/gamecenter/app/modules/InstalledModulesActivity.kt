@@ -26,13 +26,15 @@ class InstalledModulesActivity : AppCompatActivity() {
 
     companion object {
         private const val CATEGORY_ALL = "all"
+        // 与 Flutter 商店/ModuleStoreActivity 一致的 6 类 storeCategory
         private val CATEGORIES = listOf(
             CATEGORY_ALL to "全部",
-            ModuleStoreActivity.CATEGORY_GAMES to "游戏",
-            ModuleStoreActivity.CATEGORY_BROWSER to "浏览器",
-            ModuleStoreActivity.CATEGORY_TOOLS to "工具箱",
-            ModuleStoreActivity.CATEGORY_AI to "AI助手",
-            ModuleStoreActivity.CATEGORY_VPN to "VPN"
+            ModuleStoreActivity.CATEGORY_ENTERTAINMENT_VERSUS to "娱乐与对战",
+            ModuleStoreActivity.CATEGORY_LEARNING_ORGANIZATION to "学习与整理",
+            ModuleStoreActivity.CATEGORY_READING_BROWSING to "阅读与浏览",
+            ModuleStoreActivity.CATEGORY_TEXT_CREATION to "文本与创作",
+            ModuleStoreActivity.CATEGORY_DEVICE_NETWORK to "设备与网络",
+            ModuleStoreActivity.CATEGORY_PERSONALIZATION to "个性化"
         )
     }
 
@@ -113,7 +115,7 @@ class InstalledModulesActivity : AppCompatActivity() {
 
     private fun updateModule(module: ModuleManifest) {
         if (module.builtIn) {
-            Toast.makeText(this, "${module.name} 为内置模块，更新请通过应用商店获取新版应用", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.module_builtin_no_update_format, module.name), Toast.LENGTH_LONG).show()
             return
         }
         adapter.updateDownloadProgress(module.id, 0)
@@ -129,14 +131,14 @@ class InstalledModulesActivity : AppCompatActivity() {
                 runOnUiThread {
                     adapter.removeDownloadProgress(moduleId)
                     loadInstalledModules()
-                    Toast.makeText(this@InstalledModulesActivity, "${module.name} 更新完成", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@InstalledModulesActivity, getString(R.string.module_update_done_format, module.name), Toast.LENGTH_SHORT).show()
                 }
             }
 
             override fun onError(moduleId: String, message: String) {
                 runOnUiThread {
                     adapter.removeDownloadProgress(moduleId)
-                    Toast.makeText(this@InstalledModulesActivity, "更新失败: $message", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@InstalledModulesActivity, getString(R.string.module_update_failed_format, message), Toast.LENGTH_LONG).show()
                 }
             }
 
@@ -147,7 +149,7 @@ class InstalledModulesActivity : AppCompatActivity() {
     private fun uninstallModule(module: ModuleManifest) {
         ModuleManager.uninstallModule(this, module.id)
         loadInstalledModules()
-        Toast.makeText(this, "${module.name} 已卸载", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.module_uninstalled_format, module.name), Toast.LENGTH_SHORT).show()
     }
 
     fun hasUpdateForModule(module: ModuleManifest): Boolean {

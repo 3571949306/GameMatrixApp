@@ -43,6 +43,9 @@ public class AppSettingsDialog {
     private final Runnable onExportData;
     private final Runnable onImportData;
 
+    // BUG-003 修复：标记主题/语言变更后需要重建 Activity，待主设置对话框关闭时统一触发
+    private boolean pendingRecreate = false;
+
     public AppSettingsDialog(
             @NonNull Fragment fragment,
             @Nullable Runnable onCheckUpdate,
@@ -321,11 +324,23 @@ public class AppSettingsDialog {
             }
         }
 
+        // BUG-003 修复：保存主对话框引用，并在 dismiss 时根据 pendingRecreate 标志延迟重建 Activity
+        // 这样主题/语言子对话框选择后只关闭子对话框，主对话框保留；
+        // 用户关闭主对话框时才触发 Activity 重建，使主题/语言变更生效。
         new AlertDialog.Builder(context)
                 .setTitle(context.getString(R.string.settings_title))
                 .setView(dialogView)
-                .setPositiveButton(context.getString(R.string.settings_ok), null)
+                .setPositiveButton(context.getString(R.string.settings_ok), (d, w) -> {
+                    if (pendingRecreate) {
+                        fragment.requireActivity().recreate();
+                    }
+                })
                 .setNegativeButton(context.getString(R.string.settings_cancel), null)
+                .setOnDismissListener(d -> {
+                    if (pendingRecreate) {
+                        fragment.requireActivity().recreate();
+                    }
+                })
                 .show();
     }
 
@@ -471,7 +486,8 @@ public class AppSettingsDialog {
                     if (fragment.requireActivity().getApplication() instanceof App) {
                         ((App) fragment.requireActivity().getApplication()).applyTheme();
                     }
-                    fragment.requireActivity().recreate();
+                    // BUG-003 修复：延迟 recreate 到主对话框关闭时执行，避免主设置对话框被销毁
+                    pendingRecreate = true;
                     dialog.dismiss();
                 })
                 .setNegativeButton(context.getString(R.string.settings_cancel), null)
@@ -510,7 +526,8 @@ public class AppSettingsDialog {
                     if (fragment.requireActivity().getApplication() instanceof App) {
                         ((App) fragment.requireActivity().getApplication()).applyTheme();
                     }
-                    fragment.requireActivity().recreate();
+                    // BUG-003 修复：延迟 recreate 到主对话框关闭时执行，避免主设置对话框被销毁
+                    pendingRecreate = true;
                     dialog.dismiss();
                 })
                 .setNegativeButton(context.getString(R.string.settings_cancel), null)
@@ -521,10 +538,10 @@ public class AppSettingsDialog {
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_update_settings, null);
 
         TextView tvVersion = dialogView.findViewById(R.id.tv_current_version);
-        String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? " Beta" : "";
+        String channelLabel = "beta".equalsIgnoreCase(BuildConfig.VERSION_CHANNEL) ? context.getString(R.string.channel_beta_suffix) : "";
         if (tvVersion != null) {
-            tvVersion.setText("版本 " + BuildConfig.VERSION_NAME + channelLabel
-                    + " · 内部版本 " + BuildConfig.VERSION_CODE);
+            tvVersion.setText(context.getString(R.string.settings_version_display_format,
+                    BuildConfig.VERSION_NAME + channelLabel, BuildConfig.VERSION_CODE));
         }
 
         TextView tvUpdateSource = dialogView.findViewById(R.id.tv_update_source);

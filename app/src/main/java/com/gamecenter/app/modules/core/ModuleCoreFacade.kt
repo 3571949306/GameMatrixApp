@@ -1,6 +1,7 @@
 package com.gamecenter.app.modules.core
 
 import android.content.Context
+import com.gamecenter.app.R
 import com.gamecenter.app.modules.ModuleDownloader
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.modules.catalog.CatalogModule
@@ -68,20 +69,20 @@ class ModuleCoreFacade private constructor(private val context: Context) {
         ?: ModuleProgress(moduleId, 0, 0, 0, module(moduleId)?.let(::state) ?: ModuleState.NOT_INSTALLED)
 
     fun downloadModule(moduleId: String): ModuleOperationResult {
-        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", "Module not found", true, "Refresh the catalog")
+        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", context.getString(R.string.module_error_not_found), true, context.getString(R.string.module_error_action_refresh_catalog))
         val prepared = runtimeRegistry.forModule(module).prepare(context, module)
-        if (!prepared.success) return failure(module, prepared.code, prepared.message, true, "Resolve compatibility requirements")
+        if (!prepared.success) return failure(module, prepared.code, prepared.message, true, context.getString(R.string.module_error_action_resolve_compat))
         if (module.deliveryType.wireValue == "builtin") {
             val installed = runtimeRegistry.forModule(module).install(context, module)
-            return if (installed.success) success() else failure(module, installed.code, installed.message, false, "Update the host app")
+            return if (installed.success) success() else failure(module, installed.code, installed.message, false, context.getString(R.string.module_error_action_update_host))
         }
         if (module.legacyManifest == null) {
             return failure(
                 module,
                 "package_not_registered",
-                "This Catalog V2 package is not registered with the authoritative downloader",
+                context.getString(R.string.module_error_catalog_v2_not_registered),
                 false,
-                "Publish a signed manifest mapping before enabling downloads"
+                context.getString(R.string.module_error_action_publish_manifest)
             )
         }
         val initial = ModuleProgress(moduleId, 0, module.packageInfo.fileSize, 0, ModuleState.QUEUED)
@@ -94,15 +95,15 @@ class ModuleCoreFacade private constructor(private val context: Context) {
     fun installModule(moduleId: String): ModuleOperationResult = downloadModule(moduleId)
 
     fun updateModule(moduleId: String): ModuleOperationResult {
-        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", "Module not found", true, "Refresh the catalog")
+        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", context.getString(R.string.module_error_not_found), true, context.getString(R.string.module_error_action_refresh_catalog))
         if (state(module) != ModuleState.UPDATE_AVAILABLE) {
-            return failure(module, "no_update", "No newer compatible version is available", true, "Refresh the catalog")
+            return failure(module, "no_update", context.getString(R.string.module_error_no_update), true, context.getString(R.string.module_error_action_refresh_catalog))
         }
         return downloadModule(moduleId)
     }
 
     fun cancelDownload(moduleId: String): ModuleOperationResult {
-        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", "Module not found", false, "Refresh the catalog")
+        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", context.getString(R.string.module_error_not_found), false, context.getString(R.string.module_error_action_refresh_catalog))
         ModuleManager.cancelDownload(moduleId)
         val cancelled = ModuleProgress(moduleId, progress[moduleId]?.downloadedBytes ?: 0, progress[moduleId]?.totalBytes ?: 0, 0, ModuleState.NOT_INSTALLED)
         progress[moduleId] = cancelled
@@ -139,13 +140,13 @@ class ModuleCoreFacade private constructor(private val context: Context) {
         targetState: ModuleState,
         operation: (CatalogModule) -> com.gamecenter.app.modules.runtime.RuntimeResult
     ): ModuleOperationResult {
-        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", "Module not found", true, "Refresh the catalog")
+        val module = modules[moduleId] ?: return failure(moduleId, "module_not_found", context.getString(R.string.module_error_not_found), true, context.getString(R.string.module_error_action_refresh_catalog))
         val result = operation(module)
         return if (result.success) {
             publish(eventType, module, targetState)
             success()
         } else {
-            failure(module, result.code, result.message, true, "Retry or use the legacy store")
+            failure(module, result.code, result.message, true, context.getString(R.string.module_error_action_retry_legacy))
         }
     }
 
@@ -174,7 +175,7 @@ class ModuleCoreFacade private constructor(private val context: Context) {
         override fun onComplete(moduleId: String, file: File) {
             val installResult = runtimeRegistry.forModule(module).install(context, module)
             if (!installResult.success) {
-                val error = error(module, installResult.code, installResult.message, true, "Retry installation")
+                val error = error(module, installResult.code, installResult.message, true, context.getString(R.string.module_error_action_retry_install))
                 progress[moduleId] = ModuleProgress(moduleId, file.length(), file.length(), 0, ModuleState.FAILED)
                 publish("InstallFailed", module, ModuleState.FAILED, error = error)
                 return
@@ -186,7 +187,7 @@ class ModuleCoreFacade private constructor(private val context: Context) {
         }
 
         override fun onError(moduleId: String, message: String) {
-            val failure = error(module, "download_failed", message, true, "Retry the download")
+            val failure = error(module, "download_failed", message, true, context.getString(R.string.module_error_action_retry_download))
             val item = progress[moduleId]?.copy(state = ModuleState.FAILED)
                 ?: ModuleProgress(moduleId, 0, module.packageInfo.fileSize, 0, ModuleState.FAILED)
             progress[moduleId] = item

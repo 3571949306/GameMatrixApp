@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Feature T (HOME_L2_FEATURED_TODAY_2026_07_24): 今日精选 L2 卡片渐变背景
+     翡翠绿（#059669→#10B981），与每日挑战蓝、连胜橙错开色相。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="@color/today_featured_card_bg_start"
+        android:endColor="@color/today_featured_card_bg_end"
+        android:type="linear" />
+    <corners android:radius="20dp" />
+</shape>

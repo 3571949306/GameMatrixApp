@@ -71,7 +71,7 @@ public class SpeedTestToolBinder implements ToolBinder {
      */
     private void startSpeedTest(Context context, MaterialButton btnStart, View contentView, ExecutorService executor) {
         btnStart.setEnabled(false);
-        btnStart.setText("测试中...");
+        btnStart.setText(context.getString(R.string.tool_speedtest_running));
         TextView tvPing = contentView.findViewById(R.id.tv_ping);
         TextView tvDownload = contentView.findViewById(R.id.tv_download_speed);
         TextView tvUpload = contentView.findViewById(R.id.tv_upload_speed);
@@ -95,7 +95,7 @@ public class SpeedTestToolBinder implements ToolBinder {
                         String shortNameRaw = cur.replace("https://", "").replace("http://", "");
                         final String shortName = shortNameRaw.length() > 28 ? shortNameRaw.substring(0, 28) : shortNameRaw;
                         ToolHelper.safeRunOnUiThread(context, () -> {
-                            if (tvServer != null) tvServer.setText("下载测试: " + shortName);
+                            if (tvServer != null) tvServer.setText(context.getString(R.string.tool_speedtest_server_format, shortName));
                         });
                         double speed = ToolHelper.testDownloadSpeed(server);
                         // 首个成功的服务器即采用，不再继续尝试
@@ -108,13 +108,13 @@ public class SpeedTestToolBinder implements ToolBinder {
                 final double fSpeed = dlSpeed[0];
                 ToolHelper.safeRunOnUiThread(context, () -> {
                     if (tvServer != null) tvServer.setText(fServer.isEmpty() ? "下载失败" : "下载: " + fServer.replace("https://", "").replace("http://", ""));
-                    if (tvDownload != null) tvDownload.setText(fSpeed > 0 ? String.format(Locale.getDefault(), "%.1f Mbps", fSpeed) : "测试失败");
+                    if (tvDownload != null) tvDownload.setText(fSpeed > 0 ? String.format(Locale.getDefault(), "%.1f Mbps", fSpeed) : context.getString(R.string.tool_speedtest_failed));
                 });
 
                 // 第三阶段：上传速度测试，仅在上传控件存在时执行
                 double ulSpeed = 0;
                 if (tvUpload != null) {
-                    ToolHelper.safeRunOnUiThread(context, () -> { if (tvUpload != null) tvUpload.setText("测试中..."); });
+                    ToolHelper.safeRunOnUiThread(context, () -> { if (tvUpload != null) tvUpload.setText(context.getString(R.string.tool_speedtest_running)); });
                     for (String uploadUrl : UPLOAD_TEST_SERVERS) {
                         try {
                             ulSpeed = ToolHelper.testUploadSpeed(uploadUrl);
@@ -126,14 +126,14 @@ public class SpeedTestToolBinder implements ToolBinder {
                 // 更新上传测速结果到 UI
                 final double fUlSpeed = ulSpeed;
                 ToolHelper.safeRunOnUiThread(context, () -> {
-                    if (tvUpload != null) tvUpload.setText(fUlSpeed > 0 ? String.format(Locale.getDefault(), "%.1f Mbps", fUlSpeed) : "测试失败");
+                    if (tvUpload != null) tvUpload.setText(fUlSpeed > 0 ? String.format(Locale.getDefault(), "%.1f Mbps", fUlSpeed) : context.getString(R.string.tool_speedtest_failed));
                 });
             } catch (Exception e) {
                 // 任何未捕获的异常均将所有结果显示为"失败"
                 ToolHelper.safeRunOnUiThread(context, () -> {
-                    if (tvPing != null) tvPing.setText("失败");
-                    if (tvDownload != null) tvDownload.setText("失败");
-                    if (tvUpload != null) tvUpload.setText("失败");
+                    if (tvPing != null) tvPing.setText(context.getString(R.string.tool_speedtest_short_failed));
+                    if (tvDownload != null) tvDownload.setText(context.getString(R.string.tool_speedtest_short_failed));
+                    if (tvUpload != null) tvUpload.setText(context.getString(R.string.tool_speedtest_short_failed));
                 });
             }
             // 无论成功或失败，恢复按钮可用状态

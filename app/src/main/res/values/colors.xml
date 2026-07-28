@@ -229,6 +229,14 @@
     <color name="streak_card_text_secondary">#3E2723</color>
     <color name="streak_card_progress_bg">#30FFFFFF</color>
 
+    <!-- ===== 本轮加法：Feature T 今日精选 L2 卡片（与每日蓝、连胜橙错开，翡翠绿=新鲜推荐） ===== -->
+    <color name="today_featured_card_bg_start">#059669</color>
+    <color name="today_featured_card_bg_end">#10B981</color>
+    <color name="today_featured_card_text">#FFFFFF</color>
+    <color name="today_featured_card_text_secondary">#D1FAE5</color>
+    <color name="today_featured_card_btn_bg">#FFFFFFFF</color>
+    <color name="today_featured_card_btn_text">#064E3B</color>
+
     <!-- ===== Feature D 视觉打磨：游戏图标渐变背景（按分类区分） ===== -->
     <color name="game_icon_gradient_classics_start">#FFB300</color>
     <color name="game_icon_gradient_classics_end">#FF8F00</color>

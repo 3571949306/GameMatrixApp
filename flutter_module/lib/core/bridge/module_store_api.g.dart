@@ -10,9 +10,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-  List<Object?>? replyList,
-  String channelName, {
-  required bool isNullValid,
+    List<Object?>? replyList,
+    String channelName, {
+    required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -34,11 +34,8 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
-List<Object?> wrapResponse({
-  Object? result,
-  PlatformException? error,
-  bool empty = false,
-}) {
+
+List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
   if (empty) {
     return <Object?>[];
   }
@@ -47,7 +44,6 @@ List<Object?> wrapResponse({
   }
   return <Object?>[error.code, error.message, error.details];
 }
-
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -60,9 +56,8 @@ bool _deepEquals(Object? a, Object? b) {
   }
   if (a is List && b is List) {
     return a.length == b.length &&
-        a.indexed.every(
-          ((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]),
-        );
+        a.indexed
+            .every(((int, dynamic) item) => _deepEquals(item.$2, b[item.$1]));
   }
   if (a is Map && b is Map) {
     if (a.length != b.length) {
@@ -111,6 +106,7 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
+
 /// Pigeon contract shared by the Flutter store and the authoritative Kotlin
 /// module core. All business state comes from the host; Flutter only owns UI
 /// preferences such as filters and search history.
@@ -149,6 +145,8 @@ class NativeModule {
     this.tags,
     this.screenshots,
     this.changelog,
+    this.detailsJson,
+    this.privacyJson,
   });
 
   String? id;
@@ -217,6 +215,12 @@ class NativeModule {
 
   List<String?>? changelog;
 
+  /// 模块详情 JSON 字符串（#11.1）：valueDescription/audience/offlineCapability 等
+  String? detailsJson;
+
+  /// 隐私卡 JSON 字符串（#11.2）：localData/cloudData/networkDomains 等
+  String? privacyJson;
+
   List<Object?> _toList() {
     return <Object?>[
       id,
@@ -252,12 +256,13 @@ class NativeModule {
       tags,
       screenshots,
       changelog,
+      detailsJson,
+      privacyJson,
     ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static NativeModule decode(Object result) {
     result as List<Object?>;
@@ -295,6 +300,8 @@ class NativeModule {
       tags: (result[30] as List<Object?>?)?.cast<String?>(),
       screenshots: (result[31] as List<Object?>?)?.cast<String?>(),
       changelog: (result[32] as List<Object?>?)?.cast<String?>(),
+      detailsJson: result[33] as String?,
+      privacyJson: result[34] as String?,
     );
   }
 
@@ -307,39 +314,7 @@ class NativeModule {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(id, other.id) &&
-        _deepEquals(name, other.name) &&
-        _deepEquals(shortDescription, other.shortDescription) &&
-        _deepEquals(description, other.description) &&
-        _deepEquals(versionName, other.versionName) &&
-        _deepEquals(versionCode, other.versionCode) &&
-        _deepEquals(installedVersionCode, other.installedVersionCode) &&
-        _deepEquals(runtime, other.runtime) &&
-        _deepEquals(deliveryType, other.deliveryType) &&
-        _deepEquals(state, other.state) &&
-        _deepEquals(route, other.route) &&
-        _deepEquals(entryClass, other.entryClass) &&
-        _deepEquals(entry, other.entry) &&
-        _deepEquals(serviceType, other.serviceType) &&
-        _deepEquals(launcherId, other.launcherId) &&
-        _deepEquals(iconUrl, other.iconUrl) &&
-        _deepEquals(category, other.category) &&
-        _deepEquals(fileSize, other.fileSize) &&
-        _deepEquals(builtIn, other.builtIn) &&
-        _deepEquals(required, other.required) &&
-        _deepEquals(featured, other.featured) &&
-        _deepEquals(enabled, other.enabled) &&
-        _deepEquals(updateAvailable, other.updateAvailable) &&
-        _deepEquals(compatible, other.compatible) &&
-        _deepEquals(rollbackAvailable, other.rollbackAvailable) &&
-        _deepEquals(minHostVersionCode, other.minHostVersionCode) &&
-        _deepEquals(maxHostVersionCode, other.maxHostVersionCode) &&
-        _deepEquals(permissions, other.permissions) &&
-        _deepEquals(permissionsDescription, other.permissionsDescription) &&
-        _deepEquals(dependencies, other.dependencies) &&
-        _deepEquals(tags, other.tags) &&
-        _deepEquals(screenshots, other.screenshots) &&
-        _deepEquals(changelog, other.changelog);
+    return _deepEquals(id, other.id) && _deepEquals(name, other.name) && _deepEquals(shortDescription, other.shortDescription) && _deepEquals(description, other.description) && _deepEquals(versionName, other.versionName) && _deepEquals(versionCode, other.versionCode) && _deepEquals(installedVersionCode, other.installedVersionCode) && _deepEquals(runtime, other.runtime) && _deepEquals(deliveryType, other.deliveryType) && _deepEquals(state, other.state) && _deepEquals(route, other.route) && _deepEquals(entryClass, other.entryClass) && _deepEquals(entry, other.entry) && _deepEquals(serviceType, other.serviceType) && _deepEquals(launcherId, other.launcherId) && _deepEquals(iconUrl, other.iconUrl) && _deepEquals(category, other.category) && _deepEquals(fileSize, other.fileSize) && _deepEquals(builtIn, other.builtIn) && _deepEquals(required, other.required) && _deepEquals(featured, other.featured) && _deepEquals(enabled, other.enabled) && _deepEquals(updateAvailable, other.updateAvailable) && _deepEquals(compatible, other.compatible) && _deepEquals(rollbackAvailable, other.rollbackAvailable) && _deepEquals(minHostVersionCode, other.minHostVersionCode) && _deepEquals(maxHostVersionCode, other.maxHostVersionCode) && _deepEquals(permissions, other.permissions) && _deepEquals(permissionsDescription, other.permissionsDescription) && _deepEquals(dependencies, other.dependencies) && _deepEquals(tags, other.tags) && _deepEquals(screenshots, other.screenshots) && _deepEquals(changelog, other.changelog) && _deepEquals(detailsJson, other.detailsJson) && _deepEquals(privacyJson, other.privacyJson);
   }
 
   @override
@@ -348,7 +323,7 @@ class NativeModule {
 
   @override
   String toString() {
-    return 'NativeModule(id: $id, name: $name, shortDescription: $shortDescription, description: $description, versionName: $versionName, versionCode: $versionCode, installedVersionCode: $installedVersionCode, runtime: $runtime, deliveryType: $deliveryType, state: $state, route: $route, entryClass: $entryClass, entry: $entry, serviceType: $serviceType, launcherId: $launcherId, iconUrl: $iconUrl, category: $category, fileSize: $fileSize, builtIn: $builtIn, required: $required, featured: $featured, enabled: $enabled, updateAvailable: $updateAvailable, compatible: $compatible, rollbackAvailable: $rollbackAvailable, minHostVersionCode: $minHostVersionCode, maxHostVersionCode: $maxHostVersionCode, permissions: $permissions, permissionsDescription: $permissionsDescription, dependencies: $dependencies, tags: $tags, screenshots: $screenshots, changelog: $changelog)';
+    return 'NativeModule(id: $id, name: $name, shortDescription: $shortDescription, description: $description, versionName: $versionName, versionCode: $versionCode, installedVersionCode: $installedVersionCode, runtime: $runtime, deliveryType: $deliveryType, state: $state, route: $route, entryClass: $entryClass, entry: $entry, serviceType: $serviceType, launcherId: $launcherId, iconUrl: $iconUrl, category: $category, fileSize: $fileSize, builtIn: $builtIn, required: $required, featured: $featured, enabled: $enabled, updateAvailable: $updateAvailable, compatible: $compatible, rollbackAvailable: $rollbackAvailable, minHostVersionCode: $minHostVersionCode, maxHostVersionCode: $maxHostVersionCode, permissions: $permissions, permissionsDescription: $permissionsDescription, dependencies: $dependencies, tags: $tags, screenshots: $screenshots, changelog: $changelog, detailsJson: $detailsJson, privacyJson: $privacyJson)';
   }
 }
 
@@ -386,8 +361,7 @@ class NativeCatalog {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static NativeCatalog decode(Object result) {
     result as List<Object?>;
@@ -410,12 +384,7 @@ class NativeCatalog {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(schemaVersion, other.schemaVersion) &&
-        _deepEquals(catalogVersion, other.catalogVersion) &&
-        _deepEquals(generatedAt, other.generatedAt) &&
-        _deepEquals(source, other.source) &&
-        _deepEquals(offline, other.offline) &&
-        _deepEquals(modules, other.modules);
+    return _deepEquals(schemaVersion, other.schemaVersion) && _deepEquals(catalogVersion, other.catalogVersion) && _deepEquals(generatedAt, other.generatedAt) && _deepEquals(source, other.source) && _deepEquals(offline, other.offline) && _deepEquals(modules, other.modules);
   }
 
   @override
@@ -466,8 +435,7 @@ class NativeModuleError {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static NativeModuleError decode(Object result) {
     result as List<Object?>;
@@ -491,13 +459,7 @@ class NativeModuleError {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(errorCode, other.errorCode) &&
-        _deepEquals(message, other.message) &&
-        _deepEquals(moduleId, other.moduleId) &&
-        _deepEquals(runtime, other.runtime) &&
-        _deepEquals(recoverable, other.recoverable) &&
-        _deepEquals(suggestedAction, other.suggestedAction) &&
-        _deepEquals(technicalDetails, other.technicalDetails);
+    return _deepEquals(errorCode, other.errorCode) && _deepEquals(message, other.message) && _deepEquals(moduleId, other.moduleId) && _deepEquals(runtime, other.runtime) && _deepEquals(recoverable, other.recoverable) && _deepEquals(suggestedAction, other.suggestedAction) && _deepEquals(technicalDetails, other.technicalDetails);
   }
 
   @override
@@ -511,7 +473,11 @@ class NativeModuleError {
 }
 
 class NativeOperationResult {
-  NativeOperationResult({this.success, this.module, this.error});
+  NativeOperationResult({
+    this.success,
+    this.module,
+    this.error,
+  });
 
   bool? success;
 
@@ -520,12 +486,15 @@ class NativeOperationResult {
   NativeModuleError? error;
 
   List<Object?> _toList() {
-    return <Object?>[success, module, error];
+    return <Object?>[
+      success,
+      module,
+      error,
+    ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static NativeOperationResult decode(Object result) {
     result as List<Object?>;
@@ -545,9 +514,7 @@ class NativeOperationResult {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(success, other.success) &&
-        _deepEquals(module, other.module) &&
-        _deepEquals(error, other.error);
+    return _deepEquals(success, other.success) && _deepEquals(module, other.module) && _deepEquals(error, other.error);
   }
 
   @override
@@ -594,8 +561,7 @@ class NativeDownloadProgress {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static NativeDownloadProgress decode(Object result) {
     result as List<Object?>;
@@ -618,12 +584,7 @@ class NativeDownloadProgress {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(moduleId, other.moduleId) &&
-        _deepEquals(downloadedBytes, other.downloadedBytes) &&
-        _deepEquals(totalBytes, other.totalBytes) &&
-        _deepEquals(speedKbps, other.speedKbps) &&
-        _deepEquals(percent, other.percent) &&
-        _deepEquals(state, other.state);
+    return _deepEquals(moduleId, other.moduleId) && _deepEquals(downloadedBytes, other.downloadedBytes) && _deepEquals(totalBytes, other.totalBytes) && _deepEquals(speedKbps, other.speedKbps) && _deepEquals(percent, other.percent) && _deepEquals(state, other.state);
   }
 
   @override
@@ -674,8 +635,7 @@ class NativeModuleEvent {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static NativeModuleEvent decode(Object result) {
     result as List<Object?>;
@@ -699,13 +659,7 @@ class NativeModuleEvent {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(eventType, other.eventType) &&
-        _deepEquals(moduleId, other.moduleId) &&
-        _deepEquals(runtime, other.runtime) &&
-        _deepEquals(state, other.state) &&
-        _deepEquals(timestampMillis, other.timestampMillis) &&
-        _deepEquals(progress, other.progress) &&
-        _deepEquals(error, other.error);
+    return _deepEquals(eventType, other.eventType) && _deepEquals(moduleId, other.moduleId) && _deepEquals(runtime, other.runtime) && _deepEquals(state, other.state) && _deepEquals(timestampMillis, other.timestampMillis) && _deepEquals(progress, other.progress) && _deepEquals(error, other.error);
   }
 
   @override
@@ -718,6 +672,7 @@ class NativeModuleEvent {
   }
 }
 
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -725,22 +680,22 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    } else if (value is NativeModule) {
+    }    else if (value is NativeModule) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    } else if (value is NativeCatalog) {
+    }    else if (value is NativeCatalog) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    } else if (value is NativeModuleError) {
+    }    else if (value is NativeModuleError) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    } else if (value is NativeOperationResult) {
+    }    else if (value is NativeOperationResult) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    } else if (value is NativeDownloadProgress) {
+    }    else if (value is NativeDownloadProgress) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is NativeModuleEvent) {
+    }    else if (value is NativeModuleEvent) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
     } else {
@@ -773,13 +728,9 @@ class ModuleStoreHostApi {
   /// Constructor for [ModuleStoreHostApi]. The [binaryMessenger] named argument is
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
-  ModuleStoreHostApi({
-    BinaryMessenger? binaryMessenger,
-    String messageChannelSuffix = '',
-  }) : pigeonVar_binaryMessenger = binaryMessenger,
-       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty
-           ? '.$messageChannelSuffix'
-           : '';
+  ModuleStoreHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
 
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
@@ -787,8 +738,7 @@ class ModuleStoreHostApi {
   final String pigeonVar_messageChannelSuffix;
 
   Future<NativeCatalog> getCatalog() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getCatalog$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getCatalog$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -798,16 +748,16 @@ class ModuleStoreHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeCatalog;
   }
 
   Future<NativeCatalog> refreshCatalog() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.refreshCatalog$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.refreshCatalog$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -817,16 +767,16 @@ class ModuleStoreHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeCatalog;
   }
 
   Future<List<NativeModule?>> getInstalledModules() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getInstalledModules$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getInstalledModules$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -836,268 +786,244 @@ class ModuleStoreHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return (pigeonVar_replyValue! as List<Object?>).cast<NativeModule?>();
   }
 
   Future<NativeModule> getModuleStatus(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getModuleStatus$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getModuleStatus$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeModule;
   }
 
   Future<NativeModule> getModuleDetails(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getModuleDetails$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getModuleDetails$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeModule;
   }
 
   Future<NativeOperationResult> downloadModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.downloadModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.downloadModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> cancelDownload(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.cancelDownload$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.cancelDownload$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> installModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.installModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.installModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> updateModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.updateModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.updateModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> uninstallModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.uninstallModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.uninstallModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> enableModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.enableModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.enableModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> disableModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.disableModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.disableModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> rollbackModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.rollbackModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.rollbackModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeOperationResult> openModule(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.openModule$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.openModule$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeOperationResult;
   }
 
   Future<NativeDownloadProgress> getDownloadProgress(String moduleId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getDownloadProgress$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getDownloadProgress$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[moduleId],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[moduleId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as NativeDownloadProgress;
   }
 
   Future<List<NativeModule?>> getUpdateableModules() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getUpdateableModules$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getUpdateableModules$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1107,16 +1033,16 @@ class ModuleStoreHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return (pigeonVar_replyValue! as List<Object?>).cast<NativeModule?>();
   }
 
   Future<List<NativeOperationResult?>> updateAllModules() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.updateAllModules$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.updateAllModules$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1126,58 +1052,53 @@ class ModuleStoreHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
-    return (pigeonVar_replyValue! as List<Object?>)
-        .cast<NativeOperationResult?>();
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<NativeOperationResult?>();
   }
 
   Future<String> getUiPreference(String key) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getUiPreference$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.getUiPreference$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[key],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[key]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as String;
   }
 
   Future<void> setUiPreference(String key, String value) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.setUiPreference$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.setUiPreference$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[key, value],
-    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[key, value]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> openLegacyStore() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.openLegacyStore$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreHostApi.openLegacyStore$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1187,10 +1108,11 @@ class ModuleStoreHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 }
 
@@ -1199,20 +1121,12 @@ abstract class ModuleStoreFlutterApi {
 
   void onModuleEvent(NativeModuleEvent event);
 
-  static void setUp(
-    ModuleStoreFlutterApi? api, {
-    BinaryMessenger? binaryMessenger,
-    String messageChannelSuffix = '',
-  }) {
-    messageChannelSuffix = messageChannelSuffix.isNotEmpty
-        ? '.$messageChannelSuffix'
-        : '';
+  static void setUp(ModuleStoreFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
       final pigeonVar_channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreFlutterApi.onModuleEvent$messageChannelSuffix',
-        pigeonChannelCodec,
-        binaryMessenger: binaryMessenger,
-      );
+          'dev.flutter.pigeon.game_matrix_flutter_store.ModuleStoreFlutterApi.onModuleEvent$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
@@ -1224,10 +1138,8 @@ abstract class ModuleStoreFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          } catch (e) {
-            return wrapResponse(
-              error: PlatformException(code: 'error', message: e.toString()),
-            );
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }

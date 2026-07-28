@@ -1575,7 +1575,15 @@ public class BrowserFragment extends Fragment implements
         if (readerModeHelper != null) { readerModeHelper.destroy(); readerModeHelper = null; }
         gestureHelper = null;
         urlInputHelper = null;
+        // P0 内存泄漏修复：清理 BrowserHomeHelper（之前完全遗漏，导致 View 树和站点图标 Bitmap 无法回收）
+        if (homeHelper != null) { homeHelper.destroy(); homeHelper = null; }
         if (controller != null) { controller.destroy(); controller = null; }
+        // P0 内存泄漏修复：兜底清理所有 mainHandler 延迟任务（含 pendingRefreshPrompt 等）
+        mainHandler.removeCallbacksAndMessages(null);
+        // P0 内存泄漏修复：关闭 ioExecutor，避免线程常驻并阻止 Fragment 回收
+        if (!ioExecutor.isShutdown()) {
+            ioExecutor.shutdownNow();
+        }
         super.onDestroyView();
     }
 

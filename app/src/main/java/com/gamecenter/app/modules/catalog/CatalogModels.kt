@@ -2,6 +2,8 @@ package com.gamecenter.app.modules.catalog
 
 import com.gamecenter.app.core.common.ModuleManifest
 import com.gamecenter.app.core.common.NavigationContribution
+import com.gamecenter.app.core.common.ModuleDetail
+import com.gamecenter.app.core.common.PrivacyCard
 
 enum class RuntimeType(val wireValue: String) {
     FLUTTER("flutter"),
@@ -27,6 +29,25 @@ enum class DeliveryType(val wireValue: String) {
     companion object {
         fun fromWire(value: String): DeliveryType? = entries.firstOrNull {
             it.wireValue.equals(value.trim(), ignoreCase = true)
+        }
+    }
+}
+
+/**
+ * 商店结果分类：按用户完成的任务类型组织模块，而非技术交付类型。
+ * 用于 Flutter 商店与原生商店的分组展示。
+ */
+enum class StoreCategory(val wireValue: String, val displayName: String) {
+    ENTERTAINMENT_VERSUS("entertainment_versus", "娱乐与对战"),
+    LEARNING_ORGANIZATION("learning_organization", "学习与整理"),
+    READING_BROWSING("reading_browsing", "阅读与浏览"),
+    TEXT_CREATION("text_creation", "文本与创作"),
+    DEVICE_NETWORK("device_network", "设备与网络"),
+    PERSONALIZATION("personalization", "个性化");
+
+    companion object {
+        fun fromWire(value: String?): StoreCategory? = value?.let { v ->
+            entries.firstOrNull { it.wireValue.equals(v.trim(), ignoreCase = true) }
         }
     }
 }
@@ -73,6 +94,7 @@ data class CatalogModule(
     val minHostVersionCode: Int = 0,
     val maxHostVersionCode: Int = 0,
     val category: String = "other",
+    val storeCategory: StoreCategory? = null,
     val permissions: List<CatalogPermission> = emptyList(),
     val dependencies: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
@@ -81,7 +103,11 @@ data class CatalogModule(
     val navigationContribution: NavigationContribution? = null,
     val packageInfo: CatalogPackage = CatalogPackage(),
     val assets: CatalogAssets = CatalogAssets(),
-    val legacyManifest: ModuleManifest? = null
+    val legacyManifest: ModuleManifest? = null,
+    /** 模块详情（#11.1）：价值描述、受众、离线能力、更新/卸载影响等 */
+    val details: ModuleDetail? = null,
+    /** 隐私卡（#11.2）：本地/云端数据、网络域、同步位置、保存期限、删除方式 */
+    val privacy: PrivacyCard? = null
 ) {
     fun isCompatibleWithHost(hostVersionCode: Int): Boolean {
         if (minHostVersionCode > 0 && hostVersionCode < minHostVersionCode) return false

@@ -1,6 +1,7 @@
 package com.gamecenter.app.modules.runtime
 
 import android.content.Context
+import com.gamecenter.app.R
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.modules.catalog.CatalogModule
 import com.gamecenter.app.modules.catalog.RuntimeType
@@ -23,7 +24,7 @@ object NativeServiceControllerRegistry {
             ?: return RuntimeResult(
                 false,
                 "service_type_unsupported",
-                "No host controller is registered for ${module.serviceType}"
+                context.getString(R.string.module_error_service_type_unsupported, module.serviceType)
             )
         return opener(context, module)
     }
@@ -32,13 +33,13 @@ object NativeServiceControllerRegistry {
 class NativeServiceRuntimeHandler : BaseRuntimeHandler(RuntimeType.NATIVE_SERVICE) {
     override fun install(context: Context, module: CatalogModule): RuntimeResult =
         if (ModuleManager.isModuleInstalled(context, module.id)) RuntimeResult(true)
-        else RuntimeResult(false, "not_installed", "The native service package is not installed")
+        else RuntimeResult(false, "not_installed", context.getString(R.string.module_error_native_service_not_installed))
 
     override fun open(context: Context, module: CatalogModule): RuntimeResult =
         NativeServiceControllerRegistry.open(context, module)
 
     override fun uninstall(context: Context, module: CatalogModule): RuntimeResult {
-        if (module.required) return RuntimeResult(false, "required_module", "Required services cannot be uninstalled")
+        if (module.required) return RuntimeResult(false, "required_module", context.getString(R.string.module_error_required_services_no_uninstall))
         ModuleManager.uninstallModule(context, module.id)
         return RuntimeResult(true)
     }

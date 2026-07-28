@@ -9,6 +9,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,6 +38,8 @@ class ModuleDetailBottomSheet : BottomSheetDialogFragment() {
     private var hasUpdate: Boolean = false
     private var installedVersion: Int = 0
     private var onAction: ((Int) -> Unit)? = null
+    // P3-12: 相似模块列表（由外部注入；为空时隐藏该区域）
+    private var siblings: List<ModuleManifest> = emptyList()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
@@ -187,6 +190,216 @@ class ModuleDetailBottomSheet : BottomSheetDialogFragment() {
         } else {
             permissionsSection.visibility = View.GONE
         }
+
+        // P3-12 (MODULE_STORE_ENHANCE): 用户评分区域
+        bindRating(view, module, context)
+
+        // P3-12: 相似模块推荐
+        bindSimilarModules(view, module, context)
+
+        // P3-12: 历史版本日志
+        bindVersionHistory(view, module, context)
+    }
+
+    /**
+     * P3-12: 绑定用户评分区域。
+     * 5 颗星点击即评分，使用 ModuleRatingStore 持久化（1~5 星）。
+     */
+    private fun bindRating(view: View, module: ModuleManifest, context: android.content.Context) {
+        val store = ModuleRatingStore(context)
+        val container = view.findViewById<LinearLayout>(R.id.detailRatingStarsContainer) ?: return
+        val tvValue = view.findViewById<TextView>(R.id.detailRatingValue) ?: return
+        val tvHint = view.findViewById<TextView>(R.id.detailRatingHint) ?: return
+        container.removeAllViews()
+        val userRating = store.getRating(module.id)
+        val density = context.resources.displayMetrics.density
+        val starSize = (20 * density).toInt()
+
+        // 显示综合评分（用户评分或 mock 3.8~5.0）
+        val baseRating = if (userRating > 0) userRating.toFloat()
+                else 3.8f + (Math.abs(module.id.hashCode()) % 13) * 0.1f
+        tvValue.text = String.format("%.1f", baseRating)
+        tvHint.text = if (userRating > 0)
+                context.getString(R.string.module_detail_rating_done, userRating)
+            else context.getString(R.string.module_detail_rating_hint)
+
+        for (i in 1..5) {
+            val star = ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(starSize, starSize).apply {
+                    marginEnd = (2 * density).toInt()
+                }
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                setImageResource(R.drawable.ic_rating_star)
+                if (i <= userRating || (userRating == 0 && i <= Math.round(baseRating))) {
+                    alpha = 1.0f
+                    colorFilter = android.graphics.PorterDuffColorFilter(
+                            ContextCompat.getColor(context, R.color.warning),
+                            android.graphics.PorterDuff.Mode.SRC_ATOP)
+                } else {
+                    alpha = 0.3f
+                    colorFilter = android.graphics.PorterDuffColorFilter(
+                            ContextCompat.getColor(context, R.color.md_theme_on_surface_variant),
+                            android.graphics.PorterDuff.Mode.SRC_ATOP)
+                }
+                isClickable = true
+                isFocusable = true
+                setOnClickListener {
+                    store.setRating(module.id, i)
+                    Toast.makeText(context,
+                            context.getString(R.string.module_detail_rating_thanks, i),
+                            Toast.LENGTH_SHORT).show()
+                    bindRating(view, module, context)
+                }
+            }
+            container.addView(star)
+        }
+    }
+
+    /**
+     * P3-12: 绑定相似模块推荐（横向列表，最多展示 4 个）。
+     * 数据源：siblings 列表（已由外部按 storeCategory 过滤）。
+     */
+    private fun bindSimilarModules(view: View, module: ModuleManifest, context: android.content.Context) {
+        val section = view.findViewById<View>(R.id.detailSimilarSection) ?: return
+        val rv = view.findViewById<RecyclerView>(R.id.detailSimilarList) ?: return
+        // 过滤掉自身和 base framework，最多 4 个
+        val list = siblings.filter { it.id != module.id && !it.isBaseFramework }.take(4)
+        if (list.isEmpty()) {
+            section.visibility = View.GONE
+            return
+        }
+        section.visibility = View.VISIBLE
+        rv.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        rv.adapter = SimilarModuleAdapter(context, list) { sibling ->
+            dismiss()
+            // 递归打开相似模块的详情
+            val ctx = context
+            val installed = ModuleManager.isModuleInstalled(ctx, sibling.id)
+            val installedVer = ModuleManager.getInstalledVersionCode(ctx, sibling.id)
+            show(parentFragmentManager, sibling, installed, false, installedVer) { _ -> }
+        }
+    }
+
+    /**
+     * P3-12: 绑定历史版本日志。
+     * 优先使用服务器下发的 changelog，否则按版本号回退生成 3 条历史。
+     */
+    private fun bindVersionHistory(view: View, module: ModuleManifest, context: android.content.Context) {
+        val section = view.findViewById<View>(R.id.detailVersionHistorySection) ?: return
+        val container = view.findViewById<LinearLayout>(R.id.detailVersionHistoryList) ?: return
+        container.removeAllViews()
+
+        // 生成最近 3 个版本（v{N}, v{N-1}, v{N-2}），最新版使用 module.changelog 或 mock
+        val currentVersion = module.versionCode.coerceAtLeast(1)
+        val padding = context.resources.getDimensionPixelSize(R.dimen.gm_spacing_1)
+        val versionsToShow = (0..2).map { offset ->
+            val vc = (currentVersion - offset).coerceAtLeast(1)
+            val versionName = if (offset == 0) module.versionName else "v${vc}"
+            val notes = if (offset == 0 && module.changelog.isNotEmpty()) {
+                module.changelog
+            } else {
+                generateMockVersionNotes(module, vc, offset)
+            }
+            versionName to notes
+        }
+
+        versionsToShow.forEach { (versionName, notes) ->
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, padding, 0, padding)
+            }
+            val tvVersion = TextView(context).apply {
+                text = versionName
+                setTextColor(ContextCompat.getColor(context, R.color.md_theme_on_surface))
+                textSize = 12f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            }
+            val tvNotes = TextView(context).apply {
+                text = notes
+                setTextColor(ContextCompat.getColor(context, R.color.md_theme_on_surface_variant))
+                textSize = 11f
+                setPadding(0, padding / 2, 0, 0)
+            }
+            row.addView(tvVersion)
+            row.addView(tvNotes)
+            container.addView(row)
+        }
+        section.visibility = View.VISIBLE
+    }
+
+    /** P3-12: 按 storeCategory 与版本号生成历史版本说明（兜底）。 */
+    private fun generateMockVersionNotes(module: ModuleManifest, versionCode: Int, offset: Int): String {
+        val sb = StringBuilder()
+        when (module.storeCategory) {
+            "game" -> {
+                sb.append("• 优化 AI 难度梯度\n")
+                sb.append("• 修复若干已知问题")
+            }
+            "browser" -> {
+                sb.append("• 性能与稳定性优化")
+            }
+            "tools" -> {
+                sb.append("• 修复偶现崩溃")
+            }
+            else -> {
+                sb.append("• 功能优化")
+            }
+        }
+        return sb.toString()
+    }
+
+    /** P3-12: 相似模块横向列表适配器。 */
+    private class SimilarModuleAdapter(
+        private val context: android.content.Context,
+        private val items: List<ModuleManifest>,
+        private val onClick: (ModuleManifest) -> Unit
+    ) : RecyclerView.Adapter<SimilarModuleAdapter.VH>() {
+
+        class VH(val container: LinearLayout) : RecyclerView.ViewHolder(container)
+
+        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): VH {
+            val density = context.resources.displayMetrics.density
+            val container = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                        (140 * density).toInt(),
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginEnd = (8 * density).toInt() }
+                setBackgroundResource(R.drawable.bg_tool_icon_circle)
+                setPadding((12 * density).toInt(), (12 * density).toInt(),
+                        (12 * density).toInt(), (12 * density).toInt())
+                isClickable = true
+                isFocusable = true
+            }
+            return VH(container)
+        }
+
+        override fun onBindViewHolder(holder: VH, position: Int) {
+            val item = items[position]
+            holder.container.removeAllViews()
+            val density = context.resources.displayMetrics.density
+            val tvName = TextView(context).apply {
+                text = item.name
+                setTextColor(ContextCompat.getColor(context, R.color.md_theme_on_surface))
+                textSize = 12f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+            val tvDesc = TextView(context).apply {
+                text = item.description
+                setTextColor(ContextCompat.getColor(context, R.color.md_theme_on_surface_variant))
+                textSize = 10f
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(0, (4 * density).toInt(), 0, 0)
+            }
+            holder.container.addView(tvName)
+            holder.container.addView(tvDesc)
+            holder.container.setOnClickListener { onClick(item) }
+        }
+
+        override fun getItemCount(): Int = items.size
     }
 
     /**
@@ -325,6 +538,8 @@ class ModuleDetailBottomSheet : BottomSheetDialogFragment() {
             sheet.installedVersion = installedVersion
             sheet.hasUpdate = isInstalled && !module.builtIn && installedVersion < module.versionCode && installedVersion > 0
             sheet.onAction = onAction
+            // P3-12: 自动注入相似模块（同分类，最多 6 个）
+            sheet.siblings = ModuleManager.getSimilarModules(module.id, 6)
             sheet.show(fragmentManager, "ModuleDetailBottomSheet")
         }
 

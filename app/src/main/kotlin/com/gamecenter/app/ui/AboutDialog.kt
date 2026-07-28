@@ -127,7 +127,7 @@ class AboutDialog(
     private fun copyVersionInfo(ctx: Context, versionDisplay: String) {
         try {
             val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            val clip = ClipData.newPlainText("GameMatrix version", versionDisplay)
+            val clip = ClipData.newPlainText(ctx.getString(R.string.clipboard_label_version), versionDisplay)
             cm?.setPrimaryClip(clip)
             Toast.makeText(ctx, R.string.about_copy_success, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {

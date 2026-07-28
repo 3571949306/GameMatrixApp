@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vpn_perm_required">需要 VPN 权限才能连接</string>
+    <string name="vpn_node_deleted">节点已删除</string>
+    <string name="vpn_add_node">添加节点</string>
+    <string name="vpn_add">添加</string>
+    <string name="vpn_node_added">节点已添加</string>
+    <string name="vpn_connecting">正在连接...</string>
+    <string name="vpn_bg_start_failed">无法在后台启动 VPN 服务，请保持应用在前台后重试</string>
+</resources>

@@ -40,6 +40,10 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
     val currentOcrProvider: String
         get() = ocrService.currentEngine
 
+    /** 当前 OCR 引擎是否为云端（供 UI 决定是否弹 consent） */
+    val isCloudOcrEngine: Boolean
+        get() = ocrService.isCloudEngine
+
     /** 当前 AI 模式标识（供 UI 溯源写入数据库） */
     val currentAiProvider: String
         get() = aiService.mode
@@ -47,6 +51,10 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
     /** 当前 AI 模型名称（供 UI 溯源写入数据库） */
     val currentAiModel: String
         get() = aiService.model
+
+    /** 当前 AI 分析是否为云端模式（cloud / backend_proxy） */
+    val isCloudAiMode: Boolean
+        get() = aiService.mode != "local"
 
     private val _questions = MutableLiveData<List<QuestionEntity>>()
     val questions: LiveData<List<QuestionEntity>> = _questions
@@ -173,10 +181,14 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun recognizeImage(imageUri: Uri, accurate: Boolean = false) {
+    fun recognizeImage(imageUri: Uri, accurate: Boolean = false, forceLocal: Boolean = false) {
         _isLoading.value = true
         viewModelScope.launch {
-            val result = ocrService.recognize(getApplication(), imageUri, accurate)
+            val result = if (forceLocal) {
+                ocrService.recognizeLocal(getApplication(), imageUri, accurate)
+            } else {
+                ocrService.recognize(getApplication(), imageUri, accurate)
+            }
             _ocrResult.postValue(result)
             _isLoading.postValue(false)
             if (!result.success) {
@@ -457,6 +469,17 @@ class WrongBookViewModel(application: Application) : AndroidViewModel(applicatio
             loadReviews()
             loadQuestions()
             loadTopicMastery()
+        }
+    }
+
+    /**
+     * 跳过复习项：持久化 status="skipped"，避免重新进入复习页时再次出现。
+     * 跳过不会提升 mastery（与 completeReview 区分）。
+     */
+    fun skipReview(plan: ReviewPlanEntity) {
+        viewModelScope.launch {
+            repository.skipReview(plan)
+            loadReviews()
         }
     }
 

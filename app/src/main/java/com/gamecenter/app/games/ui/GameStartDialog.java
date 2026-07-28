@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
 import java.util.ArrayList;
@@ -133,7 +134,7 @@ public class GameStartDialog extends Dialog {
 
         // 副标题
         TextView subtitle = new TextView(getContext());
-        subtitle.setText("选择难度开始游戏");
+        subtitle.setText(getContext().getString(R.string.game_start_subtitle));
         subtitle.setTextSize(14);
         subtitle.setTextColor(0xFFAAAAAA);
         subtitle.setGravity(android.view.Gravity.CENTER);

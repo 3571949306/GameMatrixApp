@@ -49,6 +49,7 @@ object LegacyCatalogAdapter {
             minHostVersionCode = manifest.minAppVersionCode,
             maxHostVersionCode = manifest.maxAppVersionCode,
             category = manifest.storeCategory.ifEmpty { manifest.category },
+            storeCategory = mapLegacyStoreCategory(manifest.storeCategory.ifEmpty { manifest.category }, manifest.id, manifest.type),
             permissions = manifest.permissions.mapIndexed { index, id ->
                 CatalogPermission(id, manifest.permissionsDescription.getOrNull(index).orEmpty())
             },
@@ -65,7 +66,9 @@ object LegacyCatalogAdapter {
                 githubUrl = manifest.githubUrl,
                 sha256 = manifest.sha256
             ),
-            legacyManifest = manifest
+            legacyManifest = manifest,
+            details = manifest.details,
+            privacy = manifest.privacy
         )
     }
 
@@ -87,6 +90,34 @@ object LegacyCatalogAdapter {
             runtimeType == RuntimeType.UNITY -> DeliveryType.CONTENT
             manifest.fileName.endsWith(".apk", true) -> DeliveryType.APK
             else -> DeliveryType.ZIP
+        }
+    }
+
+    /**
+     * 将旧版自由格式 storeCategory 字符串映射到新的标准枚举。
+     * 旧值包括 "game", "tools", "browser", "ai", "vpn" 等。
+     */
+    private fun mapLegacyStoreCategory(legacyValue: String, moduleId: String, moduleType: String): StoreCategory? {
+        // 先尝试直接匹配新枚举的 wireValue
+        StoreCategory.fromWire(legacyValue)?.let { return it }
+        // 再按旧值映射
+        return when (legacyValue.lowercase().trim()) {
+            "game", "games" -> StoreCategory.ENTERTAINMENT_VERSUS
+            "browser" -> StoreCategory.READING_BROWSING
+            "tools", "tool" -> StoreCategory.DEVICE_NETWORK
+            "ai" -> StoreCategory.TEXT_CREATION
+            "vpn" -> StoreCategory.DEVICE_NETWORK
+            "wrongbook", "wrong_book" -> StoreCategory.LEARNING_ORGANIZATION
+            "tts", "tts_voice", "voice" -> StoreCategory.TEXT_CREATION
+            else -> when {
+                moduleType.equals("game", true) -> StoreCategory.ENTERTAINMENT_VERSUS
+                moduleId == "browser" -> StoreCategory.READING_BROWSING
+                moduleId == "wrongbook" -> StoreCategory.LEARNING_ORGANIZATION
+                moduleId == "ai" -> StoreCategory.TEXT_CREATION
+                moduleId == "vpn" -> StoreCategory.DEVICE_NETWORK
+                moduleId == "tools" -> StoreCategory.DEVICE_NETWORK
+                else -> null
+            }
         }
     }
 }

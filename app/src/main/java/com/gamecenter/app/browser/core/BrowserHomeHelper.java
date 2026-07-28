@@ -72,6 +72,11 @@ public class BrowserHomeHelper {
     private ViewGroup cardsContainer;
     private ViewGroup minimalContainer;
 
+    // P0 内存泄漏修复：复用 Handler 以便在 destroy() 中移除待执行回调；
+    // 原 loadTopSitesAsync 每次创建新 Handler 且无法移除，异步任务完成前 Helper 不可回收。
+    private final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private volatile boolean destroyed = false;
+
     public BrowserHomeHelper(@NonNull Context context) {
         this.context = context.getApplicationContext();
         this.historyDao = BrowserDatabase.getInstance(this.context).historyDao();
@@ -150,7 +155,13 @@ public class BrowserHomeHelper {
                     if (merged.size() >= MAX_TOP_SITES) break;
                 }
                 final List<SiteEntry> finalList = merged;
-                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> bindSites(finalList));
+                // P0 内存泄漏修复：复用 mainHandler 以便 destroy() 时移除回调；
+                // 并在 post 前检查 destroyed 标志，避免 Helper 销毁后仍操作 stale view。
+                if (!destroyed) {
+                    mainHandler.post(() -> {
+                        if (!destroyed) bindSites(finalList);
+                    });
+                }
             } catch (Throwable t) {
                 Log.w(TAG, "loadTopSitesAsync failed", t);
             }
@@ -260,6 +271,10 @@ public class BrowserHomeHelper {
     }
 
     public void destroy() {
+        destroyed = true;
+        // P0 内存泄漏修复：移除所有待执行的 mainHandler 回调，
+        // 避免 AsyncTask 完成后仍通过 stale 引用操作已释放的 View。
+        mainHandler.removeCallbacksAndMessages(null);
         callback = null;
         rootView = null;
         gridContainer = null;

@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.SaveManager;
 import com.gamecenter.app.games.GameTutorialHelper;
 import com.gamecenter.app.games.GameUsageStore;
@@ -62,9 +63,14 @@ public class KlotskiModuleFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         moduleRes = com.gamecenter.app.modules.ModuleManager.INSTANCE.getModuleResources("klotski");
         if (moduleRes == null) {
-            Toast.makeText(requireContext(), "获取模块资源失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.klotski_get_resource_failed, Toast.LENGTH_SHORT).show();
             return new FrameLayout(requireContext());
         }
+
+        // 获取模块的 DexClassLoader，供 LayoutInflater 加载模块内的自定义 View（如 KlotskiView）
+        // 若不重写 getClassLoader()，LayoutInflater 会使用宿主 ClassLoader，导致 ClassNotFoundException。
+        final ClassLoader moduleClassLoader =
+                com.gamecenter.app.modules.ModuleLoader.INSTANCE.getModuleClassLoader("klotski");
 
         // 使用插件资源 Context 覆盖
         Context contextThemeWrapper = new ContextThemeWrapper(requireContext(), com.gamecenter.app.R.style.Theme_GameMatrixApp) {
@@ -77,10 +83,24 @@ public class KlotskiModuleFragment extends Fragment {
             public AssetManager getAssets() {
                 return moduleRes.getAssetManager();
             }
+
+            @Override
+            public ClassLoader getClassLoader() {
+                // 优先使用模块的 DexClassLoader，使 LayoutInflater 能加载模块自定义 View
+                return moduleClassLoader != null ? moduleClassLoader : super.getClassLoader();
+            }
         };
 
         LayoutInflater localInflater = inflater.cloneInContext(contextThemeWrapper);
         int layoutId = moduleRes.getLayoutResId("activity_klotski");
+        if (layoutId == 0) {
+            // 模块 APK 损坏或资源包名解析失败时 getLayoutResId 返回 0，直接 inflate 会触发
+            // Resources$NotFoundException 闪退。此处兜底返回空 FrameLayout，与 moduleRes==null 分支保持一致。
+            Log.e("KlotskiModuleFragment",
+                    "布局资源未找到: activity_klotski (moduleRes=" + moduleRes + ")");
+            Toast.makeText(requireContext(), R.string.klotski_get_resource_failed, Toast.LENGTH_SHORT).show();
+            return new FrameLayout(requireContext());
+        }
         View view = localInflater.inflate(layoutId, container, false);
 
         saveManager = SaveManager.getInstance(requireContext());
@@ -117,7 +137,7 @@ public class KlotskiModuleFragment extends Fragment {
         klotskiView.setOnWinListener(() -> {
             int moves = game.getMoves();
             updateStatus("🎉 完成！曹操逃出华容道！");
-            Toast.makeText(requireContext(), "恭喜！总步数：" + moves, Toast.LENGTH_LONG).show();
+            Toast.makeText(requireContext(), getString(R.string.klotski_win_format, moves), Toast.LENGTH_LONG).show();
             saveManager.deleteSave(GAME_ID, SLOT_AUTO);
             saveBestMoves(moves);
             if (elapsedMs > 0) {
@@ -140,7 +160,7 @@ public class KlotskiModuleFragment extends Fragment {
             isHintSearching = false;
             saveManager.deleteSave(GAME_ID, SLOT_AUTO);
             resetTimer();
-            Toast.makeText(requireContext(), "已重置到初始状态", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.klotski_reset, Toast.LENGTH_SHORT).show();
         });
 
         // 打乱按钮
@@ -152,18 +172,18 @@ public class KlotskiModuleFragment extends Fragment {
             updateStatus("🔀 已随机打乱（可解）");
             tvMoves.setText("");
             isHintSearching = false;
-            Toast.makeText(requireContext(), "已通过合法移动打乱，保证可解", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.klotski_shuffled, Toast.LENGTH_SHORT).show();
         });
 
         // 提示按钮
         Button btnHint = view.findViewById(getResId("btn_hint", "id"));
         btnHint.setOnClickListener(v -> {
             if (game.isWon()) {
-                Toast.makeText(requireContext(), "已经获胜，无需提示!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.klotski_already_won, Toast.LENGTH_SHORT).show();
                 return;
             }
             if (isHintSearching) {
-                Toast.makeText(requireContext(), "正在计算中，请稍候...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.klotski_computing, Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -189,10 +209,10 @@ public class KlotskiModuleFragment extends Fragment {
                         String dir = getDirection(hint.dx, hint.dy);
                         klotskiView.showHint(hint);
                         updateStatus("💡 移动「" + block.name + "」向" + dir + "\n预计 " + hint.totalSteps + " 步到出口");
-                        Toast.makeText(requireContext(), "按箭头移动后，再点提示查看下一步", Toast.LENGTH_LONG).show();
+                        Toast.makeText(requireContext(), R.string.klotski_hint_tip, Toast.LENGTH_LONG).show();
                     } else {
                         updateStatus("未找到解法，请尝试其他走法");
-                        Toast.makeText(requireContext(), "计算未完成，请重试", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), R.string.klotski_compute_retry, Toast.LENGTH_SHORT).show();
                     }
                 });
             }).start();
@@ -221,7 +241,7 @@ public class KlotskiModuleFragment extends Fragment {
         }
         if (tvMoves != null) {
             if (game.getMoves() > 0) {
-                tvMoves.setText("步数：" + game.getMoves());
+                tvMoves.setText(getString(R.string.klotski_moves_format, game.getMoves()));
             } else {
                 tvMoves.setText("");
             }

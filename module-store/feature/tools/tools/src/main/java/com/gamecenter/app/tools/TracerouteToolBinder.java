@@ -56,7 +56,7 @@ public class TracerouteToolBinder implements ToolBinder {
      */
     private void runTraceroute(Context context, MaterialButton btnStart, View contentView, ExecutorService executor) {
         btnStart.setEnabled(false);
-        btnStart.setText("追踪中...");
+        btnStart.setText(context.getString(R.string.tool_traceroute_running));
         EditText etHost = contentView.findViewById(R.id.et_trace_host);
         TextView tvResult = contentView.findViewById(R.id.tv_trace_result);
         String host = etHost != null ? etHost.getText().toString().trim() : "119.29.29.29";
@@ -86,7 +86,7 @@ public class TracerouteToolBinder implements ToolBinder {
             ToolHelper.safeRunOnUiThread(context, () -> {
                 if (tvResult != null) tvResult.setText(res);
                 btnStart.setEnabled(true);
-                btnStart.setText("追踪");
+                btnStart.setText(context.getString(R.string.tool_traceroute_start));
             });
         });
     }

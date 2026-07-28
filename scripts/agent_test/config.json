@@ -1,0 +1,34 @@
+{
+  "appium_server_url": "http://127.0.0.1:4723",
+  "capabilities": {
+    "platformName": "Android",
+    "automationName": "UiAutomator2",
+    "deviceName": "f0363bc0",
+    "appPackage": "com.gamecenter.app",
+    "appActivity": ".SplashActivity",
+    "noReset": true,
+    "autoGrantPermissions": true,
+    "skipServerInstallation": true,
+    "skipServerCleanup": true,
+    "uiautomator2ServerLaunchTimeout": 60000,
+    "uiautomator2ServerInstallTimeout": 60000,
+    "adbExecTimeout": 30000
+  },
+  "explore": {
+    "max_steps": 200,
+    "max_duration_seconds": 1800,
+    "max_no_new_state_count": 15,
+    "max_backtrack_depth": 8,
+    "screenshot_every_step": true,
+    "adb_path": "adb",
+    "device_id": "f0363bc0",
+    "test_input_texts": {
+      "default": "测试输入",
+      "search": "中国象棋",
+      "ai_chat": "你好，请介绍一下自己"
+    }
+  },
+  "report": {
+    "output_dir": "reports"
+  }
+}

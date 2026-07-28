@@ -53,9 +53,9 @@ public class WifiToolBinder implements ToolBinder {
         TextView tvMobileSignal = contentView.findViewById(R.id.tv_mobile_signal);
         TextView tvMobileOperator = contentView.findViewById(R.id.tv_mobile_operator);
 
-        if (tvMobileType != null) tvMobileType.setText("网络类型: " + getMobileNetworkType());
-        if (tvMobileSignal != null) tvMobileSignal.setText("信号强度: " + getMobileSignalText(context));
-        if (tvMobileOperator != null) tvMobileOperator.setText("运营商: " + getMobileOperator());
+        if (tvMobileType != null) tvMobileType.setText(context.getString(R.string.tool_wifi_type_format, getMobileNetworkType()));
+        if (tvMobileSignal != null) tvMobileSignal.setText(context.getString(R.string.tool_wifi_signal_format, getMobileSignalText(context)));
+        if (tvMobileOperator != null) tvMobileOperator.setText(context.getString(R.string.tool_wifi_operator_format, getMobileOperator()));
     }
 
     /**

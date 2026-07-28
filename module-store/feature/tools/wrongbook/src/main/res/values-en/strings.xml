@@ -184,4 +184,43 @@
     <string name="wrongbook_cloud_restore_failed">Cloud restore failed</string>
     <string name="wrongbook_cloud_backup_failed_with_reason">Cloud backup failed: %1$s</string>
     <string name="wrongbook_cloud_restore_failed_with_reason">Cloud restore failed: %1$s</string>
+
+    <!-- Externalized hardcoded strings -->
+    <string name="wrongbook_saved">Question saved successfully!</string>
+    <string name="wrongbook_add_subject">Add Subject</string>
+    <string name="wrongbook_rename_subject">Rename Subject</string>
+    <string name="wrongbook_subject_name_exists">Subject name already exists</string>
+    <string name="wrongbook_delete_subject">Delete Subject</string>
+    <string name="wrongbook_delete_subject_msg">Are you sure you want to delete subject \"%1$s\"? Questions under this subject will not be deleted and will be moved to \"General\".</string>
+    <string name="wrongbook_no_backup">No backup file found. Please export a backup first.</string>
+    <string name="wrongbook_no_subject">No subject yet. Please add one in the top-right corner.</string>
+    <string name="wrongbook_not_found">Question data not found</string>
+    <string name="wrongbook_content_empty">Question content cannot be empty</string>
+    <string name="wrongbook_save_success">Saved successfully</string>
+    <string name="wrongbook_modify_subject">Modify Subject</string>
+    <string name="wrongbook_filter_subject">Filter Subject</string>
+    <string name="wrongbook_sort_method">Sort Method</string>
+    <string name="wrongbook_no_data">No data</string>
+    <string name="wrongbook_total_label">Total questions</string>
+
+    <!-- #24.4 OCR cloud call consent -->
+    <string name="wrongbook_ocr_consent_title">OCR Recognition Consent</string>
+    <string name="wrongbook_ocr_consent_send">Your photo will be uploaded as Base64-encoded data to a cloud OCR service for text recognition.</string>
+    <string name="wrongbook_ocr_consent_purpose">Used to recognize text in images to assist with organizing wrong questions.</string>
+    <string name="wrongbook_ocr_consent_local">You can use the local ML Kit OCR engine (switch in WrongBook settings) for offline recognition without uploading images.</string>
+    <string name="wrongbook_ocr_consent_cost">Requires network connection and consumes data; billed according to the Baidu OCR API quota.</string>
+    <string name="wrongbook_ocr_consent_cancel">Click \"Cancel\" to abort; you can switch to the local engine in WrongBook settings.</string>
+    <string name="wrongbook_ocr_consent_provider">Service provided by Baidu OCR or a self-hosted backend proxy.</string>
+    <string name="wrongbook_ocr_consent_retention">Image data is processed by the OCR provider; see their privacy policy for retention details.</string>
+    <string name="wrongbook_ocr_cancelled">Cloud recognition cancelled</string>
+
+    <!-- #24.3 WrongBook AI analysis cloud call consent -->
+    <string name="wrongbook_ai_consent_title">AI Analysis Consent</string>
+    <string name="wrongbook_ai_consent_send">Your question text will be sent to a cloud AI model for analysis.</string>
+    <string name="wrongbook_ai_consent_purpose">Used to automatically identify question type, difficulty, knowledge points, and generate explanations.</string>
+    <string name="wrongbook_ai_consent_cost">Requires network connection and consumes data; billed according to the AI provider\'s pricing.</string>
+    <string name="wrongbook_ai_consent_cancel">Click \"Cancel\" to abort; you can switch modes in WrongBook settings.</string>
+    <string name="wrongbook_ai_consent_provider">Service provided by your configured AI provider (e.g., DeepSeek, Zhipu GLM).</string>
+    <string name="wrongbook_ai_consent_retention">Data retention policy is determined by the AI provider; see their privacy policy.</string>
+    <string name="wrongbook_ai_cancelled">Cloud analysis cancelled</string>
 </resources>

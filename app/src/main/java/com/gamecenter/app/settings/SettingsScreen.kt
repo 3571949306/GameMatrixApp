@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -58,10 +59,10 @@ data class SettingsUiState(
 )
 
 /** 主题模式枚举（与 SettingsActivity#showThemeDialog 旧实现保持一致：0/1/2） */
-enum class ThemeMode(val storageValue: Int, val label: String) {
-    FOLLOW_SYSTEM(0, "跟随系统"),
-    LIGHT(1, "浅色模式"),
-    DARK(2, "深色模式"),
+enum class ThemeMode(val storageValue: Int, @androidx.annotation.StringRes val labelRes: Int) {
+    FOLLOW_SYSTEM(0, R.string.theme_system),
+    LIGHT(1, R.string.theme_light),
+    DARK(2, R.string.theme_dark),
 }
 
 /** 开源许可占位数据 */
@@ -115,11 +116,11 @@ fun SettingsScreen(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text("设置") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
+                        contentDescription = stringResource(R.string.back),
                         modifier = Modifier
                             .size(dimensionResource(R.dimen.gm_touch_target))
                             .clickable(onClick = callbacks.onBack)
@@ -137,14 +138,15 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.gm_spacing_2)),
         ) {
             // ===== 通用 =====
-            item { SectionHeader("通用") }
+            item { SectionHeader(stringResource(R.string.general)) }
             item {
+                val followSystemLabel = stringResource(R.string.settings_language_follow_system)
                 ListItem(
                     leadingContent = {
                         Icon(Icons.Default.Star, contentDescription = null)
                     },
-                    headlineContent = { Text("语言") },
-                    supportingContent = { Text(state.languageLabel.ifEmpty { "跟随系统" }) },
+                    headlineContent = { Text(stringResource(R.string.language)) },
+                    supportingContent = { Text(state.languageLabel.ifEmpty { followSystemLabel }) },
                     modifier = Modifier.clickable(onClick = callbacks.onLanguageClick),
                 )
             }
@@ -153,20 +155,20 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(Icons.Default.Build, contentDescription = null)
                     },
-                    headlineContent = { Text("默认游戏") },
+                    headlineContent = { Text(stringResource(R.string.settings_default_game)) },
                     supportingContent = { Text(state.defaultGameLabel) },
                     modifier = Modifier.clickable(onClick = callbacks.onDefaultGameClick),
                 )
             }
 
             // ===== 外观 =====
-            item { SectionHeader("外观") }
+            item { SectionHeader(stringResource(R.string.appearance)) }
             item {
                 ListItem(
                     leadingContent = {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                     },
-                    headlineContent = { Text("主题模式") },
+                    headlineContent = { Text(stringResource(R.string.settings_theme_mode)) },
                 )
             }
             item {
@@ -180,9 +182,9 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(Icons.Default.Face, contentDescription = null)
                     },
-                    headlineContent = { Text("动态取色") },
+                    headlineContent = { Text(stringResource(R.string.settings_dynamic_color_title)) },
                     supportingContent = {
-                        Text("Android 12+ 跟随壁纸取色（Phase 2 接入）")
+                        Text(stringResource(R.string.settings_dynamic_color_desc))
                     },
                     trailingContent = {
                         Switch(
@@ -194,13 +196,13 @@ fun SettingsScreen(
             }
 
             // ===== 游戏 =====
-            item { SectionHeader("游戏") }
+            item { SectionHeader(stringResource(R.string.game)) }
             item {
                 ListItem(
                     leadingContent = {
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                     },
-                    headlineContent = { Text("游戏音效") },
+                    headlineContent = { Text(stringResource(R.string.settings_game_sound)) },
                     trailingContent = {
                         Switch(
                             checked = state.soundEnabled,
@@ -214,7 +216,7 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(Icons.Default.Notifications, contentDescription = null)
                     },
-                    headlineContent = { Text("震动反馈") },
+                    headlineContent = { Text(stringResource(R.string.settings_vibration)) },
                     trailingContent = {
                         Switch(
                             checked = state.vibrationEnabled,
@@ -225,13 +227,13 @@ fun SettingsScreen(
             }
 
             // ===== 关于 =====
-            item { SectionHeader("关于") }
+            item { SectionHeader(stringResource(R.string.about)) }
             item {
                 ListItem(
                     leadingContent = {
                         Icon(Icons.Default.Info, contentDescription = null)
                     },
-                    headlineContent = { Text("版本") },
+                    headlineContent = { Text(stringResource(R.string.about_app_version)) },
                     supportingContent = {
                         Text(
                             text = state.appVersion,
@@ -245,7 +247,7 @@ fun SettingsScreen(
                     leadingContent = {
                         Icon(Icons.Default.Settings, contentDescription = null)
                     },
-                    headlineContent = { Text("关于 GameCenter") },
+                    headlineContent = { Text(stringResource(R.string.about_gamecenter_title)) },
                     modifier = Modifier.clickable(onClick = callbacks.onAboutClick),
                 )
             }
@@ -306,7 +308,7 @@ private fun ThemeModeSelector(
                     onClick = { onSelect(mode) },
                 )
                 Text(
-                    text = mode.label,
+                    text = stringResource(mode.labelRes),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(start = dimensionResource(R.dimen.gm_spacing_2)),
                 )

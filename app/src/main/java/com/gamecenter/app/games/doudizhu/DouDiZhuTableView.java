@@ -552,6 +552,11 @@ public class DouDiZhuTableView extends View {
                 // 缩放到位图到计算出的卡牌尺寸
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap,
                         (int) calculatedCardWidth, (int) calculatedCardHeight, true);
+                // P0 内存泄漏修复：回收原始 Bitmap（createScaledBitmap 已创建新实例时）。
+                // createScaledBitmap 在尺寸一致时可能返回同一实例，需判断后再回收。
+                if (scaledBitmap != bitmap && !bitmap.isRecycled()) {
+                    bitmap.recycle();
+                }
                 cardBitmapCache.put(resName, scaledBitmap);
                 return scaledBitmap;
             }
@@ -2274,12 +2279,20 @@ public class DouDiZhuTableView extends View {
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         cancelAnimations();
-        // 清理位图缓存
+        // P0 内存泄漏修复：清理位图缓存并回收所有 Bitmap。
+        // cardBackBitmap 由 Bitmap.createBitmap 程序化创建（非资源加载），
+        // 回收安全；cardBitmapCache 中每个 Bitmap 也需显式 recycle。
         if (cardBitmapCache != null) {
+            for (Bitmap bmp : cardBitmapCache.values()) {
+                if (bmp != null && !bmp.isRecycled()) {
+                    bmp.recycle();
+                }
+            }
             cardBitmapCache.clear();
         }
         if (cardBackBitmap != null && !cardBackBitmap.isRecycled()) {
-            // cardBackBitmap.recycle(); // 如果使用真实图片，取消这行
+            cardBackBitmap.recycle();
         }
+        cardBackBitmap = null;
     }
 }

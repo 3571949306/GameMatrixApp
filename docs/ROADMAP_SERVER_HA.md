@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # 服务端高可用方案路线图
+
+> **历史路线图快照（编制：2026-07-19，基线：vc587）**  
+> 本文记录当时的服务端拓扑、风险和容灾方案。域名、节点、回退源和线上可用性需要按当前部署与真实探测复核；客户端当前实现与发布门槛见 [`CURRENT_STATE.md`](CURRENT_STATE.md)。
 
 > **文档编号**：ROADMAP-SERVER-HA-001
 > **覆盖改进项**：P1-5（服务端单点风险）

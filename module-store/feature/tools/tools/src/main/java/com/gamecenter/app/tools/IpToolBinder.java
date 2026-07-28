@@ -180,8 +180,8 @@ public class IpToolBinder implements ToolBinder {
             // 所有 API 均失败时的兜底处理（三个客服电话都打不通）
             if (!success) {
                 ToolHelper.safeRunOnUiThread(context, () -> {
-                    if (tvPublicIp != null) tvPublicIp.setText("获取失败");
-                    if (tvIpLocation != null) tvIpLocation.setText("请检查网络连接后重试");
+                    if (tvPublicIp != null) tvPublicIp.setText(context.getString(R.string.tool_ip_fetch_failed));
+                    if (tvIpLocation != null) tvIpLocation.setText(context.getString(R.string.tool_ip_check_network));
                 });
             }
         });

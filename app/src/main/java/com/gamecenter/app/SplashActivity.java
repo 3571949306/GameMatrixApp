@@ -172,6 +172,19 @@ public class SplashActivity extends AppCompatActivity {
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
+                        // P3-11: 首次启动时进入新手引导
+                        if (!com.gamecenter.app.ui.onboarding.OnboardingActivity.isCompleted(SplashActivity.this)) {
+                            Intent onboardingIntent = new Intent(SplashActivity.this,
+                                    com.gamecenter.app.ui.onboarding.OnboardingActivity.class);
+                            String navTab = getIntent().getStringExtra(MainActivity.EXTRA_NAV_TAB);
+                            if (navTab != null) {
+                                onboardingIntent.putExtra(MainActivity.EXTRA_NAV_TAB, navTab);
+                            }
+                            startActivity(onboardingIntent);
+                            finish();
+                            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                            return;
+                        }
                         Intent mainIntent = new Intent(SplashActivity.this, MainActivity.class);
                         // Batch 14 (BROWSER_SMART_URL_BAR 测试辅助)：转发 EXTRA_NAV_TAB extra，
                         // 支持通过 adb am start --es extra_nav_tab browser 直接启动到指定 tab，

@@ -1,7 +1,7 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # Baseline Profile (启动加速)
+
+> **当前技术参考（最后核验：2026-07-27）**  
+> 本文记录启动性能优化约定。vc595 Flutter 商店发布结果属于历史证据；当前性能目标、构建配置和真实设备测量以 [`CURRENT_STATE.md`](CURRENT_STATE.md) 与当次 benchmark 为准。
 
 ## 是什么
 

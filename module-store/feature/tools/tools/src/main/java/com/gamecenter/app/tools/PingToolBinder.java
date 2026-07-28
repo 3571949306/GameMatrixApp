@@ -63,7 +63,7 @@ public final class PingToolBinder implements ToolBinder {
     private void runPing(Context context, MaterialButton btnStart, View contentView, ExecutorService executor) {
         // 禁用按钮防止重复点击，并显示"进行中"状态
         btnStart.setEnabled(false);
-        btnStart.setText("Ping中...");
+        btnStart.setText(context.getString(R.string.tool_ping_button_running));
 
         // 找到输入框和结果显示区域
         EditText etHost = contentView.findViewById(R.id.et_ping_host);
@@ -107,14 +107,14 @@ public final class PingToolBinder implements ToolBinder {
                 ToolHelper.safeRunOnUiThread(context, () -> {
                     if (tvResult != null) tvResult.setText(res);
                     btnStart.setEnabled(true);   // 恢复按钮可用
-                    btnStart.setText("Ping");     // 恢复按钮文字
+                    btnStart.setText(context.getString(R.string.tool_ping_button_idle));     // 恢复按钮文字
                 });
             } catch (Exception e) {
                 // 出现异常时也要恢复按钮状态，并显示错误信息
                 ToolHelper.safeRunOnUiThread(context, () -> {
-                    if (tvResult != null) tvResult.setText("失败: " + e.getMessage());
+                    if (tvResult != null) tvResult.setText(context.getString(R.string.tool_ping_failed, e.getMessage()));
                     btnStart.setEnabled(true);
-                    btnStart.setText("Ping");
+                    btnStart.setText(context.getString(R.string.tool_ping_button_idle));
                 });
             }
         });

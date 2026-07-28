@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gamecenter.app.wrongbook.R
+import com.gamecenter.app.wrongbook.data.MasteryLevel
 import com.gamecenter.app.wrongbook.data.QuestionEntity
 import com.gamecenter.app.wrongbook.databinding.FragmentDashboardBinding
 import java.util.*
@@ -76,7 +77,9 @@ class DashboardFragment : BaseWrongBookFragment() {
         }
 
         viewModel.topicMastery.observe(viewLifecycleOwner) { list ->
-            val weak = list.filter { it.mastery < 60 }.sortedBy { it.mastery }
+            // 薄弱知识点：统一使用 MasteryLevel.REVIEWING_THRESHOLD（50）作为分界线，
+            // 与列表页颜色分级一致（之前用 60 导致同一道题在列表页"中"色但看板页不算薄弱）。
+            val weak = list.filter { MasteryLevel.isWeak(it.mastery) }.sortedBy { it.mastery }
             topicAdapter.submitList(weak)
             binding.tvWeakTopics.text = weak.size.toString()
             binding.tvNoWeakTopics.visibility = if (weak.isEmpty()) View.VISIBLE else View.GONE
@@ -113,15 +116,10 @@ class DashboardFragment : BaseWrongBookFragment() {
         val subjectMap = questionsList.groupBy { it.subject }.mapValues { it.value.size }
         binding.pieChartView.setData(subjectMap)
 
-        // 3. 掌握度级别分布
+        // 3. 掌握度级别分布（四档细分，仅图表使用；状态文案与颜色统一走 MasteryLevel）
         val masteryDist = IntArray(4)
         questionsList.forEach { q ->
-            when {
-                q.mastery < 30 -> masteryDist[0]++
-                q.mastery < 60 -> masteryDist[1]++
-                q.mastery < 80 -> masteryDist[2]++
-                else -> masteryDist[3]++
-            }
+            masteryDist[MasteryLevel.chartDistributionIndex(q.mastery)]++
         }
         binding.masteryChartView.setDistribution(masteryDist)
     }

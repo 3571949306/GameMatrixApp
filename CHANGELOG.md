@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 下文任何关于 vc595 / 已签名 Catalog V8 的陈述均记录 2026-07-22 的发布证据。它不是当前工作树或生产状态的声明；实时事实请查阅项目根目录的 `docs/CURRENT_STATE.md` 与当前实现。
 
 # GameMatrixApp - 版本更新日志
 
@@ -312,7 +312,7 @@
 
 - stable `versionCode 593` / `versionName 1.4.1` 已发布，正式包名为 `com.gamecenter.app`，Flutter 商店与生产 Catalog 强制验签已启用。
 - Catalog V8、Ed25519 `X-Catalog-Signature`、34 项正式目录、动态 APK 与受控 Web/Asset/Unity 灰度包均已上线；灰度验证条目已从最终目录移除。
-- 公网 APK 必须完成全量回下载、逐字节一致、包名/版本/ABI/证书复核；最终不可自引用的大小与 SHA-256 记录在权威 `docs/flutter-store/MIGRATION_STATUS.md`。
+- 公网 APK 必须完成全量回下载、逐字节一致、包名/版本/ABI/证书复核；当时的大小与 SHA-256 属于该发布快照，当前发布事实以 `docs/CURRENT_STATE.md` 和当次产物验证为准。
 - 本轮未改动棋类 AI 业务代码，未执行 Git 提交或推送；已在用户授权下完成 VPS 原子发布与公网验收。
 
 ## [模块商店签名修复 + tts_voice/wrongbook 分类可下载] - 2026-07-20

@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 下文任何关于 vc595 / 已签名 Catalog V8 的陈述均记录 2026-07-22 的发布证据。它不是当前工作树或生产状态的声明；实时事实请查阅项目根目录的 `docs/CURRENT_STATE.md` 与当前实现。
 
 # Module Store Redesign Plan
 
@@ -14,7 +14,7 @@ Scope: redesign the GameMatrixApp module store so app functionality can evolve i
 
 This plan's P0-P6 Android hybrid architecture now serves as the authoritative backend and legacy fallback for the Flutter store. Flutter owns store presentation, routes and UI preferences; it does not replace `ModuleManager`, signature verification, transactional installation, rollback, Android module loading, services or Unity lifecycle management.
 
-The new path is selected through `-PenableFlutterModuleStore=true`; the source default remains a safe fallback, while stable vc595 is built with the production path enabled. Flutter UI, Android integration, runtime contracts, Android 11–15, signed Catalog V8, controlled multi-runtime rollout, and public APK verification are 100% complete. The current source of truth is `/docs/flutter-store/MIGRATION_STATUS.md`.
+The new path is selected through `-PenableFlutterModuleStore=true`; the source default remains a safe fallback, while stable vc595 was built with the production path enabled. Flutter UI, Android integration, runtime contracts, Android 11–15, signed Catalog V8, controlled multi-runtime rollout, and public APK verification are release evidence for that snapshot. The current source of truth is `/docs/CURRENT_STATE.md`.
 
 Primary reference:
 

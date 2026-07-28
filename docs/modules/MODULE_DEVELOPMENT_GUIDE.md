@@ -1,13 +1,15 @@
-<!-- flutter-store-doc-sync: 2026-07-22 -->
-> **Flutter-first production sync:** The Flutter module-store UI and customizable host navigation are live in stable vc595; Android remains authoritative for catalog trust, download, install, rollback, and runtime lifecycle. Production completion: 100%. See `/docs/flutter-store/MIGRATION_STATUS.md`.
-
 # 模块开发指南 / Module Development Guide
+
+> **当前参考（最后核验：2026-07-27）**  
+> 本文约束新模块的开发与发布。当前发布事实、Catalog 差异、签名门槛与 Runtime 边界见 [`../CURRENT_STATE.md`](../CURRENT_STATE.md) 和 [`../DOCUMENTATION_GOVERNANCE.md`](../DOCUMENTATION_GOVERNANCE.md)。
+>
+> 当前 Catalog 的正式记录以 `deliveryType=apk` 为主；旧 ZIP/资源包说明仅作为兼容能力，不能假定所有游戏模块都是 ZIP，或假定 ZIP 是新模块的默认生产交付格式。模块作者应以当前 Catalog、`ModuleDownloader`、`ModuleLoader`、`ModuleCoreFacade` 和发布任务为最终合同。
 
 > **文档版本**: v1.1  
 > **创建日期**: 2026-05-26  
 > **最后更新**: 2026-07-22 (Flutter-first 与宿主导航扩展同步)  
 > **维护者**: GameCenterApp Team  
-> **当前工作树/生产版本**: versionCode=595 / versionName=1.4.1 (lastStable=594/1.4.1)  
+> **版本语义**: 工作版本和最近稳定版均以 `version.properties` 为准；发布模块前必须以当次 APK、Catalog、签名和真机验证为准。  
 > **项目根**: d:\Developmment\GameMatrixApp
 
 ---
@@ -27,24 +29,28 @@
 
 ## 模块概述 / Module Overview
 
-GameCenterApp 采用**模块化架构**，支持动态加载模块。模块分为两类：
+GameCenterApp 采用**模块化架构**，支持动态加载模块。当前平台可处理多种 Runtime/交付方式；**新模块必须以当前 Catalog 和宿主 Runtime 的实际支持为准**。面向用户的模块详情应描述能力、权限、离线性和数据去向，不暴露不必要的交付实现细节。
 
-| 模块类型 | 格式 | 用途 | 示例 |
-|----------|------|------|------|
-| **游戏模块** | ZIP (资源包) | 纯资源游戏（无逻辑代码） | 2048、贪吃蛇、俄罗斯方块 |
-| **功能模块** | APK (动态插件) | 包含逻辑代码的功能扩展 | 浏览器、工具箱、AI 助手、VPN |
+| 类型 | 当前用途 | 发布要求 |
+|---|---|---|
+| **Android APK 模块** | 当前 Catalog 的主要交付方式，适用于游戏与包含逻辑/权限/交互的能力 | HTTPS、多源下载信息、SHA-256、签名者验证、兼容性、更新/回滚与卸载语义 |
+| **受控资源/内容包** | 仅限宿主 Runtime 已登记并验证的 Web、Asset、Unity 或资源型能力 | 必须经 Catalog 信任、内容 manifest、路径安全与事务安装；不得把外部内容当作任意代码加载 |
+| **Flutter 能力** | 仅允许宿主已编译并登记的 Flutter route | 不下载或执行外部 Dart 源码；由宿主声明路由、权限和生命周期 |
 
 ### 模块化优势
 
-- **减小初始 APK 体积**：框架 APK ≤15MB，其他功能按需下载
+- **减小初始下载量**：用户只安装自己需要的能力
 - **独立更新**：模块可以独立发布更新，无需更新整个 App
-- **灵活扩展**：第三方开发者可以开发并发布模块
+- **用户可控**：安装前可了解用途、权限、网络和数据影响，之后可禁用或卸载
+- **灵活扩展**：模块在满足平台安全、隐私、生命周期和发布合同后可接入
 
 ---
 
-## 模块类型 / Module Types
+## 兼容交付格式（仅在 Runtime 已支持时使用）
 
-### 1. 游戏模块 (ZIP 格式)
+> 这部分描述兼容能力，不代表新游戏模块的默认发布方式。当前 Catalog 以 APK 记录为主；发布前必须按当前 Catalog、签名和 Runtime 验证路径复核。
+
+### 1. 资源/内容包（ZIP 格式）
 
 **适用场景**：
 - 游戏逻辑已内置在框架中
@@ -62,7 +68,7 @@ game_module.zip/
 └── assets/              # 其他资源（可选）
 ```
 
-### 2. 功能模块 (APK 格式)
+### 2. Android APK 模块
 
 **适用场景**：
 - 需要独立的逻辑代码
@@ -605,7 +611,12 @@ GameMatrixApp/
 │   │   ├── chinesechess/        # 中国象棋
 │   │   ├── game2048/            # 2048
 │   │   ├── klotski/             # 华容道
-│   │   └── tts/                 # TTS 语音合成
+│   │   ├── tts/                 # TTS 语音合成
+│   │   ├── snake/               # 贪吃蛇（2026-07-24 新增）
+│   │   ├── tic/                 # 井字棋（2026-07-24 新增）
+│   │   ├── whack/               # 打地鼠（2026-07-24 新增）
+│   │   ├── reaction/            # 反应力（2026-07-24 新增）
+│   │   └── rock/                # 猜拳（2026-07-24 新增）
 │   └── tools/                   # 工具模块
 │       ├── ai/                  # AI 助手
 │       ├── browser/             # 浏览器

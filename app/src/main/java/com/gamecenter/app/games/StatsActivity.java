@@ -20,6 +20,7 @@ import com.gamecenter.app.games.config.GameConfigLoader;
 import com.gamecenter.app.games.model.AchievementDef;
 import com.gamecenter.app.games.model.GameConfig;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -46,17 +47,20 @@ public class StatsActivity extends AppCompatActivity {
     private static final String ACHIEVEMENT_KEY_PREFIX = "unlock_";
     private static final String ACHIEVEMENT_KEY_SUFFIX = "_unlocked";
 
+    private GameUsageStore usageStore;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stats);
+        usageStore = new GameUsageStore(this);
 
         if (!BuildConfig.GAME_STATS_DASHBOARD) {
             // Flag 关闭时回退到原占位文本
             TextView view = new TextView(this);
             int padding = (int) (24 * getResources().getDisplayMetrics().density);
             view.setPadding(padding, padding, padding, padding);
-            view.setText("游戏战绩会统计已安装游戏的游玩记录。");
+            view.setText(getString(R.string.stats_intro));
             view.setTextSize(18f);
             setContentView(view);
             return;
@@ -78,7 +82,7 @@ public class StatsActivity extends AppCompatActivity {
                 try {
                     startActivity(new Intent(this, AchievementCenterActivity.class));
                 } catch (Exception e) {
-                    Toast.makeText(this, "成就中心未找到", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.stats_achievement_not_found, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -86,13 +90,16 @@ public class StatsActivity extends AppCompatActivity {
 
     /** 加载所有统计数据并填充视图。 */
     private void loadData() {
-        GameUsageStore usageStore = new GameUsageStore(this);
         StreakTracker streak = StreakTracker.getInstance(this);
 
         // 1. Hero 卡片数据
         long totalPlayMs = 0;
         int totalWin = 0;
         int totalLoss = 0;
+        // BUG-005 修复：总对局数累计变量，使用 GameUsageStore 数据源（与 GameDetailBottomSheet 一致）。
+        // 之前使用 streak.getTotalGames()，但 StreakTracker.recordGamePlayed() 从未被调用，
+        // 导致 StatsActivity 总对局永远为 0，与游戏详情页的 playCount 不一致。
+        int totalPlayCount = 0;
         List<GameRegistry.Entry> allGames = collectAllGames();
         List<GamePlayInfo> playInfos = new ArrayList<>();
         for (GameRegistry.Entry entry : allGames) {
@@ -103,6 +110,7 @@ public class StatsActivity extends AppCompatActivity {
             totalPlayMs += playTime;
             totalWin += winCount;
             totalLoss += lossCount;
+            totalPlayCount += playCount;
             if (playCount > 0) {
                 playInfos.add(new GamePlayInfo(entry, playCount, playTime));
             }
@@ -120,10 +128,10 @@ public class StatsActivity extends AppCompatActivity {
             tvActiveDays.setText(String.valueOf(streak.getBestStreak()));
         }
 
-        // 总对局
+        // 总对局（BUG-005 修复：改用 GameUsageStore 累计值，避免与胜负统计出现"胜+负 > 总对局"的矛盾）
         TextView tvTotalGames = findViewById(R.id.tv_stat_total_games);
         if (tvTotalGames != null) {
-            tvTotalGames.setText(String.valueOf(streak.getTotalGames()));
+            tvTotalGames.setText(String.valueOf(totalPlayCount));
         }
 
         // 当前连胜
@@ -173,11 +181,76 @@ public class StatsActivity extends AppCompatActivity {
                     R.string.stats_achievement_progress_format, achCounts[0], achCounts[1]));
         }
 
+        // P1-5 (ACHIEVEMENT_POINTS): 成就点数总览（追加在原文本后）
+        if (tvAchProgress != null) {
+            AchievementPointsCalculator.Result points =
+                    AchievementPointsCalculator.calculate(this);
+            tvAchProgress.append(" · " + getString(
+                    R.string.achievement_points_format, points.totalPoints));
+        }
+
         // 4. 胜负统计
         TextView tvWin = findViewById(R.id.tv_win_count);
         if (tvWin != null) tvWin.setText(String.valueOf(totalWin));
         TextView tvLoss = findViewById(R.id.tv_loss_count);
         if (tvLoss != null) tvLoss.setText(String.valueOf(totalLoss));
+
+        // P2-8 (STATS_VISUALIZATION): 填充三张图表
+        populateCharts(totalWin, totalLoss, playInfos);
+    }
+
+    /** P2-8: 填充趋势/饼/柱状图。 */
+    private void populateCharts(int totalWin, int totalLoss, List<GamePlayInfo> playInfos) {
+        // 趋势图：近 7 天每日游玩时长（分钟）
+        StatsChartView chartTrend = findViewById(R.id.chart_trend);
+        if (chartTrend != null) {
+            chartTrend.setChartType(StatsChartView.TYPE_LINE);
+            List<String> dateKeys = usageStore.getRecentDateKeys(7);
+            List<String> labels = new ArrayList<>();
+            List<Float> values = new ArrayList<>();
+            SimpleDateFormat sdf = new SimpleDateFormat("MM-dd", Locale.US);
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            for (int i = 0; i < dateKeys.size(); i++) {
+                cal.add(java.util.Calendar.DAY_OF_YEAR, -(dateKeys.size() - 1 - i));
+                labels.add(sdf.format(cal.getTime()));
+                cal.add(java.util.Calendar.DAY_OF_YEAR, (dateKeys.size() - 1 - i));
+                long ms = usageStore.getDailyPlayTimeMs(dateKeys.get(i));
+                values.add(ms / 60000f); // 转分钟
+            }
+            chartTrend.setLineData(labels, values);
+        }
+
+        // 饼图：胜负分布
+        StatsChartView chartPie = findViewById(R.id.chart_win_loss);
+        if (chartPie != null) {
+            chartPie.setChartType(StatsChartView.TYPE_PIE);
+            List<StatsChartView.PieEntry> pieEntries = new ArrayList<>();
+            if (totalWin > 0 || totalLoss > 0) {
+                pieEntries.add(new StatsChartView.PieEntry(
+                        getString(R.string.stats_chart_label_win), totalWin));
+                pieEntries.add(new StatsChartView.PieEntry(
+                        getString(R.string.stats_chart_label_loss), totalLoss));
+            }
+            chartPie.setPieData(pieEntries);
+        }
+
+        // 柱状图：Top 5 游戏时长（分钟）
+        StatsChartView chartBar = findViewById(R.id.chart_top_games);
+        if (chartBar != null) {
+            chartBar.setChartType(StatsChartView.TYPE_BAR);
+            List<String> labels = new ArrayList<>();
+            List<Float> values = new ArrayList<>();
+            // playInfos 已按 playCount 降序，这里取前 5 并按时长展示
+            List<GamePlayInfo> sorted = new ArrayList<>(playInfos);
+            Collections.sort(sorted, (a, b) -> Long.compare(b.playTimeMs, a.playTimeMs));
+            int n = Math.min(5, sorted.size());
+            for (int i = 0; i < n; i++) {
+                GamePlayInfo info = sorted.get(i);
+                labels.add(info.entry.name);
+                values.add(info.playTimeMs / 60000f);
+            }
+            chartBar.setBarData(labels, values);
+        }
     }
 
     /** 收集 GameRegistry 中所有游戏条目。 */

@@ -22,6 +22,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.network.GameSocketClient;
 import com.gamecenter.app.network.GameSocketServer;
 import com.gamecenter.app.network.OnlineChatHelper;
@@ -140,13 +141,13 @@ public class ChineseChessOnlineFragment extends Fragment {
                 LinearLayout.LayoutParams.MATCH_PARENT));
 
         TextView titleText = new TextView(ctx);
-        titleText.setText("中国象棋 - 联机对战");
+        titleText.setText(getString(R.string.chess_online_title));
         titleText.setTextSize(24);
         titleText.setTextColor(0xFF1E1E32);
         titleText.setGravity(View.TEXT_ALIGNMENT_CENTER);
 
         Button createRoomBtn = new Button(ctx);
-        createRoomBtn.setText("创建房间");
+        createRoomBtn.setText(getString(R.string.chess_online_create_room));
         createRoomBtn.setTextSize(18);
         createRoomBtn.setBackgroundColor(0xFF4CAF50);
         createRoomBtn.setTextColor(0xFFFFFFFF);
@@ -154,7 +155,7 @@ public class ChineseChessOnlineFragment extends Fragment {
         createRoomBtn.setOnClickListener(v -> createRoom());
 
         Button joinRoomBtn = new Button(ctx);
-        joinRoomBtn.setText("加入房间");
+        joinRoomBtn.setText(getString(R.string.chess_online_join_room));
         joinRoomBtn.setTextSize(18);
         joinRoomBtn.setBackgroundColor(0xFF2196F3);
         joinRoomBtn.setTextColor(0xFFFFFFFF);
@@ -234,13 +235,13 @@ public class ChineseChessOnlineFragment extends Fragment {
         chatInputRow.setPadding(8, 0, 8, 4);
 
         chatInput = new EditText(ctx);
-        chatInput.setHint("输入消息...");
+        chatInput.setHint(getString(R.string.chess_online_chat_hint));
         chatInput.setSingleLine(true);
         chatInput.setTextSize(14);
         chatInput.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
 
         Button chatSendBtn = new Button(ctx);
-        chatSendBtn.setText("发送");
+        chatSendBtn.setText(getString(R.string.chess_online_send));
         chatSendBtn.setTextSize(14);
         chatSendBtn.setBackgroundColor(0xFF9C27B0);
         chatSendBtn.setTextColor(0xFFFFFFFF);
@@ -256,7 +257,7 @@ public class ChineseChessOnlineFragment extends Fragment {
         chatInputRow.addView(chatSendBtn);
 
         Button leaveBtn = new Button(ctx);
-        leaveBtn.setText("离开房间");
+        leaveBtn.setText(getString(R.string.chess_online_leave));
         leaveBtn.setTextSize(14);
         leaveBtn.setBackgroundColor(0xFF9E9E9E);
         leaveBtn.setTextColor(0xFFFFFFFF);
@@ -293,7 +294,7 @@ public class ChineseChessOnlineFragment extends Fragment {
 
     private void createRoom() {
         loadingBar.setVisibility(View.VISIBLE);
-        connectionStatusText.setText("正在创建云房间...");
+        connectionStatusText.setText(getString(R.string.chess_online_creating));
 
         new Thread(() -> {
             String code = RoomCodeHelper.generateRoomCode();
@@ -305,11 +306,11 @@ public class ChineseChessOnlineFragment extends Fragment {
                     isHost = true;
                     myPlayerId = 1;
                     roomCode = code;
-                    connectionStatusText.setText("房间已创建");
-                    roomCodeText.setText("房间码: " + code);
+                    connectionStatusText.setText(getString(R.string.chess_online_room_created));
+                    roomCodeText.setText(getString(R.string.chess_online_room_code_format, code));
                     showWaitingDialog(roomCode);
                 } else {
-                    Toast.makeText(requireContext(), "创建房间失败", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.chess_online_create_failed, Toast.LENGTH_SHORT).show();
                 }
             });
         }).start();
@@ -325,7 +326,7 @@ public class ChineseChessOnlineFragment extends Fragment {
 
     private void joinRoom(String roomCode) {
         loadingBar.setVisibility(View.VISIBLE);
-        connectionStatusText.setText("正在加入房间: " + roomCode);
+        connectionStatusText.setText(getString(R.string.chess_online_joining_format, roomCode));
 
         String savedToken = prefs.getString("last_peer_token", null);
         String wsUrl = RelayHttpClient.getWebSocketClientUrl(RELAY_BASE_URL, roomCode);
@@ -341,7 +342,7 @@ public class ChineseChessOnlineFragment extends Fragment {
         opponentPlayerId = clientId;
         opponentHasJoined = true;
         mainHandler.post(() -> {
-            connectionStatusText.setText("对手已加入!");
+            connectionStatusText.setText(getString(R.string.chess_online_opponent_joined));
             isPlaying = true;
             startGame();
         });
@@ -350,7 +351,7 @@ public class ChineseChessOnlineFragment extends Fragment {
     private void onClientDisconnected(int clientId, String reason) {
         if (clientId == opponentPlayerId) {
             mainHandler.post(() -> {
-                Toast.makeText(requireContext(), "对手已断开: " + reason, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), getString(R.string.chess_online_opponent_left_format, reason), Toast.LENGTH_SHORT).show();
                 isPlaying = false;
                 showLobby();
             });
@@ -367,25 +368,25 @@ public class ChineseChessOnlineFragment extends Fragment {
         }
 
         mainHandler.post(() -> {
-            connectionStatusText.setText("已连接到主机");
+            connectionStatusText.setText(getString(R.string.chess_online_connected_host));
             startGame();
         });
     }
 
     private void onClientDisconnectedFromHost(String reason) {
         mainHandler.post(() -> {
-            Toast.makeText(requireContext(), "连接断开: " + reason, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), getString(R.string.chess_online_disconnected_format, reason), Toast.LENGTH_SHORT).show();
             isPlaying = false;
             showLobby();
         });
     }
 
     private void onServerError(String message) {
-        mainHandler.post(() -> Toast.makeText(requireContext(), "服务器错误: " + message, Toast.LENGTH_SHORT).show());
+        mainHandler.post(() -> Toast.makeText(requireContext(), getString(R.string.chess_online_server_error_format, message), Toast.LENGTH_SHORT).show());
     }
 
     private void onClientError(String message) {
-        mainHandler.post(() -> Toast.makeText(requireContext(), "客户端错误: " + message, Toast.LENGTH_SHORT).show());
+        mainHandler.post(() -> Toast.makeText(requireContext(), getString(R.string.chess_online_client_error_format, message), Toast.LENGTH_SHORT).show());
     }
 
     private void startGame() {
@@ -405,11 +406,11 @@ public class ChineseChessOnlineFragment extends Fragment {
         if (game.isGameOver()) {
             ChineseChessGame.Side winner = game.getWinner();
             if (winner == mySide) {
-                winnerText.setText("你赢了!");
+                winnerText.setText(getString(R.string.chess_online_you_win));
             } else {
-                winnerText.setText("对手赢了!");
+                winnerText.setText(getString(R.string.chess_online_opponent_wins));
             }
-            turnStatusText.setText("游戏结束");
+            turnStatusText.setText(getString(R.string.chess_online_game_over));
             boardView.setLocked(true);
         } else {
             winnerText.setText("");

@@ -1,5 +1,5 @@
-<!-- flutter-store-doc-sync: 2026-07-22; authoritative -->
-> **Flutter-first authoritative document:** Production stable vc595 and signed Catalog V8 are live and verified; this document and current build evidence are the release truth.
+<!-- flutter-store release-evidence: 2026-07-22 -->
+> **Flutter-first 发布证据快照：** 本文档记录 vc595 / 已签名 Catalog V8 的发布证据及预期 Catalog V2 契约。它不是当前全局事实来源；当前版本、活动实现与发布门槛见 [`../CURRENT_STATE.md`](../CURRENT_STATE.md)。
 
 # Catalog V2 协议
 

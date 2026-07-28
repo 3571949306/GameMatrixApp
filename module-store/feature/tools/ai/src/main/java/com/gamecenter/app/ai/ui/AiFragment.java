@@ -30,6 +30,9 @@ import com.gamecenter.app.ai.AiTaskRouter;
 import com.gamecenter.app.ai.data.AiMessage;
 import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
+import com.gamecenter.app.core.common.ConsentComponent;
+import com.gamecenter.app.core.common.ConsentDecision;
+import com.gamecenter.app.ui.ConsentDialog;
 import com.gamecenter.app.ai.data.AiTask;
 import com.gamecenter.app.ai.history.AiHistoryStore;
 import com.gamecenter.app.ai.legal.AiLegalNotices;
@@ -293,7 +296,7 @@ public class AiFragment extends Fragment {
 
         MaterialButton btnClearHistory = view.findViewById(R.id.btn_ai_open_full);
         if (btnClearHistory != null) {
-            btnClearHistory.setText("清空历史");
+            btnClearHistory.setText(getString(R.string.ai_clear_history));
             btnClearHistory.setOnClickListener(v -> clearHistory());
         }
 
@@ -355,7 +358,7 @@ public class AiFragment extends Fragment {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
                     updateStatus("模型清单获取失败");
-                    Toast.makeText(requireContext(), "模型清单获取失败: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), getString(R.string.ai_model_list_failed_format, error.getMessage()), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -376,7 +379,7 @@ public class AiFragment extends Fragment {
     private void showModelList(List<AiModelInfo> models) {
         if (models == null || models.isEmpty()) {
             updateStatus("暂无本地模型");
-            Toast.makeText(requireContext(), "服务器暂无可用本地模型", Toast.LENGTH_LONG).show();
+            Toast.makeText(requireContext(), R.string.ai_no_local_models, Toast.LENGTH_LONG).show();
             return;
         }
         String[] labels = new String[models.size()];
@@ -390,7 +393,7 @@ public class AiFragment extends Fragment {
                     + (model.enabled ? "" : " · 未开放");
         }
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("本地模型")
+                .setTitle(getString(R.string.ai_local_models))
                 .setItems(labels, (dialog, which) -> showModelDetail(models.get(which)))
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
@@ -431,20 +434,20 @@ public class AiFragment extends Fragment {
         }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("本地模型详情")
+                .setTitle(getString(R.string.ai_local_model_detail))
                 .setMessage(message.toString())
                 .setNegativeButton(android.R.string.cancel, null);
         if (!rulesModel) {
-            builder.setNeutralButton("查看条款", (dialog, which) -> openGemmaTerms());
+            builder.setNeutralButton(R.string.ai_view_terms, (dialog, which) -> openGemmaTerms());
         }
         // 根据模型状态动态设置正向按钮
         if (rulesModel && aiPreferences != null && !model.id.equals(aiPreferences.getLocalModel())) {
-            builder.setPositiveButton("启用", (dialog, which) -> enableLocalModel(model));
+            builder.setPositiveButton(R.string.ai_enable, (dialog, which) -> enableLocalModel(model));
         } else if (model.enabled && !downloaded) {
-            builder.setPositiveButton("下载", (dialog, which) -> confirmGemmaNoticeThenDownload(model));
+            builder.setPositiveButton(R.string.ai_download, (dialog, which) -> confirmGemmaNoticeThenDownload(model));
         } else if (downloaded && aiPreferences != null
                 && !model.id.equals(aiPreferences.getLocalModel())) {
-            builder.setPositiveButton("启用", (dialog, which) -> enableLocalModel(model));
+            builder.setPositiveButton(R.string.ai_enable, (dialog, which) -> enableLocalModel(model));
         }
         builder.show();
         updateStatus(downloaded ? "本地模型已下载" : "本地模型未下载");
@@ -474,7 +477,7 @@ public class AiFragment extends Fragment {
             }
         }
         if (cloudProviders.isEmpty()) {
-            Toast.makeText(requireContext(), "暂无云端模型", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.ai_no_cloud_models, Toast.LENGTH_SHORT).show();
             return;
         }
         String selectedProvider = aiPreferences.getSelectedProvider();
@@ -491,7 +494,7 @@ public class AiFragment extends Fragment {
                     + cloudTier(provider);
         }
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("云端模型")
+                .setTitle(getString(R.string.ai_cloud_models))
                 .setItems(labels, (dialog, which) -> {
                     AiProviderConfig provider = cloudProviders.get(which);
                     aiPreferences.setSelectedProvider(provider.providerName);
@@ -549,11 +552,11 @@ public class AiFragment extends Fragment {
             return;
         }
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Gemma 模型条款与本地 AI 说明")
+                .setTitle(R.string.gemma_terms_title)
                 .setMessage(AiLegalNotices.buildGemmaDownloadNotice(model))
-                .setNeutralButton("查看条款", (dialog, which) -> openGemmaTerms())
+                .setNeutralButton(R.string.gemma_view_terms, (dialog, which) -> openGemmaTerms())
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton("同意并下载", (dialog, which) -> {
+                .setPositiveButton(R.string.gemma_agree_download, (dialog, which) -> {
                     if (aiPreferences != null) {
                         // 记录用户已同意当前版本的 Gemma 条款
                         aiPreferences.acceptGemmaNotice(AiLegalNotices.GEMMA_NOTICE_VERSION);
@@ -590,7 +593,7 @@ public class AiFragment extends Fragment {
         }
         updateModelControls();
         updateStatus("本地模型已启用");
-        Toast.makeText(requireContext(), "已启用 " + model.name, Toast.LENGTH_LONG).show();
+        Toast.makeText(requireContext(), getString(R.string.ai_enabled_format, model.name), Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -622,7 +625,7 @@ public class AiFragment extends Fragment {
                             // 下载完成后自动启用该模型
                             enableLocalModel(model);
                             updateStatus("本地模型已下载");
-                            Toast.makeText(requireContext(), "模型已下载: " + file.getName(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(requireContext(), getString(R.string.ai_downloaded_format, file.getName()), Toast.LENGTH_LONG).show();
                         });
                     }
 
@@ -632,7 +635,7 @@ public class AiFragment extends Fragment {
                         getActivity().runOnUiThread(() -> {
                             progressBar.setVisibility(View.GONE);
                             updateStatus("模型下载失败");
-                            Toast.makeText(requireContext(), "模型下载失败: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(requireContext(), getString(R.string.ai_download_failed_format, error.getMessage()), Toast.LENGTH_LONG).show();
                         });
                     }
                 });
@@ -669,6 +672,52 @@ public class AiFragment extends Fragment {
         String input = etInput.getText().toString().trim();
         if (input.isEmpty()) return;
 
+        // #24.3: 云端模式下，发送前需先获取 consent
+        if (aiPreferences != null && !aiPreferences.isLocalFirst()) {
+            ConsentComponent consent = buildAiConsent();
+            if (ConsentDialog.needsConsent(requireContext(), consent)) {
+                showCloudConsentDialog(input);
+                return;
+            }
+        }
+
+        proceedSendMessage(input);
+    }
+
+    /** #24.3: 构建 AI 云端调用 consent 组件 */
+    private ConsentComponent buildAiConsent() {
+        return new ConsentComponent(
+                "ai_cloud",
+                1,
+                getString(R.string.consent_ai_title),
+                getString(R.string.consent_ai_send),
+                getString(R.string.consent_ai_purpose),
+                getString(R.string.consent_ai_local),
+                getString(R.string.consent_ai_cost),
+                getString(R.string.consent_ai_cancel),
+                getString(R.string.consent_ai_provider),
+                getString(R.string.consent_ai_retention)
+        );
+    }
+
+    /** #24.3: 弹出 AI 云端 consent 弹窗 */
+    private void showCloudConsentDialog(String input) {
+        ConsentDialog.show(requireActivity(), buildAiConsent(), decision -> {
+            if (decision == ConsentDecision.AGREE_CLOUD) {
+                proceedSendMessage(input);
+            } else if (decision == ConsentDecision.USE_LOCAL) {
+                aiPreferences.setLocalFirst(true);
+                Toast.makeText(requireContext(), R.string.consent_ai_use_local_toast, Toast.LENGTH_SHORT).show();
+                proceedSendMessage(input);
+            } else {
+                // REFUSE：取消，不做任何操作
+            }
+            return kotlin.Unit.INSTANCE;
+        });
+    }
+
+    /** 实际执行发送消息与任务提交 */
+    private void proceedSendMessage(String input) {
         String taskType = resolveTaskType(actTaskType.getText().toString().trim());
         final String ftaskType = taskType;
 
@@ -959,7 +1008,7 @@ public class AiFragment extends Fragment {
     private void exportMessages() {
         String exportText = buildExportText();
         if (exportText.isEmpty()) {
-            Toast.makeText(requireContext(), "没有可导出的内容", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.ai_no_export_content, Toast.LENGTH_SHORT).show();
             return;
         }
         // 使用 Android 系统的分享功能，让用户选择导出方式（微信、邮件等）
@@ -1113,17 +1162,17 @@ public class AiFragment extends Fragment {
          */
         void bind(AiMessage msg, boolean favorite, FavoriteListener favoriteListener, Object ttsEngine) {
             if (msg.role.equals("user")) {
-                tvRole.setText("你");
+                tvRole.setText(R.string.ai_role_user);
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_user);
                 tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_user_role));
                 tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_user_text));
             } else if (msg.role.equals("assistant")) {
-                tvRole.setText("AI助手");
+                tvRole.setText(R.string.ai_assistant_label);
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_assistant);
                 tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_assistant_role));
                 tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_assistant_text));
             } else {
-                tvRole.setText("系统");
+                tvRole.setText(R.string.system);
                 itemView.setBackgroundResource(R.drawable.bg_ai_message_system);
                 tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_system_role));
                 tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_system_text));
@@ -1147,7 +1196,7 @@ public class AiFragment extends Fragment {
                     btnTts.setVisibility(View.VISIBLE);
                     btnTts.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_star));
                     btnTts.setOnClickListener(v -> {
-                        Toast.makeText(itemView.getContext(), "正在合成语音…", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(itemView.getContext(), R.string.ai_synthesizing_voice, Toast.LENGTH_SHORT).show();
                         // 反射调用 ttsEngine.speak(String, Object, Callback)
                         try {
                             Class<?> callbackCls = Class.forName("com.gamecenter.capability.tts.MiMoTtsEngine$Callback");

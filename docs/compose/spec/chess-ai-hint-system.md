@@ -8,9 +8,9 @@ commits: # filled at delivery
 
 # 中国象棋AI提示系统
 
-## Report
+## 交付报告
 
-**What was built** — 完整的中国象棋AI提示系统，包含9个功能模块：
+**已完成内容** — 完整的中国象棋AI提示系统，包含9个功能模块：
 1. 提示次数限制系统（每局10次，每步1次，3秒冷却）
 2. 提示视觉反馈系统（棋盘高亮、箭头指示、提示弹窗）
 3. 错误分析系统（战术/战略/位置错误识别）
@@ -21,12 +21,12 @@ commits: # filled at delivery
 8. 主题学习系统（5个战术主题，21道练习题）
 9. 新手引导系统（7步引导流程）
 
-**Verification** — 编译验证通过：`:app:compileDebugJavaWithJavac` BUILD SUCCESSFUL
+**验证** — 编译验证通过：`:app:compileDebugJavaWithJavac` BUILD SUCCESSFUL
 
-## [S1] Problem
+## [S1] 问题
 用户在人机对战时缺乏指导，不知道该如何走棋。需要实现一个提示系统，既能帮助用户理解局面，又具有教学意义。同时AI不应因用户使用提示而降低强度，胜利必须是真实的。
 
-## [S2] Design
+## [S2] 设计
 
 ### 核心设计原则
 1. **AI强度保持**：AI不因用户使用提示而变弱
@@ -144,7 +144,7 @@ public class GameRecord {
 }
 ```
 
-## [S3] Out of Scope
+## [S3] 不在范围内
 
 1. **AI强度调整**：AI不因用户使用提示而变弱
 2. **网络功能**：提示计算完全本地化
@@ -152,22 +152,22 @@ public class GameRecord {
 4. **付费功能**：提示完全免费
 5. **社交功能**：不涉及分享、排行等
 
-## Tasks
+## 任务
 
-### P0 Tasks
+### P0 任务
 
-- [x] T1: 实现提示次数限制系统 — acceptance: 每局最多10次，每步最多1次，冷却3秒 (covers: S2-P0)
-- [x] T2: 实现提示视觉反馈系统 — acceptance: 棋盘高亮显示目标位置，箭头指示方向 (covers: S2-P0)
-- [x] T3: 实现错误分析系统 — acceptance: 能识别战术/战略/位置错误并给出解释 (covers: S2-P0)
+- [x] T1: 实现提示次数限制系统 — 验收：每局最多10次，每步最多1次，冷却3秒 (covers: S2-P0)
+- [x] T2: 实现提示视觉反馈系统 — 验收：棋盘高亮显示目标位置，箭头指示方向 (covers: S2-P0)
+- [x] T3: 实现错误分析系统 — 验收：能识别战术/战略/位置错误并给出解释 (covers: S2-P0)
 
-### P1 Tasks
+### P1 任务
 
-- [x] T4: 实现异步计算系统 — acceptance: 提示计算不阻塞UI，有加载状态 (covers: S2-P1; depends: T1)
-- [x] T5: 实现提示缓存机制 — acceptance: 相同局面重复提示时直接返回缓存 (covers: S2-P1; depends: T4)
-- [x] T6: 实现对局记录系统 — acceptance: 能保存走法、评分、提示，支持回放 (covers: S2-P1; depends: T4)
+- [x] T4: 实现异步计算系统 — 验收：提示计算不阻塞UI，有加载状态 (covers: S2-P1; depends: T1)
+- [x] T5: 实现提示缓存机制 — 验收：相同局面重复提示时直接返回缓存 (covers: S2-P1; depends: T4)
+- [x] T6: 实现对局记录系统 — 验收：能保存走法、评分、提示，支持回放 (covers: S2-P1; depends: T4)
 
-### P2 Tasks
+### P2 任务
 
-- [x] T7: 实现复盘功能 — acceptance: 对局结束后能分析每步走法，标记好棋坏棋 (covers: S2-P2; depends: T6)
-- [x] T8: 实现主题学习系统 — acceptance: 能按战术主题分类练习，有进度追踪 (covers: S2-P2; depends: T3)
-- [x] T9: 实现新手引导系统 — acceptance: 首次使用时有引导，介绍功能 (covers: S2-P2; depends: T2)
+- [x] T7: 实现复盘功能 — 验收：对局结束后能分析每步走法，标记好棋坏棋 (covers: S2-P2; depends: T6)
+- [x] T8: 实现主题学习系统 — 验收：能按战术主题分类练习，有进度追踪 (covers: S2-P2; depends: T3)
+- [x] T9: 实现新手引导系统 — 验收：首次使用时有引导，介绍功能 (covers: S2-P2; depends: T2)

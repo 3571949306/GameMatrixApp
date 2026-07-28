@@ -111,7 +111,7 @@ public class ModuleAdapter extends RecyclerView.Adapter<ModuleAdapter.GameViewHo
 
         // 设置版本号
         int builtInVersion = GameRegistry.getBuiltInVersionCode(entry.id);
-        holder.versionText.setText("v" + builtInVersion);
+        holder.versionText.setText(holder.itemView.getContext().getString(R.string.version_format_simple, String.valueOf(builtInVersion)));
 
         // 设置更新状态
         ModuleInfo updateInfo = availableUpdates.get(position);
@@ -130,7 +130,7 @@ public class ModuleAdapter extends RecyclerView.Adapter<ModuleAdapter.GameViewHo
             // 有可用更新
             holder.checkUpdateButton.setVisibility(View.GONE);
             holder.updateButton.setVisibility(View.VISIBLE);
-            holder.updateButton.setText("更新 v" + updateInfo.getVersionName());
+            holder.updateButton.setText(holder.itemView.getContext().getString(R.string.module_update_button_format, updateInfo.getVersionName()));
             holder.progressBar.setVisibility(View.GONE);
             holder.progressText.setVisibility(View.GONE);
 

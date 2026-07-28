@@ -32,7 +32,7 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:background="@drawable/bg_game_icon_gradient_default"
-            android:contentDescription="@string/home_card_favorite_add"
+            android:contentDescription="@string/visual_refresh_game_icon"
             android:padding="12dp"
             android:scaleType="centerInside"
             tools:src="@drawable/ic_game" />
@@ -184,6 +184,36 @@
         android:textStyle="bold"
         app:cornerRadius="14dp"
         app:icon="@drawable/ic_play_arrow"
+        app:iconGravity="textStart" />
+
+    <!-- P0-1 (LEADERBOARD): 查看排行榜按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_detail_leaderboard"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_8"
+        android:paddingTop="@dimen/spacing_8"
+        android:paddingBottom="@dimen/spacing_8"
+        android:text="@string/leaderboard_title"
+        android:textSize="14sp"
+        app:cornerRadius="14dp"
+        app:icon="@drawable/ic_leaderboard"
+        app:iconGravity="textStart" />
+
+    <!-- P0-3 (SHARE_CARD): 分享战绩按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_detail_share"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_8"
+        android:paddingTop="@dimen/spacing_8"
+        android:paddingBottom="@dimen/spacing_8"
+        android:text="@string/share_card_action"
+        android:textSize="14sp"
+        app:cornerRadius="14dp"
+        app:icon="@android:drawable/ic_menu_share"
         app:iconGravity="textStart" />
 
     <!-- Batch 11-1 (GAME_RATING_SYSTEM): 用户评分区块（默认隐藏） -->

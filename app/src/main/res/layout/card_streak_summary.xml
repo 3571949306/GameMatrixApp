@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Feature A: 连胜概览卡片 -->
+<!-- Feature A: 连胜概览卡片
+     HOME_L2_V4_2026_07_24 修订：标题行从 horizontal 调整为更紧凑 padding，
+     让"连胜记录"标题在 312dp 窄列里保持单行，不再被挤成单字竖排；
+     padding 12→10dp 略缩、字号略缩以填充两列布局的卡片内部空间。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,10 +10,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginTop="12dp"
-    android:padding="20dp"
+    android:layout_marginStart="0dp"
+    android:layout_marginEnd="0dp"
+    android:layout_marginTop="0dp"
+    android:padding="@dimen/spacing_6"
     android:background="@drawable/bg_streak_card"
     android:elevation="3dp">
 
@@ -22,8 +25,8 @@
         android:gravity="center_vertical">
 
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_streak_fire"
             app:tint="@color/streak_card_text"
             android:contentDescription="@string/streak_title" />
@@ -32,19 +35,23 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="8dp"
             android:text="@string/streak_title"
             android:textColor="@color/streak_card_text"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/tv_streak_current"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
             android:textColor="@color/streak_card_text"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold"
+            android:maxLines="1"
             tools:text="0 天" />
     </LinearLayout>
 
@@ -53,7 +60,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="6dp"
         android:weightSum="3">
 
         <!-- 当前连胜 -->
@@ -69,7 +76,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/streak_card_text"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 tools:text="0" />
 
@@ -79,7 +86,7 @@
                 android:layout_marginTop="2dp"
                 android:text="@string/streak_current_days"
                 android:textColor="@color/streak_card_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <!-- 最佳连胜 -->
@@ -95,7 +102,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/streak_card_text"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 tools:text="0" />
 
@@ -105,7 +112,7 @@
                 android:layout_marginTop="2dp"
                 android:text="@string/streak_best_days"
                 android:textColor="@color/streak_card_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <!-- 总对局 -->
@@ -121,7 +128,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/streak_card_text"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 tools:text="0" />
 
@@ -131,7 +138,19 @@
                 android:layout_marginTop="2dp"
                 android:text="@string/streak_total_games"
                 android:textColor="@color/streak_card_text_secondary"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- 底部提示：保持连胜可解锁成就 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_4"
+        android:gravity="center"
+        android:textColor="@color/streak_card_text_secondary"
+        android:textSize="9sp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:text="坚持每天挑战，赢取连胜成就" />
 </LinearLayout>

@@ -143,7 +143,7 @@ public class GamesFragment extends Fragment {
         usageStore = new GameUsageStore(requireContext());
 
         TextView tvVersion = view.findViewById(R.id.tv_version);
-        tvVersion.setText("v" + BuildConfig.VERSION_NAME);
+        tvVersion.setText(getString(R.string.version_format_simple, BuildConfig.VERSION_NAME));
         tvVersion.setOnClickListener(v -> showChangelog());
 
         ImageButton btnSettings = view.findViewById(R.id.btn_settings);
@@ -368,12 +368,12 @@ public class GamesFragment extends Fragment {
         String contact = etContact != null ? etContact.getText().toString().trim() : "";
         String feedbackType = getSelectedFeedbackType(rgFeedbackType);
         if (message.isEmpty()) {
-            Toast.makeText(getContext(), "请先填写反馈内容", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.hall_feedback_empty, Toast.LENGTH_SHORT).show();
             return;
         }
         if (button != null) {
             button.setEnabled(false);
-            button.setText("提交中...");
+            button.setText(getString(R.string.hall_feedback_submitting));
         }
 
         ExecutorService feedbackExecutor = Executors.newSingleThreadExecutor();
@@ -393,14 +393,14 @@ public class GamesFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                 if (button != null) {
                     button.setEnabled(true);
-                    button.setText("提交反馈");
+                    button.setText(getString(R.string.hall_feedback_submit));
                 }
                 if (finalError == null) {
-                    Toast.makeText(getContext(), "反馈已提交，感谢你的建议", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), R.string.hall_feedback_success, Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 } else {
                     Toast.makeText(getContext(),
-                            "提交到 VPS 失败，可使用下方邮箱兜底: " + finalError,
+                            getString(R.string.hall_feedback_vps_failed_format, finalError),
                             Toast.LENGTH_LONG).show();
                 }
             });
@@ -551,7 +551,7 @@ public class GamesFragment extends Fragment {
                 startActivity(intent);
             }
         } catch (Exception e) {
-            Toast.makeText(getContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.hall_open_browser_failed, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -565,14 +565,14 @@ public class GamesFragment extends Fragment {
         }
 
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle("关于 " + getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME)
+                .setTitle(getString(R.string.about_with_version_format, getString(R.string.app_name), BuildConfig.VERSION_NAME))
                 .setMessage(changelog)
-                .setPositiveButton("检查更新", (d, w) -> {
+                .setPositiveButton(R.string.about_check_update, (d, w) -> {
                     if (getActivity() instanceof MainActivity) {
                         ((MainActivity) getActivity()).checkUpdate(true);
                     }
                 })
-                .setNegativeButton("关闭", null)
+                .setNegativeButton(R.string.close, null)
                 .show();
     }
 
@@ -640,9 +640,9 @@ public class GamesFragment extends Fragment {
         tabLayout.clearOnTabSelectedListeners();
         tabLayout.removeAllTabs();
 
-        tabLayout.addTab(tabLayout.newTab().setText("全部"));
-        tabLayout.addTab(tabLayout.newTab().setText("最近"));
-        tabLayout.addTab(tabLayout.newTab().setText("收藏"));
+        tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.hall_tab_all)));
+        tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.hall_tab_recent)));
+        tabLayout.addTab(tabLayout.newTab().setText(getString(R.string.hall_tab_favorite)));
 
         // 动态添加各游戏分类标签
         for (GameRegistry.Category category : categories) {
@@ -777,13 +777,13 @@ public class GamesFragment extends Fragment {
 
         // 根据当前上下文显示不同的空状态提示
         if (!currentQuery.isEmpty()) {
-            tvEmptyState.setText("没有找到相关游戏");
+            tvEmptyState.setText(getString(R.string.hall_empty_search));
         } else if (selectedTabPosition == TAB_RECENT) {
-            tvEmptyState.setText("还没有最近游玩");
+            tvEmptyState.setText(getString(R.string.hall_empty_recent));
         } else if (selectedTabPosition == TAB_FAVORITES) {
-            tvEmptyState.setText("还没有收藏游戏");
+            tvEmptyState.setText(getString(R.string.hall_empty_favorite));
         } else {
-            tvEmptyState.setText("这里暂时没有游戏");
+            tvEmptyState.setText(getString(R.string.hall_empty_default));
         }
     }
 

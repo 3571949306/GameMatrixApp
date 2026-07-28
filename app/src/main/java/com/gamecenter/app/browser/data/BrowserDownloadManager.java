@@ -35,19 +35,29 @@ public class BrowserDownloadManager {
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private long lastDownloadId = -1;
 
+    /**
+     * P0 内存泄漏修复：进度轮询改为按需启动。
+     * 原实现 progressRunnable 内 postDelayed(this, 1000) 形成无限循环，
+     * 进程存活期间每秒触发 queryProgress()，即使无下载任务也不停止，
+     * 导致长会话 PSS 持续增长（Cursor 分配 + lambda 闭包）。
+     * 现改为：仅在有下载任务时轮询，全部完成/失败后自动停止。
+     */
+    private volatile boolean isPolling = false;
     private final Runnable progressRunnable = new Runnable() {
         @Override
         public void run() {
-            queryProgress();
-            progressHandler.postDelayed(this, 1000);
+            queryProgressAndAutoStop();
         }
     };
+
+    /** 注册的广播接收器引用，用于注销。 */
+    private BroadcastReceiver downloadReceiver;
 
     private BrowserDownloadManager(@NonNull Context context) {
         this.context = context.getApplicationContext();
         this.downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
         registerReceiver();
-        progressHandler.post(progressRunnable);
+        // 不再启动无限轮询；改为 downloadFile 时按需启动
     }
 
     public static BrowserDownloadManager getInstance(@NonNull Context context) {
@@ -80,6 +90,9 @@ public class BrowserDownloadManager {
         }
 
         lastDownloadId = downloadManager.enqueue(request);
+
+        // P0 内存泄漏修复：按需启动进度轮询（无下载任务时不轮询，避免 PSS 持续增长）
+        startProgressPolling();
 
         final long systemDownloadId = lastDownloadId;
         final String finalUrl = url;
@@ -203,11 +216,35 @@ public class BrowserDownloadManager {
         });
     }
 
-    private void queryProgress() {
+    /**
+     * 启动进度轮询。已在轮询时重复调用安全（幂等）。
+     * P0 内存泄漏修复：替代原构造函数中的无限 postDelayed 循环。
+     */
+    private void startProgressPolling() {
+        if (isPolling) return;
+        isPolling = true;
+        progressHandler.post(progressRunnable);
+    }
+
+    /**
+     * 停止进度轮询并移除所有待执行的回调。
+     */
+    private void stopProgressPolling() {
+        isPolling = false;
+        progressHandler.removeCallbacks(progressRunnable);
+    }
+
+    /**
+     * 查询下载进度并自动决定是否继续轮询。
+     * 无活跃下载任务（WAITING/DOWNLOADING）时自动停止轮询，避免空转。
+     */
+    private void queryProgressAndAutoStop() {
         executor.execute(() -> {
+            boolean hasActive = false;
             try {
                 List<BrowserDownloadEntity> list = BrowserDatabase.getInstance(context).downloadDao()
                         .getByStatuses(new int[]{BrowserDownloadEntity.STATUS_WAITING, BrowserDownloadEntity.STATUS_DOWNLOADING});
+                hasActive = !list.isEmpty();
                 for (BrowserDownloadEntity entity : list) {
                     long systemId = entity.getSystemDownloadId();
                     if (systemId <= 0) continue;
@@ -229,12 +266,25 @@ public class BrowserDownloadManager {
                     } catch (Exception ignored) {}
                 }
             } catch (Exception ignored) {}
+            // 仍有活跃任务则继续轮询，否则停止
+            if (hasActive && isPolling) {
+                progressHandler.postDelayed(progressRunnable, 1000);
+            } else {
+                isPolling = false;
+            }
         });
+    }
+
+    /**
+     * 供查询进度使用（保留原方法签名兼容外部调用）。
+     */
+    private void queryProgress() {
+        queryProgressAndAutoStop();
     }
 
     private void registerReceiver() {
         try {
-            BroadcastReceiver receiver = new BroadcastReceiver() {
+            downloadReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context ctx, Intent intent) {
                     long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
@@ -286,9 +336,27 @@ public class BrowserDownloadManager {
                 }
             };
             IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            ContextCompat.registerReceiver(context, downloadReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
         } catch (Exception e) {
             // 忽略注册失败
+        }
+    }
+
+    /**
+     * P0 内存泄漏修复：注销广播接收器、停止轮询、关闭线程池。
+     * 供 App.onTerminate 或测试用例调用；单例进程级生命周期下不强制要求调用，
+     * 但调用后可彻底释放原生资源，避免长会话 PSS 累积。
+     */
+    public void shutdown() {
+        stopProgressPolling();
+        if (downloadReceiver != null) {
+            try {
+                context.unregisterReceiver(downloadReceiver);
+            } catch (Exception ignored) {}
+            downloadReceiver = null;
+        }
+        if (!executor.isShutdown()) {
+            executor.shutdown();
         }
     }
 

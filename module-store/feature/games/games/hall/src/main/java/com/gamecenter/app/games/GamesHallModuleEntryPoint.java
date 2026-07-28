@@ -60,6 +60,21 @@ public class GamesHallModuleEntryPoint implements ModuleInterface, FeatureModule
     }
 
     @Override
+    public String getModuleType() {
+        return "game";
+    }
+
+    @Override
+    public java.util.List<String> getDependencies() {
+        return java.util.Collections.emptyList();
+    }
+
+    @Override
+    public List<String> getRequiredPermissions() {
+        return java.util.Collections.emptyList();
+    }
+
+    @Override
     public boolean shouldPreload() {
         return false;
     }

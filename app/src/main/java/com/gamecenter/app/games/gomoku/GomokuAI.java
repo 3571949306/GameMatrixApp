@@ -36,10 +36,10 @@ import com.gamecenter.app.core.common.GameAI;
 public class GomokuAI implements GameAI {
 
     private static final DifficultyProfile[] DIFFICULTY_PROFILES = {
-            new DifficultyProfile("gomoku_low.ai", 450, 3),
-            new DifficultyProfile("gomoku_medium.ai", 1200, 5),
-            new DifficultyProfile("gomoku_high.ai", 3500, 8),
-            new DifficultyProfile("gomoku_master.ai", 8000, 10)
+            new DifficultyProfile("gomoku_low.ai", 200, 2),
+            new DifficultyProfile("gomoku_medium.ai", 800, 4),
+            new DifficultyProfile("gomoku_high.ai", 2500, 6),
+            new DifficultyProfile("gomoku_master.ai", 5000, 8)
     };
 
     // 超时检查间隔：每搜索256个节点检查一次是否超时
@@ -52,11 +52,13 @@ public class GomokuAI implements GameAI {
     // VCF算杀的最大搜索深度（6层=3个回合）
     private static final int VCF_MAX_DEPTH = 6;
 
-    // VCF搜索占用最大搜索时间的比例（40%）
-    private static final double VCF_TIME_RATIO = 0.4;
+    // VCF搜索占用最大搜索时间的比例（25%，降低以让主搜索有更多预算）
+    private static final double VCF_TIME_RATIO = 0.25;
 
-    // 低难度随机走子：从评分前N名中随机选
-    private static final int RANDOM_TOP_N = 3;
+    // 各难度随机走子：从评分前N名中随机选
+    private static final int RANDOM_TOP_N_LOW = 5;
+    private static final int RANDOM_TOP_N_MEDIUM = 3;
+    private static final int RANDOM_TOP_N_HIGH = 2;
 
     /** 当前难度对应的最大搜索时间 */
     private final int maxTimeMs;
@@ -114,21 +116,21 @@ public class GomokuAI implements GameAI {
     /**
      * 根据难度等级返回防守偏置。
      * <p>
-     * 难度1（低）：1.40，最保守，重防守，新手容易找到突破口
-     * 难度2（中）：1.25
-     * 难度3（高）：1.18
-     * 难度4（大师）：1.12，最激进，重进攻
+     * 难度1（低）：1.20，略偏防守但易出错
+     * 难度2（中）：1.15
+     * 难度3（高）：1.10
+     * 难度4（大师）：1.05，最激进，重进攻
      *
      * @param level 难度等级（1~4）
      * @return 防守偏置
      */
     private static double defenseBiasForLevel(int level) {
         switch (level) {
-            case 1: return 1.40;
-            case 2: return 1.25;
-            case 3: return 1.18;
-            case 4: return 1.12;
-            default: return 1.18;
+            case 1: return 1.20;
+            case 2: return 1.15;
+            case 3: return 1.10;
+            case 4: return 1.05;
+            default: return 1.10;
         }
     }
 
@@ -445,19 +447,40 @@ public class GomokuAI implements GameAI {
             }
         }
 
-        // 棋盘为空时从天元及周围6个候选位置随机选一个，增加开局多样性
+        // 棋盘为空时从天元及周围多个候选位置加权随机选一个，显著增加开局多样性
+        // 13个候选位置：天元(权重4) + 一线4个(权重3) + 二线8个(权重2)
         if (!hasPiece) {
             int center = GomokuGame.BOARD_SIZE / 2;
             int[][] openCandidates = {
-                    {center, center},       // 天元 (7,7)
-                    {center - 1, center - 1}, // (6,6)
-                    {center - 1, center},     // (6,7)
-                    {center, center - 1},     // (7,6)
-                    {center, center + 1},     // (7,8)
-                    {center + 1, center},     // (8,7)
-                    {center + 1, center + 1}  // (8,8)
+                    {center, center},           // 天元 (7,7)
+                    {center - 1, center},       // 一线上 (6,7)
+                    {center + 1, center},       // 一线下 (8,7)
+                    {center, center - 1},       // 一线左 (7,6)
+                    {center, center + 1},       // 一线右 (7,8)
+                    {center - 1, center - 1},   // 二线左上 (6,6)
+                    {center - 1, center + 1},   // 二线右上 (6,8)
+                    {center + 1, center - 1},   // 二线左下 (8,6)
+                    {center + 1, center + 1},   // 二线右下 (8,8)
+                    {center - 2, center},       // 三线上 (5,7)
+                    {center + 2, center},       // 三线下 (9,7)
+                    {center, center - 2},       // 三线左 (7,5)
+                    {center, center + 2}        // 三线右 (7,9)
             };
-            int[] pick = openCandidates[random.nextInt(openCandidates.length)];
+            // 加权随机：天元权重4，一线4个各权重3，二线4个各权重2，三线4个各权重1
+            int[] weights = {4, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1};
+            int totalWeight = 0;
+            for (int w : weights) totalWeight += w;
+            int r = random.nextInt(totalWeight);
+            int cumulative = 0;
+            int pickIndex = 0;
+            for (int i = 0; i < weights.length; i++) {
+                cumulative += weights[i];
+                if (r < cumulative) {
+                    pickIndex = i;
+                    break;
+                }
+            }
+            int[] pick = openCandidates[pickIndex];
             moves.add(new int[]{pick[0], pick[1]});
         }
         return moves;
@@ -771,11 +794,13 @@ public class GomokuAI implements GameAI {
     /**
      * 低难度随机走子：按难度概率从评分前N名中随机选一个。
      * <p>
-     * 难度1（低）：30%概率选评分前3的随机走子
-     * 难度2（中）：15%概率选评分前3的随机走子
-     * 难度3/4：不随机，始终选最优
+     * 难度1（低）：50%概率选评分前5的随机走子
+     * 难度2（中）：25%概率选评分前3的随机走子
+     * 难度3（高）：10%概率选评分前2的随机走子
+     * 难度4（大师）：不随机，始终选最优
      * <p>
-     * 这样低难度AI偶尔会走次优着法，让新手有获胜机会。
+     * 这样低难度AI会频繁走次优着法，让新手有获胜机会；
+     * 中等难度偶尔出错，仍有挑战性；大师档保持完美。
      *
      * @param bestMove      当前最优着法
      * @param orderedMoves  按评分降序排列的候选着法列表
@@ -783,20 +808,26 @@ public class GomokuAI implements GameAI {
      */
     private int[] maybePickRandomFromTop(int[] bestMove, List<int[]> orderedMoves) {
         double probability;
+        int topN;
         if (level == 1) {
-            probability = 0.30;
+            probability = 0.50;
+            topN = RANDOM_TOP_N_LOW;
         } else if (level == 2) {
-            probability = 0.15;
+            probability = 0.25;
+            topN = RANDOM_TOP_N_MEDIUM;
+        } else if (level == 3) {
+            probability = 0.10;
+            topN = RANDOM_TOP_N_HIGH;
         } else {
-            // 难度3/4不随机
+            // 难度4（大师）不随机
             return bestMove;
         }
 
         if (orderedMoves.size() <= 1) return bestMove;
         if (random.nextDouble() >= probability) return bestMove;
 
-        int topN = Math.min(RANDOM_TOP_N, orderedMoves.size());
-        return orderedMoves.get(random.nextInt(topN));
+        int limit = Math.min(topN, orderedMoves.size());
+        return orderedMoves.get(random.nextInt(limit));
     }
 
     /**

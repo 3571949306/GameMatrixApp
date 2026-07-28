@@ -126,16 +126,57 @@ class BottomNavigationManager(
 
     /**
      * 获取当前选中的 contribution ID。
+     *
+     * 优先返回 [currentFragmentTag]：当通过 [openModule] 打开非菜单模块（如错题本）
+     * 时，底部导航的 selectedItemId 仍指向原 tab，但实际显示的是另一个 Fragment。
+     * 此时 back handler 需要知道真实当前 Fragment 才能正确切回游戏大厅。
      */
     fun getCurrentContributionId(): String? {
-        val menuId = navView.selectedItemId
-        return menuIdToItem[menuId]?.id ?: currentFragmentTag
+        return currentFragmentTag ?: menuIdToItem[navView.selectedItemId]?.id
     }
 
     /** 供深链、返回键和自定义排序后按稳定贡献 ID 选择入口。 */
     fun selectContribution(contributionId: String): Boolean {
         val menuId = contributionIdToMenuId[contributionId] ?: return false
         navView.selectedItemId = menuId
+        return true
+    }
+
+    /**
+     * 打开不在底部导航菜单中的模块（如错题本）。
+     *
+     * 与 [navigateTo] 使用相同的 show/hide 机制，但直接按 moduleId 创建
+     * ModuleShellFragment，无需注册为底部导航 contribution。返回键由
+     * [com.gamecenter.app.MainActivity.setupBackToGamesHandler] 处理：
+     * [getCurrentContributionId] 会返回此 moduleId，back handler 据此
+     * 调用 selectContribution("games_hall") 切回游戏大厅。
+     */
+    fun openModule(moduleId: String): Boolean {
+        val tag = moduleId
+        val transaction = fragmentManager.beginTransaction()
+
+        currentFragmentTag?.let {
+            fragmentManager.findFragmentByTag(it)?.let { current ->
+                transaction.hide(current)
+            }
+        }
+
+        val existing = fragmentManager.findFragmentByTag(tag)
+        if (existing == null) {
+            val fragment = com.gamecenter.app.features.ModuleShellFragment().apply {
+                arguments = Bundle().apply {
+                    putString(com.gamecenter.app.features.ModuleShellFragment.ARG_MODULE_ID, moduleId)
+                }
+            }
+            transaction.add(containerId, fragment, tag)
+        } else {
+            transaction.show(existing)
+        }
+
+        transaction.commitNowAllowingStateLoss()
+        currentFragmentTag = tag
+
+        Log.d(TAG, "切换到模块（非菜单）: $tag")
         return true
     }
 

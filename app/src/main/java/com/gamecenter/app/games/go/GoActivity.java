@@ -54,6 +54,9 @@ public class GoActivity extends BaseGameActivity {
     /** AI 回合代际：pause/restart/destroy 时自增，使过期计算不再回写 UI。 */
     private volatile long aiGeneration = 0;
 
+    /** P2-7: 对局回放录制器 */
+    private com.gamecenter.app.games.replay.ReplayRecorder replayRecorder;
+
     /** 新手引导序列（首次开始游戏后弹出，3 步引导） */
     private com.gamecenter.app.ui.onboarding.CoachmarkSequence onboardingSequence;
 
@@ -200,6 +203,10 @@ public class GoActivity extends BaseGameActivity {
         isGameRunning = true;
         gameStartTime = System.currentTimeMillis();
 
+        // P2-7: 开始回放录制
+        replayRecorder = new com.gamecenter.app.games.replay.ReplayRecorder(this, getGameId());
+        replayRecorder.startRecording(ai.getDifficulty());
+
         // 首次开始游戏后触发新手引导（gamePanel 此时已 VISIBLE，goView 拿得到尺寸）
         // Spec §6 / 设计 §5.6：U2 免登录上手
         if (onboardingSequence != null) {
@@ -214,6 +221,10 @@ public class GoActivity extends BaseGameActivity {
 
         if (game.playMove(row, col)) {
             moveCount++;
+            // P2-7: 记录玩家落子
+            if (replayRecorder != null && replayRecorder.isRecording()) {
+                replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(row, col, GoGame.BLACK));
+            }
             goView.setBoard(game.getBoard());
             goView.setLastMove(row, col);
             updateScoreDisplay();
@@ -258,9 +269,17 @@ public class GoActivity extends BaseGameActivity {
 
         if (bestMove == null) {
             game.passMove();
+            // P2-7: 记录 AI 弃权（pass），用 (-1,-1) 标记
+            if (replayRecorder != null && replayRecorder.isRecording()) {
+                replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(-1, -1, GoGame.WHITE));
+            }
             tvStatus.setText(R.string.game_go_ai_passed);
         } else {
             game.playMove(bestMove[0], bestMove[1]);
+            // P2-7: 记录 AI 落子
+            if (replayRecorder != null && replayRecorder.isRecording()) {
+                replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(bestMove[0], bestMove[1], GoGame.WHITE));
+            }
             goView.setBoard(game.getBoard());
             goView.setLastMove(bestMove[0], bestMove[1]);
 
@@ -283,6 +302,10 @@ public class GoActivity extends BaseGameActivity {
     private void passMove() {
         if (game.isGameOver() || !isGameRunning) return;
         game.passMove();
+        // P2-7: 记录玩家弃权（pass），用 (-1,-1) 标记
+        if (replayRecorder != null && replayRecorder.isRecording()) {
+            replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(-1, -1, GoGame.BLACK));
+        }
         if (game.isGameOver()) {
             onGameEnd();
             return;
@@ -305,6 +328,57 @@ public class GoActivity extends BaseGameActivity {
         int blackT = game.countTerritory(GoGame.BLACK) + game.getCapturedByBlack();
         int whiteT = game.countTerritory(GoGame.WHITE) + game.getCapturedByWhite() + (int) GoGame.KOMI;
         showGameEndDialog(false, blackT, whiteT);
+
+        // P2-7: 结束录制并提供回放（认输=负）
+        offerReplay(com.gamecenter.app.games.replay.ReplayRecorder.RESULT_LOSS);
+    }
+
+    /**
+     * P2-7: 结束回放录制并弹出回放查看对话框。
+     *
+     * @param result 对局结果（{@link com.gamecenter.app.games.replay.ReplayRecorder#RESULT_WIN} /
+     *               {@link com.gamecenter.app.games.replay.ReplayRecorder#RESULT_LOSS} /
+     *               {@link com.gamecenter.app.games.replay.ReplayRecorder#RESULT_DRAW}）
+     */
+    private void offerReplay(String result) {
+        if (replayRecorder != null && replayRecorder.isRecording()) {
+            replayRecorder.endRecording(result);
+        }
+        if (replayRecorder != null && replayRecorder.hasHistory()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("对局结束")
+                    .setMessage("是否查看回放？")
+                    .setPositiveButton("查看回放", (d, w) -> {
+                        com.gamecenter.app.games.replay.ReplayRecord rec = replayRecorder.loadLatest();
+                        com.gamecenter.app.games.replay.ReplayDialog.show(this, rec,
+                                new com.gamecenter.app.games.replay.ReplayPlayer.Listener() {
+                                    @Override
+                                    public void onBoardUpdated(int step,
+                                                                List<com.gamecenter.app.games.replay.ReplayMove> played) {
+                                        // 重置棋盘并按已播放走法重建局面
+                                        game.startNewGame();
+                                        for (com.gamecenter.app.games.replay.ReplayMove m : played) {
+                                            if (m.toRow == -1 && m.toCol == -1) {
+                                                // pass 标记
+                                                game.passMove();
+                                            } else {
+                                                game.playMove(m.toRow, m.toCol);
+                                            }
+                                        }
+                                        goView.hideTerritory();
+                                        goView.setBoard(game.getBoard());
+                                    }
+
+                                    @Override
+                                    public void onReplayFinished() {}
+
+                                    @Override
+                                    public void onReplayReset() {}
+                                });
+                    })
+                    .setNegativeButton("关闭", null)
+                    .show();
+        }
     }
 
     private void onGameEnd() {
@@ -351,6 +425,17 @@ public class GoActivity extends BaseGameActivity {
         recordHighScore(currentScore);
 
         showGameEndDialog(playerWins, (int) blackTerritory, (int) whiteTerritory);
+
+        // P2-7: 结束录制并提供回放，结果按目数比较判定
+        String replayResult;
+        if (blackTerritory > whiteTerritory) {
+            replayResult = com.gamecenter.app.games.replay.ReplayRecorder.RESULT_WIN;
+        } else if (blackTerritory < whiteTerritory) {
+            replayResult = com.gamecenter.app.games.replay.ReplayRecorder.RESULT_LOSS;
+        } else {
+            replayResult = com.gamecenter.app.games.replay.ReplayRecorder.RESULT_DRAW;
+        }
+        offerReplay(replayResult);
     }
 
     private void showGameEndDialog(boolean playerWins, int blackTerritory, int whiteTerritory) {

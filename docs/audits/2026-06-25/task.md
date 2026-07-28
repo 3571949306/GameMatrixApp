@@ -1,5 +1,5 @@
 <!-- flutter-store-doc-sync: 2026-07-22; historical -->
-> Historical snapshot: preserved for context and not current release truth. Flutter-first module store production completion is 100%; current evidence: /docs/flutter-store/MIGRATION_STATUS.md.
+> 历史快照：保留用于上下文，不代表当前发布事实。Flutter-first 模块商店生产完成度为 100%；当前事实见 `/docs/CURRENT_STATE.md`。
 
 # 漏洞修复任务清单
 

@@ -71,6 +71,14 @@ class WrongBookRepository(context: Context) {
     }
 
     /**
+     * 跳过复习项：将 status 持久化为 "skipped"，避免重新进入复习页时再次出现。
+     * 之前 ReviewFragment.onSkip 只修改内存列表，未调用此方法，导致跳过的题目"复活"。
+     */
+    suspend fun skipReview(plan: ReviewPlanEntity) = withContext(Dispatchers.IO) {
+        dao.updateReviewPlan(plan.copy(status = "skipped", completedAt = System.currentTimeMillis()))
+    }
+
+    /**
      * 为指定错题生成艾宾浩斯复习计划。
      */
     suspend fun generateReviewPlans(questionId: Long) = withContext(Dispatchers.IO) {

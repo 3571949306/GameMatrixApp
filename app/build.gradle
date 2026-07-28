@@ -533,6 +533,12 @@ android {
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_GAMES_HALL", "false"
         // 动态工具区开关：开启后工具区从模块贡献动态构建
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_TOOLS", "true"
+        // 工具模块预加载开关：开启后下载完成与工具箱 onResume 时自动 load 已安装工具模块
+        // 关闭后回退到原行为（工具模块下载后不显示，需重启 App）
+        buildConfigField "boolean", "PRELOAD_INSTALLED_TOOL_MODULES", "true"
+        // 工具箱增强开关：开启后加载 6 个新增工具（单位换算/进制转换/密码生成/UUID/加密/JWT）
+        // 关闭后回退到原有 25 个工具集
+        buildConfigField "boolean", "ENABLE_TOOLS_ENHANCEMENT", "true"
         // 用户可在设置中排序或隐藏宿主底部导航；游戏大厅保持强制可见。
         buildConfigField "boolean", "BOTTOM_NAV_CUSTOMIZATION", "true"
 
@@ -690,6 +696,10 @@ dependencies {
     implementation libs.androidx.swiperefreshlayout
     implementation libs.androidx.navigation.fragment
     implementation libs.androidx.navigation.ui
+    // 显式声明 fragment-ktx 1.7.1：覆盖 navigation 间接引入的 1.5.0，
+    // 确保宿主 base.apk 中的 FragmentViewModelLazyKt 与动态模块（wrongbook）对齐，
+    // 避免模块调用 createViewModelLazy 时出现 NoSuchMethodError。
+    implementation libs.androidx.fragment.ktx
     implementation libs.androidx.recyclerview
     implementation libs.androidx.startup
     // AndroidX SplashScreen API: 适配 Android 12+ 双启动屏问题
@@ -1035,11 +1045,74 @@ task packageAppClasses(type: Jar) {
 task bundlePreinstalledModules() {
     group = 'build'
     description = '构建、签名并复制预装模块，同时刷新 modules.json 完整性元数据'
+    // 预装模块：wrongbook（学习）+ tools（创作）+ chinesechess（玩，代表性经典游戏）
+    // ai/vpn/tts_voice 及其余游戏模块通过模块商店下载，不预装到 assets/modules/
     dependsOn ':module-store:feature:tools:wrongbook:assembleRelease'
+    dependsOn ':module-store:feature:tools:tools:assembleRelease'
+    dependsOn ':module-store:feature:tools:vpn:assembleRelease'
+    // 游戏模块仍需构建以刷新 catalog.json/modules.json 的 sha256/fileSize 元数据
+    dependsOn ':module-store:feature:games:games:chinesechess:assembleRelease'
+    dependsOn ':module-store:feature:games:games:game2048:assembleRelease'
+    dependsOn ':module-store:feature:games:games:klotski:assembleRelease'
+    dependsOn ':module-store:feature:games:games:snake:assembleRelease'
+    dependsOn ':module-store:feature:games:games:tic:assembleRelease'
+    dependsOn ':module-store:feature:games:games:whack:assembleRelease'
+    dependsOn ':module-store:feature:games:games:reaction:assembleRelease'
+    dependsOn ':module-store:feature:games:games:rock:assembleRelease'
+    dependsOn ':module-store:feature:games:games:dice:assembleRelease'
+    dependsOn ':module-store:feature:games:games:guess:assembleRelease'
+    dependsOn ':module-store:feature:games:games:tiles:assembleRelease'
+    dependsOn ':module-store:feature:games:games:memory:assembleRelease'
+    dependsOn ':module-store:feature:games:games:match:assembleRelease'
+    dependsOn ':module-store:feature:games:games:blackjack:assembleRelease'
+    dependsOn ':module-store:feature:games:games:flappy:assembleRelease'
+    dependsOn ':module-store:feature:games:games:brotato:assembleRelease'
+    dependsOn ':module-store:feature:games:games:plane:assembleRelease'
+    dependsOn ':module-store:feature:games:games:pipeline:assembleRelease'
+    dependsOn ':module-store:feature:games:games:sokoban:assembleRelease'
+    dependsOn ':module-store:feature:games:games:minesweeper:assembleRelease'
+    dependsOn ':module-store:feature:games:games:tetris:assembleRelease'
+    dependsOn ':module-store:feature:games:games:sudoku:assembleRelease'
+    dependsOn ':module-store:feature:games:games:go:assembleRelease'
+    dependsOn ':module-store:feature:games:games:checkers:assembleRelease'
+    dependsOn ':module-store:feature:games:games:gomoku:assembleRelease'
+    dependsOn ':module-store:feature:games:games:doudizhu:assembleRelease'
 
+    // preinstall=true 的模块会复制到 assets/modules/；preinstall=false 的仅刷新元数据不复制
     def moduleMappings = [
-        // [模块项目路径, 源APK名, 目标文件名（与 modules.json 中 fileName 一致）]
-        [':module-store:feature:tools:wrongbook', 'wrongbook-release.apk', 'feature_wrongbook_v100.apk']
+        // [模块项目路径, 源APK名, 目标文件名, catalog id, 是否预装到assets]
+        // 工具模块：预装（wrongbook 学习意图 + tools 创作意图）
+        [':module-store:feature:tools:wrongbook', 'wrongbook-release.apk', 'feature_wrongbook_v100.apk', 'wrongbook', true],
+        [':module-store:feature:tools:tools', 'tools-release.apk', 'feature_tools_v100.apk', 'tools', true],
+        // 工具模块：不预装（ai/vpn 权限或网络敏感，按需下载）
+        [':module-store:feature:tools:vpn', 'vpn-release.apk', 'vpn-release.apk', 'vpn', false],
+        // 游戏模块：chinesechess 预装（玩意图代表性经典游戏）；其余不预装，仅刷新 sha256/fileSize 供模块商店下载校验
+        [':module-store:feature:games:games:chinesechess', 'chinesechess-release.apk', 'game_chinesechess_v300.apk', 'chinesechess', true],
+        [':module-store:feature:games:games:game2048', 'game2048-release.apk', 'game_2048_v100.apk', 'game_2048', false],
+        [':module-store:feature:games:games:klotski', 'klotski-release.apk', 'game_klotski_v100.apk', 'klotski', false],
+        [':module-store:feature:games:games:snake', 'snake-release.apk', 'game_snake_v100.apk', 'snake', false],
+        [':module-store:feature:games:games:tic', 'tic-release.apk', 'game_tic_v100.apk', 'tic', false],
+        [':module-store:feature:games:games:whack', 'whack-release.apk', 'game_whack_v100.apk', 'whack', false],
+        [':module-store:feature:games:games:reaction', 'reaction-release.apk', 'game_reaction_v100.apk', 'reaction', false],
+        [':module-store:feature:games:games:rock', 'rock-release.apk', 'game_rock_v100.apk', 'rock', false],
+        [':module-store:feature:games:games:dice', 'dice-release.apk', 'game_dice_v100.apk', 'dice', false],
+        [':module-store:feature:games:games:guess', 'guess-release.apk', 'game_guess_v100.apk', 'guess', false],
+        [':module-store:feature:games:games:tiles', 'tiles-release.apk', 'game_tiles_v100.apk', 'tiles', false],
+        [':module-store:feature:games:games:memory', 'memory-release.apk', 'game_memory_v100.apk', 'memory', false],
+        [':module-store:feature:games:games:match', 'match-release.apk', 'game_match_v100.apk', 'match', false],
+        [':module-store:feature:games:games:blackjack', 'blackjack-release.apk', 'game_blackjack_v100.apk', 'blackjack', false],
+        [':module-store:feature:games:games:flappy', 'flappy-release.apk', 'game_flappy_v100.apk', 'flappy', false],
+        [':module-store:feature:games:games:brotato', 'brotato-release.apk', 'game_brotato_v100.apk', 'brotato', false],
+        [':module-store:feature:games:games:plane', 'plane-release.apk', 'game_plane_v100.apk', 'plane', false],
+        [':module-store:feature:games:games:pipeline', 'pipeline-release.apk', 'game_pipeline_v100.apk', 'pipeline', false],
+        [':module-store:feature:games:games:sokoban', 'sokoban-release.apk', 'game_sokoban_v100.apk', 'sokoban', false],
+        [':module-store:feature:games:games:minesweeper', 'minesweeper-release.apk', 'game_minesweeper_v100.apk', 'minesweeper', false],
+        [':module-store:feature:games:games:tetris', 'tetris-release.apk', 'game_tetris_v100.apk', 'tetris', false],
+        [':module-store:feature:games:games:sudoku', 'sudoku-release.apk', 'game_sudoku_v100.apk', 'sudoku', false],
+        [':module-store:feature:games:games:go', 'go-release.apk', 'game_go_v100.apk', 'go', false],
+        [':module-store:feature:games:games:checkers', 'checkers-release.apk', 'game_checkers_v100.apk', 'checkers', false],
+        [':module-store:feature:games:games:gomoku', 'gomoku-release.apk', 'game_gomoku_v100.apk', 'gomoku', false],
+        [':module-store:feature:games:games:doudizhu', 'doudizhu-release.apk', 'game_doudizhu_v100.apk', 'doudizhu', false]
     ]
 
     doLast {
@@ -1049,6 +1122,8 @@ task bundlePreinstalledModules() {
             def modulePath = mapping[0]
             def srcApkName = mapping[1]
             def targetName = mapping[2]
+            def catalogId = mapping[3]
+            def shouldPreinstall = mapping[4]
             def moduleProject = rootProject.findProject(modulePath)
             if (moduleProject == null) {
                 logger.warn("[preinstall] 模块未包含: ${modulePath}（跳过）")
@@ -1056,32 +1131,53 @@ task bundlePreinstalledModules() {
             }
             def srcApk = file("${moduleProject.buildDir}/outputs/apk/release/${srcApkName}")
             if (!srcApk.exists()) {
-                logger.warn("[preinstall] 模块 APK 未构建: ${srcApk}（请先 assembleDebug 该模块，跳过）")
+                logger.warn("[preinstall] 模块 APK 未构建: ${srcApk}（请先 assembleRelease 该模块，跳过）")
                 return
             }
-            def dstApk = file("${assetsModulesDir}/${targetName}")
-            copy {
-                from srcApk
-                into assetsModulesDir
-                rename { String fileName -> targetName }
-            }
-            def manifestFile = file("${projectDir}/src/main/assets/modules.json")
-            def manifestText = manifestFile.getText('UTF-8')
-            def moduleMatcher = manifestText =~ /(?s)(\{\s*"id"\s*:\s*"wrongbook".*?\n\s*\})/
-            if (moduleMatcher.find()) {
-                def moduleBlock = moduleMatcher.group(1)
-                def moduleSha256 = java.security.MessageDigest.getInstance('SHA-256')
-                        .digest(srcApk.bytes)
-                        .collect { String.format('%02x', it) }
-                        .join('')
-                def updatedBlock = moduleBlock
-                        .replaceAll(/"fileSize"\s*:\s*\d+/, "\"fileSize\": ${srcApk.length()}")
-                        .replaceAll(/"sha256"\s*:\s*"[^"]*"/, "\"sha256\": \"${moduleSha256}\"")
-                if (updatedBlock != moduleBlock) {
-                    manifestFile.setText(manifestText.replace(moduleBlock, updatedBlock), 'UTF-8')
+            // 仅预装模块复制到 assets/modules/；非预装模块只刷新元数据
+            if (shouldPreinstall) {
+                copy {
+                    from srcApk
+                    into assetsModulesDir
+                    rename { String fileName -> targetName }
                 }
             }
-            logger.lifecycle("[preinstall] ${targetName} (${srcApk.length()} bytes) 已复制到 assets/modules/")
+            // 无论是否预装，都更新 modules.json 和 catalog.json 中的 fileSize 和 sha256
+            def moduleSha256 = java.security.MessageDigest.getInstance('SHA-256')
+                    .digest(srcApk.bytes)
+                    .collect { String.format('%02x', it) }
+                    .join('')
+            [file("${projectDir}/src/main/assets/modules.json"),
+             file("${projectDir}/src/main/assets/catalog.json")].each { manifestFile ->
+                if (!manifestFile.exists()) return
+                def manifestText = manifestFile.getText('UTF-8')
+                def moduleMatcher = manifestText =~ /(?s)(\{\s*"id"\s*:\s*"${catalogId}".*?\n\s*\})/
+                if (moduleMatcher.find()) {
+                    def moduleBlock = moduleMatcher.group(1)
+                    def updatedBlock = moduleBlock
+                            .replaceAll(/"fileSize"\s*:\s*\d+/, "\"fileSize\": ${srcApk.length()}")
+                            .replaceAll(/"sha256"\s*:\s*"[^"]*"/, "\"sha256\": \"${moduleSha256}\"")
+                    // 同时更新 package 子对象中的 fileSize 和 sha256
+                    if (updatedBlock.contains('"package"')) {
+                        updatedBlock = updatedBlock.replaceAll(
+                                /"package"\s*:\s*\{[^}]*"fileSize"\s*:\s*\d+/,
+                                { match -> match.replaceAll(/"fileSize"\s*:\s*\d+/, "\"fileSize\": ${srcApk.length()}") }
+                        )
+                        updatedBlock = updatedBlock.replaceAll(
+                                /"package"\s*:\s*\{[^}]*"sha256"\s*:\s*"[^"]*"/,
+                                { match -> match.replaceAll(/"sha256"\s*:\s*"[^"]*"/, "\"sha256\": \"${moduleSha256}\"") }
+                        )
+                    }
+                    if (updatedBlock != moduleBlock) {
+                        manifestFile.setText(manifestText.replace(moduleBlock, updatedBlock), 'UTF-8')
+                    }
+                }
+            }
+            if (shouldPreinstall) {
+                logger.lifecycle("[preinstall] ${targetName} (${srcApk.length()} bytes, sha256=${moduleSha256}) 已复制到 assets/modules/")
+            } else {
+                logger.lifecycle("[catalog] ${targetName} (${srcApk.length()} bytes, sha256=${moduleSha256}) 元数据已刷新（不预装，通过模块商店下载）")
+            }
         }
     }
 }

@@ -179,7 +179,7 @@ class QuestionsFragment : BaseWrongBookFragment() {
 
             val subjects = viewModel.subjects.value ?: emptyList()
             if (subjects.isEmpty()) {
-                Toast.makeText(requireContext(), "暂无科目，请先在右上角添加科目", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), moduleResources.getString(R.string.wrongbook_no_subject), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 

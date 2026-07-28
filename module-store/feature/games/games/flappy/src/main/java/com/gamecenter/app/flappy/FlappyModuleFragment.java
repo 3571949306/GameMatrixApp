@@ -1,0 +1,265 @@
+package com.gamecenter.app.flappy;
+
+import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
+import com.gamecenter.app.R;
+import com.gamecenter.app.games.GameUsageStore;
+
+/**
+ * 飞翔的小鸟游戏 Fragment（独立 APK 模块版本）。
+ *
+ * <p>由宿主 FlappyActivity 迁移而来。使用纯 Android widget 构建 UI，
+ * 不依赖宿主 R 资源，支持浅色/深色主题。难度选择以代码内按钮实现，
+ * 不含成就系统，仅保留基本游戏功能。</p>
+ */
+public class FlappyModuleFragment extends Fragment {
+
+    private static final String GAME_ID = "flappy";
+    private static final long FRAME_INTERVAL_MS = 16;
+
+    private FlappyView flappyView;
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private int bestScore = 0;
+    private int totalGames = 0;
+    private float difficultyFactor = 0.5f;
+
+    private TextView tvScore;
+    private TextView tvBest;
+    private Button btnEasy;
+    private Button btnNormal;
+    private Button btnHard;
+    private Button btnRestart;
+    private GameUsageStore usageStore;
+
+    private final Runnable gameLoop = new Runnable() {
+        @Override
+        public void run() {
+            if (flappyView != null && flappyView.isGameRunning()) {
+                flappyView.update();
+                handler.postDelayed(this, FRAME_INTERVAL_MS);
+            }
+        }
+    };
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        Context ctx = requireContext();
+        float dp = ctx.getResources().getDisplayMetrics().density;
+        int colorBg = isNightMode() ? 0xFF121622 : 0xFFF5F5F5;
+        int colorTextPrimary = isNightMode() ? 0xFFE4E6F0 : 0xFF212121;
+        int colorTextSecondary = isNightMode() ? 0xFFAAAAAA : 0xFF757575;
+
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(colorBg);
+        root.setPadding((int) (12 * dp), (int) (12 * dp), (int) (12 * dp), (int) (12 * dp));
+
+        TextView tvTitle = new TextView(ctx);
+        tvTitle.setText(getString(R.string.game_title_flappy));
+        tvTitle.setTextSize(24);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(colorTextPrimary);
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        tvTitle.setLayoutParams(titleLp);
+        root.addView(tvTitle);
+
+        // 分数栏
+        LinearLayout scoreBar = new LinearLayout(ctx);
+        scoreBar.setOrientation(LinearLayout.HORIZONTAL);
+        scoreBar.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams scoreBarLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        scoreBarLp.topMargin = (int) (8 * dp);
+        scoreBar.setLayoutParams(scoreBarLp);
+
+        tvScore = new TextView(ctx);
+        tvScore.setTextSize(18);
+        tvScore.setTextColor(colorTextPrimary);
+        tvScore.setText(getString(R.string.game_score_alt_init));
+        LinearLayout.LayoutParams scoreLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        scoreLp.rightMargin = (int) (24 * dp);
+        tvScore.setLayoutParams(scoreLp);
+        scoreBar.addView(tvScore);
+
+        tvBest = new TextView(ctx);
+        tvBest.setTextSize(18);
+        tvBest.setTextColor(colorTextSecondary);
+        tvBest.setText(getString(R.string.game_best_init));
+        scoreBar.addView(tvBest);
+        root.addView(scoreBar);
+
+        // 难度按钮
+        LinearLayout diffBar = new LinearLayout(ctx);
+        diffBar.setOrientation(LinearLayout.HORIZONTAL);
+        diffBar.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams diffBarLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        diffBarLp.topMargin = (int) (8 * dp);
+        diffBarLp.bottomMargin = (int) (4 * dp);
+        diffBar.setLayoutParams(diffBarLp);
+
+        btnEasy = new Button(ctx);
+        btnEasy.setText(getString(R.string.game_diff_easy));
+        btnEasy.setTextSize(12);
+        btnEasy.setOnClickListener(v -> setDifficulty(0.3f));
+        diffBar.addView(btnEasy);
+
+        btnNormal = new Button(ctx);
+        btnNormal.setText(getString(R.string.game_diff_normal));
+        btnNormal.setTextSize(12);
+        btnNormal.setOnClickListener(v -> setDifficulty(0.5f));
+        diffBar.addView(btnNormal);
+
+        btnHard = new Button(ctx);
+        btnHard.setText(getString(R.string.game_diff_hard));
+        btnHard.setTextSize(12);
+        btnHard.setOnClickListener(v -> setDifficulty(0.8f));
+        diffBar.addView(btnHard);
+        root.addView(diffBar);
+
+        // 游戏容器
+        FrameLayout gameContainer = new FrameLayout(ctx);
+        LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+        containerLp.topMargin = (int) (8 * dp);
+        gameContainer.setLayoutParams(containerLp);
+        root.addView(gameContainer);
+
+        flappyView = new FlappyView(ctx);
+        applyDifficulty();
+        flappyView.setOnGameListener(new FlappyView.OnGameListener() {
+            @Override
+            public void onScoreChanged(int score) {
+                tvScore.setText(getString(R.string.game_score_alt_format, score));
+            }
+
+            @Override
+            public void onGameOver(int score) {
+                handler.removeCallbacks(gameLoop);
+                totalGames++;
+                if (score > bestScore) {
+                    bestScore = score;
+                }
+                if (usageStore != null) {
+                    usageStore.recordScore(GAME_ID, bestScore);
+                    usageStore.recordLoss(GAME_ID);
+                }
+                tvBest.setText(getString(R.string.game_best_format, bestScore));
+            }
+        });
+        gameContainer.addView(flappyView);
+
+        // 重新开始按钮
+        btnRestart = new Button(ctx);
+        btnRestart.setText(getString(R.string.game_btn_restart));
+        LinearLayout.LayoutParams restartLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        restartLp.topMargin = (int) (8 * dp);
+        btnRestart.setLayoutParams(restartLp);
+        btnRestart.setOnClickListener(v -> startGame());
+        root.addView(btnRestart);
+
+        return root;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Context ctx = requireContext();
+        usageStore = new GameUsageStore(ctx);
+        bestScore = usageStore.getHighScore(GAME_ID);
+        if (tvBest != null) {
+            tvBest.setText(getString(R.string.game_best_format, bestScore));
+        }
+        updateDifficultyButtons();
+        startGame();
+    }
+
+    private void startGame() {
+        if (flappyView == null) return;
+        flappyView.startGame();
+        handler.removeCallbacks(gameLoop);
+        handler.post(gameLoop);
+    }
+
+    private void setDifficulty(float factor) {
+        difficultyFactor = factor;
+        applyDifficulty();
+        updateDifficultyButtons();
+    }
+
+    private void applyDifficulty() {
+        if (flappyView == null) return;
+        float baseSpeed = 3f;
+        float baseGap = 180f;
+        float pipeSpeed = baseSpeed * (0.5f + difficultyFactor);
+        float pipeGap = baseGap * (1.5f - difficultyFactor);
+        flappyView.setPipeConfig(pipeSpeed, pipeGap);
+    }
+
+    private void updateDifficultyButtons() {
+        if (btnEasy == null) return;
+        int active = 0xFF3949AB;
+        int inactive = isNightMode() ? 0xFF333A4D : 0xFFE0E0E0;
+        btnEasy.setBackgroundColor(difficultyFactor == 0.3f ? active : inactive);
+        btnNormal.setBackgroundColor(difficultyFactor == 0.5f ? active : inactive);
+        btnHard.setBackgroundColor(difficultyFactor == 0.8f ? active : inactive);
+        btnEasy.setTextColor(Color.WHITE);
+        btnNormal.setTextColor(Color.WHITE);
+        btnHard.setTextColor(Color.WHITE);
+    }
+
+    private boolean isNightMode() {
+        int nightMode = requireContext().getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        handler.removeCallbacks(gameLoop);
+        if (flappyView != null) {
+            flappyView.pauseGame();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (flappyView != null && flappyView.isGameRunning()) {
+            flappyView.resumeGame();
+            handler.post(gameLoop);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        handler.removeCallbacksAndMessages(null);
+        if (flappyView != null) {
+            flappyView.stopGame();
+        }
+    }
+}

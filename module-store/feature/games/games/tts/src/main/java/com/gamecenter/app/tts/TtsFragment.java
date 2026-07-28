@@ -25,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.gamecenter.app.R;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.*;
@@ -146,6 +147,10 @@ public class TtsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        // ctx 必须在构建布局前初始化：dp() 在本方法内被调用，依赖 ctx.getResources()
+        // 否则 ctx 为 null 时 dp() 触发 NPE（生命周期修复）
+        ctx = requireContext();
+
         // 纯代码构建布局，不依赖 XML 资源（模块资源非宿主可访问）
         ScrollView scrollView = new ScrollView(requireContext());
         scrollView.setLayoutParams(new ViewGroup.LayoutParams(
@@ -295,7 +300,7 @@ public class TtsFragment extends Fragment {
         col.addView(divider());
 
         textInput = new EditText(ctx);
-        textInput.setHint("请输入需要合成的文字…");
+        textInput.setHint(getString(R.string.tts_input_hint));
         textInput.setTextSize(15);
         textInput.setTextColor(CLR_TEXT);
         textInput.setHintTextColor(0xFFBDBDBD);
@@ -328,7 +333,7 @@ public class TtsFragment extends Fragment {
         row.setPadding(0, dp(8), 0, 0);
 
         btnRecordToggle = new MaterialButton(ctx);
-        btnRecordToggle.setText("⏺  开始录音");
+        btnRecordToggle.setText(getString(R.string.tts_start_record));
         btnRecordToggle.setTextSize(14);
         btnRecordToggle.setTextColor(CLR_DANGER);
         btnRecordToggle.setStrokeColor(colorState(CLR_DANGER));
@@ -337,7 +342,7 @@ public class TtsFragment extends Fragment {
         btnRecordToggle.setOnClickListener(v -> toggleRecording());
         row.addView(btnRecordToggle);
 
-        tvRecordStatus = txt("  未录音", 13, CLR_TEXT_SUB, false);
+        tvRecordStatus = txt(getString(R.string.tts_no_record), 13, CLR_TEXT_SUB, false);
         row.addView(tvRecordStatus);
         col.addView(row);
 
@@ -419,7 +424,7 @@ public class TtsFragment extends Fragment {
         col.addView(divider());
 
         btnGenerate = new MaterialButton(ctx);
-        btnGenerate.setText("🚀  开始合成");
+        btnGenerate.setText(getString(R.string.tts_start_synthesis));
         btnGenerate.setTextSize(15);
         btnGenerate.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CLR_PRIMARY));
         btnGenerate.setTextColor(0xFFFFFFFF);
@@ -482,7 +487,7 @@ public class TtsFragment extends Fragment {
         btnRow.setPadding(0, dp(6), 0, 0);
 
         btnPlay = new MaterialButton(ctx);
-        btnPlay.setText("▶  播放");
+        btnPlay.setText(getString(R.string.tts_play));
         btnPlay.setTextSize(14);
         btnPlay.setTextColor(CLR_PRIMARY);
         btnPlay.setStrokeColor(colorState(CLR_PRIMARY));
@@ -497,7 +502,7 @@ public class TtsFragment extends Fragment {
         btnRow.addView(gap);
 
         btnSave = new MaterialButton(ctx);
-        btnSave.setText("💾  保存到手机");
+        btnSave.setText(getString(R.string.tts_save));
         btnSave.setTextSize(14);
         btnSave.setTextColor(CLR_SUCCESS);
         btnSave.setStrokeColor(colorState(CLR_SUCCESS));
@@ -610,9 +615,9 @@ public class TtsFragment extends Fragment {
         recordingFile = new File(dir, "clone_" + System.currentTimeMillis() + ".wav");
 
         isRecording = true;
-        btnRecordToggle.setText("⏹  停止录音");
+        btnRecordToggle.setText(getString(R.string.tts_stop_record));
         btnRecordToggle.setTextColor(CLR_TEXT);
-        tvRecordStatus.setText("  录音中…");
+        tvRecordStatus.setText(getString(R.string.tts_recording));
 
         try {
             fallbackRecorder = new MediaRecorder();
@@ -625,17 +630,17 @@ public class TtsFragment extends Fragment {
             fallbackRecorder.prepare();
             fallbackRecorder.start();
         } catch (Exception e) {
-            Toast.makeText(ctx, "录音失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, getString(R.string.tts_record_failed_format, e.getMessage()), Toast.LENGTH_SHORT).show();
             isRecording = false;
-            btnRecordToggle.setText("⏺  开始录音");
-            tvRecordStatus.setText("  未录音");
+            btnRecordToggle.setText(getString(R.string.tts_start_record));
+            tvRecordStatus.setText(getString(R.string.tts_no_record));
         }
     }
 
     private void stopRecording() {
         if (!isRecording) return;
         isRecording = false;
-        btnRecordToggle.setText("⏺  开始录音");
+        btnRecordToggle.setText(getString(R.string.tts_start_record));
         btnRecordToggle.setTextColor(CLR_DANGER);
 
         try {
@@ -649,11 +654,11 @@ public class TtsFragment extends Fragment {
 
         if (recordingFile != null && recordingFile.exists() && recordingFile.length() > 100) {
             cloneAudioFile = recordingFile;
-            tvRecordStatus.setText("  ✅ 已录制 " + (recordingFile.length() / 1024) + " KB");
+            tvRecordStatus.setText(getString(R.string.tts_recorded_format, recordingFile.length() / 1024));
             playFile(cloneAudioFile, true);
-            Toast.makeText(ctx, "录音已保存，可用于声音克隆", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, R.string.tts_record_saved_clone, Toast.LENGTH_SHORT).show();
         } else {
-            tvRecordStatus.setText("  ⚠️ 录音失败或太短");
+            tvRecordStatus.setText(getString(R.string.tts_record_failed_short));
         }
     }
 
@@ -666,7 +671,7 @@ public class TtsFragment extends Fragment {
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             startRecording();
         } else {
-            Toast.makeText(ctx, "需要录音权限", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, R.string.tts_need_record_perm, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -675,11 +680,11 @@ public class TtsFragment extends Fragment {
     private void startSynthesis() {
         String text = textInput.getText().toString().trim();
         if (text.isEmpty()) {
-            Toast.makeText(ctx, "请输入要合成的文字", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, R.string.tts_input_empty, Toast.LENGTH_SHORT).show();
             return;
         }
         if (text.length() > 5000) {
-            Toast.makeText(ctx, "文字过长（≤5000字）", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, R.string.tts_text_too_long, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -687,7 +692,7 @@ public class TtsFragment extends Fragment {
 
         if (model.id.equals("mimo-v2.5-tts-voiceclone")
                 && (cloneAudioFile == null || !cloneAudioFile.exists())) {
-            Toast.makeText(ctx, "请先录制声音样本", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, R.string.tts_need_record_sample, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -781,20 +786,20 @@ public class TtsFragment extends Fragment {
             try (FileOutputStream fos = new FileOutputStream(generatedFile)) {
                 fos.write(wavData);
             }
-            tvAudioInfo.setText("✅ 已生成  " + (wavData.length / 1024) + " KB  ·  " + MODELS[selectedModelIdx].name);
+            tvAudioInfo.setText(getString(R.string.tts_generated_format, wavData.length / 1024, MODELS[selectedModelIdx].name));
             btnPlay.setEnabled(true);
             btnSave.setEnabled(true);
             tvAudioSaved.setVisibility(View.GONE);
             seekBar.setProgress(0);
             playFile(generatedFile, false);
         } catch (Exception e) {
-            Toast.makeText(ctx, "保存音频失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, getString(R.string.tts_save_audio_failed_format, e.getMessage()), Toast.LENGTH_SHORT).show();
         }
     }
 
     private void onSynthesisError(String msg) {
         setGenerating(false);
-        tvStatus.setText("❌ 合成失败：" + msg);
+        tvStatus.setText(getString(R.string.tts_synth_failed_format, msg));
     }
 
     private void setGenerating(boolean gen) {
@@ -820,7 +825,7 @@ public class TtsFragment extends Fragment {
             mediaPlayer.setDataSource(file.getAbsolutePath());
             mediaPlayer.prepare();
             mediaPlayer.start();
-            btnPlay.setText("⏸  暂停");
+            btnPlay.setText(getString(R.string.tts_pause));
 
             Runnable updater = new Runnable() {
                 @Override
@@ -835,11 +840,11 @@ public class TtsFragment extends Fragment {
 
             mediaPlayer.setOnCompletionListener(mp -> {
                 seekBar.setProgress(1000);
-                btnPlay.setText("▶  播放");
+                btnPlay.setText(getString(R.string.tts_play));
                 if (autoStop) mp.release();
             });
         } catch (Exception e) {
-            Toast.makeText(ctx, "播放失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, getString(R.string.tts_play_failed_format, e.getMessage()), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -848,7 +853,7 @@ public class TtsFragment extends Fragment {
             if (mediaPlayer.isPlaying()) mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
-            btnPlay.setText("▶  播放");
+            btnPlay.setText(getString(R.string.tts_play));
             seekBar.setProgress(0);
         }
     }
@@ -863,12 +868,12 @@ public class TtsFragment extends Fragment {
         try {
             copyFile(generatedFile, dest);
             tvAudioSaved.setVisibility(View.VISIBLE);
-            tvAudioSaved.setText("✅ 已保存: " + dest.getAbsolutePath());
-            Toast.makeText(ctx, "已保存到 Music 文件夹", Toast.LENGTH_SHORT).show();
+            tvAudioSaved.setText(getString(R.string.tts_saved_path_format, dest.getAbsolutePath()));
+            Toast.makeText(ctx, R.string.tts_saved_to_music, Toast.LENGTH_SHORT).show();
             android.media.MediaScannerConnection.scanFile(ctx,
                     new String[]{dest.getAbsolutePath()}, null, null);
         } catch (Exception e) {
-            Toast.makeText(ctx, "保存失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(ctx, getString(R.string.tts_save_failed_format, e.getMessage()), Toast.LENGTH_SHORT).show();
         }
     }
 

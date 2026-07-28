@@ -15,4 +15,7 @@
 
     <!-- Flutter-first 模块商店宿主容器 -->
     <item name="flutter_module_store_container" type="id" />
+
+    <!-- 工具箱：contentView 的 tag key，存储 ToolsFragment 引用，供 Binder 获取文件选择器 -->
+    <item name="tag_tools_fragment" type="id" />
 </resources>
