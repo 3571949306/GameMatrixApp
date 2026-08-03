@@ -209,3 +209,13 @@ wrongbook_module.zip
 /parse_ui.py
 /fix_doudizhu_r_refs.ps1
 /replace_doudizhu_packages.ps1
+
+# ============================================================
+# Internal dev docs (kept local only; public repo is user-facing)
+# 2026-08-04: 公开仓库面向用户，内部开发文档不再上传
+# ============================================================
+/docs/
+/agent改动.md
+/CODE_WIKI.md
+/CLOUD-BUILD.md
+/core/security/src/main/res/raw/release_signer.cer
