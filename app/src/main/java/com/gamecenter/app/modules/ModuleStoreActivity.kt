@@ -259,6 +259,29 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         applyLayoutManager()
         recyclerView.adapter = adapter
 
+        // DIAG-P1b: 在「真正完成 layout 之后」（而非 applyCategoryFilter 同步读取时）记录 RecyclerView
+        // 的真实测量高度与已布局子项数量，用于区分两种情况：
+        //   1) 布局缺陷导致内容区高度恒为 0（根因）
+        //   2) 之前 diag_p1.txt 的 measuredH=0 仅因读取时机过早（布局尚未发生）的时序假象。
+        // R8 会剥离 android.util.Log，因此改为写入文件，便于 adb pull 读取。
+        recyclerView.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                recyclerView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                try {
+                    val sb = StringBuilder()
+                    sb.append("afterLayout=true\n")
+                    sb.append("recyclerMeasuredH=${recyclerView.measuredHeight} recyclerMeasuredW=${recyclerView.measuredWidth}\n")
+                    sb.append("recyclerChildCount=${recyclerView.childCount} adapterCount=${adapter.itemCount}\n")
+                    val parent = recyclerView.parent as? View
+                    sb.append("parentH=${parent?.measuredHeight} parentW=${parent?.measuredWidth}\n")
+                    val gp = parent?.parent as? View
+                    sb.append("grandParentH=${gp?.measuredHeight}\n")
+                    val diagFile = File(getExternalFilesDir(null), "diag_p1b.txt")
+                    diagFile.writeText(sb.toString())
+                } catch (_: Exception) { }
+            }
+        })
+
         // 搜索防抖（300ms）
         etModuleSearch = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etModuleSearch)
         etModuleSearch?.addTextChangedListener(object : android.text.TextWatcher {
@@ -773,6 +796,23 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         // MODULE_STORE_PERF_OPT: 先更新 adapter 的 installedIds/versions，再提交列表。
         // 这样 DiffUtil 在比较 areContentsTheSame 时能拿到最新的安装状态，
         // 避免 updateModules 之后再 notifyItemRangeChanged 触发全量重绑。
+        // DIAG-P1: 排查模块商店列表空白（确认 finalFiltered 是否为空及 currentCategory/storeCategory 取值）。
+        // R8 会剥离 android.util.Log，因此改为写入文件，便于 adb pull 读取。
+        try {
+            val diag = buildString {
+                append("allModules=${allModules.size}\n")
+                append("currentCategory=$currentCategory sub=$currentSubCategory search='$searchKeyword'\n")
+                append("finalFiltered=${finalFiltered.size}\n")
+                append("catalogCategoriesEmpty=${currentCatalog?.categories?.isEmpty() ?: true}\n")
+                val dist = allModules.groupingBy { it.storeCategory ?: "null" }.eachCount()
+                append("storeCategoryDist=${dist}\n")
+                append("sample=${allModules.take(8).map { it.id to (it.storeCategory ?: "null") }}\n")
+                append("recyclerVisibility=${recyclerView.visibility} measuredH=${recyclerView.measuredHeight} adapterCount=${adapter.itemCount} childCount=${recyclerView.childCount}\n")
+            }
+            val diagFile = File(getExternalFilesDir(null), "diag_p1.txt")
+            diagFile.writeText(diag)
+        } catch (_: Exception) { }
+
         adapter.installedVersions = installedVersions
         adapter.updateInstalledIds(installedIds)
         adapter.updateModules(finalFiltered)
@@ -784,6 +824,12 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         } else {
             recyclerView.visibility = View.VISIBLE
             emptyContainer.visibility = View.GONE
+            // P1 修复：骨架屏 → 列表切换后，RecyclerView 有时因父布局未重新测量而保持 0 高，
+            // 强制触发一次 layout pass，让 weight=1 的 FrameLayout 正确分配剩余高度。
+            recyclerView.post {
+                recyclerView.requestLayout()
+                (recyclerView.parent as? View)?.requestLayout()
+            }
         }
     }
 
@@ -994,7 +1040,9 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             searchHistoryContainer.visibility = View.GONE
             return
         }
-        searchHistoryContainer.visibility = View.VISIBLE
+        // P1 修复：进入商店时不主动展示搜索历史（避免占用列表可用高度，导致列表被挤压为 0）；
+        // 仅在搜索框获得焦点时由 updateSearchHistoryVisibility(hasFocus=true) 展示。
+        searchHistoryContainer.visibility = View.GONE
         history.forEach { keyword ->
             val chip = Chip(this).apply {
                 text = keyword

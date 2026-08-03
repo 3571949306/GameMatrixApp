@@ -207,6 +207,9 @@ public class ChineseChessActivity extends BaseGameActivity {
         int intentDifficulty = getIntent().getIntExtra("game_difficulty_index", -1);
         if (intentDifficulty >= 0 && intentDifficulty < 4) {
             selectDifficulty(intentDifficulty);
+        } else {
+            // 默认选中"中"难度（索引1），避免用户不知道需要先选难度
+            selectDifficulty(1);
         }
 
         ai = new ChineseChessAI(aiDifficulty);

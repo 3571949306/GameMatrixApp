@@ -48,6 +48,16 @@ public class GoActivity extends BaseGameActivity {
     /** AI 计算线程池：将 MCTS/Minimax 等耗时搜索移出主线程，避免卡顿/ANR。 */
     private ExecutorService aiExecutor;
 
+    /**
+     * 确保 aiExecutor 可用：endGame/onDestroy 会调用 shutdownNow() 关闭线程池，
+     * 若后续再提交任务会抛 RejectedExecutionException。这里在提交前检查并按需重建。
+     */
+    private void ensureAiExecutor() {
+        if (aiExecutor == null || aiExecutor.isShutdown()) {
+            aiExecutor = Executors.newSingleThreadExecutor();
+        }
+    }
+
     /** AI 是否正在思考（防止重复触发与重复落子）。 */
     private volatile boolean aiThinking = false;
 
@@ -244,6 +254,8 @@ public class GoActivity extends BaseGameActivity {
         tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty, getDifficultyName(ai.getDifficulty())));
 
         final long gen = ++aiGeneration;
+        // 提交前确保线程池可用（endGame/onDestroy 已 shutdown 则重建，避免 RejectedExecutionException）
+        ensureAiExecutor();
         aiExecutor.execute(() -> {
             if (gen != aiGeneration) return;
             if (game.isGameOver()) {

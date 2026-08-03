@@ -46,7 +46,7 @@ import com.gamecenter.app.R
  * 设置页 UI 状态。
  *
  * 注意：[dynamicColorEnabled] 是 Android 12+ 动态取色占位字段，Phase 1 仅 UI 预留，
- * 实际取色逻辑 TODO 在 Phase 2 接入。
+ * 实际取色逻辑在 Phase 2 接入（Android 12+ DynamicColors API）。
  */
 data class SettingsUiState(
     val languageLabel: String = "",

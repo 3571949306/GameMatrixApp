@@ -55,15 +55,18 @@ object ModuleUpdateManager {
      */
     fun checkForUpdates(
         context: Context,
-        manifests: List<ModuleManifest>
+        manifests: List<ModuleManifest>?
     ): List<UpdateCandidate> {
         if (!BuildConfig.ENABLE_P5_STORE_OWNED_UPDATE) {
             Log.d(TAG, "P5 Store-Owned 更新已禁用")
             return emptyList()
         }
+        // 冷启动 NPE 修复：manifests 可能为 null（Java 调用方/异常路径），兜底为 emptyList
+        val safeManifests = manifests ?: emptyList()
+        if (safeManifests.isEmpty()) return emptyList()
 
         val candidates = mutableListOf<UpdateCandidate>()
-        for (manifest in manifests) {
+        for (manifest in safeManifests) {
             if (manifest.builtIn) continue
             if (manifest.downloadUrl.isEmpty() && manifest.fileName.isEmpty()) continue
 
@@ -177,19 +180,26 @@ object ModuleUpdateManager {
      */
     fun performBatchUpdate(
         context: Context,
-        candidates: List<UpdateCandidate>,
+        candidates: List<UpdateCandidate>?,
         callback: UpdateCallback? = null
     ): BatchUpdateResult {
         if (!BuildConfig.ENABLE_P5_STORE_OWNED_UPDATE) {
             Log.d(TAG, "P5 Store-Owned 更新已禁用")
             return BatchUpdateResult(0, emptyList(), emptyList(), emptyList())
         }
+        // 冷启动 NPE 修复：candidates 可能为 null，兜底为 emptyList
+        val safeCandidates = candidates ?: emptyList()
+        if (safeCandidates.isEmpty()) {
+            val emptyResult = BatchUpdateResult(0, emptyList(), emptyList(), emptyList())
+            callback?.onComplete(emptyResult)
+            return emptyResult
+        }
 
         val updated = mutableListOf<String>()
         val failed = mutableListOf<String>()
         val skipped = mutableListOf<String>()
 
-        for (candidate in candidates) {
+        for (candidate in safeCandidates) {
             val moduleId = candidate.moduleId
             callback?.onCheck(moduleId)
 
@@ -213,8 +223,8 @@ object ModuleUpdateManager {
             }
         }
 
-        callback?.onComplete(BatchUpdateResult(candidates.size, updated, failed, skipped))
-        return BatchUpdateResult(candidates.size, updated, failed, skipped)
+        callback?.onComplete(BatchUpdateResult(safeCandidates.size, updated, failed, skipped))
+        return BatchUpdateResult(safeCandidates.size, updated, failed, skipped)
     }
 
     /**

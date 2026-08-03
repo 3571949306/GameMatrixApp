@@ -1,6 +1,7 @@
 package com.gamecenter.app.features
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,7 +36,8 @@ class ModuleShellFragment : Fragment() {
             override fun instantiate(classLoader: ClassLoader, className: String): Fragment {
                 return try {
                     moduleCl.loadClass(className).getDeclaredConstructor().newInstance() as Fragment
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.w("ModuleShellFragment", "模块加载失败", e)
                     super.instantiate(classLoader, className)
                 }
             }

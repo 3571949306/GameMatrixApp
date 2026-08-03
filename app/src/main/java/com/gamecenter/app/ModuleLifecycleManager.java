@@ -1,6 +1,8 @@
 package com.gamecenter.app;
 
 import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -9,9 +11,11 @@ import com.gamecenter.app.interfaces.IModuleLoader;
 import com.gamecenter.app.models.ModuleInfo;
 import com.gamecenter.app.moduleloader.ModuleLoaderV2;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 模块生命周期管理器。
@@ -28,7 +32,19 @@ import java.util.Map;
 public class ModuleLifecycleManager {
     
     private static final String TAG = "ModuleLifecycleManager";
-    
+
+    /**
+     * 已安装模块持久化 SharedPreferences 文件名。
+     * 与 Kotlin ModuleManager 中的 PREFS_NAME 保持一致（模块安装状态的权威来源）。
+     */
+    private static final String MODULE_INSTALL_PREFS = "module_manager_prefs";
+
+    /** 已安装模块 ID 集合的 SP key（对齐 ModuleManager.KEY_INSTALLED_MODULES） */
+    private static final String KEY_INSTALLED_MODULE_IDS = "installed_modules";
+
+    /** 模块版本号 SP key 前缀（对齐 ModuleManager.KEY_MODULE_VERSION_PREFIX） */
+    private static final String KEY_MODULE_VERSION_PREFIX = "module_version_";
+
     /** 单例实例 */
     private static volatile ModuleLifecycleManager instance;
     
@@ -312,11 +328,103 @@ public class ModuleLifecycleManager {
      */
     public void initialize() {
         Log.d(TAG, "开始初始化模块生命周期管理器...");
-        
-        // 扫描已安装模块（简化实现）
-        // 实际应从持久化存储（如 SharedPreferences）读取已安装模块列表
-        
-        Log.i(TAG, "模块生命周期管理器初始化完成");
+
+        // 从持久化存储读取已安装模块列表并逐个加载。
+        // 模块安装状态由 Kotlin ModuleManager 写入 SharedPreferences（权威来源）：
+        //   - 文件名：module_manager_prefs
+        //   - 已安装模块 ID 集合：installed_modules (StringSet)
+        //   - 各模块版本号：module_version_<moduleId> (int)
+        // 单个模块加载失败不影响其他模块与应用启动。
+        int successCount = 0;
+        int failCount = 0;
+        try {
+            SharedPreferences prefs = application.getSharedPreferences(
+                    MODULE_INSTALL_PREFS, Context.MODE_PRIVATE);
+            Set<String> installedIds = prefs.getStringSet(
+                    KEY_INSTALLED_MODULE_IDS, Collections.<String>emptySet());
+
+            if (installedIds == null || installedIds.isEmpty()) {
+                Log.i(TAG, "未发现已安装模块，跳过批量加载");
+            } else {
+                Log.d(TAG, "发现 " + installedIds.size() + " 个已安装模块，开始加载...");
+                for (String moduleId : installedIds) {
+                    if (moduleId == null || moduleId.isEmpty()) {
+                        continue;
+                    }
+                    try {
+                        ModuleInfo moduleInfo = new ModuleInfo();
+                        moduleInfo.setModuleId(moduleId);
+                        moduleInfo.setModuleName(moduleId);
+                        int versionCode = prefs.getInt(
+                                KEY_MODULE_VERSION_PREFIX + moduleId, 0);
+                        if (versionCode > 0) {
+                            moduleInfo.setVersionCode(versionCode);
+                        }
+                        // loadModule 内部会按依赖顺序加载并记录成功日志，
+                        // 此处仅统计计数；失败时抛出 ModuleLoadException。
+                        loadModule(moduleInfo);
+                        successCount++;
+                    } catch (Exception e) {
+                        // P0-XXX (ModuleLifecycleManager)：模块 APK 不存在时（典型场景：
+                        // 模拟器数据残留 / 模块已被卸载但 SP 记录未清理），
+                        // 不计入失败计数，并从 SP 中移除该模块 ID，避免重复失败
+                        // 触发 CrashDetector 进入恢复模式。
+                        if (isModuleApkMissing(e)) {
+                            Log.w(TAG, "模块 APK 不存在，从已安装列表移除: " + moduleId);
+                            removeInstalledModule(prefs, moduleId);
+                        } else {
+                            failCount++;
+                            Log.e(TAG, "模块加载失败: " + moduleId, e);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "读取已安装模块列表失败，初始化中止", e);
+        }
+
+        Log.i(TAG, "模块生命周期管理器初始化完成（成功 " + successCount
+                + " 个，失败 " + failCount + " 个）");
+    }
+
+    /**
+     * 判断异常是否是"模块 APK 不存在"导致的。
+     * ModuleLoaderV2 在找不到 APK 时会抛出带有"模块 APK 文件不存在"消息的 ModuleLoadException。
+     */
+    private static boolean isModuleApkMissing(Throwable t) {
+        Throwable cur = t;
+        int depth = 0;
+        while (cur != null && depth < 5) {
+            String msg = cur.getMessage();
+            if (msg != null && msg.contains("模块 APK 文件不存在")) {
+                return true;
+            }
+            cur = cur.getCause();
+            depth++;
+        }
+        return false;
+    }
+
+    /**
+     * 从已安装模块 SP 中移除指定 moduleId（包含其版本号条目）。
+     * 写回 SP 后本次启动及后续启动都不再尝试加载该模块。
+     */
+    private void removeInstalledModule(SharedPreferences prefs, String moduleId) {
+        try {
+            Set<String> current = prefs.getStringSet(
+                    KEY_INSTALLED_MODULE_IDS, Collections.<String>emptySet());
+            if (current != null && current.contains(moduleId)) {
+                // 必须复制为新的 Set，否则 StringSet 跨实例缓存陷阱会导致写不生效
+                java.util.LinkedHashSet<String> updated = new java.util.LinkedHashSet<>(current);
+                updated.remove(moduleId);
+                prefs.edit()
+                        .putStringSet(KEY_INSTALLED_MODULE_IDS, updated)
+                        .remove(KEY_MODULE_VERSION_PREFIX + moduleId)
+                        .apply();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "从 SP 移除模块失败: " + moduleId, e);
+        }
     }
     
     /**

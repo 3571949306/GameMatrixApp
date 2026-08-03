@@ -20,6 +20,14 @@ import java.util.Random;
  * 移除了对宿主 R 资源的依赖，背景色支持浅色/深色主题。</p>
  *
  * <p>小鸟受重力影响下落，点击屏幕上升。需要穿过管道间隙得分。</p>
+ *
+ * <p>改进（相对旧版）：
+ * <ul>
+ *   <li>引入 {@code density}，把小鸟/管道/文字等"绝对像素"尺寸换算成与屏幕匹配的 dp 视觉尺寸，
+ *       高密度屏上不再过小。</li>
+ *   <li>新增 gameOver 状态并在 onDraw 中绘制"游戏结束"结算遮罩，死亡后不再整屏空白。</li>
+ * </ul>
+ * </p>
  */
 public class FlappyView extends View {
 
@@ -29,7 +37,7 @@ public class FlappyView extends View {
         void onGameOver(int score);
     }
 
-    // ==================== 常量 ====================
+    // ==================== 常量（mdpi 下的 dp 基准，运行时按 density 放大） ====================
     private static final float BIRD_SIZE = 24f;
     private static final float GRAVITY = 0.5f;
     private static final float JUMP_FORCE = -8f;
@@ -47,8 +55,14 @@ public class FlappyView extends View {
     private float birdVelocity = 0;
     private int score = 0;
     private boolean gameRunning = false;
+    private boolean gameOver = false;
     private boolean gamePaused = false;
     private boolean gameStarted = false;
+
+    // 设备密度（px = dp * density），用于把"绝对像素"尺寸换算为与屏幕匹配的 dp 视觉尺寸
+    private float density = 1f;
+    private float birdSize;
+    private float pipeWidth;
 
     // 管道列表：每根管道由 topHeight 和 xPos 表示
     private List<float[]> pipes = new ArrayList<>(); // [xPos, gapCenterY]
@@ -65,6 +79,9 @@ public class FlappyView extends View {
 
     private void init() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        density = getResources().getDisplayMetrics().density;
+        birdSize = BIRD_SIZE * density;
+        pipeWidth = PIPE_WIDTH * density;
         setBackgroundColor(isNightMode() ? 0xFF0D47A1 : 0xFF81D4FA);
     }
 
@@ -91,6 +108,7 @@ public class FlappyView extends View {
     public void startGame() {
         this.score = 0;
         this.gameRunning = true;
+        this.gameOver = false;
         this.gamePaused = false;
         this.gameStarted = false;
         initGame();
@@ -142,6 +160,11 @@ public class FlappyView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        // 游戏结束后绘制结算遮罩，避免整屏空白（重开由 Fragment 的按钮负责）
+        if (gameOver) {
+            drawGameOver(canvas);
+            return;
+        }
         if (!gameRunning) return;
 
         // 绘制云朵装饰
@@ -158,42 +181,61 @@ public class FlappyView extends View {
             float gapCenter = pipe[1];
 
             // 上管道
-            canvas.drawRect(x, 0, x + PIPE_WIDTH, gapCenter - pipeGap / 2, paint);
+            canvas.drawRect(x, 0, x + pipeWidth, gapCenter - pipeGap / 2, paint);
             // 下管道
-            canvas.drawRect(x, gapCenter + pipeGap / 2, x + PIPE_WIDTH, viewHeight, paint);
+            canvas.drawRect(x, gapCenter + pipeGap / 2, x + pipeWidth, viewHeight, paint);
 
             // 管道边缘装饰
             paint.setColor(0xFF388E3C);
-            canvas.drawRect(x - 4, gapCenter - pipeGap / 2 - 16, x + PIPE_WIDTH + 4, gapCenter - pipeGap / 2, paint);
-            canvas.drawRect(x - 4, gapCenter + pipeGap / 2, x + PIPE_WIDTH + 4, gapCenter + pipeGap / 2 + 16, paint);
+            canvas.drawRect(x - 4 * density, gapCenter - pipeGap / 2 - 16 * density,
+                    x + pipeWidth + 4 * density, gapCenter - pipeGap / 2, paint);
+            canvas.drawRect(x - 4 * density, gapCenter + pipeGap / 2,
+                    x + pipeWidth + 4 * density, gapCenter + pipeGap / 2 + 16 * density, paint);
             paint.setColor(0xFF4CAF50);
         }
 
         // 绘制小鸟
         paint.setColor(0xFFFFEB3B);
-        canvas.drawCircle(birdX, birdY, BIRD_SIZE, paint);
+        canvas.drawCircle(birdX, birdY, birdSize, paint);
 
         // 眼睛
         paint.setColor(Color.WHITE);
-        canvas.drawCircle(birdX + 8, birdY - 6, 8, paint);
+        canvas.drawCircle(birdX + 8 * density, birdY - 6 * density, 8 * density, paint);
         paint.setColor(Color.BLACK);
-        canvas.drawCircle(birdX + 10, birdY - 6, 4, paint);
+        canvas.drawCircle(birdX + 10 * density, birdY - 6 * density, 4 * density, paint);
 
         // 嘴巴
         paint.setColor(0xFFFF9800);
-        canvas.drawRect(birdX + BIRD_SIZE, birdY - 2, birdX + BIRD_SIZE + 12, birdY + 4, paint);
+        canvas.drawRect(birdX + birdSize, birdY - 2 * density,
+                birdX + birdSize + 12 * density, birdY + 4 * density, paint);
 
         // 绘制分数
         paint.setColor(Color.WHITE);
-        paint.setTextSize(48);
+        paint.setTextSize(48 * density);
         paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(String.valueOf(score), viewWidth / 2, 80, paint);
+        canvas.drawText(String.valueOf(score), viewWidth / 2, 70 * density, paint);
 
         // 未开始时显示提示
         if (!gameStarted) {
-            paint.setTextSize(24);
-            canvas.drawText("点击屏幕开始飞翔！", viewWidth / 2, viewHeight / 2 + 80, paint);
+            paint.setTextSize(24 * density);
+            canvas.drawText("点击屏幕开始飞翔！", viewWidth / 2, viewHeight / 2 + 80 * density, paint);
         }
+    }
+
+    /** 游戏结束结算遮罩（死亡后不再空白）。重开逻辑由 Fragment 的"重新开始"按钮负责。 */
+    private void drawGameOver(Canvas canvas) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(170, 0, 0, 0));
+        canvas.drawRect(0, 0, viewWidth, viewHeight, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(30 * density);
+        canvas.drawText("游戏结束", viewWidth / 2f, viewHeight / 2f - 30 * density, paint);
+        paint.setTextSize(18 * density);
+        canvas.drawText("得分 " + score, viewWidth / 2f, viewHeight / 2f + 10 * density, paint);
+        paint.setTextSize(15 * density);
+        paint.setColor(0xFFB0B0B0);
+        canvas.drawText("点击下方按钮重新开始", viewWidth / 2f, viewHeight / 2f + 50 * density, paint);
     }
 
     // ==================== 游戏循环 ====================
@@ -208,7 +250,7 @@ public class FlappyView extends View {
         // 管道移动
         for (int i = pipes.size() - 1; i >= 0; i--) {
             pipes.get(i)[0] -= pipeSpeed;
-            if (pipes.get(i)[0] + PIPE_WIDTH < 0) {
+            if (pipes.get(i)[0] + pipeWidth < 0) {
                 pipes.remove(i);
             }
         }
@@ -223,7 +265,7 @@ public class FlappyView extends View {
 
         // 得分判定
         for (float[] pipe : pipes) {
-            if (pipe[0] + PIPE_WIDTH < birdX && pipe[0] + PIPE_WIDTH + pipeSpeed >= birdX) {
+            if (pipe[0] + pipeWidth < birdX && pipe[0] + pipeWidth + pipeSpeed >= birdX) {
                 score++;
                 if (listener != null) {
                     listener.onScoreChanged(score);
@@ -232,7 +274,7 @@ public class FlappyView extends View {
         }
 
         // 碰撞检测 - 地面/天花板
-        if (birdY - BIRD_SIZE <= 0 || birdY + BIRD_SIZE >= viewHeight) {
+        if (birdY - birdSize <= 0 || birdY + birdSize >= viewHeight) {
             gameOver();
             return;
         }
@@ -244,8 +286,8 @@ public class FlappyView extends View {
             float topPipeBottom = gapCenter - pipeGap / 2;
             float bottomPipeTop = gapCenter + pipeGap / 2;
 
-            if (birdX + BIRD_SIZE > x && birdX - BIRD_SIZE < x + PIPE_WIDTH) {
-                if (birdY - BIRD_SIZE < topPipeBottom || birdY + BIRD_SIZE > bottomPipeTop) {
+            if (birdX + birdSize > x && birdX - birdSize < x + pipeWidth) {
+                if (birdY - birdSize < topPipeBottom || birdY + birdSize > bottomPipeTop) {
                     gameOver();
                     return;
                 }
@@ -257,6 +299,7 @@ public class FlappyView extends View {
 
     private void gameOver() {
         gameRunning = false;
+        gameOver = true;
         if (listener != null) {
             listener.onGameOver(score);
         }

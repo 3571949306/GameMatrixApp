@@ -1,0 +1,7 @@
+state=READY
+score=15
+lives=2
+level=1
+balls=1
+aliveBricks=26
+tag=lifelost

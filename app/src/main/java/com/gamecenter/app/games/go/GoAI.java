@@ -1,10 +1,13 @@
+// 同步声明：此文件与 module-store/feature/games/games/go/src/main/java/com/gamecenter/app/go/GoAI.java 保持同步，修改时请同步修改对方文件
 package com.gamecenter.app.games.go;
+
+import com.gamecenter.app.core.common.GameAI;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class GoAI {
+public class GoAI implements GameAI {
 
     private static final int MAX_NODES = 80000;
     private static final long MCTS_TIME_LIMIT_MS = 1500;
@@ -12,6 +15,11 @@ public class GoAI {
 
     private int difficulty = 2; // 1=简单, 2=普通, 3=困难, 4=大师
     private Random random = new Random();
+
+    /** 取消标志：cancel() 置位后，搜索循环应尽快退出。 */
+    private volatile boolean cancelled = false;
+    /** 当前是否正在思考（GameAI 契约）。 */
+    private volatile boolean thinking = false;
 
     public void setDifficulty(int difficulty) {
         if (difficulty >= 1 && difficulty <= 4) {
@@ -24,12 +32,29 @@ public class GoAI {
     }
 
     public int[] findBestAiMove(GoGame game) {
-        return switch (difficulty) {
-            case 1 -> findRandomAiMove(game);
-            case 3 -> mctsMove(game, 500);  // 弱化版 MCTS，500ms，平滑过渡到档4
-            case 4 -> mctsMove(game, MCTS_TIME_LIMIT_MS);
-            default -> findGreedyAiMove(game);
-        };
+        cancelled = false;
+        thinking = true;
+        try {
+            return switch (difficulty) {
+                case 1 -> findRandomAiMove(game);
+                case 3 -> mctsMove(game, 500);  // 弱化版 MCTS，500ms，平滑过渡到档4
+                case 4 -> mctsMove(game, MCTS_TIME_LIMIT_MS);
+                default -> findGreedyAiMove(game);
+            };
+        } finally {
+            thinking = false;
+        }
+    }
+
+    @Override
+    public void cancel() {
+        cancelled = true;
+        thinking = false;
+    }
+
+    @Override
+    public boolean isThinking() {
+        return thinking;
     }
 
     private int[] findRandomAiMove(GoGame game) {
@@ -96,6 +121,7 @@ public class GoAI {
     }
 
     private int minimax(int[][] state, int depth, boolean isMax, int alpha, int beta, int[] nodeCount) {
+        if (cancelled) return evaluateBoard(state);
         if (++nodeCount[0] > MAX_NODES) return evaluateBoard(state);
         if (depth == 0) return evaluateBoard(state);
         int best = isMax ? Integer.MIN_VALUE : Integer.MAX_VALUE;
@@ -212,7 +238,7 @@ public class GoAI {
         MctsNode root = new MctsNode(rootState, GoGame.WHITE, rootMoves);
         long startMs = System.currentTimeMillis();
 
-        while (System.currentTimeMillis() - startMs < timeLimitMs) {
+        while (!cancelled && System.currentTimeMillis() - startMs < timeLimitMs) {
             MctsNode node = root;
             while (node.untriedMoves.isEmpty() && !node.children.isEmpty()) {
                 node = selectChild(node);

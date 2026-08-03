@@ -301,11 +301,25 @@ android {
             if (keystorePropsFile.exists()) {
                 def props = new Properties()
                 props.load(new FileInputStream(keystorePropsFile))
+                // P1-8: 密码外置到环境变量。支持两种形式：
+                //   1) keystore.properties 中写 ${System.env.XXX} 引用（解析为对应环境变量）
+                //   2) 直接回退到同名环境变量（keystore.properties 值为空时生效）
+                def resolveSecret = { String key, String envVar ->
+                    def raw = props[key]
+                    if (raw != null && !raw.isEmpty()) {
+                        def m = raw =~ /^\$\{System\.env\.(\w+)\}$/
+                        if (m.matches()) {
+                            return System.env[m.group(1)] ?: ''
+                        }
+                        return raw
+                    }
+                    return System.env[envVar] ?: ''
+                }
                 storeFile rootProject.file(props['STORE_FILE'])
-                storePassword props['STORE_PASSWORD']
+                storePassword resolveSecret('STORE_PASSWORD', 'GAMECENTER_STORE_PASSWORD')
                 keyAlias props['KEY_ALIAS']
-                keyPassword props['KEY_PASSWORD']
-                // 启用 v1 �?v2 签名方案
+                keyPassword resolveSecret('KEY_PASSWORD', 'GAMECENTER_KEY_PASSWORD')
+                // 启用 v1、v2 签名方案
                 enableV1Signing = true
                 enableV2Signing = true
             }
@@ -329,8 +343,6 @@ android {
             }
         }
 
-        // 模块系统配置（T08：框�?APK 体积优化�?
-        buildConfigField "boolean", "ENABLE_MODULE_SYSTEM", "true"
         // Flutter-first module store stays opt-in until device verification is
         // complete. Test locally with -PenableFlutterModuleStore=true.
         buildConfigField "boolean", "ENABLE_FLUTTER_MODULE_STORE", flutterStoreEnabled.toString()
@@ -342,9 +354,6 @@ android {
 
         // 自动化测试模式开关：开启后跳过首次启动权限说明弹窗、简化更新提示等
         buildConfigField "boolean", "TEST_MODE", "false"
-
-        // 五子棋增强功能开关：界面优化、AI增强、先手选择、计时、音效等
-        buildConfigField "boolean", "GOMOKU_ENHANCED", "true"
 
         // Phase 2: AI 错题本模块开关（预装）
         buildConfigField "boolean", "ENABLE_WRONGBOOK", "true"
@@ -369,16 +378,12 @@ android {
         buildConfigField "boolean", "BROWSER_READER_MODE", "true"
         // 网页截图（保存到 Pictures/BrowserScreenshots，Android 10+ 用 MediaStore）
         buildConfigField "boolean", "BROWSER_SCREENSHOT", "true"
-        // 进度条主题色改进（progressTint + progressBackgroundTint）
-        buildConfigField "boolean", "BROWSER_PROGRESS_SMOOTH", "true"
 
         // ===== Batch 14：浏览器模块 Phase 1-4 全面优化（2026-07-19） =====
         // P0-2 起始页（3 风格可切换：宫格/卡片流/极简）
         buildConfigField "boolean", "BROWSER_HOME_PAGE", "true"
         // P0-4 智能 URL Bar（URL/搜索自动识别 + 引擎切换 + 历史建议 + 粘贴并前往）
         buildConfigField "boolean", "BROWSER_SMART_URL_BAR", "true"
-        // P1-1 夜间模式（三档：自动/强制开/强制关）
-        buildConfigField "boolean", "BROWSER_FORCE_DARK", "true"
         // P1-2 追踪保护 + 隐私仪表盘
         buildConfigField "boolean", "BROWSER_TRACKER_PROTECTION", "true"
         // P1-3 阅读列表（稍后阅读）
@@ -387,16 +392,8 @@ android {
         buildConfigField "boolean", "BROWSER_OFFLINE_CACHE", "true"
         // P1-5 页面翻译
         buildConfigField "boolean", "BROWSER_TRANSLATE", "true"
-        // P2-1 智能双指缩放
-        buildConfigField "boolean", "BROWSER_SMART_ZOOM", "true"
         // P2-2 音量键滚动
         buildConfigField "boolean", "BROWSER_VOLUME_SCROLL", "true"
-        // P2-3 媒体嗅探（视频/PDF 下载）
-        buildConfigField "boolean", "BROWSER_MEDIA_SNIFFER", "true"
-        // P2-4 数据节省模式
-        buildConfigField "boolean", "BROWSER_DATA_SAVER", "true"
-        // P2-5 多指手势（三指截图/双指下拉刷新/边缘长按切 Tab）
-        buildConfigField "boolean", "BROWSER_MULTI_FINGER_GESTURE", "true"
         // P3-2 Tab 切换动画
         buildConfigField "boolean", "BROWSER_TAB_SWITCHER_ANIM", "true"
         // P3-3 底部工具栏可定制
@@ -417,8 +414,6 @@ android {
         buildConfigField "boolean", "SETTINGS_ENHANCE", "true"
         // 首页最近游玩区域
         buildConfigField "boolean", "HOME_REVAMP", "true"
-        // 全局视觉打磨（图标渐变背景 + 底部导航选中指示器）
-        buildConfigField "boolean", "VISUAL_REFRESH", "true"
 
         // ===== 本轮加法 Batch 1：首页卡片增强（顶栏渐变美化 + 收藏/评分/热门徽章 + 图标点击动效） =====
         buildConfigField "boolean", "HOME_CARD_ENHANCE", "true"
@@ -479,8 +474,6 @@ android {
 
         // ===== 本轮加法 Batch 10-1：首页快速统计栏（今日时长 + 连胜 + 成就数，渐变卡片） =====
         buildConfigField "boolean", "HOME_QUICK_STATS_BAR", "true"
-        // ===== 本轮加法 Batch 10-2：首页"今日推荐"卡片（基于日期 hash 轮换游戏 + 快速开始） =====
-        buildConfigField "boolean", "HOME_GAME_OF_DAY", "true"
         // ===== 本轮加法 Batch 10-3：随机游戏悬浮按钮（骰子图标，点击随机启动一款游戏） =====
         buildConfigField "boolean", "RANDOM_GAME_FAB", "true"
         // ===== 本轮加法 Batch 10-4：成就中心圆环进度头部（已解锁/总数 + 百分比 + 等级文案） =====
@@ -640,9 +633,14 @@ android {
         abortOnError true
         checkReleaseBuilds !shouldSkipReleaseLint
         warningsAsErrors false
-        // 关闭噪音类检查, 集中精力修可执行项
+        // 以下检查禁用原因：重新启用会立即触发大量历史违规（UnusedResources/HardcodedText/
+        // ContentDescription/MissingTranslation/GradleDependency/AndroidGradlePluginVersion 等
+        // 布满全工程），直接阻塞 CI 流水线。
+        // 重新启用条件：先在 lint-baseline.xml 中消化对应历史问题，或分批治理后再逐项开启。
+        // 注意：不要删除 lint-baseline.xml，否则历史问题会全部重新报出。
+        // （TrustAllX509TrustManager 已移出禁用列表：相关 TrustAll 代码已删除，该检查不再产生噪音）
         disable 'UnusedResources', 'AndroidGradlePluginVersion', 'GradleDependency',
-                'TrustAllX509TrustManager', 'MissingTranslation', 'HardcodedText', 'ContentDescription'
+                'MissingTranslation', 'HardcodedText', 'ContentDescription'
         // 不让翻译缺失类问题阻塞 CI (568 个是历史债, 长期要逐个补)
         xmlReport true
         htmlReport true
@@ -1041,42 +1039,54 @@ task packageAppClasses(type: Jar) {
 // VPN 模块刻意不预装（合规/分发约束）。
 // 注意：ai/tools/tts 模块走 VPS 下载通道（不预装到 assets/modules/），
 // 见 modules.json 中 downloadUrl 字段。ai 模块源码编译已于 2026-06-23 修复（Step 嵌套类已补全）。
+// -----------------------------------------------------------------------------
+// 用法：模块构建链解耦（避免任一模块编译失败导致主 APK 构建失败）
+//   默认行为：编译并依赖所有模块的 assembleRelease 产物。
+//   跳过模块编译：./gradlew assembleDebug -PskipModuleBuild=true
+//     - 不再依赖模块 assembleRelease 任务
+//     - 模块 APK 缺失时，自动从预构建产物目录 app/build/prebuilt-modules/ 拷贝
+//     - 预构建产物目录约定：app/build/prebuilt-modules/<srcApkName>
+//       （例如 app/build/prebuilt-modules/chinesechess-release.apk）
 // =============================================================================
 task bundlePreinstalledModules() {
     group = 'build'
     description = '构建、签名并复制预装模块，同时刷新 modules.json 完整性元数据'
+    // skipModuleBuild=true 时跳过所有模块的编译依赖，直接使用已有预构建 APK 产物
+    def skipModuleBuild = project.hasProperty('skipModuleBuild') && project.findProperty('skipModuleBuild') == 'true'
     // 预装模块：wrongbook（学习）+ tools（创作）+ chinesechess（玩，代表性经典游戏）
     // ai/vpn/tts_voice 及其余游戏模块通过模块商店下载，不预装到 assets/modules/
-    dependsOn ':module-store:feature:tools:wrongbook:assembleRelease'
-    dependsOn ':module-store:feature:tools:tools:assembleRelease'
-    dependsOn ':module-store:feature:tools:vpn:assembleRelease'
-    // 游戏模块仍需构建以刷新 catalog.json/modules.json 的 sha256/fileSize 元数据
-    dependsOn ':module-store:feature:games:games:chinesechess:assembleRelease'
-    dependsOn ':module-store:feature:games:games:game2048:assembleRelease'
-    dependsOn ':module-store:feature:games:games:klotski:assembleRelease'
-    dependsOn ':module-store:feature:games:games:snake:assembleRelease'
-    dependsOn ':module-store:feature:games:games:tic:assembleRelease'
-    dependsOn ':module-store:feature:games:games:whack:assembleRelease'
-    dependsOn ':module-store:feature:games:games:reaction:assembleRelease'
-    dependsOn ':module-store:feature:games:games:rock:assembleRelease'
-    dependsOn ':module-store:feature:games:games:dice:assembleRelease'
-    dependsOn ':module-store:feature:games:games:guess:assembleRelease'
-    dependsOn ':module-store:feature:games:games:tiles:assembleRelease'
-    dependsOn ':module-store:feature:games:games:memory:assembleRelease'
-    dependsOn ':module-store:feature:games:games:match:assembleRelease'
-    dependsOn ':module-store:feature:games:games:blackjack:assembleRelease'
-    dependsOn ':module-store:feature:games:games:flappy:assembleRelease'
-    dependsOn ':module-store:feature:games:games:brotato:assembleRelease'
-    dependsOn ':module-store:feature:games:games:plane:assembleRelease'
-    dependsOn ':module-store:feature:games:games:pipeline:assembleRelease'
-    dependsOn ':module-store:feature:games:games:sokoban:assembleRelease'
-    dependsOn ':module-store:feature:games:games:minesweeper:assembleRelease'
-    dependsOn ':module-store:feature:games:games:tetris:assembleRelease'
-    dependsOn ':module-store:feature:games:games:sudoku:assembleRelease'
-    dependsOn ':module-store:feature:games:games:go:assembleRelease'
-    dependsOn ':module-store:feature:games:games:checkers:assembleRelease'
-    dependsOn ':module-store:feature:games:games:gomoku:assembleRelease'
-    dependsOn ':module-store:feature:games:games:doudizhu:assembleRelease'
+    if (!skipModuleBuild) {
+        dependsOn ':module-store:feature:tools:wrongbook:assembleRelease'
+        dependsOn ':module-store:feature:tools:tools:assembleRelease'
+        dependsOn ':module-store:feature:tools:vpn:assembleRelease'
+        // 游戏模块仍需构建以刷新 catalog.json/modules.json 的 sha256/fileSize 元数据
+        dependsOn ':module-store:feature:games:games:chinesechess:assembleRelease'
+        dependsOn ':module-store:feature:games:games:game2048:assembleRelease'
+        dependsOn ':module-store:feature:games:games:klotski:assembleRelease'
+        dependsOn ':module-store:feature:games:games:snake:assembleRelease'
+        dependsOn ':module-store:feature:games:games:tic:assembleRelease'
+        dependsOn ':module-store:feature:games:games:whack:assembleRelease'
+        dependsOn ':module-store:feature:games:games:reaction:assembleRelease'
+        dependsOn ':module-store:feature:games:games:rock:assembleRelease'
+        dependsOn ':module-store:feature:games:games:dice:assembleRelease'
+        dependsOn ':module-store:feature:games:games:guess:assembleRelease'
+        dependsOn ':module-store:feature:games:games:tiles:assembleRelease'
+        dependsOn ':module-store:feature:games:games:memory:assembleRelease'
+        dependsOn ':module-store:feature:games:games:match:assembleRelease'
+        dependsOn ':module-store:feature:games:games:blackjack:assembleRelease'
+        dependsOn ':module-store:feature:games:games:flappy:assembleRelease'
+        dependsOn ':module-store:feature:games:games:brotato:assembleRelease'
+        dependsOn ':module-store:feature:games:games:plane:assembleRelease'
+        dependsOn ':module-store:feature:games:games:pipeline:assembleRelease'
+        dependsOn ':module-store:feature:games:games:sokoban:assembleRelease'
+        dependsOn ':module-store:feature:games:games:minesweeper:assembleRelease'
+        dependsOn ':module-store:feature:games:games:tetris:assembleRelease'
+        dependsOn ':module-store:feature:games:games:sudoku:assembleRelease'
+        dependsOn ':module-store:feature:games:games:go:assembleRelease'
+        dependsOn ':module-store:feature:games:games:checkers:assembleRelease'
+        dependsOn ':module-store:feature:games:games:gomoku:assembleRelease'
+        dependsOn ':module-store:feature:games:games:doudizhu:assembleRelease'
+    }
 
     // preinstall=true 的模块会复制到 assets/modules/；preinstall=false 的仅刷新元数据不复制
     def moduleMappings = [
@@ -1131,8 +1141,15 @@ task bundlePreinstalledModules() {
             }
             def srcApk = file("${moduleProject.buildDir}/outputs/apk/release/${srcApkName}")
             if (!srcApk.exists()) {
-                logger.warn("[preinstall] 模块 APK 未构建: ${srcApk}（请先 assembleRelease 该模块，跳过）")
-                return
+                // skipModuleBuild=true 时回退到预构建产物目录 app/build/prebuilt-modules/<srcApkName>
+                def prebuiltApk = file("${projectDir}/build/prebuilt-modules/${srcApkName}")
+                if (skipModuleBuild && prebuiltApk.exists()) {
+                    srcApk = prebuiltApk
+                    logger.lifecycle("[preinstall] 使用预构建产物: ${prebuiltApk}（skipModuleBuild=true）")
+                } else {
+                    logger.warn("[preinstall] 模块 APK 未构建: ${srcApk}（请先 assembleRelease 该模块，或放置预构建产物到 ${prebuiltApk}，跳过）")
+                    return
+                }
             }
             // 仅预装模块复制到 assets/modules/；非预装模块只刷新元数据
             if (shouldPreinstall) {

@@ -1,30 +1,39 @@
 package com.gamecenter.app.games;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 
+import com.gamecenter.app.database.AppDatabase;
+import com.gamecenter.app.database.dao.GameUsageDao;
+import com.gamecenter.app.database.entity.GameUsageEntity;
+
 /**
  * 游戏用户评分存储（Batch 11-1 / GAME_RATING_SYSTEM）。
  *
- * <p>存储位置：与 {@link GameUsageStore} 同一个 {@code game_usage} SharedPreferences 文件，
- * key 前缀 {@link #KEY_RATING_PREFIX} + gameId，取值 1~5（0 表示未评分）。
- * 这样设计的好处是评分数据与收藏、战绩数据在同一个文件中，便于统一备份/恢复。</p>
+ * <p>存储位置：Room {@code game_usage} 表的 {@code userRating} 列，
+ * 取值 1~5（0 表示未评分）。与战绩数据同表，便于统一备份/恢复。</p>
  *
- * <p>线程安全：{@link SharedPreferences} 自身线程安全，本类仅做薄封装。</p>
+ * <p>2026-07-31 迁移（ROOM_MIGRATION）：持久化层由 SharedPreferences 切换为 Room。
+ * 公共方法签名保持不变，所有读写改为通过 {@link GameUsageDao} 的同步方法。</p>
+ *
+ * <p>线程安全：Room 的非 suspend 方法在调用线程同步执行，与原 SP 行为一致。</p>
  */
 public final class GameRatingStore {
 
-    private static final String PREFS_NAME = "game_usage";
-    private static final String KEY_RATING_PREFIX = "user_rating_";
-
-    private final SharedPreferences prefs;
+    private final GameUsageDao gameUsageDao;
 
     public GameRatingStore(@NonNull Context context) {
-        prefs = context.getApplicationContext()
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        gameUsageDao = AppDatabase.getDatabase(context.getApplicationContext()).gameUsageDao();
+    }
+
+    /** 确保指定 gameId 的行存在，便于 UPDATE 语句生效。 */
+    private void ensureRowExists(@NonNull String gameId) {
+        if (gameUsageDao.getByIdSync(gameId) == null) {
+            gameUsageDao.upsertSync(new GameUsageEntity(
+                    gameId, 0, 0, 0, 0L, 0L, 0, false, 0L));
+        }
     }
 
     /**
@@ -34,12 +43,13 @@ public final class GameRatingStore {
      * @param stars  星级 0~5（0 等同于清除评分）
      */
     public void setRating(@NonNull String gameId, @IntRange(from = 0, to = 5) int stars) {
-        prefs.edit().putInt(KEY_RATING_PREFIX + gameId, stars).apply();
+        ensureRowExists(gameId);
+        gameUsageDao.updateRatingSync(gameId, stars);
     }
 
     /** 清除评分。等价于 {@link #setRating(String, int)} 传 0。 */
     public void clearRating(@NonNull String gameId) {
-        prefs.edit().remove(KEY_RATING_PREFIX + gameId).apply();
+        gameUsageDao.updateRatingSync(gameId, 0);
     }
 
     /**
@@ -48,7 +58,8 @@ public final class GameRatingStore {
      * @return 0 表示未评分，否则 1~5
      */
     public int getRating(@NonNull String gameId) {
-        return prefs.getInt(KEY_RATING_PREFIX + gameId, 0);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? entity.getUserRating() : 0;
     }
 
     /** 是否已对该游戏评分。 */

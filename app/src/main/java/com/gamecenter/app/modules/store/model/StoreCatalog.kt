@@ -1,5 +1,6 @@
 package com.gamecenter.app.modules.store.model
 
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -73,7 +74,7 @@ data class StoreCatalog(
                 try {
                     val item = arr.optJSONObject(i) ?: continue
                     StoreCategory.fromJson(item)?.let { result.add(it) }
-                } catch (_: Exception) { /* 跳过单条错误 */ }
+                } catch (e: Exception) { Log.w(TAG, "解析单条分类数据失败，跳过", e) }
             }
             return result
         }
@@ -85,7 +86,7 @@ data class StoreCatalog(
                 try {
                     val item = arr.optJSONObject(i) ?: continue
                     StoreHeroBanner.fromJson(item)?.let { result.add(it) }
-                } catch (_: Exception) { /* 跳过单条错误 */ }
+                } catch (e: Exception) { Log.w(TAG, "解析单条横幅数据失败，跳过", e) }
             }
             return result
         }
@@ -97,7 +98,7 @@ data class StoreCatalog(
                 try {
                     val item = arr.optJSONObject(i) ?: continue
                     StoreModule.fromJson(item)?.let { result.add(it) }
-                } catch (_: Exception) { /* 跳过单条错误 */ }
+                } catch (e: Exception) { Log.w(TAG, "解析单条模块数据失败，跳过", e) }
             }
             return result
         }

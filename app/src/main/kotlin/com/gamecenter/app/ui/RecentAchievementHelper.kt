@@ -5,16 +5,13 @@ import android.content.Context
 /**
  * Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER): 首页"最近解锁成就"横幅数据助手。
  *
- * 从 `game_achievements` SharedPreferences 遍历所有 `unlock_<id>` = true 的成就，
- * 取 `unlocked_at_<id>` 最大的那个，作为"最近解锁"成就返回。
+ * 从 Room achievements 表查询所有已解锁成就，取 unlockedAt 最大的那个，
+ * 作为"最近解锁"成就返回。
  *
  * 提供 dismissForSession（当日不再显示）和 getRecent 两个核心 API，Java 友好 singleton。
  */
 object RecentAchievementHelper {
 
-    private const val PREFS_NAME = "game_achievements"
-    private const val KEY_UNLOCK_PREFIX = "unlock_"
-    private const val KEY_UNLOCKED_AT_PREFIX = "unlocked_at_"
     private const val SESSION_PREFS = "home_recent_achievement_session"
     private const val KEY_DISMISS_DATE = "dismiss_date"
 
@@ -28,22 +25,17 @@ object RecentAchievementHelper {
      */
     @JvmStatic
     fun getRecent(context: Context): RecentAchievement? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val all = prefs.all
-        var bestId: String? = null
-        var bestTime = 0L
-        for ((key, value) in all) {
-            if (!key.startsWith(KEY_UNLOCK_PREFIX)) continue
-            if (value !is Boolean || !value) continue
-            val id = key.removePrefix(KEY_UNLOCK_PREFIX)
-            val unlockedAt = prefs.getLong(KEY_UNLOCKED_AT_PREFIX + id, 0L)
-            if (unlockedAt > bestTime) {
-                bestTime = unlockedAt
-                bestId = id
-            }
+        try {
+            val dao = com.gamecenter.app.database.AppDatabase.getDatabase(context).achievementDao()
+            val unlocked = dao.getUnlockedSync()
+            if (unlocked.isEmpty()) return null
+            val best = unlocked.maxByOrNull { it.unlockedAt }
+            if (best == null || best.unlockedAt <= 0L) return null
+            return RecentAchievement(best.achievementId, best.unlockedAt)
+        } catch (e: Exception) {
+            android.util.Log.w("RecentAchievementHelper", "查询最近成就失败", e)
+            return null
         }
-        if (bestId == null || bestTime <= 0L) return null
-        return RecentAchievement(bestId, bestTime)
     }
 
     /**

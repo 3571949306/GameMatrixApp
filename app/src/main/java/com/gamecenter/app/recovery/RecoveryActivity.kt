@@ -3,6 +3,7 @@ package com.gamecenter.app.recovery
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -202,14 +203,16 @@ class RecoveryActivity : AppCompatActivity() {
     private fun currentVersionCode(): Long? = try {
         @Suppress("DEPRECATION")
         packageManager.getPackageInfo(packageName, 0).versionCode.toLong()
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        Log.w("RecoveryActivity", "操作失败", e)
         null
     }
 
     private fun apkVersionCode(apk: File): Long? = try {
         @Suppress("DEPRECATION")
         packageManager.getPackageArchiveInfo(apk.absolutePath, 0)?.versionCode?.toLong()
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        Log.w("RecoveryActivity", "操作失败", e)
         null
     }
 

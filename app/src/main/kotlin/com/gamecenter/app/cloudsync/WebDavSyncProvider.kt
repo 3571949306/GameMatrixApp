@@ -237,7 +237,8 @@ class WebDavSyncProvider(private val context: Context) : CloudSyncProvider {
         return try {
             val lm = resp.header("Last-Modified") ?: return System.currentTimeMillis()
             RFC1123_FORMAT.parse(lm)?.time ?: System.currentTimeMillis()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "WebDAV操作失败", e)
             System.currentTimeMillis()
         }
     }
@@ -248,7 +249,8 @@ class WebDavSyncProvider(private val context: Context) : CloudSyncProvider {
         val match = regex.find(xml) ?: return null
         return try {
             RFC1123_FORMAT.parse(match.groupValues[1])?.time
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "WebDAV操作失败", e)
             null
         }
     }

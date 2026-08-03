@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.R
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
@@ -45,6 +46,18 @@ class ModuleDetailBottomSheet : BottomSheetDialogFragment() {
         val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
         val view = requireActivity().layoutInflater.inflate(R.layout.dialog_module_detail, null)
         dialog.setContentView(view)
+        // BUG-001 修复：展开 BottomSheet 并跳过 collapsed 态，
+        // 确保内容（含下载按钮 detailPrimaryBtn）完整可见并可滚动。
+        // 布局最外层已是 NestedScrollView，配合 STATE_EXPANDED 后内容超出屏幕时可正常滚动。
+        dialog.setOnShowListener { dialogInterface ->
+            val bottomSheetDialog = dialogInterface as BottomSheetDialog
+            val bottomSheet = bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let {
+                val behavior = BottomSheetBehavior.from(it)
+                behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                behavior.skipCollapsed = true
+            }
+        }
         bindViews(view)
         return dialog
     }

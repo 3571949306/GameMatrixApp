@@ -103,7 +103,13 @@ public class StreakTracker {
         return prefs.getInt(KEY_BEST_STREAK, 0);
     }
 
-    /** 累计对局总数。 */
+    /**
+     * 累计对局总数。
+     * @deprecated 该值由 {@link #recordGamePlayed} 累加，但历史调用方已迁移至
+     *             {@link com.gamecenter.app.games.GameUsageStore#getAllTotalPlayCount()}（Room 数据源），
+     *             两套数据源可能不一致。新代码请使用 GameUsageStore。
+     */
+    @Deprecated
     public int getTotalGames() {
         return prefs.getInt(KEY_TOTAL_GAMES, 0);
     }

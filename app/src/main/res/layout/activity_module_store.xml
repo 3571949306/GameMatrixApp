@@ -2,22 +2,27 @@
 <!-- 模块商店主页（Batch 20/21: Hero Banner 轮播 + 三栏统计卡片+趋势 + 分类 tab 图标 + 详情入口） -->
 <!-- P2.4: 根容器 id=moduleStoreRootContainer 供 StoreSectionRendererRegistry.dispatchRender 使用 -->
 <!-- MODULE_STORE_PERF_OPT: 移除 NestedScrollView 包裹，让 RecyclerView 正常回收复用，避免一次性测量所有 item -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- P1 修复：根容器由 LinearLayout 改为 ConstraintLayout，将内容区 moduleListContainer 用
+     top/bottom 约束钉在「子分类栏」与「父容器底部」之间（height=0dp），确保 RecyclerView
+     始终获得确定的剩余高度，消除 LinearLayout weight 在可见性切换后偶发测量为 0 的问题。 -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/moduleStoreRootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="?android:attr/colorBackground"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/moduleToolbar"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorSurface"
         android:elevation="@dimen/gm_elevation_1"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:title="@string/module_store_title"
         app:titleTextColor="?android:attr/textColorPrimary"
         app:navigationIcon="@android:drawable/ic_menu_revert"
@@ -29,17 +34,20 @@
     <!-- Hero Banner 精选推荐轮播（Batch 21: ViewPager2 + 指示器） -->
     <FrameLayout
         android:id="@+id/heroBannerContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_marginEnd="@dimen/gm_spacing_3"
         android:layout_marginTop="@dimen/gm_spacing_3"
-        android:visibility="gone">
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/moduleToolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/heroViewPager"
             android:layout_width="match_parent"
-            android:layout_height="180dp" />
+            android:layout_height="120dp" />
 
         <!-- 页面指示器 -->
         <LinearLayout
@@ -55,11 +63,14 @@
     <!-- ===== 三栏统计卡片 ===== -->
     <LinearLayout
         android:id="@+id/statsBar"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingHorizontal="@dimen/gm_spacing_3"
-        android:paddingVertical="@dimen/gm_spacing_2">
+        android:paddingVertical="@dimen/gm_spacing_2"
+        app:layout_constraintTop_toBottomOf="@id/heroBannerContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <!-- 总模块数 -->
         <LinearLayout
@@ -186,7 +197,7 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnUpdateAll"
         style="@style/Widget.GameMatrix.Button.Tonal"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_marginEnd="@dimen/gm_spacing_3"
@@ -195,25 +206,31 @@
         android:paddingHorizontal="@dimen/gm_spacing_3"
         android:text="@string/module_update_all"
         android:textSize="12sp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/statsBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- ===== 统计文本（无障碍 live region） ===== -->
     <TextView
         android:id="@+id/tvModuleStats"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:paddingHorizontal="@dimen/gm_spacing_3"
         android:text="@string/module_refreshing"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="11sp"
         android:accessibilityLiveRegion="polite"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/btnUpdateAll"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- 搜索框 -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/moduleSearchLayout"
         style="@style/Widget.GameMatrix.Search"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_marginTop="@dimen/gm_spacing_2"
@@ -221,7 +238,10 @@
         android:layout_marginBottom="@dimen/gm_spacing_2"
         android:hint="@string/module_search_hint"
         app:endIconMode="clear_text"
-        app:startIconDrawable="@android:drawable/ic_menu_search">
+        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:layout_constraintTop_toBottomOf="@id/tvModuleStats"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etModuleSearch"
@@ -237,13 +257,16 @@
     <!-- Batch 21: 搜索历史 chip 容器（仅 MODULE_STORE_SEARCH_HISTORY 开启时显示） -->
     <LinearLayout
         android:id="@+id/searchHistoryContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_marginEnd="@dimen/gm_spacing_3"
         android:layout_marginBottom="@dimen/gm_spacing_1"
-        android:visibility="gone">
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/moduleSearchLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -284,20 +307,26 @@
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/moduleCategoryTabs"
         style="@style/Widget.GameMatrix.Tab"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
         android:elevation="@dimen/gm_elevation_1"
         app:tabMode="scrollable"
-        app:tabGravity="start" />
+        app:tabGravity="start"
+        app:layout_constraintTop_toBottomOf="@id/searchHistoryContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- 子分类（游戏分类下显示，含"全部"） -->
     <HorizontalScrollView
         android:id="@+id/moduleSubCategoryContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurfaceVariant"
-        android:scrollbars="none">
+        android:scrollbars="none"
+        app:layout_constraintTop_toBottomOf="@id/moduleCategoryTabs"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:id="@+id/moduleSubCategoryTabs"
@@ -311,10 +340,17 @@
     </HorizontalScrollView>
 
     <!-- ===== 可滚动内容区域（RecyclerView 正常回收复用，不再一次性测量所有 item） ===== -->
+    <!-- P1 修复：height=0dp + 上接子分类栏、下接父容器底部，确保该区域始终获得确定的剩余高度，
+         而非依赖 LinearLayout weight 在可见性切换后的偶发测量为 0。 -->
     <FrameLayout
-        android:layout_width="match_parent"
+        android:id="@+id/moduleListContainer"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        app:layout_constraintHeight_min="120dp"
+        app:layout_constraintTop_toBottomOf="@id/moduleSubCategoryContainer"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <!-- 主列表（MODULE_STORE_PERF_OPT: match_parent + 默认 nestedScrolling=true，正常回收复用） -->
         <androidx.recyclerview.widget.RecyclerView
@@ -451,11 +487,12 @@
         android:id="@+id/moduleFabRefresh"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/gm_spacing_4"
         android:contentDescription="@string/module_retry"
         android:src="@android:drawable/ic_popup_sync"
         app:tint="?attr/colorOnPrimary"
-        app:backgroundTint="?attr/colorPrimary" />
+        app:backgroundTint="?attr/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

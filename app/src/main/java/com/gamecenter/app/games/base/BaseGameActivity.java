@@ -134,6 +134,8 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         String gameId = getGameId();
         if (gameId != null && !gameId.isEmpty()) {
             usageStore.recordLaunch(gameId);
+            // 同步连胜统计：记录一次活跃 + 对局数
+            com.gamecenter.app.games.achievement.StreakTracker.getInstance(this).recordGamePlayed(gameId, false);
         }
     }
 
@@ -329,9 +331,6 @@ public abstract class BaseGameActivity extends AppCompatActivity {
         return new ArrayList<>();
     }
 
-    /** 加载游戏音效资源。子类应重写此方法。 */
-    protected void loadGameSounds() {}
-
     // ==================== 可选重写的方法 ====================
 
     /**
@@ -378,5 +377,18 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             currentDifficultyIndex = index;
             onDifficultyChanged(oldLevel, levels.get(index));
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        // 确保游戏异常退出时也记录游玩时间，避免漏记
+        if (isGameRunning && gameStartTime > 0 && usageStore != null) {
+            String gameId = getGameId();
+            if (gameId != null && !gameId.isEmpty()) {
+                usageStore.recordPlayTime(gameId, System.currentTimeMillis() - gameStartTime);
+            }
+            gameStartTime = 0;
+        }
+        super.onDestroy();
     }
 }

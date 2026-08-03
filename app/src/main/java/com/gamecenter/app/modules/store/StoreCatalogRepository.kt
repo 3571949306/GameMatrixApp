@@ -213,10 +213,15 @@ class DefaultStoreCatalogRepository private constructor(
 
             // 6. 更新内存并通知
             cachedRef.set(catalog)
+            // 冷启动 NPE 修复：catalog.modules/categories/heroBanners 在数据类中声明为非空，
+            // 但 Java 反射构造或反序列化极端情况下可能为 null，日志访问 .size 前做兜底
+            val modulesSize = catalog.modules?.size ?: 0
+            val categoriesSize = catalog.categories?.size ?: 0
+            val bannersSize = catalog.heroBanners?.size ?: 0
             Log.d(
                 TAG,
                 "目录刷新成功: schemaV=${catalog.schemaVersion} catalogV=${catalog.catalogVersion} " +
-                    "modules=${catalog.modules.size} categories=${catalog.categories.size} banners=${catalog.heroBanners.size}"
+                    "modules=$modulesSize categories=$categoriesSize banners=$bannersSize"
             )
             Result.success(catalog)
         } catch (e: Exception) {
@@ -239,7 +244,8 @@ class DefaultStoreCatalogRepository private constructor(
             val body = cacheFile.readText(Charsets.UTF_8)
             val catalog = StoreCatalog.fromJson(body)
             cachedRef.set(catalog)
-            Log.d(TAG, "从缓存文件加载目录: ${catalog.modules.size} modules")
+            // 冷启动 NPE 修复：catalog.modules 防御性兜底
+            Log.d(TAG, "从缓存文件加载目录: ${catalog.modules?.size ?: 0} modules")
             catalog
         } catch (e: Exception) {
             Log.w(TAG, "缓存文件解析失败: ${e.message}")
@@ -257,15 +263,17 @@ class DefaultStoreCatalogRepository private constructor(
                 .bufferedReader(Charsets.UTF_8)
                 .use { it.readText() }
             val catalog = StoreCatalog.fromJson(body)
-            Log.d(TAG, "从 assets/catalog.json 加载目录: ${catalog.modules.size} modules")
+            // 冷启动 NPE 修复：catalog.modules 防御性兜底
+            Log.d(TAG, "从 assets/catalog.json 加载目录: ${catalog.modules?.size ?: 0} modules")
             catalog
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "目录缓存加载失败", e)
             try {
                 val body = appContext.assets.open("modules.json")
                     .bufferedReader(Charsets.UTF_8)
                     .use { it.readText() }
                 val catalog = StoreCatalog.fromJson(body)
-                Log.d(TAG, "从 assets/modules.json 兼容加载: ${catalog.modules.size} modules")
+                Log.d(TAG, "从 assets/modules.json 兼容加载: ${catalog.modules?.size ?: 0} modules")
                 catalog
             } catch (e: Exception) {
                 Log.w(TAG, "assets 加载失败: ${e.message}")

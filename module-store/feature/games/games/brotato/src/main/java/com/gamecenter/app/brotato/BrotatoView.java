@@ -22,6 +22,14 @@ import java.util.Random;
  *
  * <p>玩家控制土豆角色移动并自动射击，敌人从四周涌来。
  * 需要在波次中生存，每波结束后可恢复生命。</p>
+ *
+ * <p>改进（相对旧版）：
+ * <ul>
+ *   <li>引入 {@code density}，把玩家/子弹/敌人等"绝对像素"尺寸换算成与屏幕匹配的 dp 视觉尺寸，
+ *       在高密度屏（如 density=4 的 xxxhdpi）上不再过小、子弹不再几乎不可见。</li>
+ *   <li>新增 gameOver 状态并在 onDraw 中绘制"游戏结束"结算遮罩，死亡后不再整屏空白。</li>
+ * </ul>
+ * </p>
  */
 public class BrotatoView extends View {
 
@@ -32,7 +40,7 @@ public class BrotatoView extends View {
         void onWaveComplete(int wave);
     }
 
-    // ==================== 常量 ====================
+    // ==================== 常量（设计为 mdpi 下的 dp 基准，运行时按 density 放大） ====================
     private static final float PLAYER_SIZE = 32f;
     private static final float BULLET_SIZE = 6f;
     private static final float ENEMY_SIZE = 24f;
@@ -58,10 +66,17 @@ public class BrotatoView extends View {
     private int enemiesSpawned = 0;
     private boolean waveActive = false;
     private boolean gameRunning = false;
+    private boolean gameOver = false;
     private boolean gamePaused = false;
     private long lastShootTime = 0;
     private long lastEnemySpawnTime = 0;
     private long waveStartTime = 0;
+
+    // 设备密度（px = dp * density），用于把"绝对像素"尺寸换算为与屏幕匹配的 dp 视觉尺寸
+    private float density = 1f;
+    private float playerSize;
+    private float bulletSize;
+    private float enemySize;
 
     private List<float[]> bullets = new ArrayList<>();      // [x, y, vx, vy]
     private List<float[]> enemies = new ArrayList<>();        // [x, y, hp, speed]
@@ -78,6 +93,10 @@ public class BrotatoView extends View {
 
     private void init() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        density = getResources().getDisplayMetrics().density;
+        playerSize = PLAYER_SIZE * density;
+        bulletSize = BULLET_SIZE * density;
+        enemySize = ENEMY_SIZE * density;
         setBackgroundColor(isNightMode() ? 0xFF0E1016 : 0xFF1B1B1F);
     }
 
@@ -107,6 +126,7 @@ public class BrotatoView extends View {
         this.hp = 10;
         this.maxHp = 10;
         this.gameRunning = true;
+        this.gameOver = false;
         this.gamePaused = false;
         this.touching = false;
         bullets.clear();
@@ -152,22 +172,27 @@ public class BrotatoView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        // 游戏结束后绘制结算遮罩，避免整屏空白（重开由 Fragment 的按钮负责）
+        if (gameOver) {
+            drawGameOver(canvas);
+            return;
+        }
         if (!gameRunning) return;
 
         // 绘制地面网格
         paint.setColor(0x22FFFFFF);
         paint.setStrokeWidth(1);
-        for (float x = 0; x < viewWidth; x += 40) {
+        for (float x = 0; x < viewWidth; x += 40 * density) {
             canvas.drawLine(x, 0, x, viewHeight, paint);
         }
-        for (float y = 0; y < viewHeight; y += 40) {
+        for (float y = 0; y < viewHeight; y += 40 * density) {
             canvas.drawLine(0, y, viewWidth, y, paint);
         }
 
         // 绘制子弹
         paint.setColor(0xFFFFEB3B);
         for (float[] bullet : bullets) {
-            canvas.drawCircle(bullet[0], bullet[1], BULLET_SIZE, paint);
+            canvas.drawCircle(bullet[0], bullet[1], bulletSize, paint);
         }
 
         // 绘制敌人
@@ -177,72 +202,94 @@ public class BrotatoView extends View {
             } else {
                 paint.setColor(0xFFFF5722); // 普通敌橙色
             }
-            canvas.drawCircle(enemy[0], enemy[1], ENEMY_SIZE, paint);
+            canvas.drawCircle(enemy[0], enemy[1], enemySize, paint);
             // 敌人眼睛
             paint.setColor(Color.WHITE);
-            canvas.drawCircle(enemy[0] - 5, enemy[1] - 4, 4, paint);
-            canvas.drawCircle(enemy[0] + 5, enemy[1] - 4, 4, paint);
+            canvas.drawCircle(enemy[0] - 5 * density, enemy[1] - 4 * density, 4 * density, paint);
+            canvas.drawCircle(enemy[0] + 5 * density, enemy[1] - 4 * density, 4 * density, paint);
             paint.setColor(Color.BLACK);
-            canvas.drawCircle(enemy[0] - 4, enemy[1] - 4, 2, paint);
-            canvas.drawCircle(enemy[0] + 6, enemy[1] - 4, 2, paint);
+            canvas.drawCircle(enemy[0] - 4 * density, enemy[1] - 4 * density, 2 * density, paint);
+            canvas.drawCircle(enemy[0] + 6 * density, enemy[1] - 4 * density, 2 * density, paint);
         }
 
         // 绘制玩家（土豆）
+        float ps = playerSize;
         paint.setColor(0xFFD4A574);
-        canvas.drawCircle(playerX, playerY, PLAYER_SIZE, paint);
+        canvas.drawCircle(playerX, playerY, ps, paint);
         // 土豆轮廓
         paint.setColor(0xFF8D6E63);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2);
-        canvas.drawCircle(playerX, playerY, PLAYER_SIZE, paint);
+        paint.setStrokeWidth(2 * density);
+        canvas.drawCircle(playerX, playerY, ps, paint);
         paint.setStyle(Paint.Style.FILL);
         // 土豆眼睛
         paint.setColor(Color.WHITE);
-        canvas.drawCircle(playerX - 8, playerY - 6, 6, paint);
-        canvas.drawCircle(playerX + 8, playerY - 6, 6, paint);
+        canvas.drawCircle(playerX - ps * 0.25f, playerY - ps * 0.19f, ps * 0.19f, paint);
+        canvas.drawCircle(playerX + ps * 0.25f, playerY - ps * 0.19f, ps * 0.19f, paint);
         paint.setColor(Color.BLACK);
-        canvas.drawCircle(playerX - 6, playerY - 6, 3, paint);
-        canvas.drawCircle(playerX + 10, playerY - 6, 3, paint);
+        canvas.drawCircle(playerX - ps * 0.19f, playerY - ps * 0.19f, ps * 0.09f, paint);
+        canvas.drawCircle(playerX + ps * 0.31f, playerY - ps * 0.19f, ps * 0.09f, paint);
         // 土豆微笑
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2);
-        canvas.drawArc(new RectF(playerX - 8, playerY + 2, playerX + 8, playerY + 12),
-                0, 180, false, paint);
+        paint.setStrokeWidth(2 * density);
+        canvas.drawArc(new RectF(playerX - ps * 0.25f, playerY + ps * 0.06f,
+                playerX + ps * 0.25f, playerY + ps * 0.38f), 0, 180, false, paint);
         paint.setStyle(Paint.Style.FILL);
 
         // 绘制武器指示（小枪）
         paint.setColor(0xFF9E9E9E);
-        canvas.drawRect(playerX + PLAYER_SIZE, playerY - 3,
-                playerX + PLAYER_SIZE + 16, playerY + 3, paint);
+        canvas.drawRect(playerX + ps, playerY - 3 * density,
+                playerX + ps + 16 * density, playerY + 3 * density, paint);
 
         // 绘制生命条
+        float hpBarH = 16 * density;
+        float hpBarBottom = viewHeight - 34 * density;
+        float hpBarTop = hpBarBottom - hpBarH;
         paint.setColor(0xFF333333);
-        canvas.drawRect(16, viewHeight - 50, viewWidth - 16, viewHeight - 34, paint);
+        canvas.drawRect(16 * density, hpBarTop, viewWidth - 16 * density, hpBarBottom, paint);
         float hpRatio = (float) hp / maxHp;
         paint.setColor(hpRatio > 0.5f ? 0xFF4CAF50 : hpRatio > 0.25f ? 0xFFFF9800 : 0xFFF44336);
-        canvas.drawRect(16, viewHeight - 50, 16 + (viewWidth - 32) * hpRatio, viewHeight - 34, paint);
+        canvas.drawRect(16 * density, hpBarTop,
+                16 * density + (viewWidth - 32 * density) * hpRatio, hpBarBottom, paint);
         paint.setColor(Color.WHITE);
-        paint.setTextSize(16);
+        paint.setTextSize(16 * density);
         paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(hp + "/" + maxHp, viewWidth / 2, viewHeight - 38, paint);
+        canvas.drawText(hp + "/" + maxHp, viewWidth / 2, hpBarBottom - 2 * density, paint);
 
         // 绘制波次和分数
         paint.setColor(Color.WHITE);
-        paint.setTextSize(20);
+        paint.setTextSize(20 * density);
         paint.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText("分：" + score, 16, 32, paint);
+        canvas.drawText("分：" + score, 16 * density, 32 * density, paint);
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("波次 " + wave, viewWidth - 16, 32, paint);
+        canvas.drawText("波次 " + wave, viewWidth - 16 * density, 32 * density, paint);
 
         // 波次间歇提示
         if (!waveActive) {
+            float band = 40 * density;
             paint.setColor(0xAA000000);
-            canvas.drawRect(0, viewHeight / 2 - 40, viewWidth, viewHeight / 2 + 40, paint);
+            canvas.drawRect(0, viewHeight / 2 - band, viewWidth, viewHeight / 2 + band, paint);
             paint.setColor(Color.WHITE);
-            paint.setTextSize(28);
+            paint.setTextSize(28 * density);
             paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("波次 " + wave + " 即将开始...", viewWidth / 2, viewHeight / 2 + 10, paint);
+            canvas.drawText("波次 " + wave + " 即将开始...", viewWidth / 2, viewHeight / 2 + 10 * density, paint);
         }
+    }
+
+    /** 游戏结束结算遮罩（死亡后不再空白）。重开逻辑由 Fragment 的"重新开始"按钮负责。 */
+    private void drawGameOver(Canvas canvas) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(170, 0, 0, 0));
+        canvas.drawRect(0, 0, viewWidth, viewHeight, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(30 * density);
+        canvas.drawText("游戏结束", viewWidth / 2f, viewHeight / 2f - 30 * density, paint);
+        paint.setTextSize(18 * density);
+        canvas.drawText("得分 " + score + "   波次 " + wave, viewWidth / 2f, viewHeight / 2f + 10 * density, paint);
+        paint.setTextSize(15 * density);
+        paint.setColor(0xFFB0B0B0);
+        canvas.drawText("点击下方按钮重新开始", viewWidth / 2f, viewHeight / 2f + 50 * density, paint);
     }
 
     // ==================== 游戏循环 ====================
@@ -271,8 +318,8 @@ public class BrotatoView extends View {
                 playerX += (dx / dist) * speed;
                 playerY += (dy / dist) * speed;
                 // 限制在屏幕内
-                playerX = Math.max(PLAYER_SIZE, Math.min(playerX, viewWidth - PLAYER_SIZE));
-                playerY = Math.max(PLAYER_SIZE, Math.min(playerY, viewHeight - PLAYER_SIZE - 60));
+                playerX = Math.max(playerSize, Math.min(playerX, viewWidth - playerSize));
+                playerY = Math.max(playerSize, Math.min(playerY, viewHeight - playerSize - 60 * density));
             }
         }
 
@@ -331,7 +378,7 @@ public class BrotatoView extends View {
                 float[] enemy = enemies.get(ei);
                 float dx = bullet[0] - enemy[0];
                 float dy = bullet[1] - enemy[1];
-                if (dx * dx + dy * dy < (ENEMY_SIZE + BULLET_SIZE) * (ENEMY_SIZE + BULLET_SIZE)) {
+                if (dx * dx + dy * dy < (enemySize + bulletSize) * (enemySize + bulletSize)) {
                     bullets.remove(bi);
                     enemy[2] -= 1;
                     if (enemy[2] <= 0) {
@@ -353,11 +400,12 @@ public class BrotatoView extends View {
             float[] enemy = enemyIter.next();
             float dx = playerX - enemy[0];
             float dy = playerY - enemy[1];
-            if (dx * dx + dy * dy < (PLAYER_SIZE + ENEMY_SIZE) * (PLAYER_SIZE + ENEMY_SIZE)) {
+            if (dx * dx + dy * dy < (playerSize + enemySize) * (playerSize + enemySize)) {
                 hp--;
                 enemyIter.remove();
                 if (hp <= 0) {
                     gameRunning = false;
+                    gameOver = true;
                     if (listener != null) {
                         listener.onGameOver(score, wave);
                     }
@@ -387,10 +435,10 @@ public class BrotatoView extends View {
         float ex, ey;
         int side = random.nextInt(4);
         switch (side) {
-            case 0: ex = random.nextFloat() * viewWidth; ey = -ENEMY_SIZE; break;
-            case 1: ex = viewWidth + ENEMY_SIZE; ey = random.nextFloat() * viewHeight; break;
-            case 2: ex = random.nextFloat() * viewWidth; ey = viewHeight + ENEMY_SIZE; break;
-            default: ex = -ENEMY_SIZE; ey = random.nextFloat() * viewHeight; break;
+            case 0: ex = random.nextFloat() * viewWidth; ey = -enemySize; break;
+            case 1: ex = viewWidth + enemySize; ey = random.nextFloat() * viewHeight; break;
+            case 2: ex = random.nextFloat() * viewWidth; ey = viewHeight + enemySize; break;
+            default: ex = -enemySize; ey = random.nextFloat() * viewHeight; break;
         }
         float dm = difficultyFactor / 0.5f;
         float enemyHp = wave >= 5 ? (random.nextInt(3) == 0 ? 3 : 1) : 1;

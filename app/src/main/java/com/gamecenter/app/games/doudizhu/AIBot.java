@@ -1,3 +1,4 @@
+// 同步声明：此文件与 module-store/feature/games/games/doudizhu/src/main/java/com/gamecenter/app/doudizhu/AIBot.java 保持同步，修改时请同步修改对方文件
 package com.gamecenter.app.games.doudizhu;
 
 import com.gamecenter.app.games.doudizhu.model.Card;

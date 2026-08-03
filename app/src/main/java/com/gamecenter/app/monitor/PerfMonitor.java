@@ -3,7 +3,6 @@ package com.gamecenter.app.monitor;
 import android.app.Application;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Debug;
 import android.os.Handler;

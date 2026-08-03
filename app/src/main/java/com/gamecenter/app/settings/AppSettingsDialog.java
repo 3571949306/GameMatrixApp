@@ -3,7 +3,6 @@ package com.gamecenter.app.settings;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -25,12 +24,16 @@ import com.gamecenter.app.update.UpdateManager;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 应用设置对话框。
  * 对标主流上市 app 的设计规范，采用卡片分组 + 图标 + 说明文案的布局方式。
  */
 public class AppSettingsDialog {
+
+    private static final ExecutorService IO_EXECUTOR = Executors.newFixedThreadPool(4);
 
     private interface OnUpdateSourceSelectedListener {
         void onSelected(int source);
@@ -862,7 +865,7 @@ public class AppSettingsDialog {
         if (tvCacheSize == null) return;
         Context context = fragment.requireContext();
         tvCacheSize.setText(context.getString(R.string.settings_cache_calculating));
-        AsyncTask.execute(() -> {
+        IO_EXECUTOR.execute(() -> {
             long size = getCacheSizeBytes(context);
             String human = formatSize(size);
             tvCacheSize.post(() -> {

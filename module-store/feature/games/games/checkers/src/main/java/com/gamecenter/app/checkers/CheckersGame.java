@@ -1,3 +1,5 @@
+// 同步声明：此文件的 AI 算法逻辑与 app/src/main/java/com/gamecenter/app/games/checkers/CheckersActivity.java 保持同步
+// 结构差异：module-store 版 AI 逻辑在独立的 CheckersGame 类中；app 版内联在 CheckersActivity 中。修改 AI 算法时请同步修改对方文件
 package com.gamecenter.app.checkers;
 
 import java.util.ArrayList;

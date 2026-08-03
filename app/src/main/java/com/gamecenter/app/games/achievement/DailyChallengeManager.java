@@ -179,7 +179,8 @@ public class DailyChallengeManager {
             editor.putString(KEY_GAME_NAME, "");
             editor.putInt(KEY_TARGET, 1 + rnd.nextInt(2)); // 1-2 个成就
         } else {
-            GameRegistry.Entry chosen = allGames.get(rnd.nextInt(allGames.size()));
+            // 优先推荐用户最近玩过的游戏，提升相关性
+            GameRegistry.Entry chosen = pickPreferredGame(allGames, rnd);
             editor.putInt(KEY_TYPE, type);
             editor.putString(KEY_GAME_ID, chosen.id);
             editor.putString(KEY_GAME_NAME, chosen.name);
@@ -189,6 +190,29 @@ public class DailyChallengeManager {
         editor.putInt(KEY_PROGRESS, 0);
         editor.putBoolean(KEY_COMPLETED, false);
         editor.apply();
+    }
+
+    /**
+     * 优先推荐用户最近玩过的游戏。
+     * 50% 概率从最近游玩记录中选，50% 概率随机选（保持新鲜感）。
+     */
+    private GameRegistry.Entry pickPreferredGame(List<GameRegistry.Entry> allGames, Random rnd) {
+        try {
+            com.gamecenter.app.games.GameUsageStore store = new com.gamecenter.app.games.GameUsageStore(appContext);
+            java.util.List<String> recentIds = store.getRecentIds(5);
+            if (!recentIds.isEmpty() && rnd.nextBoolean()) {
+                // 从最近玩过的游戏中随机选一个（仍在 allGames 中）
+                java.util.List<GameRegistry.Entry> recent = new java.util.ArrayList<>();
+                for (GameRegistry.Entry g : allGames) {
+                    if (recentIds.contains(g.id)) recent.add(g);
+                }
+                if (!recent.isEmpty()) {
+                    return recent.get(rnd.nextInt(recent.size()));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return allGames.get(rnd.nextInt(allGames.size()));
     }
 
     /**

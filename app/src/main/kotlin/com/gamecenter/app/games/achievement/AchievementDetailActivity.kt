@@ -54,7 +54,7 @@ class AchievementDetailActivity : AppCompatActivity() {
     private lateinit var ivGameIcon: ImageView
 
     private lateinit var configLoader: GameConfigLoader
-    private lateinit var achievementPrefs: SharedPreferences
+    private lateinit var achievementDao: com.gamecenter.app.database.dao.AchievementDao
     private var gameConfig: GameConfig? = null
     private val allItems = mutableListOf<AchievementRow>()
 
@@ -69,7 +69,7 @@ class AchievementDetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_achievement_detail)
 
         configLoader = GameConfigLoader(this)
-        achievementPrefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
+        achievementDao = com.gamecenter.app.database.AppDatabase.getDatabase(this).achievementDao()
 
         bindViews()
         loadGameData()
@@ -111,8 +111,9 @@ class AchievementDetailActivity : AppCompatActivity() {
             allItems.clear()
             cfg.achievements?.forEach { def ->
                 val fullKey = def.getFullId(cfg.gameId)
-                val unlocked = achievementPrefs.getBoolean(KEY_PREFIX + fullKey + "_unlocked", false)
-                val unlockedAt = achievementPrefs.getLong(KEY_PREFIX + fullKey + "_unlocked_at", 0L)
+                val entity = achievementDao.getByIdSync(fullKey)
+                val unlocked = entity?.unlocked ?: false
+                val unlockedAt = entity?.unlockedAt ?: 0L
                 allItems.add(
                     AchievementRow(
                         name = formatAchievementName(def.key),

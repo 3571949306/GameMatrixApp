@@ -1,3 +1,5 @@
+// 同步声明：此文件的 AI 算法逻辑与 module-store/feature/games/games/tic/src/main/java/com/gamecenter/app/tic/TicTacToeGame.java 保持同步
+// 结构差异：app 版 AI 逻辑内联在 Activity 中；module-store 版提取到独立的 TicTacToeGame 类。修改 AI 算法时请同步修改对方文件
 package com.gamecenter.app.games.tic;
 
 import android.app.AlertDialog;

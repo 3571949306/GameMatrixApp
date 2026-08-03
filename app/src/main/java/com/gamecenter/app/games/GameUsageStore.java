@@ -6,13 +6,16 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.gamecenter.app.database.AppDatabase;
+import com.gamecenter.app.database.dao.GameUsageDao;
+import com.gamecenter.app.database.entity.GameUsageEntity;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 public final class GameUsageStore {
@@ -20,61 +23,75 @@ public final class GameUsageStore {
     private static final String KEY_FAVORITES = "favorites";
     private static final String KEY_FAVORITES_STR = "favorites_str";
     private static final String KEY_RECENT_IDS = "recent_ids";
-    private static final String KEY_PLAY_COUNT_PREFIX = "play_count_";
-    private static final String KEY_LAST_PLAYED_PREFIX = "last_played_";
-    private static final String KEY_WIN_PREFIX = "win_count_";
-    private static final String KEY_LOSS_PREFIX = "loss_count_";
-    private static final String KEY_PLAY_TIME_PREFIX = "play_time_";
     private static final String KEY_DAILY_PLAY_TIME_PREFIX = "daily_play_time_";
 
     private final SharedPreferences prefs;
+    private final GameUsageDao gameUsageDao;
 
     public GameUsageStore(Context context) {
         prefs = context.getApplicationContext()
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        gameUsageDao = AppDatabase.getDatabase(context.getApplicationContext()).gameUsageDao();
+    }
+
+    /**
+     * 确保 Room 中存在指定 gameId 的行，便于后续 UPDATE 语句生效。
+     * <p>Room 的 {@code incrementXxxSync} 等 UPDATE 语句在行不存在时不会创建行，
+     * 因此所有 {@code record*} 方法开头需先调用本方法。</p>
+     */
+    private void ensureRowExists(String gameId) {
+        if (gameUsageDao.getByIdSync(gameId) == null) {
+            gameUsageDao.upsertSync(new GameUsageEntity(
+                    gameId, 0, 0, 0, 0L, 0L, 0, false, 0L));
+        }
     }
 
     public void recordLaunch(String gameId) {
         long now = System.currentTimeMillis();
+        ensureRowExists(gameId);
+        gameUsageDao.incrementPlayCountSync(gameId, now);
+        // recent_ids 仍是逗号分隔字符串，保留在 SP
         prefs.edit()
-                .putInt(KEY_PLAY_COUNT_PREFIX + gameId, getPlayCount(gameId) + 1)
-                .putLong(KEY_LAST_PLAYED_PREFIX + gameId, now)
                 .putString(KEY_RECENT_IDS, updateRecent(gameId))
                 .apply();
     }
 
     public void recordWin(String gameId) {
-        prefs.edit().putInt(KEY_WIN_PREFIX + gameId, prefs.getInt(KEY_WIN_PREFIX + gameId, 0) + 1).apply();
+        ensureRowExists(gameId);
+        gameUsageDao.incrementWinSync(gameId);
     }
 
     public void recordLoss(String gameId) {
-        prefs.edit().putInt(KEY_LOSS_PREFIX + gameId, prefs.getInt(KEY_LOSS_PREFIX + gameId, 0) + 1).apply();
+        ensureRowExists(gameId);
+        gameUsageDao.incrementLossSync(gameId);
     }
 
     public void recordPlayTime(String gameId, long durationMs) {
-        long totalMs = prefs.getLong(KEY_PLAY_TIME_PREFIX + gameId, 0L) + durationMs;
+        ensureRowExists(gameId);
+        gameUsageDao.addPlayTimeSync(gameId, durationMs);
         // Batch 10-1 (HOME_QUICK_STATS_BAR): 同步累计今日时长（key 带日期后缀，每天独立）
+        // daily_play_time_* 带日期后缀，不适合放入简单 Entity，保留在 SP
         String dailyKey = KEY_DAILY_PLAY_TIME_PREFIX + todayDateKey();
         long dailyMs = prefs.getLong(dailyKey, 0L) + durationMs;
         prefs.edit()
-                .putLong(KEY_PLAY_TIME_PREFIX + gameId, totalMs)
                 .putLong(dailyKey, dailyMs)
                 .apply();
     }
 
     public void recordScore(String gameId, int score) {
-        int currentHigh = getHighScore(gameId);
-        if (score > currentHigh) {
-            prefs.edit().putInt("high_score_" + gameId, score).apply();
-        }
+        ensureRowExists(gameId);
+        // updateHighScoreSync 仅在 highScore < score 时更新（SQL 内置条件）
+        gameUsageDao.updateHighScoreSync(gameId, (long) score);
     }
 
     public int getHighScore(String gameId) {
-        return prefs.getInt("high_score_" + gameId, 0);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? (int) entity.getHighScore() : 0;
     }
 
     public long getTotalPlayTimeMs(String gameId) {
-        return prefs.getLong(KEY_PLAY_TIME_PREFIX + gameId, 0L);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? entity.getTotalPlayTimeMs() : 0L;
     }
 
     /**
@@ -113,33 +130,19 @@ public final class GameUsageStore {
      * Batch 10-1 (HOME_QUICK_STATS_BAR): 获取所有游戏的累计总时长（毫秒）。
      */
     public long getAllTotalPlayTimeMs() {
-        long total = 0L;
-        Map<String, ?> all = prefs.getAll();
-        for (Map.Entry<String, ?> entry : all.entrySet()) {
-            if (entry.getKey().startsWith(KEY_PLAY_TIME_PREFIX) && entry.getValue() instanceof Long) {
-                total += (Long) entry.getValue();
-            }
-        }
-        return total;
+        return gameUsageDao.getTotalPlayTimeSync();
     }
 
     /**
      * BUG-005 修复：获取所有游戏的累计总对局数。
-     * <p>遍历 prefs 中所有 {@code play_count_*} key 求和，与 {@link #getPlayCount(String)}
+     * <p>由 Room {@code game_usage} 表 SUM(playCount) 求和，与 {@link #getPlayCount(String)}
      * 单游戏读取使用同一数据源，保证 GameDetailBottomSheet / ProfileFragment / StatsActivity 三处显示一致。</p>
      * <p>之前 ProfileFragment 与 StatsActivity 使用 {@code StreakTracker.totalGames}，
      * 但 {@code StreakTracker.recordGamePlayed()} 从未被调用，导致总对局永远为 0，
      * 与 GameDetailBottomSheet 的 {@code getPlayCount()} 不一致。</p>
      */
     public int getAllTotalPlayCount() {
-        int total = 0;
-        Map<String, ?> all = prefs.getAll();
-        for (Map.Entry<String, ?> entry : all.entrySet()) {
-            if (entry.getKey().startsWith(KEY_PLAY_COUNT_PREFIX) && entry.getValue() instanceof Integer) {
-                total += (Integer) entry.getValue();
-            }
-        }
-        return total;
+        return gameUsageDao.getTotalPlayCountSync();
     }
 
     private String todayDateKey() {
@@ -147,11 +150,13 @@ public final class GameUsageStore {
     }
 
     public int getPlayCount(String gameId) {
-        return prefs.getInt(KEY_PLAY_COUNT_PREFIX + gameId, 0);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? entity.getPlayCount() : 0;
     }
 
     public long getLastPlayedAt(String gameId) {
-        return prefs.getLong(KEY_LAST_PLAYED_PREFIX + gameId, 0L);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? entity.getLastPlayedAt() : 0L;
     }
 
     public Set<String> getFavoriteIds() {
@@ -214,11 +219,13 @@ public final class GameUsageStore {
     }
 
     public int getWinCount(String gameId) {
-        return prefs.getInt(KEY_WIN_PREFIX + gameId, 0);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? entity.getWins() : 0;
     }
 
     public int getLossCount(String gameId) {
-        return prefs.getInt(KEY_LOSS_PREFIX + gameId, 0);
+        GameUsageEntity entity = gameUsageDao.getByIdSync(gameId);
+        return entity != null ? entity.getLosses() : 0;
     }
 
     public List<String> getRecentIds(int limit) {

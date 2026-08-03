@@ -44,10 +44,13 @@ public class BreakoutActivity extends BaseGameActivity {
     private final Runnable gameLoop = new Runnable() {
         @Override
         public void run() {
-            if (breakoutView != null && breakoutView.isGameRunning()) {
+            // 由 Activity 的 isGameRunning / isGamePaused 控制循环存亡，
+            // 不再依赖 view.isGameRunning()，避免初次测量前或过关/结束瞬间循环误停。
+            if (!isGameRunning || isGamePaused) return;
+            if (breakoutView != null) {
                 breakoutView.update();
-                handler.postDelayed(this, FRAME_INTERVAL_MS);
             }
+            handler.postDelayed(this, FRAME_INTERVAL_MS);
         }
     };
 
@@ -72,7 +75,8 @@ public class BreakoutActivity extends BaseGameActivity {
         breakoutView.setOnGameListener(new BreakoutView.OnGameListener() {
             @Override
             public void onScoreChanged(int score) {
-                updateScore(currentScore + score);
+                // 分数由 BreakoutView 统一累计（含过关奖励），此处直接镜像，避免重复累加。
+                updateScore(score);
             }
 
             @Override
@@ -106,22 +110,26 @@ public class BreakoutActivity extends BaseGameActivity {
             public void onLevelComplete(int level) {
                 handler.removeCallbacks(gameLoop);
                 totalLevels++;
-                int levelScore = breakoutView.getScore();
-                currentScore += levelScore + level * 50;
-                updateScore(currentScore);
+
+                // 分数已在 BreakoutView.onLevelCleared 中累计（含过关奖励），直接镜像。
+                updateScore(breakoutView.getScore());
 
                 usageStore.recordWin(getGameId());
 
                 checkAchievement("win", totalLevels);
-                checkAchievement("score", levelScore);
+                checkAchievement("score", breakoutView.getLastLevelScore());
                 checkAchievement("level", level);
                 checkAchievement("rounds", totalLevels);
+                // 不丢球通关成就
+                if (breakoutView.isLevelNoMiss()) {
+                    checkAchievement("no_miss", true);
+                }
 
-                // 进入下一关
+                // 进入下一关（保留分数与生命）
                 currentLevel++;
                 handler.postDelayed(() -> {
                     if (isGameRunning) {
-                        breakoutView.startGame(currentLevel);
+                        breakoutView.startNextLevel(currentLevel);
                         handler.post(gameLoop);
                     }
                 }, 1500);
@@ -174,19 +182,45 @@ public class BreakoutActivity extends BaseGameActivity {
 
     @Override
     protected void checkAchievement(@NonNull String eventType, @NonNull Object... params) {
-        achievementManager.checkAndUnlock(eventType, params);
+        // 使用带 gameId 隔离的新签名，避免跨游戏串扰
+        if (params == null || params.length == 0) return;
+        Object first = params[0];
+        if (first instanceof Boolean) {
+            if ((Boolean) first) achievementManager.unlock(getGameId(), eventType);
+        } else if (first instanceof Number) {
+            int currentValue = ((Number) first).intValue();
+            if (params.length >= 2 && params[1] instanceof Number) {
+                int threshold = ((Number) params[1]).intValue();
+                achievementManager.checkAndUnlock(getGameId(), eventType, currentValue, threshold);
+            } else {
+                // 单参数：记录进度不解锁，需要提供合理阈值
+                // 根据事件类型设置默认阈值
+                int threshold = getAchievementThreshold(eventType);
+                achievementManager.checkAndUnlock(getGameId(), eventType, currentValue, threshold);
+            }
+        }
+    }
+
+    /** 根据事件类型返回默认解锁阈值 */
+    private int getAchievementThreshold(@NonNull String eventType) {
+        switch (eventType) {
+            case "score": return 100;       // 单关得分100+
+            case "level": return 1;          // 通过第1关
+            case "rounds": return 3;         // 累计3关
+            case "win": return 1;            // 首次通关
+            case "game_over": return 1;      // 游戏结束
+            default: return Integer.MAX_VALUE; // 未知类型不解锁
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // BUG-005 根因修复：进入游戏后自动调用 startGame()，确保 gameStartTime 被设置、
-        // isGameRunning = true，否则 onDestroy 中的 endGame() 不会调用 recordPlayTime，
-        // 且 onGameOver 永远不会触发，导致胜负数据/总时长始终为 0。
-        // 之前依赖用户点击屏幕触发 startGame，但 BreakoutView.onTouchEvent 在 gameRunning=false
-        // 时直接 return true，没有任何入口启动游戏。
+        // 自动启动 / 从后台恢复：未运行时开始新游戏；已暂停时恢复（修复后台返回后游戏冻结）。
         if (!isGameRunning) {
             startGame();
+        } else if (isGamePaused) {
+            resumeGame();
         }
     }
 

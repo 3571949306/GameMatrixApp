@@ -181,6 +181,14 @@ public class GamesFragment extends Fragment {
         if (requireContext() != null) {
             ModuleManager.INSTANCE.registerInstalledGameModules(requireContext());
         }
+        // 清空搜索框，避免返回首页时残留上次搜索内容
+        if (rootView != null) {
+            android.widget.EditText etSearch = rootView.findViewById(R.id.et_game_search);
+            if (etSearch != null && etSearch.getText() != null && etSearch.getText().length() > 0) {
+                etSearch.setText("");
+                currentKeyword = "";
+            }
+        }
         loadGames();
         // Feature C (HOME_REVAMP): 回到大厅时刷新最近游玩记录
         if (BuildConfig.HOME_REVAMP) {
@@ -447,11 +455,15 @@ public class GamesFragment extends Fragment {
 
         // 今日时长
         long todayMs = usageStore != null ? usageStore.getTodayPlayTimeMs() : 0L;
-        long todayMinutes = todayMs / 60000L;
+        long todaySeconds = todayMs / 1000L;
         if (tvStatPlaytimeValue != null) {
-            if (todayMinutes > 0) {
+            if (todaySeconds >= 60) {
+                long todayMinutes = todaySeconds / 60;
                 tvStatPlaytimeValue.setText(getString(R.string.home_stats_playtime_format,
                         String.valueOf(todayMinutes)));
+            } else if (todaySeconds > 0) {
+                // 不足1分钟但已有游玩，显示秒数避免"今日还未游玩"误导
+                tvStatPlaytimeValue.setText(todaySeconds + "s");
             } else {
                 tvStatPlaytimeValue.setText(R.string.home_stats_playtime_zero);
             }
@@ -463,15 +475,9 @@ public class GamesFragment extends Fragment {
             tvStatStreakValue.setText(getString(R.string.home_stats_streak_format, streak));
         }
 
-        // 成就：从 AchievementManager SharedPreferences 读取已解锁数
-        SharedPreferences achPrefs = ctx.getSharedPreferences("game_achievements", Context.MODE_PRIVATE);
-        int unlocked = 0;
-        java.util.Map<String, ?> all = achPrefs.getAll();
-        for (java.util.Map.Entry<String, ?> e : all.entrySet()) {
-            if (e.getKey().startsWith("unlock_") && Boolean.TRUE.equals(e.getValue())) {
-                unlocked++;
-            }
-        }
+        // 成就：从 Room（achievements 表）读取已解锁数
+        int unlocked = com.gamecenter.app.database.AppDatabase.getDatabase(ctx)
+                .achievementDao().getUnlockedCountSync();
         if (tvStatAchievementsValue != null) {
             // 总数未知（无 registry），只展示已解锁数；后缀 "+"
             tvStatAchievementsValue.setText(String.valueOf(unlocked));
@@ -798,12 +804,16 @@ public class GamesFragment extends Fragment {
         TextView tvSubtitle = v.findViewById(R.id.tv_subtitle);
         if (tvSubtitle == null) return;
         tvLaunchTime = tvSubtitle;
+        // 仅在 Debug 构建下显示启动耗时，Release 构建完全跳过
+        if (!BuildConfig.DEBUG) return;
         long elapsed = com.gamecenter.app.ui.LaunchTimeTracker.INSTANCE.elapsedMs();
         if (elapsed < 0L) return;
         String original = tvSubtitle.getText() == null ? "" : tvSubtitle.getText().toString();
         String launchInfo = getString(R.string.app_launch_time_format, elapsed);
-        // 仅在 Debug 构建下追加显示，避免污染 Release 用户体验
-        if (BuildConfig.DEBUG) {
+        // 避免原文本为空时留下多余分隔符
+        if (original.isEmpty()) {
+            tvSubtitle.setText(launchInfo);
+        } else {
             tvSubtitle.setText(launchInfo + " · " + original);
         }
     }

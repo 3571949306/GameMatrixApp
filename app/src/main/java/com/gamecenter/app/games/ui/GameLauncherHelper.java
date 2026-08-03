@@ -165,22 +165,4 @@ public class GameLauncherHelper {
                 return false;
         }
     }
-
-    /**
-     * 判断游戏是否支持联机模式
-     */
-    private static boolean supportsOnlineMode(@NonNull String gameId) {
-        switch (gameId) {
-            case "gomoku":
-            case "chess":
-            case "chinesechess":
-            case "tic":
-            case "tic_tac_toe":
-            case "doudizhu":
-            case "poker":
-                return true;
-            default:
-                return false;
-        }
-    }
 }

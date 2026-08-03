@@ -210,6 +210,9 @@ wrongbook_module.zip
 /fix_doudizhu_r_refs.ps1
 /replace_doudizhu_packages.ps1
 
+# Game diagnostic dumps (breakout state traces)
+/bo_diag_*.txt
+
 # ============================================================
 # Internal dev docs (kept local only; public repo is user-facing)
 # 2026-08-04: 公开仓库面向用户，内部开发文档不再上传

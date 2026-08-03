@@ -47,26 +47,29 @@ class CatalogV2Repository private constructor(private val context: Context) {
     }
 
     private fun buildCatalogResult(
-        manifests: List<ModuleManifest>,
+        manifests: List<ModuleManifest>?,
         error: String?,
         refreshError: Throwable?
     ): Result<CatalogV2> {
-        if (manifests.isEmpty() && error != null) {
+        // 冷启动 NPE 修复：loadModuleList 回调可能从 Java 侧传入 null，
+        // 此处兜底为 emptyList，避免后续遍历触发 Iterator.next() on null。
+        val safeManifests = manifests ?: emptyList()
+        if (safeManifests.isEmpty() && error != null) {
             return Result.failure(IllegalStateException(error))
         }
         return runCatching {
             val parsed = loadValidatedCatalog()
-            val catalog = if (parsed != null) mergeAuthority(parsed, manifests) else CatalogV2(
+            val catalog = if (parsed != null) mergeAuthority(parsed, safeManifests) else CatalogV2(
                 catalogVersion = 0,
                 source = "module_manager_fallback",
                 offline = true,
-                modules = manifests.map(LegacyCatalogAdapter::fromManifest)
+                modules = safeManifests.map(LegacyCatalogAdapter::fromManifest)
             )
             catalog.copy(
                 offline = catalog.offline || error != null || refreshError != null,
-                modules = catalog.modules.sortedWith(
+                modules = catalog.modules?.sortedWith(
                     compareBy<CatalogModule> { it.sortOrder }.thenBy { it.name }
-                )
+                ) ?: emptyList()
             )
         }
     }
@@ -92,16 +95,20 @@ class CatalogV2Repository private constructor(private val context: Context) {
         }
     }
 
-    private fun mergeAuthority(catalog: CatalogV2, manifests: List<ModuleManifest>): CatalogV2 {
-        val authority = manifests.associateBy { it.id }
-        val merged = catalog.modules.map { module ->
+    private fun mergeAuthority(catalog: CatalogV2, manifests: List<ModuleManifest>?): CatalogV2 {
+        // 冷启动 NPE 修复：catalog.modules / manifests 在异常路径下可能为 null，
+        // 兜底为 emptyList 避免遍历崩溃。
+        val safeManifests = manifests ?: emptyList()
+        val catalogModules = catalog.modules ?: emptyList()
+        val authority = safeManifests.associateBy { it.id }
+        val merged = catalogModules.map { module ->
             authority[module.id]
                 ?.takeIf { CatalogAuthorityMatcher.matches(module, it) }
                 ?.let { module.copy(legacyManifest = it) }
                 ?: module
         }.toMutableList()
         val known = merged.mapTo(mutableSetOf()) { it.id }
-        manifests.filterNot { it.id in known }
+        safeManifests.filterNot { it.id in known }
             .mapTo(merged, LegacyCatalogAdapter::fromManifest)
         CatalogPackageTrustRegistry.replace(merged)
         return catalog.copy(modules = merged)

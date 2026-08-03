@@ -200,7 +200,8 @@ object RecoveryDownloader {
             val dir = targetFile.parentFile ?: File("/data/local/tmp")
             val available = try {
                 StatFs(dir.absolutePath).availableBytes
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.w(TAG, "磁盘空间检查失败", e)
                 Long.MAX_VALUE // 无法统计时放行，交由后续写入失败处理
             }
             if (available < totalFromServer + EXTRA_SPACE_BYTES) {
