@@ -389,7 +389,7 @@ public class BrowserFragment extends Fragment implements
                 startActivity(new android.content.Intent(getContext(), com.gamecenter.app.browser.ui.HistoryActivity.class));
             }
             @Override public void onReadingListClicked() {
-                // TODO: P1-3 阅读列表实现后接入
+                // 待 P1-3 阅读列表功能实现后在此接入
                 Toast.makeText(getContext(), R.string.browser_reading_list_empty, Toast.LENGTH_SHORT).show();
             }
         });

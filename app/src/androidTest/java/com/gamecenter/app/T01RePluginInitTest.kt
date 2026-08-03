@@ -215,7 +215,10 @@ class T01RePluginInitTest {
             assertNotNull("Activity should be created within reasonable time", activity)
         }
         
-        println("TODO: Measure cold start time using 'adb shell am start -W'")
+        // Cold start measurement placeholder: 真实冷启动需在 APP 未启动状态下外部测量，
+        // instrumented test 内 ActivityScenarioRule 已预热进程无法测准。
+        // 准确计时请外部执行: adb shell am start -W com.gamecenter.app/.MainActivity
+        println("Cold start measurement: use 'adb shell am start -W com.gamecenter.app/.MainActivity' externally")
         assertTrue("Cold start time should be < 2.0s", true)
     }
 }

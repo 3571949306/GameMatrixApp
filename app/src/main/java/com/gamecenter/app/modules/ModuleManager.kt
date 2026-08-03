@@ -62,12 +62,12 @@ object ModuleManager {
         var hasCache = false
         if (!cachedJson.isNullOrEmpty()) {
             try {
-                val cachedModules = parseModulesArray(cachedJson)
+                val cachedModules = parseModulesArray(cachedJson) ?: emptyList()
                 for (m in cachedModules) manifests[m.id] = m
                 registerLocalFallbackIfNeeded(appContext)
                 callback(getAvailableModules(), null)
                 hasCache = true
-            } catch (_: Exception) { /* fall through to remote */ }
+            } catch (e: Exception) { Log.w(TAG, "本地加载失败，回退到远程", e) }
         }
 
         Thread {
@@ -109,7 +109,7 @@ object ModuleManager {
                 response.close()
                 val cachedJson = prefs(context).getString(KEY_MODULES_LIST_JSON, null)
                 if (!cachedJson.isNullOrEmpty()) {
-                    val cached = parseModulesArray(cachedJson)
+                    val cached = parseModulesArray(cachedJson) ?: emptyList()
                     val newMap = ConcurrentHashMap<String, ModuleManifest>()
                     for (m in cached) newMap[m.id] = m
                     manifests.clear()
@@ -150,7 +150,7 @@ object ModuleManager {
             val etagUnchanged = !serverEtag.isNullOrEmpty() && serverEtag == cachedEtag
             if (remoteVersion == localVersion && localVersion > 0) {
                 Log.d(TAG, "模块列表版本一致 ($remoteVersion, etagUnchanged=$etagUnchanged)，无需写盘，但仍刷新内存")
-                val fresh = parseModulesArray(body)
+                val fresh = parseModulesArray(body) ?: emptyList()
                 val newMap = ConcurrentHashMap<String, ModuleManifest>()
                 for (m in fresh) newMap[m.id] = m
                 manifests.clear()
@@ -160,7 +160,7 @@ object ModuleManager {
             }
 
             Log.d(TAG, "模块列表版本变更: $localVersion → $remoteVersion，更新本地缓存")
-            val modules = parseModulesArray(body)
+            val modules = parseModulesArray(body) ?: emptyList()
             val newMap = ConcurrentHashMap<String, ModuleManifest>()
             for (m in modules) newMap[m.id] = m
             manifests.clear()
@@ -190,7 +190,8 @@ object ModuleManager {
             val json = JSONObject(jsonStr)
             val arr = json.getJSONArray("modules")
             ModuleManifest.fromJsonArray(arr.toString())
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "模块操作失败", e)
             // 旧格式 [...]（向后兼容）
             ModuleManifest.fromJsonArray(jsonStr)
         }
@@ -199,7 +200,8 @@ object ModuleManager {
     private fun parseModuleListVersion(jsonStr: String): Int {
         return try {
             JSONObject(jsonStr).optInt("version", 0)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "模块操作失败", e)
             0
         }
     }
@@ -474,7 +476,11 @@ object ModuleManager {
      * APK 是否已安装、签名与 SHA-256 是否有效，仍由现有 ModuleManager/ModuleLoader
      * 权威链路判断。
      */
-    fun registerAvailableManifests(available: Collection<ModuleManifest>) {
+    fun registerAvailableManifests(available: Collection<ModuleManifest>?) {
+        if (available.isNullOrEmpty()) {
+            registerLocalFallbackIfNeeded()
+            return
+        }
         for (manifest in available) {
             manifests[manifest.id] = manifest
         }
@@ -617,7 +623,7 @@ object ModuleManager {
                 .bufferedReader(Charsets.UTF_8)
                 .use { it.readText() }
             val bundledVersion = parseModuleListVersion(body)
-            val bundledModules = parseModulesArray(body)
+            val bundledModules = parseModulesArray(body) ?: emptyList()
             for (m in bundledModules) manifests[m.id] = m
             val storedVersion = prefs(context).getInt(KEY_MODULES_LIST_VERSION, 0)
             if (bundledVersion > storedVersion) {
@@ -759,7 +765,8 @@ object ModuleManager {
     private fun registerGameFromManifest(context: Context, manifest: ModuleManifest) {
         try {
             val gameId = manifest.gameId.ifEmpty { manifest.id }
-            if (gameId == "gomoku" || gameId == "doudizhu") {
+            // gomoku 已完成模块化（宿主 GomokuActivity 已注释，须通过模块商店加载），不再跳过
+            if (gameId == "doudizhu") {
                 return
             }
             val activityClass = if (manifest.builtIn && manifest.activityClass.isNotEmpty()) {

@@ -127,8 +127,8 @@ class VpnServiceProxy : VpnService() {
     override fun onDestroy() {
         running = false
         delegate?.disconnect()
-        try { tunIn?.close() } catch (_: Exception) {}
-        try { tunOut?.close() } catch (_: Exception) {}
+        try { tunIn?.close() } catch (e: Exception) { Log.w(TAG, "关闭 tunIn 失败", e) }
+        try { tunOut?.close() } catch (e: Exception) { Log.w(TAG, "关闭 tunOut 失败", e) }
         try {
             iface?.close()
             iface = null

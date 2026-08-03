@@ -1,10 +1,12 @@
 package com.gamecenter.app.games;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
 
+import com.gamecenter.app.database.AppDatabase;
+import com.gamecenter.app.database.dao.AchievementDao;
+import com.gamecenter.app.database.entity.AchievementEntity;
 import com.gamecenter.app.games.config.GameConfigLoader;
 import com.gamecenter.app.games.model.AchievementDef;
 import com.gamecenter.app.games.model.GameConfig;
@@ -21,13 +23,9 @@ import java.util.List;
  *   <li>已解锁：按等级点数累加</li>
  * </ul>
  * </p>
- * <p>SharedPreferences 数据源：{@code game_achievements}（与 StatsActivity 一致）。</p>
+ * <p>数据源：Room achievements 表（与 AchievementManager 写入一致）。</p>
  */
 public final class AchievementPointsCalculator {
-
-    public static final String ACHIEVEMENT_PREFS = "game_achievements";
-    public static final String ACHIEVEMENT_KEY_PREFIX = "unlock_";
-    public static final String ACHIEVEMENT_KEY_SUFFIX = "_unlocked";
 
     private AchievementPointsCalculator() {}
 
@@ -48,15 +46,15 @@ public final class AchievementPointsCalculator {
         try {
             GameConfigLoader loader = new GameConfigLoader(context);
             List<GameConfig> configs = loader.loadAllConfigs();
-            SharedPreferences prefs = context.getSharedPreferences(ACHIEVEMENT_PREFS, Context.MODE_PRIVATE);
+            AchievementDao dao = AppDatabase.getDatabase(context).achievementDao();
 
             for (GameConfig config : configs) {
                 if (config.achievements == null || config.achievements.isEmpty()) continue;
                 for (AchievementDef def : config.achievements) {
                     r.totalCount++;
                     String fullKey = def.getFullId(config.gameId);
-                    boolean unlocked = prefs.getBoolean(
-                            ACHIEVEMENT_KEY_PREFIX + fullKey + ACHIEVEMENT_KEY_SUFFIX, false);
+                    AchievementEntity entity = dao.getByIdSync(fullKey);
+                    boolean unlocked = entity != null && entity.getUnlocked();
                     if (!unlocked) continue;
                     r.unlockedCount++;
                     AchievementLevel level = def.level != null ? def.level : AchievementLevel.BRONZE;
@@ -80,7 +78,9 @@ public final class AchievementPointsCalculator {
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            android.util.Log.w("AchievementPointsCalculator", "成就点数计算失败", e);
+        }
         return r;
     }
 }

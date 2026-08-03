@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -34,6 +33,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 浏览器起始页 Helper。
@@ -53,6 +54,8 @@ public class BrowserHomeHelper {
     private static final String PREFS_NAME = "browser_home_prefs";
     private static final String KEY_PINNED_SITES = "pinned_sites";
     private static final int MAX_TOP_SITES = 8;
+
+    private static final ExecutorService IO_EXECUTOR = Executors.newFixedThreadPool(4);
 
     public interface HomeCallback {
         void onSiteClicked(@NonNull String url);
@@ -139,7 +142,7 @@ public class BrowserHomeHelper {
 
     /** 异步加载 Top Sites 并填充到当前风格的容器 */
     public void loadTopSitesAsync() {
-        AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
+        IO_EXECUTOR.execute(() -> {
             try {
                 List<BrowserHistoryEntity> all = historyDao.getAllHistory();
                 List<SiteEntry> top = computeTopSites(all);
@@ -236,7 +239,7 @@ public class BrowserHomeHelper {
                 if (callback != null) callback.onSiteClicked(site.url);
             });
             item.setOnLongClickListener(v -> {
-                // TODO: 弹出"固定/删除"菜单
+                // 未来功能: 长按快捷方式弹出"固定/删除"菜单，需实现 OnLongClickListener
                 return true;
             });
             container.addView(item);

@@ -1,6 +1,7 @@
 package com.gamecenter.app.ui
 
 import android.content.Context
+import android.util.Log
 import com.gamecenter.app.R
 import com.gamecenter.app.games.achievement.DailyChallengeManager
 import com.google.android.material.badge.BadgeDrawable
@@ -62,14 +63,14 @@ object NavBadgeHelper {
         try {
             val challenge = DailyChallengeManager.getInstance(context).getTodayChallenge()
             if (!challenge.completed && challenge.progress < challenge.target) count++
-        } catch (_: Exception) { /* ignore */ }
+        } catch (e: Exception) { Log.w("NavBadgeHelper", "每日挑战读取失败", e) }
 
         // 2. 连胜活动
         try {
             val streak = com.gamecenter.app.games.achievement.StreakTracker
                 .getInstance(context).getCurrentStreak()
             if (streak <= 0) count++
-        } catch (_: Exception) { /* ignore */ }
+        } catch (e: Exception) { Log.w("NavBadgeHelper", "连胜状态读取失败", e) }
 
         return count
     }

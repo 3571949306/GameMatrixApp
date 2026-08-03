@@ -121,6 +121,9 @@ public class GomokuView extends View {
     /** 高亮边缘颜色 */
     private int highlightEdgeColor;
 
+    /** 设备密度（px = dp * density），将"绝对像素"文字尺寸换算为与屏幕匹配的 dp 视觉尺寸 */
+    private float density = 1f;
+
     // 15路棋盘的5个星位坐标（棋盘上的小黑点，帮助定位）
     // 就像真实棋盘上那些小圆点，让你知道这是棋盘的中心和四角
     private static final int[][] STAR_POINTS = {{3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}};
@@ -160,6 +163,7 @@ public class GomokuView extends View {
     private void init() {
         cellSize = 0;
         boardPadding = 20;
+        density = getResources().getDisplayMetrics().density;
 
         // 模块独立 APK 版本：颜色硬编码（与宿主 colors.xml 保持一致），不依赖宿主 R 资源
         Resources res = getResources();
@@ -217,13 +221,13 @@ public class GomokuView extends View {
 
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(line);
-        textPaint.setTextSize(28);
+        textPaint.setTextSize(28 * density);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
         // 坐标标识画笔：小号文字，半透明
         coordinatePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         coordinatePaint.setColor(Color.argb(160, 0, 0, 0));
-        coordinatePaint.setTextSize(20);
+        coordinatePaint.setTextSize(20 * density);
         coordinatePaint.setTextAlign(Paint.Align.CENTER);
 
         // 胜利五连线画笔：粗红色线
@@ -236,7 +240,7 @@ public class GomokuView extends View {
         // AI思考指示画笔
         aiThinkingPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         aiThinkingPaint.setColor(Color.argb(180, 255, 193, 7));
-        aiThinkingPaint.setTextSize(22);
+        aiThinkingPaint.setTextSize(22 * density);
         aiThinkingPaint.setTextAlign(Paint.Align.CENTER);
 
         highlightEdgeColor = Color.rgb(255, 50, 50);
@@ -432,7 +436,8 @@ public class GomokuView extends View {
         int w = getWidth();
         int h = getHeight();
 
-        textPaint.setTextSize(24);
+        float d = density;
+        textPaint.setTextSize(24 * d);
         textPaint.setColor(Color.WHITE);
         textPaint.setTextAlign(Paint.Align.LEFT);
 
@@ -442,8 +447,12 @@ public class GomokuView extends View {
         Paint panelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         panelPaint.setColor(Color.argb(120, 0, 0, 0));
         float turnTextWidth = textPaint.measureText(turnText);
-        canvas.drawRoundRect(10, 12, 20 + turnTextWidth, 50, 8, 8, panelPaint);
-        canvas.drawText(turnText, 20, 40, textPaint);
+        float panelTop = 12 * d;
+        float panelH = 38 * d;
+        float corner = 8 * d;
+        canvas.drawRoundRect(10 * d, panelTop, 20 * d + turnTextWidth, panelTop + panelH,
+                corner, corner, panelPaint);
+        canvas.drawText(turnText, 20 * d, panelTop + panelH * 0.72f, textPaint);
 
         int currentPlayer = game.getCurrentPlayer();
         String playerText;
@@ -460,9 +469,10 @@ public class GomokuView extends View {
         float playerTextWidth = textPaint.measureText(playerText);
         // AI思考时用琥珀色高亮
         panelPaint.setColor(aiThinking ? Color.argb(140, 80, 60, 0) : Color.argb(120, 0, 0, 0));
-        canvas.drawRoundRect(w - 20 - playerTextWidth - 10, 12, w - 10, 50, 8, 8, panelPaint);
+        canvas.drawRoundRect(w - 20 * d - playerTextWidth - 10 * d, panelTop, w - 10 * d,
+                panelTop + panelH, corner, corner, panelPaint);
         textPaint.setColor(aiThinking ? Color.rgb(255, 193, 7) : Color.WHITE);
-        canvas.drawText(playerText, w - 20, 40, textPaint);
+        canvas.drawText(playerText, w - 20 * d, panelTop + panelH * 0.72f, textPaint);
         textPaint.setColor(Color.WHITE);
 
         if (game.isGameOver()) {
@@ -476,7 +486,7 @@ public class GomokuView extends View {
                 canvas.drawRect(0, 0, w, h, blurPaint);
             }
 
-            textPaint.setTextSize(48);
+            textPaint.setTextSize(48 * d);
             textPaint.setTextAlign(Paint.Align.CENTER);
 
             Integer winner = game.getWinner();
@@ -490,10 +500,10 @@ public class GomokuView extends View {
             }
 
             textPaint.setColor(Color.WHITE);
-            canvas.drawText(resultText, w / 2f, h / 2f - 30, textPaint);
+            canvas.drawText(resultText, w / 2f, h / 2f - 30 * d, textPaint);
 
-            textPaint.setTextSize(24);
-            canvas.drawText("最终回合数: " + game.getMoveCount(), w / 2f, h / 2f + 30, textPaint);
+            textPaint.setTextSize(24 * d);
+            canvas.drawText("最终回合数: " + game.getMoveCount(), w / 2f, h / 2f + 30 * d, textPaint);
 
             if (gameOverListener != null) {
                 gameOverListener.onGameOver(winner);
@@ -550,7 +560,7 @@ public class GomokuView extends View {
      * @param canvas 画布
      */
     private void drawCoordinates(Canvas canvas) {
-        coordinatePaint.setTextSize(Math.max(12f, cellSize * 0.28f));
+        coordinatePaint.setTextSize(Math.max(12f * density, cellSize * 0.42f));
         float halfCell = cellSize / 2f;
 
         // 顶部和底部：列字母 A-P

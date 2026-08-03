@@ -117,6 +117,10 @@ object ModuleClassLoaderPool {
             if (loader is Closeable) {
                 loader.close()
                 Log.d(TAG, "ClassLoader.close() 成功")
+            } else {
+                // Android 7（API < 26）DexClassLoader 不实现 Closeable，无法真正关闭，
+                // 仅清除池中引用让 GC 回收
+                Log.d(TAG, "ClassLoader 不支持 close()（API < 26），仅清引用依赖 GC 回收")
             }
         } catch (e: Exception) {
             Log.w(TAG, "ClassLoader.close() 失败（可能为 Android 7）: ${e.message}")

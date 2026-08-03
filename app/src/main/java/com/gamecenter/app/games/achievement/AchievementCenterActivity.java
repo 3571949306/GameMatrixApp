@@ -2,7 +2,6 @@ package com.gamecenter.app.games.achievement;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -21,6 +20,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
+import com.gamecenter.app.database.AppDatabase;
+import com.gamecenter.app.database.dao.AchievementDao;
+import com.gamecenter.app.database.entity.AchievementEntity;
 import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.games.config.GameConfigLoader;
@@ -51,9 +53,6 @@ import java.util.Map;
  */
 public class AchievementCenterActivity extends AppCompatActivity {
 
-    private static final String PREF_NAME = "achievements";
-    private static final String KEY_PREFIX = "achievement_";
-
     private TextView tvTotalUnlocked;
     private TextView tvTotalSeparator;
     private ProgressBar progressTotal;
@@ -66,7 +65,7 @@ public class AchievementCenterActivity extends AppCompatActivity {
     private com.gamecenter.app.ui.AchievementProgressRingView ringAchievementProgress;
 
     private GameConfigLoader configLoader;
-    private SharedPreferences achievementPrefs;
+    private AchievementDao achievementDao;
     private List<GameAchievementInfo> gameAchievementInfos;
 
     /**
@@ -85,7 +84,7 @@ public class AchievementCenterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_achievement_center);
 
         configLoader = new GameConfigLoader(this);
-        achievementPrefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+        achievementDao = AppDatabase.getDatabase(this).achievementDao();
 
         initViews();
         loadData();
@@ -241,8 +240,10 @@ public class AchievementCenterActivity extends AppCompatActivity {
 
             for (AchievementDef def : config.achievements) {
                 String fullKey = def.getFullId(config.gameId);
-                boolean isUnlocked = achievementPrefs.getBoolean(
-                        KEY_PREFIX + fullKey + "_unlocked", false);
+                // 从 Room 读取解锁状态：fullKey（gameId + "_" + key）即 Room 表的 achievementId 主键，
+                // 与 AchievementManager.composeKey(gameId, achievementId) 写入的键一致。
+                AchievementEntity entity = achievementDao.getByIdSync(fullKey);
+                boolean isUnlocked = entity != null && entity.getUnlocked();
 
                 AchievementDetail detail = new AchievementDetail();
                 detail.name = def.key;

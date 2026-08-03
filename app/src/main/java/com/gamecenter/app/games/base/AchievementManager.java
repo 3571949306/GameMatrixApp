@@ -1,13 +1,15 @@
 package com.gamecenter.app.games.base;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.gamecenter.app.BuildConfig;
+import com.gamecenter.app.database.AppDatabase;
+import com.gamecenter.app.database.dao.AchievementDao;
+import com.gamecenter.app.database.entity.AchievementEntity;
 import com.gamecenter.app.games.model.AchievementData;
 import com.gamecenter.app.ui.AchievementToastView;
 
@@ -18,7 +20,7 @@ import java.util.Map;
  * 游戏成就管理器
  * <p>
  * 管理游戏成就的解锁状态，支持跨游戏复用。
- * 使用 SharedPreferences 持久化，线程安全。
+ * 使用 Room 持久化（achievements 表），线程安全。
  * </p>
  * <p>
  * 2026-07-22 修复（GAME_REVAMP_2026）：
@@ -28,18 +30,22 @@ import java.util.Map;
  *   <li>保留旧签名以向后兼容：单参数 Number 仅记录进度不自动解锁；Boolean true 仍可解锁（兼容 win 事件）。</li>
  * </ul>
  * </p>
+ * <p>
+ * 2026-07-31 迁移（ROOM_MIGRATION）：持久化层由 SharedPreferences 切换为 Room
+ * （{@code achievements} 表，PK=achievementId）。{@link #composeKey(String, String)} 拼接的
+ * 复合键直接作为 Room 表的 achievementId 主键。内存缓存 {@link #achievementCache} 作为加速层保留。
+ * </p>
  */
 public class AchievementManager {
 
     private static final String TAG = "AchievementManager";
-    private static final String PREFS_NAME = "game_achievements";
     private final Context context;
-    private final SharedPreferences prefs;
+    private final AchievementDao achievementDao;
     private final Map<String, AchievementData> achievementCache = new HashMap<>();
 
     public AchievementManager(Context context) {
         this.context = context;
-        this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        this.achievementDao = AppDatabase.getDatabase(context).achievementDao();
     }
 
     /**
@@ -71,10 +77,10 @@ public class AchievementManager {
         if (shouldUnlock) {
             data.unlocked = true;
             data.unlockedAt = System.currentTimeMillis();
-            saveToPrefs(compositeKey, data);
+            saveToRoom(compositeKey, gameId, achievementId, data);
             showAchievementToastIfEnabled(achievementId);
         } else {
-            saveToPrefs(compositeKey, data);
+            saveToRoom(compositeKey, gameId, achievementId, data);
         }
         return shouldUnlock;
     }
@@ -92,7 +98,7 @@ public class AchievementManager {
         if (data.unlocked) return false;
         data.unlocked = true;
         data.unlockedAt = System.currentTimeMillis();
-        saveToPrefs(compositeKey, data);
+        saveToRoom(compositeKey, gameId, achievementId, data);
         showAchievementToastIfEnabled(achievementId);
         return true;
     }
@@ -128,7 +134,7 @@ public class AchievementManager {
             if ((Boolean) first) {
                 data.unlocked = true;
                 data.unlockedAt = System.currentTimeMillis();
-                saveToPrefs(achievementId, data);
+                saveToRoom(achievementId, "", achievementId, data);
                 showAchievementToastIfEnabled(achievementId);
             }
             return;
@@ -145,13 +151,13 @@ public class AchievementManager {
                 if (currentValue >= threshold) {
                     data.unlocked = true;
                     data.unlockedAt = System.currentTimeMillis();
-                    saveToPrefs(achievementId, data);
+                    saveToRoom(achievementId, "", achievementId, data);
                     showAchievementToastIfEnabled(achievementId);
                     return;
                 }
             }
             // 单参数 Number：仅记录进度，不自动解锁（修正原 bug）
-            saveToPrefs(achievementId, data);
+            saveToRoom(achievementId, "", achievementId, data);
         }
     }
 
@@ -159,9 +165,7 @@ public class AchievementManager {
      * Batch 8-3 (ACHIEVEMENT_TOAST): 解锁成功后弹出顶部浮层。
      */
     private void showAchievementToastIfEnabled(@NonNull String achievementId) {
-        if (BuildConfig.ACHIEVEMENT_TOAST && BuildConfig.GAME_REVAMP_2026) {
-            showAchievementToast(achievementId);
-        } else if (BuildConfig.ACHIEVEMENT_TOAST) {
+        if (BuildConfig.ACHIEVEMENT_TOAST) {
             showAchievementToast(achievementId);
         }
     }
@@ -225,19 +229,36 @@ public class AchievementManager {
         AchievementData data = achievementCache.get(key);
         if (data == null) {
             data = new AchievementData(key);
-            data.unlocked = prefs.getBoolean("unlock_" + key, false);
-            data.currentProgress = prefs.getInt("progress_" + key, 0);
-            data.unlockedAt = prefs.getLong("unlocked_at_" + key, 0);
+            // 缓存未命中：从 Room 读取（命中则填充，未命中保持默认值）
+            try {
+                AchievementEntity entity = achievementDao.getByIdSync(key);
+                if (entity != null) {
+                    data.unlocked = entity.getUnlocked();
+                    data.currentProgress = entity.getProgress();
+                    data.unlockedAt = entity.getUnlockedAt();
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "从 Room 读取成就失败: " + key, e);
+            }
             achievementCache.put(key, data);
         }
         return data;
     }
 
-    private void saveToPrefs(String key, AchievementData data) {
-        prefs.edit()
-                .putBoolean("unlock_" + key, data.unlocked)
-                .putInt("progress_" + key, data.currentProgress)
-                .putLong("unlocked_at_" + key, data.unlockedAt)
-                .apply();
+    private void saveToRoom(String key, String gameId, String achievementId, AchievementData data) {
+        try {
+            AchievementEntity entity = new AchievementEntity(
+                    key,
+                    gameId,
+                    data.unlocked,
+                    data.currentProgress,
+                    0,
+                    data.unlockedAt,
+                    achievementId,
+                    "");
+            achievementDao.upsertSync(entity);
+        } catch (Exception e) {
+            Log.w(TAG, "写入 Room 成就失败: " + key, e);
+        }
     }
 }

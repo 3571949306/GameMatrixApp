@@ -91,7 +91,7 @@ object DownloadMetricsCollector {
                             attemptCount = json.getInt("attemptCount"),
                             timestamp = json.getLong("timestamp")
                         ))
-                    } catch (_: Exception) { /* skip malformed line */ }
+                    } catch (e: Exception) { Log.w(TAG, "跳过格式错误的行", e) }
                 }
             }
         } catch (e: Exception) {
@@ -108,7 +108,7 @@ object DownloadMetricsCollector {
         try {
             val file = File(ctx.filesDir, "$METRICS_DIR/$METRICS_FILE")
             if (file.exists()) file.delete()
-        } catch (_: Exception) { /* ignore */ }
+        } catch (e: Exception) { Log.w(TAG, "指标收集异常", e) }
     }
 
     /** 汇总统计：成功率 / 平均耗时 / 失败原因分布 */

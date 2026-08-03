@@ -2362,6 +2362,33 @@
     <string name="achievement_toast_badge">成就</string>
     <string name="achievement_toast_icon_desc">成就图标</string>
 
+    <!-- ===== 成就描述字符串（achievement_desc_<id>） ===== -->
+    <string name="achievement_desc_game_over">完成一局游戏</string>
+    <string name="achievement_desc_win">首次通关</string>
+    <string name="achievement_desc_score">单关得分突破100</string>
+    <string name="achievement_desc_level">通过第一关</string>
+    <string name="achievement_desc_rounds">累计通过3关</string>
+    <string name="achievement_desc_first_blood">首次获胜</string>
+    <string name="achievement_desc_no_miss">不丢球通关</string>
+    <string name="achievement_desc_chess_first_win">象棋首次获胜</string>
+    <string name="achievement_desc_chess_hint_used">使用提示功能</string>
+    <string name="achievement_desc_chess_undo_used">使用悔棋功能</string>
+    <string name="achievement_desc_chess_games_10">累计对局10次</string>
+    <string name="achievement_desc_snake_score_50">贪吃蛇得分50</string>
+    <string name="achievement_desc_snake_score_100">贪吃蛇得分100</string>
+    <string name="achievement_desc_tetris_lines_10">俄罗斯方块消除10行</string>
+    <string name="achievement_desc_tetris_lines_40">俄罗斯方块消除40行</string>
+
+    <!-- ===== 游戏退出确认 ===== -->
+    <string name="game_exit_confirm_title">退出游戏</string>
+    <string name="game_exit_confirm_msg">确定要退出当前游戏吗？未保存的进度可能会丢失。</string>
+    <string name="game_exit_confirm_yes">退出</string>
+    <string name="game_exit_confirm_no">继续游戏</string>
+    <string name="game_restart_confirm_title">重新开始</string>
+    <string name="game_restart_confirm_msg">确定要重新开始吗？当前棋局进度将丢失。</string>
+    <string name="game_restart_confirm_yes">重新开始</string>
+    <string name="game_restart_confirm_no">取消</string>
+
     <!-- ===== Batch 8-4: HOME_HERO_BANNER 首页英雄横幅 ===== -->
     <string name="hero_banner_icon_desc">横幅装饰图标</string>
     <string name="hero_banner_daily_title">今日精选</string>

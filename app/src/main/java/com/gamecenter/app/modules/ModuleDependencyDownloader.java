@@ -4,8 +4,10 @@ import android.content.Context;
 import android.util.Log;
 import com.gamecenter.app.core.common.ModuleManifest;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -58,7 +60,7 @@ public class ModuleDependencyDownloader {
      */
     public void downloadDependencies(Context context, String moduleId, ModuleDownloader.Callback callback) {
         ModuleManifest manifest = moduleManager.getModuleManifest(moduleId);
-        
+
         if (manifest == null) {
             Log.e(TAG, "模块不存在: " + moduleId);
             if (callback != null) {
@@ -66,12 +68,24 @@ public class ModuleDependencyDownloader {
             }
             return;
         }
-        
+
         // 解析依赖
         List<String> dependencies;
         try {
-            resolver = new ModuleDependencyResolver(moduleManager.getManifests());
+            // 冷启动 NPE 修复：getManifests() 正常返回非 null Map，但为防止
+            // Java/Kotlin 互操作或异常路径返回 null，传入 resolver 前做兜底
+            Map<String, ModuleManifest> manifestsMap = moduleManager.getManifests();
+            if (manifestsMap == null) {
+                manifestsMap = new HashMap<>();
+            }
+            resolver = new ModuleDependencyResolver(manifestsMap);
             dependencies = resolver.resolveDependencies(manifest);
+            // 冷启动 NPE 修复：resolveDependencies 契约未声明 @NonNull，
+            // 兜底为空列表避免后续 dependencies.remove/isEmpty 触发 NPE
+            if (dependencies == null) {
+                Log.w(TAG, "依赖解析返回 null，视为无依赖: " + moduleId);
+                dependencies = new ArrayList<>();
+            }
         } catch (ModuleDependencyResolver.CircularDependencyException e) {
             Log.e(TAG, "循环依赖检测失败: " + e.getMessage());
             if (callback != null) {
@@ -79,10 +93,10 @@ public class ModuleDependencyDownloader {
             }
             return;
         }
-        
+
         // 移除主模块（只下载依赖）
         dependencies.remove(moduleId);
-        
+
         if (dependencies.isEmpty()) {
             Log.d(TAG, "模块 " + moduleId + " 没有依赖需要下载");
             if (callback != null) {
@@ -90,9 +104,9 @@ public class ModuleDependencyDownloader {
             }
             return;
         }
-        
+
         Log.d(TAG, "模块 " + moduleId + " 有 " + dependencies.size() + " 个依赖: " + dependencies);
-        
+
         // 递归下载依赖
         downloadRecursive(context, dependencies, 0, callback);
     }
@@ -105,9 +119,19 @@ public class ModuleDependencyDownloader {
      * @param index 当前下载索引
      * @param callback 下载回调
      */
-    private void downloadRecursive(final Context context, final List<String> dependencies, 
+    private void downloadRecursive(final Context context, final List<String> dependencies,
                                 final int index, final ModuleDownloader.Callback callback) {
-        
+
+        // 冷启动 NPE 修复：dependencies 在异常路径或外部调用下可能为 null，
+        // 直接当作"无依赖"处理，避免 dependencies.size()/get() 触发 NPE
+        if (dependencies == null) {
+            Log.w(TAG, "downloadRecursive: dependencies 为 null，视为空列表");
+            if (callback != null) {
+                callback.onComplete("all_deps", null);
+            }
+            return;
+        }
+
         // 所有依赖已下载
         if (index >= dependencies.size()) {
             Log.d(TAG, "所有依赖已下载，开始下载主模块");

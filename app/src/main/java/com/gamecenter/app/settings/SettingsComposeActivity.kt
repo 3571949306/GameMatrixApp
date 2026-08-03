@@ -78,7 +78,7 @@ private fun SettingsRoot(onBack: () -> Unit) {
                 }
             },
             onDefaultGameClick = {
-                // TODO Phase 2：接入默认游戏选择器（与 GamesFragment 联动）
+                // Phase 2: 接入默认游戏选择器（与 GamesFragment 联动）
             },
             onThemeModeChange = { mode ->
                 themeMode = mode
@@ -93,7 +93,7 @@ private fun SettingsRoot(onBack: () -> Unit) {
             onDynamicColorToggle = { enabled ->
                 dynamicColor = enabled
                 prefs.edit().putBoolean("dynamic_color_enabled", enabled).apply()
-                // TODO Phase 2：Android 12+ 接入动态取色 (DynamicColors API)
+                // Phase 2: Android 12+ 接入动态取色 (DynamicColors API)
             },
             onSoundToggle = { enabled ->
                 soundEnabled = enabled

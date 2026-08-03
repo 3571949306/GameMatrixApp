@@ -1,3 +1,5 @@
+// 同步声明：此文件的 AI 算法逻辑与 app/src/main/java/com/gamecenter/app/games/tic/TicTacToeActivity.java 保持同步
+// 结构差异：module-store 版 AI 逻辑在独立的 TicTacToeGame 类中；app 版内联在 TicTacToeActivity 中。修改 AI 算法时请同步修改对方文件
 package com.gamecenter.app.tic;
 
 import java.util.ArrayList;

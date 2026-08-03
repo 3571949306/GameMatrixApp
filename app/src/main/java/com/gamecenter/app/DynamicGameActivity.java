@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -26,6 +27,23 @@ public class DynamicGameActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dynamic_game);
+
+        // 拦截返回键，弹出确认对话框避免误触丢失游戏进度
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                new androidx.appcompat.app.AlertDialog.Builder(DynamicGameActivity.this)
+                        .setTitle(R.string.game_exit_confirm_title)
+                        .setMessage(R.string.game_exit_confirm_msg)
+                        .setPositiveButton(R.string.game_exit_confirm_yes, (d, w) -> {
+                            setEnabled(false);
+                            getOnBackPressedDispatcher().onBackPressed();
+                        })
+                        .setNegativeButton(R.string.game_exit_confirm_no, (d, w) -> d.dismiss())
+                        .setCancelable(true)
+                        .show();
+            }
+        });
 
         if (savedInstanceState == null) {
             String gameId = getIntent().getStringExtra(EXTRA_GAME_ID);

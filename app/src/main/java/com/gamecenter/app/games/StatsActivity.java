@@ -38,14 +38,10 @@ import java.util.Locale;
  *   <li>{@link GameUsageStore} — 单游戏游玩次数、时长、胜负</li>
  *   <li>{@link StreakTracker} — 每日活跃连胜、最佳连胜、总对局</li>
  *   <li>{@link GameConfigLoader} — 成就定义列表（统计总/已解锁）</li>
- *   <li>{@link SharedPreferences}("game_achievements") — 成就解锁状态</li>
+ *   <li>Room achievements 表 — 成就解锁状态</li>
  * </ul>
  */
 public class StatsActivity extends AppCompatActivity {
-
-    private static final String ACHIEVEMENT_PREFS = "game_achievements";
-    private static final String ACHIEVEMENT_KEY_PREFIX = "unlock_";
-    private static final String ACHIEVEMENT_KEY_SUFFIX = "_unlocked";
 
     private GameUsageStore usageStore;
 
@@ -272,7 +268,8 @@ public class StatsActivity extends AppCompatActivity {
         try {
             GameConfigLoader loader = new GameConfigLoader(this);
             List<GameConfig> configs = loader.loadAllConfigs();
-            SharedPreferences prefs = getSharedPreferences(ACHIEVEMENT_PREFS, MODE_PRIVATE);
+            com.gamecenter.app.database.AppDatabase db = com.gamecenter.app.database.AppDatabase.getDatabase(this);
+            com.gamecenter.app.database.dao.AchievementDao dao = db.achievementDao();
             int unlocked = 0;
             int total = 0;
             for (GameConfig config : configs) {
@@ -280,7 +277,8 @@ public class StatsActivity extends AppCompatActivity {
                 for (AchievementDef def : config.achievements) {
                     String fullKey = def.getFullId(config.gameId);
                     total++;
-                    if (prefs.getBoolean(ACHIEVEMENT_KEY_PREFIX + fullKey + ACHIEVEMENT_KEY_SUFFIX, false)) {
+                    com.gamecenter.app.database.entity.AchievementEntity entity = dao.getByIdSync(fullKey);
+                    if (entity != null && entity.getUnlocked()) {
                         unlocked++;
                     }
                 }

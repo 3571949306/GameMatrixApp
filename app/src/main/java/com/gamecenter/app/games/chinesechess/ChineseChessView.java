@@ -155,6 +155,9 @@ public class ChineseChessView extends View {
         paintCheck.setStrokeWidth(4f);
         paintCheck.setColor(0xFFE53935);
         paintCheck.setShadowLayer(8f, 0f, 0f, 0xFFE53935);
+        // 无障碍支持
+        setContentDescription("中国象棋棋盘，红方先行");
+        setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     }
 
     /**
@@ -188,6 +191,12 @@ public class ChineseChessView extends View {
         this.selectedRow = row;
         this.selectedCol = col;
         computeValidMoves();
+        // 更新无障碍描述
+        int piece = (row >= 0 && row < ROWS && col >= 0 && col < COLS) ? board[row][col] : 0;
+        String desc = piece != 0
+                ? "选中棋子 " + getPieceName(Math.abs(piece), piece > 0) + "，轮到" + (currentSide == 1 ? "红方" : "黑方")
+                : "中国象棋棋盘，轮到" + (currentSide == 1 ? "红方" : "黑方");
+        setContentDescription(desc);
         invalidate();
     }
     

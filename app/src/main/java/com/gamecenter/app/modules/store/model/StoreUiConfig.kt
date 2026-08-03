@@ -1,5 +1,6 @@
 package com.gamecenter.app.modules.store.model
 
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -67,8 +68,8 @@ data class StoreUiConfig(
                     try {
                         val pageJson = pagesObj.optJSONObject(pageId) ?: continue
                         StorePage.fromJson(pageJson)?.let { pagesMap[pageId] = it }
-                    } catch (_: Exception) {
-                        /* 跳过单页解析失败 */
+                    } catch (e: Exception) {
+                        Log.w("StoreUiConfig", "UI配置解析失败", e)
                     }
                 }
             }
@@ -132,8 +133,8 @@ data class StorePage(
                     try {
                         val item = arr.optJSONObject(i) ?: continue
                         StoreSection.fromJson(item)?.let { sections.add(it) }
-                    } catch (_: Exception) {
-                        /* 跳过单条 section 解析失败 */
+                    } catch (e: Exception) {
+                        Log.w("StoreUiConfig", "UI配置解析失败", e)
                     }
                 }
             }

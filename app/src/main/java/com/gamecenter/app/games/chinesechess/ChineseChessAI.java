@@ -1,3 +1,10 @@
+// =============================================================================
+// 同步说明：本文件（app 内嵌版）与 module-store 版本保持逐字同步，为单一真相源。
+// 修改本文件时请同步修改：
+//   module-store/feature/games/games/chinesechess/src/main/java/com/gamecenter/app/chinesechess/ChineseChessAI.java
+// 两份副本因包名不同（com.gamecenter.app.games.chinesechess vs com.gamecenter.app.chinesechess）
+// 无法合并为同一文件，分别服务于宿主与动态模块两个编译目标。
+// =============================================================================
 package com.gamecenter.app.games.chinesechess;
 
 import androidx.annotation.NonNull;
@@ -200,10 +207,21 @@ public class ChineseChessAI implements GameAI {
 
     /**
      * 获取开局走法
+     * <p>OPENING_MOVES 以红方视角定义（行号 6~9）。当 AI 执黑（aiSide=-1）时，
+     * 需将行号按棋盘上下镜像（r -> 9 - r），否则黑方会返回红方走法导致坐标错乱。
+     *
+     * @param board  当前棋盘
+     * @param aiSide AI 执子方：1=红方，-1=黑方
+     * @return 开局走法 [fromRow, fromCol, toRow, toCol]，非开局位置返回 null
      */
     private int[] getOpeningMove(int[][] board, int aiSide) {
         if (!isOpeningPosition(board)) return null;
-        return OPENING_MOVES[random.nextInt(OPENING_MOVES.length)];
+        int[] m = OPENING_MOVES[random.nextInt(OPENING_MOVES.length)];
+        if (aiSide == -1) {
+            // 黑方走法：行号上下镜像，列号不变
+            return new int[]{9 - m[0], m[1], 9 - m[2], m[3]};
+        }
+        return m;
     }
 
     /**

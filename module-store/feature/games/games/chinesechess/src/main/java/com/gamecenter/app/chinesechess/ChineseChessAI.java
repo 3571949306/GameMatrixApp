@@ -1,3 +1,10 @@
+// =============================================================================
+// 同步说明：本文件（module-store 版）与 app 内嵌版本保持逐字同步，为单一真相源。
+// 修改本文件时请同步修改：
+//   app/src/main/java/com/gamecenter/app/games/chinesechess/ChineseChessAI.java
+// 两份副本因包名不同（com.gamecenter.app.chinesechess vs com.gamecenter.app.games.chinesechess）
+// 无法合并为同一文件，分别服务于动态模块与宿主两个编译目标。
+// =============================================================================
 package com.gamecenter.app.chinesechess;
 
 import androidx.annotation.NonNull;

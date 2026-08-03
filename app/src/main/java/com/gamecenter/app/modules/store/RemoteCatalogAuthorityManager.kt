@@ -31,19 +31,26 @@ object RemoteCatalogAuthorityManager {
      * @return 同步结果
      */
     fun synchronizeWithAuthority(context: Context, catalog: StoreCatalog): SyncResult {
-        Log.d(TAG, "开始同步权威目录: catalogV=${catalog.catalogVersion}, modules=${catalog.modules.size}")
+        // 冷启动 NPE 修复：catalog.modules 在极端情况下（Java 反射构造、反序列化等）可能为 null，
+        // 此处统一兜底为 emptyList，避免 Iterator.next() on null 崩溃。
+        val catalogModules = catalog.modules ?: emptyList()
+        Log.d(TAG, "开始同步权威目录: catalogV=${catalog.catalogVersion}, modules=${catalogModules.size}")
 
-        val installedIds = com.gamecenter.app.modules.ModuleManager.getInstalledModuleIds(context)
-        val catalogIds = catalog.modules.map { it.id }.toSet()
+        val installedIds = runCatching {
+            com.gamecenter.app.modules.ModuleManager.getInstalledModuleIds(context)
+        }.getOrDefault(emptySet())
+        val catalogIds = catalogModules.map { it.id }.toSet()
 
         val orphanModules = installedIds.filter { it !in catalogIds }
-        val requiredMissing = catalog.modules.filter {
+        val requiredMissing = catalogModules.filter {
             it.required && !installedIds.contains(it.id) && it.enabled
         }
 
         // 清理不再在目录中的模块（如果是基础框架模块则跳过）
         var removedCount = 0
-        val allManifests = com.gamecenter.app.modules.ModuleManager.getManifests()
+        val allManifests = runCatching {
+            com.gamecenter.app.modules.ModuleManager.getManifests()
+        }.getOrDefault(emptyMap())
         for (orphanId in orphanModules) {
             val manifest = allManifests[orphanId]
             if (manifest != null && (manifest.isBaseFramework || manifest.builtIn)) {
@@ -60,7 +67,7 @@ object RemoteCatalogAuthorityManager {
         }
 
         // 注册权威目录到 ModuleRegistry（P1）
-        for (module in catalog.modules) {
+        for (module in catalogModules) {
             try {
                 val manifest = module.toModuleManifest()
                 com.gamecenter.app.core.common.ModuleRegistry.registerManifest(manifest)
@@ -71,7 +78,7 @@ object RemoteCatalogAuthorityManager {
 
         // 过滤出当前设备可用的模块（兼容 App 版本）
         val hostVersionCode = BuildConfig.VERSION_CODE
-        val compatibleModules = catalog.modules.filter {
+        val compatibleModules = catalogModules.filter {
             it.toModuleManifest().isCompatibleWithHost(hostVersionCode)
         }
 

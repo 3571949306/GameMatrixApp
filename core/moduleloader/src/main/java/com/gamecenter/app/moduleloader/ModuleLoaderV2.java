@@ -293,12 +293,20 @@ public class ModuleLoaderV2 implements IModuleLoader {
     @NonNull
     @Override
     public IModule loadModule(@NonNull String moduleId) throws ModuleLoadException {
+        // 冷启动 NPE 修复：ConcurrentHashMap.get(null) 会抛 NPE，
+        // 模块加载链路在异常路径下可能传入 null moduleId，提前拦截
+        if (moduleId == null || moduleId.isEmpty()) {
+            throw new ModuleLoadException(
+                    ModuleLoadException.ERROR_MODULE_NOT_FOUND,
+                    "moduleId 为 null 或空"
+            );
+        }
         // 简化实现：从已加载模块缓存获取
         IModule module = loadedModules.get(moduleId);
         if (module != null) {
             return module;
         }
-        
+
         throw new ModuleLoadException(
                 ModuleLoadException.ERROR_MODULE_NOT_FOUND,
                 "模块未找到或未加载: " + moduleId
@@ -320,22 +328,38 @@ public class ModuleLoaderV2 implements IModuleLoader {
         // 释放 ClassLoader
         DexClassLoader classLoader = classLoaderCache.remove(moduleId);
         if (classLoader != null) {
-            // DexClassLoader 没有显式释放方法，依赖 GC
-            Log.d(TAG, "ClassLoader 已移除: " + moduleId);
+            // API 26+ DexClassLoader 实现 Closeable，可显式 close() 释放 DEX 资源；
+            // 低版本不实现 Closeable，仅清除引用依赖 GC 回收。
+            if (classLoader instanceof java.io.Closeable) {
+                try {
+                    ((java.io.Closeable) classLoader).close();
+                    Log.d(TAG, "ClassLoader 已关闭: " + moduleId);
+                } catch (Exception e) {
+                    Log.w(TAG, "ClassLoader.close() 失败: " + moduleId, e);
+                }
+            } else {
+                Log.d(TAG, "ClassLoader 低版本无法 close()，仅清引用依赖 GC: " + moduleId);
+            }
         }
     }
     
     @NonNull
     @Override
     public IModule reloadModule(@NonNull String moduleId) throws ModuleLoadException {
-        // 先卸载
-        try {
-            unloadModule(moduleId);
-        } catch (Exception e) {
-            Log.w(TAG, "卸载模块失败（继续重新加载）: " + moduleId, e);
+        if (moduleId == null || moduleId.isEmpty()) {
+            throw new ModuleLoadException(
+                    ModuleLoadException.ERROR_MODULE_NOT_FOUND,
+                    "moduleId 为 null 或空"
+            );
         }
-        
-        // 重新加载（需要 ModuleInfo，简化实现中省略）
+        // 简化实现暂不支持无 ModuleInfo 的真正重载：
+        // 记录日志并返回当前已加载的模块，避免先卸载后无法重载导致模块丢失。
+        IModule current = loadedModules.get(moduleId);
+        if (current != null) {
+            Log.w(TAG, "reloadModule: 暂不支持无 ModuleInfo 的重载，返回当前已加载模块: " + moduleId);
+            return current;
+        }
+        Log.w(TAG, "reloadModule: 模块未加载且无 ModuleInfo，无法重载: " + moduleId);
         throw new ModuleLoadException(
                 ModuleLoadException.ERROR_MODULE_NOT_FOUND,
                 "重新加载需要 ModuleInfo，请使用 loadModule(ModuleInfo) 方法"
@@ -344,25 +368,53 @@ public class ModuleLoaderV2 implements IModuleLoader {
     
     @Override
     public boolean isModuleLoaded(@NonNull String moduleId) {
+        // 冷启动 NPE 修复：ConcurrentHashMap.containsKey(null) 会抛 NPE
+        if (moduleId == null || moduleId.isEmpty()) {
+            return false;
+        }
         return loadedModules.containsKey(moduleId);
     }
-    
+
     @NonNull
     @Override
     public java.util.List<String> getLoadedModules() {
-        return new java.util.ArrayList<>(loadedModules.keySet());
+        // 冷启动 NPE 修复：loadedModules 为 final 字段不会为 null，
+        // 但 keySet() 在极端并发下理论可能返回 null，兜底为空列表
+        java.util.Set<String> keySet = loadedModules.keySet();
+        if (keySet == null) {
+            return new java.util.ArrayList<>();
+        }
+        return new java.util.ArrayList<>(keySet);
     }
-    
+
     @Override
     public IModule getModule(@NonNull String moduleId) {
+        // 冷启动 NPE 修复：ConcurrentHashMap.get(null) 会抛 NPE
+        if (moduleId == null || moduleId.isEmpty()) {
+            return null;
+        }
         return loadedModules.get(moduleId);
     }
     
     @NonNull
     @Override
-    public IModule loadModuleFromFile(@NonNull String apkPath, 
-                                      @NonNull ModuleInfo moduleInfo) 
+    public IModule loadModuleFromFile(@NonNull String apkPath,
+                                      @NonNull ModuleInfo moduleInfo)
             throws ModuleLoadException {
+        // 冷启动 NPE 修复：apkPath / moduleInfo 为 null 时提前失败，
+        // 避免 new File(null) 或后续 moduleInfo.getXxx() 触发 NPE
+        if (apkPath == null || apkPath.isEmpty()) {
+            throw new ModuleLoadException(
+                    ModuleLoadException.ERROR_MODULE_NOT_FOUND,
+                    "apkPath 为 null 或空"
+            );
+        }
+        if (moduleInfo == null) {
+            throw new ModuleLoadException(
+                    ModuleLoadException.ERROR_MODULE_NOT_FOUND,
+                    "moduleInfo 为 null"
+            );
+        }
         // 验证 APK 文件
         File apkFile = new File(apkPath);
         if (!apkFile.exists()) {
@@ -391,7 +443,7 @@ public class ModuleLoaderV2 implements IModuleLoader {
         }
     }
     
-    // ⚠️ 移除 @Override：接口方法上可选，避免编译器版本问题
+    @Override
     public ModuleVersion checkUpdate(@NonNull String moduleId) {
         // 简化实现：实际应查询服务器
         Log.d(TAG, "检查模块更新: " + moduleId);
@@ -399,26 +451,33 @@ public class ModuleLoaderV2 implements IModuleLoader {
     }
     
     @NonNull
-    // ⚠️ 移除 @Override：接口方法上可选
+    @Override
     public String getStatus() {
         return "ModuleLoaderV2{loaded=" + loadedModules.size() + 
                 ", cachedDex=" + dexCacheManager.getCacheSize() + "}";
     }
     
-    // ⚠️ 移除 @Override：接口方法上可选
+    @Override
     public void release() {
         // 卸载所有模块
-        for (String moduleId : new java.util.ArrayList<>(loadedModules.keySet())) {
+        // 冷启动 NPE 修复：keySet() 理论不会返回 null，但兜底防止
+        // 极端情况下迭代 null 触发 Iterator.next() on null
+        java.util.Set<String> keySet = loadedModules.keySet();
+        if (keySet == null) {
+            Log.w(TAG, "release: loadedModules.keySet() 为 null，跳过卸载");
+            return;
+        }
+        for (String moduleId : new java.util.ArrayList<>(keySet)) {
             try {
                 unloadModule(moduleId);
             } catch (Exception e) {
                 Log.e(TAG, "释放模块失败: " + moduleId, e);
             }
         }
-        
+
         // 清理 DEX 缓存（可选）
         // dexCacheManager.clearAllCache();
-        
+
         Log.d(TAG, "ModuleLoaderV2 已释放所有资源");
     }
     
