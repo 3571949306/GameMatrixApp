@@ -1,7 +1,0 @@
-state=PLAYING
-score=45
-lives=2
-level=1
-balls=1
-aliveBricks=24
-tag=hit
