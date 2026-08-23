@@ -70,15 +70,13 @@ public class GoAITest {
         ai.setDifficulty(4); // Master
         game.playMove(4, 4);
         
-        long start = System.currentTimeMillis();
         int[] move = ai.findBestAiMove(game);
-        long duration = System.currentTimeMillis() - start;
-        
-        if (move != null) {
-            assertEquals(2, move.length);
-        }
-        // MCTS should take some time, roughly around MCTS_TIME_LIMIT_MS (1500ms) 
-        // but due to test environment constraints it could be faster or exactly limited.
-        assertTrue("MCTS took " + duration + "ms", duration > 0);
+
+        // 验证算法契约，不依赖机器速度或墙钟精度；快速环境中合法计算可能在 0ms 内完成。
+        assertNotNull(move);
+        assertEquals(2, move.length);
+        assertTrue(move[0] >= 0 && move[0] < GoGame.BOARD_SIZE);
+        assertTrue(move[1] >= 0 && move[1] < GoGame.BOARD_SIZE);
+        assertTrue(game.isValidMove(move[0], move[1], GoGame.WHITE));
     }
 }

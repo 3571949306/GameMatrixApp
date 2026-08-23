@@ -45,6 +45,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Verify agent contract and Chinese chess rules
+        run: |
+          python scripts/verify_agent_contract.py
+          python scripts/verify_chinese_chess.py
+
+      - name: Snapshot protected release assets
+        run: python scripts/verify_protected_assets.py snapshot
+
       - name: Run lint (debug)
         run: ./gradlew :app:lintDebug --stacktrace
 
@@ -56,6 +64,10 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Verify tests did not rewrite release assets
+        if: always()
+        run: python scripts/verify_protected_assets.py verify
 
       - name: Generate coverage report
         # Phase 1.2: JaCoCo coverage report (no threshold yet, baseline 模式)

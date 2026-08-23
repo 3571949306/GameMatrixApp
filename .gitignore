@@ -213,6 +213,9 @@ wrongbook_module.zip
 # Game diagnostic dumps (breakout state traces)
 /bo_diag_*.txt
 
+# Pure-Java Chinese chess regression build output
+/module-store/feature/games/games/chinesechess/tests/out/
+
 # ============================================================
 # Internal dev docs (kept local only; public repo is user-facing)
 # 2026-08-04: 公开仓库面向用户，内部开发文档不再上传

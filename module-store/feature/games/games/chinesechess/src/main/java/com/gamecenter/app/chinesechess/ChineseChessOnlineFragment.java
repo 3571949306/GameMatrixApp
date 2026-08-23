@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,6 +45,8 @@ public class ChineseChessOnlineFragment extends Fragment {
     private static final String P2P_PREFS = "xiangqi_p2p";
     private static final String PROTOCOL = "XQ";
     private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
+    private static final String LOG_TAG = "ChineseChessOnline";
+    private static final int MAX_SYNC_MOVES = 1000;
 
     private SharedPreferences prefs;
     private GameSocketServer server;
@@ -405,7 +408,9 @@ public class ChineseChessOnlineFragment extends Fragment {
 
         if (game.isGameOver()) {
             ChineseChessGame.Side winner = game.getWinner();
-            if (winner == mySide) {
+            if (winner == null) {
+                winnerText.setText("和棋");
+            } else if (winner == mySide) {
                 winnerText.setText(getString(R.string.chess_online_you_win));
             } else {
                 winnerText.setText(getString(R.string.chess_online_opponent_wins));
@@ -472,22 +477,22 @@ public class ChineseChessOnlineFragment extends Fragment {
         int toX = message.getInt("toX");
         int toY = message.getInt("toY");
 
-        ChineseChessGame.Piece piece = game.getBoard()[fromY][fromX];
-        if (piece != null && piece.side == game.getCurrentSide()) {
-            ChineseChessGame.MoveRecord record = game.makeMoveSafe(fromX, fromY, toX, toY);
-            if (record != null) {
-                game.switchSide();
-                game.checkGameOver();
-
-                sendSyncState();
-
-                if (game.isGameOver()) {
-                    broadcastGameOver();
-                }
-
-                mainHandler.post(this::updateTurnStatus);
-            }
+        // 集中闸门落子，并拒绝对手发来的非法着法（程序缺陷或对局作弊），
+        // 杜绝非法局面污染本地棋盘（即"AI 非法吃将"类问题的联机对应形态）。
+        ChineseChessGame.MoveRecord record = game.commitMove(fromX, fromY, toX, toY);
+        if (record == null) {
+            Log.e("ChineseChessOnline", "收到对手非法着法，已拒绝: "
+                    + fromX + "," + fromY + "->" + toX + "," + toY);
+            return;
         }
+
+        sendSyncState();
+
+        if (game.isGameOver()) {
+            broadcastGameOver();
+        }
+
+        mainHandler.post(this::updateTurnStatus);
     }
 
     private void sendSyncState() {
@@ -499,7 +504,7 @@ public class ChineseChessOnlineFragment extends Fragment {
             state.put("currentSide", game.getCurrentSide().ordinal());
             state.put("gameOver", game.isGameOver());
             if (game.isGameOver()) {
-                state.put("winner", game.getWinner().ordinal());
+                state.put("winner", game.getWinner() == null ? -1 : game.getWinner().ordinal());
             }
 
             JSONArray moveHistory = new JSONArray();
@@ -523,7 +528,7 @@ public class ChineseChessOnlineFragment extends Fragment {
         try {
             JSONObject gameOverMsg = new JSONObject();
             gameOverMsg.put("type", "GAME_OVER");
-            gameOverMsg.put("winner", game.getWinner().ordinal());
+            gameOverMsg.put("winner", game.getWinner() == null ? -1 : game.getWinner().ordinal());
             broadcast(gameOverMsg);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -533,40 +538,76 @@ public class ChineseChessOnlineFragment extends Fragment {
     private void handleClientSyncState(JSONObject message) throws JSONException {
         long version = message.optLong("stateVersion", 0);
         if (version <= currentStateVersion) return;
-        currentStateVersion = version;
-
-        game.reset();
 
         JSONArray moveHistoryArray = message.optJSONArray("moveHistory");
+        if (moveHistoryArray != null && moveHistoryArray.length() > MAX_SYNC_MOVES) {
+            Log.e(LOG_TAG, "拒绝超长同步历史: " + moveHistoryArray.length());
+            return;
+        }
+
+        // 在临时棋局中完整验证后再原子替换，非法/截断历史不能污染当前棋盘。
+        ChineseChessGame syncedGame = new ChineseChessGame();
         if (moveHistoryArray != null) {
             for (int i = 0; i < moveHistoryArray.length(); i++) {
                 JSONObject moveObj = moveHistoryArray.optJSONObject(i);
-                if (moveObj != null) {
-                    int fx = moveObj.getInt("fx");
-                    int fy = moveObj.getInt("fy");
-                    int tx = moveObj.getInt("tx");
-                    int ty = moveObj.getInt("ty");
-                    game.makeMoveSafe(fx, fy, tx, ty);
+                if (moveObj == null) {
+                    Log.e(LOG_TAG, "同步历史第 " + i + " 手格式错误，已拒绝");
+                    return;
+                }
+                int fx = moveObj.getInt("fx");
+                int fy = moveObj.getInt("fy");
+                int tx = moveObj.getInt("tx");
+                int ty = moveObj.getInt("ty");
+                if (syncedGame.commitMove(fx, fy, tx, ty) == null) {
+                    Log.e(LOG_TAG, "同步历史第 " + i + " 手非法，已拒绝: "
+                            + fx + "," + fy + "->" + tx + "," + ty);
+                    return;
                 }
             }
         }
 
-        int currentSideOrdinal = message.optInt("currentSide", 0);
-        while (game.getCurrentSide().ordinal() != currentSideOrdinal) {
-            game.switchSide();
+        int currentSideOrdinal = message.optInt("currentSide", -1);
+        if (currentSideOrdinal < 0 || currentSideOrdinal > 1
+                || syncedGame.getCurrentSide().ordinal() != currentSideOrdinal) {
+            Log.e(LOG_TAG, "同步走棋方与历史不一致，已拒绝: " + currentSideOrdinal);
+            return;
         }
 
-        if (message.optBoolean("gameOver", false)) {
-            int winnerOrdinal = message.optInt("winner", 0);
-            game.setGameOver(winnerOrdinal == 0 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK);
+        boolean advertisedGameOver = message.optBoolean("gameOver", false);
+        if (syncedGame.isGameOver() != advertisedGameOver) {
+            Log.e(LOG_TAG, "同步终局状态与合法重放结果不一致，已拒绝");
+            return;
+        }
+        if (advertisedGameOver) {
+            int winnerOrdinal = message.optInt("winner", -2);
+            if (winnerOrdinal < -1 || winnerOrdinal > 1) {
+                Log.e(LOG_TAG, "同步胜方编码非法，已拒绝: " + winnerOrdinal);
+                return;
+            }
+            ChineseChessGame.Side syncedWinner = winnerOrdinal < 0 ? null
+                    : (winnerOrdinal == 0 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK);
+            if (syncedGame.getWinner() != syncedWinner) {
+                Log.e(LOG_TAG, "同步胜方与合法重放结果不一致，已拒绝");
+                return;
+            }
         }
 
-        mainHandler.post(this::updateTurnStatus);
+        currentStateVersion = version;
+        game = syncedGame;
+        mainHandler.post(() -> {
+            boardView.bindGame(game);
+            updateTurnStatus();
+        });
     }
 
     private void handleGameOver(JSONObject message) throws JSONException {
-        int winnerOrdinal = message.optInt("winner", 0);
-        ChineseChessGame.Side winnerSide = winnerOrdinal == 0 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK;
+        int winnerOrdinal = message.optInt("winner", -2);
+        if (winnerOrdinal < -1 || winnerOrdinal > 1) {
+            Log.e(LOG_TAG, "忽略非法终局胜方编码: " + winnerOrdinal);
+            return;
+        }
+        ChineseChessGame.Side winnerSide = winnerOrdinal < 0 ? null
+                : (winnerOrdinal == 0 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK);
         game.setGameOver(winnerSide);
         mainHandler.post(this::updateTurnStatus);
     }
@@ -580,11 +621,10 @@ public class ChineseChessOnlineFragment extends Fragment {
         ChineseChessGame.Piece piece = game.getBoard()[fromY][fromX];
         if (piece == null || piece.side != mySide) return;
 
-        ChineseChessGame.MoveRecord record = game.makeMoveSafe(fromX, fromY, toX, toY);
+        // 集中闸门：校验 + 落子 + 切换 + 记录 + 终局判定原子完成。
+        // 玩家着法来自 getLegalMoves（已合法），再次经 isMoveLegal 防御性把关。
+        ChineseChessGame.MoveRecord record = game.commitMove(fromX, fromY, toX, toY);
         if (record == null) return;
-
-        game.switchSide();
-        game.checkGameOver();
 
         if (isHost) {
             sendSyncState();

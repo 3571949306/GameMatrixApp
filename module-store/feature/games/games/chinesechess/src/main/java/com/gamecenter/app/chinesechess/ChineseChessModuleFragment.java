@@ -304,28 +304,40 @@ public class ChineseChessModuleFragment extends Fragment {
         isProcessing = true;
 
         chessView.animateMove(fromX, fromY, toX, toY, () -> {
-            ChineseChessGame.MoveRecord rec = game.makeMoveSafe(fromX, fromY, toX, toY);
+            // 集中闸门：校验 + 落子 + 切换 + 记录 + 终局判定原子完成。
+            // 玩家着法来自 currentValidMoves（已为合法着法），但再次经 isMoveLegal 防御性把关。
+            ChineseChessGame.MoveRecord rec = game.commitMove(fromX, fromY, toX, toY);
             if (rec == null) {
+                // 理论上不会发生（UI 仅允许合法着法），保险起见回退到玩家回合。
                 isProcessing = false;
+                showStatus("你的回合");
                 return;
             }
 
-            game.getMoveHistory().add(rec);
             chessView.setLastMove(fromX, fromY, toX, toY);
             chessView.invalidate();
 
-            game.switchSide();
-            game.checkGameOver();
-
             if (game.isGameOver()) {
                 isProcessing = false;
-                showStatus("🎉 恭喜获胜！");
-                usageStore.recordWin(GAME_ID);
+                showGameEndStatus();
                 return;
             }
 
             startAITurn();
         });
+    }
+
+    /** 终局状态展示与胜负数统计（人机模式）。 */
+    private void showGameEndStatus() {
+        if (game.getWinner() == null) {
+            showStatus("和棋！");
+        } else if (game.getWinner() == ChineseChessGame.Side.RED) {
+            showStatus("🎉 恭喜获胜！");
+            usageStore.recordWin(GAME_ID);
+        } else {
+            showStatus("AI获胜！");
+            usageStore.recordLoss(GAME_ID);
+        }
     }
 
     private void startAITurn() {
@@ -335,6 +347,7 @@ public class ChineseChessModuleFragment extends Fragment {
         final long startMs = System.currentTimeMillis();
 
         aiExecutor.execute(() -> {
+            ai.setPositionHistory(game.getPositionHistory());
             int[] aiRaw = ai.getBestMove(game.getBoardAsIntArray(), aiDifficulty);
             int[] result;
             if (aiRaw != null) {
@@ -363,28 +376,37 @@ public class ChineseChessModuleFragment extends Fragment {
         return AI_MIN_RESPONSE_DELAYS_MS[idx];
     }
 
-    private void applyAIMove(int[] move) {
+    /** 先解析出真正会执行的合法 AI 着法，确保动画坐标与最终落子一致。 */
+    private int[] resolveLegalAIMove(int[] candidate) {
+        if (candidate != null && game.isMoveLegal(candidate[0], candidate[1], candidate[2], candidate[3])) {
+            return candidate;
+        }
+        List<int[]> legal = game.getAllMoves(ChineseChessGame.Side.BLACK);
+        return legal.isEmpty() ? null : legal.get(0);
+    }
+
+    private void applyAIMove(int[] candidate) {
+        int[] move = resolveLegalAIMove(candidate);
         if (move != null) {
             chessView.animateMove(move[0], move[1], move[2], move[3], () -> {
-                ChineseChessGame.MoveRecord rec = game.makeMoveSafe(move[0], move[1], move[2], move[3]);
-                if (rec != null) {
-                    game.getMoveHistory().add(rec);
-                    chessView.setLastMove(move[0], move[1], move[2], move[3]);
-                    game.switchSide();
-                }
-
+                // 预检查只用于选择动画；真实落子仍必须再次通过集中闸门。
+                ChineseChessGame.MoveRecord rec = game.commitMove(move[0], move[1], move[2], move[3]);
                 isProcessing = false;
                 chessView.setLocked(false);
                 chessView.invalidate();
                 selectedPos = null;
                 currentValidMoves = null;
                 chessView.clearSelected();
+                if (rec == null) {
+                    // AI 无任何合法着法 => 黑方被将死/困毙，红方（玩家）获胜。
+                    showStatus("🎉 恭喜获胜！");
+                    usageStore.recordWin(GAME_ID);
+                    return;
+                }
+                chessView.setLastMove(move[0], move[1], move[2], move[3]);
                 showStatus("你的回合");
-
-                game.checkGameOver();
                 if (game.isGameOver()) {
-                    showStatus("AI获胜！");
-                    usageStore.recordLoss(GAME_ID);
+                    showGameEndStatus();
                 }
             });
         } else {
@@ -395,11 +417,9 @@ public class ChineseChessModuleFragment extends Fragment {
             currentValidMoves = null;
             chessView.clearSelected();
             showStatus("你的回合");
-
             game.checkGameOver();
             if (game.isGameOver()) {
-                showStatus("AI获胜！");
-                usageStore.recordLoss(GAME_ID);
+                showGameEndStatus();
             }
         }
     }
@@ -430,6 +450,7 @@ public class ChineseChessModuleFragment extends Fragment {
         showStatus("正在计算提示...");
         aiExecutor.execute(() -> {
             ChineseChessAI hintAi = new ChineseChessAI(Math.max(1, Math.min(aiDifficulty, MAX_AI_DIFFICULTY)));
+            hintAi.setPositionHistory(game.getPositionHistory());
             // 提示是给红方（人类）的，必须传 aiSide=1（红方）。
             // ChineseChessAI.getBestMove 返回 [fromRow, fromCol, toRow, toCol]（行优先），
             // 而游戏其余接口（getLegalMoves/setSelected 等）使用 [x, y] = [col, row]（列优先）。
@@ -442,7 +463,9 @@ public class ChineseChessModuleFragment extends Fragment {
                 move = new int[]{raw[1], raw[0], raw[3], raw[2]};
             }
             uiHandler.post(() -> {
-                if (move == null || game.isGameOver() || game.getCurrentSide() != ChineseChessGame.Side.RED) {
+                if (move == null || game.isGameOver()
+                        || game.getCurrentSide() != ChineseChessGame.Side.RED
+                        || !game.isMoveLegal(move[0], move[1], move[2], move[3])) {
                     showStatus("暂无可用提示");
                     return;
                 }

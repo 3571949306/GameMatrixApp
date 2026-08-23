@@ -18,7 +18,7 @@ import java.util.List;
  * <ul>
  *   <li>棋盘使用 {@code Piece[ROWS][COLS]} 二维数组，board[y][x] 表示第y行第x列</li>
  *   <li>走法以 {@code int[]} 表示：[toX, toY]（目标坐标）或 [fromX, fromY, toX, toY]（完整走法）</li>
- *   <li>走棋前不做合法性校验（由调用方负责），走棋后需手动调用 {@link #switchSide()} 切换走棋方</li>
+ *   <li>所有真实落子必须通过 {@link #commitMove(int, int, int, int)}；未校验落子仅供本类内部模拟</li>
  *   <li>将军检测通过遍历对方所有棋子的走法实现，时间复杂度O(n²)</li>
  * </ul>
  *
@@ -96,6 +96,19 @@ public class ChineseChessGame {
     }
 
     /**
+     * 重复局面判定结果。
+     * <p>用于区分普通和棋与长将判负。</p>
+     */
+    public enum RepetitionResult {
+        /** 未出现重复局面 */
+        NONE,
+        /** 三次重复局面，和棋 */
+        DRAW,
+        /** 长将（连续将军）导致当前走子方获胜 */
+        LOSS_BY_PERPETUAL_CHECK
+    }
+
+    /**
      * 走棋记录类，用于撤销操作。
      * <p>记录走棋的起止坐标、移动的棋子和被吃的棋子。
      */
@@ -140,6 +153,15 @@ public class ChineseChessGame {
     /** 走棋历史记录列表 */
     private List<MoveRecord> moveHistory;
 
+    /** 局面指纹历史，用于检测重复局面与长将 */
+    private List<Long> positionHistory;
+
+    /** 与 positionHistory 对齐：生成该局面的走子方；初始局面为 null */
+    private List<Side> movedSideHistory;
+
+    /** 与 positionHistory 对齐：该步是否由某一方造成将军；未将军时为 null */
+    private List<Side> checkingSideHistory;
+
     /**
      * 构造游戏对象，初始化棋盘。
      */
@@ -149,7 +171,11 @@ public class ChineseChessGame {
         gameOver = false;
         winner = null;
         moveHistory = new ArrayList<>();
+        positionHistory = new ArrayList<>();
+        movedSideHistory = new ArrayList<>();
+        checkingSideHistory = new ArrayList<>();
         initBoard();
+        recordPosition(null);
     }
 
     /**
@@ -251,6 +277,13 @@ public class ChineseChessGame {
      * @return 走棋记录列表
      */
     public List<MoveRecord> getMoveHistory() { return moveHistory; }
+
+    /**
+     * 获取局面指纹历史（防御性拷贝）。
+     *
+     * @return 局面指纹列表
+     */
+    public List<Long> getPositionHistory() { return new ArrayList<>(positionHistory); }
 
     /**
      * 检查坐标是否在棋盘范围内。
@@ -450,9 +483,9 @@ public class ChineseChessGame {
     }
 
     /**
-     * 执行走棋操作（不检查合法性）。
-     * <p>将棋子从起始位置移动到目标位置，记录被吃的棋子。
-     * 注意：此方法不会自动切换走棋方，调用方需手动调用 {@link #switchSide()}。
+     * 执行内部模拟走棋（不检查合法性）。
+     * <p>仅供本类生成合法着法时临时落子/撤销，以及 {@link #commitMove} 在完成校验后写入。
+     * 此方法不会自动切换走棋方，生产调用方无法访问。
      *
      * @param fx 起始列
      * @param fy 起始行
@@ -460,7 +493,7 @@ public class ChineseChessGame {
      * @param ty 目标行
      * @return 走棋记录（用于撤销），若起始位置无棋子返回null
      */
-    public MoveRecord makeMoveSafe(int fx, int fy, int tx, int ty) {
+    private MoveRecord makeMoveSafe(int fx, int fy, int tx, int ty) {
         Piece piece = board[fy][fx];
         if (piece == null) return null;
         Piece captured = board[ty][tx];
@@ -470,6 +503,63 @@ public class ChineseChessGame {
         piece.x = tx;
         piece.y = ty;
         return record;
+    }
+
+    /**
+     * 判断一步走法是否合法（集中落子闸门的校验入口）。
+     * <p>校验项：
+     * <ul>
+     *   <li>游戏未结束；</li>
+     *   <li>起点/终点坐标在棋盘内；</li>
+     *   <li>起点存在棋子且属于当前走棋方；</li>
+     *   <li>该走法属于起点棋子的合法走法（走后己方将帅不被将军，
+     *       含飞将、蹩马腿、塞象眼、炮架、九宫、过河等全套规则）。</li>
+     * </ul>
+     * 复用 {@link #getLegalMoves(int, int)}（与搜索、提示同一套"合法着法"定义），
+     * 保证"判定口径"全局唯一，杜绝规则分叉。
+     * 所有落子路径（玩家点击、AI 决策、联机收发）统一先经此校验。
+     *
+     * @param fx 起始列
+     * @param fy 起始行
+     * @param tx 目标列
+     * @param ty 目标行
+     * @return true 若该走法合法
+     */
+    public boolean isMoveLegal(int fx, int fy, int tx, int ty) {
+        if (gameOver) return false;
+        if (!isValidPosition(fx, fy) || !isValidPosition(tx, ty)) return false;
+        Piece piece = board[fy][fx];
+        if (piece == null) return false;
+        if (piece.side != currentSide) return false;
+        for (int[] m : getLegalMoves(fx, fy)) {
+            if (m[0] == tx && m[1] == ty) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 集中落子闸门：原子地完成"校验 → 落子 → 切换走棋方 → 记录局面 → 判定终局"。
+     * <p>任何落子路径（玩家点击、AI 决策、联机收发）都必须经由本方法。
+     * 只有 {@link #isMoveLegal} 通过的着法才会被写入棋盘；非法着法返回 {@code null}，
+     * 调用方应据此提示用户或让 AI 重新求解，<b>绝不允许非法着法进入棋盘状态</b>。
+     * 这是防止"AI 生成非法着法被直接写入"（如蹩腿马吃将）类问题的根本防线。</p>
+     *
+     * @param fx 起始列
+     * @param fy 起始行
+     * @param tx 目标列
+     * @param ty 目标行
+     * @return 落子记录（成功）或 {@code null}（非法/被拒绝）
+     */
+    public MoveRecord commitMove(int fx, int fy, int tx, int ty) {
+        if (!isMoveLegal(fx, fy, tx, ty)) return null;
+        Side movedSide = currentSide;
+        MoveRecord rec = makeMoveSafe(fx, fy, tx, ty);
+        if (rec == null) return null;
+        moveHistory.add(rec);
+        switchSide();
+        recordPosition(movedSide);
+        checkGameOver();
+        return rec;
     }
 
     /**
@@ -503,6 +593,15 @@ public class ChineseChessGame {
                 undoMove(aiR);
                 MoveRecord playerR = moveHistory.remove(moveHistory.size() - 1);
                 undoMove(playerR);
+                // 同步移除对应的两个局面记录
+                if (positionHistory.size() >= 2) {
+                    positionHistory.remove(positionHistory.size() - 1);
+                    positionHistory.remove(positionHistory.size() - 1);
+                    movedSideHistory.remove(movedSideHistory.size() - 1);
+                    movedSideHistory.remove(movedSideHistory.size() - 1);
+                    checkingSideHistory.remove(checkingSideHistory.size() - 1);
+                    checkingSideHistory.remove(checkingSideHistory.size() - 1);
+                }
             }
         }
         currentSide = Side.RED;
@@ -567,26 +666,127 @@ public class ChineseChessGame {
     }
 
     /**
+     * 计算当前局面的指纹（含棋子位置、类型、阵营与当前走棋方）。
+     * <p>使用简单多项式滚动哈希，足以检测重复局面，不追求密码学强度。</p>
+     */
+    private long computePositionHash() {
+        long hash = 17;
+        for (int y = 0; y < ROWS; y++) {
+            for (int x = 0; x < COLS; x++) {
+                Piece p = board[y][x];
+                if (p != null) {
+                    // int 棋盘编码使用 1..7；这里同样 +1，确保与 AI 哈希完全一致。
+                    hash = hash * 31 + (p.type.ordinal() + 1);
+                    hash = hash * 31 + (p.side == Side.RED ? 1 : 0);
+                    hash = hash * 31 + x;
+                    hash = hash * 31 + y;
+                }
+            }
+        }
+        hash = hash * 31 + (currentSide == Side.RED ? 1 : 0);
+        return hash;
+    }
+
+    /**
+     * 记录当前局面指纹，供重复局面与长将检测使用。
+     * <p>应在每次真实走棋并切换走棋方后调用。</p>
+     */
+    private void recordPosition(Side movedSide) {
+        positionHistory.add(computePositionHash());
+        movedSideHistory.add(movedSide);
+        checkingSideHistory.add(movedSide != null && isInCheck(currentSide) ? movedSide : null);
+    }
+
+    /**
+     * 检查当前局面是否构成重复局面。
+     * <p>同一局面（含当前走棋方）出现 3 次时：
+     * <ul>
+     *   <li>若完整重复区间内始终由同一方连续将军，则判长将方负；</li>
+     *   <li>否则判和棋。</li>
+     * </ul>
+     * </p>
+     *
+     * @return 重复局面判定结果
+     */
+    public RepetitionResult checkRepetition() {
+        if (positionHistory.size() < 4) return RepetitionResult.NONE;
+        long currentHash = positionHistory.get(positionHistory.size() - 1);
+        int count = 0;
+        for (long h : positionHistory) {
+            if (h == currentHash) count++;
+        }
+        if (count >= 3 && isContinuousUnilateralCheck(currentHash)) {
+            return RepetitionResult.LOSS_BY_PERPETUAL_CHECK;
+        }
+        if (count >= 3) return RepetitionResult.DRAW;
+        return RepetitionResult.NONE;
+    }
+
+    /**
+     * 判断最近三次相同局面之间是否由同一方每步连续将军，且对方没有反将。
+     * <p>仅凭“第三次重复时正在被将”会把普通循环误判成长将。本方法按每次真实落子记录
+     * 走子方与将军方，只有完整循环都满足单方连续将军时才判长将。</p>
+     */
+    private boolean isContinuousUnilateralCheck(long repeatedHash) {
+        List<Integer> occurrences = new ArrayList<>();
+        for (int i = 0; i < positionHistory.size(); i++) {
+            if (positionHistory.get(i) == repeatedHash) occurrences.add(i);
+        }
+        if (occurrences.size() < 3 || !isInCheck(currentSide)) return false;
+
+        int start = occurrences.get(occurrences.size() - 3);
+        int end = occurrences.get(occurrences.size() - 1);
+        Side checker = currentSide == Side.RED ? Side.BLACK : Side.RED;
+        boolean checkerMoved = false;
+
+        for (int i = start + 1; i <= end; i++) {
+            Side mover = movedSideHistory.get(i);
+            Side checkingSide = checkingSideHistory.get(i);
+            if (mover == checker) {
+                checkerMoved = true;
+                if (checkingSide != checker) return false;
+            } else if (checkingSide == mover) {
+                // 双方交替将军不是“单方连续长将”，按普通重复局面处理。
+                return false;
+            }
+        }
+        return checkerMoved;
+    }
+
+    /**
      * 检查游戏是否结束。
      * <p>若当前走棋方被将且无合法走法，则对方获胜（将杀）；
-     * 若当前走棋方未被将但无合法走法，则对方获胜（困毙）。
+     * 若当前走棋方未被将但无合法走法，则对方获胜（困毙）；
+     * 若同一局面出现 3 次，则按长将判负或和棋处理。</p>
      */
     public void checkGameOver() {
         if (isInCheck(currentSide)) {
             if (!hasLegalMoves(currentSide)) {
                 gameOver = true;
                 winner = currentSide == Side.RED ? Side.BLACK : Side.RED;
+                return;
             }
         } else if (!hasLegalMoves(currentSide)) {
             gameOver = true;
             winner = currentSide == Side.RED ? Side.BLACK : Side.RED;
+            return;
+        }
+
+        RepetitionResult rep = checkRepetition();
+        if (rep == RepetitionResult.LOSS_BY_PERPETUAL_CHECK) {
+            // 当前方被长将，对方（上一步走棋方）判负，当前方获胜
+            gameOver = true;
+            winner = currentSide;
+        } else if (rep == RepetitionResult.DRAW) {
+            gameOver = true;
+            winner = null;
         }
     }
 
     /**
      * 直接设置游戏结束和获胜方（用于联机对战中接收对方认输等场景）。
      *
-     * @param winnerSide 获胜方阵营
+     * @param winnerSide 获胜方阵营；和棋时为 null
      */
     public void setGameOver(Side winnerSide) {
         gameOver = true;
@@ -649,7 +849,11 @@ public class ChineseChessGame {
         gameOver = false;
         winner = null;
         moveHistory.clear();
+        positionHistory.clear();
+        movedSideHistory.clear();
+        checkingSideHistory.clear();
         initBoard();
+        recordPosition(null);
     }
 
     /**
@@ -678,6 +882,9 @@ public class ChineseChessGame {
         copy.currentSide = this.currentSide;
         copy.gameOver = this.gameOver;
         copy.winner = this.winner;
+        copy.positionHistory = new ArrayList<>(this.positionHistory);
+        copy.movedSideHistory = new ArrayList<>(this.movedSideHistory);
+        copy.checkingSideHistory = new ArrayList<>(this.checkingSideHistory);
         return copy;
     }
 }
