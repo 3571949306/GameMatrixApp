@@ -185,7 +185,7 @@ jobs:
 
       - name: Build signed release APK
         run: >-
-          ./gradlew :app:generateVersionJson :app:validateReleaseApk
+          ./gradlew :app:bundlePreinstalledModules :app:generateVersionJson :app:validateReleaseApk
           -PupdateChannel=stable
           -PenableFlutterModuleStore=true
           -Ptarget-platform=android-arm64

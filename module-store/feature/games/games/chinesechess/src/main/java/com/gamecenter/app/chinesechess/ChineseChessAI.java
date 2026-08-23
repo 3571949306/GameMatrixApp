@@ -21,7 +21,7 @@ import java.util.Random;
  *
  * <p>基于 Minimax + Alpha-Beta 剪枝算法实现 AI 决策，并叠加以下增强以提升棋力与正确性：
  * <ul>
- *   <li>5 个难度级别对应搜索深度 1/2/3/4/6；</li>
+ *   <li>5 个难度级别对应搜索深度 1/2/3/4/5；</li>
  *   <li>随机性机制：根据难度级别选择评分差异阈值内的候选走法，增加对局多样性；</li>
  *   <li>开局库：前几步使用预设走法，避免开局走法固定；</li>
  *   <li>静态搜索（Quiescence Search）：仅在搜索边界对吃子序列继续展开，消除"地平线效应"
@@ -62,22 +62,24 @@ public class ChineseChessAI implements GameAI {
     /** 难度配置（搜索深度） - 大师档从6降到5，避免过长时间思考 */
     private static final int[] SEARCH_DEPTHS = {1, 2, 3, 4, 5};
 
-    /** 开局库走法 - 14种常见开局，增加开局多样性 */
+    /** 开局库走法 - 14种常见开局，均为红方视角的合法着法（行6~9），增加开局多样性。
+     *  注意：旧版本存在坐标错误（如 {9,4,7,4} 实为帅走两格、{9,1,7,1} 实为马直行），
+     *  会生成非法着法。此处全部改为真实合法开局，并由 {@link #getOpeningMove} 二次校验兜底。 */
     private static final int[][] OPENING_MOVES = {
-        {9, 4, 7, 4},  // 炮二平五（中炮）
-        {9, 2, 7, 2},  // 炮二平三（兵底炮）
-        {9, 6, 7, 6},  // 炮八平五（反手中炮）
-        {9, 1, 7, 1},  // 马二进三（起马）
-        {9, 7, 7, 7},  // 马八进七（起马）
+        {7, 1, 7, 4},  // 炮二平五（中炮）
+        {7, 7, 7, 4},  // 炮八平五（反手中炮）
+        {7, 1, 7, 3},  // 炮二平三（兵底炮）
+        {7, 7, 7, 5},  // 炮八平三（卒底炮变体）
+        {9, 1, 7, 2},  // 马二进三（起马）
+        {9, 7, 7, 6},  // 马八进七（起马）
         {6, 0, 5, 0},  // 兵七进一（仙人指路）
         {6, 8, 5, 8},  // 兵三进一（仙人指路）
-        {9, 4, 7, 4},  // 炮二平五（中炮，重复以增加概率）
-        {7, 1, 7, 2},  // 马二进三变体
-        {7, 7, 7, 6},  // 马八进七变体
         {6, 2, 5, 2},  // 兵七进一变体
         {6, 6, 5, 6},  // 兵三进一变体
-        {9, 0, 7, 0},  // 车一进一（横车）
-        {9, 8, 7, 8}   // 车九进一（横车）
+        {9, 0, 8, 0},  // 车一进一（横车）
+        {9, 8, 8, 8},  // 车九进一（横车）
+        {7, 1, 7, 4},  // 炮二平五（中炮，重复以增加概率）
+        {9, 1, 7, 2}   // 马二进三（起马，重复以增加概率）
     };
 
     /** 将死分数（远大于最大子力评估，确保对将死给予最高优先级） */
@@ -86,8 +88,11 @@ public class ChineseChessAI implements GameAI {
     /** 静态搜索最大层数（仅在吃子序列上展开，避免无限递归） */
     private static final int QSEARCH_MAX_DEPTH = 6;
 
-    /** 将军延伸的层数上限（防止长将/循环将军导致搜索过深） */
-    private static final int CHECK_EXTENSION_PLY_LIMIT = 30;
+    /** 允许触发将军延伸的层数上限。 */
+    private static final int CHECK_EXTENSION_PLY_LIMIT = 12;
+
+    /** 搜索的绝对层数上限；即使连续将军也不得突破，避免异常局面拖垮线程。 */
+    private static final int MAX_SEARCH_PLY = 24;
 
     // ==================== 成员变量 ====================
 
@@ -96,6 +101,9 @@ public class ChineseChessAI implements GameAI {
     private final Random random = new Random();
     private volatile boolean cancelled = false;
     private volatile boolean thinking = false;
+
+    /** 外部传入的当前对局局面历史（可选），用于在根节点惩罚重复局面着法 */
+    private List<Long> positionHistory = null;
 
     // ==================== 构造函数 ====================
 
@@ -107,6 +115,16 @@ public class ChineseChessAI implements GameAI {
     public ChineseChessAI(int difficulty) {
         this.difficulty = Math.max(1, Math.min(5, difficulty));
         this.searchDepth = SEARCH_DEPTHS[this.difficulty - 1];
+    }
+
+    /**
+     * 设置当前对局的局面历史，AI 会在根节点避免选择导致已出现局面的着法。
+     * <p>传入的历史应为当前对局的局面指纹列表（由游戏逻辑层记录）。</p>
+     *
+     * @param history 局面指纹历史，传 null 表示不启用重复规避
+     */
+    public void setPositionHistory(@Nullable List<Long> history) {
+        this.positionHistory = history;
     }
 
     // ==================== 公共方法 ====================
@@ -165,6 +183,18 @@ public class ChineseChessAI implements GameAI {
             // Minimax 搜索（根走子后轮到对方，isMax = !maximize）
             int score = minimax(newBoard, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, !maximize, 1);
 
+            // 根节点重复局面惩罚：若该着法导致已经出现过的局面，
+            // 对 AI 不利（鼓励 AI 打破长将/循环，而不是消极重复）。
+            if (positionHistory != null) {
+                // AI 走子后轮到对方；棋子编码和走棋方编码与游戏逻辑层完全一致。
+                long newHash = computePositionHash(newBoard, -aiSide);
+                if (countPositionInHistory(newHash) >= 1) {
+                    int repetitionPenalty = 50000; // 接近一个车但小于将死分
+                    if (maximize) score -= repetitionPenalty;
+                    else score += repetitionPenalty;
+                }
+            }
+
             allMoves.add(move);
             allScores.add(maximize ? score : -score);
         }
@@ -217,24 +247,33 @@ public class ChineseChessAI implements GameAI {
     private int[] getOpeningMove(int[][] board, int aiSide) {
         if (!isOpeningPosition(board)) return null;
         int[] m = OPENING_MOVES[random.nextInt(OPENING_MOVES.length)];
+        int fr = m[0], fc = m[1], tr = m[2], tc = m[3];
         if (aiSide == -1) {
             // 黑方走法：行号上下镜像，列号不变
-            return new int[]{9 - m[0], m[1], 9 - m[2], m[3]};
+            fr = 9 - m[0];
+            tr = 9 - m[2];
         }
-        return m;
+        // 二次校验（集中闸门之外的冗余防线）：起点必须有己方棋子，且走法形状合法、
+        // 走后不送将。任何非法开局着法一律拒绝，回退到搜索，
+        // 保证开局库绝不输出非法着法（如旧版的"帅走两格""马直行"）。
+        int piece = board[fr][fc];
+        if (piece == 0) return null;
+        if ((aiSide > 0 && piece < 0) || (aiSide < 0 && piece > 0)) return null;
+        if (!attacksSquare(board, fr, fc, tr, tc)) return null;
+        if (!isMoveLegal(board, fr, fc, tr, tc, aiSide)) return null;
+        return new int[]{fr, fc, tr, tc};
     }
 
     /**
      * 判断是否为开局位置
      */
     private boolean isOpeningPosition(int[][] board) {
-        int moveCount = 0;
         for (int r = 0; r < 10; r++) {
             for (int c = 0; c < 9; c++) {
-                if (board[r][c] != getInitialPiece(r, c)) moveCount++;
+                if (board[r][c] != getInitialPiece(r, c)) return false;
             }
         }
-        return moveCount <= 4; // 前4步内
+        return true;
     }
 
     /**
@@ -309,6 +348,8 @@ public class ChineseChessAI implements GameAI {
             return isMax ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
         }
 
+        if (ply >= MAX_SEARCH_PLY) return evaluateBoard(board);
+
         if (depth <= 0) {
             // 到达搜索边界，转入静态搜索以稳定子力评估
             return quiescence(board, alpha, beta, QSEARCH_MAX_DEPTH, isMax, ply);
@@ -359,7 +400,7 @@ public class ChineseChessAI implements GameAI {
      */
     private int quiescence(int[][] board, int alpha, int beta, int qdepth, boolean isMax, int ply) {
         if (cancelled) return 0;
-        if (qdepth <= 0) return evaluateBoard(board);
+        if (qdepth <= 0 || ply >= MAX_SEARCH_PLY) return evaluateBoard(board);
 
         int sideSign = isMax ? 1 : -1;
         boolean inCheck = isInCheck(board, sideSign);
@@ -562,6 +603,12 @@ public class ChineseChessAI implements GameAI {
                 addMoveIfValid(board, moves, fromR, fromC, fromR + 1, fromC, isRed);
                 addMoveIfValid(board, moves, fromR, fromC, fromR, fromC - 1, isRed);
                 addMoveIfValid(board, moves, fromR, fromC, fromR, fromC + 1, isRed);
+                // 飞将：两将同列且中间无子时，将/帅可以直接吃掉对方将/帅。
+                int[] enemyGeneral = findKing(board, isRed ? -1 : 1);
+                if (enemyGeneral != null && enemyGeneral[1] == fromC
+                        && pathClear(board, fromR, fromC, enemyGeneral[0], enemyGeneral[1])) {
+                    moves.add(new int[]{fromR, fromC, enemyGeneral[0], enemyGeneral[1]});
+                }
                 break;
             case 2: // 仕/士
                 addMoveIfValid(board, moves, fromR, fromC, fromR - 1, fromC - 1, isRed);
@@ -615,6 +662,8 @@ public class ChineseChessAI implements GameAI {
         int target = board[toR][toC];
         if (isRed && target > 0) return; // 不能吃己方
         if (!isRed && target < 0) return;
+        // 校验棋子基本走法（马腿、象眼、九宫、过河、炮架等），防止 AI 生成非法着法
+        if (!attacksSquare(board, fromR, fromC, toR, toC)) return;
         moves.add(new int[]{fromR, fromC, toR, toC});
     }
 
@@ -717,6 +766,34 @@ public class ChineseChessAI implements GameAI {
         return copy;
     }
 
+    /**
+     * 计算棋盘局面指纹，与游戏逻辑层保持一致（含下一走棋方）。
+     */
+    private long computePositionHash(int[][] board, int sideToMove) {
+        long hash = 17;
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                int p = board[r][c];
+                if (p != 0) {
+                    hash = hash * 31 + Math.abs(p);
+                    hash = hash * 31 + (p > 0 ? 1 : 0);
+                    hash = hash * 31 + c;
+                    hash = hash * 31 + r;
+                }
+            }
+        }
+        return hash * 31 + (sideToMove > 0 ? 1 : 0);
+    }
+
+    private int countPositionInHistory(long hash) {
+        if (positionHistory == null) return 0;
+        int count = 0;
+        for (long h : positionHistory) {
+            if (h == hash) count++;
+        }
+        return count;
+    }
+
     // ==================== 合法性 / 将死检测 ====================
 
     /** 判断 (fr,fc) 棋子能否在棋盘 b 上攻击 (tr,tc)（用于将军检测）。 */
@@ -731,6 +808,9 @@ public class ChineseChessAI implements GameAI {
         int dr = tr - fr, dc = tc - fc;
         switch (type) {
             case 1: { // 将/帅
+                // 飞将吃将不受九宫一步限制。
+                if (Math.abs(target) == 1 && target == -piece && fc == tc
+                        && pathClear(b, fr, fc, tr, tc)) return true;
                 boolean inPalace = piece > 0 ? (tr >= 7 && tr <= 9 && tc >= 3 && tc <= 5)
                         : (tr >= 0 && tr <= 2 && tc >= 3 && tc <= 5);
                 return inPalace && Math.abs(dr) + Math.abs(dc) == 1;
@@ -808,7 +888,8 @@ public class ChineseChessAI implements GameAI {
     /** 判断 side 方在棋盘 b 上是否被将军（含"白脸将/对脸"规则）。 */
     private static boolean isInCheck(int[][] b, int side) {
         int[] king = findKing(b, side);
-        if (king == null) return false;
+        // 将/帅已被吃时视为处于不可解的被将状态，阻止搜索继续生成无王着法。
+        if (king == null) return true;
         int kr = king[0], kc = king[1];
         int attacker = side > 0 ? -1 : 1;
         for (int r = 0; r < 10; r++) {

@@ -1034,15 +1034,19 @@ task packageAppClasses(type: Jar) {
 
 // =============================================================================
 // 模块预装：把与宿主同证书签名的 Release 模块 APK 打包到 assets/modules/。
-// 任务在 mergeAssets 前执行，保证当前构建产物不会携带旧模块。
+// 仅由显式的 *WithPreinstalledModules 生命周期任务触发；普通编译/测试只读取现有 assets，
+// 不得重打包模块或改写受版本控制的目录清单。
 // 保留 VPS 更新通道：modules.json 的 downloadUrl 仍指向 VPS，versionCode 升级时下载覆盖。
 // VPN 模块刻意不预装（合规/分发约束）。
 // 注意：ai/tools/tts 模块走 VPS 下载通道（不预装到 assets/modules/），
 // 见 modules.json 中 downloadUrl 字段。ai 模块源码编译已于 2026-06-23 修复（Step 嵌套类已补全）。
 // -----------------------------------------------------------------------------
-// 用法：模块构建链解耦（避免任一模块编译失败导致主 APK 构建失败）
-//   默认行为：编译并依赖所有模块的 assembleRelease 产物。
-//   跳过模块编译：./gradlew assembleDebug -PskipModuleBuild=true
+// 用法：
+//   普通构建（无发布资产副作用）：./gradlew :app:assembleDebug
+//   显式刷新并打包预装模块：
+//     ./gradlew :app:assembleDebugWithPreinstalledModules
+//     ./gradlew :app:assembleReleaseWithPreinstalledModules
+//   显式刷新但跳过模块编译：追加 -PskipModuleBuild=true
 //     - 不再依赖模块 assembleRelease 任务
 //     - 模块 APK 缺失时，自动从预构建产物目录 app/build/prebuilt-modules/ 拷贝
 //     - 预构建产物目录约定：app/build/prebuilt-modules/<srcApkName>
@@ -1199,7 +1203,28 @@ task bundlePreinstalledModules() {
     }
 }
 
+tasks.register('assembleDebugWithPreinstalledModules') {
+    group = 'build'
+    description = '显式刷新预装模块和目录元数据后构建 Debug APK'
+}
+
+tasks.register('assembleReleaseWithPreinstalledModules') {
+    group = 'build'
+    description = '显式刷新预装模块和目录元数据后构建 Release APK'
+}
+
 afterEvaluate {
-    tasks.named('mergeDebugAssets').configure { it.dependsOn 'bundlePreinstalledModules' }
-    tasks.named('mergeReleaseAssets').configure { it.dependsOn 'bundlePreinstalledModules' }
+    def preinstalledModules = tasks.named('bundlePreinstalledModules')
+
+    // 只有显式生命周期任务把 bundlePreinstalledModules 加入任务图。
+    // mustRunAfter 只在两者同时入图时排序，不会让普通 merge/test 隐式触发模块打包。
+    tasks.named('mergeDebugAssets').configure { it.mustRunAfter preinstalledModules }
+    tasks.named('mergeReleaseAssets').configure { it.mustRunAfter preinstalledModules }
+
+    tasks.named('assembleDebugWithPreinstalledModules').configure {
+        it.dependsOn preinstalledModules, tasks.named('assembleDebug')
+    }
+    tasks.named('assembleReleaseWithPreinstalledModules').configure {
+        it.dependsOn preinstalledModules, tasks.named('assembleRelease')
+    }
 }
