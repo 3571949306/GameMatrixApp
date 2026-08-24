@@ -765,10 +765,10 @@ object ModuleManager {
     private fun registerGameFromManifest(context: Context, manifest: ModuleManifest) {
         try {
             val gameId = manifest.gameId.ifEmpty { manifest.id }
-            // gomoku 已完成模块化（宿主 GomokuActivity 已注释，须通过模块商店加载），不再跳过
-            if (gameId == "doudizhu") {
-                return
-            }
+            // 2026-08-23 模块分层重构：移除 doudizhu 跳过。
+            // 历史上（v1.4.0）跳过 gomoku/doudizhu 是因宿主与模块双注册冲突；
+            // 现在 doudizhu 在 modules.json 中为 builtIn=true 且
+            // activityClass 指向宿主 DouDiZhuMenuActivity，由本方法统一注册。
             val activityClass = if (manifest.builtIn && manifest.activityClass.isNotEmpty()) {
                 Class.forName(manifest.activityClass)
             } else {

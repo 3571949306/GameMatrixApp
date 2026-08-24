@@ -204,6 +204,15 @@ public class DouDiZhuActivity extends AppCompatActivity {
     /** 音效管理器 */
     private DouDiZhuSoundManager soundManager;
 
+    /**
+     * 2026-08-23 P0-2 AI 决策异步化：
+     * AIBot.decidePlay 的策略计算原先在主线程 Handler 回调中执行，
+     * 困难模式（difficultyFactor=1.5）计算量大时会阻塞 UI。现移到后台线程。
+     */
+    private java.util.concurrent.ExecutorService aiExecutor;
+    /** AI 决策代际：取消调度/销毁时自增，丢弃过期结果 */
+    private volatile long aiGeneration = 0;
+
     /** 新手引导序列（首次进入斗地主时弹出，4 步引导） */
     private com.gamecenter.app.ui.onboarding.CoachmarkSequence onboardingSequence;
 
@@ -263,7 +272,11 @@ public class DouDiZhuActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        aiGeneration++;
         handler.removeCallbacksAndMessages(null);
+        if (aiExecutor != null) {
+            aiExecutor.shutdownNow();
+        }
         if (onboardingSequence != null) {
             onboardingSequence.destroy();
             onboardingSequence = null;
@@ -908,6 +921,8 @@ public class DouDiZhuActivity extends AppCompatActivity {
      */
     private void scheduleAIAction() {
         // 取消之前未执行的 AI 任务，防止重复调度
+        // 2026-08-23 P0-2：同时作废后台进行中的决策结果
+        aiGeneration++;
         if (aiThinkingRunnable != null) {
             handler.removeCallbacks(aiThinkingRunnable);
         }
@@ -1052,9 +1067,41 @@ public class DouDiZhuActivity extends AppCompatActivity {
         // 获取上家出的牌
         List<Card> previousCards = getLastPlayedCards(lastPlayerWhoPlayed);
 
-        // AI 决策出牌（返回 null 表示选择不出）；传入难度因子影响决策质量
-        List<Card> aiPlayedCards = AIBot.decidePlay(aiHand, previousCards, null, difficultyFactor);
+        // 2026-08-23 P0-2：AI 决策移到后台线程执行，避免阻塞主线程。
+        // 主线程只收集快照（副本），计算完成后回主线程落牌。
+        final long gen = ++aiGeneration;
+        final List<Card> handSnapshot = new ArrayList<>(aiHand);
+        final List<Card> prevSnapshot = previousCards == null ? null : new ArrayList<>(previousCards);
+        final float factor = difficultyFactor;
+        ensureAiExecutor();
+        aiExecutor.execute(() -> {
+            List<Card> decision;
+            try {
+                // AI 决策出牌（返回 null 表示选择不出）；传入难度因子影响决策质量
+                decision = AIBot.decidePlay(handSnapshot, prevSnapshot, null, factor);
+            } catch (Exception e) {
+                android.util.Log.e("DouDiZhu", "AI 决策异常，转为不出", e);
+                decision = null;
+            }
+            final List<Card> aiPlayedCards = decision;
+            handler.post(() -> {
+                // 过期（重新调度/销毁）或状态已变化的结果直接丢弃
+                if (gen != aiGeneration) return;
+                if (gameState != STATE_PLAYING) return;
+                applyAIAction(aiIndex, aiPlayedCards);
+            });
+        });
+    }
 
+    /** 确保 aiExecutor 可用（shutdown 后按需重建） */
+    private void ensureAiExecutor() {
+        if (aiExecutor == null || aiExecutor.isShutdown()) {
+            aiExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        }
+    }
+
+    /** 主线程执行 AI 落牌（原 executeAIAction 后半段） */
+    private void applyAIAction(int aiIndex, List<Card> aiPlayedCards) {
         boolean cleared = false;
         if (aiPlayedCards != null && !aiPlayedCards.isEmpty()) {
             // AI 选择出牌

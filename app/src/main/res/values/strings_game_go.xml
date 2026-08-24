@@ -10,11 +10,12 @@
     <string name="game_go_your_turn">你的回合（黑棋），点击落子</string>
     <string name="game_go_ai_thinking">AI 思考中…</string>
     <string name="game_go_ai_passed">AI 虚着（Pass）</string>
-    <string name="game_go_you_win">恭喜获胜！黑：%d目 vs 白：%d目（含贴目）</string>
-    <string name="game_go_ai_wins">AI 获胜。黑：%d目 vs 白：%d目（含贴目）</string>
+    <string name="game_go_you_win">恭喜获胜！黑：%1$.1f目 vs 白：%2$.1f目（白贴6.5目）</string>
+    <string name="game_go_ai_wins">AI 获胜。黑：%1$.1f目 vs 白：%2$.1f目（白贴6.5目）</string>
     <string name="game_go_you_resigned">你已认输</string>
-    <string name="game_go_pass">虚着</string>
+    <string name="game_go_pass">停一手</string>
     <string name="game_go_resign">认输</string>
+    <string name="game_go_restart">重开</string>
     <string name="game_go_score_display">黑提%d | 白提%d | 当前：%s</string>
 
     <!-- 游戏规则 -->
@@ -57,10 +58,10 @@
     <string name="game_go_diff_2">普通</string>
     <string name="game_go_diff_3">困难</string>
     <string name="game_go_diff_4">大师</string>
-    <string name="game_go_diff_1_desc">随机落子</string>
-    <string name="game_go_diff_2_desc">贪心算法</string>
-    <string name="game_go_diff_3_desc">Minimax-2 步</string>
-    <string name="game_go_diff_4_desc">Minimax-3 步</string>
+    <string name="game_go_diff_1_desc">会遵守规则并避开明显坏棋</string>
+    <string name="game_go_diff_2_desc">能提子、救棋并识别打吃与连接</string>
+    <string name="game_go_diff_3_desc">会推演双方应对并兼顾全局</string>
+    <string name="game_go_diff_4_desc">更充分推演，稳定选择主变化</string>
 
     <!-- 2026-06-23: AI 思考提示带难度 + 大师成就 -->
     <string name="game_go_ai_thinking_with_difficulty">AI 思考中…（%1$s）</string>
@@ -71,12 +72,12 @@
     <!-- AI 思考与难度提示 -->
     <string name="game_go_ai_think_ms">AI 思考 %1$dms</string>
     <string name="game_go_ai_difficulty_toast">AI 难度: %1$s</string>
-    <string name="game_go_diff_name_1">简单（随机）</string>
-    <string name="game_go_diff_name_2">普通（贪心）</string>
-    <string name="game_go_diff_name_3">困难（Minimax-2）</string>
-    <string name="game_go_diff_name_4">大师（MCTS）</string>
+    <string name="game_go_diff_name_1">简单</string>
+    <string name="game_go_diff_name_2">普通</string>
+    <string name="game_go_diff_name_3">困难</string>
+    <string name="game_go_diff_name_4">大师</string>
     <string name="game_go_diff_name_unknown">未知</string>
 
     <!-- 终局得分 -->
-    <string name="game_go_end_score">黑方(你): %1$d  |  白方(AI): %2$d</string>
+    <string name="game_go_end_score">黑方(你): %1$.1f  |  白方(AI): %2$.1f（含贴目）</string>
 </resources>

@@ -137,29 +137,21 @@ class CoachmarkSequence @JvmOverloads constructor(
         }
         overlayView = composeView
 
-        // 用 WindowManager 加为系统级浮层（覆盖在 decorView 之上，能拿到全屏坐标）
-        val params = WindowManager.LayoutParams().apply {
-            type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL
-            format = android.graphics.PixelFormat.TRANSLUCENT
-            width = WindowManager.LayoutParams.MATCH_PARENT
-            height = WindowManager.LayoutParams.MATCH_PARENT
-            flags = WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-            token = activity.window.decorView.windowToken
+        // ComposeView 必须挂在 decorView 的 ViewTree 下，才能继承 LifecycleOwner、
+        // SavedStateRegistryOwner 和 ViewModelStoreOwner。WindowManager.addView 会创建一棵
+        // 独立 ViewTree，首次开局时在 onAttachedToWindow 中直接崩溃。
+        val decor = activity.window.decorView as? android.view.ViewGroup
+        if (decor == null) {
+            finish(completed = false)
+            return
         }
-        try {
-            activity.windowManager.addView(composeView, params)
-        } catch (e: Exception) {
-            // 部分 Activity 的 window token 还未就绪，回退到 decorView.addView
-            // decorView 本身就是 FrameLayout，这里强转 ViewGroup 添加浮层
-            (activity.window.decorView as? android.view.ViewGroup)?.addView(
-                composeView,
-                android.widget.FrameLayout.LayoutParams(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                ),
-            )
-        }
+        decor.addView(
+            composeView,
+            android.widget.FrameLayout.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+            ),
+        )
     }
 
     private fun finish(completed: Boolean) {

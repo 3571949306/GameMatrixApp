@@ -136,6 +136,11 @@ public class TetrisView extends View {
         void onPieceLanded();
     }
 
+    /** 2026-08-23 P2-2：方块锁定（含消行与新方块生成）完成回调，供存档保存 */
+    public interface OnPieceLockListener {
+        void onPieceLocked();
+    }
+
     // ==================== 游戏状态 ====================
 
     /** 游戏网格（0=空，1-7=方块颜色索引） */
@@ -195,6 +200,8 @@ public class TetrisView extends View {
     private OnGameOverListener gameOverListener;
     private OnPieceRotateListener pieceRotateListener;
     private OnPieceLandListener pieceLandListener;
+    /** 2026-08-23 P2-2：方块锁定完成监听器（存档保存点） */
+    private OnPieceLockListener pieceLockListener;
 
     // ==================== 构造函数 ====================
 
@@ -260,6 +267,8 @@ public class TetrisView extends View {
     public void setOnGameOverListener(OnGameOverListener l) { this.gameOverListener = l; }
     public void setOnPieceRotateListener(OnPieceRotateListener l) { this.pieceRotateListener = l; }
     public void setOnPieceLandListener(OnPieceLandListener l) { this.pieceLandListener = l; }
+    /** 2026-08-23 P2-2：设置方块锁定完成监听器（存档保存点） */
+    public void setOnPieceLockListener(OnPieceLockListener l) { this.pieceLockListener = l; }
     public void setSpeedFactor(float factor) { this.speedFactor = Math.max(0.1f, Math.min(1.0f, factor)); }
 
     // ==================== 游戏控制 ====================
@@ -300,6 +309,74 @@ public class TetrisView extends View {
     public void stopGame() {
         running = false;
         handler.removeCallbacksAndMessages(null);
+    }
+
+    // ==================== 2026-08-23 P2-2: 中断续玩存档支持 ====================
+
+    /** 2026-08-23 P2-2：获取棋盘网格深拷贝（供 Activity 序列化存档） */
+    public int[][] getGrid() {
+        int[][] copy = new int[ROWS][COLS];
+        for (int r = 0; r < ROWS; r++) {
+            System.arraycopy(grid[r], 0, copy[r], 0, COLS);
+        }
+        return copy;
+    }
+
+    /** 2026-08-23 P2-2：获取当前方块类型（0-6） */
+    public int getCurrentPiece() { return currentPiece; }
+
+    /** 2026-08-23 P2-2：获取当前方块旋转状态（0-3） */
+    public int getCurrentRotation() { return currentRotation; }
+
+    /** 2026-08-23 P2-2：获取当前方块 X 坐标（左上角列） */
+    public int getPieceX() { return pieceX; }
+
+    /** 2026-08-23 P2-2：获取当前方块 Y 坐标（左上角行） */
+    public int getPieceY() { return pieceY; }
+
+    /** 2026-08-23 P2-2：获取下一个方块类型 */
+    public int getNextPiece() { return nextPiece; }
+
+    /** 2026-08-23 P2-2：获取分数 */
+    public int getScore() { return score; }
+
+    /** 2026-08-23 P2-2：获取已消行数 */
+    public int getLines() { return lines; }
+
+    /** 2026-08-23 P2-2：获取等级 */
+    public int getLevel() { return level; }
+
+    /** 2026-08-23 P2-2：查询游戏是否已结束 */
+    public boolean isGameOver() { return gameOver; }
+
+    /**
+     * 2026-08-23 P2-2：从存档恢复游戏状态（由 TetrisActivity 调用），
+     * 恢复后立即继续下落（完整恢复）。
+     *
+     * @return 恢复成功返回 true；存档中的方块位置非法（存档损坏）返回 false，由调用方 fallback 新开一局
+     */
+    public boolean restoreState(int[][] savedGrid, int savedPiece, int savedRotation, int savedX, int savedY,
+                                int savedNext, int savedScore, int savedLines, int savedLevel) {
+        if (savedPiece < 0 || savedPiece >= 7 || savedNext < 0 || savedNext >= 7) return false;
+        if (savedRotation < 0 || savedRotation > 3) return false;
+        if (!isValidPosition(savedPiece, savedRotation, savedX, savedY)) return false;
+        for (int r = 0; r < ROWS; r++) {
+            System.arraycopy(savedGrid[r], 0, grid[r], 0, COLS);
+        }
+        currentPiece = savedPiece;
+        currentRotation = savedRotation;
+        pieceX = savedX;
+        pieceY = savedY;
+        nextPiece = savedNext;
+        score = savedScore;
+        lines = savedLines;
+        level = savedLevel;
+        gameOver = false;
+        running = true;
+        notifyScore();
+        scheduleDrop();
+        invalidate();
+        return true;
     }
 
     // ==================== 游戏逻辑 ====================
@@ -364,6 +441,10 @@ public class TetrisView extends View {
             clearLines();
             spawnPiece();
             invalidate();
+            // 2026-08-23 P2-2：锁定（含消行与新方块生成）完成后通知存档保存点
+            if (pieceLockListener != null) {
+                pieceLockListener.onPieceLocked();
+            }
             return true;
         }
     }

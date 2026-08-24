@@ -185,35 +185,25 @@ public class PermissionHelper {
      *
      * @param permissionLauncher 权限请求启动器
      */
-    private void requestRuntimePermissions(ActivityResultLauncher<String[]> permissionLauncher) {
+        private void requestRuntimePermissions(ActivityResultLauncher<String[]> permissionLauncher) {
         List<String> permissionsToRequest = new ArrayList<>();
 
-        // 收集未授权的位置权限
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            permissionsToRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION);
-        }
-
-        // 收集未授权的相机权限
+        // ��集未授权的相机权限
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.CAMERA);
         }
 
-        // 存储权限：Android 13+ 使用细粒度媒体权限，旧版本使用传统存储权限
+        // 存��权限：Android 13+ 使用����度��体权限，旧版本使用传统存��权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Android 13 及以上：只需要读取图片的权限
             if (ContextCompat.checkSelfPermission(activity, android.Manifest.permission.READ_MEDIA_IMAGES)
                     != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(android.Manifest.permission.READ_MEDIA_IMAGES);
             }
-            // Android 14+ 部分照片访问权限：用户可选择只授权部分照片
-            // 【初学者理解】Android 14 引入"部分照片访问"能力，用户可以只选一部分照片给应用访问，
-            // 需要单独请求 READ_MEDIA_VISUAL_USER_SELECTED 权限，配合 READ_MEDIA_IMAGES 一起使用
+            // Android 14+ 部分照片��问权限：用户可选择只授权部分照片
+            // 【初学者理解】Android 14 ��入"部分照片��问"能力，用户可以只选一部分照片给应用��问，
+            // ���要单独请求 READ_MEDIA_VISUAL_USER_SELECTED 权限，配合 READ_MEDIA_IMAGES 一起使用
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
                         != PackageManager.PERMISSION_GRANTED) {
@@ -226,7 +216,7 @@ public class PermissionHelper {
                 permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
             }
         } else {
-            // Android 12 及以下：需要读写外部存储的权限
+            // Android 12 及以下：需要读写外部存��的权限
             if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -247,7 +237,7 @@ public class PermissionHelper {
         }
 
         // 将列表转为数组，通过 Activity Result API 批量请求
-        // 【初学者理解】系统权限请求接口只接受数组格式，所以要把 List 转成数组
+        // 【初学者理解】系统权限请求接口只接受数组格式，所以要把 List ��成数组
         String[] permissions = permissionsToRequest.toArray(new String[0]);
         permissionLauncher.launch(permissions);
     }
@@ -335,3 +325,8 @@ public class PermissionHelper {
         return prefs.getBoolean(KEY_PERMISSION_GRANTED, false);
     }
 }
+
+
+
+
+

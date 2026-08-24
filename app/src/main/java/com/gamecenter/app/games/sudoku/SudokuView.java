@@ -155,6 +155,30 @@ public class SudokuView extends View {
     }
 
     /**
+     * 2026-08-23 P2-2：从存档恢复棋盘数据（中断续玩）。
+     *
+     * <p>恢复棋盘矩阵与题面固定标记，重置错误标记、笔记与选中状态；
+     * 错误标记由 Activity 恢复后对玩家填入的数字重新计算并调用 setError。</p>
+     *
+     * @param board   棋盘矩阵（0=空，含题面与玩家填入的数字）
+     * @param isGiven 题面固定数字标记
+     */
+    public void restoreState(int[][] board, boolean[][] isGiven) {
+        this.board = board;
+        this.isGiven = isGiven;
+        this.isError = new boolean[GRID_SIZE][GRID_SIZE];
+        // 重置笔记
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                notes[r][c] = new HashSet<>();
+            }
+        }
+        selectedRow = -1;
+        selectedCol = -1;
+        invalidate();
+    }
+
+    /**
      * 切换指定格子的候选数字标记。
      */
     public void toggleNote(int row, int col, int num) {

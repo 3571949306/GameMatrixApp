@@ -1,6 +1,7 @@
 package com.gamecenter.app.ui
 
 import android.content.Context
+import com.gamecenter.app.core.threading.AppExecutors
 
 /**
  * Batch 12-2 (ACHIEVEMENT_RECENT_UNLOCKED_BANNER): 首页"最近解锁成就"横幅数据助手。
@@ -21,10 +22,37 @@ object RecentAchievementHelper {
     )
 
     /**
-     * 获取最近解锁的成就，若无任何已解锁成就则返回 null。
+     * 异步获取最近解锁的成就，回调在主线程执行。
+     * 若无任何已解锁成就或查询失败，回调传 null。
      */
     @JvmStatic
+    fun getRecentAsync(context: Context, callback: (RecentAchievement?) -> Unit) {
+        AppExecutors.io().execute {
+            try {
+                val dao = com.gamecenter.app.database.AppDatabase.getDatabase(context.applicationContext).achievementDao()
+                val unlocked = dao.getUnlockedSync()
+                val result = if (unlocked.isEmpty()) {
+                    null
+                } else {
+                    val best = unlocked.maxByOrNull { it.unlockedAt }
+                    if (best == null || best.unlockedAt <= 0L) null
+                    else RecentAchievement(best.achievementId, best.unlockedAt)
+                }
+                AppExecutors.runOnMain { callback(result) }
+            } catch (e: Exception) {
+                android.util.Log.w("RecentAchievementHelper", "查询最近成就失败", e)
+                AppExecutors.runOnMain { callback(null) }
+            }
+        }
+    }
+
+    /**
+     * @deprecated 同步版本在主线程执行 Room 查询会导致 ANR/崩溃，请使用 {@link #getRecentAsync}
+     */
+    @Deprecated("同步版本在主线程执行 Room 查询会导致 ANR/崩溃，请使用 getRecentAsync", ReplaceWith("getRecentAsync(context) { result -> /* handle result */ }"))
+    @JvmStatic
     fun getRecent(context: Context): RecentAchievement? {
+        // 仅保留用于兼容旧调用，实际应迁移到 getRecentAsync
         try {
             val dao = com.gamecenter.app.database.AppDatabase.getDatabase(context).achievementDao()
             val unlocked = dao.getUnlockedSync()

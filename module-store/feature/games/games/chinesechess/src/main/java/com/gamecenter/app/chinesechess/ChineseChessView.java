@@ -54,6 +54,9 @@ import java.util.List;
  */
 public class ChineseChessView extends View {
 
+    /** 默认增强棋盘；简洁模式只关闭装饰，不移除规则反馈。 */
+    private boolean simpleMode = false;
+
     /** 棋盘左右边距（像素），用于棋盘居中 */
     private float boardPadding = 24f;
 
@@ -184,6 +187,11 @@ public class ChineseChessView extends View {
 
     /** 楚河汉界文字画笔 */
     private Paint riverTextPaint;
+
+    /** 增强棋盘的路数坐标与轻木纹画笔。 */
+    private Paint coordinatePaint;
+    private Paint woodGrainPaint;
+    private Paint lastMoveArrowPaint;
 
     /** 走棋动画：当前动画中的棋子 */
     private ChineseChessGame.Piece animatingPiece;
@@ -335,10 +343,30 @@ public class ChineseChessView extends View {
         riverTextPaint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         riverTextPaint.setTextAlign(Paint.Align.CENTER);
 
+        coordinatePaint = new Paint();
+        coordinatePaint.setColor(Color.parseColor("#6D3F24"));
+        coordinatePaint.setAntiAlias(true);
+        coordinatePaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
+        coordinatePaint.setTextAlign(Paint.Align.CENTER);
+
+        woodGrainPaint = new Paint();
+        woodGrainPaint.setColor(Color.parseColor("#8D5A32"));
+        woodGrainPaint.setAlpha(28);
+        woodGrainPaint.setStrokeWidth(1.2f);
+        woodGrainPaint.setAntiAlias(true);
+
+        lastMoveArrowPaint = new Paint();
+        lastMoveArrowPaint.setColor(Color.parseColor("#D88700"));
+        lastMoveArrowPaint.setAlpha(175);
+        lastMoveArrowPaint.setStyle(Paint.Style.STROKE);
+        lastMoveArrowPaint.setStrokeWidth(3f);
+        lastMoveArrowPaint.setAntiAlias(true);
+
         gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 if (locked || isAnimating) return false;
+                performClick();
                 int[] pos = pixelToBoard(e.getX(), e.getY());
                 if (pos != null && cellClickListener != null) {
                     cellClickListener.onCellClick(pos[0], pos[1]);
@@ -357,6 +385,22 @@ public class ChineseChessView extends View {
     public void bindGame(ChineseChessGame game) {
         this.game = game;
         invalidate();
+    }
+
+    /** 切换棋盘样式；true 为简洁版，false 为默认增强版。 */
+    public void setSimpleMode(boolean simpleMode) {
+        if (this.simpleMode == simpleMode) return;
+        this.simpleMode = simpleMode;
+        if (simpleMode) {
+            stopHintPulse();
+        } else if (hintFromX >= 0 && hintToX >= 0) {
+            startHintPulse();
+        }
+        invalidate();
+    }
+
+    public boolean isSimpleMode() {
+        return simpleMode;
     }
 
     /**
@@ -447,6 +491,7 @@ public class ChineseChessView extends View {
 
     private void startHintPulse() {
         stopHintPulse();
+        if (simpleMode) return;
         hintPulseAnimator = ValueAnimator.ofFloat(0f, 1f);
         hintPulseAnimator.setDuration(1200);
         hintPulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
@@ -500,9 +545,9 @@ public class ChineseChessView extends View {
      *   <li>棋盘背景</li>
      *   <li>网格线和九宫斜线</li>
      *   <li>楚河汉界文字</li>
-     *   <li>上一步走棋标记</li>
-     *   <li>选中棋子高亮和合法走法标记</li>
+     *   <li>增强版坐标与木纹装饰</li>
      *   <li>所有棋子（动画中的棋子除外）</li>
+     *   <li>上一步、选中与提示反馈（覆盖在棋子之上，避免被遮挡）</li>
      *   <li>动画中的棋子（最上层）</li>
      * </ol>
      *
@@ -516,10 +561,11 @@ public class ChineseChessView extends View {
         drawBoardBackground(canvas);
         drawGridLines(canvas);
         drawRiverText(canvas);
+        if (!simpleMode) drawCoordinates(canvas);
+        drawPieces(canvas);
         drawLastMove(canvas);
         drawSelected(canvas);
         drawHint(canvas);
-        drawPieces(canvas);
         drawAnimatingPiece(canvas);
     }
 
@@ -531,7 +577,8 @@ public class ChineseChessView extends View {
      */
     private void drawBoardBackground(Canvas canvas) {
         Paint outerPaint = new Paint();
-        outerPaint.setColor(Color.parseColor("#3E2723"));
+        outerPaint.setColor(simpleMode
+                ? Color.parseColor("#D7B178") : Color.parseColor("#3E2723"));
         outerPaint.setAntiAlias(true);
         canvas.drawRect(0, 0, getWidth(), getHeight(), outerPaint);
 
@@ -539,14 +586,27 @@ public class ChineseChessView extends View {
                 boardLeft - boardPadding, boardTop - boardPadding,
                 boardLeft + cellSize * 8 + boardPadding, boardTop + cellSize * 9 + boardPadding);
 
-        LinearGradient gradient = new LinearGradient(
-                boardRect.left, boardRect.top, boardRect.left, boardRect.bottom,
-                Color.parseColor("#DEB887"), Color.parseColor("#D2A679"),
-                Shader.TileMode.CLAMP);
         Paint bgPaint = new Paint();
-        bgPaint.setShader(gradient);
         bgPaint.setAntiAlias(true);
+        if (simpleMode) {
+            bgPaint.setColor(Color.parseColor("#E4BF87"));
+        } else {
+            LinearGradient gradient = new LinearGradient(
+                    boardRect.left, boardRect.top, boardRect.left, boardRect.bottom,
+                    Color.parseColor("#F1D39A"), Color.parseColor("#C98E51"),
+                    Shader.TileMode.CLAMP);
+            bgPaint.setShader(gradient);
+        }
         canvas.drawRect(boardRect, bgPaint);
+
+        if (!simpleMode) {
+            float step = Math.max(cellSize * 0.34f, 14f);
+            for (float y = boardRect.top + step; y < boardRect.bottom; y += step) {
+                float bend = (float) Math.sin(y * 0.035f) * cellSize * 0.06f;
+                canvas.drawLine(boardRect.left + cellSize * 0.12f, y,
+                        boardRect.right - cellSize * 0.12f, y + bend, woodGrainPaint);
+            }
+        }
     }
 
     /**
@@ -600,13 +660,15 @@ public class ChineseChessView extends View {
         canvas.drawRect(boardLeft, boardTop,
                 boardLeft + 8 * cellSize, boardTop + 9 * cellSize, thickLinePaint);
 
-        // L形角标装饰
-        float cornerLen = cellSize * 0.3f;
-        float cornerOffset = cellSize * 0.08f;
-        drawCornerMark(canvas, boardLeft - cornerOffset, boardTop - cornerOffset, cornerLen, 1, 1);
-        drawCornerMark(canvas, boardLeft + 8 * cellSize + cornerOffset, boardTop - cornerOffset, cornerLen, -1, 1);
-        drawCornerMark(canvas, boardLeft - cornerOffset, boardTop + 9 * cellSize + cornerOffset, cornerLen, 1, -1);
-        drawCornerMark(canvas, boardLeft + 8 * cellSize + cornerOffset, boardTop + 9 * cellSize + cornerOffset, cornerLen, -1, -1);
+        if (!simpleMode) {
+            // L形角标装饰
+            float cornerLen = cellSize * 0.3f;
+            float cornerOffset = cellSize * 0.08f;
+            drawCornerMark(canvas, boardLeft - cornerOffset, boardTop - cornerOffset, cornerLen, 1, 1);
+            drawCornerMark(canvas, boardLeft + 8 * cellSize + cornerOffset, boardTop - cornerOffset, cornerLen, -1, 1);
+            drawCornerMark(canvas, boardLeft - cornerOffset, boardTop + 9 * cellSize + cornerOffset, cornerLen, 1, -1);
+            drawCornerMark(canvas, boardLeft + 8 * cellSize + cornerOffset, boardTop + 9 * cellSize + cornerOffset, cornerLen, -1, -1);
+        }
     }
 
     private void drawCornerMark(Canvas canvas, float cx, float cy, float len, float dirX, float dirY) {
@@ -625,6 +687,8 @@ public class ChineseChessView extends View {
         riverTextPaint.setTextSize(cellSize * 0.45f);
         canvas.drawText("楚  河", boardLeft + 2 * cellSize, riverY + riverTextPaint.getTextSize() / 3, riverTextPaint);
         canvas.drawText("汉  界", boardLeft + 6 * cellSize, riverY + riverTextPaint.getTextSize() / 3, riverTextPaint);
+
+        if (simpleMode) return;
 
         Paint wavePaint = new Paint();
         wavePaint.setColor(Color.parseColor("#5D4037"));
@@ -652,6 +716,20 @@ public class ChineseChessView extends View {
         }
     }
 
+    /** 增强版显示双方路数，帮助玩家阅读棋谱与复盘。 */
+    private void drawCoordinates(Canvas canvas) {
+        String[] redFiles = {"九", "八", "七", "六", "五", "四", "三", "二", "一"};
+        coordinatePaint.setTextSize(Math.max(cellSize * 0.20f, 11f));
+        float topY = Math.max(coordinatePaint.getTextSize(), boardTop - cellSize * 0.14f);
+        float bottomY = Math.min(getHeight() - 2f,
+                boardTop + 9 * cellSize + cellSize * 0.27f);
+        for (int col = 0; col < ChineseChessGame.COLS; col++) {
+            float x = boardLeft + col * cellSize;
+            canvas.drawText(String.valueOf(col + 1), x, topY, coordinatePaint);
+            canvas.drawText(redFiles[col], x, bottomY, coordinatePaint);
+        }
+    }
+
     /**
      * 绘制上一步走棋的标记。
      * <p>在起始位置和目标位置绘制橙色圆环标记。
@@ -660,14 +738,36 @@ public class ChineseChessView extends View {
      */
     private void drawLastMove(Canvas canvas) {
         if (lastFromX < 0 || lastToX < 0) return;
-        float radius = cellSize * 0.38f;
+        float radius = cellSize * (simpleMode ? 0.31f : 0.40f);
 
         float fromPx = boardLeft + lastFromX * cellSize;
         float fromPy = boardTop + lastFromY * cellSize;
-        canvas.drawCircle(fromPx, fromPy, radius, lastMovePaint);
-
         float toPx = boardLeft + lastToX * cellSize;
         float toPy = boardTop + lastToY * cellSize;
+
+        if (!simpleMode) {
+            float dx = toPx - fromPx;
+            float dy = toPy - fromPy;
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+            if (distance > cellSize * 0.8f) {
+                float nx = dx / distance;
+                float ny = dy / distance;
+                float startX = fromPx + nx * radius;
+                float startY = fromPy + ny * radius;
+                float endX = toPx - nx * radius;
+                float endY = toPy - ny * radius;
+                canvas.drawLine(startX, startY, endX, endY, lastMoveArrowPaint);
+                float head = cellSize * 0.14f;
+                float angle = (float) Math.atan2(dy, dx);
+                for (float delta : new float[]{2.55f, -2.55f}) {
+                    canvas.drawLine(endX, endY,
+                            endX + head * (float) Math.cos(angle + delta),
+                            endY + head * (float) Math.sin(angle + delta),
+                            lastMoveArrowPaint);
+                }
+            }
+        }
+        canvas.drawCircle(fromPx, fromPy, radius, lastMovePaint);
         canvas.drawCircle(toPx, toPy, radius, lastMovePaint);
     }
 
@@ -709,6 +809,12 @@ public class ChineseChessView extends View {
         float fromPy = boardTop + hintFromY * cellSize;
         float toPx = boardLeft + hintToX * cellSize;
         float toPy = boardTop + hintToY * cellSize;
+
+        if (simpleMode) {
+            canvas.drawCircle(fromPx, fromPy, radius + 2f, hintFromPaint);
+            canvas.drawCircle(toPx, toPy, radius + 2f, hintToPaint);
+            return;
+        }
 
         Paint fromPulsePaint = new Paint(hintFromPaint);
         fromPulsePaint.setAlpha((int) (120 + 135 * pulse));
@@ -814,7 +920,7 @@ public class ChineseChessView extends View {
      * @param radius 棋子半径（像素）
      */
     private void drawSinglePiece(Canvas canvas, ChineseChessGame.Piece piece, float cx, float cy, float radius) {
-        canvas.drawCircle(cx + 2, cy + 2, radius, pieceShadowPaint);
+        if (!simpleMode) canvas.drawCircle(cx + 2, cy + 2, radius, pieceShadowPaint);
 
         Paint bgPaint = piece.side == ChineseChessGame.Side.RED ? redPiecePaint : blackPiecePaint;
         canvas.drawCircle(cx, cy, radius, bgPaint);
@@ -822,8 +928,10 @@ public class ChineseChessView extends View {
         Paint borderPaint = piece.side == ChineseChessGame.Side.RED ? redPieceBorderPaint : blackPieceBorderPaint;
         canvas.drawCircle(cx, cy, radius, borderPaint);
 
-        Paint innerPaint = piece.side == ChineseChessGame.Side.RED ? redInnerPaint : blackInnerPaint;
-        canvas.drawCircle(cx, cy, radius * 0.85f, innerPaint);
+        if (!simpleMode) {
+            Paint innerPaint = piece.side == ChineseChessGame.Side.RED ? redInnerPaint : blackInnerPaint;
+            canvas.drawCircle(cx, cy, radius * 0.85f, innerPaint);
+        }
 
         Paint textPaint = piece.side == ChineseChessGame.Side.RED ? redTextPaint : blackTextPaint;
         textPaint.setTextSize(radius * 1.2f);
@@ -891,6 +999,8 @@ public class ChineseChessView extends View {
      * <p>用于重新开始游戏时，立即终止未完成的走棋动画。
      */
     public void cancelAnimation() {
+        // ValueAnimator.cancel() 也可能触发 onAnimationEnd；先清空业务回调，避免旧局落子。
+        onAnimationEnd = null;
         if (currentAnimator != null && currentAnimator.isRunning()) {
             currentAnimator.cancel();
         }
@@ -932,6 +1042,12 @@ public class ChineseChessView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         gestureDetector.onTouchEvent(event);
+        return true;
+    }
+
+    @Override
+    public boolean performClick() {
+        super.performClick();
         return true;
     }
 }

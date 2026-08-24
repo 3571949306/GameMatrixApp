@@ -41,7 +41,8 @@ public class Game2048View extends View {
 
     // ==================== 常量 ====================
 
-    private static final int GRID_SIZE = 4;
+    // 2026-08-23 P2-2：改为 public，供 Activity 序列化存档时确定棋盘尺寸
+    public static final int GRID_SIZE = 4;
 
     // 方块颜色映射
     private static final int[] TILE_COLORS = {
@@ -94,6 +95,9 @@ public class Game2048View extends View {
 
     private GestureDetector gestureDetector;
     private final Paint paintBg = new Paint();
+
+    /** 2026-08-23 P0-3：onDraw 复用 RectF，消除每次重绘 17 次对象分配 */
+    private final RectF reusableRect = new RectF();
     private final Paint paintCellBg = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintTile = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint paintText = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -208,6 +212,38 @@ public class Game2048View extends View {
 
     /** 2026-06-23: 获取当前分数（撤销时用） */
     public int getScore() { return score; }
+
+    // ==================== 2026-08-23 P2-2: 中断续玩存档支持 ====================
+
+    /** 2026-08-23 P2-2：获取当前网格深拷贝（供 Activity 序列化存档） */
+    public int[][] getGrid() {
+        int[][] copy = new int[GRID_SIZE][GRID_SIZE];
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(grid[r], 0, copy[r], 0, GRID_SIZE);
+        }
+        return copy;
+    }
+
+    /** 2026-08-23 P2-2：查询游戏是否真正结束（达成 2048 后可继续的不算结束） */
+    public boolean isGameOver() { return gameOver && !canContinue; }
+
+    /**
+     * 2026-08-23 P2-2：从存档恢复棋盘与分数（由 {@link Game2048Activity} 调用）。
+     * 恢复后作为进行中对局继续，撤销/重做历史清空。
+     */
+    public void restoreState(int[][] savedGrid, int savedScore) {
+        for (int r = 0; r < GRID_SIZE; r++) {
+            System.arraycopy(savedGrid[r], 0, grid[r], 0, GRID_SIZE);
+        }
+        score = savedScore;
+        gameOver = false;
+        won = false;
+        canContinue = false;
+        history.clear();
+        redoStack.clear();
+        notifyScore();
+        invalidate();
+    }
 
     // ==================== 移动逻辑 ====================
 
@@ -413,14 +449,17 @@ public class Game2048View extends View {
         float gap = padding * 0.3f;
 
         // 背景
-        canvas.drawRoundRect(new RectF(0, 0, w, h), 12, 12, paintBg);
+        // 2026-08-23 P0-3：复用 RectF
+        reusableRect.set(0, 0, w, h);
+        canvas.drawRoundRect(reusableRect, 12, 12, paintBg);
 
         // 单元格背景和方块
         for (int r = 0; r < GRID_SIZE; r++) {
             for (int c = 0; c < GRID_SIZE; c++) {
                 float x = startX + c * (cellSize + gap) + gap;
                 float y = startY + r * (cellSize + gap) + gap;
-                RectF rect = new RectF(x, y, x + cellSize, y + cellSize);
+                RectF rect = reusableRect;
+                rect.set(x, y, x + cellSize, y + cellSize);
 
                 // 单元格背景
                 paintCellBg.setColor(COLOR_CELL_BG);

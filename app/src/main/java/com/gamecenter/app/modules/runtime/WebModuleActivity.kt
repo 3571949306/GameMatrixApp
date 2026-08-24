@@ -72,10 +72,19 @@ class WebModuleActivity : AppCompatActivity() {
             if (uri.scheme != "https" || uri.host != HOST) return blocked()
             val prefix = "/$moduleId/"
             if (!uri.path.orEmpty().startsWith(prefix)) return blocked()
-            val relative = Uri.decode(uri.path.orEmpty().removePrefix(prefix))
-            val target = File(moduleRoot, relative).canonicalFile
-            val rootPath = moduleRoot.path + File.separator
-            if (!target.path.startsWith(rootPath) || !target.isFile) return blocked()
+
+            // ����复路径遍历攻击：先解码，再规范化，最后校验
+            // 1. URL 解码（处理双重编码等情况）
+            val decodedPath = Uri.decode(uri.path.orEmpty().removePrefix(prefix))
+            // 2. ��建目标文件并获取规范路径（解��符号��接、移除 . 和 ..）
+            val target = File(moduleRoot, decodedPath).canonicalFile
+            // 3. ���取模��根目录的规范路径
+            val rootCanonicalPath = moduleRoot.canonicalFile.path + File.separator
+            // 4. 双重校验：目标文件必须在模��根目录内，且必须是文件（非目录）
+            if (!target.path.startsWith(rootCanonicalPath) || !target.isFile) {
+                return blocked()
+            }
+
             val extension = target.extension.lowercase()
             val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "application/octet-stream"
             return WebResourceResponse(

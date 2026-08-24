@@ -50,6 +50,9 @@ public class Game2048Activity extends BaseGameActivity {
     /** 已合成的最大数字 */
     private int maxTileValue = 0;
 
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
     /** 音效播放器，用于滑动和合并音效 */
     private SoundPool soundPool;
 
@@ -93,6 +96,15 @@ public class Game2048Activity extends BaseGameActivity {
         game2048View.setOnScoreChangeListener(score -> {
             updateScore(score);
             checkAchievement("score", score);
+            // 2026-08-23 P2-2：游戏结束后在屏幕上点击重开的新局不经过 startGame()，
+            // 这里借首次分数回调恢复运行标记，保证后续存档正常
+            if (!isGameRunning && !game2048View.isGameOver()) {
+                isGameRunning = true;
+                gameStartTime = System.currentTimeMillis();
+                maxTileValue = 0;
+            }
+            // 2026-08-23 P2-2：每次有效滑动合并后（afterMove 触发分数回调）保存进度
+            saveProgress();
         });
 
         game2048View.setOnTileMergedListener(newValue -> {
@@ -105,6 +117,8 @@ public class Game2048Activity extends BaseGameActivity {
         game2048View.setOnGameOverListener(score -> {
             usageStore.recordLoss(GAME_ID_VALUE);
             isGameRunning = false;
+            // 2026-08-23 P2-2：对局结束，清除存档
+            if (saveManager != null) saveManager.clear(GAME_ID_VALUE);
         });
 
         game2048View.setOnWinListener(score -> {
@@ -167,6 +181,88 @@ public class Game2048Activity extends BaseGameActivity {
                 }
             });
             ((android.widget.FrameLayout) gameContentContainer).addView(btnRedo);
+        }
+
+        // 2026-08-23 P2-2：初始化存档管理器；2048 无开始按钮（进入即开始），
+        // 视图就绪后经 beginPlay 检测未完成存档再开局
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        game2048View.post(this::beginPlay);
+    }
+
+    /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay() {
+        if (saveManager != null && saveManager.hasSave(GAME_ID_VALUE)) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(GAME_ID_VALUE);
+                        startGame();
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        org.json.JSONObject state = saveManager == null ? null : saveManager.load(GAME_ID_VALUE);
+        if (state == null) {
+            startGame();
+            return;
+        }
+        try {
+            org.json.JSONArray rows = state.getJSONArray("grid");
+            int[][] savedGrid = new int[Game2048View.GRID_SIZE][Game2048View.GRID_SIZE];
+            for (int r = 0; r < Game2048View.GRID_SIZE && r < rows.length(); r++) {
+                org.json.JSONArray row = rows.getJSONArray(r);
+                for (int c = 0; c < Game2048View.GRID_SIZE && c < row.length(); c++) {
+                    savedGrid[r][c] = row.getInt(c);
+                }
+            }
+            int savedScore = state.optInt("score", 0);
+            // 结束态存档（异常残留）直接新开一局
+            if (state.optBoolean("gameOver", false)) {
+                startGame();
+                return;
+            }
+            game2048View.restoreState(savedGrid, savedScore);
+            updateScore(savedScore);
+            isGameRunning = true;
+            isGamePaused = false;
+            gameStartTime = System.currentTimeMillis();
+        } catch (Exception e) {
+            Log.w(TAG, "存档恢复失败，新开一局: " + e.getMessage());
+            startGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning || game2048View == null) return;
+        try {
+            org.json.JSONObject state = new org.json.JSONObject();
+            org.json.JSONArray rows = new org.json.JSONArray();
+            int[][] grid = game2048View.getGrid();
+            for (int r = 0; r < grid.length; r++) {
+                org.json.JSONArray row = new org.json.JSONArray();
+                for (int c = 0; c < grid[r].length; c++) {
+                    row.put(grid[r][c]);
+                }
+                rows.put(row);
+            }
+            state.put("grid", rows);
+            state.put("score", game2048View.getScore());
+            state.put("gameOver", game2048View.isGameOver());
+            saveManager.save(GAME_ID_VALUE, state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
         }
     }
 

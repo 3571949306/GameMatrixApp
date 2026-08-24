@@ -45,6 +45,12 @@ public class MinesweeperActivity extends BaseGameActivity {
     /** 游戏视图 */
     private MinesweeperView minesweeperView;
 
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
+
     // ==================== BaseGameActivity 实现 ====================
 
     @NonNull
@@ -67,36 +73,118 @@ public class MinesweeperActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P2-2：初始化存档管理器
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         minesweeperView = new MinesweeperView(this);
 
         // 设置游戏事件监听
         minesweeperView.setOnGameWinListener(elapsedSeconds -> {
+            // 2026-08-23 P2-2：对局正常结束（胜利），停止保存并清除存档
+            isGameRunning = false;
+            if (saveManager != null) saveManager.clear(GAME_ID_VALUE);
             usageStore.recordWin(GAME_ID_VALUE);
             updateScore(getCurrentScore() + 100);
             checkAchievement("win", elapsedSeconds);
+            // 2026-08-23 P3：胜利反馈
+            if (feedback != null) feedback.feedbackWin();
         });
 
         minesweeperView.setOnGameLoseListener(() -> {
+            // 2026-08-23 P2-2：踩雷失败，清除存档
+            isGameRunning = false;
+            if (saveManager != null) saveManager.clear(GAME_ID_VALUE);
             usageStore.recordLoss(GAME_ID_VALUE);
             checkAchievement("lose", 0);
+            // 2026-08-23 P3：失败反馈
+            if (feedback != null) feedback.feedbackLose();
         });
 
         minesweeperView.setOnCellRevealedListener(revealedCount -> {
             checkAchievement("reveal", revealedCount);
+            // 2026-08-23 P3：翻开格子音效（不震动，避免疲劳）
+            if (feedback != null) feedback.playMove();
         });
+
+        // 2026-08-23 P2-2：玩家翻开/标记后保存续玩进度
+        minesweeperView.setOnStateChangeListener(this::saveProgress);
 
         // 添加视图到容器
         if (gameContentContainer != null) {
             ((android.widget.FrameLayout) gameContentContainer).addView(minesweeperView);
         }
+
+        // 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档。
+        // onCreate 阶段窗口尚未 attach，post 到视图就绪后再弹"继续上局"对话框
+        minesweeperView.post(this::beginPlay);
     }
 
-    @Override
-    protected void startGame() {
+    /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay() {
+        if (saveManager != null && saveManager.hasSave(GAME_ID_VALUE)) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(GAME_ID_VALUE);
+                        startNewGame();
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startNewGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        org.json.JSONObject state = saveManager == null ? null : saveManager.load(GAME_ID_VALUE);
+        if (state == null || !minesweeperView.restoreState(state)) {
+            // 存档缺失或数据损坏，回退新开一局
+            startNewGame();
+            return;
+        }
+        // 同步难度索引（成就判定经 getCurrentDifficulty 读取）
+        int savedDifficulty = state.optInt("difficulty", 1);
+        currentDifficultyIndex = Math.max(0, Math.min(savedDifficulty - 1, 2));
+        long elapsedMs = state.optLong("elapsedMs", 0);
+        isGameRunning = true;
+        isGamePaused = false;
+        gameStartTime = elapsedMs > 0
+                ? System.currentTimeMillis() - elapsedMs
+                : System.currentTimeMillis();
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning) return;
+        try {
+            org.json.JSONObject state = minesweeperView.serializeState();
+            if (state != null) {
+                saveManager.save(GAME_ID_VALUE, state);
+            }
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
+        }
+    }
+
+    /** 2026-08-23 P2-2：新开一局（重置计时与棋盘） */
+    private void startNewGame() {
         isGameRunning = true;
         isGamePaused = false;
         gameStartTime = System.currentTimeMillis();
         minesweeperView.startGame();
+    }
+
+    @Override
+    protected void startGame() {
+        // 2026-08-23 P2-2：框架生命周期入口，委托统一的新开一局逻辑
+        startNewGame();
     }
 
     @Override
@@ -165,5 +253,15 @@ public class MinesweeperActivity extends BaseGameActivity {
                                     @NonNull DifficultyLevel newLevel) {
         if (minesweeperView != null) minesweeperView.setDifficulty(newLevel.level);
         Toast.makeText(this, getString(R.string.game_minesweeper_difficulty_changed, newLevel.name), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
+        }
     }
 }

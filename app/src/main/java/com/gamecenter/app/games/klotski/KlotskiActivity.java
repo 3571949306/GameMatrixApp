@@ -17,6 +17,8 @@ import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
 import com.google.android.material.button.MaterialButton;
 
+import org.json.JSONObject;
+
 import java.util.Locale;
 
 /**
@@ -37,6 +39,12 @@ public class KlotskiActivity extends BaseGameActivity {
     private TextView tvMoves;
     private Handler mainHandler;
     private boolean isHintSearching = false;
+
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,11 +68,88 @@ public class KlotskiActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P2-2：初始化存档管理器
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         if (gameContentContainer instanceof FrameLayout) {
             View contentView = createGameContentView();
             ((FrameLayout) gameContentContainer).addView(contentView);
         }
-        startNewGame();
+        // 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档。
+        // onCreate 阶段窗口尚未 attach，post 到视图就绪后再弹"继续上局"对话框
+        if (klotskiView != null) {
+            klotskiView.post(this::beginPlay);
+        }
+    }
+
+    /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay() {
+        if (saveManager != null && saveManager.hasSave(getGameId())) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(getGameId());
+                        startNewGame();
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startNewGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        JSONObject state = saveManager == null ? null : saveManager.load(getGameId());
+        if (state == null) {
+            startNewGame();
+            return;
+        }
+        try {
+            String boardData = state.getString("board");
+            long elapsedMs = state.optLong("elapsedMs", 0);
+
+            // 视图内部恢复滑块布局与步数，失败返回 null
+            KlotskiGame restored = klotskiView.restoreState(boardData);
+            if (restored == null) {
+                startNewGame();
+                return;
+            }
+            game = restored;
+
+            // 重新绑定胜利/移动监听（新开一局与存档恢复共用）
+            setupGameListeners();
+            tvStatus.setText(R.string.game_klotski_slide_hint);
+            tvMoves.setText(getString(R.string.game_klotski_moves_label, game.getMoves()));
+
+            isGameRunning = true;
+            gameStartTime = System.currentTimeMillis() - elapsedMs;
+        } catch (Exception e) {
+            android.util.Log.w("KlotskiActivity", "存档恢复失败，新开一局: " + e.getMessage());
+            startNewGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning || game == null) return;
+        try {
+            JSONObject state = new JSONObject();
+            // 复用 KlotskiGame.serializeState()：步数 + 各滑块坐标
+            state.put("board", game.serializeState());
+            if (gameStartTime > 0) {
+                state.put("elapsedMs", System.currentTimeMillis() - gameStartTime);
+            }
+            saveManager.save(getGameId(), state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
+        }
     }
 
     private View createGameContentView() {
@@ -144,6 +229,8 @@ public class KlotskiActivity extends BaseGameActivity {
                 klotskiView.invalidate();
                 if (tvMoves != null) tvMoves.setText(getString(R.string.game_klotski_moves_label, game.getMoves()));
                 tvStatus.setText(R.string.game_klotski_undone);
+                // 2026-08-23 P2-2：撤销后棋局已变化，保存进度
+                saveProgress();
             } else {
                 Toast.makeText(this, R.string.game_klotski_no_undo, Toast.LENGTH_SHORT).show();
             }
@@ -162,21 +249,14 @@ public class KlotskiActivity extends BaseGameActivity {
 
         if (klotskiView != null) {
             klotskiView.setGame(game);
-            klotskiView.setOnWinListener(() -> {
-                tvStatus.setText(R.string.game_klotski_win_status);
-                Toast.makeText(this, R.string.game_klotski_win_toast, Toast.LENGTH_SHORT).show();
-                // 2026-06-23: 通关后弹游戏结束 Dialog（含步数+用时）
-                usageStore.recordWin(getGameId());
-                checkAchievement("win", game.getMoves());
-                updateScore(currentScore + 100);
-                showGameEndDialog(true, game.getMoves());
-            });
-            klotskiView.setOnMoveListener(() -> {
-                if (tvMoves != null) {
-                    tvMoves.setText(getString(R.string.game_klotski_moves_label, game.getMoves()));
-                }
-            });
         }
+        // 2026-08-23 P2-2：绑定胜利/移动监听（新开一局与存档恢复共用）
+        setupGameListeners();
+
+        // 2026-08-23 P2-2：新开一局即放弃旧存档，并标记对局进行中
+        if (saveManager != null) saveManager.clear(getGameId());
+        isGameRunning = true;
+        gameStartTime = System.currentTimeMillis();
 
         if (tvStatus != null) {
             tvStatus.setText(R.string.game_klotski_slide_hint);
@@ -184,6 +264,37 @@ public class KlotskiActivity extends BaseGameActivity {
         if (tvMoves != null) {
             tvMoves.setText(getString(R.string.game_klotski_moves_label, 0));
         }
+    }
+
+    /**
+     * 2026-08-23 P2-2：为 klotskiView 绑定胜利/移动监听（新开一局与存档恢复共用）。
+     */
+    private void setupGameListeners() {
+        if (klotskiView == null) return;
+        klotskiView.setOnWinListener(() -> {
+            // 2026-08-23 P2-2：通关判定处——对局结束，清除存档
+            isGameRunning = false;
+            if (saveManager != null) saveManager.clear(getGameId());
+            tvStatus.setText(R.string.game_klotski_win_status);
+            Toast.makeText(this, R.string.game_klotski_win_toast, Toast.LENGTH_SHORT).show();
+            // 2026-08-23 P3：通关反馈
+            if (feedback != null) feedback.feedbackWin();
+            // 2026-06-23: 通关后弹游戏结束 Dialog（含步数+用时）
+            usageStore.recordWin(getGameId());
+            checkAchievement("win", game.getMoves());
+            updateScore(currentScore + 100);
+            showGameEndDialog(true, game.getMoves());
+        });
+        klotskiView.setOnMoveListener(() -> {
+            if (tvMoves != null) {
+                tvMoves.setText(getString(R.string.game_klotski_moves_label, game.getMoves()));
+            }
+            // 2026-08-23 P3：滑块移动音效（通关步数多，不加震动避免疲劳）
+            if (feedback != null) feedback.playMove();
+            // 2026-08-23 P2-2：滑块移动成功后保存进度
+            // （若本次移动恰好通关，onWin 回调稍后触发并清除存档）
+            saveProgress();
+        });
     }
 
     private void showHint() {
@@ -309,5 +420,15 @@ public class KlotskiActivity extends BaseGameActivity {
     private String formatDuration(long ms) {
         long sec = ms / 1000L;
         return String.format(Locale.getDefault(), "%02d:%02d", sec / 60L, sec % 60L);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
+        }
     }
 }

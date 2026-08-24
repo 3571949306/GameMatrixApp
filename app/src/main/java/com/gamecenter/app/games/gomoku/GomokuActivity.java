@@ -105,6 +105,9 @@ public class GomokuActivity extends AppCompatActivity {
     /** P2-7: 对局回放录制器 */
     private com.gamecenter.app.games.replay.ReplayRecorder replayRecorder;
 
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
     /** 大师级AI专门用于提示 */
     private GomokuAI masterAi;
 
@@ -197,6 +200,8 @@ public class GomokuActivity extends AppCompatActivity {
         gomokuView.setInteractive(false);
         gomokuView.setVisibility(View.GONE);
         usageStore = new GameUsageStore(this);
+        // 2026-08-23 P2-2：初始化存档管理器
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
 
         // 初始化音效与震动
         initSoundAndVibration();
@@ -210,7 +215,8 @@ public class GomokuActivity extends AppCompatActivity {
         setupColorSelectionButtons();
 
         // 绑定各个按钮的点击事件
-        findViewById(R.id.btn_start_game).setOnClickListener(v -> startGame(aiDifficulty));
+        // 2026-08-23 P2-2：开始入口改为先经 beginPlay 检测未完成存档
+        findViewById(R.id.btn_start_game).setOnClickListener(v -> beginPlay());
         findViewById(R.id.btn_tutorial).setOnClickListener(v ->
                 GameTutorialHelper.showGomokuTutorial(this));
         findViewById(R.id.btn_undo).setOnClickListener(v -> handleUndo());
@@ -358,6 +364,112 @@ public class GomokuActivity extends AppCompatActivity {
     }
 
     /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay() {
+        if (saveManager != null && saveManager.hasSave(GAME_ID)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(GAME_ID);
+                        startGame(aiDifficulty);
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startGame(aiDifficulty);
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        org.json.JSONObject state = saveManager == null ? null : saveManager.load(GAME_ID);
+        if (state == null) {
+            startGame(aiDifficulty);
+            return;
+        }
+        try {
+            // 通过重放落子历史重建棋盘（makeMove 会同步恢复历史/moveCount/lastMove）
+            game.reset();
+            org.json.JSONArray history = state.getJSONArray("history");
+            for (int i = 0; i < history.length(); i++) {
+                org.json.JSONArray move = history.getJSONArray(i);
+                game.makeMove(move.getInt(0), move.getInt(1), move.getInt(2));
+            }
+            int difficulty = state.optInt("aiDifficulty", aiDifficulty);
+            int savedPlayerColor = state.optInt("playerColor", GomokuGame.BLACK);
+            int currentPlayer = state.optInt("currentPlayer", GomokuGame.BLACK);
+            game.setCurrentPlayer(currentPlayer);
+
+            // 作废可能进行中的后台 AI 计算，避免旧结果落子到恢复后的棋盘
+            aiGeneration++;
+            aiThinking = false;
+
+            aiDifficulty = difficulty;
+            ai = new GomokuAI(difficulty);
+            selectDifficulty(difficulty);
+            selectPlayerColor(savedPlayerColor);
+
+            // 切换到对局界面（显示棋盘与控制面板，隐藏难度选择面板）
+            difficultyPanel.setVisibility(View.GONE);
+            controlPanel.setVisibility(View.VISIBLE);
+            gomokuView.setInteractive(true);
+            gomokuView.setVisibility(View.VISIBLE);
+            gomokuView.setGame(game);
+            gomokuView.clearHover();
+            gomokuView.clearHint();
+            gomokuView.setAiThinking(false);
+            gameStartElapsedMs = SystemClock.elapsedRealtime();
+            timerHandler.removeCallbacks(timerRunnable);
+            timerHandler.post(timerRunnable);
+            gomokuView.invalidate();
+
+            // 恢复的对局重新开始回放录制（旧走法从恢复点继续记）
+            replayRecorder = new com.gamecenter.app.games.replay.ReplayRecorder(this, GAME_ID);
+            replayRecorder.startRecording(difficulty);
+
+            // 若存档停在 AI 回合，恢复后触发 AI 行动
+            if (game.getCurrentPlayer() == aiPlayer && !game.isGameOver()) {
+                triggerAiMove();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "存档恢复失败，新开一局: " + e.getMessage());
+            startGame(aiDifficulty);
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        // 本 Activity 未使用 BaseGameActivity 的 isGameRunning，
+        // 以"对局界面可见且未结束"作为运行中判据
+        if (saveManager == null || game == null || game.isGameOver()) return;
+        if (difficultyPanel.getVisibility() != View.GONE) return;
+        try {
+            org.json.JSONObject state = new org.json.JSONObject();
+            // 保存落子历史（重放即可完整重建棋盘、手数与悔棋栈）
+            org.json.JSONArray history = new org.json.JSONArray();
+            for (GomokuGame.MoveRecord record : game.getMoveHistory()) {
+                org.json.JSONArray move = new org.json.JSONArray();
+                move.put(record.x);
+                move.put(record.y);
+                move.put(record.player);
+                history.put(move);
+            }
+            state.put("history", history);
+            state.put("currentPlayer", game.getCurrentPlayer());
+            state.put("aiDifficulty", aiDifficulty);
+            state.put("playerColor", playerColor);
+            state.put("moveCount", game.getMoveCount());
+            saveManager.save(GAME_ID, state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
+        }
+    }
+
+    /**
      * 开始游戏，根据选择的难度和先手创建AI引擎。
      *
      * @param difficulty AI难度等级（1~4）
@@ -420,6 +532,8 @@ public class GomokuActivity extends AppCompatActivity {
             stopTimer();
             return;
         }
+        // 2026-08-23 P2-2：玩家落子成功后保存进度（轮到 AI）
+        saveProgress();
         triggerAiMove();
     }
 
@@ -463,6 +577,10 @@ public class GomokuActivity extends AppCompatActivity {
                 if (game.isGameOver()) {
                     stopTimer();
                 }
+                // 2026-08-23 P2-2：AI 落子后保存进度（轮到玩家），对局结束则跳过
+                if (!game.isGameOver()) {
+                    saveProgress();
+                }
                 gomokuView.invalidate();
             };
             if (delay > 0L) {
@@ -500,6 +618,8 @@ public class GomokuActivity extends AppCompatActivity {
         if (undoCount > 0) {
             gomokuView.clearHint();
             gomokuView.invalidate();
+            // 2026-08-23 P2-2：悔棋后局面变化，同步保存进度
+            saveProgress();
         }
     }
 
@@ -629,6 +749,8 @@ public class GomokuActivity extends AppCompatActivity {
      */
     private void handleGameOver(Integer winner) {
         stopTimer();
+        // 2026-08-23 P2-2：对局正常结束（胜/负/和/认输），清除存档
+        if (saveManager != null) saveManager.clear(GAME_ID);
         // P2-7: 结束回放录制
         if (replayRecorder != null && replayRecorder.isRecording()) {
             String result;
