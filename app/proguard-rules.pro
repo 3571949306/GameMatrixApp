@@ -203,6 +203,13 @@
 -keep class com.gamecenter.app.BuildConfig$* { *; }
 -keep class com.gamecenter.app.ColorSchemeManager { *; }
 -keep class com.gamecenter.app.ColorSchemeManager$* { *; }
+# 2026-08-23 模块分层回归修复：模块化游戏 APK（chinesechess 等）直接调用宿主
+# 游戏工具类。R8 混淆重命名后模块侧 ClassNotFoundException / NoSuchMethodError
+# （表现：中国象棋启动即崩溃退出）。
+-keep class com.gamecenter.app.games.GameUsageStore { *; }
+-keep class com.gamecenter.app.games.GameUsageStore$* { *; }
+-keep class com.gamecenter.app.games.GameTutorialHelper { *; }
+-keep class com.gamecenter.app.games.GameTutorialHelper$* { *; }
 
 # 宿主视图与工具类：模块 APK 直接引用宿主自定义 View / 工具类。
 -keep class com.gamecenter.app.views.** { *; }

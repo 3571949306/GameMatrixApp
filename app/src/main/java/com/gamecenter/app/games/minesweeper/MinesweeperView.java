@@ -13,6 +13,9 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.Random;
 
 /**
@@ -75,6 +78,8 @@ public class MinesweeperView extends View {
     public interface OnGameWinListener { void onGameWin(long elapsedSeconds); }
     public interface OnGameLoseListener { void onGameLose(); }
     public interface OnCellRevealedListener { void onCellRevealed(int revealedCount); }
+    /** 2026-08-23 P2-2：格子状态变化监听（玩家翻开/标记后触发，用于保存续玩存档） */
+    public interface OnStateChangeListener { void onStateChanged(); }
 
     // ==================== 游戏状态 ====================
 
@@ -118,6 +123,8 @@ public class MinesweeperView extends View {
     private OnGameWinListener winListener;
     private OnGameLoseListener loseListener;
     private OnCellRevealedListener cellRevealedListener;
+    /** 2026-08-23 P2-2：格子状态变化监听器（存档保存点） */
+    private OnStateChangeListener stateChangeListener;
 
     // ==================== 构造函数 ====================
 
@@ -143,6 +150,9 @@ public class MinesweeperView extends View {
     public void setOnGameWinListener(OnGameWinListener l) { this.winListener = l; }
     public void setOnGameLoseListener(OnGameLoseListener l) { this.loseListener = l; }
     public void setOnCellRevealedListener(OnCellRevealedListener l) { this.cellRevealedListener = l; }
+
+    /** 2026-08-23 P2-2：设置格子状态变化监听器（存档保存点） */
+    public void setOnStateChangeListener(OnStateChangeListener l) { this.stateChangeListener = l; }
 
     /**
      * 设置难度
@@ -177,6 +187,117 @@ public class MinesweeperView extends View {
     public void pauseGame() { /* 事件驱动 */ }
     public void resumeGame() { /* 事件驱动 */ }
     public void stopGame() { gameStarted = false; }
+
+    // ==================== 存档序列化（2026-08-23 P2-2 中断续玩） ====================
+
+    /**
+     * 2026-08-23 P2-2：序列化当前局面为 JSON（中断续玩存档用）。
+     *
+     * <p>包含难度/棋盘尺寸、雷区分布、格子状态（未翻开/已翻开/已标记）、
+     * 翻开与标记计数及已用时间；相邻雷数可由雷区重算，不单独保存。</p>
+     *
+     * @return 局面状态 JSONObject；游戏未开始时返回 null
+     */
+    public JSONObject serializeState() {
+        if (!gameStarted) return null;
+        try {
+            JSONObject state = new JSONObject();
+            state.put("difficulty", difficulty);
+            state.put("rows", rows);
+            state.put("cols", cols);
+            state.put("mineCount", mineCount);
+            state.put("firstClick", firstClick);
+            state.put("revealedCount", revealedCount);
+            state.put("flaggedCount", flaggedCount);
+            if (startTime > 0) {
+                state.put("elapsedMs", System.currentTimeMillis() - startTime);
+            }
+            JSONArray mineRows = new JSONArray();
+            JSONArray stateRows = new JSONArray();
+            for (int r = 0; r < rows; r++) {
+                JSONArray mineRow = new JSONArray();
+                JSONArray cellRow = new JSONArray();
+                for (int c = 0; c < cols; c++) {
+                    mineRow.put(mines[r][c] ? 1 : 0);
+                    cellRow.put(cellState[r][c]);
+                }
+                mineRows.put(mineRow);
+                stateRows.put(cellRow);
+            }
+            state.put("mines", mineRows);
+            state.put("cellState", stateRows);
+            return state;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 2026-08-23 P2-2：从存档 JSON 恢复局面（中断续玩）。
+     *
+     * <p>恢复难度、雷区分布与格子状态，并由雷区重算相邻雷数；
+     * 已用时间按存档时间戳回推 startTime。</p>
+     *
+     * @param state 存档状态 JSONObject
+     * @return 恢复是否成功（数据缺失/损坏返回 false，调用方应回退新开一局）
+     */
+    public boolean restoreState(JSONObject state) {
+        if (state == null) return false;
+        try {
+            int savedDifficulty = state.getInt("difficulty");
+            int savedRows = state.getInt("rows");
+            int savedCols = state.getInt("cols");
+            setDifficulty(savedDifficulty);
+            // 存档棋盘尺寸与难度不匹配视为损坏数据
+            if (rows != savedRows || cols != savedCols) return false;
+
+            mines = new boolean[rows][cols];
+            adjacentCount = new int[rows][cols];
+            cellState = new int[rows][cols];
+            revealed = new boolean[rows][cols];
+
+            JSONArray mineRows = state.getJSONArray("mines");
+            JSONArray stateRows = state.getJSONArray("cellState");
+            for (int r = 0; r < rows; r++) {
+                JSONArray mineRow = mineRows.getJSONArray(r);
+                JSONArray cellRow = stateRows.getJSONArray(r);
+                for (int c = 0; c < cols; c++) {
+                    mines[r][c] = mineRow.getInt(c) == 1;
+                    cellState[r][c] = cellRow.getInt(c);
+                    revealed[r][c] = cellState[r][c] == STATE_REVEALED;
+                }
+            }
+            // 由雷区重算相邻雷数（与 placeMines 逻辑一致）
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    if (mines[r][c]) continue;
+                    int count = 0;
+                    for (int dr = -1; dr <= 1; dr++) {
+                        for (int dc = -1; dc <= 1; dc++) {
+                            int nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && mines[nr][nc]) {
+                                count++;
+                            }
+                        }
+                    }
+                    adjacentCount[r][c] = count;
+                }
+            }
+
+            firstClick = state.optBoolean("firstClick", false);
+            revealedCount = state.optInt("revealedCount", 0);
+            flaggedCount = state.optInt("flaggedCount", 0);
+            gameStarted = true;
+            gameOver = false;
+            gameWon = false;
+            long elapsedMs = state.optLong("elapsedMs", 0);
+            startTime = elapsedMs > 0 ? System.currentTimeMillis() - elapsedMs : 0;
+            invalidate();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     // ==================== 逻辑 ====================
 
@@ -386,6 +507,10 @@ public class MinesweeperView extends View {
         if (cellRevealedListener != null) cellRevealedListener.onCellRevealed(revealedCount);
         checkWin();
         invalidate();
+        // 2026-08-23 P2-2：玩家翻开后保存进度
+        // （踩雷路径提前 return 不保存——失败局面由 Activity 清除存档；
+        //   胜利路径 checkWin 已回调 Activity 置 isGameRunning=false，保存会被跳过）
+        if (stateChangeListener != null) stateChangeListener.onStateChanged();
     }
 
     private void toggleFlag(int r, int c) {
@@ -398,6 +523,8 @@ public class MinesweeperView extends View {
             flaggedCount++;
         }
         invalidate();
+        // 2026-08-23 P2-2：玩家标记/取消标记后保存进度
+        if (stateChangeListener != null) stateChangeListener.onStateChanged();
     }
 
     @Override

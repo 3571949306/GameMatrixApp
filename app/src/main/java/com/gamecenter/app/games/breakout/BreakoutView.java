@@ -138,6 +138,15 @@ public class BreakoutView extends View {
     // 缓存的每行星渐进画笔
     private final List<Paint> rowPaints = new ArrayList<>();
 
+    /**
+     * 2026-08-23 P0-3 onDraw 对象复用：
+     * 原实现每帧 new Paint/LinearGradient/RectF（背景/挡板/道具），
+     * 60fps 循环下产生持续 GC 压力。改为成员复用，shader 仅在几何变化时重建。
+     */
+    private final Paint bgPaint = new Paint();
+    private final Paint paddlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF reusableRect = new RectF();
+
     // ==================== 构造 ====================
     public BreakoutView(Context context) {
         super(context);
@@ -247,6 +256,9 @@ public class BreakoutView extends View {
         super.onSizeChanged(w, h, oldw, oldh);
         viewWidth = w;
         viewHeight = h;
+        // 2026-08-23 P0-3：背景渐变 shader 仅依赖视图高度，尺寸变化时重建一次
+        bgPaint.setShader(new LinearGradient(0, 0, 0, viewHeight,
+                0xFF0B1026, 0xFF05060F, Shader.TileMode.CLAMP));
         if (pendingStartLevel > 0) {
             int lvl = pendingStartLevel;
             pendingStartLevel = -1;
@@ -264,6 +276,7 @@ public class BreakoutView extends View {
         paddleY = viewHeight - Math.max(50, viewHeight * 0.08f);
         ballRadius = Math.max(9, viewWidth * 0.015f);
         paddleX = Math.max(0, Math.min(paddleX, viewWidth - paddleWidth));
+        rebuildPaddleShader();
         // 把停在挡板上的球重新贴回挡板
         for (Ball b : balls) {
             if (state == State.READY) {
@@ -281,6 +294,13 @@ public class BreakoutView extends View {
         paddleY = viewHeight - Math.max(50, viewHeight * 0.08f);
         paddleX = (viewWidth - paddleWidth) / 2f;
         ballRadius = Math.max(9, viewWidth * 0.015f);
+        rebuildPaddleShader();
+    }
+
+    /** 2026-08-23 P0-3：挡板渐变为垂直方向（x 无关），仅在几何变化时重建 shader */
+    private void rebuildPaddleShader() {
+        paddlePaint.setShader(new LinearGradient(0, paddleY, 0, paddleY + paddleHeight,
+                0xFF8BC34A, 0xFF33691E, Shader.TileMode.CLAMP));
     }
 
     private void initBricks() {
@@ -371,10 +391,8 @@ public class BreakoutView extends View {
     }
 
     private void drawBackground(Canvas canvas) {
-        Paint bg = new Paint();
-        bg.setShader(new LinearGradient(0, 0, 0, viewHeight,
-                0xFF0B1026, 0xFF05060F, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, viewWidth, viewHeight, bg);
+        // 2026-08-23 P0-3：复用 bgPaint（shader 在 onSizeChanged 时重建）
+        canvas.drawRect(0, 0, viewWidth, viewHeight, bgPaint);
     }
 
     private void drawScene(Canvas canvas, boolean withEntities) {
@@ -399,7 +417,9 @@ public class BreakoutView extends View {
             paint.setColor(p.type == PowerType.EXPAND ? 0xFF42A5F5
                     : p.type == PowerType.MULTI ? 0xFFAB47BC
                     : p.type == PowerType.SLOW ? 0xFF26C6DA : 0xFF66BB6A);
-            canvas.drawRoundRect(new RectF(p.x - hs, p.y - hs, p.x + hs, p.y + hs), 8 * density, 8 * density, paint);
+            // 2026-08-23 P0-3：复用 RectF，消除每帧分配
+            reusableRect.set(p.x - hs, p.y - hs, p.x + hs, p.y + hs);
+            canvas.drawRoundRect(reusableRect, 8 * density, 8 * density, paint);
             paint.setColor(Color.WHITE);
             paint.setTextSize(15 * density);
             paint.setTextAlign(Paint.Align.CENTER);
@@ -430,11 +450,9 @@ public class BreakoutView extends View {
         paint.setAlpha(255);
 
         // 挡板
-        Paint pad = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pad.setShader(new LinearGradient(paddleX, paddleY, paddleX, paddleY + paddleHeight,
-                0xFF8BC34A, 0xFF33691E, Shader.TileMode.CLAMP));
-        canvas.drawRoundRect(new RectF(paddleX, paddleY, paddleX + paddleWidth, paddleY + paddleHeight),
-                8, 8, pad);
+        // 2026-08-23 P0-3：复用 paddlePaint（shader 在几何变化时重建）与 RectF
+        reusableRect.set(paddleX, paddleY, paddleX + paddleWidth, paddleY + paddleHeight);
+        canvas.drawRoundRect(reusableRect, 8, 8, paddlePaint);
 
         // 球 + 拖尾
         for (Ball b : balls) {

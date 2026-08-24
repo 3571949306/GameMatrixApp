@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only deterministic entry point for emulator/agent acceptance tests.
+     Release keeps GoActivity non-exported as declared in src/main. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <activity
+            android:name=".games.go.GoActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+    </application>
+</manifest>

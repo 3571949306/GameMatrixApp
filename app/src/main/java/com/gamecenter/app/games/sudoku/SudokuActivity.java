@@ -16,6 +16,9 @@ import com.gamecenter.app.games.base.BaseGameActivity;
 import com.gamecenter.app.games.model.DifficultyLevel;
 import com.google.android.material.button.MaterialButton;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +76,12 @@ public class SudokuActivity extends BaseGameActivity {
 
     private Random random = new Random();
 
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
+
     // UI 组件
     private SudokuView sudokuView;
     private TextView tvStatus;
@@ -104,6 +113,10 @@ public class SudokuActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P2-2：初始化存档管理器
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         if (gameContentContainer instanceof FrameLayout) {
             View contentView = createGameContentView();
             ((FrameLayout) gameContentContainer).addView(contentView);
@@ -148,7 +161,8 @@ public class SudokuActivity extends BaseGameActivity {
             lp.setMargins(0, 8, 0, 8);
             btn.setLayoutParams(lp);
             btn.setBackgroundColor(ContextCompat.getColor(this, R.color.game_sudoku_color_btn_difficulty));
-            btn.setOnClickListener(v -> startGameWithDifficulty(idx));
+            // 2026-08-23 P2-2：开始入口先走 beginPlay 检测未完成对局存档
+            btn.setOnClickListener(v -> beginPlay(idx));
             menuPanel.addView(btn);
         }
 
@@ -251,6 +265,139 @@ public class SudokuActivity extends BaseGameActivity {
         gamePanel.setVisibility(View.GONE);
         tvStatus.setText(R.string.game_sudoku_select_difficulty);
         tvDifficulty.setText("");
+    }
+
+    /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay(int difficultyIndex) {
+        if (saveManager != null && saveManager.hasSave(getGameId())) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(getGameId());
+                        startGameWithDifficulty(difficultyIndex);
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startGameWithDifficulty(difficultyIndex);
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        JSONObject state = saveManager == null ? null : saveManager.load(getGameId());
+        if (state == null) {
+            startGameWithDifficulty(0);
+            return;
+        }
+        try {
+            // 恢复当前棋盘、完整解与题面固定标记
+            JSONArray boardRows = state.getJSONArray("board");
+            JSONArray solutionRows = state.getJSONArray("solution");
+            JSONArray givenRows = state.getJSONArray("isGiven");
+            for (int r = 0; r < GRID_SIZE && r < boardRows.length(); r++) {
+                JSONArray row = boardRows.getJSONArray(r);
+                JSONArray solRow = solutionRows.getJSONArray(r);
+                JSONArray givenRow = givenRows.getJSONArray(r);
+                for (int c = 0; c < GRID_SIZE && c < row.length(); c++) {
+                    board[r][c] = row.getInt(c);
+                    solution[r][c] = solRow.getInt(c);
+                    isGiven[r][c] = givenRow.getInt(c) == 1;
+                }
+            }
+            currentDifficultyIndex = state.optInt("difficultyIndex", 0);
+            // 防止损坏存档的难度索引越界（HOLE_COUNTS/diffNames 长度为 4）
+            currentDifficultyIndex = Math.max(0, Math.min(currentDifficultyIndex, HOLE_COUNTS.length - 1));
+            hintsUsed = state.optInt("hintsUsed", 0);
+            long elapsedMs = state.optLong("elapsedMs", 0);
+            selectedRow = -1;
+            selectedCol = -1;
+
+            menuPanel.setVisibility(View.GONE);
+            gamePanel.setVisibility(View.VISIBLE);
+            String[] diffNames = {
+                    getString(R.string.difficulty_easy),
+                    getString(R.string.difficulty_medium),
+                    getString(R.string.difficulty_hard),
+                    getString(R.string.game_sudoku_expert)
+            };
+            tvDifficulty.setText(diffNames[currentDifficultyIndex]);
+            tvStatus.setText(R.string.game_sudoku_playing);
+            // 重置笔记模式
+            notesMode = false;
+            updateNotesButton();
+
+            // 恢复棋盘视图并重新计算玩家填入数字的错误标记
+            // isValidPlacement 契约为"在空格上放置 num"，检查前需临时清零该格
+            sudokuView.restoreState(board, isGiven);
+            for (int r = 0; r < GRID_SIZE; r++) {
+                for (int c = 0; c < GRID_SIZE; c++) {
+                    if (!isGiven[r][c] && board[r][c] != 0) {
+                        int num = board[r][c];
+                        board[r][c] = 0;
+                        boolean error = !isValidPlacement(board, r, c, num);
+                        board[r][c] = num;
+                        sudokuView.setError(r, c, error);
+                    }
+                }
+            }
+
+            isGameRunning = true;
+            gameStartTime = System.currentTimeMillis() - elapsedMs;
+        } catch (Exception e) {
+            android.util.Log.w("SudokuActivity", "存档恢复失败，新开一局: " + e.getMessage());
+            startGameWithDifficulty(currentDifficultyIndex);
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前解题进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning) return;
+        try {
+            JSONObject state = new JSONObject();
+            state.put("board", toJsonArray(board));
+            state.put("solution", toJsonArray(solution));
+            state.put("isGiven", toJsonArray(isGiven));
+            state.put("difficultyIndex", currentDifficultyIndex);
+            state.put("hintsUsed", hintsUsed);
+            if (gameStartTime > 0) {
+                state.put("elapsedMs", System.currentTimeMillis() - gameStartTime);
+            }
+            saveManager.save(getGameId(), state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
+        }
+    }
+
+    /** 2026-08-23 P2-2：int 矩阵序列化为 JSON 二维数组 */
+    private JSONArray toJsonArray(int[][] matrix) {
+        JSONArray rows = new JSONArray();
+        for (int r = 0; r < GRID_SIZE; r++) {
+            JSONArray row = new JSONArray();
+            for (int c = 0; c < GRID_SIZE; c++) {
+                row.put(matrix[r][c]);
+            }
+            rows.put(row);
+        }
+        return rows;
+    }
+
+    /** 2026-08-23 P2-2：boolean 矩阵序列化为 JSON 二维数组（true→1 / false→0） */
+    private JSONArray toJsonArray(boolean[][] matrix) {
+        JSONArray rows = new JSONArray();
+        for (int r = 0; r < GRID_SIZE; r++) {
+            JSONArray row = new JSONArray();
+            for (int c = 0; c < GRID_SIZE; c++) {
+                row.put(matrix[r][c] ? 1 : 0);
+            }
+            rows.put(row);
+        }
+        return rows;
     }
 
     /**
@@ -519,7 +666,13 @@ public class SudokuActivity extends BaseGameActivity {
         // 检查是否完成
         if (num != 0 && !hasError && isBoardComplete()) {
             onPuzzleSolved();
+        } else if (num != 0) {
+            // 2026-08-23 P3：填入数字音效（完成时在 onPuzzleSolved 给出胜利反馈）
+            if (feedback != null) feedback.playMove();
         }
+        // 2026-08-23 P2-2：玩家填入/清除数字后保存进度
+        // （胜利时 onPuzzleSolved 已置 isGameRunning=false，saveProgress 内部会跳过）
+        saveProgress();
     }
 
     /**
@@ -551,6 +704,8 @@ public class SudokuActivity extends BaseGameActivity {
         if (isBoardComplete()) {
             onPuzzleSolved();
         }
+        // 2026-08-23 P2-2：提示填入正解后棋盘已变化，保存进度
+        saveProgress();
     }
 
     /**
@@ -558,11 +713,16 @@ public class SudokuActivity extends BaseGameActivity {
      */
     private void onPuzzleSolved() {
         isGameRunning = false;
+        // 2026-08-23 P2-2：对局正常结束，清除存档
+        if (saveManager != null) saveManager.clear(getGameId());
         puzzlesSolved++;
         long elapsedMs = System.currentTimeMillis() - gameStartTime;
         long elapsedSec = elapsedMs / 1000;
 
         tvStatus.setText(getString(R.string.game_sudoku_congratulations, elapsedSec));
+
+        // 2026-08-23 P3：胜利反馈
+        if (feedback != null) feedback.feedbackWin();
 
         // 成就检查
         checkAchievement("win", puzzlesSolved);
@@ -616,5 +776,15 @@ public class SudokuActivity extends BaseGameActivity {
     @Override
     protected void checkAchievement(@NonNull String eventType, @NonNull Object... params) {
         achievementManager.checkAndUnlock(eventType, params);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
+        }
     }
 }

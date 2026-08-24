@@ -39,9 +39,13 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .addMigrations(*DatabaseMigrations.ALL_MIGRATIONS)
                     .fallbackToDestructiveMigrationOnDowngrade(true)
-                    // 注意：以下两行因保持 SP→Room 迁移的同步 API 行为而启用。
-                    // 原 SP 实现允许主线程调用，因此非 suspend DAO 方法（*Sync）也允许主线程调用。
-                    // 如需后续严格异步访问，可分阶段改造 Store 类为 suspend。
+                    // 2026-08-23 恢复主线程查询：
+                    // 2026-08-16 移除本配置时假设"所有 DAO 已改 suspend"，但实际 DAO 仍保留
+                    // 大量 *Sync 方法且 UI 层（GamesFragment/GameDetailBottomSheet 等）仍在
+                    // 主线程调用，导致 Release 启动即崩溃（IllegalStateException）。
+                    // 数据库为本地小库（单行索引查询），主线程访问 ANR 风险极低；
+                    // 与 2026-07-31 SP→Room 迁移时"与原 SP 行为一致"的设计意图保持一致。
+                    // TODO(性能): 逐步将热点路径迁移至 suspend/IO 线程后再移除此配置。
                     .allowMainThreadQueries()
                     .build()
                 INSTANCE = instance

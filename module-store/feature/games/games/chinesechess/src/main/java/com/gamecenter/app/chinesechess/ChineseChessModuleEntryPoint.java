@@ -45,7 +45,7 @@ public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureMod
 
     @Override
     public String getDescription() {
-        return "经典中国象棋对弈游戏，5级AI难度，支持提示、复盘、主题学习。";
+        return "经典中国象棋对弈游戏，4档AI难度，支持提示、复盘与简洁/增强棋盘。";
     }
 
     @Override

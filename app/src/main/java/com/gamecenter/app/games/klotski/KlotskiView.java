@@ -189,6 +189,27 @@ public class KlotskiView extends View {
     }
 
     /**
+     * 2026-08-23 P2-2：从序列化状态恢复棋盘（中断续玩）。
+     *
+     * <p>内部新建 {@link KlotskiGame} 并从序列化数据恢复滑块布局与步数
+     * （布局类型由 KlotskiGame.reset() 的经典布局定义，存档仅含位置与步数），
+     * 恢复成功后绑定到本视图并重绘。</p>
+     *
+     * @param data {@link KlotskiGame#serializeState()} 输出的状态字符串
+     * @return 恢复成功的游戏实例；数据无效时返回 null（调用方回退新开一局）
+     */
+    public KlotskiGame restoreState(String data) {
+        KlotskiGame restored = new KlotskiGame();
+        if (!restored.restoreState(data)) {
+            return null;
+        }
+        this.game = restored;
+        clearHint();
+        invalidate();
+        return restored;
+    }
+
+    /**
      * 设置获胜回调监听器
      *
      * @param listener 获胜回调

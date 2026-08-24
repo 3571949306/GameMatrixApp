@@ -13,7 +13,9 @@ import androidx.annotation.Nullable;
 import com.gamecenter.app.core.common.GameAI;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -59,8 +61,14 @@ public class ChineseChessAI implements GameAI {
         100    // 兵/卒
     };
 
-    /** 难度配置（搜索深度） - 大师档从6降到5，避免过长时间思考 */
-    private static final int[] SEARCH_DEPTHS = {1, 2, 3, 4, 5};
+    /**
+     * 难度配置（搜索深度）。高难度从原来的 3 层提升到 4 层，避免被同引擎
+     * depth-4 稳定压制；大师档在子力较少时再进入 5 层，控制开中局响应时间。
+     */
+    private static final int[] SEARCH_DEPTHS = {1, 2, 4, 4, 5};
+
+    /** 大师档仅在残局启用第 5 层搜索，避免开局分支爆炸。 */
+    private static final int MASTER_ENDGAME_PIECE_LIMIT = 14;
 
     /** 开局库走法 - 14种常见开局，均为红方视角的合法着法（行6~9），增加开局多样性。
      *  注意：旧版本存在坐标错误（如 {9,4,7,4} 实为帅走两格、{9,1,7,1} 实为马直行），
@@ -94,6 +102,19 @@ public class ChineseChessAI implements GameAI {
     /** 搜索的绝对层数上限；即使连续将军也不得突破，避免异常局面拖垮线程。 */
     private static final int MAX_SEARCH_PLY = 24;
 
+    /** 根节点第二次出现同一局面时的警告惩罚。 */
+    private static final int REPEAT_WARNING_PENALTY = 1200;
+
+    /** 安静着法立即原路返回的惩罚，降低无意义来回走子。 */
+    private static final int IMMEDIATE_REVERSAL_PENALTY = 90;
+
+    /** 单次搜索的置换表容量上限，防止长对局产生不可控内存增长。 */
+    private static final int MAX_TRANSPOSITION_ENTRIES = 120_000;
+
+    private static final int TT_EXACT = 0;
+    private static final int TT_LOWER_BOUND = 1;
+    private static final int TT_UPPER_BOUND = 2;
+
     // ==================== 成员变量 ====================
 
     private final int difficulty;
@@ -104,6 +125,27 @@ public class ChineseChessAI implements GameAI {
 
     /** 外部传入的当前对局局面历史（可选），用于在根节点惩罚重复局面着法 */
     private List<Long> positionHistory = null;
+
+    /**
+     * 最近由当前 AI 一方走出的真实着法，坐标统一为 AI 格式
+     * [fromRow, fromCol, toRow, toCol]。只在根节点识别立即回摆，不参与规则判定。
+     */
+    private List<int[]> recentMoveHistory = null;
+
+    /** 每次 getBestMove 独立清空的置换表。 */
+    private final Map<Long, TranspositionEntry> transpositionTable = new HashMap<>();
+
+    private static final class TranspositionEntry {
+        final int depth;
+        final int score;
+        final int flag;
+
+        TranspositionEntry(int depth, int score, int flag) {
+            this.depth = depth;
+            this.score = score;
+            this.flag = flag;
+        }
+    }
 
     // ==================== 构造函数 ====================
 
@@ -124,7 +166,21 @@ public class ChineseChessAI implements GameAI {
      * @param history 局面指纹历史，传 null 表示不启用重复规避
      */
     public void setPositionHistory(@Nullable List<Long> history) {
-        this.positionHistory = history;
+        this.positionHistory = history == null ? null : new ArrayList<>(history);
+    }
+
+    /**
+     * 设置最近真实着法。调用方必须在 UI/逻辑坐标边界完成显式转换。
+     */
+    public void setRecentMoveHistory(@Nullable List<int[]> history) {
+        if (history == null) {
+            recentMoveHistory = null;
+            return;
+        }
+        recentMoveHistory = new ArrayList<>(history.size());
+        for (int[] move : history) {
+            if (move != null && move.length == 4) recentMoveHistory.add(move.clone());
+        }
     }
 
     // ==================== 公共方法 ====================
@@ -152,14 +208,16 @@ public class ChineseChessAI implements GameAI {
     @Nullable
     public int[] getBestMove(@NonNull int[][] boardState, int difficulty, int aiSide) {
         cancelled = false;
-        int depth = Math.max(1, Math.min(6, SEARCH_DEPTHS[Math.max(0, Math.min(difficulty - 1, 4))]));
+        int normalizedSide = aiSide >= 0 ? 1 : -1;
+        int depth = resolveSearchDepth(difficulty, boardState);
+        transpositionTable.clear();
 
         // 尝试开局库
-        int[] openingMove = getOpeningMove(boardState, aiSide);
+        int[] openingMove = getOpeningMove(boardState, normalizedSide);
         if (openingMove != null) return openingMove;
 
         // 生成 AI 方的合法走法（过滤送将/白脸将的着法）
-        List<int[]> moves = generateLegalMoves(boardState, aiSide);
+        List<int[]> moves = generateLegalMoves(boardState, normalizedSide);
         if (moves.isEmpty()) return null;
 
         // 根节点同样按 MVV-LVA 排序，提升剪枝与等分时择优
@@ -168,9 +226,11 @@ public class ChineseChessAI implements GameAI {
         thinking = true;
         // 注意符号约定：minimax 返回的是"红方视角"评分（越大对红方越有利）。
         // AI 执红时最大化该评分，执黑时最小化。
-        boolean maximize = (aiSide == 1);
-        List<int[]> allMoves = new ArrayList<>();
-        List<Integer> allScores = new ArrayList<>();
+        boolean maximize = (normalizedSide == 1);
+        List<int[]> safeMoves = new ArrayList<>();
+        List<Integer> safeScores = new ArrayList<>();
+        List<int[]> adjudicationMoves = new ArrayList<>();
+        List<Integer> adjudicationScores = new ArrayList<>();
 
         for (int[] move : moves) {
             if (cancelled) break;
@@ -183,26 +243,63 @@ public class ChineseChessAI implements GameAI {
             // Minimax 搜索（根走子后轮到对方，isMax = !maximize）
             int score = minimax(newBoard, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, !maximize, 1);
 
-            // 根节点重复局面惩罚：若该着法导致已经出现过的局面，
-            // 对 AI 不利（鼓励 AI 打破长将/循环，而不是消极重复）。
-            if (positionHistory != null) {
-                // AI 走子后轮到对方；棋子编码和走棋方编码与游戏逻辑层完全一致。
-                long newHash = computePositionHash(newBoard, -aiSide);
-                if (countPositionInHistory(newHash) >= 1) {
-                    int repetitionPenalty = 50000; // 接近一个车但小于将死分
-                    if (maximize) score -= repetitionPenalty;
-                    else score += repetitionPenalty;
-                }
+            // 立即把刚走出的安静着法原路退回通常是无效循环；吃子或将军属于战术例外。
+            if (isImmediateReversal(move)
+                    && boardState[move[2]][move[3]] == 0
+                    && !isInCheck(newBoard, -normalizedSide)) {
+                score += maximize ? -IMMEDIATE_REVERSAL_PENALTY : IMMEDIATE_REVERSAL_PENALTY;
             }
 
-            allMoves.add(move);
-            allScores.add(maximize ? score : -score);
+            // AI 走子后轮到对方；哈希编码与游戏逻辑层完全一致。
+            long newHash = computePositionHash(newBoard, -normalizedSide);
+            int previousOccurrences = countPositionInHistory(newHash);
+            if (previousOccurrences == 1) {
+                score += maximize ? -REPEAT_WARNING_PENALTY : REPEAT_WARNING_PENALTY;
+            }
+
+            int normalizedScore = maximize ? score : -score;
+            if (previousOccurrences >= 2) {
+                // 第三次出现会立刻触发和棋或长将判负。只要还有非重复合法着法，
+                // 就绝不让普通局面分或将死幻觉覆盖真实裁判结果。
+                adjudicationMoves.add(move);
+                adjudicationScores.add(normalizedScore);
+            } else {
+                safeMoves.add(move);
+                safeScores.add(normalizedScore);
+            }
         }
 
         thinking = false;
-        if (allMoves.isEmpty()) return null;
-        // 使用随机选择策略，根据难度级别选择候选走法
-        return selectMoveWithRandomness(allMoves, allScores, difficulty);
+        if (!safeMoves.isEmpty()) {
+            return selectMoveWithRandomness(safeMoves, safeScores, difficulty);
+        }
+        if (adjudicationMoves.isEmpty()) return null;
+        // 极端情况下全部合法着法都会触发裁判，仍返回其中搜索评分最高的一步，
+        // 交由中央 commitMove 闸门作最终判定。
+        return selectMoveWithRandomness(adjudicationMoves, adjudicationScores, difficulty);
+    }
+
+    /** 根据难度和局面规模解析本次真实搜索深度。 */
+    private int resolveSearchDepth(int difficulty, int[][] board) {
+        int level = Math.max(1, Math.min(5, difficulty));
+        int configured = SEARCH_DEPTHS[level - 1];
+        if (level == 4 && countPieces(board) <= MASTER_ENDGAME_PIECE_LIMIT) return 5;
+        return configured;
+    }
+
+    private int countPieces(int[][] board) {
+        int count = 0;
+        for (int[] row : board) {
+            for (int piece : row) if (piece != 0) count++;
+        }
+        return count;
+    }
+
+    private boolean isImmediateReversal(int[] candidate) {
+        if (recentMoveHistory == null || recentMoveHistory.isEmpty()) return false;
+        int[] previous = recentMoveHistory.get(recentMoveHistory.size() - 1);
+        return candidate[0] == previous[2] && candidate[1] == previous[3]
+                && candidate[2] == previous[0] && candidate[3] == previous[1];
     }
 
     /**
@@ -226,12 +323,12 @@ public class ChineseChessAI implements GameAI {
      */
     private int getThresholdForDifficulty(int difficulty) {
         switch (difficulty) {
-            case 1: return 200;  // 入门
-            case 2: return 100;  // 初级
-            case 3: return 50;   // 中级
-            case 4: return 20;   // 高级
+            case 1: return 160;  // 低：保留多样性，但减少明显送子
+            case 2: return 70;   // 中
+            case 3: return 8;    // 高：只在近似等价着法间随机
+            case 4: return 0;    // 大师：稳定选择最优评分
             case 5: return 0;    // 大师
-            default: return 50;
+            default: return 8;
         }
     }
 
@@ -355,12 +452,24 @@ public class ChineseChessAI implements GameAI {
             return quiescence(board, alpha, beta, QSEARCH_MAX_DEPTH, isMax, ply);
         }
 
+        int originalAlpha = alpha;
+        int originalBeta = beta;
+        long transpositionKey = computeTranspositionKey(board, sideSign, ply);
+        TranspositionEntry cached = transpositionTable.get(transpositionKey);
+        if (cached != null && cached.depth >= depth) {
+            if (cached.flag == TT_EXACT) return cached.score;
+            if (cached.flag == TT_LOWER_BOUND) alpha = Math.max(alpha, cached.score);
+            else if (cached.flag == TT_UPPER_BOUND) beta = Math.min(beta, cached.score);
+            if (alpha >= beta) return cached.score;
+        }
+
         // 将军延伸：被将军时本层不递减深度，强制看清杀棋线路（受层数上限保护）
         boolean inCheck = isInCheck(board, sideSign);
         int childDepth = (inCheck && ply < CHECK_EXTENSION_PLY_LIMIT) ? depth : depth - 1;
 
         orderMovesByMvvLva(moves, board);
 
+        int result;
         if (isMax) {
             int maxEval = Integer.MIN_VALUE;
             for (int[] move : moves) {
@@ -373,7 +482,7 @@ public class ChineseChessAI implements GameAI {
                 if (eval > alpha) alpha = eval;
                 if (beta <= alpha) break; // 剪枝
             }
-            return maxEval;
+            result = maxEval;
         } else {
             int minEval = Integer.MAX_VALUE;
             for (int[] move : moves) {
@@ -386,8 +495,16 @@ public class ChineseChessAI implements GameAI {
                 if (eval < beta) beta = eval;
                 if (beta <= alpha) break; // 剪枝
             }
-            return minEval;
+            result = minEval;
         }
+
+        if (!cancelled && transpositionTable.size() < MAX_TRANSPOSITION_ENTRIES) {
+            int flag = TT_EXACT;
+            if (result <= originalAlpha) flag = TT_UPPER_BOUND;
+            else if (result >= originalBeta) flag = TT_LOWER_BOUND;
+            transpositionTable.put(transpositionKey, new TranspositionEntry(depth, result, flag));
+        }
+        return result;
     }
 
     // ==================== 静态搜索（Quiescence Search） ====================
@@ -510,7 +627,59 @@ public class ChineseChessAI implements GameAI {
         }
         // 机动性：可走步数之差（轻量近似，鼓励积极调动）
         score += (countPseudoMoves(board, 1) - countPseudoMoves(board, -1)) * 2;
+        // 将区安全不能只由仕相的材料分表达：开放车线、炮架与贴身兵马都应及时响应。
+        score += evaluateKingSafety(board, 1) - evaluateKingSafety(board, -1);
         return score;
+    }
+
+    /**
+     * 评估指定一方的将区安全，返回值越高表示越安全。
+     * 只检查有限的重子直线和近身威胁，避免在叶节点构造完整攻击图。
+     */
+    private int evaluateKingSafety(int[][] board, int side) {
+        int[] king = findKing(board, side);
+        if (king == null) return -MATE_SCORE / 2;
+
+        int kr = king[0], kc = king[1];
+        int safety = 0;
+        int advisors = 0;
+        int elephantsNearHome = 0;
+
+        for (int r = 0; r < 10; r++) {
+            for (int c = 0; c < 9; c++) {
+                int piece = board[r][c];
+                if (piece == 0) continue;
+                boolean own = side > 0 ? piece > 0 : piece < 0;
+                int type = Math.abs(piece);
+                if (own) {
+                    if (type == 2) advisors++;
+                    if (type == 3 && (side > 0 ? r >= 5 : r <= 4)) elephantsNearHome++;
+                    continue;
+                }
+
+                int distance = Math.abs(r - kr) + Math.abs(c - kc);
+                if (type == 7 && distance <= 2) safety -= 45;
+                else if (type == 4 && distance <= 3) safety -= 28;
+
+                if ((type == 5 || type == 6) && (r == kr || c == kc)) {
+                    int blockers = piecesBetween(board, r, c, kr, kc);
+                    if (type == 5) {
+                        if (blockers == 0) safety -= 180;
+                        else if (blockers == 1) safety -= 24;
+                    } else {
+                        if (blockers == 1) safety -= 165;
+                        else if (blockers == 0) safety -= 22;
+                    }
+                }
+            }
+        }
+
+        // 仕象共同在位时的防守价值高于简单相加，鼓励高难度保留完整将区结构。
+        safety += advisors * 16 + elephantsNearHome * 9;
+        if (advisors == 2 && elephantsNearHome >= 1) safety += 14;
+        int homeRow = side > 0 ? 9 : 0;
+        if (kr == homeRow && kc == 4) safety += 10;
+        return safety;
     }
 
     /**
@@ -783,6 +952,17 @@ public class ChineseChessAI implements GameAI {
             }
         }
         return hash * 31 + (sideToMove > 0 ? 1 : 0);
+    }
+
+    /**
+     * 置换表键额外混入 ply。当前将死分包含距根节点层数，同一盘面在不同 ply
+     * 不能直接复用，否则会破坏“更快将死、尽量延迟被杀”的排序。
+     */
+    private long computeTranspositionKey(int[][] board, int sideToMove, int ply) {
+        long hash = computePositionHash(board, sideToMove);
+        hash ^= 0x9E3779B97F4A7C15L * (ply + 1L);
+        hash ^= (hash >>> 29);
+        return hash;
     }
 
     private int countPositionInHistory(long hash) {

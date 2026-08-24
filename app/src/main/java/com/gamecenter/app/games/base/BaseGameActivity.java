@@ -58,6 +58,13 @@ public abstract class BaseGameActivity extends AppCompatActivity {
     /** 当前选择的难度等级索引 */
     protected int currentDifficultyIndex = 0;
 
+    /**
+     * 2026-08-23 P1 生命周期安全：
+     * 标记是否因切后台被框架自动暂停。与用户主动暂停（isGamePaused）
+     * 区分，onResume 时只恢复框架自己暂停的游戏，不打断用户暂停状态。
+     */
+    private boolean autoPausedByLifecycle = false;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -376,6 +383,36 @@ public abstract class BaseGameActivity extends AppCompatActivity {
                     ? levels.get(currentDifficultyIndex) : levels.get(0);
             currentDifficultyIndex = index;
             onDifficultyChanged(oldLevel, levels.get(index));
+        }
+    }
+
+    /**
+     * 2026-08-23 P1 生命周期安全：
+     * 切后台时自动暂停游戏循环（贪吃蛇/俄罗斯方块/打砖块等基于 Handler 的
+     * 循环此前在后台继续空转，浪费电量且逻辑继续推进）。
+     * 仅在游戏运行中且未被用户主动暂停时触发，避免覆盖用户暂停状态。
+     */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (isGameRunning && !isGamePaused) {
+            autoPausedByLifecycle = true;
+            pauseGame();
+        }
+    }
+
+    /**
+     * 2026-08-23 P1：从后台返回时恢复被框架自动暂停的游戏。
+     * 用户主动暂停（暂停菜单）不受影响——此时 autoPausedByLifecycle 为 false。
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (autoPausedByLifecycle) {
+            autoPausedByLifecycle = false;
+            if (isGameRunning) {
+                resumeGame();
+            }
         }
     }
 

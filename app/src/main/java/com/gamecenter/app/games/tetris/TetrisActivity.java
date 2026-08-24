@@ -40,6 +40,8 @@ public class TetrisActivity extends BaseGameActivity {
 
     private static final String GAME_ID_VALUE = "tetris";
 
+    private static final String TAG = "TetrisActivity";
+
     // ==================== 游戏组件 ====================
 
     /** 游戏视图 */
@@ -47,6 +49,9 @@ public class TetrisActivity extends BaseGameActivity {
 
     /** 消行计数（用于成就） */
     private int totalLinesCleared = 0;
+
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
 
     /** 音效播放器（复用 R.raw.ui_turn 资源） */
     private SoundPool soundPool;
@@ -114,16 +119,117 @@ public class TetrisActivity extends BaseGameActivity {
         tetrisView.setOnGameOverListener(score -> {
             usageStore.recordLoss(GAME_ID_VALUE);
             isGameRunning = false;
+            // 2026-08-23 P2-2：对局结束，清除存档
+            if (saveManager != null) saveManager.clear(GAME_ID_VALUE);
         });
 
         // 方块旋转音效
         tetrisView.setOnPieceRotateListener(() -> playSound(soundIdRotate));
         // 方块落地音效
         tetrisView.setOnPieceLandListener(() -> playSound(soundIdLand));
+        // 2026-08-23 P2-2：方块锁定（含消行与新方块生成）后保存进度（相对低频，避免每帧保存）
+        tetrisView.setOnPieceLockListener(this::saveProgress);
 
         // 添加视图到容器
         if (gameContentContainer != null) {
             ((android.widget.FrameLayout) gameContentContainer).addView(tetrisView);
+        }
+
+        // 2026-08-23 P2-2：初始化存档管理器；俄罗斯方块无开始按钮（进入即开始），
+        // 视图就绪后经 beginPlay 检测未完成存档再开局
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        tetrisView.post(this::beginPlay);
+    }
+
+    /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay() {
+        if (saveManager != null && saveManager.hasSave(GAME_ID_VALUE)) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(GAME_ID_VALUE);
+                        startGame();
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局（完整恢复，恢复后立即继续下落） */
+    private void restoreFromSave() {
+        org.json.JSONObject state = saveManager == null ? null : saveManager.load(GAME_ID_VALUE);
+        if (state == null) {
+            startGame();
+            return;
+        }
+        try {
+            org.json.JSONArray rows = state.getJSONArray("grid");
+            int[][] savedGrid = new int[rows.length()][];
+            for (int r = 0; r < rows.length(); r++) {
+                org.json.JSONArray row = rows.getJSONArray(r);
+                savedGrid[r] = new int[row.length()];
+                for (int c = 0; c < row.length(); c++) {
+                    savedGrid[r][c] = row.getInt(c);
+                }
+            }
+            int savedPiece = state.optInt("currentPiece", 0);
+            int savedRotation = state.optInt("currentRotation", 0);
+            int savedX = state.optInt("pieceX", 0);
+            int savedY = state.optInt("pieceY", 0);
+            int savedNext = state.optInt("nextPiece", 0);
+            int savedScore = state.optInt("score", 0);
+            int savedLines = state.optInt("lines", 0);
+            int savedLevel = state.optInt("level", 1);
+            if (!tetrisView.restoreState(savedGrid, savedPiece, savedRotation, savedX, savedY,
+                    savedNext, savedScore, savedLines, savedLevel)) {
+                // 存档数据非法（方块位置冲突等），fallback 新开一局
+                startGame();
+                return;
+            }
+            updateScore(savedScore);
+            totalLinesCleared = savedLines;
+            isGameRunning = true;
+            isGamePaused = false;
+            gameStartTime = System.currentTimeMillis();
+        } catch (Exception e) {
+            android.util.Log.w(TAG, "存档恢复失败，新开一局: " + e.getMessage());
+            startGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning || tetrisView == null) return;
+        try {
+            org.json.JSONObject state = new org.json.JSONObject();
+            org.json.JSONArray rows = new org.json.JSONArray();
+            int[][] grid = tetrisView.getGrid();
+            for (int r = 0; r < grid.length; r++) {
+                org.json.JSONArray row = new org.json.JSONArray();
+                for (int c = 0; c < grid[r].length; c++) {
+                    row.put(grid[r][c]);
+                }
+                rows.put(row);
+            }
+            state.put("grid", rows);
+            state.put("currentPiece", tetrisView.getCurrentPiece());
+            state.put("currentRotation", tetrisView.getCurrentRotation());
+            state.put("pieceX", tetrisView.getPieceX());
+            state.put("pieceY", tetrisView.getPieceY());
+            state.put("nextPiece", tetrisView.getNextPiece());
+            state.put("score", tetrisView.getScore());
+            state.put("lines", tetrisView.getLines());
+            state.put("level", tetrisView.getLevel());
+            saveManager.save(GAME_ID_VALUE, state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
         }
     }
 

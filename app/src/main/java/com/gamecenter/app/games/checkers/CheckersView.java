@@ -46,6 +46,8 @@ public class CheckersView extends View {
     private Paint kingPaint;
     private Paint borderPaint;
     private Paint crownPaint;
+    /** 2026-08-23 P0-3：复用的棋子阴影画笔 */
+    private Paint shadowPaint;
 
     private float cellSize;
     private float boardOffsetX;
@@ -118,6 +120,10 @@ public class CheckersView extends View {
         crownPaint.setTextSize(24f);
         crownPaint.setTextAlign(Paint.Align.CENTER);
         crownPaint.setFakeBoldText(true);
+
+        // 2026-08-23 P0-3：阴影画笔复用（原先每个棋子绘制时 new Paint）
+        shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shadowPaint.setColor(Color.parseColor("#40000000"));
     }
 
     public void setOnCellClickListener(@Nullable OnCellClickListener listener) {
@@ -223,9 +229,7 @@ public class CheckersView extends View {
                 return;
         }
 
-        // 绘制阴影
-        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        shadowPaint.setColor(Color.parseColor("#40000000"));
+        // 绘制阴影（2026-08-23 P0-3：复用 shadowPaint 成员，不再每次绘制创建）
         canvas.drawCircle(cx + 2, cy + 2, radius, shadowPaint);
 
         // 绘制棋子

@@ -3,43 +3,113 @@ package com.gamecenter.app.go;
 
 import com.gamecenter.app.core.common.GameAI;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * 9x9 围棋 AI。
+ *
+ * <p>四档共用 {@link GoGame#tryMove(int[][], int[][], int, int, int)} 生成合法着，
+ * 因而提子、自杀和简单劫与实战规则保持一致。AI 只读取 {@link GoGame.PositionSnapshot}
+ * 并且不会修改传入游戏。null 只表示当前不是白方回合、游戏已结束或确实没有合法着，
+ * 不再用随机停着来伪造难度。</p>
+ */
 public class GoAI implements GameAI {
+    private static final int HARD_ITERATIONS = 360;
+    private static final int MASTER_ITERATIONS = 960;
+    private static final long HARD_TIME_LIMIT_MS = 500L;
+    private static final long MASTER_TIME_LIMIT_MS = 1500L;
+    private static final int DEFAULT_PLAYOUT_MAX_MOVES = 64;
+    private static final int DEEP_NODE_CANDIDATE_LIMIT = 28;
+    private static final double UCT_EXPLORATION = 1.25;
 
-    private static final int MAX_NODES = 80000;
-    private static final long MCTS_TIME_LIMIT_MS = 1500;
-    private static final int MCTS_PLAYOUT_MAX_MOVES = 162;
+    private static final int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    private static final int[][] STRATEGIC_POINTS = {
+            {2, 2}, {2, 6}, {6, 2}, {6, 6}, {4, 4},
+            {2, 4}, {4, 2}, {4, 6}, {6, 4}
+    };
 
-    private int difficulty = 2; // 1=简单, 2=普通, 3=困难, 4=大师
-    private Random random = new Random();
+    private int difficulty = 2; // 1=入门, 2=普通, 3=困难, 4=大师
+    private final Random random;
+    private volatile boolean cancelled;
+    private volatile boolean thinking;
 
-    /** 取消标志：cancel() 置位后，搜索循环应尽快退出。 */
-    private volatile boolean cancelled = false;
-    /** 当前是否正在思考（GameAI 契约）。 */
-    private volatile boolean thinking = false;
+    // 仅用于快速且确定的纯 Java 回归；生产默认值见上方常量。
+    private int hardIterations = HARD_ITERATIONS;
+    private int masterIterations = MASTER_ITERATIONS;
+    private long hardTimeLimitMs = HARD_TIME_LIMIT_MS;
+    private long masterTimeLimitMs = MASTER_TIME_LIMIT_MS;
+    private int playoutMaxMoves = DEFAULT_PLAYOUT_MAX_MOVES;
+
+    public GoAI() {
+        this(new Random());
+    }
+
+    public GoAI(long randomSeed) {
+        this(new Random(randomSeed));
+    }
+
+    private GoAI(Random random) {
+        this.random = random;
+    }
 
     public void setDifficulty(int difficulty) {
-        if (difficulty >= 1 && difficulty <= 4) {
-            this.difficulty = difficulty;
-        }
+        if (difficulty >= 1 && difficulty <= 4) this.difficulty = difficulty;
     }
 
     public int getDifficulty() {
         return difficulty;
     }
 
+    /** 供验收日志记录真实引擎档位。 */
+    public String getSearchProfileName() {
+        return switch (difficulty) {
+            case 1 -> "safe-random";
+            case 2 -> "tactical-heuristic";
+            case 3 -> "mcts-" + hardIterations;
+            case 4 -> "mcts-" + masterIterations;
+            default -> "unknown";
+        };
+    }
+
+    /** 包内测试入口，避免纯 Java 回归依赖墙钟速度。 */
+    void configureSearchForTests(int hardIterations, int masterIterations,
+                                 long timeLimitMs, int playoutMaxMoves) {
+        if (hardIterations <= 0 || masterIterations <= 0
+                || timeLimitMs <= 0 || playoutMaxMoves <= 0) {
+            throw new IllegalArgumentException("search limits must be positive");
+        }
+        this.hardIterations = hardIterations;
+        this.masterIterations = masterIterations;
+        this.hardTimeLimitMs = timeLimitMs;
+        this.masterTimeLimitMs = timeLimitMs;
+        this.playoutMaxMoves = playoutMaxMoves;
+    }
+
     public int[] findBestAiMove(GoGame game) {
+        if (game == null) return null;
         cancelled = false;
         thinking = true;
         try {
+            GoGame.PositionSnapshot snapshot = game.snapshot();
+            if (snapshot.isGameOver() || snapshot.getCurrentPlayer() != GoGame.WHITE) return null;
+            // A pass is a scoring proposal. Accept it only when the opponent has just passed and
+            // the official area score already has White ahead; never use pass as random variety.
+            if (snapshot.getConsecutivePasses() == 1
+                    && GoGame.calculateScore(snapshot.getBoard()).isWhiteWinner()) {
+                return null;
+            }
+            SearchState root = new SearchState(snapshot.getBoard(), snapshot.getPreviousBoard(),
+                    GoGame.WHITE, snapshot.getConsecutivePasses());
             return switch (difficulty) {
-                case 1 -> findRandomAiMove(game);
-                case 3 -> mctsMove(game, 500);  // 弱化版 MCTS，500ms，平滑过渡到档4
-                case 4 -> mctsMove(game, MCTS_TIME_LIMIT_MS);
-                default -> findGreedyAiMove(game);
+                case 1 -> findSafeRandomMove(root);
+                case 3 -> mctsMove(root, hardIterations, hardTimeLimitMs);
+                case 4 -> mctsMove(root, masterIterations, masterTimeLimitMs);
+                default -> findTacticalMove(root);
             };
         } finally {
             thinking = false;
@@ -49,7 +119,6 @@ public class GoAI implements GameAI {
     @Override
     public void cancel() {
         cancelled = true;
-        thinking = false;
     }
 
     @Override
@@ -57,349 +126,350 @@ public class GoAI implements GameAI {
         return thinking;
     }
 
-    private int[] findRandomAiMove(GoGame game) {
-        int[][] board = game.getBoard();
-        List<int[]> candidates = new ArrayList<>();
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (board[r][c] == GoGame.EMPTY && game.isValidMove(r, c, GoGame.WHITE)) {
-                    candidates.add(new int[]{r, c});
-                }
-            }
+    private int[] findSafeRandomMove(SearchState state) {
+        List<Candidate> moves = generateCandidates(state, GoGame.WHITE);
+        if (moves.isEmpty()) return null;
+        List<Candidate> safe = new ArrayList<>();
+        for (Candidate candidate : moves) {
+            int liberties = GoGame.countLiberties(candidate.board, candidate.row, candidate.col);
+            if (liberties > 1 || candidate.captured > 0) safe.add(candidate);
         }
-        if (candidates.isEmpty()) return null;
-        if (random.nextInt(10) == 0 && game.getConsecutivePasses() == 0) return null;
-        return candidates.get(random.nextInt(candidates.size()));
-    }
-
-    private int[] findGreedyAiMove(GoGame game) {
-        int[][] board = game.getBoard();
-        int bestScore = Integer.MIN_VALUE;
-        int[] bestMove = null;
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (board[r][c] == GoGame.EMPTY && game.isValidMove(r, c, GoGame.WHITE)) {
-                    int[][] simulated = GoGame.copyBoard(board);
-                    simulated[r][c] = GoGame.WHITE;
-                    int captured = GoGame.simulateCapture(simulated, GoGame.BLACK, r, c);
-                    int score = captured * 10 + evaluatePosition(board, r, c) + random.nextInt(3);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = new int[]{r, c};
-                    }
-                }
-            }
-        }
-        if (bestMove != null && random.nextInt(10) < 2 && game.getConsecutivePasses() == 0) return null;
-        return bestMove;
-    }
-
-    private int[] findMinimaxAiMove(GoGame game, int depth) {
-        int[][] board = game.getBoard();
-        int bestScore = Integer.MIN_VALUE;
-        int[] bestMove = null;
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (board[r][c] != GoGame.EMPTY || !game.isValidMove(r, c, GoGame.WHITE)) continue;
-                int[][] simulated = GoGame.copyBoard(board);
-                simulated[r][c] = GoGame.WHITE;
-                int captured = GoGame.simulateCapture(simulated, GoGame.BLACK, r, c);
-                int score = captured * 10 + evaluatePosition(board, r, c)
-                        + minimax(simulated, depth - 1, false, Integer.MIN_VALUE, Integer.MAX_VALUE, new int[]{0});
-                
-                if (difficulty < 4) score += random.nextInt(2);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = new int[]{r, c};
-                }
-            }
-        }
-        if (bestMove != null && difficulty < 4 && random.nextInt(10) < 2 && game.getConsecutivePasses() == 0) {
-            return null;
-        }
-        return bestMove;
-    }
-
-    private int minimax(int[][] state, int depth, boolean isMax, int alpha, int beta, int[] nodeCount) {
-        if (cancelled) return evaluateBoard(state);
-        if (++nodeCount[0] > MAX_NODES) return evaluateBoard(state);
-        if (depth == 0) return evaluateBoard(state);
-        int best = isMax ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-        int color = isMax ? GoGame.WHITE : GoGame.BLACK;
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (state[r][c] != GoGame.EMPTY) continue;
-                if (!GoGame.isValidMove(state, r, c, color)) continue;
-                int[][] sim = GoGame.copyBoard(state);
-                sim[r][c] = color;
-                GoGame.simulateCapture(sim, color == GoGame.WHITE ? GoGame.BLACK : GoGame.WHITE, r, c);
-                int val = minimax(sim, depth - 1, !isMax, alpha, beta, nodeCount);
-                if (isMax) {
-                    best = Math.max(best, val);
-                    alpha = Math.max(alpha, best);
-                } else {
-                    best = Math.min(best, val);
-                    beta = Math.min(beta, best);
-                }
-                if (beta <= alpha) return best;
-            }
-        }
-        return best;
-    }
-
-    private int evaluateBoard(int[][] state) {
-        int whiteScore = 0, blackScore = 0;
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (state[r][c] == GoGame.WHITE) whiteScore += 10;
-                else if (state[r][c] == GoGame.BLACK) blackScore += 10;
-            }
-        }
-        // 领地估算：空点周围只有一方棋子时，算作该方领地（简化版目数）
-        int whiteTerritory = 0, blackTerritory = 0;
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (state[r][c] != GoGame.EMPTY) continue;
-                int whiteNeighbors = 0, blackNeighbors = 0;
-                for (int[] d : dirs) {
-                    int nr = r + d[0], nc = c + d[1];
-                    if (nr >= 0 && nr < GoGame.BOARD_SIZE && nc >= 0 && nc < GoGame.BOARD_SIZE) {
-                        if (state[nr][nc] == GoGame.WHITE) whiteNeighbors++;
-                        else if (state[nr][nc] == GoGame.BLACK) blackNeighbors++;
-                    }
-                }
-                if (whiteNeighbors > 0 && blackNeighbors == 0) whiteTerritory += 3;
-                else if (blackNeighbors > 0 && whiteNeighbors == 0) blackTerritory += 3;
-            }
-        }
-        return (whiteScore + whiteTerritory) - (blackScore + blackTerritory);
-    }
-
-    private int evaluatePosition(int[][] board, int row, int col) {
-        int score = 0;
-        int centerDist = Math.abs(row - 4) + Math.abs(col - 4);
-        score += (8 - centerDist) * 2;
-        if (row == 0 || row == GoGame.BOARD_SIZE - 1) score -= 3;
-        if (col == 0 || col == GoGame.BOARD_SIZE - 1) score -= 3;
-
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (int[] d : dirs) {
-            int nr = row + d[0];
-            int nc = col + d[1];
-            if (nr >= 0 && nr < GoGame.BOARD_SIZE && nc >= 0 && nc < GoGame.BOARD_SIZE) {
-                if (board[nr][nc] == GoGame.WHITE) score += 2;
-            }
-        }
-        return score;
-    }
-
-    private static class MctsNode {
-        final int[][] state;
-        final int player;
-        int visits = 0;
-        double totalReward = 0.0;
-        int moveRow = -1, moveCol = -1;
-        final List<MctsNode> children = new ArrayList<>();
-        final List<int[]> untriedMoves;
-
-        MctsNode(int[][] state, int player, List<int[]> untriedMoves) {
-            this.state = state;
-            this.player = player;
-            this.untriedMoves = untriedMoves;
-        }
-    }
-
-    private int[] mctsMove(GoGame game, long timeLimitMs) {
-        int[][] rootState = GoGame.copyBoard(game.getBoard());
-
-        // 开局库：棋盘为空或只有少量棋子时，从开局候选位置中加权随机选
-        int stoneCount = 0;
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (rootState[r][c] != GoGame.EMPTY) stoneCount++;
-            }
-        }
-        if (stoneCount <= 1) {
-            int[] opening = getOpeningMove(rootState);
-            if (opening != null) return opening;
-        }
-
-        List<int[]> rootMoves = new ArrayList<>();
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (rootState[r][c] == GoGame.EMPTY && GoGame.isValidMove(rootState, r, c, GoGame.WHITE)) {
-                    rootMoves.add(new int[]{r, c});
-                }
-            }
-        }
-        if (rootMoves.isEmpty()) return null;
-
-        MctsNode root = new MctsNode(rootState, GoGame.WHITE, rootMoves);
-        long startMs = System.currentTimeMillis();
-
-        while (!cancelled && System.currentTimeMillis() - startMs < timeLimitMs) {
-            MctsNode node = root;
-            while (node.untriedMoves.isEmpty() && !node.children.isEmpty()) {
-                node = selectChild(node);
-            }
-            if (!node.untriedMoves.isEmpty()) {
-                int[] move = node.untriedMoves.remove(random.nextInt(node.untriedMoves.size()));
-                int[][] childState = GoGame.copyBoard(node.state);
-                int childPlayer = node.player == GoGame.WHITE ? GoGame.BLACK : GoGame.WHITE;
-                childState[move[0]][move[1]] = node.player;
-                List<int[]> childMoves = getValidMoves(childState, childPlayer);
-                MctsNode child = new MctsNode(childState, childPlayer, childMoves);
-                child.moveRow = move[0];
-                child.moveCol = move[1];
-                node.children.add(child);
-                node = child;
-            }
-            double result = playout(node.state, node.player);
-            while (node != null) {
-                node.visits++;
-                node.totalReward += (node.player == GoGame.WHITE) ? result : (1.0 - result);
-                node = getParent(root, node);
-            }
-        }
-
-        // 最终决策：从访问次数前 3 的子节点中加权随机选（增加对局多样性）
-        List<MctsNode> topChildren = new ArrayList<>(root.children);
-        topChildren.sort((a, b) -> Integer.compare(b.visits, a.visits));
-        int pickCount = Math.min(3, topChildren.size());
-        if (pickCount == 0) return null;
-        // 权重：第1名权重3，第2名权重2，第3名权重1
-        int[] weights = {3, 2, 1};
-        int totalWeight = 0;
-        for (int i = 0; i < pickCount; i++) totalWeight += weights[i];
-        int r = random.nextInt(totalWeight);
-        int cumulative = 0;
-        for (int i = 0; i < pickCount; i++) {
-            cumulative += weights[i];
-            if (r < cumulative) {
-                return new int[]{topChildren.get(i).moveRow, topChildren.get(i).moveCol};
-            }
-        }
-        return new int[]{topChildren.get(0).moveRow, topChildren.get(0).moveCol};
+        List<Candidate> pool = safe.isEmpty() ? moves : safe;
+        Candidate selected = pool.get(random.nextInt(pool.size()));
+        return selected.coordinates();
     }
 
     /**
-     * 围棋开局库：9路棋盘开局从星位/三三/小目等位置加权随机选
-     * <p>
-     * 候选位置：
-     * <ul>
-     *   <li>星位（4个角）：(2,2), (2,6), (6,2), (6,6) - 权重3</li>
-     *   <li>边星：(2,4), (4,2), (4,6), (6,4) - 权重2</li>
-     *   <li>天元：(4,4) - 权重2</li>
-     *   <li>小目：(3,2), (2,3), (3,6), (6,3), (5,2), (2,5), (5,6), (6,5) - 权重1</li>
-     * </ul>
-     *
-     * @param board 当前棋盘
-     * @return 开局走法 [row, col]，无可用位置返回 null
+     * 普通档：一层战术选择。优先提子、救一气棋和打吃，避免自打吃与可被立即提取，
+     * 同时奖励连接、切断及 9 路棋盘角边效率。
      */
-    private int[] getOpeningMove(int[][] board) {
-        int[][] openPoints = {
-            {2, 2}, {2, 6}, {6, 2}, {6, 6},        // 星位（4个角）
-            {2, 4}, {4, 2}, {4, 6}, {6, 4},        // 边星
-            {4, 4},                                  // 天元
-            {3, 2}, {2, 3}, {3, 6}, {6, 3},         // 小目变体
-            {5, 2}, {2, 5}, {5, 6}, {6, 5}
-        };
-        int[] weights = {3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1};
+    private int[] findTacticalMove(SearchState state) {
+        List<Candidate> moves = generateCandidates(state, GoGame.WHITE);
+        if (moves.isEmpty()) return null;
 
-        List<int[]> available = new ArrayList<>();
-        List<Integer> availableWeights = new ArrayList<>();
-        int totalWeight = 0;
-        for (int i = 0; i < openPoints.length; i++) {
-            int[] pt = openPoints[i];
-            if (board[pt[0]][pt[1]] == GoGame.EMPTY && GoGame.isValidMove(board, pt[0], pt[1], GoGame.WHITE)) {
-                available.add(pt);
-                availableWeights.add(weights[i]);
-                totalWeight += weights[i];
-            }
+        // 只对静态评价最好的候选做一层反击检查，控制普通档耗时。
+        int replyChecked = Math.min(16, moves.size());
+        for (int i = 0; i < replyChecked; i++) {
+            Candidate candidate = moves.get(i);
+            int maxReplyCapture = maxImmediateCapture(
+                    candidate.board, state.board, GoGame.BLACK);
+            candidate.score -= maxReplyCapture * 72.0;
         }
-        if (available.isEmpty()) return null;
-        int r = random.nextInt(totalWeight);
-        int cumulative = 0;
-        for (int i = 0; i < available.size(); i++) {
-            cumulative += availableWeights.get(i);
-            if (r < cumulative) {
-                return available.get(i);
-            }
-        }
-        return available.get(0);
+        sortCandidates(moves);
+        return moves.get(0).coordinates();
     }
 
-    private MctsNode selectChild(MctsNode node) {
+    private List<Candidate> generateCandidates(SearchState state, int color) {
+        List<Candidate> candidates = new ArrayList<>();
+        for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+            for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                if (state.board[row][col] != GoGame.EMPTY) continue;
+                GoGame.MoveResult result = GoGame.tryMove(
+                        state.board, state.previousBoard, row, col, color);
+                if (!result.isLegal()) continue;
+                int[][] nextBoard = result.getBoard();
+                double score = evaluateMove(state.board, nextBoard, row, col, color,
+                        result.getCapturedStones());
+                candidates.add(new Candidate(row, col, nextBoard,
+                        result.getCapturedStones(), score));
+            }
+        }
+        sortCandidates(candidates);
+        return candidates;
+    }
+
+    private static void sortCandidates(List<Candidate> candidates) {
+        candidates.sort(Comparator
+                .comparingDouble((Candidate candidate) -> candidate.score).reversed()
+                .thenComparing(Comparator.comparingInt(
+                        (Candidate candidate) -> candidate.captured).reversed())
+                .thenComparingInt(candidate -> candidate.row)
+                .thenComparingInt(candidate -> candidate.col));
+    }
+
+    private double evaluateMove(int[][] before, int[][] after, int row, int col,
+                                int color, int captured) {
+        double score = captured * 125.0;
+        int opponent = GoGame.opposite(color);
+        boolean[][] seenOwn = new boolean[GoGame.BOARD_SIZE][GoGame.BOARD_SIZE];
+        boolean[][] seenOpponent = new boolean[GoGame.BOARD_SIZE][GoGame.BOARD_SIZE];
+        int connectedOwnGroups = 0;
+        int adjacentOpponentGroups = 0;
+
+        for (int[] dir : DIRS) {
+            int nr = row + dir[0];
+            int nc = col + dir[1];
+            if (!onBoard(nr, nc)) continue;
+            if (before[nr][nc] == color && !seenOwn[nr][nc]) {
+                connectedOwnGroups++;
+                int oldLiberties = GoGame.countLiberties(before, nr, nc);
+                if (oldLiberties == 1) score += 105.0; // 救一气棋
+                markGroup(before, nr, nc, color, seenOwn);
+            } else if (before[nr][nc] == opponent && !seenOpponent[nr][nc]) {
+                adjacentOpponentGroups++;
+                int oldLiberties = GoGame.countLiberties(before, nr, nc);
+                if (oldLiberties == 2) score += 34.0; // 制造打吃
+                markGroup(before, nr, nc, opponent, seenOpponent);
+            }
+        }
+
+        score += connectedOwnGroups * 15.0;
+        if (connectedOwnGroups >= 2) score += 24.0;
+        score += adjacentOpponentGroups * 6.0;
+
+        int liberties = GoGame.countLiberties(after, row, col);
+        score += Math.min(liberties, 6) * 5.0;
+        if (liberties == 1) score -= captured > 0 ? 24.0 : 150.0;
+        else if (liberties == 2) score -= 8.0;
+
+        if (isLikelyOwnEye(before, row, col, color) && captured == 0) score -= 85.0;
+        if (row == 0 || row == GoGame.BOARD_SIZE - 1) score -= 10.0;
+        if (col == 0 || col == GoGame.BOARD_SIZE - 1) score -= 10.0;
+        score += strategicPointBonus(row, col);
+        return score;
+    }
+
+    private int maxImmediateCapture(int[][] board, int[][] koForbiddenBoard, int color) {
+        int maxCapture = 0;
+        for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+            for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                if (board[row][col] != GoGame.EMPTY) continue;
+                GoGame.MoveResult reply = GoGame.tryMove(
+                        board, koForbiddenBoard, row, col, color);
+                if (reply.isLegal()) maxCapture = Math.max(maxCapture, reply.getCapturedStones());
+            }
+        }
+        return maxCapture;
+    }
+
+    private static double strategicPointBonus(int row, int col) {
+        int bestDistance = Integer.MAX_VALUE;
+        for (int[] point : STRATEGIC_POINTS) {
+            bestDistance = Math.min(bestDistance,
+                    Math.abs(row - point[0]) + Math.abs(col - point[1]));
+        }
+        return 18.0 - bestDistance * 3.0;
+    }
+
+    private static boolean isLikelyOwnEye(int[][] board, int row, int col, int color) {
+        int neighbors = 0;
+        for (int[] dir : DIRS) {
+            int nr = row + dir[0];
+            int nc = col + dir[1];
+            if (!onBoard(nr, nc)) continue;
+            neighbors++;
+            if (board[nr][nc] != color) return false;
+        }
+        return neighbors >= 2;
+    }
+
+    private static void markGroup(int[][] board, int startRow, int startCol,
+                                  int color, boolean[][] seen) {
+        Deque<int[]> queue = new ArrayDeque<>();
+        queue.add(new int[]{startRow, startCol});
+        seen[startRow][startCol] = true;
+        while (!queue.isEmpty()) {
+            int[] cell = queue.removeFirst();
+            for (int[] dir : DIRS) {
+                int nr = cell[0] + dir[0];
+                int nc = cell[1] + dir[1];
+                if (onBoard(nr, nc) && !seen[nr][nc] && board[nr][nc] == color) {
+                    seen[nr][nc] = true;
+                    queue.addLast(new int[]{nr, nc});
+                }
+            }
+        }
+    }
+
+    private int[] mctsMove(SearchState rootState, int iterationBudget, long timeLimitMs) {
+        MctsNode root = new MctsNode(null, rootState, -1, -1);
+        ensureMoves(root, true);
+        if (root.untriedMoves.isEmpty()) return null;
+
+        long deadlineNanos = System.nanoTime() + timeLimitMs * 1_000_000L;
+        int iterations = 0;
+        while (iterations < iterationBudget && !shouldStop()
+                && (iterations == 0 || System.nanoTime() < deadlineNanos)) {
+            MctsNode node = root;
+
+            // Selection + expansion. Node states are immutable and never handed to a mutating playout.
+            while (!shouldStop()) {
+                ensureMoves(node, node == root);
+                if (!node.untriedMoves.isEmpty()) {
+                    Candidate move = node.untriedMoves.remove(0);
+                    SearchState childState = new SearchState(move.board, node.state.board,
+                            GoGame.opposite(node.state.playerToMove), 0);
+                    MctsNode child = new MctsNode(node, childState, move.row, move.col);
+                    node.children.add(child);
+                    node = child;
+                    break;
+                }
+                if (node.children.isEmpty()) break;
+                node = selectChild(node);
+            }
+
+            double whiteReward = playout(node.state);
+            for (MctsNode current = node; current != null; current = current.parent) {
+                current.visits++;
+                current.totalWhiteReward += whiteReward;
+            }
+            iterations++;
+        }
+
+        if (root.children.isEmpty()) {
+            return root.untriedMoves.isEmpty() ? null : root.untriedMoves.get(0).coordinates();
+        }
+        // 高档最终确定选择访问最多的合法着，不再在前三名间随机抽取。
+        MctsNode best = null;
+        for (MctsNode child : root.children) {
+            if (best == null || child.visits > best.visits
+                    || (child.visits == best.visits && child.meanWhiteReward() > best.meanWhiteReward())
+                    || (child.visits == best.visits
+                    && Double.compare(child.meanWhiteReward(), best.meanWhiteReward()) == 0
+                    && coordinatesBefore(child, best))) {
+                best = child;
+            }
+        }
+        return new int[]{best.moveRow, best.moveCol};
+    }
+
+    private void ensureMoves(MctsNode node, boolean root) {
+        if (node.movesInitialized) return;
+        node.movesInitialized = true;
+        node.untriedMoves = generateCandidates(node.state, node.state.playerToMove);
+        if (!root && node.untriedMoves.size() > DEEP_NODE_CANDIDATE_LIMIT) {
+            node.untriedMoves = new ArrayList<>(
+                    node.untriedMoves.subList(0, DEEP_NODE_CANDIDATE_LIMIT));
+        }
+    }
+
+    private MctsNode selectChild(MctsNode parent) {
         MctsNode best = null;
         double bestValue = Double.NEGATIVE_INFINITY;
-        for (MctsNode child : node.children) {
-            if (child.visits == 0) {
-                best = child;
-                break;
-            }
-            double uct = child.totalReward / child.visits
-                    + 1.41 * Math.sqrt(Math.log(node.visits) / child.visits);
-            if (uct > bestValue) {
-                bestValue = uct;
+        double parentLog = Math.log(Math.max(1, parent.visits));
+        for (MctsNode child : parent.children) {
+            double whiteMean = child.meanWhiteReward();
+            // 当前层执白就最大化白胜率，执黑就最大化黑胜率，避免奖励视角反转。
+            double exploitation = parent.state.playerToMove == GoGame.WHITE
+                    ? whiteMean : 1.0 - whiteMean;
+            double exploration = UCT_EXPLORATION
+                    * Math.sqrt(parentLog / Math.max(1, child.visits));
+            double value = exploitation + exploration;
+            if (value > bestValue) {
+                bestValue = value;
                 best = child;
             }
         }
         return best;
     }
 
-    private double playout(int[][] state, int currentPlayer) {
-        int passCount = 0;
-        int moveCount = 0;
-        while (moveCount < MCTS_PLAYOUT_MAX_MOVES && passCount < 2) {
-            List<int[]> moves = getValidMoves(state, currentPlayer);
+    private double playout(SearchState start) {
+        int[][] board = start.board;
+        int[][] previousBoard = start.previousBoard;
+        int player = start.playerToMove;
+        int passes = start.consecutivePasses;
+
+        for (int ply = 0; ply < playoutMaxMoves && passes < 2 && !shouldStop(); ply++) {
+            SearchState state = new SearchState(board, previousBoard, player, passes);
+            List<Candidate> moves = generateCandidates(state, player);
             if (moves.isEmpty()) {
-                passCount++;
-                currentPlayer = (currentPlayer == GoGame.WHITE) ? GoGame.BLACK : GoGame.WHITE;
-                moveCount++;
+                // Passing lifts the immediately preceding simple-ko prohibition.
+                previousBoard = board;
+                passes++;
+                player = GoGame.opposite(player);
                 continue;
             }
-            int[] move = moves.get(random.nextInt(moves.size()));
-            state[move[0]][move[1]] = currentPlayer;
-            GoGame.simulateCapture(state, currentPlayer == GoGame.WHITE ? GoGame.BLACK : GoGame.WHITE, move[0], move[1]);
-            passCount = 0;
-            currentPlayer = (currentPlayer == GoGame.WHITE) ? GoGame.BLACK : GoGame.WHITE;
-            moveCount++;
-        }
-        int white = 0, black = 0;
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (state[r][c] == GoGame.WHITE) white++;
-                else if (state[r][c] == GoGame.BLACK) black++;
+
+            int topCount = Math.min(6, moves.size());
+            Candidate selected;
+            if (moves.get(0).captured > 0) {
+                selected = moves.get(0);
+            } else {
+                selected = moves.get(random.nextInt(topCount));
             }
+            int[][] boardBeforeMove = board;
+            board = selected.board;
+            previousBoard = boardBeforeMove;
+            player = GoGame.opposite(player);
+            passes = 0;
         }
-        if (white + GoGame.KOMI > black) return 1.0;
-        if (white + GoGame.KOMI < black) return 0.0;
-        return 0.5;
+        return whiteReward(board);
     }
 
-    private List<int[]> getValidMoves(int[][] state, int color) {
-        List<int[]> moves = new ArrayList<>();
-        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
-            for (int c = 0; c < GoGame.BOARD_SIZE; c++) {
-                if (state[r][c] == GoGame.EMPTY && GoGame.isValidMove(state, r, c, color)) {
-                    moves.add(new int[]{r, c});
-                }
-            }
-        }
-        return moves;
+    private static double whiteReward(int[][] board) {
+        GoGame.Score score = GoGame.calculateScore(board);
+        double difference = score.getWhiteScore() - score.getBlackScore();
+        return 0.5 + 0.5 * Math.tanh(difference / 12.0);
     }
 
-    private MctsNode getParent(MctsNode root, MctsNode target) {
-        return findParentDfs(root, target);
+    private boolean shouldStop() {
+        return cancelled || Thread.currentThread().isInterrupted();
     }
 
-    private MctsNode findParentDfs(MctsNode node, MctsNode target) {
-        for (MctsNode child : node.children) {
-            if (child == target) return node;
-            MctsNode found = findParentDfs(child, target);
-            if (found != null) return found;
+    private static boolean coordinatesBefore(MctsNode a, MctsNode b) {
+        return a.moveRow < b.moveRow || (a.moveRow == b.moveRow && a.moveCol < b.moveCol);
+    }
+
+    private static boolean onBoard(int row, int col) {
+        return row >= 0 && row < GoGame.BOARD_SIZE
+                && col >= 0 && col < GoGame.BOARD_SIZE;
+    }
+
+    private static final class SearchState {
+        final int[][] board;
+        final int[][] previousBoard;
+        final int playerToMove;
+        final int consecutivePasses;
+
+        SearchState(int[][] board, int[][] previousBoard, int playerToMove,
+                    int consecutivePasses) {
+            this.board = board;
+            this.previousBoard = previousBoard;
+            this.playerToMove = playerToMove;
+            this.consecutivePasses = consecutivePasses;
         }
-        return null;
+    }
+
+    private static final class Candidate {
+        final int row;
+        final int col;
+        final int[][] board;
+        final int captured;
+        double score;
+
+        Candidate(int row, int col, int[][] board, int captured, double score) {
+            this.row = row;
+            this.col = col;
+            this.board = board;
+            this.captured = captured;
+            this.score = score;
+        }
+
+        int[] coordinates() {
+            return new int[]{row, col};
+        }
+    }
+
+    private static final class MctsNode {
+        final MctsNode parent;
+        final SearchState state;
+        final int moveRow;
+        final int moveCol;
+        final List<MctsNode> children = new ArrayList<>();
+        List<Candidate> untriedMoves = new ArrayList<>();
+        boolean movesInitialized;
+        int visits;
+        double totalWhiteReward;
+
+        MctsNode(MctsNode parent, SearchState state, int moveRow, int moveCol) {
+            this.parent = parent;
+            this.state = state;
+            this.moveRow = moveRow;
+            this.moveCol = moveCol;
+        }
+
+        double meanWhiteReward() {
+            return visits == 0 ? 0.5 : totalWhiteReward / visits;
+        }
     }
 }

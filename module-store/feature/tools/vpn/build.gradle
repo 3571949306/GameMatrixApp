@@ -66,4 +66,7 @@ dependencies {
     compileOnly 'androidx.recyclerview:recyclerview:1.3.0'
     compileOnly 'com.google.code.gson:gson:2.10.1'
     compileOnly 'androidx.fragment:fragment-ktx:1.5.0'
+
+    // 安全加密存��：用于 EncryptedSharedPreferences 保�� VPN ��点配置（含密码、UUID 等敏感信息）
+    implementation 'androidx.security:security-crypto:1.0.0'
 }

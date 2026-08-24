@@ -7,12 +7,14 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
@@ -27,6 +29,9 @@ import java.util.concurrent.Executors;
 
 public class GoActivity extends BaseGameActivity {
 
+    private static final String TAG = "GoActivity";
+    private static final String CONTRACT_TAG = "GO_AI_CONTRACT_VIOLATION";
+
     private GoGame game;
     private GoAI ai;
 
@@ -39,8 +44,13 @@ public class GoActivity extends BaseGameActivity {
     private GoView goView;
     private TextView tvStatus;
     private TextView tvScore;
+    private TextView tvMeta;
+    private TextView tvDifficultyDescription;
     private LinearLayout gamePanel;
     private LinearLayout menuPanel;
+    private CheckBox simpleBoardCheck;
+    private MaterialButton boardStyleButton;
+    private MaterialButton passButton;
 
     private final List<MaterialButton> difficultyButtons = new ArrayList<>();
     private long aiThinkStartMs = 0L;
@@ -63,6 +73,9 @@ public class GoActivity extends BaseGameActivity {
 
     /** AI 回合代际：pause/restart/destroy 时自增，使过期计算不再回写 UI。 */
     private volatile long aiGeneration = 0;
+    private int restartCount = 0;
+    private int aiContractViolationCount = 0;
+    private int aiFallbackCount = 0;
 
     /** P2-7: 对局回放录制器 */
     private com.gamecenter.app.games.replay.ReplayRecorder replayRecorder;
@@ -70,12 +83,25 @@ public class GoActivity extends BaseGameActivity {
     /** 新手引导序列（首次开始游戏后弹出，3 步引导） */
     private com.gamecenter.app.ui.onboarding.CoachmarkSequence onboardingSequence;
 
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        // 2026-08-23 修复：BaseGameActivity.onCreate 在 super 调用中执行 initGame()，
+        // initGame() → createGameContentView() → addDifficultyButtonsTo() 会读取
+        // ai.getDifficulty()。若 ai 此时未初始化，将触发 NullPointerException。
+        // 因此必须在 super.onCreate 之前完成 game/ai/aiExecutor 的初始化。
         game = new GoGame();
         ai = new GoAI();
+        int prefilledIndex = getIntent().getIntExtra("game_difficulty_index", -1);
+        // 大厅传入值只作为 0-based 预选；没有推荐值时默认普通档（level 2）。
+        ai.setDifficulty(prefilledIndex >= 0 ? Math.min(prefilledIndex + 1, 4) : 2);
         aiExecutor = Executors.newSingleThreadExecutor();
+        super.onCreate(savedInstanceState);
         onboardingSequence = new com.gamecenter.app.ui.onboarding.CoachmarkSequence(
                 this,
                 com.gamecenter.app.ui.onboarding.GoOnboarding.steps,
@@ -97,9 +123,14 @@ public class GoActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P2-2：初始化存档管理器
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         if (gameContentContainer instanceof FrameLayout) {
             View contentView = createGameContentView();
             ((FrameLayout) gameContentContainer).addView(contentView);
+            showMenu(false);
         }
     }
 
@@ -123,16 +154,29 @@ public class GoActivity extends BaseGameActivity {
         tvScore.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_score_text));
         tvScore.setPadding(0, 4, 0, 16);
 
+        tvMeta = new TextView(this);
+        tvMeta.setGravity(Gravity.CENTER);
+        tvMeta.setTextSize(12f);
+        tvMeta.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_label_text));
+        tvMeta.setPadding(12, 0, 12, 8);
+
         menuPanel = new LinearLayout(this);
         menuPanel.setOrientation(LinearLayout.VERTICAL);
         menuPanel.setGravity(Gravity.CENTER);
 
         addDifficultyButtonsTo(menuPanel);
 
+        simpleBoardCheck = new CheckBox(this);
+        simpleBoardCheck.setText("使用简洁棋盘");
+        simpleBoardCheck.setTextColor(ContextCompat.getColor(this, R.color.game_go_color_status_text));
+        simpleBoardCheck.setChecked(GoUiPreferences.isSimpleMode(this));
+        simpleBoardCheck.setOnCheckedChangeListener((buttonView, isChecked) -> setSimpleBoardMode(isChecked));
+        menuPanel.addView(simpleBoardCheck);
+
         MaterialButton btnStart = new MaterialButton(this);
         btnStart.setText(R.string.game_go_start);
         btnStart.setBackgroundColor(ContextCompat.getColor(this, R.color.game_go_color_score_text));
-        btnStart.setOnClickListener(v -> startNewGame());
+        btnStart.setOnClickListener(v -> beginPlay());
         menuPanel.addView(btnStart);
 
         gamePanel = new LinearLayout(this);
@@ -141,13 +185,12 @@ public class GoActivity extends BaseGameActivity {
         gamePanel.setVisibility(View.GONE);
 
         goView = new GoView(this);
+        goView.setSimpleMode(GoUiPreferences.isSimpleMode(this));
         int viewWidth = (int) (getResources().getDisplayMetrics().widthPixels * 0.9);
         goView.setLayoutParams(new FrameLayout.LayoutParams(viewWidth, viewWidth));
         goView.setOnCellClickListener(this::onCellClick);
         // 给棋盘打上稳定 id，供 Coachmark 定位（围棋新手引导第 1 步目标）
         goView.setId(R.id.go_board_view);
-
-        addDifficultyButtonsTo(gamePanel);
 
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -156,34 +199,40 @@ public class GoActivity extends BaseGameActivity {
         // 给按钮行打上稳定 id，供 Coachmark 定位（围棋新手引导第 3 步目标）
         btnRow.setId(R.id.go_buttons_view);
 
-        MaterialButton btnPass = new MaterialButton(this);
-        btnPass.setText(R.string.game_go_pass);
-        btnPass.setOnClickListener(v -> passMove());
+        passButton = new MaterialButton(this);
+        passButton.setText(R.string.game_go_pass);
+        passButton.setOnClickListener(v -> passMove());
 
         MaterialButton btnResign = new MaterialButton(this);
         btnResign.setText(R.string.game_go_resign);
         btnResign.setOnClickListener(v -> resign());
 
         MaterialButton btnRestart = new MaterialButton(this);
-        btnRestart.setText(R.string.btn_restart);
+        btnRestart.setText(R.string.game_go_restart);
         btnRestart.setOnClickListener(v -> showMenu());
+
+        boardStyleButton = new MaterialButton(this);
+        boardStyleButton.setOnClickListener(v -> setSimpleBoardMode(!goView.isSimpleMode()));
 
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         btnLp.setMargins(12, 0, 12, 0);
-        btnPass.setLayoutParams(btnLp);
+        passButton.setLayoutParams(btnLp);
         btnResign.setLayoutParams(btnLp);
         btnRestart.setLayoutParams(btnLp);
+        boardStyleButton.setLayoutParams(btnLp);
 
-        btnRow.addView(btnPass);
+        btnRow.addView(passButton);
         btnRow.addView(btnResign);
         btnRow.addView(btnRestart);
 
         gamePanel.addView(goView);
         gamePanel.addView(btnRow);
+        gamePanel.addView(boardStyleButton);
 
         root.addView(tvStatus);
         root.addView(tvScore);
+        root.addView(tvMeta);
         root.addView(menuPanel);
         root.addView(gamePanel);
 
@@ -191,16 +240,168 @@ public class GoActivity extends BaseGameActivity {
     }
 
     private void showMenu() {
+        showMenu(true);
+    }
+
+    private void showMenu(boolean countRestart) {
+        if (countRestart && isGameRunning) restartCount++;
+        cancelPendingAi("show_menu");
+        isGameRunning = false;
         menuPanel.setVisibility(View.VISIBLE);
         gamePanel.setVisibility(View.GONE);
         tvStatus.setText(R.string.game_go_welcome);
         tvScore.setText("");
         goView.hideTerritory();
+        goView.clearLastMove();
+        updateDifficultyButtons();
+        updateBoardStyleControls();
+        updatePassButton();
+        renderGameMeta();
+    }
+
+    /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay() {
+        if (saveManager != null && saveManager.hasSave(getGameId())) {
+            new AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(getGameId());
+                        startNewGame();
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startNewGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        org.json.JSONObject state = saveManager == null ? null : saveManager.load(getGameId());
+        if (state == null) {
+            startNewGame();
+            return;
+        }
+        try {
+            org.json.JSONArray rows = state.getJSONArray("board");
+            int[][] savedBoard = boardFromJson(rows);
+            int[][] savedPreviousBoard = state.isNull("previousBoard")
+                    ? null : boardFromJson(state.optJSONArray("previousBoard"));
+            int difficulty = Math.max(1, Math.min(4, state.optInt("difficulty", 2)));
+            int currentPlayer = state.optInt("currentPlayer", GoGame.BLACK);
+            int capBlack = state.optInt("capturedByBlack", 0);
+            int capWhite = state.optInt("capturedByWhite", 0);
+            int consecutivePasses = state.optInt("consecutivePasses", 0);
+            boolean gameOver = state.optBoolean("gameOver", false);
+
+            // 作废可能进行中的后台搜索
+            cancelPendingAi("restore_save");
+
+            game.restoreState(savedBoard, savedPreviousBoard, currentPlayer, capBlack, capWhite,
+                    consecutivePasses, gameOver);
+            ai.setDifficulty(difficulty);
+            moveCount = state.optInt("moveCount", 0);
+            isGameRunning = !gameOver;
+            gameStartTime = System.currentTimeMillis();
+
+            menuPanel.setVisibility(View.GONE);
+            gamePanel.setVisibility(View.VISIBLE);
+            tvStatus.setText(currentPlayer == GoGame.BLACK
+                    ? R.string.game_go_your_turn : R.string.game_go_ai_thinking);
+            updateScoreDisplay();
+            goView.hideTerritory();
+            goView.clearLastMove();
+            goView.setBoard(game.getBoard());
+            updateDifficultyButtons();
+            updateBoardStyleControls();
+            updatePassButton();
+            renderGameMeta();
+
+            // 重新开始回放录制（从恢复点继续记）
+            replayRecorder = new com.gamecenter.app.games.replay.ReplayRecorder(this, getGameId());
+            replayRecorder.startRecording(difficulty);
+
+            // 若存档停在 AI（白方）回合，恢复后触发 AI 行动
+            if (!gameOver && currentPlayer == GoGame.WHITE) {
+                startAiTurn();
+            }
+        } catch (Exception e) {
+            android.util.Log.w("GoActivity", "存档恢复失败，新开一局: " + e.getMessage());
+            startNewGame();
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning || game == null) return;
+        try {
+            org.json.JSONObject state = new org.json.JSONObject();
+            org.json.JSONArray rows = new org.json.JSONArray();
+            int[][] b = game.getBoardSnapshot();
+            rows = boardToJson(b);
+            state.put("board", rows);
+            int[][] previousBoard = game.getPreviousBoardSnapshot();
+            state.put("previousBoard", previousBoard == null
+                    ? org.json.JSONObject.NULL : boardToJson(previousBoard));
+            state.put("difficulty", ai.getDifficulty());
+            state.put("currentPlayer", game.getCurrentPlayer());
+            state.put("capturedByBlack", game.getCapturedByBlack());
+            state.put("capturedByWhite", game.getCapturedByWhite());
+            state.put("consecutivePasses", game.getConsecutivePasses());
+            state.put("gameOver", game.isGameOver());
+            state.put("moveCount", moveCount);
+            saveManager.save(getGameId(), state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
+        }
+    }
+
+    @NonNull
+    private org.json.JSONArray boardToJson(@NonNull int[][] board) {
+        org.json.JSONArray rows = new org.json.JSONArray();
+        for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+            org.json.JSONArray columns = new org.json.JSONArray();
+            for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                columns.put(board[row][col]);
+            }
+            rows.put(columns);
+        }
+        return rows;
+    }
+
+    @NonNull
+    private int[][] boardFromJson(@Nullable org.json.JSONArray rows) throws org.json.JSONException {
+        if (rows == null || rows.length() != GoGame.BOARD_SIZE) {
+            throw new org.json.JSONException("invalid go board row count");
+        }
+        int[][] board = new int[GoGame.BOARD_SIZE][GoGame.BOARD_SIZE];
+        for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+            org.json.JSONArray columns = rows.getJSONArray(row);
+            if (columns.length() != GoGame.BOARD_SIZE) {
+                throw new org.json.JSONException("invalid go board column count");
+            }
+            for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                int value = columns.getInt(col);
+                if (value < GoGame.EMPTY || value > GoGame.WHITE) {
+                    throw new org.json.JSONException("invalid go stone value");
+                }
+                board[row][col] = value;
+            }
+        }
+        return board;
     }
 
     private void startNewGame() {
+        cancelPendingAi("start_new_game");
         game.startNewGame();
         moveCount = 0;
+        aiContractViolationCount = 0;
+        aiFallbackCount = 0;
 
         menuPanel.setVisibility(View.GONE);
         gamePanel.setVisibility(View.VISIBLE);
@@ -208,6 +409,7 @@ public class GoActivity extends BaseGameActivity {
         updateScoreDisplay();
 
         goView.hideTerritory();
+        goView.clearLastMove();
         goView.setBoard(game.getBoard());
 
         isGameRunning = true;
@@ -216,6 +418,9 @@ public class GoActivity extends BaseGameActivity {
         // P2-7: 开始回放录制
         replayRecorder = new com.gamecenter.app.games.replay.ReplayRecorder(this, getGameId());
         replayRecorder.startRecording(ai.getDifficulty());
+        updateBoardStyleControls();
+        updatePassButton();
+        renderGameMeta();
 
         // 首次开始游戏后触发新手引导（gamePanel 此时已 VISIBLE，goView 拿得到尺寸）
         // Spec §6 / 设计 §5.6：U2 免登录上手
@@ -235,9 +440,14 @@ public class GoActivity extends BaseGameActivity {
             if (replayRecorder != null && replayRecorder.isRecording()) {
                 replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(row, col, GoGame.BLACK));
             }
+            // 2026-08-23 P3：玩家落子反馈
+            if (feedback != null) feedback.feedbackMove();
             goView.setBoard(game.getBoard());
             goView.setLastMove(row, col);
             updateScoreDisplay();
+            renderGameMeta();
+            // 2026-08-23 P2-2：玩家落子后保存进度（轮到 AI）
+            saveProgress();
             startAiTurn();
         }
     }
@@ -248,22 +458,23 @@ public class GoActivity extends BaseGameActivity {
      * 计算完成后通过主线程 Handler 回写棋盘，彻底消除主线程卡顿/ANR。</p>
      */
     private void startAiTurn() {
-        if (aiThinking) return;
+        if (aiThinking || !isGameRunning || game.isGameOver()
+                || game.getCurrentPlayer() != GoGame.WHITE) return;
         aiThinking = true;
         aiThinkStartMs = System.currentTimeMillis();
         tvStatus.setText(getString(R.string.game_go_ai_thinking_with_difficulty, getDifficultyName(ai.getDifficulty())));
+        updatePassButton();
+        renderGameMeta();
 
         final long gen = ++aiGeneration;
+        final long searchStartedMs = aiThinkStartMs;
+        final GoGame searchGame = createSearchSnapshot();
         // 提交前确保线程池可用（endGame/onDestroy 已 shutdown 则重建，避免 RejectedExecutionException）
         ensureAiExecutor();
         aiExecutor.execute(() -> {
             if (gen != aiGeneration) return;
-            if (game.isGameOver()) {
-                handler.post(() -> aiThinking = false);
-                return;
-            }
-            int[] bestMove = ai.findBestAiMove(game);
-            long thinkMs = System.currentTimeMillis() - aiThinkStartMs;
+            int[] bestMove = ai.findBestAiMove(searchGame);
+            long thinkMs = System.currentTimeMillis() - searchStartedMs;
             Log.i("GoAI", "难度=" + ai.getDifficulty() + " 思考耗时=" + thinkMs + "ms");
             handler.post(() -> applyAiMove(bestMove, thinkMs, gen));
         });
@@ -274,26 +485,32 @@ public class GoActivity extends BaseGameActivity {
      */
     private void applyAiMove(int[] bestMove, long thinkMs, long gen) {
         if (gen != aiGeneration) return;
-        if (game.isGameOver()) {
+        if (!isGameRunning || game.isGameOver() || game.getCurrentPlayer() != GoGame.WHITE) {
             aiThinking = false;
+            updatePassButton();
             return;
         }
 
         if (bestMove == null) {
-            game.passMove();
-            // P2-7: 记录 AI 弃权（pass），用 (-1,-1) 标记
-            if (replayRecorder != null && replayRecorder.isRecording()) {
-                replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(-1, -1, GoGame.WHITE));
+            boolean hasLegalMove = hasLegalMove(GoGame.WHITE);
+            if (hasLegalMove && !isAcceptableStrategicPass()) {
+                logAiContractViolation("null_with_legal_move", null);
+                int[] fallback = findCentralLegalMove(GoGame.WHITE);
+                if (!commitAiMove(fallback, true)) recordAiPass("fallback_failed");
+            } else {
+                recordAiPass(hasLegalMove ? "strategic" : "forced");
             }
-            tvStatus.setText(R.string.game_go_ai_passed);
         } else {
-            game.playMove(bestMove[0], bestMove[1]);
-            // P2-7: 记录 AI 落子
-            if (replayRecorder != null && replayRecorder.isRecording()) {
-                replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(bestMove[0], bestMove[1], GoGame.WHITE));
+            if (!commitAiMove(bestMove, false)) {
+                if (hasLegalMove(GoGame.WHITE)) {
+                    logAiContractViolation("rejected_move", bestMove);
+                    int[] fallback = findCentralLegalMove(GoGame.WHITE);
+                    if (!commitAiMove(fallback, true)) recordAiPass("fallback_failed");
+                } else {
+                    logAiContractViolation("rejected_move_without_legal_alternative", bestMove);
+                    recordAiPass("forced_after_reject");
+                }
             }
-            goView.setBoard(game.getBoard());
-            goView.setLastMove(bestMove[0], bestMove[1]);
 
             if (ai.getDifficulty() >= 4 && thinkMs > 100) {
                 Toast.makeText(this, getString(R.string.game_go_ai_think_ms, thinkMs), Toast.LENGTH_SHORT).show();
@@ -302,6 +519,7 @@ public class GoActivity extends BaseGameActivity {
 
         if (game.isGameOver()) {
             aiThinking = false;
+            updatePassButton();
             onGameEnd();
             return;
         }
@@ -309,15 +527,25 @@ public class GoActivity extends BaseGameActivity {
         aiThinking = false;
         tvStatus.setText(R.string.game_go_your_turn);
         updateScoreDisplay();
+        updatePassButton();
+        renderGameMeta();
+        // 2026-08-23 P2-2：AI 落子后保存进度（轮到玩家）
+        saveProgress();
     }
 
     private void passMove() {
-        if (game.isGameOver() || !isGameRunning) return;
+        if (game.isGameOver() || !isGameRunning || aiThinking
+                || game.getCurrentPlayer() != GoGame.BLACK) return;
         game.passMove();
+        moveCount++;
+        goView.clearLastMove();
         // P2-7: 记录玩家弃权（pass），用 (-1,-1) 标记
         if (replayRecorder != null && replayRecorder.isRecording()) {
             replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(-1, -1, GoGame.BLACK));
         }
+        updateScoreDisplay();
+        renderGameMeta();
+        saveProgress();
         if (game.isGameOver()) {
             onGameEnd();
             return;
@@ -326,10 +554,153 @@ public class GoActivity extends BaseGameActivity {
         startAiTurn();
     }
 
+    private GoGame createSearchSnapshot() {
+        GoGame snapshot = new GoGame();
+        snapshot.restoreState(
+                game.getBoardSnapshot(),
+                game.getPreviousBoardSnapshot(),
+                game.getCurrentPlayer(),
+                game.getCapturedByBlack(),
+                game.getCapturedByWhite(),
+                game.getConsecutivePasses(),
+                game.isGameOver());
+        return snapshot;
+    }
+
+    private boolean commitAiMove(@Nullable int[] move, boolean fallback) {
+        if (move == null || move.length < 2
+                || move[0] < 0 || move[0] >= GoGame.BOARD_SIZE
+                || move[1] < 0 || move[1] >= GoGame.BOARD_SIZE) {
+            return false;
+        }
+        if (!game.playMove(move[0], move[1])) return false;
+
+        moveCount++;
+        if (replayRecorder != null && replayRecorder.isRecording()) {
+            replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(
+                    move[0], move[1], GoGame.WHITE));
+        }
+        if (feedback != null) feedback.playMove();
+        if (fallback) {
+            aiFallbackCount++;
+            Log.w(TAG, "GO_AI_FALLBACK difficulty=" + ai.getDifficulty()
+                    + " move=" + move[0] + "," + move[1]
+                    + " count=" + aiFallbackCount);
+        }
+        goView.setBoard(game.getBoard());
+        goView.setLastMove(move[0], move[1]);
+        return true;
+    }
+
+    private void recordAiPass(@NonNull String reason) {
+        game.passMove();
+        moveCount++;
+        if (replayRecorder != null && replayRecorder.isRecording()) {
+            replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(
+                    -1, -1, GoGame.WHITE));
+        }
+        goView.clearLastMove();
+        tvStatus.setText(R.string.game_go_ai_passed);
+        Log.i(TAG, "GO_AI_PASS reason=" + reason + " difficulty=" + ai.getDifficulty());
+    }
+
+    private boolean hasLegalMove(int color) {
+        for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+            for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                if (game.isValidMove(row, col, color)) return true;
+            }
+        }
+        return false;
+    }
+
+    @Nullable
+    private int[] findCentralLegalMove(int color) {
+        int[] best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        int center = GoGame.BOARD_SIZE / 2;
+        for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+            for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                if (!game.isValidMove(row, col, color)) continue;
+                int distance = Math.abs(row - center) + Math.abs(col - center);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = new int[]{row, col};
+                }
+            }
+        }
+        return best;
+    }
+
+    private boolean isAcceptableStrategicPass() {
+        if (game.getConsecutivePasses() != 1) return false;
+        GoGame.Score score = game.calculateScore();
+        return score.getWhiteScore() >= score.getBlackScore();
+    }
+
+    private void logAiContractViolation(@NonNull String reason, @Nullable int[] move) {
+        aiContractViolationCount++;
+        String rawMove = move == null || move.length < 2
+                ? "null" : move[0] + "," + move[1];
+        Log.e(CONTRACT_TAG,
+                "reason=" + reason
+                        + " difficulty=" + ai.getDifficulty()
+                        + " generation=" + aiGeneration
+                        + " move=" + rawMove
+                        + " count=" + aiContractViolationCount);
+    }
+
+    private void cancelPendingAi(@NonNull String reason) {
+        aiGeneration++;
+        aiThinking = false;
+        if (ai != null) ai.cancel();
+        Log.d(TAG, "AI generation invalidated: " + reason + " gen=" + aiGeneration);
+        updatePassButton();
+    }
+
+    private void setSimpleBoardMode(boolean simpleMode) {
+        GoUiPreferences.setSimpleMode(this, simpleMode);
+        if (goView != null) goView.setSimpleMode(simpleMode);
+        if (simpleBoardCheck != null && simpleBoardCheck.isChecked() != simpleMode) {
+            simpleBoardCheck.setChecked(simpleMode);
+        }
+        updateBoardStyleControls();
+        renderGameMeta();
+    }
+
+    private void updateBoardStyleControls() {
+        boolean simpleMode = goView != null
+                ? goView.isSimpleMode() : GoUiPreferences.isSimpleMode(this);
+        if (boardStyleButton != null) {
+            boardStyleButton.setText(simpleMode ? "棋盘：简洁" : "棋盘：增强");
+        }
+    }
+
+    private void updatePassButton() {
+        if (passButton == null || game == null) return;
+        passButton.setEnabled(isGameRunning && !aiThinking && !game.isGameOver()
+                && game.getCurrentPlayer() == GoGame.BLACK);
+        passButton.setAlpha(passButton.isEnabled() ? 1f : 0.45f);
+    }
+
+    private void renderGameMeta() {
+        if (tvMeta == null || game == null || ai == null) return;
+        String turn;
+        if (!isGameRunning) turn = game.isGameOver() ? "已结束" : "等待开始";
+        else turn = game.getCurrentPlayer() == GoGame.BLACK ? "黑方回合" : "白方回合";
+        boolean simpleMode = goView != null && goView.isSimpleMode();
+        tvMeta.setText(getDifficultyName(ai.getDifficulty())
+                + " · " + moveCount + " 手 · " + turn
+                + " · 贴目 " + String.format(Locale.ROOT, "%.1f", GoGame.KOMI)
+                + " · " + (simpleMode ? "简洁棋盘" : "增强棋盘"));
+    }
+
     private void resign() {
-        if (game.isGameOver()) return;
+        if (game.isGameOver() || !isGameRunning) return;
+        cancelPendingAi("resign");
         game.setGameOver(true);
         isGameRunning = false;
+        // 2026-08-23 P2-2：认输结束对局，清除存档
+        if (saveManager != null) saveManager.clear(getGameId());
         tvStatus.setText(R.string.game_go_you_resigned);
         winStreak = 0;
         usageStore.recordLoss(getGameId());
@@ -337,9 +708,10 @@ public class GoActivity extends BaseGameActivity {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
         
-        int blackT = game.countTerritory(GoGame.BLACK) + game.getCapturedByBlack();
-        int whiteT = game.countTerritory(GoGame.WHITE) + game.getCapturedByWhite() + (int) GoGame.KOMI;
-        showGameEndDialog(false, blackT, whiteT);
+        GoGame.Score score = game.calculateScore();
+        updatePassButton();
+        renderGameMeta();
+        showGameEndDialog(false, score.getBlackScore(), score.getWhiteScore());
 
         // P2-7: 结束录制并提供回放（认输=负）
         offerReplay(com.gamecenter.app.games.replay.ReplayRecorder.RESULT_LOSS);
@@ -395,21 +767,27 @@ public class GoActivity extends BaseGameActivity {
 
     private void onGameEnd() {
         isGameRunning = false;
+        cancelPendingAi("game_end");
+        // 2026-08-23 P2-2：对局正常结束，清除存档
+        if (saveManager != null) saveManager.clear(getGameId());
 
-        float blackTerritory = game.countTerritory(GoGame.BLACK) + game.getCapturedByBlack();
-        float whiteTerritory = game.countTerritory(GoGame.WHITE) + game.getCapturedByWhite() + GoGame.KOMI;
+        GoGame.Score score = game.calculateScore();
+        double blackTerritory = score.getBlackScore();
+        double whiteTerritory = score.getWhiteScore();
 
         float[][] territory = game.calculateTerritory();
         goView.showTerritory(territory);
 
-        boolean playerWins = blackTerritory > whiteTerritory;
-        float blackPercent = blackTerritory / (GoGame.BOARD_SIZE * GoGame.BOARD_SIZE) * 100;
+        boolean playerWins = score.isBlackWinner();
+        double blackPercent = blackTerritory / (GoGame.BOARD_SIZE * GoGame.BOARD_SIZE) * 100;
 
         if (playerWins) {
             totalWins++;
             winStreak++;
-            tvStatus.setText(getString(R.string.game_go_you_win, (int) blackTerritory, (int) whiteTerritory));
+            tvStatus.setText(getString(R.string.game_go_you_win, blackTerritory, whiteTerritory));
             usageStore.recordWin(getGameId());
+            // 2026-08-23 P3：胜利反馈
+            if (feedback != null) feedback.feedbackWin();
 
             checkAchievement("win", totalWins);
             checkAchievement("score", (int) blackPercent);
@@ -425,8 +803,10 @@ public class GoActivity extends BaseGameActivity {
             }
         } else {
             winStreak = 0;
-            tvStatus.setText(getString(R.string.game_go_ai_wins, (int) blackTerritory, (int) whiteTerritory));
+            tvStatus.setText(getString(R.string.game_go_ai_wins, blackTerritory, whiteTerritory));
             usageStore.recordLoss(getGameId());
+            // 2026-08-23 P3：失败反馈
+            if (feedback != null) feedback.feedbackLose();
         }
 
         if (gameStartTime > 0) {
@@ -436,7 +816,13 @@ public class GoActivity extends BaseGameActivity {
         // 最高分持久化（按累计得分记录）
         recordHighScore(currentScore);
 
-        showGameEndDialog(playerWins, (int) blackTerritory, (int) whiteTerritory);
+        updatePassButton();
+        renderGameMeta();
+        Log.i(TAG, "GO_GAME_END difficulty=" + ai.getDifficulty()
+                + " ply=" + moveCount + " undoCount=0 restartCount=" + restartCount
+                + " rawIllegal=" + aiContractViolationCount
+                + " fallback=" + aiFallbackCount);
+        showGameEndDialog(playerWins, blackTerritory, whiteTerritory);
 
         // P2-7: 结束录制并提供回放，结果按目数比较判定
         String replayResult;
@@ -450,7 +836,7 @@ public class GoActivity extends BaseGameActivity {
         offerReplay(replayResult);
     }
 
-    private void showGameEndDialog(boolean playerWins, int blackTerritory, int whiteTerritory) {
+    private void showGameEndDialog(boolean playerWins, double blackTerritory, double whiteTerritory) {
         long elapsed = gameStartTime > 0 ? (System.currentTimeMillis() - gameStartTime) : 0L;
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.game_go_end_title);
@@ -523,10 +909,25 @@ public class GoActivity extends BaseGameActivity {
             grid.addView(rowLayout);
         }
         parent.addView(grid);
+
+        tvDifficultyDescription = new TextView(this);
+        tvDifficultyDescription.setGravity(Gravity.CENTER);
+        tvDifficultyDescription.setTextSize(12f);
+        tvDifficultyDescription.setTextColor(
+                ContextCompat.getColor(this, R.color.game_go_color_label_text));
+        tvDifficultyDescription.setPadding(12, 2, 12, 10);
+        parent.addView(tvDifficultyDescription);
     }
 
     public void setAiDifficulty(int level) {
+        if (level < 1 || level > 4 || isGameRunning) return;
         ai.setDifficulty(level);
+        updateDifficultyButtons();
+        Toast.makeText(this, getString(R.string.game_go_ai_difficulty_toast, getDifficultyName(level)), Toast.LENGTH_SHORT).show();
+        renderGameMeta();
+    }
+
+    private void updateDifficultyButtons() {
         int[] colorActive = {
                 ContextCompat.getColor(this, R.color.game_go_color_diff_1),
                 ContextCompat.getColor(this, R.color.game_go_color_diff_2),
@@ -534,11 +935,28 @@ public class GoActivity extends BaseGameActivity {
                 ContextCompat.getColor(this, R.color.game_go_color_diff_4)
         };
         int colorInactive = ContextCompat.getColor(this, R.color.game_go_color_diff_inactive);
+        String[] names = {
+                getString(R.string.game_go_diff_1),
+                getString(R.string.game_go_diff_2),
+                getString(R.string.game_go_diff_3),
+                getString(R.string.game_go_diff_4)
+        };
         for (int i = 0; i < difficultyButtons.size(); i++) {
-            difficultyButtons.get(i).setBackgroundColor(
-                    i + 1 == level ? colorActive[i] : colorInactive);
+            boolean selected = i + 1 == ai.getDifficulty();
+            MaterialButton button = difficultyButtons.get(i);
+            button.setText((selected ? "✓ " : "") + names[i]);
+            button.setBackgroundColor(selected ? colorActive[i] : colorInactive);
+            button.setAlpha(selected ? 1f : 0.72f);
         }
-        Toast.makeText(this, getString(R.string.game_go_ai_difficulty_toast, getDifficultyName(level)), Toast.LENGTH_SHORT).show();
+        if (tvDifficultyDescription != null) {
+            int[] descriptions = {
+                    R.string.game_go_diff_1_desc,
+                    R.string.game_go_diff_2_desc,
+                    R.string.game_go_diff_3_desc,
+                    R.string.game_go_diff_4_desc
+            };
+            tvDifficultyDescription.setText(descriptions[ai.getDifficulty() - 1]);
+        }
     }
 
     private String getDifficultyName(int level) {
@@ -564,18 +982,24 @@ public class GoActivity extends BaseGameActivity {
     @Override
     protected void pauseGame() {
         isGamePaused = true;
+        cancelPendingAi("pause");
     }
 
     @Override
     protected void resumeGame() {
         isGamePaused = false;
+        if (isGameRunning && !game.isGameOver()
+                && game.getCurrentPlayer() == GoGame.WHITE) {
+            startAiTurn();
+        } else {
+            updatePassButton();
+        }
     }
 
     @Override
     protected void endGame() {
         isGameRunning = false;
-        aiGeneration++;
-        aiThinking = false;
+        cancelPendingAi("end_game");
         handler.removeCallbacksAndMessages(null);
         if (aiExecutor != null) {
             aiExecutor.shutdownNow();
@@ -592,8 +1016,7 @@ public class GoActivity extends BaseGameActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-        aiGeneration++;
+        cancelPendingAi("destroy");
         handler.removeCallbacksAndMessages(null);
         if (aiExecutor != null) {
             aiExecutor.shutdownNow();
@@ -602,5 +1025,11 @@ public class GoActivity extends BaseGameActivity {
             onboardingSequence.destroy();
             onboardingSequence = null;
         }
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
+        }
+        super.onDestroy();
     }
 }

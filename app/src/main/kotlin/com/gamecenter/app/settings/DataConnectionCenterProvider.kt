@@ -46,8 +46,6 @@ class DataConnectionCenterProvider(private val context: Context) {
 
         /** Android 危险权限集合（用于 PermissionInfo.isDangerous 标记） */
         private val DANGEROUS_PERMISSIONS: Set<String> = setOf(
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION,
             android.Manifest.permission.CAMERA,
             android.Manifest.permission.RECORD_AUDIO,
             android.Manifest.permission.READ_CONTACTS,

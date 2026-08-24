@@ -1,6 +1,7 @@
 import com.gamecenter.app.chinesechess.ChineseChessGame;
 import com.gamecenter.app.chinesechess.ChineseChessAI;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.lang.reflect.Method;
 
@@ -376,6 +377,88 @@ public class ChessRegressionTest {
     }
 
     // ====================================================================
+    // 13. 高难度真实搜索档位、回摆抑制和将区安全评估
+    // ====================================================================
+    static void testAiStrengthProfile() throws Exception {
+        System.out.println("[T13] AI 棋力配置与通用决策修复");
+        ChineseChessAI ai = new ChineseChessAI(3);
+        ChineseChessGame initial = new ChineseChessGame();
+
+        Method resolveDepth = ChineseChessAI.class.getDeclaredMethod(
+                "resolveSearchDepth", int.class, int[][].class);
+        resolveDepth.setAccessible(true);
+        int highDepth = (int) resolveDepth.invoke(ai, 3, initial.getBoardAsIntArray());
+        int masterOpeningDepth = (int) resolveDepth.invoke(ai, 4, initial.getBoardAsIntArray());
+        check("高难度使用 depth 4（不再是原 depth 3）", highDepth == 4);
+        check("大师开中局保持 depth 4 控制响应时间", masterOpeningDepth == 4);
+
+        int[][] endgame = new int[10][9];
+        endgame[9][4] = 1;
+        endgame[0][4] = -1;
+        endgame[5][4] = 7; // 避免将帅照面
+        int masterEndgameDepth = (int) resolveDepth.invoke(ai, 4, endgame);
+        check("大师残局提升到 depth 5", masterEndgameDepth == 5);
+
+        List<int[]> recentOwnMoves = new ArrayList<>();
+        recentOwnMoves.add(new int[]{2, 6, 4, 6});
+        ai.setRecentMoveHistory(recentOwnMoves);
+        Method isImmediateReversal = ChineseChessAI.class.getDeclaredMethod(
+                "isImmediateReversal", int[].class);
+        isImmediateReversal.setAccessible(true);
+        check("识别同一棋子的立即原路回摆",
+                (boolean) isImmediateReversal.invoke(ai, (Object) new int[]{4, 6, 2, 6}));
+        check("不会把其他走法误判为回摆",
+                !(boolean) isImmediateReversal.invoke(ai, (Object) new int[]{4, 6, 5, 6}));
+
+        Method kingSafety = ChineseChessAI.class.getDeclaredMethod(
+                "evaluateKingSafety", int[][].class, int.class);
+        kingSafety.setAccessible(true);
+        int exposed = (int) kingSafety.invoke(ai, endgame, 1);
+        endgame[9][3] = 2;
+        endgame[9][5] = 2;
+        endgame[7][2] = 3;
+        int guarded = (int) kingSafety.invoke(ai, endgame, 1);
+        check("完整仕相结构的将区安全分更高", guarded > exposed);
+    }
+
+    // ====================================================================
+    // 14. 存在安全替代时，根节点不得选择会立即触发第三次重复的着法
+    // ====================================================================
+    static void testAiAvoidsThirdRepetition() throws Exception {
+        System.out.println("[T14] AI 根节点规避第三次重复");
+        ChineseChessGame game = new ChineseChessGame();
+        check("重复测试前置红兵着法合法", game.commitMove(0, 6, 0, 5) != null);
+
+        List<int[]> blackMoves = game.getAllMoves(BLACK);
+        check("黑方存在多个合法替代", blackMoves.size() > 1);
+        int[] forbiddenView = blackMoves.get(0);
+        int[] forbiddenAi = {
+                forbiddenView[1], forbiddenView[0], forbiddenView[3], forbiddenView[2]
+        };
+
+        int[][] repeatedBoard = game.getBoardAsIntArray();
+        repeatedBoard[forbiddenAi[2]][forbiddenAi[3]] =
+                repeatedBoard[forbiddenAi[0]][forbiddenAi[1]];
+        repeatedBoard[forbiddenAi[0]][forbiddenAi[1]] = 0;
+
+        ChineseChessAI ai = new ChineseChessAI(1);
+        Method computeHash = ChineseChessAI.class.getDeclaredMethod(
+                "computePositionHash", int[][].class, int.class);
+        computeHash.setAccessible(true);
+        long repeatedHash = (long) computeHash.invoke(ai, repeatedBoard, 1);
+        List<Long> syntheticHistory = new ArrayList<>();
+        syntheticHistory.add(repeatedHash);
+        syntheticHistory.add(repeatedHash);
+        ai.setPositionHistory(syntheticHistory);
+
+        int[] chosen = ai.getBestMove(game.getBoardAsIntArray(), 1, -1);
+        boolean choseForbidden = chosen != null
+                && chosen[0] == forbiddenAi[0] && chosen[1] == forbiddenAi[1]
+                && chosen[2] == forbiddenAi[2] && chosen[3] == forbiddenAi[3];
+        check("有安全替代时不选择第三次重复着法", chosen != null && !choseForbidden);
+    }
+
+    // ====================================================================
     public static void main(String[] args) throws Exception {
         System.out.println("==== 中国象棋 AI 逻辑回归测试 ====");
         testHorseLeg();
@@ -390,6 +473,8 @@ public class ChessRegressionTest {
         testPositionHashConsistency();
         testRepetitionClassification();
         testAiGeneralBoundaries();
+        testAiStrengthProfile();
+        testAiAvoidsThirdRepetition();
 
         System.out.println("================================");
         System.out.println("通过=" + passed + "  失败=" + failed);

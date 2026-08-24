@@ -11,6 +11,9 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
@@ -21,6 +24,8 @@ import com.google.android.material.button.MaterialButton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 跳棋（国际跳棋）游戏 Activity。
@@ -67,7 +72,9 @@ public class CheckersActivity extends BaseGameActivity {
     private static final int AI_MAX_NODES = 20000;
 
     // 游戏状态
-    private int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
+    // 2026-08-23 P0-1 AI 异步化：board 字段在后台搜索期间会临时指向副本，
+    // 引用读写需保证可见性，声明为 volatile
+    private volatile int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
     private boolean isPlayerTurn = true;
     private int selectedRow = -1;
     private int selectedCol = -1;
@@ -84,8 +91,23 @@ public class CheckersActivity extends BaseGameActivity {
     /** P2-7: 对局回放录制器 */
     private com.gamecenter.app.games.replay.ReplayRecorder replayRecorder;
 
+    /** 2026-08-23 P2-2: 中断续玩存档管理器 */
+    private com.gamecenter.app.games.save.GameSaveManager saveManager;
+
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
+
     private Handler handler = new Handler(Looper.getMainLooper());
     private Random random = new Random();
+
+    /**
+     * 2026-08-23 P0-1 AI 异步化：
+     * Minimax（中等 depth=2 / 困难 depth=4，最多 20000 节点）在主线程执行时
+     * 会阻塞 UI 造成卡顿/ANR。现将搜索移到单线程后台池，计算完成后回主线程落子。
+     */
+    private ExecutorService aiExecutor;
+    /** AI 回合代际：重开/结束时自增，使过期的后台计算结果被丢弃 */
+    private volatile long aiGeneration = 0;
 
     // UI 组件
     private CheckersView checkersView;
@@ -115,6 +137,10 @@ public class CheckersActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P2-2：初始化存档管理器
+        saveManager = new com.gamecenter.app.games.save.GameSaveManager(this);
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         if (gameContentContainer instanceof FrameLayout) {
             View contentView = createGameContentView();
             ((FrameLayout) gameContentContainer).addView(contentView);
@@ -154,7 +180,7 @@ public class CheckersActivity extends BaseGameActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.setMargins(8, 0, 8, 0);
         btnEasy.setLayoutParams(lp);
-        btnEasy.setOnClickListener(v -> startNewGame(0));
+        btnEasy.setOnClickListener(v -> beginPlay(0));
 
         MaterialButton btnMedium = new MaterialButton(this);
         btnMedium.setText(R.string.game_checkers_difficulty_medium);
@@ -162,11 +188,11 @@ public class CheckersActivity extends BaseGameActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lpMed.setMargins(8, 0, 8, 0);
         btnMedium.setLayoutParams(lpMed);
-        btnMedium.setOnClickListener(v -> startNewGame(1));
+        btnMedium.setOnClickListener(v -> beginPlay(1));
 
         MaterialButton btnHard = new MaterialButton(this);
         btnHard.setText(R.string.difficulty_hard);
-        btnHard.setOnClickListener(v -> startNewGame(2));
+        btnHard.setOnClickListener(v -> beginPlay(2));
 
         btnRow.addView(btnEasy);
         btnRow.addView(btnMedium);
@@ -211,6 +237,103 @@ public class CheckersActivity extends BaseGameActivity {
     }
 
     /**
+     * 2026-08-23 P2-2：开始游戏入口——检测未完成对局存档，
+     * 有存档时弹"继续上局"对话框，否则直接新开一局。
+     */
+    private void beginPlay(int level) {
+        if (saveManager != null && saveManager.hasSave(getGameId())) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("继续上局？")
+                    .setMessage("检测到上次未完成的对局，是否继续？")
+                    .setPositiveButton("继续上局", (d, w) -> restoreFromSave())
+                    .setNegativeButton("新开一局", (d, w) -> {
+                        saveManager.clear(getGameId());
+                        startNewGame(level);
+                    })
+                    .setCancelable(true)
+                    .show();
+        } else {
+            startNewGame(level);
+        }
+    }
+
+    /** 2026-08-23 P2-2：从存档恢复对局 */
+    private void restoreFromSave() {
+        JSONObject state = saveManager == null ? null : saveManager.load(getGameId());
+        if (state == null) {
+            startNewGame(1);
+            return;
+        }
+        try {
+            JSONArray rows = state.getJSONArray("board");
+            for (int r = 0; r < BOARD_SIZE && r < rows.length(); r++) {
+                JSONArray row = rows.getJSONArray(r);
+                for (int c = 0; c < BOARD_SIZE && c < row.length(); c++) {
+                    board[r][c] = row.getInt(c);
+                }
+            }
+            aiLevel = state.optInt("aiLevel", 1);
+            playerCaptures = state.optInt("playerCaptures", 0);
+            isPlayerTurn = state.optBoolean("playerTurn", true);
+            selectedRow = -1;
+            selectedCol = -1;
+            // 作废可能的后台搜索，避免旧结果落子到恢复后的棋盘
+            aiGeneration++;
+
+            menuPanel.setVisibility(View.GONE);
+            gamePanel.setVisibility(View.VISIBLE);
+            tvDifficulty.setText(aiLevel == 0
+                    ? getString(R.string.difficulty_easy)
+                    : (aiLevel == 1 ? getString(R.string.game_checkers_difficulty_medium)
+                                    : getString(R.string.difficulty_hard)));
+            tvStatus.setText(isPlayerTurn
+                    ? R.string.game_checkers_your_turn
+                    : R.string.game_checkers_ai_turn);
+
+            checkersView.setBoard(board);
+            checkersView.clearSelection();
+
+            isGameRunning = true;
+            gameStartTime = System.currentTimeMillis();
+
+            // 恢复的对局重新开始回放录制（旧走法不在存档范围内，从恢复点继续记）
+            replayRecorder = new com.gamecenter.app.games.replay.ReplayRecorder(this, getGameId());
+            replayRecorder.startRecording(aiLevel);
+
+            // 若存档停在 AI 回合，恢复后触发 AI 行动
+            if (!isPlayerTurn) {
+                handler.postDelayed(this::aiMove, 500);
+            }
+        } catch (Exception e) {
+            android.util.Log.w("CheckersActivity", "存档恢复失败，新开一局: " + e.getMessage());
+            startNewGame(aiLevel);
+        }
+    }
+
+    /** 2026-08-23 P2-2：保存当前对局进度 */
+    private void saveProgress() {
+        if (saveManager == null || !isGameRunning) return;
+        try {
+            JSONObject state = new JSONObject();
+            JSONArray rows = new JSONArray();
+            for (int r = 0; r < BOARD_SIZE; r++) {
+                JSONArray row = new JSONArray();
+                for (int c = 0; c < BOARD_SIZE; c++) {
+                    row.put(board[r][c]);
+                }
+                rows.put(row);
+            }
+            state.put("board", rows);
+            state.put("aiLevel", aiLevel);
+            state.put("playerCaptures", playerCaptures);
+            state.put("playerTurn", isPlayerTurn);
+            saveManager.save(getGameId(), state);
+        } catch (Exception ignored) {
+            // 存档失败不影响游戏主流程
+        }
+    }
+
+    /**
      * 开始新游戏
      */
     private void startNewGame(int level) {
@@ -219,6 +342,8 @@ public class CheckersActivity extends BaseGameActivity {
         selectedRow = -1;
         selectedCol = -1;
         playerCaptures = 0;
+        // 2026-08-23 P0-1：作废可能仍在后台进行中的旧搜索结果
+        aiGeneration++;
         initBoard();
 
         menuPanel.setVisibility(View.GONE);
@@ -381,11 +506,22 @@ public class CheckersActivity extends BaseGameActivity {
         board[fromRow][fromCol] = EMPTY;
 
         // 检查是否跳吃
-        if (Math.abs(toRow - fromRow) == 2) {
+        boolean isJump = Math.abs(toRow - fromRow) == 2;
+        if (isJump) {
             int midRow = (fromRow + toRow) / 2;
             int midCol = (fromCol + toCol) / 2;
             board[midRow][midCol] = EMPTY;
             playerCaptures++;
+        }
+
+        // 2026-08-23 P3：玩家走子反馈（跳吃用中等震动）
+        if (feedback != null) {
+            if (isJump) {
+                feedback.playMove();
+                feedback.vibrateMedium();
+            } else {
+                feedback.feedbackMove();
+            }
         }
 
         // 升王检查
@@ -408,11 +544,18 @@ public class CheckersActivity extends BaseGameActivity {
         // AI 回合
         isPlayerTurn = false;
         tvStatus.setText(R.string.game_checkers_ai_turn);
+        // 2026-08-23 P2-2：玩家落子后保存进度（停在 AI 回合）
+        saveProgress();
         handler.postDelayed(this::aiMove, 500);
     }
 
     /**
      * AI 移动
+     * <p>
+     * 2026-08-23 P0-1 AI 异步化：搜索（Minimax）在后台线程的棋盘副本上进行，
+     * 计算完成后回到主线程在真实棋盘上落子。期间玩家回合已关闭（isPlayerTurn=false），
+     * CheckersView 持有的是原数组引用，绘制不受副本搜索影响。
+     * </p>
      */
     private void aiMove() {
         List<int[]> allMoves = getAllMoves(AI_COLOR);
@@ -422,21 +565,59 @@ public class CheckersActivity extends BaseGameActivity {
             return;
         }
 
-        int[] move;
-        if (aiLevel == 0) {
-            // 简单 AI：随机走
-            move = allMoves.get(random.nextInt(allMoves.size()));
-        } else {
-            // 中等/困难 AI：Minimax + α-β 剪枝
-            int depth = (aiLevel == 1) ? 2 : 4;
-            aiNodesSearched = 0;
-            move = findBestMoveByMinimax(AI_COLOR, depth);
-            // 兜底：Minimax 没找到走法（罕见，如超节点上限），用第一个
-            if (move == null) {
-                move = allMoves.get(0);
+        final long gen = ++aiGeneration;
+        final int[][] originalBoard = board;
+        ensureAiExecutor();
+        aiExecutor.execute(() -> {
+            int[] move = null;
+            try {
+                // 后台线程：board 字段临时指向副本，搜索全程在副本上进行
+                board = copyBoard(originalBoard);
+                if (aiLevel == 0) {
+                    // 简单 AI：随机走
+                    List<int[]> moves = getAllMoves(AI_COLOR);
+                    if (!moves.isEmpty()) {
+                        move = moves.get(random.nextInt(moves.size()));
+                    }
+                } else {
+                    // 中等/困难 AI：Minimax + α-β 剪枝
+                    int depth = (aiLevel == 1) ? 2 : 4;
+                    aiNodesSearched = 0;
+                    move = findBestMoveByMinimax(AI_COLOR, depth);
+                    // 兜底：Minimax 没找到走法（罕见，如超节点上限），用第一个
+                    if (move == null && !allMoves.isEmpty()) {
+                        move = allMoves.get(0);
+                    }
+                }
+            } catch (Exception ignored) {
+                // 搜索异常不影响主流程，走兜底
+            } finally {
+                // 无论成败都恢复 board 指向真实棋盘
+                board = originalBoard;
             }
-        }
 
+            final int[] bestMove = move;
+            handler.post(() -> {
+                if (gen != aiGeneration) return; // 过期结果（重开/退出）直接丢弃
+                if (bestMove == null) {
+                    // 极端兜底：后台未产出走法，用首个合法走法
+                    applyAiMove(allMoves.get(0));
+                } else {
+                    applyAiMove(bestMove);
+                }
+            });
+        });
+    }
+
+    /** 确保 aiExecutor 可用（shutdown 后按需重建，避免 RejectedExecutionException） */
+    private void ensureAiExecutor() {
+        if (aiExecutor == null || aiExecutor.isShutdown()) {
+            aiExecutor = Executors.newSingleThreadExecutor();
+        }
+    }
+
+    /** 主线程执行 AI 落子（原 aiMove 后半段） */
+    private void applyAiMove(int[] move) {
         // 执行 AI 移动
         int piece = board[move[0]][move[1]];
         board[move[0]][move[1]] = EMPTY;
@@ -454,6 +635,9 @@ public class CheckersActivity extends BaseGameActivity {
 
         checkersView.setBoard(board);
 
+        // 2026-08-23 P3：AI 走子音效（不震动）
+        if (feedback != null) feedback.playMove();
+
         // P2-7: 记录 AI 走法
         if (replayRecorder != null && replayRecorder.isRecording()) {
             replayRecorder.record(new com.gamecenter.app.games.replay.ReplayMove(
@@ -464,6 +648,8 @@ public class CheckersActivity extends BaseGameActivity {
 
         isPlayerTurn = true;
         tvStatus.setText(R.string.game_checkers_your_turn);
+        // 2026-08-23 P2-2：AI 落子后保存进度（轮到玩家）
+        saveProgress();
     }
 
     /**
@@ -754,9 +940,13 @@ public class CheckersActivity extends BaseGameActivity {
         isGameRunning = false;
         totalWins++;
         winStreak++;
+        // 2026-08-23 P2-2：对局正常结束，清除存档
+        if (saveManager != null) saveManager.clear(getGameId());
 
         tvStatus.setText(R.string.game_checkers_you_win);
         usageStore.recordWin(getGameId());
+        // 2026-08-23 P3：胜利反馈
+        if (feedback != null) feedback.feedbackWin();
 
         checkAchievement("win", totalWins);
         checkAchievement("streak", winStreak);
@@ -784,8 +974,12 @@ public class CheckersActivity extends BaseGameActivity {
     private void onPlayerLose() {
         isGameRunning = false;
         winStreak = 0;
+        // 2026-08-23 P2-2：对局正常结束，清除存档
+        if (saveManager != null) saveManager.clear(getGameId());
         tvStatus.setText(R.string.game_checkers_ai_win);
         usageStore.recordLoss(getGameId());
+        // 2026-08-23 P3：失败反馈
+        if (feedback != null) feedback.feedbackLose();
         if (gameStartTime > 0) {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
@@ -812,7 +1006,11 @@ public class CheckersActivity extends BaseGameActivity {
     @Override
     protected void endGame() {
         isGameRunning = false;
+        aiGeneration++;
         handler.removeCallbacksAndMessages(null);
+        if (aiExecutor != null) {
+            aiExecutor.shutdownNow();
+        }
         if (gameStartTime > 0) {
             usageStore.recordPlayTime(getGameId(), System.currentTimeMillis() - gameStartTime);
         }
@@ -826,6 +1024,15 @@ public class CheckersActivity extends BaseGameActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        aiGeneration++;
         handler.removeCallbacksAndMessages(null);
+        if (aiExecutor != null) {
+            aiExecutor.shutdownNow();
+        }
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
+        }
     }
 }

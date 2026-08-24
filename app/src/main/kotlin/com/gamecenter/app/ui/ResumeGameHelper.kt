@@ -1,6 +1,7 @@
 package com.gamecenter.app.ui
 
 import android.content.Context
+import com.gamecenter.app.core.threading.AppExecutors
 import com.gamecenter.app.games.GameRegistry
 import com.gamecenter.app.games.GameUsageStore
 import com.gamecenter.app.games.RecentGamesManager
@@ -34,11 +35,43 @@ object ResumeGameHelper {
     }
 
     /**
-     * 获取上次游玩到现在的时间间隔（人类可读，例如"3 小时前" / "刚刚"）。
-     * 若该游戏无 last_played 记录（旧游戏未接入 BaseGameActivity），返回 "刚刚" 作为友好回退。
+     * 异步获取上次游玩到现在的时间间隔（人类可读，例如"3 小时前" / "刚刚"）。
+     * 回调在主线程执行。若该游戏无 last_played 记录，回调 "刚刚"。
      */
     @JvmStatic
+    fun getRelativeTimeSpanAsync(context: Context, gameId: String, callback: (String) -> Unit) {
+        AppExecutors.io().execute {
+            try {
+                val store = GameUsageStore(context.applicationContext)
+                val lastPlayed = store.getLastPlayedAt(gameId)
+                val result: String
+                if (lastPlayed <= 0L) {
+                    result = "刚刚"
+                } else {
+                    val deltaMs = System.currentTimeMillis() - lastPlayed
+                    val minutes = deltaMs / 60000L
+                    result = when {
+                        minutes < 1L -> "刚刚"
+                        minutes < 60L -> "${minutes} 分钟前"
+                        minutes < 1440L -> "${minutes / 60L} 小时前"
+                        else -> "${minutes / 1440L} 天前"
+                    }
+                }
+                AppExecutors.runOnMain { callback(result) }
+            } catch (e: Exception) {
+                android.util.Log.w("ResumeGameHelper", "获取相对时间失败", e)
+                AppExecutors.runOnMain { callback("刚刚") }
+            }
+        }
+    }
+
+    /**
+     * @deprecated 同步版本在主线程执行 Room 查询会导致 ANR/崩溃，请使用 {@link #getRelativeTimeSpanAsync}
+     */
+    @Deprecated("同步版本在主线程执行 Room 查询会导致 ANR/崩溃，请使用 getRelativeTimeSpanAsync", ReplaceWith("getRelativeTimeSpanAsync(context, gameId) { result -> /* handle result */ }"))
+    @JvmStatic
     fun getRelativeTimeSpan(context: Context, gameId: String): String {
+        // 仅保留用于兼容旧调用，实际应迁移到 getRelativeTimeSpanAsync
         val store = GameUsageStore(context)
         val lastPlayed = store.getLastPlayedAt(gameId)
         if (lastPlayed <= 0L) return "刚刚"

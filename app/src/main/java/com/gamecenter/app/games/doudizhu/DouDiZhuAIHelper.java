@@ -7,6 +7,8 @@ import com.gamecenter.app.games.doudizhu.model.Card;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 斗地主 AI 辅助类。
@@ -46,6 +48,16 @@ public class DouDiZhuAIHelper {
 
     /** AI 操作回调接口，由 Activity 实现 */
     private final AICallback callback;
+
+    /**
+     * 2026-08-23 P0-2 AI 决策异步化：
+     * AIBot.decidePlay 的策略计算（拆牌/组合评估）可能耗时，原先在主线程
+     * Handler 回调中直接执行会阻塞 UI。现将决策移到后台线程，
+     * 计算完成后回主线程通过 callback 通知结果。
+     */
+    private ExecutorService aiExecutor;
+    /** 决策代际：cancelPending/destroy 时自增，丢弃过期结果 */
+    private volatile long aiGeneration = 0;
 
     /**
      * AI 操作回调接口。
@@ -138,16 +150,41 @@ public class DouDiZhuAIHelper {
         int seatIndex = callback.getCurrentTurn();
         List<Card> aiHand = callback.getSeatHandCards(seatIndex);
         List<Card> previousCards = callback.getLastPlayedCards();
-
-        // 委托 AIBot 进行出牌决策
         AIBot.GameContext context = buildGameContext(seatIndex);
-        List<Card> playedCards = AIBot.decidePlay(aiHand, previousCards, context);
 
-        if (playedCards != null && !playedCards.isEmpty()) {
-            callback.onAIPlay(seatIndex, playedCards);
-        } else {
-            // AI 无法压过上家或选择不出
-            callback.onAIPass(seatIndex);
+        // 2026-08-23 P0-2：主线程只收集快照，决策在后台线程执行
+        final long gen = ++aiGeneration;
+        // 快照副本：防止后台计算期间主线程改动手牌集合（出牌/移除）引发并发修改
+        final List<Card> handSnapshot = aiHand == null ? null : new ArrayList<>(aiHand);
+        final List<Card> prevSnapshot = previousCards == null ? null : new ArrayList<>(previousCards);
+        ensureAiExecutor();
+        aiExecutor.execute(() -> {
+            List<Card> playedCards;
+            try {
+                playedCards = AIBot.decidePlay(handSnapshot, prevSnapshot, context);
+            } catch (Exception e) {
+                Log.e(TAG, "AI 决策异常，转为不出", e);
+                playedCards = null;
+            }
+            final List<Card> result = playedCards;
+            handler.post(() -> {
+                // 过期（已取消/销毁/重新调度）或状态已变化的结果直接丢弃
+                if (gen != aiGeneration) return;
+                if (callback.getGameState() != STATE_PLAYING) return;
+                if (result != null && !result.isEmpty()) {
+                    callback.onAIPlay(seatIndex, result);
+                } else {
+                    // AI 无法压过上家或选择不出
+                    callback.onAIPass(seatIndex);
+                }
+            });
+        });
+    }
+
+    /** 确保 aiExecutor 可用（shutdown 后按需重建） */
+    private void ensureAiExecutor() {
+        if (aiExecutor == null || aiExecutor.isShutdown()) {
+            aiExecutor = Executors.newSingleThreadExecutor();
         }
     }
 
@@ -211,9 +248,23 @@ public class DouDiZhuAIHelper {
      * 防止过期的 AI 操作被执行。</p>
      */
     public void cancelPending() {
+        // 2026-08-23 P0-2：作废后台进行中的决策结果
+        aiGeneration++;
         if (aiThinkingRunnable != null) {
             handler.removeCallbacks(aiThinkingRunnable);
             aiThinkingRunnable = null;
+        }
+    }
+
+    /**
+     * 2026-08-23 P0-2：销毁 AI 辅助类，释放后台线程池。
+     *
+     * <p>应在 Activity onDestroy 中调用，防止线程池泄漏。</p>
+     */
+    public void destroy() {
+        cancelPending();
+        if (aiExecutor != null) {
+            aiExecutor.shutdownNow();
         }
     }
 

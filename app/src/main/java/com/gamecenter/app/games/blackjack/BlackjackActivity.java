@@ -61,6 +61,9 @@ public class BlackjackActivity extends BaseGameActivity {
     private boolean roundActive = false;
     private Random random = new Random();
 
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
+
     // ==================== UI 组件 ====================
     private TextView tvStatus;
     private TextView tvPlayerHand;
@@ -88,6 +91,8 @@ public class BlackjackActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         if (gameContentContainer instanceof FrameLayout) {
             View contentView = createGameContentView();
             ((FrameLayout) gameContentContainer).addView(contentView);
@@ -344,6 +349,9 @@ public class BlackjackActivity extends BaseGameActivity {
         playerScore = calculateHandValue(playerHand);
         updateDisplay(true);
 
+        // 2026-08-23 P3：要牌反馈（爆牌时在 onRoundEnd 给出强反馈）
+        if (feedback != null && playerScore <= 21) feedback.playClick();
+
         if (playerScore > 21) {
             // 爆牌
             onRoundEnd("bust");
@@ -387,6 +395,23 @@ public class BlackjackActivity extends BaseGameActivity {
     private void onRoundEnd(String result) {
         roundActive = false;
         updateDisplay(false);
+
+        // 2026-08-23 P3：回合结果反馈
+        if (feedback != null) {
+            switch (result) {
+                case "player_win":
+                case "dealer_bust":
+                    feedback.feedbackWin();
+                    break;
+                case "bust":
+                case "dealer_win":
+                    feedback.feedbackLose();
+                    break;
+                default:
+                    feedback.playNotice();
+                    break;
+            }
+        }
 
         String resultText;
         switch (result) {
@@ -477,6 +502,16 @@ public class BlackjackActivity extends BaseGameActivity {
             }
             tvDealerHand.setText(dealerStr.toString().trim());
             tvDealerTotal.setText(getString(R.string.game_blackjack_points_format, calculateHandValue(dealerHand)));
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
         }
     }
 }

@@ -73,6 +73,12 @@ public class GamesFragment extends Fragment {
     private View rootView;
     private RecyclerView rvGames;
     private GameCardAdapter adapter;
+    /**
+     * 游戏统计缓存（主线程 Room 崩溃修复）：key=gameId，value=[playCount, userRating, totalPlayTimeMs]。
+     * 由 refreshStatsCache() 在 IO 线程填充，卡片绑定时只读缓存，避免在主线程同步查询 Room。
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, long[]> statsCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
     private List<GameRegistry.Entry> allEntries = new ArrayList<>();
     private String currentCategoryKey = "all";
     private String currentKeyword = "";
@@ -330,7 +336,7 @@ public class GamesFragment extends Fragment {
         rvGames = v.findViewById(R.id.rv_games);
         if (rvGames != null) {
             rvGames.setLayoutManager(new GridLayoutManager(requireContext(), 2));
-            adapter = new GameCardAdapter(requireContext(), this::onGameClick);
+            adapter = new GameCardAdapter(requireContext(), this::onGameClick, statsCache);
             rvGames.setAdapter(adapter);
         }
 
@@ -446,7 +452,7 @@ public class GamesFragment extends Fragment {
     }
 
     /**
-     * Batch 10-1: 刷新快速统计栏数据。
+     * Batch 10-1: 刷新快速统计栏数据（异步获取成就数）。
      * 从 GameUsageStore 读取今日时长；StreakTracker 读取连胜；AchievementManager 统计已解锁。
      */
     private void refreshQuickStats() {
@@ -475,13 +481,24 @@ public class GamesFragment extends Fragment {
             tvStatStreakValue.setText(getString(R.string.home_stats_streak_format, streak));
         }
 
-        // 成就：从 Room（achievements 表）读取已解锁数
-        int unlocked = com.gamecenter.app.database.AppDatabase.getDatabase(ctx)
-                .achievementDao().getUnlockedCountSync();
-        if (tvStatAchievementsValue != null) {
-            // 总数未知（无 registry），只展示已解锁数；后缀 "+"
-            tvStatAchievementsValue.setText(String.valueOf(unlocked));
-        }
+        // 成就：异步从 Room（achievements 表）读取已解锁数
+        com.gamecenter.app.core.threading.AppExecutors.io().execute(() -> {
+            int unlocked = 0;
+            try {
+                unlocked = com.gamecenter.app.database.AppDatabase.getDatabase(ctx.getApplicationContext())
+                        .achievementDao().getUnlockedCountSync();
+            } catch (Exception e) {
+                android.util.Log.w("GamesFragment", "获取已解锁成就数失败", e);
+            }
+            final int finalUnlocked = unlocked;
+            com.gamecenter.app.core.threading.AppExecutors.runOnMain(() -> {
+                if (!isAdded()) return;
+                if (tvStatAchievementsValue != null) {
+                    // 总数未知（无 registry），只展示已解锁数；后缀 "+"
+                    tvStatAchievementsValue.setText(String.valueOf(finalUnlocked));
+                }
+            });
+        });
     }
 
     /**
@@ -704,7 +721,7 @@ public class GamesFragment extends Fragment {
     }
 
     /**
-     * Batch 12-1: 刷新"继续游玩"卡片数据。
+     * Batch 12-1: 刷新"继续游玩"卡片数据（异步获取相对时间）。
      * 通过 [ResumeGameHelper] 获取最近游玩的 Entry，若无记录则隐藏整张卡片。
      */
     private void refreshResumeGameCard() {
@@ -738,8 +755,11 @@ public class GamesFragment extends Fragment {
             tvResumeGameName.setText(entry.name);
         }
         if (tvResumeGameTime != null) {
-            String span = com.gamecenter.app.ui.ResumeGameHelper.INSTANCE.getRelativeTimeSpan(ctx, entry.id);
-            tvResumeGameTime.setText(getString(R.string.home_resume_game_time_format, span));
+            com.gamecenter.app.ui.ResumeGameHelper.INSTANCE.getRelativeTimeSpanAsync(ctx, entry.id, (kotlin.jvm.functions.Function1<String, kotlin.Unit>) span -> {
+                if (!isAdded()) return kotlin.Unit.INSTANCE;
+                tvResumeGameTime.setText(getString(R.string.home_resume_game_time_format, span));
+                return kotlin.Unit.INSTANCE;
+            });
         }
     }
 
@@ -765,7 +785,7 @@ public class GamesFragment extends Fragment {
     }
 
     /**
-     * Batch 12-2: 刷新"最近解锁成就"横幅。
+     * Batch 12-2: 刷新"最近解锁成就"横幅（异步）。
      * 若今日已被 dismiss 或无已解锁成就，则隐藏。
      */
     private void refreshRecentAchievementBanner() {
@@ -775,21 +795,24 @@ public class GamesFragment extends Fragment {
             recentAchievementSection.setVisibility(View.GONE);
             return;
         }
-        com.gamecenter.app.ui.RecentAchievementHelper.RecentAchievement recent =
-                com.gamecenter.app.ui.RecentAchievementHelper.INSTANCE.getRecent(ctx);
-        if (recent == null) {
-            recentAchievementSection.setVisibility(View.GONE);
-            return;
-        }
-        recentAchievementSection.setVisibility(View.VISIBLE);
-        if (tvRecentAchievementName != null) {
-            String title = com.gamecenter.app.ui.RecentAchievementHelper.INSTANCE.resolveTitle(ctx, recent.getId());
-            tvRecentAchievementName.setText(title);
-        }
-        if (tvRecentAchievementDesc != null) {
-            String desc = com.gamecenter.app.ui.RecentAchievementHelper.INSTANCE.resolveDescription(ctx, recent.getId());
-            tvRecentAchievementDesc.setText(desc);
-        }
+        com.gamecenter.app.ui.RecentAchievementHelper.INSTANCE.getRecentAsync(ctx, (kotlin.jvm.functions.Function1<com.gamecenter.app.ui.RecentAchievementHelper.RecentAchievement, kotlin.Unit>) recent -> {
+            if (!isAdded() || recent == null) {
+                if (recentAchievementSection != null) {
+                    recentAchievementSection.setVisibility(View.GONE);
+                }
+                return kotlin.Unit.INSTANCE;
+            }
+            recentAchievementSection.setVisibility(View.VISIBLE);
+            if (tvRecentAchievementName != null) {
+                String title = com.gamecenter.app.ui.RecentAchievementHelper.INSTANCE.resolveTitle(ctx, recent.getId());
+                tvRecentAchievementName.setText(title);
+            }
+            if (tvRecentAchievementDesc != null) {
+                String desc = com.gamecenter.app.ui.RecentAchievementHelper.INSTANCE.resolveDescription(ctx, recent.getId());
+                tvRecentAchievementDesc.setText(desc);
+            }
+            return kotlin.Unit.INSTANCE;
+        });
     }
 
     // ==================== Batch 12-4 (APP_LAUNCH_TIME_DISPLAY) ====================
@@ -1465,6 +1488,8 @@ public class GamesFragment extends Fragment {
         // 临时禁用 shimmer 排查 rv_games 高度为 0 的问题
         boolean showShimmer = false; // BuildConfig.ANIM_SHIMMER_LOADING && !hasLoadedOnce;
         if (showShimmer) showShimmer();
+        // 主线程 Room 崩溃修复：IO 线程预取统计缓存，卡片绑定只读缓存
+        refreshStatsCache();
 
         allEntries.clear();
         List<GameRegistry.Category> categories = GameRegistry.getCategories(requireContext());
@@ -1490,6 +1515,38 @@ public class GamesFragment extends Fragment {
         // 首次调用时 allEntries 还是空，refreshTodayFeatured 会把卡片设 GONE；
         // 这里再调一次，让 allEntries 填充后把卡片恢复 VISIBLE 并绑定数据。
         refreshTodayFeatured();
+    }
+
+    /**
+     * 主线程 Room 崩溃修复：在 IO 线程一次性读取全部 game_usage 统计填充缓存，
+     * 完成后回主线程刷新适配器（卡片绑定的 playCount/rating/playTime 徽章均读缓存）。
+     */
+    private void refreshStatsCache() {
+        if (getContext() == null) return;
+        Context appCtx = getContext().getApplicationContext();
+        com.gamecenter.app.core.threading.AppExecutors.io().execute(() -> {
+            try {
+                java.util.Map<String, long[]> fresh = new java.util.HashMap<>();
+                for (com.gamecenter.app.database.entity.GameUsageEntity entity :
+                        com.gamecenter.app.database.AppDatabase.getDatabase(appCtx)
+                                .gameUsageDao().getAllSync()) {
+                    fresh.put(entity.getGameId(), new long[]{
+                            entity.getPlayCount(),      // [0] playCount
+                            entity.getUserRating(),     // [1] userRating
+                            entity.getTotalPlayTimeMs() // [2] totalPlayTimeMs
+                    });
+                }
+                statsCache.clear();
+                statsCache.putAll(fresh);
+                com.gamecenter.app.core.threading.AppExecutors.runOnMain(() -> {
+                    if (isAdded() && adapter != null) {
+                        adapter.notifyDataSetChanged();
+                    }
+                });
+            } catch (Exception e) {
+                android.util.Log.w(TAG, "刷新游戏统计缓存失败", e);
+            }
+        });
     }
 
     /**
@@ -1764,10 +1821,13 @@ public class GamesFragment extends Fragment {
         private final List<GameRegistry.Entry> data = new ArrayList<>();
         private final OnItemClick listener;
         private final Context context;
+        /** 主线程 Room 崩溃修复：统计缓存引用，绑定徽章时只读，不在主线程查 Room */
+        private final java.util.Map<String, long[]> statsCache;
 
-        GameCardAdapter(Context ctx, OnItemClick listener) {
+        GameCardAdapter(Context ctx, OnItemClick listener, java.util.Map<String, long[]> statsCache) {
             this.context = ctx;
             this.listener = listener;
+            this.statsCache = statsCache;
         }
 
         void setEntries(List<GameRegistry.Entry> list) {
@@ -1866,8 +1926,10 @@ public class GamesFragment extends Fragment {
          * - 收藏按钮：根据当前收藏状态切换图标，点击切换并刷新
          */
         private void bindCardEnhancements(VH h, GameRegistry.Entry e, ImageView iconIv) {
+            // 主线程 Room 崩溃修复：playCount 改读预取缓存（IO 线程填充）
+            long[] stats = statsCache.get(e.id);
+            int playCount = stats != null ? (int) stats[0] : 0;
             GameUsageStore store = new GameUsageStore(h.itemView.getContext());
-            int playCount = store.getPlayCount(e.id);
 
             // 评分行
             View ratingRow = h.itemView.findViewById(R.id.tv_rating);
@@ -1935,8 +1997,9 @@ public class GamesFragment extends Fragment {
         private void bindUserRatingBadge(VH h, GameRegistry.Entry e) {
             TextView badge = h.itemView.findViewById(R.id.badge_user_rating);
             if (badge == null) return;
-            GameRatingStore store = new GameRatingStore(h.itemView.getContext());
-            int stars = store.getRating(e.id);
+            // 主线程 Room 崩溃修复：userRating 改读预取缓存（IO 线程填充）
+            long[] stats = statsCache.get(e.id);
+            int stars = stats != null ? (int) stats[1] : 0;
             if (stars > 0) {
                 badge.setVisibility(View.VISIBLE);
                 badge.setText(h.itemView.getContext()
@@ -1955,8 +2018,9 @@ public class GamesFragment extends Fragment {
         private void bindPlayTimeBadge(VH h, GameRegistry.Entry e) {
             TextView badge = h.itemView.findViewById(R.id.badge_play_time);
             if (badge == null) return;
-            GameUsageStore store = new GameUsageStore(h.itemView.getContext());
-            long totalMs = store.getTotalPlayTimeMs(e.id);
+            // 主线程 Room 崩溃修复：totalPlayTimeMs 改读预取缓存（IO 线程填充）
+            long[] stats = statsCache.get(e.id);
+            long totalMs = stats != null ? stats[2] : 0L;
             if (totalMs <= 0L) {
                 badge.setVisibility(View.GONE);
                 return;

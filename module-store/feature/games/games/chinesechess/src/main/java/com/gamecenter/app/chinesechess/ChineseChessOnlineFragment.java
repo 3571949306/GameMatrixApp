@@ -208,6 +208,7 @@ public class ChineseChessOnlineFragment extends Fragment {
 
         boardView = new ChineseChessView(ctx);
         boardView.bindGame(game);
+        boardView.setSimpleMode(ChineseChessUiPreferences.isSimpleMode(ctx));
         boardView.setOnCellClickListener(this::selectPiece);
         LinearLayout.LayoutParams boardParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,

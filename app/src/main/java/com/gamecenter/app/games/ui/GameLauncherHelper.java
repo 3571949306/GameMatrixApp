@@ -1,5 +1,6 @@
 package com.gamecenter.app.games.ui;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
@@ -76,8 +77,7 @@ public class GameLauncherHelper {
         }
 
         // 直接启动游戏，难度选择由游戏内部处理
-        startGameActivity(context, gameId, activityClass, difficultyIndex, false);
-        return true;
+        return startGameActivity(context, gameId, activityClass, difficultyIndex, false);
     }
 
     /**
@@ -94,12 +94,14 @@ public class GameLauncherHelper {
 
     /**
      * 启动游戏 Activity
+     *
+     * @return true 表示启动成功；false 表示 Activity 未在 Manifest 声明等启动失败
      */
-    private static void startGameActivity(@NonNull Context context,
-                                          @NonNull String gameId,
-                                          @NonNull Class<?> activityClass,
-                                          int difficultyIndex,
-                                          boolean onlineMode) {
+    private static boolean startGameActivity(@NonNull Context context,
+                                             @NonNull String gameId,
+                                             @NonNull Class<?> activityClass,
+                                             int difficultyIndex,
+                                             boolean onlineMode) {
         Intent intent;
         // 如果是 DynamicGameActivity，需要传递 gameId
         if (activityClass == DynamicGameActivity.class) {
@@ -111,7 +113,16 @@ public class GameLauncherHelper {
         intent.putExtra(EXTRA_DIFFICULTY_INDEX, difficultyIndex);
         intent.putExtra(EXTRA_ONLINE_MODE, onlineMode);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
+        try {
+            context.startActivity(intent);
+            return true;
+        } catch (ActivityNotFoundException e) {
+            // 2026-08-23 模块分层回归修复：Activity 未在 AndroidManifest 声明时
+            // 转为可恢复的启动失败（上层 Toast 提示），避免进程崩溃退出
+            Log.e("GameLauncherHelper", "游戏 Activity 未在 Manifest 声明: "
+                    + activityClass.getName() + " (gameId=" + gameId + ")", e);
+            return false;
+        }
     }
 
     /**

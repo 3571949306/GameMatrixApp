@@ -6,20 +6,22 @@
         </trust-anchors>
     </base-config>
 
-    <!-- 模块服务器域名 — 启用证书固定（pin-set）防止中间人攻击 -->
-    <!-- 部署时替换为实际服务器域名，或从 local.properties 生成 -->
-    <!-- 在 build.gradle 中通过 buildConfigField 注入实际域名后，取消注释以下配置 -->
-    <!-- <domain-config>
-        <domain includeSubdomains="true">YOUR_ACTUAL_SERVER_DOMAIN</domain>
+    <!-- ����服务器域名 — 启用证书��定（pin-set）防止中间人攻击 -->
+    <!-- ��名从 local.properties (server.url) ��生：hk-update.tcp0053.shop -->
+    <!-- 证书指��来自 SecureOkHttpFactory.MODULE_SERVER_PINS -->
+    <domain-config>
+        <domain includeSubdomains="true">hk-update.tcp0053.shop</domain>
         <pin-set>
-            <pin digest="SHA-256">YOUR_ACTUAL_PIN_HASH</pin>
+            <pin digest="SHA-256">HeIT3BL0oFGKkDHVuCa8tk99aeVwsuR9z0QxavMzL98=</pin>
+            <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
+            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
         </pin-set>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-    </domain-config> -->
+    </domain-config>
 
-    <!-- AI API 域名 — 强制 HTTPS，禁止明文流量 -->
+    <!-- AI API ��名 — ��制 HTTPS，禁止明文流量 -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">api.openai.com</domain>
         <domain includeSubdomains="true">api.deepseek.com</domain>
@@ -33,7 +35,20 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- 局域网明文流量 — 仅限本地网络使用，切勿用于公网通信 -->
+    <!-- ����服务器备用域名 (CDN fallback) - 仅在配置时生效 -->
+    <!-- 通过 buildConfigField 注入 DOWNLOAD_FALLBACK_BASE_URL 时启用 -->
+    <!-- <domain-config>
+        <domain includeSubdomains="true">fallback-cdn.example.com</domain>
+        <pin-set>
+            <pin digest="SHA-256">FALLBACK_PIN_1</pin>
+            <pin digest="SHA-256">FALLBACK_PIN_2</pin>
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config> -->
+
+    <!-- ��域网明文流量 — 仅限本地网��使用，切��用于公网通信 -->
     <!-- 注意：Android network security config 不支持 CIDR 表示法，需用字面量 IP -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>

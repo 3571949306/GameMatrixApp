@@ -6,8 +6,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -91,59 +89,51 @@
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
 
-        <!-- GomokuActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!--
+        <!-- 2026-08-23 模块分层重构：gomoku / doudizhu 回归内置（modules.json builtIn=true） -->
         <activity
             android:name=".games.gomoku.GomokuActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
-        -->
 
-        <!-- DouDiZhuMenuActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!--
         <activity
             android:name=".games.doudizhu.DouDiZhuMenuActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
-        -->
 
-        <!-- DouDiZhuActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!--
         <activity
             android:name=".games.doudizhu.DouDiZhuActivity"
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="landscape" />
-        -->
 
         <activity android:name=".games.StatsActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- P0-1 (LEADERBOARD): 本地排行榜 -->
         <activity android:name=".games.LeaderboardActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- P0-2 (FAVORITE_GROUPS): 收藏分组管理 -->
         <activity android:name=".games.FavoriteGroupsActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
-        <!-- BlackjackActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.blackjack.BlackjackActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
+        <!-- 2026-08-23 模块分层重构：blackjack 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.blackjack.BlackjackActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <activity android:name=".games.breakout.BreakoutActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- BrotatoActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.brotato.BrotatoActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- CheckersActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.checkers.CheckersActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
+        <!-- 2026-08-23 模块分层重构：checkers 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.checkers.CheckersActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- DiceActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.dice.DiceActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- FlappyActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.flappy.FlappyActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- GoActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.go.GoActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
+        <!-- 2026-08-23 模块分层重构：go 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.go.GoActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- GuessActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.guess.GuessActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- MatchActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.match.MatchActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- MemoryActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.memory.MemoryActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- MinesweeperActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.minesweeper.MinesweeperActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
+        <!-- 2026-08-23 模块分层重构：minesweeper 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.minesweeper.MinesweeperActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- PipelineActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.pipeline.PipelineActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- PlaneActivity 已模块化为独立 APK，通过模块商店下载 -->
@@ -152,24 +142,23 @@
         <!-- <activity android:name=".games.reaction.ReactionActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- RockActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.rock.RockActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- SnakeActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.snake.SnakeActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
+        <!-- 2026-08-23 模块分层重构：snake 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.snake.SnakeActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- SokobanActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.sokoban.SokobanActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- SudokuActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.sudoku.SudokuActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- TetrisActivity 已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.tetris.TetrisActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
+        <!-- 2026-08-23 模块分层重构：sudoku 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.sudoku.SudokuActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <!-- 2026-08-23 模块分层重构：tetris 回归内置（modules.json builtIn=true） -->
+        <activity android:name=".games.tetris.TetrisActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
         <!-- TicTacToeActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.tic.TicTacToeActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- TilesActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.tiles.TilesActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
         <!-- WhackActivity 已模块化为独立 APK，通过模块商店下载 -->
         <!-- <activity android:name=".games.whack.WhackActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" /> -->
-        <!-- 以下 3 个游戏已模块化为独立 APK，通过模块商店下载 -->
-        <!-- <activity android:name=".games.klotski.KlotskiActivity" /> -->
-        <!-- <activity android:name=".games.chinesechess.ChineseChessActivity" /> -->
-        <!-- <activity android:name=".games.game2048.Game2048Activity" /> -->
+        <!-- 2026-08-23 模块分层重构：klotski / game2048 回归内置（modules.json builtIn=true）；chinesechess 仍走预装模块 APK -->
+        <activity android:name=".games.klotski.KlotskiActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
+        <activity android:name=".games.game2048.Game2048Activity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
 
         <!-- 浏览器模块 -->
         <activity android:name=".browser.ui.BrowserActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="unspecified" />

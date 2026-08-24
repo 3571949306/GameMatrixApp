@@ -39,6 +39,9 @@ public class BreakoutActivity extends BaseGameActivity {
     private int currentLevel = 1;
     private int totalLevels = 0;
 
+    /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
+    private com.gamecenter.app.games.base.GameFeedback feedback;
+
     // 游戏循环
     private static final long FRAME_INTERVAL_MS = 16; // ~60 FPS
     private final Runnable gameLoop = new Runnable() {
@@ -70,6 +73,8 @@ public class BreakoutActivity extends BaseGameActivity {
 
     @Override
     protected void initGame() {
+        // 2026-08-23 P3：初始化音效/震动反馈
+        feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         breakoutView = new BreakoutView(this);
 
         breakoutView.setOnGameListener(new BreakoutView.OnGameListener() {
@@ -86,8 +91,12 @@ public class BreakoutActivity extends BaseGameActivity {
                 // 导致 5 次对局但胜 0/负 0（实际上负场应被记录）。
                 if (win) {
                     usageStore.recordWin(getGameId());
+                    // 2026-08-23 P3：胜利反馈
+                    if (feedback != null) feedback.feedbackWin();
                 } else {
                     usageStore.recordLoss(getGameId());
+                    // 2026-08-23 P3：失败反馈
+                    if (feedback != null) feedback.feedbackLose();
                 }
                 checkAchievement("game_over", breakoutView.getScore());
                 checkAchievement("rounds", totalLevels);
@@ -115,6 +124,9 @@ public class BreakoutActivity extends BaseGameActivity {
                 updateScore(breakoutView.getScore());
 
                 usageStore.recordWin(getGameId());
+
+                // 2026-08-23 P3：过关胜利反馈
+                if (feedback != null) feedback.feedbackWin();
 
                 checkAchievement("win", totalLevels);
                 checkAchievement("score", breakoutView.getLastLevelScore());
@@ -252,5 +264,10 @@ public class BreakoutActivity extends BaseGameActivity {
         }
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+        // 2026-08-23 P3：释放音效资源
+        if (feedback != null) {
+            feedback.release();
+            feedback = null;
+        }
     }
 }
