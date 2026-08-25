@@ -192,6 +192,13 @@
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
 
+        <!-- 首页重写试点：Compose 版首页（与 .GamesFragment 并存） -->
+        <activity
+            android:name=".home.HomeComposeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
         <!-- #23 数据与连接中心：聚合展示本地数据/网络/同步状态，支持一键导出/删除 -->
         <activity
             android:name=".settings.DataConnectionCenterActivity"
