@@ -7,7 +7,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/gm_spacing_4"
         android:orientation="horizontal">
 
         <LinearLayout
@@ -25,7 +25,7 @@
                 android:id="@+id/tv_dns1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:text="获取中..."
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="14sp" />
@@ -46,7 +46,7 @@
                 android:id="@+id/tv_dns2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:text="获取中..."
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="14sp" />

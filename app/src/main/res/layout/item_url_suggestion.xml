@@ -6,8 +6,8 @@
     android:gravity="center_vertical"
     android:minHeight="48dp"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp">
+    android:paddingStart="@dimen/gm_spacing_4"
+    android:paddingEnd="@dimen/gm_spacing_4">
 
     <ImageView
         android:layout_width="18dp"
@@ -19,7 +19,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_weight="1"
         android:orientation="vertical">
 

@@ -98,7 +98,7 @@
                             android:layout_width="@dimen/icon_size_medium"
                             android:layout_height="@dimen/icon_size_medium"
                             android:background="@drawable/bg_stats_icon_circle"
-                            android:padding="4dp"
+                            android:padding="@dimen/gm_spacing_1"
                             android:scaleType="centerInside"
                             app:srcCompat="@drawable/ic_stats_playtime"
                             app:tint="@color/top_bar_on_gradient" />
@@ -134,7 +134,7 @@
                             android:layout_width="@dimen/icon_size_medium"
                             android:layout_height="@dimen/icon_size_medium"
                             android:background="@drawable/bg_stats_icon_circle"
-                            android:padding="4dp"
+                            android:padding="@dimen/gm_spacing_1"
                             android:scaleType="centerInside"
                             app:srcCompat="@drawable/ic_stats_days"
                             app:tint="@color/top_bar_on_gradient" />
@@ -170,7 +170,7 @@
                             android:layout_width="@dimen/icon_size_medium"
                             android:layout_height="@dimen/icon_size_medium"
                             android:background="@drawable/bg_stats_icon_circle"
-                            android:padding="4dp"
+                            android:padding="@dimen/gm_spacing_1"
                             android:scaleType="centerInside"
                             app:srcCompat="@drawable/ic_stats_launches"
                             app:tint="@color/top_bar_on_gradient" />
@@ -206,7 +206,7 @@
                             android:layout_width="@dimen/icon_size_medium"
                             android:layout_height="@dimen/icon_size_medium"
                             android:background="@drawable/bg_stats_icon_circle"
-                            android:padding="4dp"
+                            android:padding="@dimen/gm_spacing_1"
                             android:scaleType="centerInside"
                             app:srcCompat="@drawable/ic_stats_streak"
                             app:tint="@color/top_bar_on_gradient" />

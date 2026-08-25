@@ -21,14 +21,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="@dimen/gm_spacing_3"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="@drawable/chess_player_bar_bg"
         android:elevation="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="14dp"
-        android:paddingVertical="8dp"
+        android:paddingVertical="@dimen/gm_spacing_2"
         android:visibility="gone">
 
         <View
@@ -39,7 +39,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -79,14 +79,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginHorizontal="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
         android:background="@drawable/chess_player_bar_bg"
         android:elevation="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="14dp"
-        android:paddingVertical="8dp"
+        android:paddingVertical="@dimen/gm_spacing_2"
         android:visibility="gone">
 
         <View
@@ -97,7 +97,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -137,7 +137,7 @@
         android:layout_width="30dp"
         android:layout_height="wrap_content"
         android:layout_gravity="end|center_vertical"
-        android:layout_marginEnd="4dp"
+        android:layout_marginEnd="@dimen/gm_spacing_1"
         android:background="@drawable/chess_history_bg"
         android:elevation="4dp"
         android:gravity="center"
@@ -158,7 +158,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginVertical="4dp"
+            android:layout_marginVertical="@dimen/gm_spacing_1"
             android:background="@color/chess_card_border"
             android:alpha="0.3" />
 
@@ -278,8 +278,8 @@
             android:layout_gravity="center"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="40dp">
+            android:paddingHorizontal="@dimen/gm_spacing_5"
+            android:paddingVertical="@dimen/gm_spacing_8">
 
             <LinearLayout
                 android:layout_width="300dp"
@@ -287,7 +287,7 @@
                 android:background="@drawable/chess_main_card_bg"
                 android:elevation="8dp"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/gm_spacing_5">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -310,8 +310,8 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="@dimen/gm_spacing_3"
+                    android:layout_marginBottom="@dimen/gm_spacing_3"
                     android:alpha="0.4"
                     android:background="@color/chess_card_border" />
 
@@ -335,14 +335,14 @@
                         android:id="@+id/btn_difficulty_1"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="4dp"
+                        android:layout_marginEnd="@dimen/gm_spacing_1"
                         android:layout_weight="1"
                         android:background="@drawable/chess_difficulty_selector"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="8dp">
+                        android:padding="@dimen/gm_spacing_2">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -353,7 +353,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/gm_spacing_1"
                             android:text="@string/chinese_chess_difficulty_easy"
                             android:textColor="@color/chess_difficulty_unselected"
                             android:textSize="13sp"
@@ -365,14 +365,14 @@
                         android:id="@+id/btn_difficulty_2"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="4dp"
+                        android:layout_marginHorizontal="@dimen/gm_spacing_1"
                         android:layout_weight="1"
                         android:background="@drawable/chess_difficulty_selector"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="8dp">
+                        android:padding="@dimen/gm_spacing_2">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -383,7 +383,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/gm_spacing_1"
                             android:text="@string/chinese_chess_difficulty_normal"
                             android:textColor="@color/chess_difficulty_unselected"
                             android:textSize="13sp"
@@ -395,14 +395,14 @@
                         android:id="@+id/btn_difficulty_3"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
+                        android:layout_marginStart="@dimen/gm_spacing_1"
                         android:layout_weight="1"
                         android:background="@drawable/chess_difficulty_selector"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="8dp">
+                        android:padding="@dimen/gm_spacing_2">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -413,7 +413,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/gm_spacing_1"
                             android:text="@string/chinese_chess_difficulty_hard"
                             android:textColor="@color/chess_difficulty_unselected"
                             android:textSize="13sp"
@@ -427,7 +427,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
                     android:gravity="center"
                     android:orientation="horizontal">
 
@@ -435,14 +435,14 @@
                         android:id="@+id/btn_difficulty_4"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="4dp"
+                        android:layout_marginHorizontal="@dimen/gm_spacing_1"
                         android:layout_weight="1"
                         android:background="@drawable/chess_difficulty_selector"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="8dp">
+                        android:padding="@dimen/gm_spacing_2">
 
                         <ImageView
                             android:layout_width="40dp"
@@ -453,7 +453,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/gm_spacing_1"
                             android:text="@string/chinese_chess_difficulty_master"
                             android:textColor="@color/chess_difficulty_unselected"
                             android:textSize="13sp"

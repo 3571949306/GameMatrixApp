@@ -17,7 +17,7 @@
             android:elevation="3dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="8dp">
+            android:padding="@dimen/gm_spacing_2">
 
             <ImageButton
                 android:id="@+id/btn_back"
@@ -47,15 +47,15 @@
                 android:imeOptions="actionGo"
                 android:inputType="textUri"
                 android:maxLines="1"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="@dimen/gm_spacing_3"
+                android:paddingEnd="@dimen/gm_spacing_3"
                 android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/incognito_indicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/gm_spacing_1"
                 android:background="?attr/colorPrimaryContainer"
                 android:paddingStart="6dp"
                 android:paddingEnd="6dp"
@@ -93,10 +93,10 @@
             android:background="?attr/colorSurfaceContainer"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
+            android:paddingStart="@dimen/gm_spacing_2"
+            android:paddingEnd="@dimen/gm_spacing_2"
+            android:paddingTop="@dimen/gm_spacing_1"
+            android:paddingBottom="@dimen/gm_spacing_1"
             android:visibility="gone">
 
             <ImageButton
@@ -113,8 +113,8 @@
                 android:layout_width="0dp"
                 android:layout_height="36dp"
                 android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="@dimen/gm_spacing_1"
+                android:layout_marginEnd="@dimen/gm_spacing_1"
                 android:background="@android:color/transparent"
                 android:hint="@string/browser_find_hint"
                 android:imeOptions="actionSearch"
@@ -130,8 +130,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="48dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
+                android:paddingStart="@dimen/gm_spacing_1"
+                android:paddingEnd="@dimen/gm_spacing_1"
                 android:text="0/0"
                 android:textAlignment="center"
                 android:textColor="?attr/colorOnSurfaceVariant"
@@ -206,7 +206,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:text="@string/browser_error_title"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="18sp"
@@ -216,10 +216,10 @@
                 android:id="@+id/tv_error_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:gravity="center"
-                android:paddingStart="32dp"
-                android:paddingEnd="32dp"
+                android:paddingStart="@dimen/gm_spacing_7"
+                android:paddingEnd="@dimen/gm_spacing_7"
                 android:text="@string/browser_error_message"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
@@ -228,7 +228,7 @@
                 android:id="@+id/btn_retry"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:text="@string/browser_retry" />
         </LinearLayout>
 
@@ -299,11 +299,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical|start"
-        android:layout_marginStart="24dp"
+        android:layout_marginStart="@dimen/gm_spacing_6"
         android:alpha="0"
         android:background="@drawable/bg_gesture_indicator"
         android:contentDescription="@string/browser_gesture_back_desc"
-        android:padding="12dp"
+        android:padding="@dimen/gm_spacing_3"
         android:src="@drawable/ic_browser_back"
         android:visibility="gone"
         app:tint="?attr/colorOnPrimary" />
@@ -314,11 +314,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical|end"
-        android:layout_marginEnd="24dp"
+        android:layout_marginEnd="@dimen/gm_spacing_6"
         android:alpha="0"
         android:background="@drawable/bg_gesture_indicator"
         android:contentDescription="@string/browser_gesture_forward_desc"
-        android:padding="12dp"
+        android:padding="@dimen/gm_spacing_3"
         android:src="@drawable/ic_browser_forward"
         android:visibility="gone"
         app:tint="?attr/colorOnPrimary" />

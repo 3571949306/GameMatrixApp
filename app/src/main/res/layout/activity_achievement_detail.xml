@@ -13,7 +13,7 @@
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
         android:background="?attr/colorSurface"
         android:elevation="2dp">
 
@@ -25,7 +25,7 @@
             android:contentDescription="@string/module_back"
             android:clickable="true"
             android:focusable="true"
-            android:padding="4dp"
+            android:padding="@dimen/gm_spacing_1"
             app:tint="?attr/colorOnSurface" />
 
         <TextView
@@ -33,7 +33,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
             android:text="@string/achievement_detail_title"
             android:textSize="18sp"
             android:textColor="?attr/colorOnSurface"
@@ -45,7 +45,7 @@
         android:id="@+id/card_game_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/gm_spacing_4"
         app:cardCornerRadius="12dp"
         app:cardElevation="1dp">
 
@@ -54,7 +54,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="16dp">
+            android:padding="@dimen/gm_spacing_4">
 
             <ImageView
                 android:id="@+id/iv_game_icon"
@@ -68,7 +68,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="@dimen/gm_spacing_4"
                 android:orientation="vertical">
 
                 <TextView
@@ -84,7 +84,7 @@
                     android:id="@+id/tv_unlocked_summary"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/gm_spacing_1"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="12sp"
                     tools:text="已解锁 3 / 8 项" />
@@ -94,7 +94,7 @@
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="match_parent"
                     android:layout_height="6dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
                     android:max="100"
                     android:progress="0" />
             </LinearLayout>
@@ -103,7 +103,7 @@
                 android:id="@+id/tv_progress_percent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/gm_spacing_3"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="14sp"
                 android:textStyle="bold"
@@ -116,8 +116,8 @@
         android:id="@+id/chip_group_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginHorizontal="@dimen/gm_spacing_4"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
         app:singleSelection="true">
 
         <com.google.android.material.chip.Chip
@@ -151,8 +151,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingBottom="@dimen/gm_spacing_4"
         android:clipToPadding="false" />
 
     <!-- ============== 空状态 ============== -->

@@ -9,12 +9,12 @@
         android:id="@+id/sp_radix_input_base"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="@dimen/gm_spacing_3" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:hint="@string/tool_radix_input_hint">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -31,17 +31,17 @@
         style="@style/Widget.GameMatrix.Button.Tonal"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:text="@string/tool_regex_test_label" />
 
     <TextView
         android:id="@+id/tv_radix_bin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="13sp" />
@@ -50,10 +50,10 @@
         android:id="@+id/tv_radix_oct"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="13sp" />
@@ -62,10 +62,10 @@
         android:id="@+id/tv_radix_dec"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="13sp" />
@@ -74,10 +74,10 @@
         android:id="@+id/tv_radix_hex"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="13sp" />

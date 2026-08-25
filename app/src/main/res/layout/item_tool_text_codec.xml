@@ -7,7 +7,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:hint="输入文本、JSON 或时间戳">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -25,7 +25,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
@@ -127,10 +127,10 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:maxHeight="180dp"
-        android:padding="8dp">
+        android:padding="@dimen/gm_spacing_2">
 
         <TextView
             android:id="@+id/tv_text_codec_result"

@@ -9,13 +9,13 @@
         android:id="@+id/sv_panel"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="@dimen/gm_spacing_2" />
 
     <com.gamecenter.app.views.ColorHueBar
         android:id="@+id/hue_bar"
         android:layout_width="match_parent"
         android:layout_height="24dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="@dimen/gm_spacing_2" />
 
     <com.gamecenter.app.views.ColorAlphaBar
         android:id="@+id/alpha_bar"
@@ -41,7 +41,7 @@
             android:layout_width="0dp"
             android:layout_height="44dp"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:hint="#AARRGGBB 或 #RRGGBB"
             android:inputType="textNoSuggestions"
             android:text="#FF5722"
@@ -54,7 +54,7 @@
             style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/gm_spacing_1"
             android:text="应用"
             android:textSize="13sp" />
 
@@ -63,7 +63,7 @@
             style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/gm_spacing_1"
             android:text="复制"
             android:textSize="13sp" />
     </LinearLayout>
@@ -71,7 +71,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -256,7 +256,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         android:text="CSS: rgba(255,87,34,1.0)"
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="14sp"
@@ -267,8 +267,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp">
+        android:layout_marginTop="@dimen/gm_spacing_1"
+        android:layout_marginBottom="@dimen/gm_spacing_1">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_color_red"

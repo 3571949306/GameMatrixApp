@@ -910,4 +910,17 @@ public class GomokuActivity extends AppCompatActivity {
             soundPool = null;
         }
     }
+
+    /**
+     * P1-内存：系统内存压力回调。后台 / 严重级别时取消 AI/提示搜索以释放 CPU/内存。
+     */
+    protected void onMemoryTrim(int level) {
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) {
+            if (ai != null && ai.isThinking()) {
+                ai.cancel();
+                if (masterAi != null) masterAi.cancel();
+                android.util.Log.d("GomokuAI", "[trim] 后台 trim(level=" + level + ")，取消 AI/提示搜索");
+            }
+        }
+    }
 }

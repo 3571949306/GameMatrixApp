@@ -364,6 +364,92 @@ public class GoGame {
         return totalCaptured;
     }
 
+    /**
+     * 高性能就地试走：直接修改 state 棋盘、返回被提子的格点坐标（用于撤销）。
+     * <p>供 AI 的 MCTS expansion / playout 热路径使用，避免 tryMove 的 copyBoard 分配。</p>
+     * <p>调用方约定：</p>
+     * <ul>
+     *   <li>{@code captureBuf} 长度 ≥ 2 × BOARD_SIZE × BOARD_SIZE，最坏情况下整盘提完；</li>
+     *   <li>函数成功时返回被提子格数（≥ 0），写入 captureBuf 的格式是 (row0, col0, row1, col1, ...)，必须与返回的 n 配套传给 {@link #undoMoveInPlace}；</li>
+     *   <li>非法着（越界 / 占子 / 自杀）时返回 -1，棋盘已恢复原状，无需再 undo。</li>
+     * </ul>
+     * 注意：本函数不做劫校验 — AI 在自己的 MCTS 树内不依赖简单劫限制（生产代码的 tryMove 仍带劫检查以保证玩家落子合法）。
+     */
+    public static int applyMoveInPlace(int[][] state, int row, int col, int color,
+                                       int[] captureBuf) {
+        if (!isPlayerColor(color) || !isOnBoard(row, col) || state[row][col] != EMPTY) {
+            return -1;
+        }
+        state[row][col] = color;
+        int opponent = opposite(color);
+        int n = 0;
+        boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            int nr = row + d[0];
+            int nc = col + d[1];
+            if (!isOnBoard(nr, nc) || state[nr][nc] != opponent || visited[nr][nc]) continue;
+            if (countLiberties(state, nr, nc) == 0) {
+                n = captureGroupInPlace(state, nr, nc, opponent, visited, captureBuf, n);
+            }
+        }
+        // 自杀检查
+        if (countLiberties(state, row, col) == 0) {
+            // 撤销：移除刚落子 + 还原被提子
+            state[row][col] = EMPTY;
+            for (int i = 0; i < n; i += 2) {
+                state[captureBuf[i]][captureBuf[i + 1]] = opponent;
+            }
+            return -1;
+        }
+        return n;
+    }
+
+    /**
+     * 撤销 {@link #applyMoveInPlace} 产生的棋盘变更：清掉刚落子并恢复被提子的格子。
+     * 调用前必须确认 row/col 处确实是 {@code color}（安全前提：MCTS 树严格按树边回溯）。
+     */
+    public static void undoMoveInPlace(int[][] state, int row, int col, int color,
+                                       int[] captureBuf, int n) {
+        state[row][col] = EMPTY;
+        int opponent = opposite(color);
+        for (int i = 0; i < n; i += 2) {
+            state[captureBuf[i]][captureBuf[i + 1]] = opponent;
+        }
+    }
+
+    /**
+     * 把以 (startRow, startCol) 为根、颜色为 color 的整组棋子在 board 上抹掉，并把每个格点坐标写入 captureBuf。
+     * 使用 visited 数组避免重复访问已删除的格子（调用方按 group 顺序驱动）。
+     */
+    private static int captureGroupInPlace(int[][] board, int startRow, int startCol, int color,
+                                           boolean[][] visited, int[] captureBuf, int bufIdx) {
+        int n = bufIdx;
+        Deque<int[]> queue = new ArrayDeque<>();
+        queue.add(new int[]{startRow, startCol});
+        visited[startRow][startCol] = true;
+        board[startRow][startCol] = EMPTY;
+        captureBuf[n++] = startRow;
+        captureBuf[n++] = startCol;
+        while (!queue.isEmpty()) {
+            int[] cell = queue.removeFirst();
+            for (int[] d : DIRS_INTERNAL) {
+                int nr = cell[0] + d[0];
+                int nc = cell[1] + d[1];
+                if (isOnBoard(nr, nc) && !visited[nr][nc] && board[nr][nc] == color) {
+                    visited[nr][nc] = true;
+                    board[nr][nc] = EMPTY;
+                    captureBuf[n++] = nr;
+                    captureBuf[n++] = nc;
+                    queue.addLast(new int[]{nr, nc});
+                }
+            }
+        }
+        return n;
+    }
+
+    private static final int[][] DIRS_INTERNAL = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
     /** 返回棋块的唯一气数。 */
     public static int countLiberties(int[][] grid, int row, int col) {
         validateBoard(grid);

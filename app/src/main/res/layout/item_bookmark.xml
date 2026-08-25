@@ -4,9 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="12dp"
-    android:layout_marginEnd="12dp"
-    android:layout_marginBottom="8dp"
+    android:layout_marginStart="@dimen/gm_spacing_3"
+    android:layout_marginEnd="@dimen/gm_spacing_3"
+    android:layout_marginBottom="@dimen/gm_spacing_2"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
@@ -15,13 +15,13 @@
     app:cardElevation="1dp"
     app:strokeWidth="0dp">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:gravity="center_vertical" android:orientation="horizontal" android:padding="12dp">
+        android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/gm_spacing_3">
         <ImageView android:id="@+id/iv_bookmark_icon" android:layout_width="40dp" android:layout_height="40dp"
-            android:background="@drawable/bg_url_bar" android:padding="8dp" android:src="@drawable/ic_browser_bookmark" app:tint="?attr/colorPrimary" />
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+            android:background="@drawable/bg_url_bar" android:padding="@dimen/gm_spacing_2" android:src="@drawable/ic_browser_bookmark" app:tint="?attr/colorPrimary" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="@dimen/gm_spacing_3" android:layout_weight="1" android:orientation="vertical">
             <TextView android:id="@+id/tv_bookmark_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textSize="15sp" tools:text="百度一下" />
             <TextView android:id="@+id/tv_bookmark_url" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:ellipsize="end" android:maxLines="1" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="12sp" tools:text="https://www.baidu.com" />
-            <TextView android:id="@+id/tv_bookmark_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="11sp" />
+            <TextView android:id="@+id/tv_bookmark_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/gm_spacing_1" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="11sp" />
         </LinearLayout>
         <ImageButton android:id="@+id/btn_bookmark_delete" android:layout_width="36dp" android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_delete" app:tint="?attr/colorOnSurfaceVariant" />

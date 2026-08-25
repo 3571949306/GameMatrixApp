@@ -14,7 +14,7 @@
         android:background="?attr/colorSurface"
         android:elevation="2dp"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/gm_spacing_3">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -34,14 +34,14 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
                 android:src="@drawable/ic_privacy_shield"
                 app:tint="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
                 android:layout_weight="1"
                 android:text="@string/browser_privacy_dashboard"
                 android:textColor="?android:attr/textColorPrimary"
@@ -52,7 +52,7 @@
                 android:id="@+id/btn_reset"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/gm_spacing_1"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/browser_privacy_reset"
                 android:src="@android:drawable/ic_menu_delete"
@@ -64,10 +64,10 @@
             android:id="@+id/switch_tracker_protection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/gm_spacing_2"
             android:checked="true"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="@dimen/gm_spacing_1"
+            android:paddingEnd="@dimen/gm_spacing_1"
             android:text="@string/browser_privacy_trackers_blocked"
             android:textColor="?android:attr/textColorPrimary"
             android:textSize="14sp" />
@@ -83,7 +83,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="@dimen/gm_spacing_3">
 
             <!-- 统计卡片区 -->
             <LinearLayout
@@ -107,7 +107,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_privacy_stat_total"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="@dimen/gm_spacing_4">
 
                         <TextView
                             android:id="@+id/tv_total_blocked"
@@ -121,7 +121,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/gm_spacing_1"
                             android:text="@string/browser_privacy_total_blocked"
                             android:textColor="@color/browser_privacy_stat_total_text"
                             android:textSize="12sp" />
@@ -142,7 +142,7 @@
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_privacy_stat_session"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="@dimen/gm_spacing_4">
 
                         <TextView
                             android:id="@+id/tv_session_blocked"
@@ -156,7 +156,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="@dimen/gm_spacing_1"
                             android:text="@string/browser_privacy_session_blocked"
                             android:textColor="@color/browser_privacy_stat_session_text"
                             android:textSize="12sp" />
@@ -168,7 +168,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/gm_spacing_3"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="1dp">
 
@@ -176,7 +176,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/gm_spacing_4">
 
                     <TextView
                         android:id="@+id/tv_rule_count"
@@ -200,8 +200,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginStart="@dimen/gm_spacing_1"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:layout_marginBottom="6dp"
                 android:text="@string/browser_privacy_blocked_domains"
                 android:textColor="?android:attr/textColorPrimary"
@@ -222,7 +222,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:padding="32dp"
+                android:padding="@dimen/gm_spacing_7"
                 android:visibility="gone">
 
                 <ImageView
@@ -234,7 +234,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/gm_spacing_4"
                     android:text="@string/browser_privacy_empty"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:textSize="14sp" />

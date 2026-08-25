@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import androidx.annotation.Nullable;
@@ -16,6 +17,7 @@ import androidx.core.splashscreen.SplashScreen;
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import com.gamecenter.app.ui.LaunchTimeTracker;
+import com.gamecenter.app.modules.CoreModulePreloader;
 
 /**
  * Launch screen Activity - shows logo animation then auto-enters MainActivity.
@@ -31,6 +33,13 @@ public class SplashActivity extends AppCompatActivity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
+    // P0 流畅度优化：核心模块预加载的进入时机协调
+    private static final long MAX_SPLASH_MS = 3000L; // 预加载超时兜底，强制进入 MainActivity（走降级补加载）
+    private long startTime = 0L;
+    private final Object exitLock = new Object();
+    private boolean minReached = false;
+    private boolean exited = false;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         // Batch 12-4 (APP_LAUNCH_TIME_DISPLAY): 在 SplashActivity 入口最早处记录启动开始时间，
@@ -43,6 +52,12 @@ public class SplashActivity extends AppCompatActivity {
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+
+        // P0 流畅度优化：在启动屏窗口内后台预加载核心模块，避免冷启动主线程被 Dex 加载阻塞。
+        startTime = System.currentTimeMillis();
+        CoreModulePreloader.INSTANCE.preload(getApplicationContext());
+        handler.postDelayed(this::forceExit, MAX_SPLASH_MS);
+
         playEnterAnimation();
     }
 
@@ -111,7 +126,7 @@ public class SplashActivity extends AppCompatActivity {
             playRippleExpandAnimation();
         }
 
-        handler.postDelayed(this::playExitAnimation, 500 + SPLASH_DURATION);
+        handler.postDelayed(this::onMinReached, 500 + SPLASH_DURATION);
     }
 
     /**
@@ -162,6 +177,39 @@ public class SplashActivity extends AppCompatActivity {
         AnimatorSet set = new AnimatorSet();
         set.playTogether(scaleX, scaleY, alpha);
         set.start();
+    }
+
+    // P0: 启动屏最短展示完成后，开始轮询核心模块预加载是否就绪
+    private void onMinReached() {
+        synchronized (exitLock) { minReached = true; }
+        pollExit();
+    }
+
+    private void pollExit() {
+        boolean ready;
+        synchronized (exitLock) {
+            if (exited) return;
+            ready = CoreModulePreloader.INSTANCE.isReady();
+            if (minReached && ready) {
+                exited = true;
+                handler.post(this::playExitAnimation);
+                return;
+            }
+        }
+        // 模块尚未就绪：100ms 后再次轮询，最长不超过 MAX_SPLASH_MS（由 forceExit 兜底）
+        handler.postDelayed(this::pollExit, 100);
+    }
+
+    // P0: 预加载超时兜底，强制进入 MainActivity（未就绪模块会走 MainActivity 降级补加载）
+    private void forceExit() {
+        synchronized (exitLock) {
+            if (exited) return;
+            if (!CoreModulePreloader.INSTANCE.isReady()) {
+                Log.w("SplashActivity", "核心模块预加载超时(3s)，强制进入 MainActivity（降级路径）");
+            }
+            exited = true;
+        }
+        handler.post(this::playExitAnimation);
     }
 
     private void playExitAnimation() {

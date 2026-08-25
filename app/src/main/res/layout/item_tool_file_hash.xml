@@ -8,14 +8,14 @@
         android:id="@+id/btn_pick_file_hash"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:text="选择文件并计算哈希" />
 
     <TextView
         android:id="@+id/tv_file_hash_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:text="未选择文件"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp" />
@@ -23,10 +23,10 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:maxHeight="180dp"
-        android:padding="8dp">
+        android:padding="@dimen/gm_spacing_2">
 
         <TextView
             android:id="@+id/tv_file_hash_result"

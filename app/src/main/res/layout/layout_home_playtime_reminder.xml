@@ -54,7 +54,7 @@
             android:id="@+id/tv_playtime_reminder_desc"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/gm_spacing_1"
             android:text="@string/playtime_reminder_desc_60"
             android:textColor="@android:color/white"
             android:textSize="12sp"

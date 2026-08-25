@@ -8,7 +8,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="@dimen/gm_spacing_5">
 
         <TextView
             android:id="@+id/tv_consent_title"
@@ -18,7 +18,7 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_4" />
 
         <!-- 发送什么 -->
         <TextView
@@ -28,14 +28,14 @@
             android:textSize="13sp"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_1" />
         <TextView
             android:id="@+id/tv_consent_send"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_3" />
 
         <!-- 为什么 -->
         <TextView
@@ -45,14 +45,14 @@
             android:textSize="13sp"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_1" />
         <TextView
             android:id="@+id/tv_consent_purpose"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_3" />
 
         <!-- 可否本地（可选） -->
         <LinearLayout
@@ -60,7 +60,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="@dimen/gm_spacing_3">
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -68,7 +68,7 @@
                 android:textSize="13sp"
                 android:textColor="?attr/colorPrimary"
                 android:textStyle="bold"
-                android:layout_marginBottom="4dp" />
+                android:layout_marginBottom="@dimen/gm_spacing_1" />
             <TextView
                 android:id="@+id/tv_consent_local"
                 android:layout_width="match_parent"
@@ -85,14 +85,14 @@
             android:textSize="13sp"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_1" />
         <TextView
             android:id="@+id/tv_consent_cost"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_3" />
 
         <!-- 如何取消 -->
         <TextView
@@ -102,14 +102,14 @@
             android:textSize="13sp"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_1" />
         <TextView
             android:id="@+id/tv_consent_cancel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_3" />
 
         <!-- 服务提供方（可选） -->
         <TextView
@@ -119,7 +119,7 @@
             android:textSize="12sp"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textStyle="italic"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_2" />
 
         <!-- 数据留存（可选） -->
         <TextView
@@ -129,13 +129,13 @@
             android:textSize="12sp"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textStyle="italic"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_4" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="?attr/colorOutlineVariant"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="@dimen/gm_spacing_3" />
 
         <!-- 不再提示 -->
         <CheckBox

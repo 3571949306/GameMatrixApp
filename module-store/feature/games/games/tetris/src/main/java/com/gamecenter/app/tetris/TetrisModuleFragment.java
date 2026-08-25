@@ -1,16 +1,17 @@
 package com.gamecenter.app.tetris;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,20 +20,15 @@ import androidx.fragment.app.Fragment;
 import com.gamecenter.app.R;
 
 /**
- * 俄罗斯方块模块 Fragment。
+ * 俄罗斯方块模块 Fragment（现代化：横屏适配 + HUD）。
  *
- * <p>将原 TetrisActivity 的 UI 与生命周期逻辑迁移到 Fragment，
- * 使用纯 Android widget（不依赖 R.layout），支持浅色/深色主题。
- * 难度选择、重新开始、暂停/恢复均在 Fragment 内用代码实现。</p>
+ * <p>将 game 状态与 UI 用代码搭建（HUD 三栏 + 浮动按钮）。难度选择弹窗在 Fragment
+ * 内显示；并通过 SharedPreferences 持久化"上次难度"以便玩家下次继续。</p>
  */
 public class TetrisModuleFragment extends Fragment {
 
     private TetrisView tetrisView;
     private TetrisGame game;
-    private TextView tvScore;
-    private TextView tvHighScore;
-    private TextView tvDifficulty;
-    private LinearLayout difficultyBar;
 
     private int colorBg;
     private int colorTitle;
@@ -41,6 +37,9 @@ public class TetrisModuleFragment extends Fragment {
     private int colorButtonText;
     private int colorButtonActiveBg;
     private int colorButtonActiveText;
+    private int colorOverlay = 0xCC000000;
+
+    private boolean paused = false;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -51,144 +50,146 @@ public class TetrisModuleFragment extends Fragment {
 
         game = new TetrisGame();
 
+        // 读取上次难度
+        SharedPreferences prefs = ctx.getSharedPreferences("tetris_module", Context.MODE_PRIVATE);
+        int savedDiff = prefs.getInt("last_difficulty", 2);
+        game.setDifficultyLevel(savedDiff);
+
+        // 整个模块 = 横屏 TetrisView（自带 HUD）
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(colorBg);
-        root.setPadding(0, (int) (28 * dp), 0, 0);
 
         TextView tvTitle = new TextView(ctx);
         tvTitle.setText(getString(R.string.game_title_tetris));
-        tvTitle.setTextSize(28);
+        tvTitle.setTextSize(20);
         tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         tvTitle.setTextColor(colorTitle);
         tvTitle.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         titleLp.gravity = Gravity.CENTER;
-        titleLp.topMargin = (int) (16 * dp);
+        titleLp.topMargin = (int) (8 * dp);
         tvTitle.setLayoutParams(titleLp);
         root.addView(tvTitle);
 
-        tvDifficulty = new TextView(ctx);
-        tvDifficulty.setTextSize(14);
-        tvDifficulty.setTextColor(colorSub);
-        tvDifficulty.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams diffLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        diffLp.gravity = Gravity.CENTER;
-        diffLp.topMargin = (int) (8 * dp);
-        tvDifficulty.setLayoutParams(diffLp);
-        root.addView(tvDifficulty);
-
-        difficultyBar = new LinearLayout(ctx);
+        // 难度切换按钮条
+        LinearLayout difficultyBar = new LinearLayout(ctx);
         difficultyBar.setOrientation(LinearLayout.HORIZONTAL);
         difficultyBar.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams barLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        barLp.setMargins((int) (16 * dp), (int) (4 * dp), (int) (16 * dp), 0);
+        barLp.setMargins(0, (int) (4 * dp), 0, (int) (4 * dp));
         difficultyBar.setLayoutParams(barLp);
         root.addView(difficultyBar);
 
         for (int i = 0; i < TetrisGame.DIFFICULTY_NAMES.length; i++) {
             final int level = i + 1;
-            Button btn = new Button(ctx);
+            android.widget.Button btn = new android.widget.Button(ctx);
             btn.setText(TetrisGame.DIFFICULTY_NAMES[i]);
+            btn.setTextSize(11);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    (int) (88 * dp), (int) (44 * dp));
-            lp.setMargins((int) (6 * dp), 0, (int) (6 * dp), 0);
+                    0, (int) (32 * dp), 1f);
+            lp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
             btn.setLayoutParams(lp);
-            btn.setOnClickListener(v -> setDifficulty(level));
+            applyDifficultyButtonStyle(btn, level == game.getDifficultyLevel());
+            btn.setOnClickListener(v -> {
+                setDifficulty(level);
+                showDifficultyRestartConfirm(level);
+            });
             difficultyBar.addView(btn);
         }
 
-        tvScore = new TextView(ctx);
-        tvScore.setTextSize(18);
-        tvScore.setTextColor(colorSub);
-        tvScore.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams scoreLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        scoreLp.gravity = Gravity.CENTER;
-        scoreLp.topMargin = (int) (8 * dp);
-        tvScore.setLayoutParams(scoreLp);
-        root.addView(tvScore);
-
-        tvHighScore = new TextView(ctx);
-        tvHighScore.setTextSize(16);
-        tvHighScore.setTextColor(colorSub);
-        tvHighScore.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams highScoreLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        highScoreLp.gravity = Gravity.CENTER;
-        highScoreLp.topMargin = (int) (4 * dp);
-        tvHighScore.setLayoutParams(highScoreLp);
-        root.addView(tvHighScore);
-
+        // 游戏视图容器
         FrameLayout gameContainer = new FrameLayout(ctx);
         LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
-        containerLp.setMargins((int) (16 * dp), (int) (8 * dp), (int) (16 * dp), (int) (8 * dp));
         gameContainer.setLayoutParams(containerLp);
         root.addView(gameContainer);
 
         tetrisView = new TetrisView(ctx);
         gameContainer.addView(tetrisView);
 
-        LinearLayout buttonBar = new LinearLayout(ctx);
-        buttonBar.setOrientation(LinearLayout.HORIZONTAL);
-        buttonBar.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams btnBarLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        btnBarLp.setMargins((int) (16 * dp), 0, (int) (16 * dp), (int) (16 * dp));
-        buttonBar.setLayoutParams(btnBarLp);
-        root.addView(buttonBar);
-
-        Button btnRestart = new Button(ctx);
-        btnRestart.setText(getString(R.string.game_btn_restart));
-        LinearLayout.LayoutParams restartLp = new LinearLayout.LayoutParams(
-                (int) (120 * dp), (int) (48 * dp));
-        restartLp.setMargins((int) (8 * dp), 0, (int) (8 * dp), 0);
-        btnRestart.setLayoutParams(restartLp);
-        buttonBar.addView(btnRestart);
+        // 浮动按钮：暂停/重开/设置/返回
+        addFloatingButtons(gameContainer, dp);
 
         return root;
+    }
+
+    private void addFloatingButtons(FrameLayout container, float dp) {
+        int btnSize = (int) (40 * dp);
+
+        // 暂停
+        android.widget.ImageButton btnPause = iconButton(android.R.drawable.ic_media_pause, btnSize);
+        FrameLayout.LayoutParams pLp = new FrameLayout.LayoutParams(btnSize, btnSize);
+        pLp.gravity = Gravity.END | Gravity.TOP;
+        pLp.setMargins((int) (8 * dp), (int) (8 * dp), (int) (8 * dp), 0);
+        btnPause.setLayoutParams(pLp);
+        btnPause.setOnClickListener(v -> {
+            if (tetrisView == null || tetrisView.isGameOver()) return;
+            if (tetrisView.isPaused()) {
+                tetrisView.resumeGame();
+                paused = false;
+                btnPause.setImageResource(android.R.drawable.ic_media_pause);
+            } else {
+                tetrisView.pauseGame();
+                paused = true;
+                btnPause.setImageResource(android.R.drawable.ic_media_play);
+            }
+        });
+        container.addView(btnPause);
+
+        // 重开
+        android.widget.ImageButton btnRestart = iconButton(android.R.drawable.ic_menu_revert, btnSize);
+        FrameLayout.LayoutParams rLp = new FrameLayout.LayoutParams(btnSize, btnSize);
+        rLp.gravity = Gravity.END | Gravity.TOP;
+        rLp.setMargins(0, (int) (8 * dp + btnSize + 6 * dp), (int) (8 * dp), 0);
+        btnRestart.setLayoutParams(rLp);
+        btnRestart.setOnClickListener(v -> {
+            if (tetrisView != null) showDifficultyRestartConfirm(game.getDifficultyLevel());
+        });
+        container.addView(btnRestart);
+
+        // 设置
+        android.widget.ImageButton btnSettings = iconButton(android.R.drawable.ic_menu_preferences, btnSize);
+        FrameLayout.LayoutParams sLp = new FrameLayout.LayoutParams(btnSize, btnSize);
+        sLp.gravity = Gravity.END | Gravity.BOTTOM;
+        sLp.setMargins(0, 0, (int) (8 * dp), (int) (8 * dp));
+        btnSettings.setLayoutParams(sLp);
+        btnSettings.setOnClickListener(v -> showModuleSettings());
+        container.addView(btnSettings);
+    }
+
+    private android.widget.ImageButton iconButton(int drawableRes, int size) {
+        android.widget.ImageButton btn = new android.widget.ImageButton(requireContext());
+        btn.setImageResource(drawableRes);
+        btn.setBackgroundColor(0x66000000);
+        btn.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        btn.setPadding(6, 6, 6, 6);
+        return btn;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        tetrisView.setSpeedFactor(game.getSpeedFactor());
+        tetrisView.setDifficultyLevel(game.getDifficultyLevel());
 
         tetrisView.setOnScoreChangeListener(score -> {
             game.setScore(score);
-            updateScore();
         });
-
-        tetrisView.setOnLinesClearedListener(lines -> {
+        tetrisView.setOnLinesClearedListener((lines, combo) -> {
             game.setLines(game.getLines() + lines);
+            game.setCombo(combo);
         });
-
         tetrisView.setOnLevelChangeListener(level -> {
             game.setLevel(level);
         });
-
         tetrisView.setOnGameOverListener(finalScore -> {
-            if (finalScore > game.getHighScore()) {
-                game.setHighScore(finalScore);
-            }
-            updateScore();
-        });
-
-        updateDifficultyButtons();
-        updateScore();
-
-        LinearLayout root = (LinearLayout) view;
-        LinearLayout buttonBar = (LinearLayout) root.getChildAt(root.getChildCount() - 1);
-        Button btnRestart = (Button) buttonBar.getChildAt(0);
-        btnRestart.setOnClickListener(v -> {
-            game.resetRound();
-            tetrisView.startGame();
-            updateScore();
+            if (finalScore > game.getHighScore()) game.setHighScore(finalScore);
+            // 显示 Game Over 提示
+            Toast.makeText(requireContext(), getString(R.string.game_tetris_game_over_msg,
+                    finalScore, Math.max(finalScore, game.getHighScore())), Toast.LENGTH_LONG).show();
         });
 
         tetrisView.post(() -> tetrisView.startGame());
@@ -196,35 +197,77 @@ public class TetrisModuleFragment extends Fragment {
 
     private void setDifficulty(int level) {
         game.setDifficultyLevel(level);
-        tetrisView.setSpeedFactor(game.getSpeedFactor());
-        updateDifficultyButtons();
-        tvDifficulty.setText(getString(R.string.game_tetris_diff_format, TetrisGame.DIFFICULTY_NAMES[level - 1]));
-    }
-
-    private void updateDifficultyButtons() {
-        int current = game.getDifficultyLevel();
-        for (int i = 0; i < difficultyBar.getChildCount(); i++) {
-            Button btn = (Button) difficultyBar.getChildAt(i);
-            if (i + 1 == current) {
-                btn.setBackgroundColor(colorButtonActiveBg);
-                btn.setTextColor(colorButtonActiveText);
-                tvDifficulty.setText(getString(R.string.game_tetris_diff_format, TetrisGame.DIFFICULTY_NAMES[i]));
-            } else {
-                btn.setBackgroundColor(colorButtonBg);
-                btn.setTextColor(colorButtonText);
+        if (tetrisView != null) tetrisView.setDifficultyLevel(level);
+        // 持久化
+        requireContext().getSharedPreferences("tetris_module", Context.MODE_PRIVATE)
+                .edit().putInt("last_difficulty", level).apply();
+        // 更新底部按钮高亮
+        View root = getView();
+        if (root instanceof LinearLayout) {
+            LinearLayout layout = (LinearLayout) root;
+            LinearLayout bar = (LinearLayout) layout.getChildAt(1);
+            for (int i = 0; i < bar.getChildCount(); i++) {
+                android.widget.Button b = (android.widget.Button) bar.getChildAt(i);
+                applyDifficultyButtonStyle(b, i + 1 == level);
             }
         }
     }
 
-    private void updateScore() {
-        tvScore.setText(getString(R.string.game_score_alt_format, game.getScore()));
-        tvHighScore.setText(getString(R.string.game_high_score_format, game.getHighScore()));
+    private void applyDifficultyButtonStyle(android.widget.Button btn, boolean active) {
+        if (active) {
+            btn.setBackgroundColor(colorButtonActiveBg);
+            btn.setTextColor(colorButtonActiveText);
+        } else {
+            btn.setBackgroundColor(colorButtonBg);
+            btn.setTextColor(colorButtonText);
+        }
+    }
+
+    private void showDifficultyRestartConfirm(int level) {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.game_tetris_restart_confirm_title)
+                .setMessage(R.string.game_tetris_restart_confirm_msg)
+                .setPositiveButton(R.string.game_tetris_restart, (d, w) -> {
+                    tetrisView.pauseGame();
+                    setDifficulty(level);
+                    tetrisView.startGame();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showModuleSettings() {
+        final String[] items = {
+                getString(R.string.game_tetris_settings_sound),
+                getString(R.string.game_tetris_settings_vibrate),
+                getString(R.string.tetris_rules_title)
+        };
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.game_tetris_settings_title)
+                .setItems(items, (d, w) -> {
+                    if (w == 2) {
+                        String body = getString(R.string.tetris_rules_basic)
+                                + "\n\n" + getString(R.string.tetris_rules_victory)
+                                + "\n\n" + getString(R.string.tetris_rules_scoring)
+                                + "\n\n" + getString(R.string.tetris_rules_modern);
+                        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.tetris_rules_title)
+                                .setMessage(body)
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show();
+                    } else {
+                        // 模块商店版本提示进入宿主设置
+                        Toast.makeText(requireContext(), "请到宿主 App 设置中调整", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (tetrisView != null) {
+        if (tetrisView != null && !tetrisView.isGameOver() && !tetrisView.isPaused()) {
             tetrisView.pauseGame();
         }
     }
@@ -232,7 +275,7 @@ public class TetrisModuleFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (tetrisView != null) {
+        if (tetrisView != null && !tetrisView.isGameOver() && !paused) {
             tetrisView.resumeGame();
         }
     }
@@ -240,9 +283,7 @@ public class TetrisModuleFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (tetrisView != null) {
-            tetrisView.stopGame();
-        }
+        if (tetrisView != null) tetrisView.stopGame();
     }
 
     private void applyThemeColors() {

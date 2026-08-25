@@ -13,7 +13,7 @@
         android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="@dimen/gm_spacing_3">
 
         <ImageButton
             android:id="@+id/btn_back"
@@ -27,7 +27,7 @@
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:text="@string/browser_settings_title"
             android:textSize="18sp"
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/gm_spacing_4">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -56,7 +56,7 @@
                 android:id="@+id/sw_javascript"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:checked="true"
                 android:text="@string/browser_settings_javascript"
                 android:textSize="16sp" />
@@ -65,7 +65,7 @@
                 android:id="@+id/sw_cookie"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:checked="true"
                 android:text="@string/browser_settings_cookie"
                 android:textSize="16sp" />
@@ -74,7 +74,7 @@
                 android:id="@+id/sw_third_party_cookie"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:checked="false"
                 android:text="@string/browser_settings_third_party_cookie"
                 android:textSize="16sp" />
@@ -83,7 +83,7 @@
                 android:id="@+id/sw_load_images"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:checked="true"
                 android:text="@string/browser_settings_load_images"
                 android:textSize="16sp" />
@@ -92,7 +92,7 @@
                 android:id="@+id/sw_auto_play_media"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:checked="false"
                 android:text="@string/browser_settings_auto_play_media"
                 android:textSize="16sp" />
@@ -100,7 +100,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:hint="@string/browser_settings_home_url">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -114,7 +114,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:hint="@string/browser_settings_search_engine">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -130,12 +130,12 @@
                 android:id="@+id/row_dark_mode"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/gm_spacing_3"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:orientation="vertical"
-                android:padding="8dp">
+                android:padding="@dimen/gm_spacing_2">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -154,8 +154,8 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:layout_marginBottom="@dimen/gm_spacing_4"
                 android:background="?attr/colorOutlineVariant" />
 
             <TextView
@@ -170,7 +170,7 @@
                 android:id="@+id/sw_ad_block"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:checked="true"
                 android:text="@string/browser_settings_ad_block"
                 android:textSize="16sp" />
@@ -179,7 +179,7 @@
                 android:id="@+id/sw_safe_browsing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:checked="true"
                 android:text="@string/browser_settings_safe_browsing"
                 android:textSize="16sp" />
@@ -188,7 +188,7 @@
                 android:id="@+id/sw_webview_debug"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:checked="false"
                 android:text="@string/browser_settings_webview_debug"
                 android:textSize="16sp" />
@@ -196,8 +196,8 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:layout_marginBottom="@dimen/gm_spacing_4"
                 android:background="?attr/colorOutlineVariant" />
 
             <TextView
@@ -213,7 +213,7 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:text="@string/browser_settings_clear_history" />
 
             <com.google.android.material.button.MaterialButton
@@ -221,7 +221,7 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:text="@string/browser_settings_clear_search_history" />
 
             <com.google.android.material.button.MaterialButton
@@ -229,7 +229,7 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:text="@string/browser_settings_clear_bookmarks" />
 
             <com.google.android.material.button.MaterialButton
@@ -237,7 +237,7 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:text="@string/browser_settings_clear_cache" />
 
             <com.google.android.material.button.MaterialButton
@@ -245,7 +245,7 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:text="@string/browser_settings_clear_downloads" />
 
             <com.google.android.material.button.MaterialButton
@@ -253,7 +253,7 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:text="@string/browser_settings_reset"
                 android:textColor="?attr/colorError" />
         </LinearLayout>

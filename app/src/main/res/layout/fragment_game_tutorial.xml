@@ -14,10 +14,10 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="@dimen/gm_spacing_6"
         android:background="@color/card_background"
         android:elevation="8dp"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/gm_spacing_4"
         android:backgroundTint="@color/card_background">
 
         <!-- 步骤编号 -->
@@ -34,7 +34,7 @@
             android:id="@+id/tv_step_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/gm_spacing_2"
             android:textSize="20sp"
             android:textColor="@color/text_color"
             android:textStyle="bold"
@@ -45,7 +45,7 @@
             android:id="@+id/tv_step_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/gm_spacing_3"
             android:textSize="16sp"
             android:textColor="@color/text_secondary_color"
             android:lineSpacingMultiplier="1.2"
@@ -55,7 +55,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/gm_spacing_6"
             android:orientation="horizontal"
             android:gravity="end">
 
@@ -75,7 +75,7 @@
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
                 android:text="@string/tutorial_previous"
                 android:textSize="14sp"
                 android:textColor="@color/primary_color"
@@ -87,7 +87,7 @@
                 style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
                 android:text="@string/tutorial_next"
                 android:textSize="14sp"
                 android:backgroundTint="@color/primary_color"

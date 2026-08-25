@@ -3,9 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="8dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginBottom="12dp"
+    android:layout_marginStart="@dimen/gm_spacing_2"
+    android:layout_marginEnd="@dimen/gm_spacing_2"
+    android:layout_marginBottom="@dimen/gm_spacing_3"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
     app:strokeWidth="0dp"
@@ -16,7 +16,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="@dimen/gm_spacing_4">
 
         <!-- Module Icon -->
         <FrameLayout
@@ -49,7 +49,7 @@
             android:id="@+id/installedContentLayout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/gm_spacing_4"
             android:orientation="vertical"
             app:layout_constraintStart_toEndOf="@id/installedIconContainer"
             app:layout_constraintEnd_toStartOf="@id/installedActionLayout"
@@ -78,7 +78,7 @@
                     style="@style/Widget.Material3.Chip.Assist"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:textSize="10sp"
                     android:visibility="gone" />
             </LinearLayout>
@@ -88,7 +88,7 @@
                 android:id="@+id/installedItemVersion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp" />
 
@@ -106,7 +106,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -121,7 +121,7 @@
                     android:id="@+id/installedItemEnableSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:checked="true"
                     app:thumbTint="?attr/colorPrimary"
                     app:trackTint="?attr/colorOnSurfaceVariant" />
@@ -130,7 +130,7 @@
                     android:id="@+id/installedItemStatusText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:text="已启用"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="11sp" />
@@ -141,7 +141,7 @@
                 android:id="@+id/installedItemProgress"
                 android:layout_width="match_parent"
                 android:layout_height="4dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:max="100"
                 android:progress="0"
                 app:indicatorColor="?attr/colorPrimary"
@@ -154,7 +154,7 @@
             android:id="@+id/installedActionLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
             android:orientation="vertical"
             android:gravity="center"
             app:layout_constraintEnd_toEndOf="parent"
@@ -166,8 +166,8 @@
                 style="@style/Widget.Material3.Button.Tonal"
                 android:layout_width="88dp"
                 android:layout_height="36dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
+                android:paddingStart="@dimen/gm_spacing_2"
+                android:paddingEnd="@dimen/gm_spacing_2"
                 android:text="@string/installed_update"
                 android:textSize="11sp"
                 android:insetTop="0dp"
@@ -178,9 +178,9 @@
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="88dp"
                 android:layout_height="36dp"
-                android:layout_marginTop="8dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:paddingStart="@dimen/gm_spacing_2"
+                android:paddingEnd="@dimen/gm_spacing_2"
                 android:text="@string/installed_uninstall"
                 android:textSize="11sp"
                 android:insetTop="0dp"
@@ -198,8 +198,8 @@
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginEnd="12dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginEnd="@dimen/gm_spacing_3"
+            android:layout_marginTop="@dimen/gm_spacing_2" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

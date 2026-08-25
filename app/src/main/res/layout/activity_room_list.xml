@@ -35,7 +35,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:padding="8dp" />
+                android:padding="@dimen/gm_spacing_2" />
 
             <!-- Empty State -->
             <LinearLayout
@@ -56,7 +56,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/gm_spacing_4"
                     android:gravity="center"
                     android:text="暂无房间\n点击右上角创建新房间"
                     android:textColor="?android:attr/textColorSecondary"
@@ -80,7 +80,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/gm_spacing_4"
         android:text="创建房间"
         android:textSize="14sp"
         app:icon="@android:drawable/ic_menu_add"

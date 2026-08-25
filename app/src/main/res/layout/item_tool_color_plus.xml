@@ -7,7 +7,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -21,7 +21,7 @@
             android:id="@+id/et_color_plus_fg"
             android:layout_width="0dp"
             android:layout_height="44dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:fontFamily="monospace"
             android:hint="#222222"
@@ -33,14 +33,14 @@
             android:id="@+id/v_color_plus_bg"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:background="#FFFFFF" />
 
         <EditText
             android:id="@+id/et_color_plus_bg"
             android:layout_width="0dp"
             android:layout_height="44dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:fontFamily="monospace"
             android:hint="#FFFFFF"
@@ -53,7 +53,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
@@ -81,18 +81,18 @@
         android:id="@+id/v_color_plus_image"
         android:layout_width="match_parent"
         android:layout_height="42dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant" />
 
     <TextView
         android:id="@+id/tv_color_plus_result"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
         android:lineSpacingExtra="4dp"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:text="颜色分析结果会显示在这里"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"

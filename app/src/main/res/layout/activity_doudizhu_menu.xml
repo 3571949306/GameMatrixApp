@@ -11,7 +11,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:background="@drawable/bg_doudizhu_menu"
-    android:padding="32dp">
+    android:padding="@dimen/gm_spacing_7">
 
     <!-- 游戏标题 -->
     <TextView
@@ -37,7 +37,7 @@
         android:textSize="16sp"
         android:textStyle="bold"
         android:textColor="#FFD700"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_3" />
 
     <!-- 难度选择按钮组（横向） -->
     <LinearLayout
@@ -45,7 +45,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="32dp">
+        android:layout_marginBottom="@dimen/gm_spacing_7">
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnDiffEasy"
@@ -58,7 +58,7 @@
             android:background="@drawable/btn_gold_gradient"
             android:foreground="@drawable/ripple_gold"
             android:elevation="6dp"
-            android:layout_marginEnd="12dp" />
+            android:layout_marginEnd="@dimen/gm_spacing_3" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnDiffNormal"
@@ -71,7 +71,7 @@
             android:background="@drawable/btn_gold_gradient"
             android:foreground="@drawable/ripple_gold"
             android:elevation="6dp"
-            android:layout_marginEnd="12dp" />
+            android:layout_marginEnd="@dimen/gm_spacing_3" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnDiffHard"
@@ -98,7 +98,7 @@
         android:background="@drawable/btn_gold_gradient"
         android:foreground="@drawable/ripple_gold"
         android:elevation="8dp"
-        android:layout_marginBottom="32dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_7" />
 
     <!-- 联机模式按钮 -->
     <androidx.appcompat.widget.AppCompatButton
@@ -112,7 +112,7 @@
         android:background="@drawable/btn_gold_gradient"
         android:foreground="@drawable/ripple_gold"
         android:elevation="8dp"
-        android:layout_marginBottom="32dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_7" />
 
     <!-- 远程P2P按钮 -->
     <androidx.appcompat.widget.AppCompatButton
@@ -126,7 +126,7 @@
         android:background="@drawable/btn_gold_gradient"
         android:foreground="@drawable/ripple_gold"
         android:elevation="8dp"
-        android:layout_marginBottom="64dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_10" />
 
     <!-- 返回按钮 -->
     <androidx.appcompat.widget.AppCompatButton
@@ -140,7 +140,7 @@
         android:background="@drawable/btn_gold_gradient"
         android:foreground="@drawable/ripple_gold"
         android:elevation="6dp"
-        android:layout_marginBottom="32dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_7" />
 
     <!-- 底部装饰线 -->
     <View

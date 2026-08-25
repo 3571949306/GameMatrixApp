@@ -60,7 +60,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/gm_spacing_4">
 
             <!-- 模块标题和图标 -->
             <LinearLayout
@@ -86,7 +86,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="@dimen/gm_spacing_4"
                     android:orientation="vertical">
 
                     <TextView
@@ -103,7 +103,7 @@
                         android:id="@+id/moduleDetailAuthor"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="@dimen/gm_spacing_1"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="14sp" />
 
@@ -114,7 +114,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -139,7 +139,7 @@
                         android:id="@+id/moduleDetailRating"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="@dimen/gm_spacing_2"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -148,8 +148,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
+                    android:layout_marginEnd="@dimen/gm_spacing_2"
                     android:text="•"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -168,7 +168,7 @@
                 android:id="@+id/moduleDetailChipGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/gm_spacing_3"
                 app:chipSpacingHorizontal="8dp"
                 app:chipSpacingVertical="8dp">
 
@@ -198,7 +198,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
@@ -216,7 +216,7 @@
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:text="@string/cancel"
                     android:textSize="14sp"
                     android:visibility="gone" />
@@ -227,7 +227,7 @@
                 android:id="@+id/moduleDetailProgress"
                 android:layout_width="match_parent"
                 android:layout_height="6dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/gm_spacing_3"
                 android:max="100"
                 android:progress="0"
                 app:indicatorColor="?attr/colorPrimary"
@@ -238,7 +238,7 @@
                 android:id="@+id/moduleDetailProgressText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp"
                 android:visibility="gone" />
@@ -247,14 +247,14 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/gm_spacing_6"
                 android:background="?attr/colorSurfaceVariant" />
 
             <!-- 描述 -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:text="@string/description"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="16sp"
@@ -264,7 +264,7 @@
                 android:id="@+id/moduleDetailDesc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp" />
@@ -273,7 +273,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/gm_spacing_6"
                 android:text="@string/version_history"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="16sp"
@@ -283,14 +283,14 @@
                 android:id="@+id/moduleVersionHistory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:nestedScrollingEnabled="false" />
 
             <!-- 权限列表 -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/gm_spacing_6"
                 android:text="@string/permissions"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="16sp"
@@ -300,7 +300,7 @@
                 android:id="@+id/moduleDetailPermissions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp" />

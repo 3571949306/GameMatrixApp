@@ -3,10 +3,11 @@
 <resources>
     <!-- 游戏信息 -->
     <string name="tetris_rules_title">俄罗斯方块规则</string>
-    <string name="tetris_rules_basic">7 种不同形状的方块从顶部不断下落，你可以左右移动、旋转方块，并加速下落。</string>
-    <string name="tetris_rules_victory">当一整行被方块填满时，该行会被消除。消除的行数越多，得分越高。</string>
-    <string name="tetris_rules_scoring">消除 1 行得 100 分，2 行 300 分，3 行 500 分，4 行 800 分（乘以等级倍数）。</string>
-    <string name="tetris_rules_special">每消除 10 行升一级，等级越高方块下落越快。同时消除 4 行称为"完美消除"。</string>
+    <string name="tetris_rules_basic">7 种不同形状的方块从顶部不断下落，你可以左右移动、旋转、Hold 暂存或硬降速落。</string>
+    <string name="tetris_rules_victory">当一整行被方块填满时，该行会被消除并得分。4 行同消称 Tetris，可获 1.5× Back-to-Back 奖励。</string>
+    <string name="tetris_rules_scoring">基础分：单行 100、双行 300、三行 500、Tetris 800（乘以等级）。</string>
+    <string name="tetris_rules_special">每 10 行升一级，等级越高方块下落越快。</string>
+    <string name="tetris_rules_modern">现代规则：T-Spin / Combo / Perfect Clear / Hold 暂存槽 — 全部支持。SRS 旋转 + 落点预览。</string>
 
     <!-- 成就 -->
     <string name="tetris_ach_first_score_name">初次落块</string>
@@ -28,25 +29,59 @@
 
     <!-- 教程 -->
     <string name="tetris_tutorial_step1_title">控制方块</string>
-    <string name="tetris_tutorial_step1_desc">向左或向右滑动移动方块，向下滑动加速下落，向上滑动或点击旋转方块。</string>
+    <string name="tetris_tutorial_step1_desc">向左或向右滑动移动方块，向下滑动软降（Soft Drop），向下滑 Hard Drop 需要单击触发。</string>
     <string name="tetris_tutorial_step2_title">消除行列</string>
-    <string name="tetris_tutorial_step2_desc">当一行被完全填满时，该行会被消除并获得分数。同时消除多行得分更高。</string>
-    <string name="tetris_tutorial_step3_title">等级提升</string>
-    <string name="tetris_tutorial_step3_desc">每消除 10 行升一级，方块下落速度会加快。挑战更高等级！</string>
-    <string name="tetris_tutorial_step4_title">游戏结束</string>
-    <string name="tetris_tutorial_step4_desc">当方块堆积到顶部时游戏结束。尽量保持堆叠整齐，留出空间。</string>
+    <string name="tetris_tutorial_step2_desc">当一行被完全填满时，该行会被消除并得分。同时消除多行得分更高，4 行为 Tetris。</string>
+    <string name="tetris_tutorial_step3_title">Hold &amp; Ghost</string>
+    <string name="tetris_tutorial_step3_desc">Hold 暂存当前方块；虚线方块为落点预览。</string>
+    <string name="tetris_tutorial_step4_title">T-Spin 进阶</string>
+    <string name="tetris_tutorial_step4_desc">将 T 块旋转嵌入缝隙可获 T-Spin 奖励（最高 1600/级）。</string>
+    <string name="tetris_tutorial_step5_title">游戏结束</string>
+    <string name="tetris_tutorial_step5_desc">方块堆积到顶部时游戏结束，尽量保持堆叠整齐。</string>
 
     <!-- 游戏名称与 UI 文案 -->
     <string name="game_tetris_name">俄罗斯方块</string>
+
+    <!-- 难度 -->
+    <string name="game_tetris_difficulty_title">选择难度</string>
     <string name="game_tetris_diff_easy">简单</string>
-    <string name="game_tetris_diff_easy_desc">下落速度慢，适合新手</string>
+    <string name="game_tetris_diff_easy_desc">下落速度慢（1.5× 时长），适合新手</string>
     <string name="game_tetris_diff_normal">普通</string>
-    <string name="game_tetris_diff_normal_desc">标准下落速度，均衡挑战</string>
+    <string name="game_tetris_diff_normal_desc">标准速度，节奏均衡</string>
     <string name="game_tetris_diff_hard">困难</string>
-    <string name="game_tetris_diff_hard_desc">下落速度快，反应挑战</string>
+    <string name="game_tetris_diff_hard_desc">快速下落，反应挑战</string>
+    <string name="game_tetris_diff_master">大师</string>
+    <string name="game_tetris_diff_master_desc">极速下落，高手挑战</string>
     <string name="game_tetris_difficulty_changed">难度已切换为：%1$s</string>
-    <string name="game_tetris_info_label">分数: %1$d  消行: %2$d  等级: %3$d</string>
+
+    <!-- HUD / 设置 -->
+    <string name="game_tetris_info_label">分数 %1$d  消行 %2$d  等级 %3$d</string>
     <string name="game_tetris_game_over">游戏结束</string>
-    <string name="game_tetris_final_score_label">最终分数: %1$d</string>
+    <string name="game_tetris_game_over_msg">最终分数：%1$d\n最高分：%2$d</string>
     <string name="game_tetris_tap_to_restart">点击重新开始</string>
+
+    <!-- 暂停 / 重开 / 设置 -->
+    <string name="game_tetris_paused">已暂停</string>
+    <string name="game_tetris_resumed">已继续</string>
+    <string name="game_tetris_restart">重新开始</string>
+    <string name="game_tetris_restart_confirm_title">重新开始？</string>
+    <string name="game_tetris_restart_confirm_msg">当前进度将被丢弃，确定要重新开始吗？</string>
+    <string name="game_tetris_back">返回</string>
+    <string name="game_tetris_settings_title">设置</string>
+    <string name="game_tetris_settings_sound">音效开关</string>
+    <string name="game_tetris_settings_vibrate">振动开关</string>
+    <string name="game_tetris_settings_ghost">落点预览 (Ghost)</string>
+    <string name="game_tetris_sound_on">音效已开启</string>
+    <string name="game_tetris_sound_off">音效已关闭</string>
+    <string name="game_tetris_vibrate_on">振动已开启</string>
+    <string name="game_tetris_vibrate_off">振动已关闭</string>
+    <string name="game_tetris_ghost_on">落点预览已开启</string>
+    <string name="game_tetris_ghost_off">落点预览已关闭</string>
+    <string name="game_tetris_start">开始</string>
+
+    <!-- 中断续玩 -->
+    <string name="game_tetris_resume_title">继续对局？</string>
+    <string name="game_tetris_resume_msg">检测到上次未完成的对局</string>
+    <string name="game_tetris_resume">继续</string>
+    <string name="game_tetris_new_game">新开一局</string>
 </resources>

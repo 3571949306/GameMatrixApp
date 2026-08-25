@@ -2,7 +2,9 @@ package com.gamecenter.app
 
 import android.app.Activity
 import android.app.Application
+import android.content.ComponentCallbacks2
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * 应用程序全局入口类，负责整个应用生命周期内的全局初始化与状态管理。
@@ -31,8 +34,68 @@ class App : Application() {
     private var updateAutoCheckDone = false
     private lateinit var moduleLifecycleManager: ModuleLifecycleManager
 
+    /**
+     * P1-内存：内存压力回调注册表。任何持有常驻缓存（Bitmap LruCache、AI 置换表、
+     * 大型对象池）的组件都可以注册进来，按 trim level 释放对应层级的内存。
+     * 使用 CopyOnWriteArrayList 防止并发 register/unregister 与 onTrimMemory 派发冲突。
+     */
+    private val trimListeners = CopyOnWriteArrayList<ComponentCallbacks2>()
+
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
+    }
+
+    /**
+     * P1-内存：注册内存压力回调监听器。
+     * 系统发出 onTrimMemory(level) / onLowMemory() 时，本类会按注册顺序派发给所有监听器。
+     */
+    fun registerTrimListener(listener: ComponentCallbacks2) {
+        if (!trimListeners.contains(listener)) {
+            trimListeners.add(listener)
+        }
+    }
+
+    /**
+     * P1-内存：注销内存压力回调监听器。
+     */
+    fun unregisterTrimListener(listener: ComponentCallbacks2) {
+        trimListeners.remove(listener)
+    }
+
+    /**
+     * P1-内存：当前已注册的内存压力回调监听器数量（用于诊断/测试）。
+     */
+    fun getTrimListenerCount(): Int = trimListeners.size
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        Log.d("App", "[trim] level=$level (UI_HIDDEN=20/BACKGROUND=40/MODERATE=60/COMPLETE=80)")
+        // 注意：CopyOnWriteArrayList 的迭代器是 snapshot，并发 register/unregister 不会抛 ConcurrentModification
+        for (listener in trimListeners) {
+            try {
+                listener.onTrimMemory(level)
+            } catch (t: Throwable) {
+                Log.w("App", "[trim] listener 抛异常", t)
+            }
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        Log.w("App", "[trim] onLowMemory → 视为 TRIM_MEMORY_COMPLETE")
+        for (listener in trimListeners) {
+            try {
+                listener.onLowMemory()
+                listener.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
+            } catch (t: Throwable) {
+                Log.w("App", "[trim] listener 抛异常", t)
+            }
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // 必须实现，否则 lint 警告 — 与 ComponentCallbacks2 契约对应
     }
 
     /**

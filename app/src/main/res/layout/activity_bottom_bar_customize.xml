@@ -14,7 +14,7 @@
         android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="@dimen/gm_spacing_3">
 
         <ImageButton
             android:id="@+id/btn_back"
@@ -28,7 +28,7 @@
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:text="@string/browser_bottom_bar_customize_title"
             android:textColor="?android:attr/textColorPrimary"
@@ -42,5 +42,5 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:padding="8dp" />
+        android:padding="@dimen/gm_spacing_2" />
 </LinearLayout>

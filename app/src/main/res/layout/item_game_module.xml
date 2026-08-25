@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_margin="@dimen/gm_spacing_2"
     app:cardCornerRadius="16dp"
     app:cardElevation="4dp"
     app:strokeWidth="0dp"
@@ -16,9 +16,9 @@
         android:gravity="center"
         android:orientation="vertical"
         android:paddingStart="18dp"
-        android:paddingTop="24dp"
+        android:paddingTop="@dimen/gm_spacing_6"
         android:paddingEnd="18dp"
-        android:paddingBottom="20dp">
+        android:paddingBottom="@dimen/gm_spacing_5">
 
         <FrameLayout
             android:id="@+id/gameIconContainer"
@@ -50,7 +50,7 @@
             android:id="@+id/tv_game_desc"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/gm_spacing_1"
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
@@ -97,7 +97,7 @@
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/gm_spacing_2"
             android:max="100"
             android:progress="0"
             android:visibility="gone" />
@@ -107,7 +107,7 @@
             android:id="@+id/tv_progress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/gm_spacing_1"
             android:gravity="center"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp"

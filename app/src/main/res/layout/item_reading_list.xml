@@ -4,9 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="12dp"
-    android:layout_marginEnd="12dp"
-    android:layout_marginBottom="8dp"
+    android:layout_marginStart="@dimen/gm_spacing_3"
+    android:layout_marginEnd="@dimen/gm_spacing_3"
+    android:layout_marginBottom="@dimen/gm_spacing_2"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
@@ -20,21 +20,21 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="@dimen/gm_spacing_3">
 
         <ImageView
             android:id="@+id/iv_reading_icon"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_url_bar"
-            android:padding="8dp"
+            android:padding="@dimen/gm_spacing_2"
             android:src="@drawable/ic_reading_list"
             app:tint="?attr/colorPrimary" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -79,7 +79,7 @@
                 android:id="@+id/tv_reading_url"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="?attr/colorOnSurfaceVariant"

@@ -163,7 +163,7 @@
             android:clickable="true"
             android:focusable="true"
             android:contentDescription="@string/home_card_favorite_add"
-            android:padding="4dp"
+            android:padding="@dimen/gm_spacing_1"
             android:scaleType="centerInside"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"

@@ -62,6 +62,8 @@ public class ChineseChessActivity extends BaseGameActivity {
 
     private static final String GAME_ID_VALUE = "chinesechess";
     private static final String TAG = "ChineseChessActivity";
+    /** 与围棋对齐：AI 返回 null/非法着法时写 AI_CONTRACT_VIOLATION 日志（AGENTS.md §3） */
+    private static final String CONTRACT_TAG = "AI_CONTRACT_VIOLATION";
 
     /** AI 最小响应延迟（毫秒） */
     private static final long[] AI_MIN_RESPONSE_DELAYS_MS = {200L, 400L, 800L, 1500L};
@@ -148,6 +150,7 @@ public class ChineseChessActivity extends BaseGameActivity {
     private ExecutorService aiExecutor;
     private volatile boolean aiThinking = false;
     private volatile long aiGeneration = 0;
+    private volatile int aiContractViolationCount = 0;
 
     private int winStreak = 0;
 
@@ -554,12 +557,22 @@ public class ChineseChessActivity extends BaseGameActivity {
                     chessView.setAiThinking(false);
                     return;
                 }
-                if (bestMove != null && bestMove.length >= 4) {
+                if (bestMove != null && bestMove.length >= 4
+                        && bestMove[0] >= 0 && bestMove[0] < 10
+                        && bestMove[1] >= 0 && bestMove[1] < 9
+                        && bestMove[2] >= 0 && bestMove[2] < 10
+                        && bestMove[3] >= 0 && bestMove[3] < 9) {
                     chessView.applyAIMove(bestMove[0], bestMove[1], bestMove[2], bestMove[3]);
                     appendMoveHistory();
                     checkAndShowCheckAlert();
                     updateCapturedPieces();
                 } else {
+                    // AGENTS.md §3：AI 返回非法着法必须记录 AI_CONTRACT_VIOLATION
+                    logAiContractViolation(
+                            bestMove == null ? "null_move"
+                                    : bestMove.length < 4 ? "short_move"
+                                    : "out_of_board",
+                            bestMove);
                     // AI 无合法着法（应已被 View 的将死/困毙检测提前结束，此处为安全兜底）
                     if (chessView.isInCheck(2)) {
                         Toast.makeText(ChineseChessActivity.this,
@@ -587,6 +600,29 @@ public class ChineseChessActivity extends BaseGameActivity {
                 mainHandler.post(applyMove);
             }
         });
+    }
+
+    /**
+     * 与 GoActivity.logAiContractViolation 对齐：记录 AI 返回 null / 长度不足 / 越界
+     * 的非法着法。AGENTS.md §3 要求 AI 非法着法必须留痕；运行时通过 Logcat CONTRACT_TAG
+     * 标签过滤。原始非法着法数与 fallback 次数必须都为 0（生产验收要求）。
+     */
+    private void logAiContractViolation(@NonNull String reason, @Nullable int[] move) {
+        aiContractViolationCount++;
+        String rawMove = (move == null || move.length < 4)
+                ? "null"
+                : move[0] + "," + move[1] + "," + move[2] + "," + move[3];
+        android.util.Log.e(CONTRACT_TAG,
+                "reason=" + reason
+                        + " difficulty=" + aiDifficulty
+                        + " generation=" + aiGeneration
+                        + " move=" + rawMove
+                        + " count=" + aiContractViolationCount);
+    }
+
+    /** 暴露给回归/验收脚本读取：返回会话内 AI 非法着法累计次数（AGENTS.md §3 验收项） */
+    public int getAiContractViolationCount() {
+        return aiContractViolationCount;
     }
 
     /**
@@ -1452,6 +1488,21 @@ public class ChineseChessActivity extends BaseGameActivity {
         if (soundPool != null) {
             soundPool.release();
             soundPool = null;
+        }
+    }
+
+    /**
+     * P1-内存：系统内存压力回调。
+     * 后台 / 严重级别时取消正在运行的 AI 搜索以减少 CPU/内存占用；
+     * UI_HIDDEN 不打断前台对局。
+     */
+    protected void onMemoryTrim(int level) {
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) {
+            if (ai != null && ai.isThinking()) {
+                ai.cancel();
+                if (hintAsyncCalculator != null) hintAsyncCalculator.cancelCalculation();
+                android.util.Log.d("ChineseChessAI", "[trim] 后台 trim(level=" + level + ")，取消 AI/提示搜索");
+            }
         }
     }
 }

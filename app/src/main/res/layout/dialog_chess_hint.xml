@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:padding="@dimen/gm_spacing_6"
     android:background="@drawable/chess_hint_dialog_bg">
 
     <!-- 标题 -->
@@ -17,14 +17,14 @@
         android:textStyle="bold"
         android:textColor="#202124"
         android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_4" />
 
     <!-- 分隔线 -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#E0E0E0"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_4" />
 
     <!-- 走法描述卡片 -->
     <LinearLayout
@@ -32,8 +32,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/chess_hint_card_bg"
-        android:padding="12dp"
-        android:layout_marginBottom="12dp">
+        android:padding="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_3">
 
         <!-- 图标 + 标签 -->
         <LinearLayout
@@ -41,14 +41,14 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="@dimen/gm_spacing_2">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="♟"
                 android:textSize="16sp"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_2" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -77,8 +77,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/chess_hint_card_bg"
-        android:padding="12dp"
-        android:layout_marginBottom="16dp">
+        android:padding="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_4">
 
         <!-- 图标 + 标签 -->
         <LinearLayout
@@ -86,14 +86,14 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="@dimen/gm_spacing_2">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="💡"
                 android:textSize="16sp"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_2" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -131,7 +131,7 @@
             android:textSize="14sp"
             android:textColor="#5F6368"
             android:background="@drawable/chess_hint_btn_cancel_bg"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="@dimen/gm_spacing_2" />
 
         <!-- 执行按钮 -->
         <Button

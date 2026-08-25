@@ -17,7 +17,7 @@
             android:elevation="2dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="12dp">
+            android:padding="@dimen/gm_spacing_3">
 
             <ImageButton
                 android:id="@+id/btn_back"
@@ -31,7 +31,7 @@
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
                 android:layout_weight="1"
                 android:text="@string/browser_tab_manager_title"
                 android:textSize="18sp"
@@ -41,7 +41,7 @@
                 android:id="@+id/tv_tab_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="@dimen/gm_spacing_2"
                 android:text="@string/browser_tab_count"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="14sp" />
@@ -61,7 +61,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="8dp" />
+            android:padding="@dimen/gm_spacing_2" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -69,7 +69,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/gm_spacing_4"
         android:contentDescription="@string/browser_tab_new"
         android:src="@drawable/ic_browser_add"
         app:backgroundTint="?attr/colorPrimary"

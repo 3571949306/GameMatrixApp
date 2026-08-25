@@ -1360,8 +1360,8 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
                     marginEnd = resources.getDimensionPixelSize(R.dimen.gm_spacing_1)
                     val active = i == current
                     setBackgroundResource(
-                        if (active) R.drawable.hero_indicator_dot_active
-                        else R.drawable.hero_indicator_dot
+                        if (active) R.drawable.indicator_dot_active
+                        else R.drawable.indicator_dot_inactive
                     )
                 }
             }

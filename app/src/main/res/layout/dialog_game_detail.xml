@@ -33,7 +33,7 @@
             android:layout_height="64dp"
             android:background="@drawable/bg_game_icon_gradient_default"
             android:contentDescription="@string/visual_refresh_game_icon"
-            android:padding="12dp"
+            android:padding="@dimen/gm_spacing_3"
             android:scaleType="centerInside"
             tools:src="@drawable/ic_game" />
 
@@ -57,7 +57,7 @@
                 android:id="@+id/tv_detail_category"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:paddingStart="@dimen/spacing_12"
                 android:paddingEnd="@dimen/spacing_12"
                 android:paddingTop="2dp"
@@ -77,7 +77,7 @@
             android:clickable="true"
             android:focusable="true"
             android:contentDescription="@string/game_detail_favorite_add"
-            android:padding="8dp"
+            android:padding="@dimen/gm_spacing_2"
             android:scaleType="centerInside"
             app:srcCompat="@drawable/ic_favorite"
             app:tint="?attr/colorPrimary" />
@@ -258,7 +258,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
-                    android:padding="4dp"
+                    android:padding="@dimen/gm_spacing_1"
                     android:scaleType="centerInside"
                     app:srcCompat="@drawable/ic_star_border"
                     app:tint="@color/rating_star" />
@@ -271,7 +271,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
-                    android:padding="4dp"
+                    android:padding="@dimen/gm_spacing_1"
                     android:scaleType="centerInside"
                     app:srcCompat="@drawable/ic_star_border"
                     app:tint="@color/rating_star" />
@@ -284,7 +284,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
-                    android:padding="4dp"
+                    android:padding="@dimen/gm_spacing_1"
                     android:scaleType="centerInside"
                     app:srcCompat="@drawable/ic_star_border"
                     app:tint="@color/rating_star" />
@@ -297,7 +297,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
-                    android:padding="4dp"
+                    android:padding="@dimen/gm_spacing_1"
                     android:scaleType="centerInside"
                     app:srcCompat="@drawable/ic_star_border"
                     app:tint="@color/rating_star" />
@@ -310,7 +310,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:focusable="true"
-                    android:padding="4dp"
+                    android:padding="@dimen/gm_spacing_1"
                     android:scaleType="centerInside"
                     app:srcCompat="@drawable/ic_star_border"
                     app:tint="@color/rating_star" />

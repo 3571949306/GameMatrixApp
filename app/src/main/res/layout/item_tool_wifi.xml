@@ -8,7 +8,7 @@
         android:id="@+id/tv_wifi_signal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:text="获取中..."
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="16sp" />
@@ -16,14 +16,14 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:background="?attr/colorOnSurfaceVariant"
         android:alpha="0.2" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:text="移动网络信号"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="14sp"
@@ -52,7 +52,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         android:text="运营商: 获取中..."
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="15sp" />

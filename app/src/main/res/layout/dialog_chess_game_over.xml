@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:background="@color/chess_dialog_bg"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="@dimen/gm_spacing_6">
 
     <TextView
         android:id="@+id/tv_game_over_title"
@@ -28,7 +28,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginVertical="16dp"
+        android:layout_marginVertical="@dimen/gm_spacing_4"
         android:alpha="0.3"
         android:background="@color/chess_card_border" />
 
@@ -43,7 +43,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="@dimen/gm_spacing_5"
         android:orientation="horizontal">
 
         <TextView
