@@ -9,13 +9,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/gm_spacing_4">
 
         <!-- 版本信息 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/gm_spacing_4"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
@@ -25,14 +25,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp"
+                android:padding="@dimen/gm_spacing_4"
                 android:gravity="center_vertical">
 
                 <ImageView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@mipmap/ic_launcher"
-                    android:layout_marginEnd="12dp" />
+                    android:layout_marginEnd="@dimen/gm_spacing_3" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -65,7 +65,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="@dimen/gm_spacing_4"
             android:gravity="center_vertical"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
@@ -76,7 +76,7 @@
                 android:layout_height="24dp"
                 android:src="@android:drawable/ic_menu_upload"
                 app:tint="?attr/colorPrimary"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_4" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -114,7 +114,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="@dimen/gm_spacing_4"
             android:gravity="center_vertical">
 
             <ImageView
@@ -122,7 +122,7 @@
                 android:layout_height="24dp"
                 android:src="@android:drawable/ic_popup_sync"
                 app:tint="?attr/colorPrimary"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_4" />
 
             <TextView
                 android:layout_width="0dp"
@@ -143,7 +143,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="@dimen/gm_spacing_4"
             android:gravity="center_vertical">
 
             <ImageView
@@ -151,7 +151,7 @@
                 android:layout_height="24dp"
                 android:src="@android:drawable/ic_menu_info_details"
                 app:tint="?attr/colorPrimary"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_4" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -185,7 +185,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="@dimen/gm_spacing_4"
             android:gravity="center_vertical">
 
             <ImageView
@@ -193,7 +193,7 @@
                 android:layout_height="24dp"
                 android:src="@android:drawable/stat_sys_download"
                 app:tint="?attr/colorPrimary"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_4" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -228,7 +228,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="@dimen/gm_spacing_4"
             android:paddingStart="56dp"
             android:gravity="center_vertical">
 
@@ -253,7 +253,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="16dp"
+            android:padding="@dimen/gm_spacing_4"
             android:gravity="center_vertical"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
@@ -264,7 +264,7 @@
                 android:layout_height="24dp"
                 android:src="@android:drawable/ic_menu_recent_history"
                 app:tint="?attr/colorPrimary"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="@dimen/gm_spacing_4" />
 
             <TextView
                 android:layout_width="0dp"
@@ -287,8 +287,8 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="@dimen/gm_spacing_2"
+            android:layout_marginBottom="@dimen/gm_spacing_4"
             android:background="?attr/colorOutlineVariant"
             android:alpha="0.5" />
 

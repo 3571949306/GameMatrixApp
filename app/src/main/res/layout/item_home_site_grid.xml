@@ -6,7 +6,7 @@
     android:background="?attr/selectableItemBackgroundBorderless"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="@dimen/gm_spacing_2">
 
     <ImageView
         android:id="@+id/site_icon"

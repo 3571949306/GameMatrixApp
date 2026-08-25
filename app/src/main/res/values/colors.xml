@@ -346,34 +346,6 @@
     <color name="skeleton_base">#FFE0E0E0</color>
     <color name="skeleton_highlight">#FFF5F5F5</color>
 
-    <!-- ===== 首页沉浸式改版 (HOME_IMMERSIVE_REVAMP) — 浅色 ===== -->
-    <!-- Hero 区主渐变：品牌蓝 → 品牌浅蓝 → 中蓝紫（简约克制，原过艳紫蓝已收敛） -->
-    <color name="home_immersive_hero_start">#3D5AFE</color>
-    <color name="home_immersive_hero_center">#5C6CFE</color>
-    <color name="home_immersive_hero_end">#5C6BC0</color>
-    <!-- Hero 区文字色（在彩色背景上使用白色） -->
-    <color name="home_immersive_hero_on_color">#FFFFFF</color>
-    <color name="home_immersive_hero_on_color_variant">#E6FFFFFF</color>
-    <!-- Hero 区表面叠层（半透明白，用于内部卡片） -->
-    <color name="home_immersive_hero_overlay">#1AFFFFFF</color>
-    <color name="home_immersive_hero_overlay_strong">#33FFFFFF</color>
-    <!-- 沉浸式卡片表面（浅色：纯白 + 微阴影） -->
-    <color name="home_immersive_card_surface">#FFFFFF</color>
-    <color name="home_immersive_card_border">#1F000000</color>
-    <!-- 沉浸式统计 chip 背景（Hero 内嵌使用半透明白） -->
-    <color name="home_immersive_stat_chip_bg">#33FFFFFF</color>
-    <color name="home_immersive_stat_chip_text">#FFFFFF</color>
-    <!-- 沉浸式搜索药丸（在 Hero 外使用表面色） -->
-    <color name="home_immersive_search_pill_bg">#FFFFFF</color>
-    <color name="home_immersive_search_pill_stroke">#1F3D5AFE</color>
-    <color name="home_immersive_search_pill_text">#5F6368</color>
-    <color name="home_immersive_search_pill_hint">#9AA0A6</color>
-    <!-- 沉浸式空状态引导卡片渐变 -->
-    <color name="home_immersive_empty_card_start">#F1F3F4</color>
-    <color name="home_immersive_empty_card_end">#E8F0FE</color>
-    <color name="home_immersive_empty_card_text">#5F6368</color>
-    <color name="home_immersive_empty_card_accent">#3D5AFE</color>
-
     <!-- ===== 首页 V2 游戏霓虹风色板（HOME_REVAMP_V2, 2026-07-22） ===== -->
     <!-- Hero 渐变：品牌蓝紫，Material3 简约克制（原霓虹紫红橙已收敛） -->
     <color name="home_v2_hero_start">#2C3FAA</color>

@@ -9,15 +9,15 @@
         style="@style/Widget.GameMatrix.Button.Tonal"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:text="刷新传感器" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
-        android:padding="8dp">
+        android:padding="@dimen/gm_spacing_2">
 
         <TextView
             android:id="@+id/tv_sensor_list"

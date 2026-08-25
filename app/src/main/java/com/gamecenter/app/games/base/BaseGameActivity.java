@@ -1,7 +1,10 @@
 package com.gamecenter.app.games.base;
 
+import android.content.ComponentCallbacks2;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -427,5 +430,43 @@ public abstract class BaseGameActivity extends AppCompatActivity {
             gameStartTime = 0;
         }
         super.onDestroy();
+    }
+
+    // ==================== P1-内存：内存压力回调 ====================
+
+    /**
+     * 系统内存压力回调。基类只记录日志；具体释放策略交给子类
+     * （典型动作：取消 in-flight AI 搜索、清 Bitmap LruCache、关闭协程）。
+     */
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        Log.d(getClass().getSimpleName(), "[trim] level=" + level);
+        onMemoryTrim(level);
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        Log.w(getClass().getSimpleName(), "[trim] onLowMemory → 视为 COMPLETE");
+        onMemoryTrim(ComponentCallbacks2.TRIM_MEMORY_COMPLETE);
+    }
+
+    /**
+     * 子类可重写此方法处理 trim 信号。默认空实现。
+     * 推荐阈值：
+     * <ul>
+     *   <li>{@code TRIM_MEMORY_BACKGROUND (40)}：取消正在执行的 AI 搜索（玩家已切到后台）</li>
+     *   <li>{@code TRIM_MEMORY_UI_HIDDEN (20)}：释放非必要 UI Bitmap 缓存</li>
+     *   <li>{@code TRIM_MEMORY_COMPLETE (80)}：激进释放 — 关闭所有可重建缓存</li>
+     * </ul>
+     */
+    protected void onMemoryTrim(int level) {
+        // 默认空实现；子类按需重写
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
 }

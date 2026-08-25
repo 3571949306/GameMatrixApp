@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="12dp"
+    android:padding="@dimen/gm_spacing_3"
     android:gravity="center_vertical">
 
     <TextView
@@ -23,8 +23,8 @@
         android:textSize="14sp"
         android:textColor="?android:attr/textColorPrimary"
         android:lineSpacingExtra="4dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp" />
+        android:paddingStart="@dimen/gm_spacing_3"
+        android:paddingEnd="@dimen/gm_spacing_3" />
 
     <ImageButton
         android:id="@+id/btn_msg_tts"
@@ -32,7 +32,7 @@
         android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="朗读"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:src="@android:drawable/ic_btn_speak_now"
         android:visibility="gone" />
 
@@ -42,6 +42,6 @@
         android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="收藏"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:src="@android:drawable/btn_star_big_off" />
 </LinearLayout>

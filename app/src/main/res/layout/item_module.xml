@@ -52,7 +52,7 @@
                 android:layout_marginTop="2dp"
                 android:layout_marginEnd="2dp"
                 android:background="@drawable/bg_hot_badge"
-                android:paddingHorizontal="4dp"
+                android:paddingHorizontal="@dimen/gm_spacing_1"
                 android:paddingVertical="1dp"
                 android:text="@string/module_new_badge"
                 android:textColor="@color/hot_badge_text"

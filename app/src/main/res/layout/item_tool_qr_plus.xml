@@ -7,7 +7,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:hint="文本、URL，或用逗号分隔 WiFi / 名片信息">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -24,7 +24,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
@@ -90,7 +90,7 @@
         android:layout_width="220dp"
         android:layout_height="220dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:contentDescription="二维码预览"
         android:scaleType="fitCenter"
         android:visibility="gone" />
@@ -99,11 +99,11 @@
         android:id="@+id/tv_qr_plus_result"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
         android:lineSpacingExtra="4dp"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:text="生成或识别结果会显示在这里"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"

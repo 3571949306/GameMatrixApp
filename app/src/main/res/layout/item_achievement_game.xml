@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginBottom="8dp"
+    android:layout_marginBottom="@dimen/gm_spacing_2"
     android:background="@color/eye_care_card"
     android:elevation="1dp"
     android:clickable="true"
@@ -16,7 +16,7 @@
         android:layout_height="64dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="@dimen/gm_spacing_4">
 
         <!-- 游戏图标 -->
         <ImageView
@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="12dp">
+            android:layout_marginStart="@dimen/gm_spacing_3">
 
             <TextView
                 android:id="@+id/tv_game_name"
@@ -69,7 +69,7 @@
             android:id="@+id/iv_expand_arrow"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:src="@android:drawable/arrow_down_float"
             android:contentDescription="@string/navigate_next"
             tools:visibility="visible" />
@@ -92,8 +92,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="gone"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="8dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:paddingVertical="@dimen/gm_spacing_2"
         android:background="@color/eye_care_bg" />
 
 </LinearLayout>

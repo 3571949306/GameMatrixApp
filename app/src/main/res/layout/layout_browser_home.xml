@@ -14,8 +14,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingTop="48dp"
-            android:paddingBottom="32dp">
+            android:paddingTop="@dimen/gm_spacing_9"
+            android:paddingBottom="@dimen/gm_spacing_7">
 
             <!-- 顶部 Logo + 标语 -->
             <TextView
@@ -32,14 +32,14 @@
                 android:id="@+id/home_search_box"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="@dimen/gm_spacing_5"
+                android:layout_marginTop="@dimen/gm_spacing_6"
+                android:layout_marginEnd="@dimen/gm_spacing_5"
                 android:background="@drawable/bg_home_search_box"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp">
+                android:paddingStart="@dimen/gm_spacing_4"
+                android:paddingEnd="@dimen/gm_spacing_4">
 
                 <ImageView
                     android:layout_width="20dp"
@@ -51,7 +51,7 @@
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/gm_spacing_3"
                     android:layout_weight="1"
                     android:hint="@string/browser_home_search_hint"
                     android:textColorHint="?attr/colorOnSurfaceVariant"
@@ -63,16 +63,16 @@
                 android:id="@+id/home_grid_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="32dp"
-                android:layout_marginEnd="16dp"
+                android:layout_marginStart="@dimen/gm_spacing_4"
+                android:layout_marginTop="@dimen/gm_spacing_7"
+                android:layout_marginEnd="@dimen/gm_spacing_4"
                 android:orientation="vertical" />
 
             <!-- ===== Cards 风格容器（横向滚动） ===== -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="@dimen/gm_spacing_7"
                 android:scrollbars="none"
                 android:visibility="gone">
 
@@ -81,8 +81,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp" />
+                    android:paddingStart="@dimen/gm_spacing_4"
+                    android:paddingEnd="@dimen/gm_spacing_4" />
             </HorizontalScrollView>
 
             <!-- ===== Minimal 风格容器 ===== -->
@@ -90,9 +90,9 @@
                 android:id="@+id/home_minimal_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="48dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="@dimen/gm_spacing_5"
+                android:layout_marginTop="@dimen/gm_spacing_9"
+                android:layout_marginEnd="@dimen/gm_spacing_5"
                 android:orientation="vertical"
                 android:visibility="gone">
 
@@ -108,9 +108,9 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="32dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginStart="@dimen/gm_spacing_5"
+                android:layout_marginTop="@dimen/gm_spacing_7"
+                android:layout_marginEnd="@dimen/gm_spacing_5"
                 android:orientation="horizontal">
 
                 <LinearLayout
@@ -121,7 +121,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="12dp">
+                    android:padding="@dimen/gm_spacing_3">
 
                     <ImageView
                         android:layout_width="28dp"
@@ -147,7 +147,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="12dp">
+                    android:padding="@dimen/gm_spacing_3">
 
                     <ImageView
                         android:layout_width="28dp"
@@ -173,7 +173,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="12dp">
+                    android:padding="@dimen/gm_spacing_3">
 
                     <ImageView
                         android:layout_width="28dp"

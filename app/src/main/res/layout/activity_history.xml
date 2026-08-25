@@ -15,7 +15,7 @@
         android:background="?attr/colorSurface"
         android:elevation="2dp"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="@dimen/gm_spacing_3">
 
         <!-- 第一行：返回按钮 + 标题 -->
         <LinearLayout
@@ -36,7 +36,7 @@
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
                 android:layout_weight="1"
                 android:text="@string/browser_history_title"
                 android:textColor="?android:attr/textColorPrimary"
@@ -58,15 +58,15 @@
             android:id="@+id/et_search"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/gm_spacing_2"
             android:background="@drawable/bg_url_bar"
             android:drawablePadding="8dp"
             android:hint="@string/browser_history_search_hint"
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:maxLines="1"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
+            android:paddingStart="@dimen/gm_spacing_3"
+            android:paddingEnd="@dimen/gm_spacing_3"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -82,8 +82,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp" />
+            android:paddingTop="@dimen/gm_spacing_2"
+            android:paddingBottom="@dimen/gm_spacing_2" />
 
         <!-- 空状态视图 -->
         <LinearLayout
@@ -104,7 +104,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/gm_spacing_4"
                 android:text="@string/browser_history_empty"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="16sp" />
@@ -112,7 +112,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:text="@string/browser_history_empty_hint"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="13sp" />
@@ -125,7 +125,7 @@
         style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_margin="12dp"
+        android:layout_margin="@dimen/gm_spacing_3"
         android:text="@string/browser_history_clear_all"
         android:textColor="?attr/colorError"
         app:cornerRadius="12dp"

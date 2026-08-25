@@ -1032,4 +1032,15 @@ public class GoActivity extends BaseGameActivity {
         }
         super.onDestroy();
     }
+
+    /**
+     * P1-内存：系统内存压力回调。
+     * 后台 / 严重级别时取消 AI 搜索以减少 CPU/内存占用；UI_HIDDEN 不打断前台对局。
+     */
+    protected void onMemoryTrim(int level) {
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND && aiThinking) {
+            Log.d(TAG, "[trim] 后台 trim(level=" + level + ")，取消 AI 搜索以释放 CPU/内存");
+            cancelPendingAi("trim-background");
+        }
+    }
 }

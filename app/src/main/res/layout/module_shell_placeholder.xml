@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="32dp">
+    android:padding="@dimen/gm_spacing_7">
 
     <TextView
         android:layout_width="wrap_content"
@@ -18,7 +18,7 @@
         android:id="@+id/btnGoToStore"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/gm_spacing_4"
         android:text="前往模块商店下载" />
 
 </LinearLayout>

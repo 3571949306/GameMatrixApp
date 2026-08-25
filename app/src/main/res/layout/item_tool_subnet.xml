@@ -9,7 +9,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="12dp">
+        android:layout_marginTop="@dimen/gm_spacing_3">
 
         <EditText
             android:id="@+id/et_subnet_ip"
@@ -27,7 +27,7 @@
             style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:text="计算" />
     </LinearLayout>
 
@@ -35,11 +35,11 @@
         android:id="@+id/tv_subnet_result"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
         android:lineSpacingExtra="4dp"
-        android:padding="12dp"
+        android:padding="@dimen/gm_spacing_3"
         android:text="输入IP/CIDR后点击计算"
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="14sp" />

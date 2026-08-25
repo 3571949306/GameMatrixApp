@@ -6,49 +6,49 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="@dimen/gm_spacing_4"
     android:visibility="gone">
 
     <View
         android:layout_width="120dp"
         android:layout_height="20dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="@dimen/gm_spacing_3"
         android:background="@drawable/bg_skeleton_block" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="16dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
         android:background="@drawable/bg_skeleton_block" />
 
     <View
         android:layout_width="240dp"
         android:layout_height="16dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="@dimen/gm_spacing_5"
         android:background="@drawable/bg_skeleton_block" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="180dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="@dimen/gm_spacing_5"
         android:background="@drawable/bg_skeleton_block" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="14dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
         android:background="@drawable/bg_skeleton_block" />
 
     <View
         android:layout_width="200dp"
         android:layout_height="14dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
         android:background="@drawable/bg_skeleton_block" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="14dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="@dimen/gm_spacing_2"
         android:background="@drawable/bg_skeleton_block" />
 
     <View

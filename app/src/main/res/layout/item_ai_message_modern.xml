@@ -6,16 +6,16 @@
     android:id="@+id/ai_msg_container"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:padding="@dimen/gm_spacing_2">
 
     <!-- ===== 用户消息（右侧对齐） ===== -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_user_msg"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginStart="@dimen/gm_spacing_9"
+        android:layout_marginTop="@dimen/gm_spacing_1"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         app:cardCornerRadius="16dp"
         app:cardElevation="1dp"
         app:cardBackgroundColor="@color/brand_primary"
@@ -51,9 +51,9 @@
         android:id="@+id/card_ai_msg"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="48dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginEnd="@dimen/gm_spacing_9"
+        android:layout_marginTop="@dimen/gm_spacing_1"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         app:cardCornerRadius="16dp"
         app:cardElevation="1dp"
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
@@ -67,7 +67,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="12dp">
+            android:padding="@dimen/gm_spacing_3">
 
             <!-- AI 头像 -->
             <com.google.android.material.card.MaterialCardView
@@ -76,7 +76,7 @@
                 app:cardCornerRadius="16dp"
                 app:cardBackgroundColor="@color/brand_secondary"
                 app:strokeWidth="0dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginEnd="@dimen/gm_spacing_2">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -112,7 +112,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="12dp"
+        android:padding="@dimen/gm_spacing_3"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/card_ai_msg">
@@ -127,20 +127,20 @@
             android:id="@+id/dot2"
             android:layout_width="6dp"
             android:layout_height="6dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/gm_spacing_1"
             android:background="@drawable/bg_typing_dot" />
 
         <View
             android:id="@+id/dot3"
             android:layout_width="6dp"
             android:layout_height="6dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/gm_spacing_1"
             android:background="@drawable/bg_typing_dot" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:text="@string/ai_typing"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
@@ -154,7 +154,7 @@
         android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="收藏"
-        android:padding="4dp"
+        android:padding="@dimen/gm_spacing_1"
         android:src="@android:drawable/btn_star_big_off"
         app:tint="?attr/colorOnSurfaceVariant"
         app:layout_constraintEnd_toEndOf="parent"

@@ -12,13 +12,13 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/gm_spacing_6">
 
         <!-- 头部徽标 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="96dp"
             android:layout_height="96dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/gm_spacing_6"
             app:cardBackgroundColor="@color/brand_primary"
             app:cardCornerRadius="48dp"
             app:cardElevation="2dp"
@@ -37,7 +37,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="@dimen/gm_spacing_5"
             android:gravity="center"
             android:text="@string/recovery_title"
             android:textColor="?attr/colorOnSurface"
@@ -60,7 +60,7 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/gm_spacing_6"
             app:cardBackgroundColor="?attr/colorSurfaceVariant"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
@@ -109,7 +109,7 @@
             android:id="@+id/card_recovery_error"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/gm_spacing_4"
             android:visibility="gone"
             app:cardBackgroundColor="@color/md_theme_error_container"
             app:cardCornerRadius="12dp"
@@ -188,7 +188,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/gm_spacing_6"
             android:gravity="center"
             android:lineSpacingExtra="2dp"
             android:text="@string/recovery_hint"

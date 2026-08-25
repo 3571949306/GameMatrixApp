@@ -70,6 +70,12 @@ public class ChineseChessAI implements GameAI {
     /** 大师档仅在残局启用第 5 层搜索，避免开局分支爆炸。 */
     private static final int MASTER_ENDGAME_PIECE_LIMIT = 14;
 
+    /**
+     * 各难度默认搜索时间预算（毫秒）。到时 minimax 立即返回当前已知最佳，
+     * 不再继续展开新分支，确保玩家可见的等待上限可控。
+     */
+    private static final long[] DEFAULT_MAX_TIME_MS = {200L, 800L, 2000L, 5000L, 8000L};
+
     /** 开局库走法 - 14种常见开局，均为红方视角的合法着法（行6~9），增加开局多样性。
      *  注意：旧版本存在坐标错误（如 {9,4,7,4} 实为帅走两格、{9,1,7,1} 实为马直行），
      *  会生成非法着法。此处全部改为真实合法开局，并由 {@link #getOpeningMove} 二次校验兜底。 */
@@ -123,6 +129,18 @@ public class ChineseChessAI implements GameAI {
     private volatile boolean cancelled = false;
     private volatile boolean thinking = false;
 
+    /**
+     * 单次搜索时间预算（毫秒）。棋盘就地修改后单节点成本大幅下降，
+     * 该上限确保即便深度 5 也给出稳定的 UI 等待时长。
+     */
+    private long maxTimeMs = DEFAULT_MAX_TIME_MS[0];
+
+    /** 本次搜索截止时间戳（System.currentTimeMillis 域）。 */
+    private long searchDeadlineMs;
+
+    /** 已搜索节点计数器，配合位与做节流式超时探测。 */
+    private int nodesSearched;
+
     /** 外部传入的当前对局局面历史（可选），用于在根节点惩罚重复局面着法 */
     private List<Long> positionHistory = null;
 
@@ -155,8 +173,16 @@ public class ChineseChessAI implements GameAI {
      * @param difficulty 难度等级（1-5）
      */
     public ChineseChessAI(int difficulty) {
+        this(difficulty, DEFAULT_MAX_TIME_MS[Math.max(0, Math.min(DEFAULT_MAX_TIME_MS.length - 1, difficulty - 1))]);
+    }
+
+    /**
+     * 创建 AI 实例，可指定搜索时间预算（毫秒）。
+     */
+    public ChineseChessAI(int difficulty, long maxTimeMs) {
         this.difficulty = Math.max(1, Math.min(5, difficulty));
         this.searchDepth = SEARCH_DEPTHS[this.difficulty - 1];
+        this.maxTimeMs = Math.max(50L, maxTimeMs);
     }
 
     /**
@@ -208,6 +234,8 @@ public class ChineseChessAI implements GameAI {
     @Nullable
     public int[] getBestMove(@NonNull int[][] boardState, int difficulty, int aiSide) {
         cancelled = false;
+        nodesSearched = 0;
+        searchDeadlineMs = System.currentTimeMillis() + maxTimeMs;
         int normalizedSide = aiSide >= 0 ? 1 : -1;
         int depth = resolveSearchDepth(difficulty, boardState);
         transpositionTable.clear();
@@ -232,30 +260,39 @@ public class ChineseChessAI implements GameAI {
         List<int[]> adjudicationMoves = new ArrayList<>();
         List<Integer> adjudicationScores = new ArrayList<>();
 
+        // 【性能关键】只做一次 copyBoard，整个根节点 + minimax + 静态搜索全部就地修改。
+        // 原版每层递归都新建 10×9 数组，单步搜索会产生数百万份临时对象、GC 频繁。
+        int[][] board = copyBoard(boardState);
+
         for (int[] move : moves) {
             if (cancelled) break;
 
-            // 模拟走法
-            int[][] newBoard = copyBoard(boardState);
-            newBoard[move[2]][move[3]] = newBoard[move[0]][move[1]];
-            newBoard[move[0]][move[1]] = 0;
+            // 就地走子
+            int fr = move[0], fc = move[1], tr = move[2], tc = move[3];
+            int captured = board[tr][tc];
+            board[tr][tc] = board[fr][fc];
+            board[fr][fc] = 0;
 
             // Minimax 搜索（根走子后轮到对方，isMax = !maximize）
-            int score = minimax(newBoard, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, !maximize, 1);
+            int score = minimax(board, depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, !maximize, 1);
 
             // 立即把刚走出的安静着法原路退回通常是无效循环；吃子或将军属于战术例外。
             if (isImmediateReversal(move)
                     && boardState[move[2]][move[3]] == 0
-                    && !isInCheck(newBoard, -normalizedSide)) {
+                    && !isInCheck(board, -normalizedSide)) {
                 score += maximize ? -IMMEDIATE_REVERSAL_PENALTY : IMMEDIATE_REVERSAL_PENALTY;
             }
 
             // AI 走子后轮到对方；哈希编码与游戏逻辑层完全一致。
-            long newHash = computePositionHash(newBoard, -normalizedSide);
+            long newHash = computePositionHash(board, -normalizedSide);
             int previousOccurrences = countPositionInHistory(newHash);
             if (previousOccurrences == 1) {
                 score += maximize ? -REPEAT_WARNING_PENALTY : REPEAT_WARNING_PENALTY;
             }
+
+            // 就地撤销走子，保证 board 始终与外部 boardState 同步
+            board[fr][fc] = board[tr][tc];
+            board[tr][tc] = captured;
 
             int normalizedScore = maximize ? score : -score;
             if (previousOccurrences >= 2) {
@@ -435,15 +472,16 @@ public class ChineseChessAI implements GameAI {
      * @return 评估分数（红方视角，越大对红方越有利）
      */
     private int minimax(int[][] board, int depth, int alpha, int beta, boolean isMax, int ply) {
+        nodesSearched++;
         if (cancelled) return 0;
+        // 节流式超时探测：每 64 节点查一次时间，避免 System.currentTimeMillis 调用主导开销。
+        // 触发超时后置 cancelled=true 让递归层快速退出。
+        if ((nodesSearched & 63) == 0 && System.currentTimeMillis() > searchDeadlineMs) {
+            cancelled = true;
+            return evaluateBoard(board);
+        }
 
         int sideSign = isMax ? 1 : -1;
-        List<int[]> moves = generateLegalMoves(board, sideSign);
-        if (moves.isEmpty()) {
-            // 当前走子方无合法着法：被将死或困毙（象棋规则均判负）。
-            // 扣除层数使"更快将死 / 更晚被将死"获得更高分数。
-            return isMax ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
-        }
 
         if (ply >= MAX_SEARCH_PLY) return evaluateBoard(board);
 
@@ -467,6 +505,12 @@ public class ChineseChessAI implements GameAI {
         boolean inCheck = isInCheck(board, sideSign);
         int childDepth = (inCheck && ply < CHECK_EXTENSION_PLY_LIMIT) ? depth : depth - 1;
 
+        // 单次生成 + MVV-LVA 排序
+        List<int[]> moves = generateLegalMoves(board, sideSign);
+        if (moves.isEmpty()) {
+            // 当前走子方无合法着法：被将死或困毙（象棋规则均判负）。
+            return isMax ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
+        }
         orderMovesByMvvLva(moves, board);
 
         int result;
@@ -474,10 +518,15 @@ public class ChineseChessAI implements GameAI {
             int maxEval = Integer.MIN_VALUE;
             for (int[] move : moves) {
                 if (cancelled) break;
-                int[][] newBoard = copyBoard(board);
-                newBoard[move[2]][move[3]] = newBoard[move[0]][move[1]];
-                newBoard[move[0]][move[1]] = 0;
-                int eval = minimax(newBoard, childDepth, alpha, beta, false, ply + 1);
+                // 就地走子
+                int fr = move[0], fc = move[1], tr = move[2], tc = move[3];
+                int captured = board[tr][tc];
+                board[tr][tc] = board[fr][fc];
+                board[fr][fc] = 0;
+                int eval = minimax(board, childDepth, alpha, beta, false, ply + 1);
+                // 就地撤销
+                board[fr][fc] = board[tr][tc];
+                board[tr][tc] = captured;
                 if (eval > maxEval) maxEval = eval;
                 if (eval > alpha) alpha = eval;
                 if (beta <= alpha) break; // 剪枝
@@ -487,10 +536,13 @@ public class ChineseChessAI implements GameAI {
             int minEval = Integer.MAX_VALUE;
             for (int[] move : moves) {
                 if (cancelled) break;
-                int[][] newBoard = copyBoard(board);
-                newBoard[move[2]][move[3]] = newBoard[move[0]][move[1]];
-                newBoard[move[0]][move[1]] = 0;
-                int eval = minimax(newBoard, childDepth, alpha, beta, true, ply + 1);
+                int fr = move[0], fc = move[1], tr = move[2], tc = move[3];
+                int captured = board[tr][tc];
+                board[tr][tc] = board[fr][fc];
+                board[fr][fc] = 0;
+                int eval = minimax(board, childDepth, alpha, beta, true, ply + 1);
+                board[fr][fc] = board[tr][tc];
+                board[tr][tc] = captured;
                 if (eval < minEval) minEval = eval;
                 if (eval < beta) beta = eval;
                 if (beta <= alpha) break; // 剪枝
@@ -516,7 +568,13 @@ public class ChineseChessAI implements GameAI {
      * 被将军局面必须枚举全部合法应着（含非吃子逃将），否则会遗漏被将死的判定。</p>
      */
     private int quiescence(int[][] board, int alpha, int beta, int qdepth, boolean isMax, int ply) {
+        nodesSearched++;
         if (cancelled) return 0;
+        // 静态搜索同样遵守时间预算：到点立即返回当前 stand-pat 分数
+        if ((nodesSearched & 63) == 0 && System.currentTimeMillis() > searchDeadlineMs) {
+            cancelled = true;
+            return evaluateBoard(board);
+        }
         if (qdepth <= 0 || ply >= MAX_SEARCH_PLY) return evaluateBoard(board);
 
         int sideSign = isMax ? 1 : -1;
@@ -533,10 +591,13 @@ public class ChineseChessAI implements GameAI {
                 int maxEval = Integer.MIN_VALUE;
                 for (int[] m : evasions) {
                     if (cancelled) break;
-                    int[][] nb = copyBoard(board);
-                    nb[m[2]][m[3]] = nb[m[0]][m[1]];
-                    nb[m[0]][m[1]] = 0;
-                    int eval = quiescence(nb, alpha, beta, qdepth - 1, false, ply + 1);
+                    int fr = m[0], fc = m[1], tr = m[2], tc = m[3];
+                    int captured = board[tr][tc];
+                    board[tr][tc] = board[fr][fc];
+                    board[fr][fc] = 0;
+                    int eval = quiescence(board, alpha, beta, qdepth - 1, false, ply + 1);
+                    board[fr][fc] = board[tr][tc];
+                    board[tr][tc] = captured;
                     if (eval > maxEval) maxEval = eval;
                     if (eval > alpha) alpha = eval;
                     if (beta <= alpha) break;
@@ -546,10 +607,13 @@ public class ChineseChessAI implements GameAI {
                 int minEval = Integer.MAX_VALUE;
                 for (int[] m : evasions) {
                     if (cancelled) break;
-                    int[][] nb = copyBoard(board);
-                    nb[m[2]][m[3]] = nb[m[0]][m[1]];
-                    nb[m[0]][m[1]] = 0;
-                    int eval = quiescence(nb, alpha, beta, qdepth - 1, true, ply + 1);
+                    int fr = m[0], fc = m[1], tr = m[2], tc = m[3];
+                    int captured = board[tr][tc];
+                    board[tr][tc] = board[fr][fc];
+                    board[fr][fc] = 0;
+                    int eval = quiescence(board, alpha, beta, qdepth - 1, true, ply + 1);
+                    board[fr][fc] = board[tr][tc];
+                    board[tr][tc] = captured;
                     if (eval < minEval) minEval = eval;
                     if (eval < beta) beta = eval;
                     if (beta <= alpha) break;
@@ -574,13 +638,17 @@ public class ChineseChessAI implements GameAI {
 
         for (int[] m : caps) {
             if (cancelled) break;
-            int[][] nb = copyBoard(board);
-            nb[m[2]][m[3]] = nb[m[0]][m[1]];
-            nb[m[0]][m[1]] = 0;
+            int fr = m[0], fc = m[1], tr = m[2], tc = m[3];
+            int captured = board[tr][tc];
+            board[tr][tc] = board[fr][fc];
+            board[fr][fc] = 0;
 
             // 若此吃子后对方无合法着法（含困毙），即构成将死，直接给将死分
-            if (generateLegalMoves(nb, oppSign).isEmpty()) {
+            if (generateLegalMoves(board, oppSign).isEmpty()) {
                 int mate = isMax ? (MATE_SCORE - (ply + 1)) : -(MATE_SCORE - (ply + 1));
+                // 先撤销走子再回报，保持 board 状态正确
+                board[fr][fc] = board[tr][tc];
+                board[tr][tc] = captured;
                 if (isMax) {
                     if (mate > alpha) alpha = mate;
                     if (alpha >= beta) return beta;
@@ -591,7 +659,10 @@ public class ChineseChessAI implements GameAI {
                 continue;
             }
 
-            int eval = quiescence(nb, alpha, beta, qdepth - 1, !isMax, ply + 1);
+            int eval = quiescence(board, alpha, beta, qdepth - 1, !isMax, ply + 1);
+            // 撤销走子
+            board[fr][fc] = board[tr][tc];
+            board[tr][tc] = captured;
             if (isMax) {
                 if (eval > alpha) alpha = eval;
                 if (alpha >= beta) return beta;
@@ -1094,12 +1165,15 @@ public class ChineseChessAI implements GameAI {
         return false;
     }
 
-    /** 走子后 side 方将/帅是否仍被将军（用于合法性校验）。 */
-    private boolean isMoveLegal(int[][] b, int fr, int fc, int tr, int tc, int side) {
-        int[][] nb = copyBoard(b);
-        nb[tr][tc] = nb[fr][fc];
-        nb[fr][fc] = 0;
-        return !isInCheck(nb, side);
+    /** 走子后 side 方将/帅是否仍被将军（用于合法性校验）。就地进行走子/检查/撤销，省去 copyBoard。 */
+    private static boolean isMoveLegal(int[][] b, int fr, int fc, int tr, int tc, int side) {
+        int captured = b[tr][tc];
+        b[tr][tc] = b[fr][fc];
+        b[fr][fc] = 0;
+        boolean inCheck = isInCheck(b, side);
+        b[fr][fc] = b[tr][tc];
+        b[tr][tc] = captured;
+        return !inCheck;
     }
 
     /** 生成 side 方的全部合法着法（过滤送将/白脸将的着法）。 */

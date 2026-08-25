@@ -8,7 +8,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:orientation="horizontal">
 
         <Spinner
@@ -23,14 +23,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1" />
     </LinearLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:hint="@string/tool_crypto_key">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -45,7 +45,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:hint="@string/tool_crypto_input">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -63,7 +63,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
@@ -79,7 +79,7 @@
             style="@style/Widget.GameMatrix.Button.Tonal"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:text="@string/tool_crypto_decrypt" />
 
@@ -88,7 +88,7 @@
             style="@style/Widget.GameMatrix.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:text="@string/tool_crypto_copy" />
     </LinearLayout>
@@ -97,10 +97,10 @@
         android:id="@+id/tv_crypto_output"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="12dp"
+        android:padding="@dimen/gm_spacing_3"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="13sp" />

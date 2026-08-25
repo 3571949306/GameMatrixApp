@@ -4,7 +4,7 @@
     android:id="@+id/dialog_module_confirm_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="24dp"
+    android:padding="@dimen/gm_spacing_6"
     android:background="@drawable/dialog_background">
 
     <!-- Icon -->
@@ -12,10 +12,10 @@
         android:id="@+id/dialogConfirmIcon"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="@dimen/gm_spacing_4"
         android:background="@drawable/game_icon_bg_gradient"
         android:contentDescription="@string/module_icon_desc"
-        android:padding="12dp"
+        android:padding="@dimen/gm_spacing_3"
         android:scaleType="centerInside"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -27,7 +27,7 @@
         android:id="@+id/dialogConfirmTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:gravity="center"
         android:text="下载模块"
         android:textColor="?android:attr/textColorPrimary"
@@ -42,7 +42,7 @@
         android:id="@+id/dialogConfirmModuleName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:gravity="center"
         android:text="模块名称"
         android:textColor="?attr/colorPrimary"
@@ -57,7 +57,7 @@
         android:id="@+id/dialogConfirmInfoCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/gm_spacing_4"
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
         app:cardCornerRadius="8dp"
         app:cardElevation="0dp"
@@ -69,7 +69,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="@dimen/gm_spacing_3">
 
             <!-- Size Info -->
             <LinearLayout
@@ -87,7 +87,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:text="文件大小："
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
@@ -96,7 +96,7 @@
                     android:id="@+id/dialogConfirmSize"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
                     android:text="2.5 MB"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="12sp"
@@ -120,7 +120,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:text="版本："
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
@@ -129,7 +129,7 @@
                     android:id="@+id/dialogConfirmVersion"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
                     android:text="v1.0.0"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="12sp"
@@ -141,11 +141,11 @@
                 android:id="@+id/dialogConfirmNetworkWarning"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/gm_spacing_2"
                 android:background="@drawable/bg_ai_message_system"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp"
+                android:padding="@dimen/gm_spacing_2"
                 android:visibility="gone">
 
                 <ImageView
@@ -172,7 +172,7 @@
                 android:background="@drawable/bg_ai_message_system"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="8dp"
+                android:padding="@dimen/gm_spacing_2"
                 android:visibility="gone">
 
                 <ImageView
@@ -197,7 +197,7 @@
         android:id="@+id/dialogConfirmPermissionsSection"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -215,7 +215,7 @@
             android:id="@+id/dialogConfirmPermissions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/gm_spacing_1"
             android:text="• 网络访问\n• 存储读取"
             android:textColor="?android:attr/textColorPrimary"
             android:textSize="12sp" />
@@ -226,7 +226,7 @@
         android:id="@+id/dialogConfirmWarningText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:gravity="center"
         android:text="下载后自动安装"
         android:textColor="?android:attr/textColorSecondary"
@@ -240,7 +240,7 @@
         android:id="@+id/dialogConfirmButtons"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="@dimen/gm_spacing_5"
         android:gravity="center"
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
@@ -261,7 +261,7 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:text="下载"
             android:textSize="14sp" />

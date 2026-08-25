@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="16dp"
+    android:padding="@dimen/gm_spacing_4"
     android:background="@color/eye_care_card">
 
     <!-- 圆角卡片容器 -->
@@ -15,7 +15,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/achievement_card_bg"
-        android:padding="16dp">
+        android:padding="@dimen/gm_spacing_4">
 
         <!-- 成就图标 -->
         <ImageView
@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="12dp">
+            android:layout_marginStart="@dimen/gm_spacing_3">
 
             <!-- 成就名称 -->
             <TextView
@@ -51,7 +51,7 @@
                 android:id="@+id/tv_achievement_desc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:textSize="14sp"
                 android:textColor="#666666"
                 android:maxLines="2"
@@ -64,9 +64,9 @@
             android:id="@+id/tv_achievement_level"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
+            android:paddingHorizontal="@dimen/gm_spacing_2"
+            android:paddingVertical="@dimen/gm_spacing_1"
             android:textSize="12sp"
             android:textColor="@android:color/white"
             android:background="@color/brand_primary"

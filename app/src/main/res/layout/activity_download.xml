@@ -4,11 +4,11 @@
     android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:background="?attr/colorSurface" android:elevation="2dp" android:gravity="center_vertical"
-        android:orientation="horizontal" android:padding="12dp">
+        android:orientation="horizontal" android:padding="@dimen/gm_spacing_3">
         <ImageButton android:id="@+id/btn_back" android:layout_width="40dp" android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/browser_back"
             android:src="@drawable/ic_browser_back" app:tint="?attr/colorOnSurface" />
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp"
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1" android:text="@string/browser_download_title" android:textSize="18sp" android:textStyle="bold" />
     </LinearLayout>
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
@@ -16,7 +16,7 @@
         <LinearLayout android:id="@+id/empty_view" android:layout_width="match_parent" android:layout_height="match_parent"
             android:gravity="center" android:orientation="vertical" android:visibility="gone">
             <ImageView android:layout_width="64dp" android:layout_height="64dp" android:src="@drawable/ic_browser_download" app:tint="?attr/colorOnSurfaceVariant" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp"
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/gm_spacing_4"
                 android:text="@string/browser_download_empty" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="16sp" />
         </LinearLayout>
     </FrameLayout>

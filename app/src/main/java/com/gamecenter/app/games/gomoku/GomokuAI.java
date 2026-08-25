@@ -566,21 +566,24 @@ public class GomokuAI implements GameAI {
      * @param beta         Beta值（最小化方当前最优）
      * @param isMaximizing 当前是否为最大化方（AI方）
      * @param aiPlayer     AI方颜色
-     * @param lastMoveInfo 上一手信息 [x, y, player]
+     * @param lastMoveX    上一手 x（-1 表示无上一手，用于根节点）
+     * @param lastMoveY    上一手 y
+     * @param lastMovePlayer 上一手执子方颜色
      * @return 评估分数
      */
     private double minimax(int[][] board, int depth, double alpha, double beta,
-                           boolean isMaximizing, int aiPlayer, int[] lastMoveInfo) {
+                           boolean isMaximizing, int aiPlayer,
+                           int lastMoveX, int lastMoveY, int lastMovePlayer) {
         nodesSearched++;
         if (cancelled) return evaluate(board, aiPlayer);
         // 定期检查超时
         if ((nodesSearched & (TIME_CHECK_INTERVAL - 1)) == 0 && checkTimeout()) {
             return evaluate(board, aiPlayer);
         }
-        // 检查上一手是否获胜
-        if (lastMoveInfo != null && checkWinAt(lastMoveInfo[0], lastMoveInfo[1], lastMoveInfo[2], board)) {
+        // 检查上一手是否获胜（lastMoveX/Y=-1 表示无上一手，用于根节点）
+        if (lastMoveX >= 0 && checkWinAt(lastMoveX, lastMoveY, lastMovePlayer, board)) {
             // 胜利评分乘以深度，偏好更快获胜
-            return (lastMoveInfo[2] == aiPlayer ? 1 : -1) * WIN_SCORE * (depth + 1);
+            return (lastMovePlayer == aiPlayer ? 1 : -1) * WIN_SCORE * (depth + 1);
         }
         // 到达搜索深度上限，返回静态评估
         if (depth == 0) return evaluate(board, aiPlayer);
@@ -596,8 +599,9 @@ public class GomokuAI implements GameAI {
             for (int[] move : topMoves) {
                 if (timedOut) break;
                 board[move[1]][move[0]] = player;
+                // 性能优化：用 3 个 int 字段传递 lastMove，避免每层递归 new int[3] 分配
                 double eval = minimax(board, depth - 1, alpha, beta, false, aiPlayer,
-                        new int[]{move[0], move[1], player});
+                        move[0], move[1], player);
                 board[move[1]][move[0]] = GomokuGame.EMPTY;
                 maxEval = Math.max(maxEval, eval);
                 alpha = Math.max(alpha, eval);
@@ -612,7 +616,7 @@ public class GomokuAI implements GameAI {
             if (timedOut) break;
             board[move[1]][move[0]] = player;
             double eval = minimax(board, depth - 1, alpha, beta, true, aiPlayer,
-                    new int[]{move[0], move[1], player});
+                    move[0], move[1], player);
             board[move[1]][move[0]] = GomokuGame.EMPTY;
             minEval = Math.min(minEval, eval);
             beta = Math.min(beta, eval);
@@ -756,8 +760,9 @@ public class GomokuAI implements GameAI {
                 if (timedOut) break;
                 int[] move = orderedMoves.get(i);
                 board[move[1]][move[0]] = aiPlayer;
+                // 性能优化：lastMoveX/Y/Player 三个 int 字段代替 new int[3]，每层递归省 1 次分配
                 double eval = minimax(board, depth - 1, -Double.MAX_VALUE, Double.MAX_VALUE,
-                        false, aiPlayer, new int[]{move[0], move[1], aiPlayer});
+                        false, aiPlayer, move[0], move[1], aiPlayer);
                 board[move[1]][move[0]] = GomokuGame.EMPTY;
                 if (eval > depthBestScore) {
                     depthBestScore = eval;

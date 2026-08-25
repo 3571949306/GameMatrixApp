@@ -8,7 +8,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:hint="@string/tool_portscan_host_hint">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -22,7 +22,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:hint="@string/tool_portscan_ports_hint">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -37,7 +37,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal">
 
         <com.google.android.material.textfield.TextInputLayout
@@ -58,7 +58,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:hint="@string/tool_portscan_concurrency_hint">
 
@@ -76,14 +76,14 @@
         android:id="@+id/btn_start_port_scan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:text="@string/scan" />
 
     <TextView
         android:id="@+id/tv_port_scan_progress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
         android:visibility="gone" />
@@ -91,10 +91,10 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:background="?attr/colorSurfaceVariant"
         android:maxHeight="220dp"
-        android:padding="8dp">
+        android:padding="@dimen/gm_spacing_2">
 
         <TextView
             android:id="@+id/tv_port_scan_result"

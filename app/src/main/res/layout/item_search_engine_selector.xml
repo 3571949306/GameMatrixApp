@@ -6,8 +6,8 @@
     android:gravity="center_vertical"
     android:minHeight="44dp"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp">
+    android:paddingStart="@dimen/gm_spacing_4"
+    android:paddingEnd="@dimen/gm_spacing_4">
 
     <TextView
         android:id="@+id/engine_name"

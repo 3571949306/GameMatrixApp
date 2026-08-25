@@ -12,8 +12,8 @@
         android:layout_height="56dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="4dp"
-        android:paddingEnd="16dp">
+        android:paddingStart="@dimen/gm_spacing_1"
+        android:paddingEnd="@dimen/gm_spacing_4">
 
         <ImageButton
             android:id="@+id/btn_back"
@@ -33,7 +33,7 @@
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginStart="4dp" />
+            android:layout_marginStart="@dimen/gm_spacing_1" />
     </LinearLayout>
 
     <ScrollView
@@ -41,10 +41,10 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:fillViewport="true"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="24dp">
+        android:paddingStart="@dimen/gm_spacing_4"
+        android:paddingEnd="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_1"
+        android:paddingBottom="@dimen/gm_spacing_6">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -55,7 +55,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="@dimen/gm_spacing_5"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="2dp"
                 app:strokeWidth="0dp"
@@ -65,7 +65,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="20dp"
+                    android:padding="@dimen/gm_spacing_5"
                     android:gravity="center_vertical">
 
                     <ImageView
@@ -79,7 +79,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:layout_marginStart="16dp">
+                        android:layout_marginStart="@dimen/gm_spacing_4">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -106,8 +106,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
+                android:layout_marginBottom="@dimen/gm_spacing_2"
                 android:text="外观"
                 android:textAllCaps="true"
                 android:textColor="?attr/colorPrimary"
@@ -118,7 +118,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="@dimen/gm_spacing_5"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0.5dp"
@@ -129,8 +129,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp">
+                    android:paddingTop="@dimen/gm_spacing_1"
+                    android:paddingBottom="@dimen/gm_spacing_1">
 
                     <!-- 主题模式 -->
                     <LinearLayout
@@ -139,8 +139,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -200,8 +200,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -253,8 +253,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
+                android:layout_marginBottom="@dimen/gm_spacing_2"
                 android:text="模块管理"
                 android:textAllCaps="true"
                 android:textColor="?attr/colorPrimary"
@@ -265,7 +265,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="@dimen/gm_spacing_5"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0.5dp"
@@ -276,8 +276,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp">
+                    android:paddingTop="@dimen/gm_spacing_1"
+                    android:paddingBottom="@dimen/gm_spacing_1">
 
                     <!-- 模块商店 -->
                     <LinearLayout
@@ -286,8 +286,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -346,8 +346,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -400,8 +400,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -453,8 +453,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
+                android:layout_marginBottom="@dimen/gm_spacing_2"
                 android:text="数据与存储"
                 android:textAllCaps="true"
                 android:textColor="?attr/colorPrimary"
@@ -465,7 +465,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="@dimen/gm_spacing_5"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0.5dp"
@@ -476,8 +476,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp">
+                    android:paddingTop="@dimen/gm_spacing_1"
+                    android:paddingBottom="@dimen/gm_spacing_1">
 
                     <!-- 清除缓存 -->
                     <LinearLayout
@@ -486,8 +486,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -540,8 +540,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -594,8 +594,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -646,8 +646,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginStart="@dimen/gm_spacing_2"
+                android:layout_marginBottom="@dimen/gm_spacing_2"
                 android:text="更多"
                 android:textAllCaps="true"
                 android:textColor="?attr/colorPrimary"
@@ -658,7 +658,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="@dimen/gm_spacing_5"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0.5dp"
@@ -669,8 +669,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp">
+                    android:paddingTop="@dimen/gm_spacing_1"
+                    android:paddingBottom="@dimen/gm_spacing_1">
 
                     <!-- 游戏战绩 -->
                     <LinearLayout
@@ -679,8 +679,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -739,8 +739,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -800,8 +800,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -860,8 +860,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp">
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4">
 
                         <FrameLayout
                             android:layout_width="36dp"
@@ -911,8 +911,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
@@ -971,8 +971,8 @@
                         android:layout_height="56dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
+                        android:paddingStart="@dimen/gm_spacing_4"
+                        android:paddingEnd="@dimen/gm_spacing_4"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">

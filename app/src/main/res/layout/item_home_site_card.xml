@@ -2,12 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginStart="8dp"
-    android:layout_marginEnd="8dp"
+    android:layout_marginStart="@dimen/gm_spacing_2"
+    android:layout_marginEnd="@dimen/gm_spacing_2"
     android:background="?attr/selectableItemBackgroundBorderless"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="@dimen/gm_spacing_3">
 
     <ImageView
         android:id="@+id/site_icon"
@@ -19,7 +19,7 @@
         android:id="@+id/site_title"
         android:layout_width="80dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"

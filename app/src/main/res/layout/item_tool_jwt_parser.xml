@@ -8,7 +8,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:hint="@string/tool_jwt_input_hint">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -26,7 +26,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
@@ -42,7 +42,7 @@
             style="@style/Widget.GameMatrix.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:layout_weight="1"
             android:text="@string/tool_jwt_copy" />
     </LinearLayout>
@@ -50,7 +50,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:text="@string/tool_jwt_header_label"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
@@ -62,7 +62,7 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="12sp" />
@@ -82,7 +82,7 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="12sp" />
@@ -102,7 +102,7 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorSurfaceVariant"
         android:fontFamily="monospace"
-        android:padding="8dp"
+        android:padding="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorPrimary"
         android:textIsSelectable="true"
         android:textSize="12sp" />

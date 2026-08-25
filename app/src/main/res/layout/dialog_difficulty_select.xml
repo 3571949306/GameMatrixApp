@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:padding="@dimen/gm_spacing_6"
     android:background="@color/eye_care_bg">
 
     <!-- 标题 -->
@@ -17,7 +17,7 @@
         android:textStyle="bold"
         android:textColor="#2D2D2D"
         android:gravity="center"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="@dimen/gm_spacing_5" />
 
     <!-- 简单难度 -->
     <com.google.android.material.button.MaterialButton
@@ -26,12 +26,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="64dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="@dimen/gm_spacing_3"
         android:backgroundTint="@color/eye_care_card"
         android:textColor="#2D2D2D"
         android:strokeColor="#5B8A72"
         android:gravity="start|center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
         android:textSize="16sp"
         tools:text="简单\n适合新手玩家" />
 
@@ -42,12 +42,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="64dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="@dimen/gm_spacing_3"
         android:backgroundTint="@color/eye_care_card"
         android:textColor="#2D2D2D"
         android:strokeColor="#5B8A72"
         android:gravity="start|center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
         android:textSize="16sp"
         tools:text="中等\n有一定挑战性" />
 
@@ -58,12 +58,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="64dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="@dimen/gm_spacing_3"
         android:backgroundTint="@color/eye_care_card"
         android:textColor="#2D2D2D"
         android:strokeColor="#5B8A72"
         android:gravity="start|center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
         android:textSize="16sp"
         tools:text="困难\n需要丰富经验" />
 
@@ -78,7 +78,7 @@
         android:textColor="#2D2D2D"
         android:strokeColor="#5B8A72"
         android:gravity="start|center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
         android:textSize="16sp"
         tools:text="大师\n极限挑战" />
 

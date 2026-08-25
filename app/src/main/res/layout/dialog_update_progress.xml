@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="24dp">
+    android:padding="@dimen/gm_spacing_6">
 
     <!-- 标题 -->
     <TextView
@@ -23,7 +23,7 @@
         android:id="@+id/tvModuleName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:textColor="?android:attr/textColorSecondary"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -35,7 +35,7 @@
         android:id="@+id/progress_bar"
         android:layout_width="0dp"
         android:layout_height="8dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="@dimen/gm_spacing_5"
         android:indeterminate="false"
         android:max="100"
         android:progress="0"
@@ -50,7 +50,7 @@
         android:id="@+id/tv_progress_percent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
         android:text="0%"
         android:textColor="?attr/colorPrimary"
         android:textSize="28sp"
@@ -63,7 +63,7 @@
         android:id="@+id/tv_progress_size"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:text="0 B / 0 B"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
@@ -75,7 +75,7 @@
         android:id="@+id/tv_download_speed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:text="-- KB/s"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="12sp"
@@ -100,7 +100,7 @@
         style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="0dp"
         android:layout_height="48dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="@dimen/gm_spacing_6"
         android:text="@string/cancel"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"

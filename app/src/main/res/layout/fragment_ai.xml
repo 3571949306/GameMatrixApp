@@ -11,10 +11,10 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_2"
+        android:paddingEnd="@dimen/gm_spacing_4"
+        android:paddingBottom="@dimen/gm_spacing_2">
 
         <TextView
             android:layout_width="0dp"
@@ -41,9 +41,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="@dimen/gm_spacing_4"
+        android:paddingEnd="@dimen/gm_spacing_4"
+        android:paddingBottom="@dimen/gm_spacing_2">
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_mode_switch"
@@ -59,7 +59,7 @@
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             android:text="本地模型"
             android:textSize="12sp" />
 
@@ -88,9 +88,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="8dp" />
+            android:paddingStart="@dimen/gm_spacing_3"
+            android:paddingEnd="@dimen/gm_spacing_3"
+            android:paddingBottom="@dimen/gm_spacing_2" />
     </HorizontalScrollView>
 
     <LinearLayout
@@ -98,9 +98,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="@dimen/gm_spacing_3"
+        android:paddingEnd="@dimen/gm_spacing_3"
+        android:paddingBottom="@dimen/gm_spacing_2">
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="0dp"
@@ -126,7 +126,7 @@
             style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             app:icon="@android:drawable/btn_star_big_off"
             app:iconSize="20dp" />
 
@@ -135,7 +135,7 @@
             style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/gm_spacing_1"
             app:icon="@android:drawable/ic_menu_share"
             app:iconSize="20dp" />
 
@@ -147,7 +147,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:padding="8dp" />
+        android:padding="@dimen/gm_spacing_2" />
 
     <ProgressBar
         android:id="@+id/progress_ai"
@@ -161,9 +161,9 @@
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginEnd="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         android:hint="任务类型"
         app:boxCornerRadiusBottomEnd="8dp"
         app:boxCornerRadiusBottomStart="8dp"
@@ -183,9 +183,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="@dimen/gm_spacing_3"
+        android:paddingEnd="@dimen/gm_spacing_3"
+        android:paddingBottom="@dimen/gm_spacing_2">
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="0dp"
@@ -213,7 +213,7 @@
             style="@style/Widget.Material3.Button.IconButton.Filled"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/gm_spacing_2"
             app:icon="@android:drawable/ic_menu_send"
             app:iconSize="24dp" />
     </LinearLayout>
@@ -224,8 +224,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginEnd="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         android:text="清空历史"
         android:textSize="12sp" />
 

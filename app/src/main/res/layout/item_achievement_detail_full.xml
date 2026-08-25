@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
+    android:layout_marginBottom="@dimen/gm_spacing_2"
     app:cardCornerRadius="10dp"
     app:cardElevation="0dp"
     app:strokeWidth="1dp"
@@ -28,7 +28,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
             android:orientation="vertical">
 
             <LinearLayout
@@ -51,7 +51,7 @@
                     android:id="@+id/tv_rarity_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/gm_spacing_2"
                     android:paddingHorizontal="6dp"
                     android:paddingVertical="2dp"
                     android:textSize="10sp"
@@ -64,7 +64,7 @@
                 android:id="@+id/tv_achievement_desc"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/gm_spacing_1"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp"
                 tools:text="完成第一局对局" />

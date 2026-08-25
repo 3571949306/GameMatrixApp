@@ -65,7 +65,7 @@ object CrashDetector {
             .putLong(KEY_LAST_CRASH_TIME, now)
             .putBoolean(KEY_PREV_SURVIVED, false)
             .putBoolean(KEY_PREV_GRACEFUL, false)
-            .commit()
+            .apply() // P0 流畅度优化：冷启动主线程非崩溃路径，异步落盘足够；保留 recordCrash 的 commit 以维持崩溃自愈信号
         Log.d(TAG, "Heuristic crash count incremented to $newCount")
     }
 

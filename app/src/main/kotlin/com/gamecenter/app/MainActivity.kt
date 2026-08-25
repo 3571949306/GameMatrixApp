@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import com.gamecenter.app.modules.BottomNavigationManager
+import com.gamecenter.app.modules.CoreModulePreloader
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.recovery.CrashDetector
 import com.gamecenter.app.update.DownloadState
@@ -91,11 +92,10 @@ class MainActivity : AppCompatActivity() {
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
         val navView = findViewById<BottomNavigationView>(R.id.nav_view)
 
-        // P4: 提前加载内置核心模块，确保导航贡献可用
-        if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-            loadBuiltInCoreModules()
-        }
-
+        // P0 流畅度优化：核心模块（games_hall/browser/tools）的 Dex 加载已移至 SplashActivity
+        // 的后台预加载线程（CoreModulePreloader），不再在主线程同步阻塞。
+        // 若进入 MainActivity 时预加载尚未完成（极端：超时/失败），则在后台线程补加载，
+        // 完成后回到主线程构建动态导航，既不阻塞主线程又保证导航完整。
         if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION && navHostFragment != null) {
             // P4: 使用模块贡献动态构建底部导航
             bottomNavigationManager = BottomNavigationManager(
@@ -104,7 +104,13 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_host_fragment,
                 navView
             )
-            setupP4DynamicNavigation(navView)
+            if (CoreModulePreloader.isReady) {
+                setupP4DynamicNavigation(navView)
+            } else {
+                CoreModulePreloader.ensureLoadedAsync(this) {
+                    runOnUiThread { setupP4DynamicNavigation(navView) }
+                }
+            }
         } else if (navHostFragment != null) {
             // 旧逻辑：使用 Navigation 组件
             navController = navHostFragment.navController
@@ -193,26 +199,6 @@ class MainActivity : AppCompatActivity() {
         // 默认选中游戏大厅
         if (manager.getCurrentContributionId() == null) {
             manager.selectContribution("games_hall")
-        }
-    }
-
-    /**
-     * P4: 预加载内置核心模块，确保它们的导航贡献被注册到 ModuleRegistry。
-     *
-     * 包含 tools 模块：其 ToolsModuleEntryPoint 贡献 BOTTOM_NAV（id="tools"），
-     * 用于显示内置 28 个工具卡片。若不 load，BottomNavigationCatalog 会兜底
-     * 加入 DestinationKind.TOOLS -> DynamicToolsFragment（只显示 TOOLS_GRID 贡献，
-     * 不显示内置工具），导致工具箱 tab 内容不符合预期。
-     */
-    private fun loadBuiltInCoreModules() {
-        val coreModules = listOf("games_hall", "browser", "tools")
-        for (moduleId in coreModules) {
-            try {
-                ModuleManager.loadModule(this, moduleId)
-                Log.d("MainActivity", "内置核心模块已加载: $moduleId")
-            } catch (e: Exception) {
-                Log.w("MainActivity", "内置核心模块加载失败（不影响主流程）: $moduleId", e)
-            }
         }
     }
 

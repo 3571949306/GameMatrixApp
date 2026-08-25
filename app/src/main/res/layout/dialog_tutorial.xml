@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:padding="@dimen/gm_spacing_6"
     android:background="@drawable/dialog_bg_rounded">
 
     <TextView
@@ -23,8 +23,8 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="#333333"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginTop="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_2" />
 
     <TextView
         android:id="@+id/tv_tutorial_description"
@@ -39,7 +39,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="@dimen/gm_spacing_6"
         android:gravity="end">
 
         <Button
@@ -58,7 +58,7 @@
             android:text="下一步"
             android:textColor="#FFFFFF"
             android:background="@drawable/btn_primary"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/gm_spacing_3"
             android:minWidth="100dp" />
     </LinearLayout>
 

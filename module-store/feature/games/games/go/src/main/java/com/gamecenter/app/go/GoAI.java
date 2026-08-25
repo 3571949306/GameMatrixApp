@@ -45,6 +45,15 @@ public class GoAI implements GameAI {
     private long masterTimeLimitMs = MASTER_TIME_LIMIT_MS;
     private int playoutMaxMoves = DEFAULT_PLAYOUT_MAX_MOVES;
 
+    /**
+     * 共享 scratch 棋盘：generateCandidates / playout 在做 candidate 评分时
+     * 反复复用，避免每次落子都 copyBoard。applyMoveInPlace + undoMoveInPlace
+     * 保证 scratch 始终恢复到当前真实 board 状态。
+     */
+    private final int[][] scratchBoard = new int[GoGame.BOARD_SIZE][GoGame.BOARD_SIZE];
+    /** scratchBoard 配套的提子缓冲：最坏情况下整盘都被提，记录 (r0,c0,r1,c1,...) */
+    private final int[] scratchCaptureBuf = new int[GoGame.BOARD_SIZE * GoGame.BOARD_SIZE * 2];
+
     public GoAI() {
         this(new Random());
     }
@@ -130,8 +139,18 @@ public class GoAI implements GameAI {
         List<Candidate> moves = generateCandidates(state, GoGame.WHITE);
         if (moves.isEmpty()) return null;
         List<Candidate> safe = new ArrayList<>();
+        int[] captureBuf = scratchCaptureBuf;
         for (Candidate candidate : moves) {
-            int liberties = GoGame.countLiberties(candidate.board, candidate.row, candidate.col);
+            // 在 scratch 上 apply+undo 以求该候选落子后的气数
+            int[][] scratch = scratchBoard;
+            for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
+                System.arraycopy(state.board[r], 0, scratch[r], 0, GoGame.BOARD_SIZE);
+            }
+            int captured = GoGame.applyMoveInPlace(scratch, candidate.row, candidate.col,
+                    GoGame.WHITE, captureBuf);
+            if (captured < 0) continue; // 防御：理论上 generateCandidates 已过滤
+            int liberties = GoGame.countLiberties(scratch, candidate.row, candidate.col);
+            GoGame.undoMoveInPlace(scratch, candidate.row, candidate.col, GoGame.WHITE, captureBuf, captured);
             if (liberties > 1 || candidate.captured > 0) safe.add(candidate);
         }
         List<Candidate> pool = safe.isEmpty() ? moves : safe;
@@ -151,8 +170,16 @@ public class GoAI implements GameAI {
         int replyChecked = Math.min(16, moves.size());
         for (int i = 0; i < replyChecked; i++) {
             Candidate candidate = moves.get(i);
-            int maxReplyCapture = maxImmediateCapture(
-                    candidate.board, state.board, GoGame.BLACK);
+            // 用 scratchBoard 临时施加候选着，再用 maxImmediateCapture 在该局面上扫描反击提子
+            int[][] scratch = scratchBoard;
+            for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
+                System.arraycopy(state.board[r], 0, scratch[r], 0, GoGame.BOARD_SIZE);
+            }
+            int captured = GoGame.applyMoveInPlace(scratch, candidate.row, candidate.col,
+                    GoGame.WHITE, scratchCaptureBuf);
+            int maxReplyCapture = captured < 0
+                    ? 0
+                    : maxImmediateCapture(scratch, state.board, GoGame.BLACK);
             candidate.score -= maxReplyCapture * 72.0;
         }
         sortCandidates(moves);
@@ -161,17 +188,21 @@ public class GoAI implements GameAI {
 
     private List<Candidate> generateCandidates(SearchState state, int color) {
         List<Candidate> candidates = new ArrayList<>();
+        // 共享 scratchBoard 替代 tryMove 内部 copyBoard：每次循环 apply+undo，
+        // scratchBoard 在循环结束时与 state.board 一致，可继续复用。
+        int[][] scratch = scratchBoard;
+        for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
+            System.arraycopy(state.board[r], 0, scratch[r], 0, GoGame.BOARD_SIZE);
+        }
         for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
             for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
                 if (state.board[row][col] != GoGame.EMPTY) continue;
-                GoGame.MoveResult result = GoGame.tryMove(
-                        state.board, state.previousBoard, row, col, color);
-                if (!result.isLegal()) continue;
-                int[][] nextBoard = result.getBoard();
-                double score = evaluateMove(state.board, nextBoard, row, col, color,
-                        result.getCapturedStones());
-                candidates.add(new Candidate(row, col, nextBoard,
-                        result.getCapturedStones(), score));
+                int captured = GoGame.applyMoveInPlace(scratch, row, col, color, scratchCaptureBuf);
+                if (captured < 0) continue; // 非法（越界/占子/自杀）
+                double score = evaluateMove(state.board, scratch, row, col, color, captured / 2);
+                candidates.add(new Candidate(row, col, captured / 2, score));
+                // 撤销以让 scratchBoard 保持当前真实局面
+                GoGame.undoMoveInPlace(scratch, row, col, color, scratchCaptureBuf, captured);
             }
         }
         sortCandidates(candidates);
@@ -297,7 +328,15 @@ public class GoAI implements GameAI {
                 ensureMoves(node, node == root);
                 if (!node.untriedMoves.isEmpty()) {
                     Candidate move = node.untriedMoves.remove(0);
-                    SearchState childState = new SearchState(move.board, node.state.board,
+                    // 子节点棋盘 = 父棋盘上施加此着；不依赖 Candidate.board（已删除）。
+                    int[][] childBoard = GoGame.copyBoard(node.state.board);
+                    int captured = GoGame.applyMoveInPlace(childBoard, move.row, move.col,
+                            node.state.playerToMove, scratchCaptureBuf);
+                    if (captured < 0) {
+                        // generateCandidates 已过滤非法着，正常不该发生；防御性跳过
+                        continue;
+                    }
+                    SearchState childState = new SearchState(childBoard, node.state.board,
                             GoGame.opposite(node.state.playerToMove), 0);
                     MctsNode child = new MctsNode(node, childState, move.row, move.col);
                     node.children.add(child);
@@ -365,16 +404,30 @@ public class GoAI implements GameAI {
 
     private double playout(SearchState start) {
         int[][] board = start.board;
-        int[][] previousBoard = start.previousBoard;
         int player = start.playerToMove;
         int passes = start.consecutivePasses;
+        int[][] scratch = scratchBoard;
+        int[] captureBuf = scratchCaptureBuf;
 
         for (int ply = 0; ply < playoutMaxMoves && passes < 2 && !shouldStop(); ply++) {
-            SearchState state = new SearchState(board, previousBoard, player, passes);
-            List<Candidate> moves = generateCandidates(state, player);
+            // 把当前 board 复制到 scratch，所有评分落子都在 scratch 上 apply+undo
+            for (int r = 0; r < GoGame.BOARD_SIZE; r++) {
+                System.arraycopy(board[r], 0, scratch[r], 0, GoGame.BOARD_SIZE);
+            }
+            List<Candidate> moves = new ArrayList<>();
+            for (int row = 0; row < GoGame.BOARD_SIZE; row++) {
+                for (int col = 0; col < GoGame.BOARD_SIZE; col++) {
+                    if (board[row][col] != GoGame.EMPTY) continue;
+                    int captured = GoGame.applyMoveInPlace(scratch, row, col, player, captureBuf);
+                    if (captured < 0) continue;
+                    double score = evaluateMove(board, scratch, row, col, player, captured / 2);
+                    moves.add(new Candidate(row, col, captured / 2, score));
+                    GoGame.undoMoveInPlace(scratch, row, col, player, captureBuf, captured);
+                }
+            }
+
             if (moves.isEmpty()) {
                 // Passing lifts the immediately preceding simple-ko prohibition.
-                previousBoard = board;
                 passes++;
                 player = GoGame.opposite(player);
                 continue;
@@ -387,9 +440,14 @@ public class GoAI implements GameAI {
             } else {
                 selected = moves.get(random.nextInt(topCount));
             }
-            int[][] boardBeforeMove = board;
-            board = selected.board;
-            previousBoard = boardBeforeMove;
+            int captured = GoGame.applyMoveInPlace(board, selected.row, selected.col, player, captureBuf);
+            if (captured < 0) {
+                // 极端情况：选出的着法在真实 board 上不合法（理论上 generateCandidates 已经过滤）
+                // 退化为停一手，保证搜索循环继续
+                passes++;
+                player = GoGame.opposite(player);
+                continue;
+            }
             player = GoGame.opposite(player);
             passes = 0;
         }
@@ -433,14 +491,13 @@ public class GoAI implements GameAI {
     private static final class Candidate {
         final int row;
         final int col;
-        final int[][] board;
+        /** 该候选落子后会被提掉的敌子数（评分用）。 */
         final int captured;
         double score;
 
-        Candidate(int row, int col, int[][] board, int captured, double score) {
+        Candidate(int row, int col, int captured, double score) {
             this.row = row;
             this.col = col;
-            this.board = board;
             this.captured = captured;
             this.score = score;
         }

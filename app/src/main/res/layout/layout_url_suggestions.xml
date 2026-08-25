@@ -6,5 +6,5 @@
     android:background="?attr/colorSurface"
     android:elevation="4dp"
     android:orientation="vertical"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp" />
+    android:paddingTop="@dimen/gm_spacing_1"
+    android:paddingBottom="@dimen/gm_spacing_1" />

@@ -6,7 +6,7 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingVertical="10dp"
-    android:paddingHorizontal="4dp"
+    android:paddingHorizontal="@dimen/gm_spacing_1"
     android:background="?attr/selectableItemBackground">
 
     <View
@@ -34,7 +34,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="@dimen/gm_spacing_4"
         android:textSize="15sp"
         android:textColor="?android:attr/textColorPrimary" />
 

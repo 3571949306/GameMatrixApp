@@ -14,7 +14,7 @@
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
         android:background="@color/card_background"
         android:elevation="4dp">
 
@@ -34,7 +34,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/gm_spacing_4"
             android:textSize="18sp"
             android:textColor="@color/text_color"
             android:textStyle="bold"
@@ -49,7 +49,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="16dp"
+        android:padding="@dimen/gm_spacing_4"
         android:clipToPadding="false"
         android:background="@color/background_color" />
 </LinearLayout>
