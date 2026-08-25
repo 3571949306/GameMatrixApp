@@ -199,6 +199,13 @@ public class GoAI implements GameAI {
                 if (state.board[row][col] != GoGame.EMPTY) continue;
                 int captured = GoGame.applyMoveInPlace(scratch, row, col, color, scratchCaptureBuf);
                 if (captured < 0) continue; // 非法（越界/占子/自杀）
+                // 劫回提过滤：落子后棋盘复现上一步落子前的局面即为“立即回提劫”的禁手，
+                // 与 GoGame.tryMove(koForbiddenBoard) 的官方劫规则完全一致（AGENTS.md §7）。
+                if (state.previousBoard != null
+                        && GoGame.boardsEqual(scratch, state.previousBoard)) {
+                    GoGame.undoMoveInPlace(scratch, row, col, color, scratchCaptureBuf, captured);
+                    continue; // 非法（简单劫禁手：立即回提单子）
+                }
                 double score = evaluateMove(state.board, scratch, row, col, color, captured / 2);
                 candidates.add(new Candidate(row, col, captured / 2, score));
                 // 撤销以让 scratchBoard 保持当前真实局面
