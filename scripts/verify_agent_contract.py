@@ -139,7 +139,7 @@ def main() -> int:
                 "opening-book candidates must be legality checked")
         require(module_ai, r"MAX_SEARCH_PLY",
                 "AI search needs an absolute ply limit")
-        require(module_ai, r"computePositionHash\(newBoard,\s*-(?:aiSide|normalizedSide)\)",
+        require(module_ai, r"computePositionHash\([a-zA-Z_]\w*,\s*-(?:aiSide|normalizedSide)\)",
                 "AI repetition hash must include the next side to move")
 
         if normalize_ai(module_ai) != normalize_ai(app_ai):
