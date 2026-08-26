@@ -3,6 +3,7 @@ package com.gamecenter.app.ai;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
+import com.gamecenter.app.core.common.ModuleScopedPreferences;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
@@ -14,6 +15,8 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * AI 偏好设置管理器 — 负责所有 AI 相关配置的持久化存储与读取。
@@ -34,10 +37,17 @@ import java.util.List;
 public class AiPreferences {
 
     private static final String TAG = "AiPreferences";
-    // 明文 SharedPreferences 文件名（旧版，仅用于迁移）
+    /** 模块作用域 ID（必须与 catalog.json 中 ai 模块 id 一致） */
+    private static final String MODULE_ID = "ai";
+    // 明文 SharedPreferences 文件名（旧版，仅用于迁移源，不可更改否则历史数据无法迁移）
     private static final String PREFS_NAME = "ai_settings";
-    // 加密 SharedPreferences 文件名
+    // 加密 SharedPreferences 文件名（旧版，仅用于迁移源）
     private static final String ENCRYPTED_PREFS_NAME = "ai_settings_encrypted";
+    // 新版作用域文件名（mod_ai__ai_settings / mod_ai__ai_settings_encrypted）
+    private static final String SCOPED_PLAIN_NAME =
+            ModuleScopedPreferences.scopedName(MODULE_ID, "ai_settings");
+    private static final String SCOPED_ENCRYPTED_NAME =
+            ModuleScopedPreferences.scopedName(MODULE_ID, "ai_settings_encrypted");
     // 标记是否已完成从明文到加密存储的迁移
     private static final String KEY_MIGRATION_DONE = "migration_to_encrypted_done";
     // 用户选择的 AI 供应商名称（如 "DeepSeek"、"OpenAI" 等）
@@ -103,17 +113,78 @@ public class AiPreferences {
             // 创建或获取主密钥别名（Android Keystore 系统自动管理密钥安全）
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
             // 创建加密的 SharedPreferences：键用 AES256_SIV 加密，值用 AES256_GCM 加密
-            return EncryptedSharedPreferences.create(
+            // Phase 3 数据隔离：使用作用域文件名 mod_ai__ai_settings_encrypted
+            SharedPreferences enc = EncryptedSharedPreferences.create(
+                    SCOPED_ENCRYPTED_NAME,
+                    masterKeyAlias,
+                    appContext,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+            // 首次使用时将旧版未作用域加密存储中的数据迁移到作用域存储（避免历史数据丢失）
+            migrateLegacyEncryptedToScoped(appContext, enc);
+            return enc;
+        } catch (Exception e) {
+            // 加密存储不可用（比如设备太旧不支持），降级为普通明文存储
+            Log.w(TAG, "EncryptedSharedPreferences unavailable, falling back to plain prefs", e);
+            // Phase 3 数据隔离：使用作用域明文存储，并迁移旧版未作用域明文数据
+            ModuleScopedPreferences.migrateFrom(appContext, MODULE_ID, PREFS_NAME);
+            return ModuleScopedPreferences.get(appContext, MODULE_ID, "ai_settings");
+        }
+    }
+
+    /**
+     * 从旧版未作用域加密存储（ai_settings_encrypted）迁移数据到作用域加密存储。
+     * <p>
+     * 旧版迁移逻辑在明文→加密完成后会清空明文，因此已迁移用户的数据只存在于
+     * 未作用域的 ai_settings_encrypted 中。本方法在作用域加密存储创建后调用，
+     * 通过 EncryptedSharedPreferences 以同一主密钥读取旧文件（自动解密），
+     * 再写入作用域存储，保证升级后历史数据不丢失。仅在尚未标记迁移完成时执行一次。
+     *
+     * @param appContext 应用级上下文
+     * @param scopedEnc  已创建的作用域加密 SharedPreferences
+     */
+    private static void migrateLegacyEncryptedToScoped(Context appContext, SharedPreferences scopedEnc) {
+        if (scopedEnc.getBoolean(KEY_MIGRATION_DONE, false)) {
+            return;
+        }
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            SharedPreferences legacy = EncryptedSharedPreferences.create(
                     ENCRYPTED_PREFS_NAME,
                     masterKeyAlias,
                     appContext,
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
+            Map<String, ?> all = legacy.getAll();
+            if (all.isEmpty()) {
+                return;
+            }
+            SharedPreferences.Editor editor = scopedEnc.edit();
+            for (Map.Entry<String, ?> entry : all.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                if (value instanceof String) {
+                    editor.putString(key, (String) value);
+                } else if (value instanceof Boolean) {
+                    editor.putBoolean(key, (Boolean) value);
+                } else if (value instanceof Integer) {
+                    editor.putInt(key, (Integer) value);
+                } else if (value instanceof Long) {
+                    editor.putLong(key, (Long) value);
+                } else if (value instanceof Float) {
+                    editor.putFloat(key, (Float) value);
+                } else if (value instanceof Set) {
+                    @SuppressWarnings("unchecked")
+                    Set<String> set = (Set<String>) value;
+                    editor.putStringSet(key, set);
+                }
+            }
+            editor.apply();
+            Log.d(TAG, "Migrated legacy encrypted AI prefs to scoped storage");
         } catch (Exception e) {
-            // 加密存储不可用（比如设备太旧不支持），降级为普通明文存储
-            Log.w(TAG, "EncryptedSharedPreferences unavailable, falling back to plain prefs", e);
-            return appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            Log.w(TAG, "Legacy encrypted migration skipped", e);
         }
     }
 

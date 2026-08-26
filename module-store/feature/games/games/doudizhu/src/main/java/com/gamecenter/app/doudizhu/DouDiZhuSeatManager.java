@@ -2,6 +2,7 @@ package com.gamecenter.app.doudizhu;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.gamecenter.app.core.common.ModuleScopedPreferences;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -70,6 +71,8 @@ public class DouDiZhuSeatManager {
 
     /** SharedPreferences 文件名，用于存储 Peer Token */
     private static final String P2P_PREFS = "doudizhu_p2p";
+    /** 模块作用域 ID（必须与 catalog.json 中 doudizhu 模块 id 一致） */
+    private static final String MODULE_ID = "doudizhu";
     /** Peer Token 的存储键 */
     private static final String KEY_PEER_TOKEN = "peer_token";
     /** 本设备的 Peer Token */
@@ -413,7 +416,9 @@ public class DouDiZhuSeatManager {
      */
     private String getOrCreatePeerToken() {
         if (context == null) return "";
-        SharedPreferences prefs = context.getSharedPreferences(P2P_PREFS, Context.MODE_PRIVATE);
+        // Phase 3 数据隔离：迁移旧扁平 SP 并使用作用域 SP（mod_doudizhu__doudizhu_p2p）
+        ModuleScopedPreferences.migrateFrom(context, MODULE_ID, P2P_PREFS);
+        SharedPreferences prefs = ModuleScopedPreferences.get(context, MODULE_ID, P2P_PREFS);
         String token = prefs.getString(KEY_PEER_TOKEN, "");
         if (token == null || token.trim().isEmpty()) {
             // 首次使用，生成新的 UUID Token 并持久化

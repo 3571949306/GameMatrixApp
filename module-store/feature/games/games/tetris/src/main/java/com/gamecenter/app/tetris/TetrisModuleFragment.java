@@ -3,6 +3,7 @@ package com.gamecenter.app.tetris;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import com.gamecenter.app.core.common.ModuleScopedPreferences;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -41,6 +42,9 @@ public class TetrisModuleFragment extends Fragment {
 
     private boolean paused = false;
 
+    /** 模块作用域 ID（必须与 catalog.json 中 tetris 模块 id 一致） */
+    private static final String MODULE_ID = "tetris";
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -51,7 +55,7 @@ public class TetrisModuleFragment extends Fragment {
         game = new TetrisGame();
 
         // 读取上次难度
-        SharedPreferences prefs = ctx.getSharedPreferences("tetris_module", Context.MODE_PRIVATE);
+        SharedPreferences prefs = getTetrisPrefs(ctx);
         int savedDiff = prefs.getInt("last_difficulty", 2);
         game.setDifficultyLevel(savedDiff);
 
@@ -195,11 +199,20 @@ public class TetrisModuleFragment extends Fragment {
         tetrisView.post(() -> tetrisView.startGame());
     }
 
+    /**
+     * 获取俄罗斯方块模块作用域 SharedPreferences（Phase 3 数据隔离）。
+     * 文件名形如 mod_tetris__tetris_module，并一次性迁移旧扁平 SP 数据。
+     */
+    private SharedPreferences getTetrisPrefs(Context ctx) {
+        ModuleScopedPreferences.migrateFrom(ctx, MODULE_ID, "tetris_module");
+        return ModuleScopedPreferences.get(ctx, MODULE_ID, "tetris_module");
+    }
+
     private void setDifficulty(int level) {
         game.setDifficultyLevel(level);
         if (tetrisView != null) tetrisView.setDifficultyLevel(level);
         // 持久化
-        requireContext().getSharedPreferences("tetris_module", Context.MODE_PRIVATE)
+        getTetrisPrefs(requireContext())
                 .edit().putInt("last_difficulty", level).apply();
         // 更新底部按钮高亮
         View root = getView();

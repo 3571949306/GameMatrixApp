@@ -2,6 +2,7 @@ package com.gamecenter.app.tools;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.gamecenter.app.core.common.ModuleScopedPreferences;
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import java.util.ArrayList;
@@ -45,6 +46,8 @@ public final class ToolSectionStore {
 
     /** SharedPreferences 文件名 */
     private static final String PREFS_NAME = "tools_settings";
+    /** 模块作用域 ID（必须与 catalog.json 中 tools 模块 id 一致） */
+    private static final String MODULE_ID = "tools";
     /** 工具排列顺序的存储键 */
     private static final String KEY_ORDER = "tools_order";
     /** 工具可见性集合的存储键 */
@@ -323,7 +326,9 @@ public final class ToolSectionStore {
      * @return SharedPreferences 实例
      */
     private SharedPreferences getPrefs() {
-        return appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        // Phase 3 数据隔离：迁移旧扁平 SP 并使用作用域 SP（mod_tools__tools_settings）
+        ModuleScopedPreferences.migrateFrom(appContext, MODULE_ID, PREFS_NAME);
+        return ModuleScopedPreferences.get(appContext, MODULE_ID, PREFS_NAME);
     }
 
     /**
