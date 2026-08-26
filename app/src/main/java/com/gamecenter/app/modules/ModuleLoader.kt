@@ -211,6 +211,14 @@ object ModuleLoader {
 
     private fun loadBuiltInModule(context: Context, manifest: ModuleManifest): ModuleInterface? {
         if (manifest.entryClass.isEmpty()) return null
+        // 隔离说明：此路径用宿主 classloader 直载入口类，不经过 DexClassLoader 隔离。
+        // 仅对「宿主内嵌」模块（catalog fileName 为空，如 games_hall/browser/breakout）是预期行为；
+        // 若模块配置了独立 APK(fileName 非空) 却走到这里，说明其 APK 不可用、回退了宿主陈旧副本，
+        // 属隔离缺口，需打包/分发该 APK 后改走 DexClassLoader 路径（见 loadModule 主路径）。
+        if (manifest.fileName.isNotEmpty()) {
+            Log.w(TAG, "built-in 模块 ${manifest.id} 配置了独立 APK(fileName=${manifest.fileName}) " +
+                    "但回退到宿主 classloader 加载（APK 不可用），存在隔离缺口")
+        }
         return try {
             val entryClass = context.classLoader.loadClass(manifest.entryClass)
             val instance = entryClass.getDeclaredConstructor().newInstance()

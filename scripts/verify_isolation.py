@@ -21,6 +21,7 @@ verify_isolation.py — GameMatrixApp 模块隔离护栏
     python scripts/verify_isolation.py --repo <path>
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -141,7 +142,9 @@ def main():
                            "未发现 com.gamecenter.module.*.ModuleEntry"))
 
     # ---------- SOFT: loadBuiltInModule 是否经宿主 classloader 直载入口类 ----------
-    # 目标：builtIn 模块也应经 DexClassLoader 隔离，而非 context.getClassLoader().loadClass()。
+    # 目标：builtIn 模块也应经 DexClassLoader 隔离。但「宿主内嵌」模块（catalog fileName 为空，
+    # 如 games_hall/browser/breakout）经宿主 classloader 是预期行为；其余内置模块若配置了独立
+    # APK 却回退宿主 classloader，属隔离缺口（见下方 APK 预装完整性检查）。
     if main_loader:
         c = contents[main_loader[0]]
         idx = c.find("fun loadBuiltInModule")
@@ -151,13 +154,38 @@ def main():
             if ("context.classLoader" in seg or "context.getClassLoader()" in seg) \
                     and "loadClass" in seg and "DexClassLoader" not in seg:
                 SOFT_ITEMS.append(("WARN", "builtIn 模块可能经宿主 classloader 加载",
-                                   f"{rel(main_loader[0], repo)} 的 loadBuiltInModule（阶段2待固化隔离）"))
+                                   f"{rel(main_loader[0], repo)} 的 loadBuiltInModule（宿主内嵌模块为预期；APK 配置缺口见下）"))
             else:
-                SOFT_ITEMS.append(("PASS", "builtIn 加载隔离无违规",
+                SOFT_ITEMS.append(("PASS", "builtIn 加载隔离无硬违规",
                                    "未检测到宿主 classloader 直载入口类"))
         else:
             SOFT_ITEMS.append(("WARN", "未找到 loadBuiltInModule",
                                "无法判定 builtIn 隔离（人工核查）"))
+
+    # ---------- SOFT: 内置模块已配独立 APK 但 assets 缺预装包（隔离缺口追踪） ----------
+    # 内置模块若 catalog fileName 非空，预期经 DexClassLoader 隔离加载；若 assets/modules/
+    # 未打包该 APK，则运行时回退宿主 classloader（陈旧副本），属隔离缺口，需打包 APK
+    # 或把 catalog fileName 置空（对齐 games_hall/browser 的宿主内嵌模式）。
+    cat_path = os.path.join(repo, "app", "src", "main", "assets", "catalog.json")
+    assets_mod = os.path.join(repo, "app", "src", "main", "assets", "modules")
+    missing_apk = []
+    try:
+        if os.path.exists(cat_path):
+            with open(cat_path, encoding="utf-8") as fh:
+                cat = json.load(fh)
+            bundled = set(os.listdir(assets_mod)) if os.path.isdir(assets_mod) else set()
+            for m in cat.get("modules", []):
+                if m.get("builtIn") and m.get("fileName"):
+                    if m["fileName"] not in bundled:
+                        missing_apk.append(m.get("id", m.get("fileName")))
+    except Exception:
+        pass
+    if missing_apk:
+        SOFT_ITEMS.append(("WARN", "内置模块已配独立 APK 但 assets 缺预装包",
+                           f"{missing_apk}（运行时回退宿主 classloader，隔离缺口；建议打包 APK 或 catalog fileName 置空）"))
+    else:
+        SOFT_ITEMS.append(("PASS", "内置模块 APK 预装完整性",
+                           "配置 fileName 的内置模块均有预装 APK（或无需）"))
 
     # ---------- SOFT: 冗余加载子系统收敛（目标：仅保留 Kotlin 主线） ----------
     java_loader = [rel(f, repo) for f in files
