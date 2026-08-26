@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import com.gamecenter.app.core.common.ModuleScopedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -43,6 +44,8 @@ import java.util.List;
 public class ChineseChessOnlineFragment extends Fragment {
 
     private static final String P2P_PREFS = "xiangqi_p2p";
+    /** 模块作用域 ID（必须与 catalog.json 中 chinesechess 模块 id 一致） */
+    private static final String MODULE_ID = "chinesechess";
     private static final String PROTOCOL = "XQ";
     private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
     private static final String LOG_TAG = "ChineseChessOnline";
@@ -89,7 +92,9 @@ public class ChineseChessOnlineFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        prefs = requireContext().getSharedPreferences(P2P_PREFS, Context.MODE_PRIVATE);
+        // Phase 3 数据隔离：迁移旧扁平 SP 并使用作用域 SP（mod_chinesechess__xiangqi_p2p）
+        ModuleScopedPreferences.migrateFrom(requireContext(), MODULE_ID, P2P_PREFS);
+        prefs = ModuleScopedPreferences.get(requireContext(), MODULE_ID, P2P_PREFS);
         game = new ChineseChessGame();
 
         View rootView = initViews();

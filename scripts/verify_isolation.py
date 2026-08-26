@@ -205,6 +205,29 @@ def main():
         SOFT_ITEMS.append(("WARN", "ModuleScopedPreferences 未落地",
                            "模块 SP 仍依赖扁平命名，数据隔离仅靠命名纪律（Phase 3 待实施）"))
 
+    # ---------- SOFT: module-store 不应再裸调 getSharedPreferences("扁平名") ----------
+    # Phase 3 全量迁移目标：模块 SP 一律经 ModuleScopedPreferences（带 moduleId 作用域前缀），
+    # 禁止裸调 getSharedPreferences("扁平名") 绕过作用域约束。命中视为隔离回归。
+    raw_pat = re.compile(r'getSharedPreferences\(')
+    raw_hits = []
+    for f, c in contents.items():
+        if "module-store" not in f.replace("\\", "/"):
+            continue
+        for ln, line in enumerate(c.splitlines(), 1):
+            if "ModuleScopedPreferences" in line:
+                continue
+            # AiPreferences 读取旧版未作用域明文（PREFS_NAME）作为一次性迁移源，属预期例外
+            if "PREFS_NAME" in line:
+                continue
+            if raw_pat.search(line):
+                raw_hits.append(f"{rel(f, repo)}:{ln}")
+    if raw_hits:
+        SOFT_ITEMS.append(("WARN", "module-store 存在裸 getSharedPreferences 调用",
+                           f"{len(raw_hits)} 处待迁移: " + "; ".join(raw_hits[:20])))
+    else:
+        SOFT_ITEMS.append(("PASS", "module-store 无裸 getSharedPreferences 调用",
+                           "全部模块 SP 已路由至 ModuleScopedPreferences"))
+
     # ---------- SOFT: 冗余加载子系统收敛（目标：仅保留 Kotlin 主线） ----------
     java_loader = [rel(f, repo) for f in files
                    if os.path.basename(f) == "ModuleLoaderV2.java"]

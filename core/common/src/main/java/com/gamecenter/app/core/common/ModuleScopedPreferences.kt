@@ -33,6 +33,7 @@ object ModuleScopedPreferences {
      *
      * 同名/越权断言：baseName 不得自带作用域前缀或分隔符，防止模块伪造其它模块作用域。
      */
+    @JvmStatic
     fun scopedName(moduleId: String, baseName: String): String {
         require(moduleId.isNotBlank()) { "moduleId 不可为空" }
         require(baseName.isNotBlank()) { "baseName 不可为空" }
@@ -49,6 +50,7 @@ object ModuleScopedPreferences {
      * 获取模块作用域 SharedPreferences。仅当 moduleId + baseName 组合合法时返回，
      * 否则抛异常（断言越权作用域访问）。
      */
+    @JvmStatic
     fun get(context: Context, moduleId: String, baseName: String): SharedPreferences {
         val name = scopedName(moduleId, baseName)
         return context.getSharedPreferences(name, Context.MODE_PRIVATE)
@@ -60,6 +62,7 @@ object ModuleScopedPreferences {
      *
      * 注意：调用方需保证 oldFlatName 是该模块独占的扁平名，避免跨模块误迁移。
      */
+    @JvmStatic
     fun migrateFrom(
         context: Context,
         moduleId: String,

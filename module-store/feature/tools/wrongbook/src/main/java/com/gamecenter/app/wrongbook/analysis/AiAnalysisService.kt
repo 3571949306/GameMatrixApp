@@ -3,6 +3,8 @@ package com.gamecenter.app.wrongbook.analysis
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.gamecenter.app.core.common.ModuleScopedPreferences
+import com.gamecenter.app.wrongbook.ui.ModuleContextHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -46,8 +48,11 @@ class AiAnalysisService(context: Context) {
         """
     }
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = run {
+        // Phase 3 数据隔离：迁移旧扁平 SP 并使用作用域 SP（mod_wrongbook__wrongbook_ai_prefs）
+        ModuleScopedPreferences.migrateFrom(context, ModuleContextHelper.MODULE_ID, PREFS_NAME)
+        ModuleScopedPreferences.get(context, ModuleContextHelper.MODULE_ID, PREFS_NAME)
+    }
     private val secureKeyStore = SecureApiKeyStore(context)
 
     init {
