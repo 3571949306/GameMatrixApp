@@ -32,7 +32,6 @@ class App : Application() {
 
     private var isDarkMode = false
     private var updateAutoCheckDone = false
-    private lateinit var moduleLifecycleManager: ModuleLifecycleManager
 
     /**
      * P1-内存：内存压力回调注册表。任何持有常驻缓存（Bitmap LruCache、AI 置换表、
@@ -221,8 +220,6 @@ class App : Application() {
             override fun onActivityDestroyed(activity: Activity) {}
         })
 
-        moduleLifecycleManager = ModuleLifecycleManager.getInstance(this)
-        moduleLifecycleManager.initialize()
         Log.i("App", "模块系统已初始化")
 
         // P3-14 (OFFLINE_MODULE_PRELOAD): 初始化模块预下载管理器（WiFi 环境下自动预下载）
@@ -302,13 +299,8 @@ class App : Application() {
         ColorSchemeManager.applyScheme(activity, scheme, isDarkMode)
     }
 
-    fun getModuleLifecycleManager(): ModuleLifecycleManager {
-        return moduleLifecycleManager
-    }
-
     override fun onTerminate() {
         super.onTerminate()
-        moduleLifecycleManager.release()
         // Batch 21 改进：应用终止时 flush 下载指标，避免丢失未达 buffer 上限的数据
         com.gamecenter.app.modules.DownloadMetricsCollector.flush()
         Log.i("App", "应用程序已终止，所有资源已释放")
