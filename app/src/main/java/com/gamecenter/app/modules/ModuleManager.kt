@@ -312,6 +312,41 @@ object ModuleManager {
 
     fun unloadModule(context: Context, moduleId: String) = ModuleLoader.unloadModule(moduleId)
 
+    /**
+     * 将已下载的外部更新 APK 应用到模块（内置模块热更新到外置版本）。
+     * 单加载器路径：拷贝到规范路径 → 写入安装版本状态 → 经 ModuleLoader 加载（自动先卸载旧内置版本）。
+     * 取代原 Java BuiltInModuleUpdater 经 ModuleLoaderV2/ModuleInstaller 的失效加载链路。
+     */
+    fun applyExternalUpdate(context: Context, moduleId: String, apkFile: File, versionCode: Int): Boolean {
+        val manifest = manifests[moduleId] ?: run {
+            Log.e(TAG, "applyExternalUpdate: manifest 未找到 $moduleId")
+            return false
+        }
+        if (!apkFile.exists() || !apkFile.isFile) {
+            Log.e(TAG, "applyExternalUpdate: APK 不存在 $apkFile")
+            return false
+        }
+        return try {
+            val dest = ModuleDownloader.getModuleFileCompat(context, manifest)
+            if (dest.exists()) dest.delete()
+            apkFile.copyTo(dest, overwrite = true)
+            val appCtx = context.applicationContext
+            val p = prefs(appCtx)
+            val installed = p.getStringSet(KEY_INSTALLED_MODULES, emptySet())?.toMutableSet()
+                ?: mutableSetOf()
+            installed.add(moduleId)
+            p.edit().putStringSet(KEY_INSTALLED_MODULES, installed)
+                .putInt(KEY_MODULE_VERSION_PREFIX + moduleId, versionCode).apply()
+            installedIdsCache?.add(moduleId)
+            installedVersionCache?.put(moduleId, versionCode)
+            val loaded = ModuleLoader.loadModule(appCtx, manifest)
+            loaded != null
+        } catch (e: Exception) {
+            Log.e(TAG, "applyExternalUpdate 失败: $moduleId", e)
+            false
+        }
+    }
+
     fun uninstallModule(context: Context, moduleId: String) {
         ModuleLoader.unloadModule(moduleId)
         val manifest = manifests[moduleId] ?: return

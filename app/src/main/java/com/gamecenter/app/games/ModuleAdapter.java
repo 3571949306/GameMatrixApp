@@ -16,7 +16,7 @@ import com.gamecenter.app.R;
 import com.gamecenter.app.interfaces.IModuleStore.DownloadCallback;
 import com.gamecenter.app.games.ui.GameLauncherHelper;
 import com.gamecenter.app.models.ModuleInfo;
-import com.gamecenter.app.modulestore.BuiltInModuleUpdater;
+import com.gamecenter.app.games.BuiltInModuleUpdater;
 import java.util.ArrayList;
 import java.util.List;
 
