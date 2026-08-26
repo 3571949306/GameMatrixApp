@@ -187,6 +187,24 @@ def main():
         SOFT_ITEMS.append(("PASS", "内置模块 APK 预装完整性",
                            "配置 fileName 的内置模块均有预装 APK（或无需）"))
 
+    # ---------- SOFT: ModuleScopedPreferences 作用域约束（Phase 3 数据隔离） ----------
+    # 数据隔离强约束：模块 SP 应经 ModuleScopedPreferences 带 moduleId 前缀，且禁止伪造
+    # 其它模块作用域（同名/越权断言）。断言该类存在且内含作用域前缀/分隔符与 require 断言。
+    msp = [f for f in files if os.path.basename(f) == "ModuleScopedPreferences.kt"]
+    if msp:
+        c = contents[msp[0]]
+        has_scope = ("PREFIX" in c and "SEP" in c and "scopedName" in c)
+        has_assert = ("require(" in c and "禁止伪造其它模块作用域" in c)
+        if has_scope and has_assert:
+            SOFT_ITEMS.append(("PASS", "ModuleScopedPreferences 已落地并强制作用域",
+                               rel(msp[0], repo)))
+        else:
+            SOFT_ITEMS.append(("WARN", "ModuleScopedPreferences 作用域约束不完整",
+                               f"{rel(msp[0], repo)} 缺少前缀/分隔符或断言"))
+    else:
+        SOFT_ITEMS.append(("WARN", "ModuleScopedPreferences 未落地",
+                           "模块 SP 仍依赖扁平命名，数据隔离仅靠命名纪律（Phase 3 待实施）"))
+
     # ---------- SOFT: 冗余加载子系统收敛（目标：仅保留 Kotlin 主线） ----------
     java_loader = [rel(f, repo) for f in files
                    if os.path.basename(f) == "ModuleLoaderV2.java"]
