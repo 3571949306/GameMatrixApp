@@ -160,11 +160,48 @@ class App : Application() {
             } catch (e: IOException) {
                 Log.e("App", "[preinstall] 提取失败: $assetName - ${e.message}")
             }
+            // 校验提取/已存在的 APK 完整性；损坏则删除并重提一次，仍失败则拒绝（不残留坏包）。
+            if (!validatePreinstalledApk(targetFile)) {
+                Log.w("App", "[preinstall] APK 损坏或缺失，尝试重提: $assetName")
+                targetFile.delete()
+                try {
+                    assets.open("modules/$assetName").use { input ->
+                        val buf = ByteArray(8192)
+                        var len: Int
+                        FileOutputStream(targetFile).use { out ->
+                            while (input.read(buf).also { len = it } > 0) out.write(buf, 0, len)
+                        }
+                    }
+                    Log.i("App", "[preinstall] 重提成功: $assetName (${targetFile.length()} bytes)")
+                } catch (e: IOException) {
+                    Log.e("App", "[preinstall] 重提失败: $assetName - ${e.message}")
+                }
+            }
+            if (!validatePreinstalledApk(targetFile)) {
+                Log.e("App", "[preinstall] APK 重提后仍无效，拒绝: $assetName（模块将不可用，待商店/分发修复）")
+                targetFile.delete()
+            }
         }
         if (extractedCount > 0) {
             val prefs = getSharedPreferences("module_manager_prefs", MODE_PRIVATE)
             prefs.edit().putLong("preinstall_last_extract_time", System.currentTimeMillis()).apply()
             Log.i("App", "[preinstall] 共提取 $extractedCount 个模块 APK")
+        }
+    }
+
+    /**
+     * 轻量 APK 完整性校验：文件存在、非空、且为可读 zip 含 AndroidManifest.xml。
+     * 仅用于预装阶段快速发现损坏包；深层签名/SHA-256 校验由运行时 ModuleLoader 负责。
+     */
+    private fun validatePreinstalledApk(file: File): Boolean {
+        if (!file.exists() || file.length() == 0L) return false
+        return try {
+            java.util.zip.ZipFile(file).use { zf ->
+                zf.getEntry("AndroidManifest.xml") != null
+            }
+        } catch (e: Exception) {
+            Log.w("App", "[preinstall] APK 校验异常: ${file.name} - ${e.message}")
+            false
         }
     }
 
