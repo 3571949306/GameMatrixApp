@@ -1557,6 +1557,40 @@ public class BrowserFragment extends Fragment implements
     public void onPause() {
         super.onPause();
         if (controller != null) controller.onPause();
+        // P0：切走/锁屏/切换模块时强制收起 URL Bar 建议 popup 与搜索引擎选择 popup，
+        // 避免 PopupWindow 作为系统浮窗在 Fragment 不可见后仍覆盖其他模块。
+        cancelPendingUrlSuggestions();
+        hideUrlSuggestions();
+        hideEngineSelector();
+        hideKeyboard();
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (hidden) {
+            // P0：Fragment 被 hide（底部导航切换标签）时，PopupWindow 不会随视图隐藏，必须主动关闭。
+            cancelPendingUrlSuggestions();
+            hideUrlSuggestions();
+            hideEngineSelector();
+            hideKeyboard();
+        }
+    }
+
+    /** 取消待执行的 URL 建议查询，防止切换模块后延迟弹出建议框。 */
+    private void cancelPendingUrlSuggestions() {
+        if (pendingSuggestionRunnable != null) {
+            mainHandler.removeCallbacks(pendingSuggestionRunnable);
+            pendingSuggestionRunnable = null;
+        }
+    }
+
+    /** 隐藏搜索引擎选择 popup。 */
+    private void hideEngineSelector() {
+        if (enginePopup != null) {
+            enginePopup.dismiss();
+            enginePopup = null;
+        }
     }
 
     @Override
