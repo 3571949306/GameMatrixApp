@@ -13,7 +13,9 @@ public enum TowerType {
     /** 低单体伤害，依靠有限次数的近距弹射清理密集队列。 */
     LIGHTNING("雷电塔", 125, 1.35f, 4.8f, 19f, 1.05f, true, 0f),
     /** 超远程重击塔，不具备对空能力，不能替代所有基础塔。 */
-    SNIPER("狙击塔", 175, 1.35f, 8.4f, 105f, 2.45f, false, 0f);
+    SNIPER("狙击塔", 175, 1.35f, 8.4f, 105f, 2.45f, false, 0f),
+    /** 可重复触发的近路径陷阱，不是一次性消耗品。 */
+    MINE("地雷塔", 90, 1.35f, 1.05f, 58f, 2.6f, false, 0f);
 
     public final String displayName;
     /** 基础造价 */
@@ -43,6 +45,8 @@ public enum TowerType {
     public static final float AOE_RADIUS = 1.3f;
     /** 雷电塔相邻两次弹射允许的最大距离（格子）。 */
     public static final float LIGHTNING_CHAIN_RANGE = 2.25f;
+    public static final float MINE_BURN_DPS = 13f;
+    public static final float MINE_BURN_SEC = 2.8f;
 
     TowerType(String displayName, int baseCost, float dmgMul, float range,
               float damage, float fireInterval, boolean canAir, float income) {
@@ -99,6 +103,12 @@ public enum TowerType {
             case 2: return .72f;
             default: return .75f;
         }
+    }
+
+    /** 地雷爆炸半径；Lv2 扩大，Lv3 保持扩大半径并额外留下燃烧区。 */
+    public float mineBlastRadiusAt(int level) {
+        if (this != MINE) return 0f;
+        return level >= 2 ? 1.45f : 1.05f;
     }
 
     private static float pow(float base, int exp) {
