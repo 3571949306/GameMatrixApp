@@ -13,7 +13,9 @@ public enum MonsterType {
     SHIELD("护盾兵", 40f, 1.2f, 14, false, 0, 2),
     BOSS("Boss", 600f, 0.8f, 60, false, 1, 3),
     /** 死亡后只会派生两只不可再次分裂的幼体。 */
-    SPLITTER("分裂怪", 52f, 1.45f, 16, false, 0, 1);
+    SPLITTER("分裂怪", 52f, 1.45f, 16, false, 0, 1),
+    /** 平时缓行、周期性短冲刺；冲刺与减速倍率相乘而非覆盖。 */
+    CHARGER("冲锋怪", 46f, 1.25f, 16, false, 0, 1);
 
     public final String displayName;
     /** 基础血量 */

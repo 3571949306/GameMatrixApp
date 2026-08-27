@@ -168,6 +168,9 @@ public class TdGame {
         public float dotDps = 0f;
         public float dotTimer = 0f;
         public float shield = 0f;
+        public float chargeCooldown = 2.4f;
+        public float chargeTimer = 0f;
+        public boolean charging = false;
         /** 医生怪的治疗冷却和受治疗后的视觉提示。 */
         public float healTimer = 0.8f;
         public float healedFlash = 0f;
@@ -752,6 +755,7 @@ public class TdGame {
             }
             if (m.dead) continue;
             if (m.type == MonsterType.HEALER) updateHealer(m);
+            if (m.type == MonsterType.CHARGER) updateCharger(m);
             // 移动
             moveMonster(m);
         }
@@ -801,8 +805,24 @@ public class TdGame {
         }
     }
 
+    /** 冲锋使用独立临时倍率，绝不写入或覆盖雪花维护的 speedMul/baseSpeedMul。 */
+    private void updateCharger(Monster charger) {
+        if (charger.chargeTimer > 0f) {
+            charger.chargeTimer -= FIXED_DT;
+            if (charger.chargeTimer <= 0f) charger.charging = false;
+            return;
+        }
+        charger.chargeCooldown -= FIXED_DT;
+        if (charger.chargeCooldown <= 0f) {
+            charger.charging = true;
+            charger.chargeTimer = .65f;
+            charger.chargeCooldown = 3.6f;
+        }
+    }
+
     private void moveMonster(Monster m) {
-        float effSpeed = m.type.speed * m.speedMul * FIXED_DT;
+        float behaviorSpeedMul = m.charging ? 1.9f : 1f;
+        float effSpeed = m.type.speed * m.speedMul * behaviorSpeedMul * FIXED_DT;
         float remaining = effSpeed;
         int[][] route = paths[m.routeIndex];
         // 当前所在格子起点

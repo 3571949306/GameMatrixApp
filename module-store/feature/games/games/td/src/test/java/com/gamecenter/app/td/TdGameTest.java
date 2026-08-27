@@ -254,6 +254,26 @@ public class TdGameTest {
         assertEquals("派生单位必须计入胜负与统计", 3, g.getMonstersSpawnedTotal());
     }
 
+    @Test
+    public void chargerMonster_hasCooldownBoundedCharge_andPreservesSlowMultiplier() {
+        int[][] path = new int[40][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.CHARGER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(40, 2, path, 0, 39, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 0));
+        assertTrue(g.startNextWaveEarly());
+        boolean sawCharge = false;
+        for (int i = 0; i < 60 * 5; i++) {
+            g.tick();
+            if (g.getMonsters().isEmpty()) break;
+            TdGame.Monster charger = g.getMonsters().get(0);
+            sawCharge |= charger.charging;
+            assertTrue("雪花减速必须持续基于出生倍率，冲锋不可覆盖", charger.speedMul <= charger.baseSpeedMul);
+        }
+        assertTrue("冲锋怪必须在固定冷却后出现短冲刺", sawCharge);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
