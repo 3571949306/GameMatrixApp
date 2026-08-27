@@ -155,6 +155,8 @@ public class TdGame {
         public final MonsterType type;
         public float hp;
         public final float maxHp;
+        /** 出生速度倍率（波次×难度合成值）；雪花减速只允许在此基础上临时缩放并按时还原 */
+        public final float baseSpeedMul;
         public float speedMul = 1f;
         public float slowTimer = 0f;
         public float dotDps = 0f;
@@ -182,6 +184,7 @@ public class TdGame {
             this.type = type;
             this.maxHp = type.hp * hpMul;
             this.hp = maxHp;
+            this.baseSpeedMul = speedMul;
             this.speedMul = speedMul;
             this.shield = type.shieldHp(type);
             this.x = startingX + 0.5f;
@@ -431,6 +434,11 @@ public class TdGame {
         return waveStarted && spawnedInWave < getCurrentWaveCount();
     }
 
+    /** 战斗是否活跃：正在刷怪或场上仍有怪。太阳花等经济来源仅在活跃期生效。 */
+    public boolean isCombatActive() {
+        return state == State.RUNNING && (waveStarted || !monsters.isEmpty());
+    }
+
     /** 当前波定义（越界时返回空哨兵） */
     private int getCurrentWaveCount() {
         if (waveIndex >= totalWaves) return 0;
@@ -612,14 +620,20 @@ public class TdGame {
             return;
         }
         if (spawnTimer > 0f) {
-            spawnTimer -= FIXED_DT;
+            // 出怪倒计时逐帧扣减；扣到 ≤0 的那帧才开始第一只，保证 intervalSec 真实生效
+            spawnTimer = Math.max(0f, spawnTimer - FIXED_DT);
+            if (spawnTimer > 0f) return;
+        }
+        if (w.intervalSec <= 0f) {
+            // 零间隔保留原语义：整波单帧放完（BOSS 波单只等场景）
+            spawnRemainingInstantly(w, spawnedInWave);
+            waveStarted = false;
             return;
         }
-        while (spawnedInWave < w.count) {
-            spawnMonster(w, spawnedInWave);
-            spawnedInWave++;
-            if (spawnedInWave >= w.count) break;
-            spawnTimer += w.intervalSec;
+        // 每个周期至多一只；间隔小于一帧也按一帧节流，杜绝同帧连锁生成
+        spawnMonster(w, spawnedInWave++);
+        if (spawnedInWave < w.count) {
+            spawnTimer = Math.max(w.intervalSec, FIXED_DT);
         }
     }
 
@@ -628,8 +642,11 @@ public class TdGame {
             if (m.dead) continue;
             if (m.hitFlash > 0f) m.hitFlash = Math.max(0f, m.hitFlash - FIXED_DT);
             if (m.healedFlash > 0f) m.healedFlash = Math.max(0f, m.healedFlash - FIXED_DT);
-            // 减速
-            if (m.slowTimer > 0f) { m.slowTimer -= FIXED_DT; if (m.slowTimer <= 0f) m.speedMul = 1f; }
+            // 减速：只临时缩放，过期后还原出生倍率（困难/特殊波的速度系数不被抹掉）
+            if (m.slowTimer > 0f) {
+                m.slowTimer -= FIXED_DT;
+                if (m.slowTimer <= 0f) m.speedMul = m.baseSpeedMul;
+            }
             // 中毒
             if (m.dotTimer > 0f) {
                 m.dotTimer -= FIXED_DT;
@@ -757,7 +774,8 @@ public class TdGame {
         for (Tower t : towers) {
             t.buildAge++;
             if (t.type == TowerType.SUN) {
-                // 太阳花产币
+                // 太阳花产币；仅战斗活跃期累积与产出，堵死波间/准备期无限挂机
+                if (!isCombatActive()) continue;
                 t.incomeTimer -= FIXED_DT;
                 if (t.incomeTimer <= 0f) {
                     t.incomeTimer = 1.8f; // 每 1.8 秒产一次
@@ -789,7 +807,8 @@ public class TdGame {
                 break;
             case SNOW: {
                 target.slowTimer = TowerType.SNOW_SLOW_SEC;
-                target.speedMul = 1f - TowerType.SNOW_SLOW_PCT;
+                // 在出生倍率基础上缩放，避免覆盖波次/难度叠加出的原始速度
+                target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT);
                 takeDamage(target, dmg * 0.4f, false);
                 break;
             }

@@ -3,15 +3,20 @@ package com.gamecenter.app.td;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.gamecenter.app.core.common.ModuleScopedPreferences;
+
 /**
  * 塔防「保卫蛋蛋」存档管理器。
  *
  * <p>持久化各关卡的最高星级与解锁进度，以及各难度的最佳战绩。
- * 使用独立 prefs（前缀 td_）与 String 存储（见项目规范：避免 StringSet 跨实例缓存问题）。
+ * 存储走 ModuleScopedPreferences 模块作用域 SP（mod_td__td_save），历史扁平 td_save 数据自动迁移；
+ * 键仍以 td_ 前缀命名，并使用 String 存储（见项目规范：避免 StringSet 跨实例缓存问题）。
  */
 public class TdSaveManager {
 
-    private static final String PREFS = "td_save";
+    /** 本模块在 catalog 中的 id，用作数据隔离作用域前缀 */
+    private static final String MODULE_ID = "td";
+    private static final String PREFS = "td_save"; // 旧扁平名；同时作为作用域 SP 的 baseName
     private static final String KEY_STARS_PREFIX = "td_stars_";
     private static final String KEY_UNLOCKED = "td_unlocked_levels";
     private static final String KEY_KILLS_PREFIX = "td_kills_";
@@ -23,7 +28,11 @@ public class TdSaveManager {
     private final SharedPreferences prefs;
 
     public TdSaveManager(Context context) {
-        this.prefs = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        Context appContext = context.getApplicationContext();
+        // 数据隔离（Phase 3 强约束）：旧扁平 td_save 若有历史数据仅迁移一次到 mod_td__td_save，
+        // 之后一律走带 moduleId 前缀的作用域 SP，禁止模块间以任意文件名互读。
+        ModuleScopedPreferences.migrateFrom(appContext, MODULE_ID, PREFS);
+        this.prefs = ModuleScopedPreferences.get(appContext, MODULE_ID, PREFS);
     }
 
     /** 解锁关卡数量（index 从 0 开始，level 1 恒解锁） */
