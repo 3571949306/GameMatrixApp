@@ -30,6 +30,10 @@ public class BrowserDownloadEntity {
     @ColumnInfo(defaultValue = "-1")
     private long systemDownloadId = -1;
 
+    // D4: 标记危险文件（APK/EXE 等），供 UI 提示用户确认
+    @ColumnInfo(defaultValue = "0")
+    private boolean dangerous;
+
     private long createTime;
     private long finishTime;
 
@@ -42,6 +46,7 @@ public class BrowserDownloadEntity {
     public long getDownloadedSize() { return downloadedSize; }
     public int getStatus() { return status; }
     public long getSystemDownloadId() { return systemDownloadId; }
+    public boolean isDangerous() { return dangerous; }
     public long getCreateTime() { return createTime; }
     public long getFinishTime() { return finishTime; }
 
@@ -54,6 +59,7 @@ public class BrowserDownloadEntity {
     public void setDownloadedSize(long downloadedSize) { this.downloadedSize = downloadedSize; }
     public void setStatus(int status) { this.status = status; }
     public void setSystemDownloadId(long systemDownloadId) { this.systemDownloadId = systemDownloadId; }
+    public void setDangerous(boolean dangerous) { this.dangerous = dangerous; }
     public void setCreateTime(long createTime) { this.createTime = createTime; }
     public void setFinishTime(long finishTime) { this.finishTime = finishTime; }
 }

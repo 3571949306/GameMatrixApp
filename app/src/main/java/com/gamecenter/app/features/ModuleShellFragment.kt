@@ -131,14 +131,9 @@ class ModuleShellFragment : Fragment() {
     }
 
     private fun inferModuleIdFromTag(): String? {
+        // P4 动态导航（2026-07-21）：BottomNavigationManager 的 tab tag 直接是模块 ID；
+        // 旧 Navigation graph 的 fragment-<navigation_*> tag 路径已随导航双轨收敛删除。
         return when (tag) {
-            "fragment-${R.id.navigation_games}" -> "games_hall"
-            "fragment-${R.id.navigation_browser}" -> "browser"
-            "fragment-${R.id.navigation_tools}" -> "tools"
-            "fragment-${R.id.navigation_ai}" -> "ai"
-            "fragment-${R.id.navigation_vpn}" -> "vpn"
-            "fragment-${R.id.navigation_wrongbook}" -> "wrongbook"
-            // P4 动态导航（2026-07-21）：BottomNavigationManager 兜底 tab 的 tag 直接是 module ID
             "browser", "ai", "vpn", "tools", "games_hall", "wrongbook" -> tag
             else -> null
         }

@@ -65,7 +65,7 @@ public class ChineseChessAI implements GameAI {
      * 难度配置（搜索深度）。高难度从原来的 3 层提升到 4 层，避免被同引擎
      * depth-4 稳定压制；大师档在子力较少时再进入 5 层，控制开中局响应时间。
      */
-    private static final int[] SEARCH_DEPTHS = {1, 2, 4, 4, 5};
+    private static final int[] SEARCH_DEPTHS = {1, 2, 4, 4};
 
     /** 大师档仅在残局启用第 5 层搜索，避免开局分支爆炸。 */
     private static final int MASTER_ENDGAME_PIECE_LIMIT = 14;
@@ -74,7 +74,7 @@ public class ChineseChessAI implements GameAI {
      * 各难度默认搜索时间预算（毫秒）。到时 minimax 立即返回当前已知最佳，
      * 不再继续展开新分支，确保玩家可见的等待上限可控。
      */
-    private static final long[] DEFAULT_MAX_TIME_MS = {200L, 800L, 2000L, 5000L, 8000L};
+    private static final long[] DEFAULT_MAX_TIME_MS = {200L, 800L, 2000L, 5000L};
 
     /** 开局库走法 - 14种常见开局，均为红方视角的合法着法（行6~9），增加开局多样性。
      *  注意：旧版本存在坐标错误（如 {9,4,7,4} 实为帅走两格、{9,1,7,1} 实为马直行），
@@ -170,7 +170,7 @@ public class ChineseChessAI implements GameAI {
     /**
      * 创建 AI 实例
      *
-     * @param difficulty 难度等级（1-5）
+     * @param difficulty 难度等级（1-4），与 UI 面板档位一一对应
      */
     public ChineseChessAI(int difficulty) {
         this(difficulty, DEFAULT_MAX_TIME_MS[Math.max(0, Math.min(DEFAULT_MAX_TIME_MS.length - 1, difficulty - 1))]);
@@ -180,7 +180,7 @@ public class ChineseChessAI implements GameAI {
      * 创建 AI 实例，可指定搜索时间预算（毫秒）。
      */
     public ChineseChessAI(int difficulty, long maxTimeMs) {
-        this.difficulty = Math.max(1, Math.min(5, difficulty));
+        this.difficulty = Math.max(1, Math.min(4, difficulty));
         this.searchDepth = SEARCH_DEPTHS[this.difficulty - 1];
         this.maxTimeMs = Math.max(50L, maxTimeMs);
     }
@@ -318,7 +318,7 @@ public class ChineseChessAI implements GameAI {
 
     /** 根据难度和局面规模解析本次真实搜索深度。 */
     private int resolveSearchDepth(int difficulty, int[][] board) {
-        int level = Math.max(1, Math.min(5, difficulty));
+        int level = Math.max(1, Math.min(4, difficulty));
         int configured = SEARCH_DEPTHS[level - 1];
         if (level == 4 && countPieces(board) <= MASTER_ENDGAME_PIECE_LIMIT) return 5;
         return configured;
@@ -364,7 +364,6 @@ public class ChineseChessAI implements GameAI {
             case 2: return 70;   // 中
             case 3: return 8;    // 高：只在近似等价着法间随机
             case 4: return 0;    // 大师：稳定选择最优评分
-            case 5: return 0;    // 大师
             default: return 8;
         }
     }

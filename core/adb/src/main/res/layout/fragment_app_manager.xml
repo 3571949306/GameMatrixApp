@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Search and filter bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <EditText
+            android:id="@+id/adb_app_search"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/adb_app_search_hint"
+            android:inputType="text"
+            android:textSize="13sp"
+            android:background="@drawable/adb_input_bg"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/adb_app_filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_app_filter_all"
+            android:textSize="12sp"
+            android:padding="8dp"
+            android:textColor="@color/adb_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- Action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/adb_app_install"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_app_install"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/adb_button_bg"
+            android:textColor="@color/adb_button_text"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/adb_app_install_local"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_app_install_from_device"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- App list -->
+    <ListView
+        android:id="@+id/adb_app_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@color/adb_divider"
+        android:dividerHeight="1dp" />
+
+</LinearLayout>

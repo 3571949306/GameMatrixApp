@@ -2,6 +2,7 @@ package com.gamecenter.app.browser.ui
 
 import android.content.Context
 import androidx.fragment.app.Fragment
+import com.gamecenter.app.R
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
 import com.gamecenter.app.core.common.ModuleNavigationContribution
@@ -47,7 +48,7 @@ class BrowserModuleEntryPoint : ModuleInterface, FeatureModule {
     private class BrowserNavContribution : ModuleNavigationContribution {
         override fun getContributionId(): String = "browser"
         override fun getTitle(context: Context): String = "浏览器"
-        override fun getIconResId(): Int = 0
+        override fun getIconResId(): Int = R.drawable.ic_browser
         override fun getOrder(): Int = 20
         override fun getSlot(): NavigationSlot = NavigationSlot.BOTTOM_NAV
         override fun createFragment(context: Context): Fragment = BrowserFragment()

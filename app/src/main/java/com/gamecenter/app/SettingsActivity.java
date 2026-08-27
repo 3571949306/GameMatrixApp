@@ -64,6 +64,20 @@ public class SettingsActivity extends AppCompatActivity {
         // 已安装模块数量
         updateInstalledCount();
 
+        // #7 底部导航自定义：排序或隐藏底部入口（BottomNavigationSettingsActivity）
+        View btnBottomNav = findViewById(R.id.btn_bottom_navigation);
+        if (btnBottomNav != null) {
+            btnBottomNav.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(this,
+                            com.gamecenter.app.settings.BottomNavigationSettingsActivity.class));
+                } catch (Exception e) {
+                    Log.e(TAG, "底部导航页面未找到", e);
+                    Toast.makeText(this, R.string.settings_stats_unavailable, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         // 清除缓存
         View btnCache = findViewById(R.id.btn_clear_cache);
         if (btnCache != null) {

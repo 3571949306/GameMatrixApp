@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.BuildConfig;
+import com.gamecenter.app.core.common.AdbWorkbenchLauncher;
 import com.gamecenter.app.games.GameRatingStore;
 import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.GameRecommender;
@@ -1286,6 +1287,7 @@ public class GamesFragment extends Fragment {
                 popup.getMenu().add(0, 3, 0, R.string.stats_title);
                 popup.getMenu().add(0, 4, 0, R.string.settings_title);
                 popup.getMenu().add(0, 5, 0, R.string.achievement_center_title);
+                popup.getMenu().add(0, R.id.adb_entry_menu, 0, R.string.adb_entry_title);
                 // 包 D-1 (DAILY_CHECKIN): 2026-07-22 起签到改为自动记录登录天数，头像菜单不再提供手动签到入口
                 // wrongbook 从底部导航移到头像菜单（受 ENABLE_WRONGBOOK 控制）
                 if (BuildConfig.ENABLE_WRONGBOOK) {
@@ -1295,7 +1297,16 @@ public class GamesFragment extends Fragment {
                 popup.getMenu().add(0, 6, 0, R.string.home_compose_preview);
                 popup.setOnMenuItemClickListener(item -> {
                     int id = item.getItemId();
-                    if (id == 2) {
+                    if (id == R.id.adb_entry_menu) {
+                        try {
+                            AdbWorkbenchLauncher.launch(requireContext(), AdbWorkbenchLauncher.SOURCE_HALL);
+                        } catch (android.content.ActivityNotFoundException | SecurityException e) {
+                            Log.e(TAG, "打开 ADB 工作台失败", e);
+                            Toast.makeText(requireContext(), R.string.adb_entry_unavailable,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                        return true;
+                    } else if (id == 2) {
                         // 模块市场
                         try {
                             startActivity(new Intent(requireContext(), ModuleStoreActivity.class));

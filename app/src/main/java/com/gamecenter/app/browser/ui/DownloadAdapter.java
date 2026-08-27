@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.R;
@@ -20,9 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * 下载记录列表适配器。
- */
 public class DownloadAdapter extends RecyclerView.Adapter<DownloadAdapter.ViewHolder> {
 
     public interface OnItemClickListener {
@@ -39,9 +37,15 @@ public class DownloadAdapter extends RecyclerView.Adapter<DownloadAdapter.ViewHo
     private final SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
 
     public void setData(List<BrowserDownloadEntity> list) {
+        List<BrowserDownloadEntity> oldList = new ArrayList<>(data);
+        List<BrowserDownloadEntity> newList = list != null ? new ArrayList<>(list) : new ArrayList<>();
+
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new DownloadDiffCallback(oldList, newList));
+
         data.clear();
-        if (list != null) data.addAll(list);
-        notifyDataSetChanged();
+        data.addAll(newList);
+
+        diffResult.dispatchUpdatesTo(this);
     }
 
     public void setOnItemClickListener(OnItemClickListener l) { this.clickListener = l; }
@@ -102,6 +106,44 @@ public class DownloadAdapter extends RecyclerView.Adapter<DownloadAdapter.ViewHo
             tvStatus = v.findViewById(R.id.tv_download_status);
             tvSize = v.findViewById(R.id.tv_download_size);
             btnDelete = v.findViewById(R.id.btn_download_delete);
+        }
+    }
+
+    private static class DownloadDiffCallback extends DiffUtil.Callback {
+
+        private final List<BrowserDownloadEntity> oldList;
+        private final List<BrowserDownloadEntity> newList;
+
+        DownloadDiffCallback(List<BrowserDownloadEntity> oldList, List<BrowserDownloadEntity> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            return oldList.get(oldItemPosition).getId() == newList.get(newItemPosition).getId();
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            BrowserDownloadEntity oldItem = oldList.get(oldItemPosition);
+            BrowserDownloadEntity newItem = newList.get(newItemPosition);
+            return oldItem.getFileName().equals(newItem.getFileName())
+                    && oldItem.getUrl().equals(newItem.getUrl())
+                    && oldItem.getStatus() == newItem.getStatus()
+                    && oldItem.getDownloadedSize() == newItem.getDownloadedSize()
+                    && oldItem.getTotalSize() == newItem.getTotalSize()
+                    && oldItem.getCreateTime() == newItem.getCreateTime();
         }
     }
 }

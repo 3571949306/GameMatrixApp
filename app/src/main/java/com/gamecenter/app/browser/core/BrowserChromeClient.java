@@ -18,9 +18,10 @@ public class BrowserChromeClient extends WebChromeClient {
 
     /** Page info callback */
     public interface PageInfoCallback {
-        void onTitleChanged(String title);
-        void onProgressChanged(int progress);
-        void onReceivedIcon(android.graphics.Bitmap icon);
+        /** @param tabId 产生事件的 Tab id；单 WebView 模式下为 null */
+        void onTitleChanged(@Nullable String tabId, String title);
+        void onProgressChanged(@Nullable String tabId, int progress);
+        void onReceivedIcon(@Nullable String tabId, android.graphics.Bitmap icon);
     }
 
     /** File chooser callback for <input type="file"> */
@@ -42,12 +43,19 @@ public class BrowserChromeClient extends WebChromeClient {
     }
 
     private final PageInfoCallback callback;
+    /** A2: 回调所属 Tab；由 WebView 池按 tab 绑定，防止后台 Tab 事件被当作前台页处理。 */
+    @Nullable private final String tabId;
     @Nullable private FileChooserCallback fileChooserCallback;
     @Nullable private FullscreenCallback fullscreenCallback;
     @Nullable private PermissionCallback permissionCallback;
 
     public BrowserChromeClient(@NonNull PageInfoCallback callback) {
+        this(callback, null);
+    }
+
+    public BrowserChromeClient(@NonNull PageInfoCallback callback, @Nullable String tabId) {
         this.callback = callback;
+        this.tabId = tabId;
     }
 
     public void setFileChooserCallback(@Nullable FileChooserCallback cb) { this.fileChooserCallback = cb; }
@@ -57,19 +65,19 @@ public class BrowserChromeClient extends WebChromeClient {
     @Override
     public void onReceivedTitle(WebView view, String title) {
         super.onReceivedTitle(view, title);
-        if (callback != null) callback.onTitleChanged(title);
+        if (callback != null) callback.onTitleChanged(tabId, title);
     }
 
     @Override
     public void onProgressChanged(WebView view, int newProgress) {
         super.onProgressChanged(view, newProgress);
-        if (callback != null) callback.onProgressChanged(newProgress);
+        if (callback != null) callback.onProgressChanged(tabId, newProgress);
     }
 
     @Override
     public void onReceivedIcon(WebView view, android.graphics.Bitmap icon) {
         super.onReceivedIcon(view, icon);
-        if (callback != null) callback.onReceivedIcon(icon);
+        if (callback != null) callback.onReceivedIcon(tabId, icon);
     }
 
     // ===== Stage 10: File Upload =====

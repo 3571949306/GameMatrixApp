@@ -41,7 +41,7 @@ class CatalogV2ParserTest {
     }
 
     @Test
-    fun `adapts deployed display schema without runtime declarations`() {
+    fun `rejects deployed display schema without runtime declarations`() {
         val raw = """
             {
               "schemaVersion": 2,
@@ -56,10 +56,11 @@ class CatalogV2ParserTest {
             }
         """.trimIndent()
 
-        val catalog = CatalogV2Parser.parse(raw, "asset_catalog")
+        // 目录双轨已收敛：宿主只接受正式 Catalog V2，缺少 runtimeType/deliveryType 的旧式条目被拒绝。
+        val result = runCatching { CatalogV2Parser.parse(raw, "asset_catalog") }
 
-        assertEquals(RuntimeType.ANDROID, catalog.modules.single().runtimeType)
-        assertEquals(DeliveryType.BUILTIN, catalog.modules.single().deliveryType)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("runtimeType/deliveryType"))
     }
 
     @Test

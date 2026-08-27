@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@layout/activity_adb_workbench,@layout/fragment_app_manager,@layout/fragment_device_connect,@layout/fragment_fastboot,@layout/fragment_file_manager,@layout/fragment_screen_control,@layout/fragment_system_settings,@layout/fragment_terminal"
+    tools:shrinkMode="strict" />

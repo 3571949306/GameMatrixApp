@@ -63,7 +63,7 @@ class CatalogV2Repository private constructor(private val context: Context) {
                 catalogVersion = 0,
                 source = "module_manager_fallback",
                 offline = true,
-                modules = safeManifests.map(LegacyCatalogAdapter::fromManifest)
+                modules = safeManifests.map(CatalogModuleMapper::fromManifest)
             )
             catalog.copy(
                 offline = catalog.offline || error != null || refreshError != null,
@@ -76,19 +76,19 @@ class CatalogV2Repository private constructor(private val context: Context) {
 
     /** Reads the already signature-checked store cache; this creates no second cache. */
     private fun loadValidatedCatalog(): CatalogV2? {
+        // 目录双轨已收敛：仅接受签名/内置的正式 V2 目录，旧版 assets/modules.json 不再作为目录来源。
         val candidates = listOf(
             Triple(File(context.filesDir, "store/catalog.json"), "signed_cache", true),
-            Triple(null, "asset_catalog", true),
-            Triple(null, "legacy_assets", true)
+            Triple(null, "asset_catalog", true)
         )
-        return candidates.firstNotNullOfOrNull { (file, source, _) ->
+        return candidates.firstNotNullOfOrNull { (file, source) ->
             val raw = runCatching {
                 if (file != null) {
                     if (!file.isFile) return@runCatching null
                     file.readText(Charsets.UTF_8)
                 } else {
-                    val assetName = if (source == "asset_catalog") "catalog.json" else "modules.json"
-                    context.assets.open(assetName).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    context.assets.open("catalog.json")
+                        .bufferedReader(Charsets.UTF_8).use { it.readText() }
                 }
             }.getOrNull() ?: return@firstNotNullOfOrNull null
             runCatching { CatalogV2Parser.parse(raw, source) }.getOrNull()
@@ -109,7 +109,7 @@ class CatalogV2Repository private constructor(private val context: Context) {
         }.toMutableList()
         val known = merged.mapTo(mutableSetOf()) { it.id }
         safeManifests.filterNot { it.id in known }
-            .mapTo(merged, LegacyCatalogAdapter::fromManifest)
+            .mapTo(merged, CatalogModuleMapper::fromManifest)
         CatalogPackageTrustRegistry.replace(merged)
         return catalog.copy(modules = merged)
     }

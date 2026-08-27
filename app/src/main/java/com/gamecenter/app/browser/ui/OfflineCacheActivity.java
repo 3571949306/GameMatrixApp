@@ -1,6 +1,5 @@
 package com.gamecenter.app.browser.ui;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -18,6 +17,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -130,10 +130,11 @@ public class OfflineCacheActivity extends AppCompatActivity {
     private static class OfflineCacheAdapter extends RecyclerView.Adapter<OfflineCacheAdapter.VH> {
         private List<BrowserOfflineCache.CacheEntry> data = java.util.Collections.emptyList();
 
-        @SuppressLint("NotifyDataSetChanged")
         void submit(List<BrowserOfflineCache.CacheEntry> data) {
+            DiffUtil.DiffResult result = DiffUtil.calculateDiff(
+                    new CacheEntryDiffCallback(this.data, data));
             this.data = data;
-            notifyDataSetChanged();
+            result.dispatchUpdatesTo(this);
         }
 
         @NonNull
@@ -161,6 +162,42 @@ public class OfflineCacheActivity extends AppCompatActivity {
         @Override
         public int getItemCount() {
             return data.size();
+        }
+
+        private static class CacheEntryDiffCallback extends DiffUtil.Callback {
+            private final List<BrowserOfflineCache.CacheEntry> oldList;
+            private final List<BrowserOfflineCache.CacheEntry> newList;
+
+            CacheEntryDiffCallback(List<BrowserOfflineCache.CacheEntry> oldList,
+                                   List<BrowserOfflineCache.CacheEntry> newList) {
+                this.oldList = oldList;
+                this.newList = newList;
+            }
+
+            @Override
+            public int getOldListSize() {
+                return oldList.size();
+            }
+
+            @Override
+            public int getNewListSize() {
+                return newList.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                return oldList.get(oldItemPosition).url
+                        .equals(newList.get(newItemPosition).url);
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                BrowserOfflineCache.CacheEntry oldEntry = oldList.get(oldItemPosition);
+                BrowserOfflineCache.CacheEntry newEntry = newList.get(newItemPosition);
+                return oldEntry.url.equals(newEntry.url)
+                        && (oldEntry.title != null ? oldEntry.title.equals(newEntry.title) : newEntry.title == null)
+                        && oldEntry.savedAt == newEntry.savedAt;
+            }
         }
 
         static class VH extends RecyclerView.ViewHolder {

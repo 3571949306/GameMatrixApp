@@ -410,7 +410,11 @@ public class GoAI implements GameAI {
     }
 
     private double playout(SearchState start) {
-        int[][] board = start.board;
+        // AGENTS §7：搜索只读取棋盘快照，禁止原地修改 MCTS 树节点。
+        // 在独立副本上推演，避免污染节点状态；koForbidden 为“上一手前局面”，
+        // 与 GoGame.tryMove 的简单劫禁手规则（koForbiddenBoard）保持一致。
+        int[][] board = GoGame.copyBoard(start.board);
+        int[][] koForbidden = start.previousBoard;
         int player = start.playerToMove;
         int passes = start.consecutivePasses;
         int[][] scratch = scratchBoard;
@@ -427,6 +431,11 @@ public class GoAI implements GameAI {
                     if (board[row][col] != GoGame.EMPTY) continue;
                     int captured = GoGame.applyMoveInPlace(scratch, row, col, player, captureBuf);
                     if (captured < 0) continue;
+                    // 简单劫：落子后复现上一手前局面即为禁手（与 tryMove 的劫规则一致）
+                    if (koForbidden != null && GoGame.boardsEqual(scratch, koForbidden)) {
+                        GoGame.undoMoveInPlace(scratch, row, col, player, captureBuf, captured);
+                        continue;
+                    }
                     double score = evaluateMove(board, scratch, row, col, player, captured / 2);
                     moves.add(new Candidate(row, col, captured / 2, score));
                     GoGame.undoMoveInPlace(scratch, row, col, player, captureBuf, captured);
@@ -437,6 +446,7 @@ public class GoAI implements GameAI {
                 // Passing lifts the immediately preceding simple-ko prohibition.
                 passes++;
                 player = GoGame.opposite(player);
+                koForbidden = null; // 停一手视为隔手，解禁简单劫
                 continue;
             }
 
@@ -447,14 +457,18 @@ public class GoAI implements GameAI {
             } else {
                 selected = moves.get(random.nextInt(topCount));
             }
+            // 先记录落子前局面，作为对手下一步的劫禁局面
+            int[][] boardBeforeMove = GoGame.copyBoard(board);
             int captured = GoGame.applyMoveInPlace(board, selected.row, selected.col, player, captureBuf);
             if (captured < 0) {
                 // 极端情况：选出的着法在真实 board 上不合法（理论上 generateCandidates 已经过滤）
                 // 退化为停一手，保证搜索循环继续
                 passes++;
                 player = GoGame.opposite(player);
+                koForbidden = null;
                 continue;
             }
+            koForbidden = boardBeforeMove;
             player = GoGame.opposite(player);
             passes = 0;
         }

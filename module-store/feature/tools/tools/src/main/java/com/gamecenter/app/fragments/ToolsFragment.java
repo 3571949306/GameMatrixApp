@@ -29,6 +29,7 @@ import com.gamecenter.app.ColorSchemeManager;
 import com.gamecenter.app.R;
 import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.tools.AdvancedToolBinders;
+import com.gamecenter.app.tools.AdbWorkbenchToolBinder;
 import com.gamecenter.app.tools.BatteryToolBinder;
 import com.gamecenter.app.tools.ClipboardToolBinder;
 import com.gamecenter.app.tools.ColorPickerToolBinder;
@@ -185,6 +186,7 @@ public class ToolsFragment extends Fragment {
      * </p>
      */
     private void initBinders() {
+        binders.put(AdbWorkbenchToolBinder.TOOL_ID, new AdbWorkbenchToolBinder());
         binders.put("network_diagnosis", new NetworkDiagnosisToolBinder());
         binders.put("diagnostic_report", new DiagnosticReportToolBinder());
         binders.put("dns_lookup", new DnsLookupToolBinder());
@@ -263,6 +265,7 @@ public class ToolsFragment extends Fragment {
 
         // 2026-06-23: 搜索框 + Chip 筛选
         setupSearchAndFilter(view);
+        applyFilter("", currentChipFilter);
     }
 
     /**
@@ -354,6 +357,7 @@ public class ToolsFragment extends Fragment {
         }
 
         // 搜索过滤
+        base.removeIf(section -> !section.visible);
         if (keyword != null && !keyword.isEmpty()) {
             List<ToolSection> filtered = new ArrayList<>();
             for (ToolSection s : base) {
@@ -619,10 +623,14 @@ public class ToolsFragment extends Fragment {
                 if (ctx != null) {
                     // 在 contentView 的 tag 中存储 ToolsFragment 引用，
                     // 供需要文件选择器的 Binder（file_hash/qr_plus/color_plus）使用
-                    contentView.setTag(R.id.tag_tools_fragment, ToolsFragment.this);
+                    if (!AdbWorkbenchToolBinder.TOOL_ID.equals(section.id)) {
+                        contentView.setTag(R.id.tag_tools_fragment, ToolsFragment.this);
+                    }
                     binder.bind(ctx, contentView, executor);
                     // 2026-06-23: 记录使用次数（用于按热度排序）
-                    if (store != null) store.incrementUsage(section.id);
+                    if (store != null && !AdbWorkbenchToolBinder.TOOL_ID.equals(section.id)) {
+                        store.incrementUsage(section.id);
+                    }
                 }
             }
         }

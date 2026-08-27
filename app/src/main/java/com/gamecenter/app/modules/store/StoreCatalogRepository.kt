@@ -166,9 +166,10 @@ class DefaultStoreCatalogRepository private constructor(
             }
             response.close()
 
-            // P3: 验证目录签名（如果启用）
+            // P3: 验证目录签名（默认开启验签；未配置可信公钥的本地构建退化为兼容模式）
             if (BuildConfig.ENABLE_CATALOG_SIGNATURE) {
-                val verifyResult = CatalogSignatureVerifierManager.verify(body, signature, true)
+                val forceVerify = BuildConfig.CATALOG_SIGNATURE_TRUSTED
+                val verifyResult = CatalogSignatureVerifierManager.verify(body, signature, forceVerify)
                 if (verifyResult.isFailure) {
                     Log.e(TAG, "目录签名验证失败: ${(verifyResult as CatalogSignatureVerifierManager.VerifyResult.Failure).reason}")
                     return degradeToCacheOrFailure(RuntimeException("目录签名验证失败"))

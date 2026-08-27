@@ -1,5 +1,9 @@
 package com.gamecenter.app.games.ui;
 
+// [DEAD-ONLINE] 联机功能已通过 OnlinePlayGate 统一下线。
+// 本类全仓库零外部调用，属于死代码。
+// 清理时直接删除文件及镜像。
+
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
@@ -157,8 +161,8 @@ public class GameStartDialog extends Dialog {
             root.addView(recyclerView, rvParams);
         }
 
-        // 联机按钮（如果支持）
-        if (showOnlineButton) {
+        // 联机按钮（如果支持且联机功能已启用）
+        if (showOnlineButton && com.gamecenter.app.core.common.OnlinePlayGate.ENABLED) {
             LinearLayout onlineBtn = createButton("🌐 联机对战", 0xFF4CAF50, v -> {
                 selectedIndex = -1; // 标记为非取消
                 dismiss();

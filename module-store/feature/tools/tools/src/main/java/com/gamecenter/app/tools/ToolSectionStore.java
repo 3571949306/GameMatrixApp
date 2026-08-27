@@ -52,6 +52,7 @@ public final class ToolSectionStore {
     private static final String KEY_ORDER = "tools_order";
     /** 工具可见性集合的存储键 */
     private static final String KEY_VISIBLE = "tools_visible";
+    private static final String KEY_ADB_VISIBILITY_MIGRATED = "adb_visibility_v1";
     /** 布局模式的存储键 */
     private static final String KEY_LAYOUT_MODE = "tools_layout_mode";
     /** 收藏列表的存储键 */
@@ -94,8 +95,20 @@ public final class ToolSectionStore {
         Set<String> visibleSet = prefs.getStringSet(KEY_VISIBLE, null);
 
         List<ToolSection> allSections = defaultSections();
+        // Only migrate when this host can actually display the new card. Preserve explicit
+        // hide-all (empty set), old hidden tools, and subsequent user changes to the ADB card.
+        if (findById(allSections, AdbWorkbenchToolBinder.TOOL_ID) != null
+                && !prefs.getBoolean(KEY_ADB_VISIBILITY_MIGRATED, false)) {
+            SharedPreferences.Editor editor = prefs.edit();
+            if (visibleSet != null && !visibleSet.isEmpty()) {
+                visibleSet = new HashSet<>(visibleSet);
+                visibleSet.add(AdbWorkbenchToolBinder.TOOL_ID);
+                editor.putStringSet(KEY_VISIBLE, visibleSet);
+            }
+            editor.putBoolean(KEY_ADB_VISIBILITY_MIGRATED, true).apply();
+        }
         // 应用已保存的可见性配置
-        if (visibleSet != null && !visibleSet.isEmpty()) {
+        if (visibleSet != null) {
             for (ToolSection section : allSections) {
                 section.visible = visibleSet.contains(section.id);
             }
@@ -358,6 +371,8 @@ public final class ToolSectionStore {
      */
     private List<ToolSection> defaultSections() {
         List<ToolSection> sections = new ArrayList<>();
+        ToolSection adb = AdbWorkbenchToolBinder.createSection(appContext);
+        if (adb != null) sections.add(adb);
         sections.add(new ToolSection("network_diagnosis", appContext.getString(R.string.tool_name_network_diagnosis), R.layout.item_tool_network_diagnosis, true, "network", ""));
         sections.add(new ToolSection("diagnostic_report", appContext.getString(R.string.tool_name_diagnostic_report), R.layout.item_tool_diagnostic_report, true, "network", ""));
         sections.add(new ToolSection("dns_lookup", appContext.getString(R.string.tool_name_dns_lookup), R.layout.item_tool_dns_lookup, true, "network", ""));

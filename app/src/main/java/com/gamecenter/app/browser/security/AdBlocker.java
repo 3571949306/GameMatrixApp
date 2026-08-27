@@ -45,6 +45,18 @@ public class AdBlocker {
 
         for (String domain : blockedDomains) {
             if (host.equals(domain) || host.endsWith("." + domain)) { blockedCount.incrementAndGet(); return true; }
+            // 支持 "host/path" 形式的规则（如 facebook.com/audience_network）：
+            // host 命中且 URL 字符串包含指定路径段才拦截，避免带路径规则永不命中
+            int slash = domain.indexOf('/');
+            if (slash > 0) {
+                String hostPart = domain.substring(0, slash);
+                String pathPart = domain.substring(slash + 1);
+                if ((host.equals(hostPart) || host.endsWith("." + hostPart))
+                        && !pathPart.isEmpty() && url.contains(pathPart)) {
+                    blockedCount.incrementAndGet();
+                    return true;
+                }
+            }
         }
         return false;
     }

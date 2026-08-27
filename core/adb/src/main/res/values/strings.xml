@@ -1,0 +1,227 @@
+<resources>
+    <string name="adb_title">ADB 工作台</string>
+    <string name="adb_notification_channel">ADB 设备任务</string>
+    <string name="adb_notification_title">ADB 任务正在运行</string>
+    <string name="adb_notification_text">点击返回工作台查看进度；请勿拔出设备或关闭调试。</string>
+
+    <!-- Menu / Entry -->
+    <string name="adb_entry_title">ADB 工作台</string>
+    <string name="adb_entry_description">连接和管理 ADB 设备，执行命令、安装应用、投屏控制</string>
+    <string name="adb_entry_unavailable">ADB 工作台不可用</string>
+
+    <!-- Top bar -->
+    <string name="adb_topbar_no_device">未连接设备</string>
+    <string name="adb_topbar_connecting">正在连接…</string>
+    <string name="adb_topbar_tcp">TCP</string>
+    <string name="adb_topbar_usb">USB</string>
+    <string name="adb_topbar_tls">TLS</string>
+    <string name="adb_topbar_fastboot">Fastboot</string>
+    <string name="adb_btn_disconnect">断开</string>
+    <string name="adb_btn_switch">切换设备</string>
+
+    <!-- Tabs -->
+    <string name="adb_tab_device">设备</string>
+    <string name="adb_tab_app">应用</string>
+    <string name="adb_tab_file">文件</string>
+    <string name="adb_tab_shell">终端</string>
+    <string name="adb_tab_screen">屏幕</string>
+    <string name="adb_tab_system">系统</string>
+    <string name="adb_tab_fastboot">Fastboot</string>
+
+    <!-- Device connect -->
+    <string name="adb_device_tab_tcp">TCP/IP 连接</string>
+    <string name="adb_device_tab_pair">无线配对</string>
+    <string name="adb_device_tab_usb">USB 设备</string>
+    <string name="adb_device_host_hint">主机地址，如 192.168.1.100</string>
+    <string name="adb_device_port_hint">端口号</string>
+    <string name="adb_device_connect">连接</string>
+    <string name="adb_device_connect_tls">TLS 连接（推荐）</string>
+    <string name="adb_device_discovery_description">仅发现当前局域网中主动广播无线 ADB 的设备；不会扫描网段或自动连接。</string>
+    <string name="adb_device_discovery_start">扫描在线 ADB 设备</string>
+    <string name="adb_device_discovery_stop">停止扫描</string>
+    <string name="adb_device_discovery_scanning">正在发现局域网无线 ADB 设备…</string>
+    <string name="adb_device_discovery_empty">未发现广播无线 ADB 的设备。请确认设备已开启“无线调试”且在同一局域网。</string>
+    <string name="adb_device_discovery_found">发现 %1$d 台设备，点选后再手动连接。</string>
+    <string name="adb_device_discovery_selected">已填入 %1$s:%2$d，请手动确认后连接。</string>
+    <string name="adb_device_pair_code">配对码</string>
+    <string name="adb_device_pair_connect_port">连接端口</string>
+    <string name="adb_device_pair">配对</string>
+    <string name="adb_device_scan_usb">扫描 USB 设备</string>
+    <string name="adb_device_no_usb">未检测到 USB 设备</string>
+    <string name="adb_device_usb_authorization">请在设备上允许 USB 调试</string>
+    <string name="adb_device_authorized">已授权</string>
+    <string name="adb_device_unauthorized">未授权</string>
+    <string name="adb_device_offline">离线</string>
+    <string name="adb_device_selected">当前设备</string>
+    <string name="adb_device_records">历史记录</string>
+    <string name="adb_device_remove_record">移除记录</string>
+    <string name="adb_device_connecting">连接中…</string>
+    <string name="adb_device_connect_success">已连接：%1$s</string>
+    <string name="adb_device_connect_failure">连接失败：%1$s</string>
+    <string name="adb_device_disconnected">已断开</string>
+
+    <!-- Terminal / Shell -->
+    <string name="adb_shell_hint">输入 ADB shell 命令…</string>
+    <string name="adb_shell_send">执行</string>
+    <string name="adb_shell_cancel">取消</string>
+    <string name="adb_shell_history">历史记录</string>
+    <string name="adb_shell_shortcuts">快捷命令</string>
+    <string name="adb_shell_add_shortcut">保存为快捷命令</string>
+    <string name="adb_shell_shortcut_name">快捷命令名称</string>
+    <string name="adb_shell_output_empty">暂无输出</string>
+    <string name="adb_shell_not_connected">请先连接设备</string>
+    <string name="adb_shell_running">命令执行中…</string>
+
+    <!-- App manager -->
+    <string name="adb_app_search_hint">搜索应用包名</string>
+    <string name="adb_app_filter_all">全部</string>
+    <string name="adb_app_filter_system">系统应用</string>
+    <string name="adb_app_filter_user">用户应用</string>
+    <string name="adb_app_launch">启动</string>
+    <string name="adb_app_force_stop">强制停止</string>
+    <string name="adb_app_enable">启用</string>
+    <string name="adb_app_disable">停用</string>
+    <string name="adb_app_uninstall">卸载</string>
+    <string name="adb_app_clear_data">清除数据</string>
+    <string name="adb_app_permissions">权限</string>
+    <string name="adb_app_install">安装 APK</string>
+    <string name="adb_app_install_from_device">从本机安装</string>
+    <string name="adb_app_select_apk">选择 APK 文件</string>
+    <string name="adb_app_installing">正在安装…</string>
+    <string name="adb_app_install_success">安装成功</string>
+    <string name="adb_app_install_failure">安装失败：%1$s</string>
+    <string name="adb_app_list_empty">未找到应用</string>
+    <string name="adb_app_uninstall_confirm">确定要卸载 %1$s 吗？</string>
+    <string name="adb_app_clear_confirm">确定要清除 %1$s 的数据吗？</string>
+    <string name="adb_app_no_device">请先连接设备</string>
+
+    <!-- File manager -->
+    <string name="adb_file_current_path">当前路径：%1$s</string>
+    <string name="adb_file_btn_back">上级目录</string>
+    <string name="adb_file_btn_upload">上传</string>
+    <string name="adb_file_btn_download">下载</string>
+    <string name="adb_file_btn_new_dir">新建目录</string>
+    <string name="adb_file_btn_delete">删除</string>
+    <string name="adb_file_btn_rename">重命名</string>
+    <string name="adb_file_btn_select_all">全选</string>
+    <string name="adb_file_btn_copy">复制</string>
+    <string name="adb_file_btn_move">移动</string>
+    <string name="adb_file_list_empty">目录为空</string>
+    <string name="adb_file_select_files">选择文件</string>
+    <string name="adb_file_select_local">选择本地文件</string>
+    <string name="adb_file_progress">传输进度：%1$d / %2$d KiB</string>
+    <string name="adb_file_upload_success">上传成功</string>
+    <string name="adb_file_download_success">下载成功</string>
+    <string name="adb_file_delete_confirm">确定要删除 %1$d 个文件/目录吗？</string>
+    <string name="adb_file_no_device">请先连接设备</string>
+    <string name="adb_file_new_dir_hint">输入目录名</string>
+    <string name="adb_file_rename_hint">输入新名称</string>
+
+    <!-- Screen control / Scrcpy -->
+    <string name="adb_screen_start">开始投屏</string>
+    <string name="adb_screen_stop">停止投屏</string>
+    <string name="adb_screen_screenshot">截图</string>
+    <string name="adb_screen_fullscreen">全屏</string>
+    <string name="adb_screen_back">返回键</string>
+    <string name="adb_screen_home">主页键</string>
+    <string name="adb_screen_recent">最近任务键</string>
+    <string name="adb_screen_enter_text">输入文本</string>
+    <string name="adb_screen_resolution">分辨率</string>
+    <string name="adb_screen_bitrate">码率</string>
+    <string name="adb_screen_landscape">横屏</string>
+    <string name="adb_screen_portrait">竖屏</string>
+    <string name="adb_screen_starting">正在启动投屏…</string>
+    <string name="adb_screen_no_device">请先连接设备</string>
+    <string name="adb_screen_saved_to">截图已保存到 %1$s</string>
+    <string name="adb_screen_not_running">投屏未启动</string>
+
+    <!-- System settings -->
+    <string name="adb_system_device_info">设备信息</string>
+    <string name="adb_system_dpi">DPI</string>
+    <string name="adb_system_resolution">分辨率</string>
+    <string name="adb_system_animation_scale">动画缩放</string>
+    <string name="adb_system_apply">应用</string>
+    <string name="adb_system_reset_default">恢复默认</string>
+    <string name="adb_system_reboot">重启设备</string>
+    <string name="adb_system_reboot_recovery">重启到 Recovery</string>
+    <string name="adb_system_reboot_bootloader">重启到 Bootloader</string>
+    <string name="adb_system_reboot_confirm">确定要%1$s吗？</string>
+    <string name="adb_system_model">型号</string>
+    <string name="adb_system_brand">品牌</string>
+    <string name="adb_system_android_version">Android 版本</string>
+    <string name="adb_system_sdk">SDK 版本</string>
+    <string name="adb_system_build">构建编号</string>
+    <string name="adb_system_serial">序列号</string>
+    <string name="adb_system_current_dpi">当前 DPI：%1$d</string>
+    <string name="adb_system_current_resolution">当前分辨率：%1$dx%2$d</string>
+    <string name="adb_system_no_device">请先连接设备</string>
+
+    <!-- Fastboot -->
+    <string name="adb_fastboot_info">设备信息</string>
+    <string name="adb_fastboot_command">Fastboot 命令</string>
+    <string name="adb_fastboot_execute">执行</string>
+    <string name="adb_fastboot_flash_partition">刷写分区</string>
+    <string name="adb_fastboot_flash_image">选择镜像</string>
+    <string name="adb_fastboot_boot_temp">临时启动</string>
+    <string name="adb_fastboot_erase_partition">擦除分区</string>
+    <string name="adb_fastboot_partition_hint">分区名，如 boot_a、system</string>
+    <string name="adb_fastboot_enter_fastboot">进入 Fastboot 模式</string>
+    <string name="adb_fastboot_exit_fastboot">退出 Fastboot 模式</string>
+    <string name="adb_fastboot_result">执行结果</string>
+    <string name="adb_fastboot_no_device">请先通过 USB 连接设备</string>
+    <string name="adb_fastboot_flash_warning">刷写操作可能导致设备变砖，请确保操作正确！</string>
+    <string name="adb_fastboot_erase_warning">擦除分区将清除所有数据，不可恢复！</string>
+    <string name="adb_fastboot_confirm_type">请输入分区名以确认</string>
+    <string name="adb_fastboot_running">Fastboot 操作中…</string>
+    <string name="adb_fastboot_done">操作完成</string>
+
+    <!-- Generic -->
+    <string name="adb_ok">确定</string>
+    <string name="adb_cancel">取消</string>
+    <string name="adb_retry">重试</string>
+    <string name="adb_delete">删除</string>
+    <string name="adb_confirm">确认</string>
+    <string name="adb_yes">是</string>
+    <string name="adb_no">否</string>
+    <string name="adb_loading">加载中…</string>
+    <string name="adb_no_selection">未选择</string>
+    <string name="adb_selected_count">已选择 %1$d 项</string>
+    <string name="adb_operation_cancelled">操作已取消</string>
+    <string name="adb_operation_unknown">操作结果待确认</string>
+    <string name="adb_enter_text">请输入</string>
+    <string name="adb_name_hint">名称</string>
+
+    <!-- Process / Session -->
+    <string name="adb_session_leave_confirm">当前有正在执行的任务，确定要离开吗？</string>
+    <string name="adb_session_exit_confirm">确定要退出 ADB 工作台吗？</string>
+    <string name="adb_session_dangerous_warning">高风险操作进行中，不能断开</string>
+
+    <!-- About / Safety -->
+    <string name="adb_safety_notice">仅连接你拥有或获授权管理的设备。所有操作均需手动触发。</string>
+    <string name="adb_safety_notice_title">安全提示</string>
+
+    <!-- File picker -->
+    <string name="adb_filepicker_apk">选择 APK 文件</string>
+    <string name="adb_filepicker_image">选择镜像文件</string>
+    <string name="adb_filepicker_any">选择文件</string>
+
+    <!-- Styles -->
+    <!-- This Activity extends AppCompatActivity, so the parent must remain AppCompat-based. -->
+    <style name="AdbWorkbenchTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="colorAccent">#137F76</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F3F7F6</item>
+        <item name="android:navigationBarColor">#F3F7F6</item>
+        <item name="windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="AdbWorkbenchTheme.Dark" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="colorAccent">#137F76</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#1A1A1A</item>
+        <item name="android:navigationBarColor">#1A1A1A</item>
+        <item name="windowActionModeOverlay">true</item>
+    </style>
+</resources>

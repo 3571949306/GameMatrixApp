@@ -17,6 +17,7 @@ import android.window.OnBackInvokedDispatcher;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -140,8 +141,10 @@ public class BottomBarCustomizeActivity extends AppCompatActivity {
         }
 
         void submit(List<BarItem> items) {
+            DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(
+                    new BarItemDiffCallback(data, items));
             data = items;
-            notifyDataSetChanged();
+            diffResult.dispatchUpdatesTo(this);
         }
 
         @Override
@@ -167,6 +170,39 @@ public class BottomBarCustomizeActivity extends AppCompatActivity {
                 tvLabel = v.findViewById(R.id.tv_label);
                 swVisible = v.findViewById(R.id.sw_visible);
             }
+        }
+    }
+
+    private static class BarItemDiffCallback extends DiffUtil.Callback {
+        private final List<BarItem> oldList;
+        private final List<BarItem> newList;
+
+        BarItemDiffCallback(List<BarItem> oldList, List<BarItem> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            return oldList.get(oldItemPosition).id.equals(newList.get(newItemPosition).id);
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            BarItem oldItem = oldList.get(oldItemPosition);
+            BarItem newItem = newList.get(newItemPosition);
+            return oldItem.id.equals(newItem.id)
+                    && oldItem.label.equals(newItem.label);
         }
     }
 }

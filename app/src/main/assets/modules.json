@@ -45,9 +45,9 @@
       "versionName": "1.4.1",
       "versionCode": 587,
       "entryClass": "com.gamecenter.app.browser.ui.BrowserModuleEntryPoint",
-      "fileName": "feature_browser_v100.apk",
-      "fileSize": 840871,
-      "sha256": "cdb77557f5462e1add1e4a060fcef88b68eb5700f2ae291a00965b0053fc4059",
+      "fileName": "",
+      "fileSize": 0,
+      "sha256": "",
       "downloadUrl": "",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -300,73 +300,6 @@
         "syncLocation": "OCR/AI 服务商服务器",
         "retentionPeriod": "本地直到卸载；云端遵循服务商策略",
         "deletionMethod": "卸载即清除本地数据；云端数据需在服务商侧删除"
-      }
-    },
-    {
-      "id": "tts_voice",
-      "name": "语音合成",
-      "description": "语音合成模块，用于助手与游戏解说流程。",
-      "versionName": "1.0.1",
-      "versionCode": 101,
-      "entryClass": "com.gamecenter.app.tts.TtsModuleEntryPoint",
-      "fileName": "feature_tts_voice_v101.apk",
-      "fileSize": 640673,
-      "sha256": "8775e7a41c79ac2f9dc72d168d537dbac4ade500ed0f9eb53a8bf361214c35ca",
-      "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v101.apk",
-      "fallbackUrl": "",
-      "githubUrl": "",
-      "iconUrl": "",
-      "category": "tool",
-      "minAppVersion": 492,
-      "minAppVersionCode": 492,
-      "depends": [],
-      "type": "nav",
-      "activityClass": "",
-      "gameId": "",
-      "gameCategory": "",
-      "gameDesc": "",
-      "builtIn": false,
-      "required": false,
-      "storeCategory": "text_creation",
-      "isBaseFramework": false,
-      "builtInVersionCode": 0,
-      "runtimeType": "android",
-      "deliveryType": "apk",
-      "minHostVersionCode": 492,
-      "maxHostVersionCode": 0,
-      "dependencies": [],
-      "package": {
-        "fileName": "feature_tts_voice_v101.apk",
-        "fileSize": 640673,
-        "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tts_voice_v101.apk",
-        "sha256": "8775e7a41c79ac2f9dc72d168d537dbac4ade500ed0f9eb53a8bf361214c35ca"
-      },
-      "details": {
-        "valueDescription": "文本转语音模块，为助手与游戏解说提供语音朗读能力。",
-        "audience": "需要语音朗读、无障碍辅助或内容配音的用户。",
-        "offlineCapability": "部分语音引擎离线可用；在线语音需联网。",
-        "updateImpact": "更新保留语音偏好设置。",
-        "uninstallImpact": "卸载将清除语音缓存与偏好设置。",
-        "highlights": [
-          "多语音引擎支持",
-          "语速与音调调节",
-          "离线语音合成",
-          "与其他模块集成"
-        ],
-        "limitations": [
-          "高质量语音可能需下载额外语音包",
-          "在线语音质量更佳但消耗流量"
-        ]
-      },
-      "privacy": {
-        "localData": "语音偏好设置、合成语音缓存",
-        "cloudData": "在线合成时发送的文本内容",
-        "networkDomains": [
-          "在线 TTS 服务（可选）"
-        ],
-        "syncLocation": "TTS 服务商服务器（仅在线模式）",
-        "retentionPeriod": "本地直到卸载；云端遵循服务商策略",
-        "deletionMethod": "卸载即清除本地缓存与设置"
       }
     },
     {
@@ -1509,6 +1442,46 @@
         "fileSize": 631960,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_whack_v100.apk",
         "sha256": "404b8f39d26fdc459e9521e7e8468d60be489c8bbc8980a92fa66001af86fe6e"
+      }
+    },
+    {
+      "id": "td",
+      "name": "保卫蛋蛋",
+      "description": "塔防：固定路径建塔，守住蛋蛋别被怪物吃掉！",
+      "versionName": "1.0.0",
+      "versionCode": 100,
+      "entryClass": "com.gamecenter.app.td.TdModuleEntryPoint",
+      "fileName": "game_td_v100.apk",
+      "fileSize": 1339790,
+      "sha256": "F44988136369D7A567B82BE62F8DF16AB3152C64EE9E649F81E23A808921047F",
+      "downloadUrl": "http://127.0.0.1:8765/game_td_v100.apk",
+      "fallbackUrl": "",
+      "githubUrl": "",
+      "iconUrl": "",
+      "category": "game",
+      "minAppVersion": 492,
+      "minAppVersionCode": 492,
+      "depends": [],
+      "type": "game",
+      "activityClass": "",
+      "gameId": "td",
+      "gameCategory": "tower_defense",
+      "gameDesc": "塔防：守住蛋蛋！",
+      "builtIn": false,
+      "required": false,
+      "storeCategory": "entertainment_versus",
+      "isBaseFramework": false,
+      "builtInVersionCode": 0,
+      "runtimeType": "android",
+      "deliveryType": "apk",
+      "minHostVersionCode": 492,
+      "maxHostVersionCode": 0,
+      "dependencies": [],
+      "package": {
+        "fileName": "game_td_v100.apk",
+        "fileSize": 1264819,
+        "downloadUrl": "http://127.0.0.1:8765/game_td_v100.apk",
+        "sha256": "B53A3FE342F70F84C5E0979110D240D692B5F6F0D1F6A05C3FF52B0A8740501E"
       }
     }
   ]

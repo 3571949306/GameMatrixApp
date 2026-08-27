@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Path bar -->
+    <TextView
+        android:id="@+id/adb_file_path"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/adb_file_current_path"
+        android:textSize="11sp"
+        android:textColor="@color/adb_text_secondary"
+        android:paddingBottom="4dp" />
+
+    <!-- Navigation -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/adb_file_back"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_file_btn_back"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/adb_file_new_dir"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_file_btn_new_dir"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="4dp" />
+
+        <TextView
+            android:id="@+id/adb_file_upload"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_file_btn_upload"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/adb_button_bg"
+            android:textColor="@color/adb_button_text"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="4dp" />
+
+        <TextView
+            android:id="@+id/adb_file_download"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_file_btn_download"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- File list -->
+    <ListView
+        android:id="@+id/adb_file_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@color/adb_divider"
+        android:dividerHeight="1dp"
+        android:choiceMode="multipleChoice" />
+
+    <!-- Selection info -->
+    <TextView
+        android:id="@+id/adb_file_selection_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="11sp"
+        android:textColor="@color/adb_text_secondary"
+        android:paddingTop="4dp" />
+
+</LinearLayout>

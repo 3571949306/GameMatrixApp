@@ -24,6 +24,6 @@
             <TextView android:id="@+id/tv_bookmark_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/gm_spacing_1" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="11sp" />
         </LinearLayout>
         <ImageButton android:id="@+id/btn_bookmark_delete" android:layout_width="36dp" android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_delete" app:tint="?attr/colorOnSurfaceVariant" />
+            android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/browser_bookmark_delete" android:src="@android:drawable/ic_menu_delete" app:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -16,64 +16,76 @@ import java.util.concurrent.Executors;
 public class BrowserReadingListRepository {
 
     private final BrowserReadingListDao dao;
-    private final ExecutorService executor;
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public BrowserReadingListRepository(Application application) {
         BrowserDatabase db = BrowserDatabase.getInstance(application);
         dao = db.readingListDao();
-        executor = Executors.newSingleThreadExecutor();
+    }
+
+    private synchronized ExecutorService getExecutor() {
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+        return executor;
+    }
+
+    public void shutdown() {
+        if (!getExecutor().isShutdown()) {
+            getExecutor().shutdown();
+        }
     }
 
     public void insert(BrowserReadingListEntity item) {
-        executor.execute(() -> dao.insert(item));
+        getExecutor().execute(() -> dao.insert(item));
     }
 
     public void insert(BrowserReadingListEntity item, InsertCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             long id = dao.insert(item);
             if (callback != null) callback.onResult(id);
         });
     }
 
     public void deleteById(long id) {
-        executor.execute(() -> dao.deleteById(id));
+        getExecutor().execute(() -> dao.deleteById(id));
     }
 
     public void deleteByUrl(String url) {
-        executor.execute(() -> dao.deleteByUrl(url));
+        getExecutor().execute(() -> dao.deleteByUrl(url));
     }
 
     public void deleteAll() {
-        executor.execute(dao::deleteAll);
+        getExecutor().execute(dao::deleteAll);
     }
 
     public void markRead(long id, boolean read) {
-        executor.execute(() -> dao.updateRead(id, read ? 1 : 0));
+        getExecutor().execute(() -> dao.updateRead(id, read ? 1 : 0));
     }
 
     public void getAll(ListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             List<BrowserReadingListEntity> list = dao.getAll();
             callback.onResult(list);
         });
     }
 
     public void search(String keyword, ListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             List<BrowserReadingListEntity> list = dao.search(keyword);
             callback.onResult(list);
         });
     }
 
     public void exists(String url, ExistsCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             int count = dao.countByUrl(url);
             callback.onResult(count > 0);
         });
     }
 
     public void countUnread(UnreadCountCallback callback) {
-        executor.execute(() -> callback.onResult(dao.countUnread()));
+        getExecutor().execute(() -> callback.onResult(dao.countUnread()));
     }
 
     public interface ListCallback { void onResult(List<BrowserReadingListEntity> list); }

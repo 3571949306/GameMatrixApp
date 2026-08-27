@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.gamecenter.app.R;
 import com.gamecenter.app.ai.AiPreferences;
 import com.gamecenter.app.ai.AiTaskRouter;
+import com.gamecenter.app.ai.bridge.CoreAiService;
 import com.gamecenter.app.ai.data.AiMessage;
 import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
@@ -85,7 +86,7 @@ public class AiFragment extends Fragment {
      * 顺序为：闲聊、OCR、摘要、翻译、改写、问答、关键词、分类。
      */
     private static final String[] TASK_TYPES = {
-            "chat", "ocr", "summary", "translate", "rewrite", "qa", "keywords", "classify"
+            "chat", "ocr", "summary", "translate", "rewrite", "qa", "keywords", "classify", "mini-game"
     };
 
     /** 任务类型的本地化显示标签，通过 buildTaskLabels() 从字符串资源初始化 */
@@ -734,33 +735,51 @@ public class AiFragment extends Fragment {
         updateStatus("处理中…");
         btnSend.setEnabled(false);
 
-        // 提交 AI 任务，通过回调异步获取结果
-        router.submitTask(taskType, input, new AiTaskRouter.AiCallback() {
-            @Override
-            public void onResult(AiTask task, AiResult result) {
-                // 检查视图是否还存在，防止 Fragment 已销毁时操作 UI
-                if (getView() == null) return;
-                progressBar.setVisibility(View.GONE);
-                btnSend.setEnabled(true);
+        if ("mini-game".equals(taskType)) {
+            // 期待 input format: "gameId;input" 或直接使用引擎内部解析
+            String[] parts = input.split(";", 2);
+            String gameId = parts.length > 0 ? parts[0].trim() : "";
+            String gameInput = parts.length > 1 ? parts[1].trim() : "";
+            // 同步评估小游戏，直接获取结果字符串
+            String result = CoreAiService.getInstance(requireContext().getApplicationContext())
+                    .evaluateMiniGameSync(gameId, gameInput);
+            progressBar.setVisibility(View.GONE);
+            btnSend.setEnabled(true);
+            if (getView() == null) return;
+            messages.add(0, new AiMessage("assistant", result, ftaskType, "local"));
+            saveHistory();
+            applyMessageFilter();
+            scrollToBottom();
+            updateStatus("完成 | local");
+        } else {
+            // 提交 AI 任务，通过回调异步获取结果
+            router.submitTask(taskType, input, new AiTaskRouter.AiCallback() {
+                @Override
+                public void onResult(AiTask task, AiResult result) {
+                    // 检查视图是否还存在，防止 Fragment 已销毁时操作 UI
+                    if (getView() == null) return;
+                    progressBar.setVisibility(View.GONE);
+                    btnSend.setEnabled(true);
 
-                if (result.success) {
-                    // 成功：将 AI 回复添加到消息列表
-                    messages.add(0, new AiMessage("assistant", result.content, ftaskType, result.source));
-                    saveHistory();
-                    applyMessageFilter();
-                    scrollToBottom();
-                    updateStatus("完成 | " + result.source);
-                } else {
-                    // 失败：以 error 来源标记，内容前加错误符号
-                    messages.add(0, new AiMessage("assistant", "❌ " + result.message, ftaskType, "error"));
-                    saveHistory();
-                    applyMessageFilter();
-                    scrollToBottom();
-                    updateStatus("失败: " + result.errorCode);
-                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show();
+                    if (result.success) {
+                        // 成功：将 AI 回复添加到消息列表
+                        messages.add(0, new AiMessage("assistant", result.content, ftaskType, result.source));
+                        saveHistory();
+                        applyMessageFilter();
+                        scrollToBottom();
+                        updateStatus("完成 | " + result.source);
+                    } else {
+                        // 失败：以 error 来源标记，内容前加错误符号
+                        messages.add(0, new AiMessage("assistant", "❌ " + result.message, ftaskType, "error"));
+                        saveHistory();
+                        applyMessageFilter();
+                        scrollToBottom();
+                        updateStatus("失败: " + result.errorCode);
+                        Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     /**

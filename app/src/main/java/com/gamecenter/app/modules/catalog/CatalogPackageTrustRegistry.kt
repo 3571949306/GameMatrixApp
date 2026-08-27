@@ -8,7 +8,7 @@ object CatalogAuthorityMatcher {
     fun matches(module: CatalogModule, manifest: ModuleManifest): Boolean {
         if (module.id != manifest.id || module.versionCode != manifest.versionCode) return false
         if (module.deliveryType == DeliveryType.BUILTIN) return manifest.builtIn
-        val inferred = LegacyCatalogAdapter.fromManifest(manifest)
+        val inferred = CatalogModuleMapper.fromManifest(manifest)
         if (module.runtimeType != inferred.runtimeType || module.deliveryType != inferred.deliveryType) return false
         val pkg = module.packageInfo
         return pkg.fileName == manifest.fileName &&

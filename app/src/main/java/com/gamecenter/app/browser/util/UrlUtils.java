@@ -33,10 +33,12 @@ public class UrlUtils {
         if (s.isEmpty()) return "https://www.baidu.com";
 
         String lower = s.toLowerCase(Locale.ROOT);
-        // 拦截危险协议
+        // S3: 拦截扩展的危险协议
         if (lower.startsWith("file://") || lower.startsWith("content://")
                 || lower.startsWith("javascript:") || lower.startsWith("intent://")
-                || lower.startsWith("about:") || lower.startsWith("data:")) {
+                || lower.startsWith("about:") || lower.startsWith("data:")
+                || lower.startsWith("vbscript:") || lower.startsWith("jar:")
+                || lower.startsWith("blob:") || lower.startsWith("filesystem:")) {
             return null;
         }
 
@@ -64,19 +66,24 @@ public class UrlUtils {
         try {
             return java.net.URLEncoder.encode(keyword, "UTF-8");
         } catch (Exception e) {
+            android.util.Log.w("UrlUtils", "encodeKeyword failed, falling back to Uri.encode", e);
             return Uri.encode(keyword);
         }
     }
 
     /**
      * 判断是否危险协议。
+     * S3: 更全面的危险协议检测。
      */
     public static boolean isDangerousScheme(@Nullable String input) {
         if (input == null) return false;
         String lower = input.trim().toLowerCase(Locale.ROOT);
+        // S3: 扩展危险协议列表
         return lower.startsWith("file://") || lower.startsWith("content://")
                 || lower.startsWith("javascript:") || lower.startsWith("intent://")
-                || lower.startsWith("about:") || lower.startsWith("data:");
+                || lower.startsWith("about:") || lower.startsWith("data:")
+                || lower.startsWith("vbscript:") || lower.startsWith("jar:")
+                || lower.startsWith("blob:") || lower.startsWith("filesystem:");
     }
 
     @NonNull
@@ -86,6 +93,7 @@ public class UrlUtils {
             String host = Uri.parse(url).getHost();
             return host != null ? host : "";
         } catch (Exception e) {
+            android.util.Log.w("UrlUtils", "getHost failed for url: " + url, e);
             return "";
         }
     }

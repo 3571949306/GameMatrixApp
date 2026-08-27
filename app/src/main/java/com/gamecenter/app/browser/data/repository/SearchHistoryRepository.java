@@ -1,6 +1,7 @@
 package com.gamecenter.app.browser.data.repository;
 
 import android.app.Application;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -17,7 +18,20 @@ import java.util.concurrent.Executors;
 public class SearchHistoryRepository {
 
     private final BrowserDatabase database;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private synchronized ExecutorService getExecutor() {
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+        return executor;
+    }
+
+    public void shutdown() {
+        if (!getExecutor().isShutdown()) {
+            getExecutor().shutdown();
+        }
+    }
 
     public SearchHistoryRepository(@NonNull Application application) {
         database = BrowserDatabase.getInstance(application);
@@ -28,7 +42,7 @@ public class SearchHistoryRepository {
      */
     public void saveSearchHistory(@NonNull String keyword, @NonNull String searchEngine) {
         if (keyword.trim().isEmpty()) return;
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 SearchHistoryEntity existing = database.searchHistoryDao().getByKeyword(keyword);
                 long now = System.currentTimeMillis();
@@ -45,12 +59,12 @@ public class SearchHistoryRepository {
                     entity.setCount(1);
                     database.searchHistoryDao().insert(entity);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.w("SearchHistoryRepo", "saveSearchHistory failed", e); }
         });
     }
 
     public void getRecentSearches(int limit, @NonNull SearchListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 List<SearchHistoryEntity> list = database.searchHistoryDao().getRecentSearches(limit);
                 callback.onResult(list);
@@ -61,10 +75,10 @@ public class SearchHistoryRepository {
     }
 
     public void deleteAll() {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 database.searchHistoryDao().deleteAll();
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.w("SearchHistoryRepo", "saveSearchHistory failed", e); }
         });
     }
 

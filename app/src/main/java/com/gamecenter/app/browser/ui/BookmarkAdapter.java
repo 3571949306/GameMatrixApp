@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.R;
@@ -39,8 +40,42 @@ public class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.ViewHo
     public void setOnDeleteClickListener(OnDeleteClickListener l) { this.deleteListener = l; }
 
     public void setData(List<BrowserBookmarkEntity> items) {
-        this.bookmarkList = items != null ? items : new ArrayList<>();
-        notifyDataSetChanged();
+        List<BrowserBookmarkEntity> oldList = new ArrayList<>(this.bookmarkList);
+        List<BrowserBookmarkEntity> newList = items != null ? items : new ArrayList<>();
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new BookmarkDiffCallback(oldList, newList));
+        this.bookmarkList = newList;
+        diffResult.dispatchUpdatesTo(this);
+    }
+
+    private static class BookmarkDiffCallback extends DiffUtil.Callback {
+        private final List<BrowserBookmarkEntity> oldList;
+        private final List<BrowserBookmarkEntity> newList;
+
+        BookmarkDiffCallback(List<BrowserBookmarkEntity> oldList, List<BrowserBookmarkEntity> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() { return oldList.size(); }
+
+        @Override
+        public int getNewListSize() { return newList.size(); }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            return oldList.get(oldItemPosition).getId() == newList.get(newItemPosition).getId();
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            BrowserBookmarkEntity oldItem = oldList.get(oldItemPosition);
+            BrowserBookmarkEntity newItem = newList.get(newItemPosition);
+            if (oldItem.getId() != newItem.getId()) return false;
+            if (!java.util.Objects.equals(oldItem.getTitle(), newItem.getTitle())) return false;
+            if (!java.util.Objects.equals(oldItem.getUrl(), newItem.getUrl())) return false;
+            return oldItem.getCreateTime() == newItem.getCreateTime();
+        }
     }
 
     @NonNull @Override

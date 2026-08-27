@@ -7,6 +7,8 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.R;
@@ -33,9 +35,10 @@ public class TabAdapter extends RecyclerView.Adapter<TabAdapter.ViewHolder> {
     }
 
     public void setData(@NonNull List<BrowserTabManager.Tab> list) {
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new TabDiffCallback(data, list));
         data.clear();
         data.addAll(list);
-        notifyDataSetChanged();
+        result.dispatchUpdatesTo(this);
     }
 
     public void setOnItemClickListener(OnItemClickListener l) { this.itemClickListener = l; }
@@ -83,6 +86,67 @@ public class TabAdapter extends RecyclerView.Adapter<TabAdapter.ViewHolder> {
             tvTitle = v.findViewById(R.id.tv_tab_title);
             tvUrl = v.findViewById(R.id.tv_tab_url);
             btnClose = v.findViewById(R.id.btn_tab_close);
+        }
+    }
+
+    private static class TabDiffCallback extends DiffUtil.Callback {
+
+        private final List<BrowserTabManager.Tab> oldList;
+        private final List<BrowserTabManager.Tab> newList;
+
+        TabDiffCallback(@NonNull List<BrowserTabManager.Tab> oldList,
+                        @NonNull List<BrowserTabManager.Tab> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            String oldId = oldList.get(oldItemPosition).getId();
+            String newId = newList.get(newItemPosition).getId();
+            if (oldId != null && newId != null) {
+                return oldId.equals(newId);
+            }
+            String oldFallback = buildFallbackId(oldList.get(oldItemPosition));
+            String newFallback = buildFallbackId(newList.get(newItemPosition));
+            return oldFallback.equals(newFallback);
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            BrowserTabManager.Tab oldTab = oldList.get(oldItemPosition);
+            BrowserTabManager.Tab newTab = newList.get(newItemPosition);
+            if (oldTab.isIncognito() != newTab.isIncognito()) return false;
+            if (!safeEquals(oldTab.getTitle(), newTab.getTitle())) return false;
+            return safeEquals(oldTab.getUrl(), newTab.getUrl());
+        }
+
+        @Nullable
+        @Override
+        public Object getChangePayload(int oldItemPosition, int newItemPosition) {
+            return super.getChangePayload(oldItemPosition, newItemPosition);
+        }
+
+        private static String buildFallbackId(BrowserTabManager.Tab tab) {
+            String url = tab.getUrl() != null ? tab.getUrl() : "";
+            String title = tab.getTitle() != null ? tab.getTitle() : "";
+            return url + "_" + title;
+        }
+
+        private static boolean safeEquals(@Nullable String a, @Nullable String b) {
+            if (a == null && b == null) return true;
+            if (a == null || b == null) return false;
+            return a.equals(b);
         }
     }
 }

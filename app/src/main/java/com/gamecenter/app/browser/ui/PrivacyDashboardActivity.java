@@ -17,6 +17,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -27,6 +28,7 @@ import com.gamecenter.app.browser.security.BrowserTrackerStats;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 隐私仪表盘（P1-2）。
@@ -168,8 +170,10 @@ public class PrivacyDashboardActivity extends AppCompatActivity {
         private List<Map.Entry<String, Integer>> data = java.util.Collections.emptyList();
 
         void submit(@NonNull List<Map.Entry<String, Integer>> data) {
+            DiffUtil.DiffResult result = DiffUtil.calculateDiff(
+                    new TrackerDomainDiffCallback(this.data, data));
             this.data = data;
-            notifyDataSetChanged();
+            result.dispatchUpdatesTo(this);
         }
 
         @NonNull
@@ -191,6 +195,41 @@ public class PrivacyDashboardActivity extends AppCompatActivity {
         @Override
         public int getItemCount() {
             return data.size();
+        }
+
+        private static class TrackerDomainDiffCallback extends DiffUtil.Callback {
+            private final List<Map.Entry<String, Integer>> oldList;
+            private final List<Map.Entry<String, Integer>> newList;
+
+            TrackerDomainDiffCallback(List<Map.Entry<String, Integer>> oldList,
+                                      List<Map.Entry<String, Integer>> newList) {
+                this.oldList = oldList;
+                this.newList = newList;
+            }
+
+            @Override
+            public int getOldListSize() {
+                return oldList.size();
+            }
+
+            @Override
+            public int getNewListSize() {
+                return newList.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                return oldList.get(oldItemPosition).getKey()
+                        .equals(newList.get(newItemPosition).getKey());
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                Map.Entry<String, Integer> oldEntry = oldList.get(oldItemPosition);
+                Map.Entry<String, Integer> newEntry = newList.get(newItemPosition);
+                return oldEntry.getKey().equals(newEntry.getKey())
+                        && Objects.equals(oldEntry.getValue(), newEntry.getValue());
+            }
         }
 
         static class VH extends RecyclerView.ViewHolder {

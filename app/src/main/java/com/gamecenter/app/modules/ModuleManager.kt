@@ -304,8 +304,22 @@ object ModuleManager {
         return ModuleLoader.loadModule(context, manifest)
     }
 
+    /**
+     * 获取已加载模块的独立资源。
+     *
+     * 返回模块依赖链可见的 [com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources]
+     * 表示（app-classes.jar 提供，动态模块编译期可见）；实际资源加载由统一加载器
+     * `core:module-host` 完成（含 addAssetPath 探测与降级），此处仅做表示转换。
+     */
     fun getModuleResources(moduleId: String): com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources? {
-        return ModuleLoader.getModuleResources(moduleId)
+        val core = ModuleLoader.getModuleResources(moduleId)
+            ?: return null
+        return com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources(
+            moduleId = core.moduleId,
+            resources = core.resources,
+            assetManager = core.assetManager,
+            packageName = core.packageName
+        )
     }
 
     fun startModule(context: Context, moduleId: String): Boolean = ModuleLoader.startModule(context, moduleId)

@@ -202,6 +202,16 @@ public class ChineseChessModuleFragment extends Fragment {
         view.findViewById(getResId("btn_tutorial_ingame", "id")).setOnClickListener(v ->
                 GameTutorialHelper.showChineseChessTutorial(requireContext()));
         view.findViewById(getResId("btn_online", "id")).setOnClickListener(v -> {
+            // P2 明确下线：联机基础设施未接入生产环境（动态模块侧为空存根），
+            // 经 OnlinePlayGate 统一下线，避免用户进入空实现；恢复联机需先置 ENABLED=true。
+            if (!com.gamecenter.app.core.common.OnlinePlayGate.ENABLED) {
+                android.widget.Toast.makeText(
+                        getContext(),
+                        com.gamecenter.app.core.common.OnlinePlayGate.COMING_SOON_MESSAGE,
+                        android.widget.Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
             getParentFragmentManager().beginTransaction()
                     .replace(com.gamecenter.app.R.id.fragment_container, new ChineseChessOnlineFragment())
                     .addToBackStack(null)
