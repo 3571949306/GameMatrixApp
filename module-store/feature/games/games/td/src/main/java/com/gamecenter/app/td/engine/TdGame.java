@@ -168,6 +168,9 @@ public class TdGame {
         public float dotDps = 0f;
         public float dotTimer = 0f;
         public float shield = 0f;
+        public float maxShield;
+        public float shieldPulseTimer = 1.1f;
+        public float shieldFlash = 0f;
         public float chargeCooldown = 2.4f;
         public float chargeTimer = 0f;
         public boolean charging = false;
@@ -203,6 +206,7 @@ public class TdGame {
             this.baseSpeedMul = speedMul;
             this.speedMul = speedMul;
             this.shield = type.shieldHp(type);
+            this.maxShield = this.shield;
             this.x = startingX + 0.5f;
             this.y = startingY + 0.5f;
             this.pathIndex = 0;
@@ -742,6 +746,7 @@ public class TdGame {
             if (m.dead) continue;
             if (m.hitFlash > 0f) m.hitFlash = Math.max(0f, m.hitFlash - FIXED_DT);
             if (m.healedFlash > 0f) m.healedFlash = Math.max(0f, m.healedFlash - FIXED_DT);
+            if (m.shieldFlash > 0f) m.shieldFlash = Math.max(0f, m.shieldFlash - FIXED_DT);
             // 减速：只临时缩放，过期后还原出生倍率（困难/特殊波的速度系数不被抹掉）
             if (m.slowTimer > 0f) {
                 m.slowTimer -= FIXED_DT;
@@ -756,6 +761,7 @@ public class TdGame {
             if (m.dead) continue;
             if (m.type == MonsterType.HEALER) updateHealer(m);
             if (m.type == MonsterType.CHARGER) updateCharger(m);
+            if (m.type == MonsterType.SHIELD_GENERATOR) updateShieldGenerator(m);
             // 移动
             moveMonster(m);
         }
@@ -817,6 +823,25 @@ public class TdGame {
             charger.charging = true;
             charger.chargeTimer = .65f;
             charger.chargeCooldown = 3.6f;
+        }
+    }
+
+    /** 护盾发生器每次最多照顾三名同伴；同一目标护盾永远受 maxShield 限制。 */
+    private void updateShieldGenerator(Monster generator) {
+        generator.shieldPulseTimer -= FIXED_DT;
+        if (generator.shieldPulseTimer > 0f) return;
+        generator.shieldPulseTimer = 2.5f;
+        int affected = 0;
+        for (Monster candidate : monsters) {
+            if (candidate.dead || candidate == generator
+                    || dist(candidate.x, candidate.y, generator.x, generator.y) > 2.15f) {
+                continue;
+            }
+            float cap = MonsterType.SHIELD.shieldHp(MonsterType.SHIELD) + 32f;
+            candidate.maxShield = Math.max(candidate.maxShield, cap);
+            candidate.shield = Math.min(candidate.maxShield, candidate.shield + 32f);
+            candidate.shieldFlash = .38f;
+            if (++affected >= 3) return;
         }
     }
 
