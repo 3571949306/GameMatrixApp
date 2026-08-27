@@ -173,6 +173,44 @@ public class TdGameTest {
         assertEquals("狙击塔不应误伤飞行兵", fly.maxHp, fly.hp, .0001f);
     }
 
+    @Test
+    public void mineTower_requiresPathAdjacentTrapCell() {
+        TdGame g = mergeTestGame();
+        assertNotNull("相邻道路格应能放置地雷", g.placeTower(TowerType.MINE, 1, 1));
+        assertNull("远离道路不能放置地雷", g.placeTower(TowerType.MINE, 2, 1));
+        assertNull("道路本身不能放置地雷", g.placeTower(TowerType.MINE, 0, 2));
+    }
+
+    @Test
+    public void mineTower_explodesInAreaThenRecharges() {
+        TdGame g = clusteredMonsterGame(2);
+        TdGame.Tower mine = g.placeTower(TowerType.MINE, 1, 0);
+        assertNotNull(mine);
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        int dead = 0;
+        for (TdGame.Monster monster : g.getMonsters()) if (monster.dead) dead++;
+        assertEquals("同一触发区内的两只怪必须同时受爆炸伤害", 2, dead);
+        assertTrue("地雷触发后必须进入冷却而非一次性消失", mine.cooldown > 0f);
+        assertNotNull("冷却中的地雷仍应保留在棋盘", g.getTowerAt(1, 0));
+    }
+
+    @Test
+    public void levelThreeMine_leavesBoundedBurnZone() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.TANK, 1, 0f, 0f, 2f, 1f));
+        TdGame g = new TdGame(5, 2, path, 0, 4, 1000, 10, waves);
+        TdGame.Tower mine = g.placeTower(TowerType.MINE, 1, 0);
+        mine.level = 3;
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        assertEquals(1, g.getBurnZones().size());
+        float hpAfterBlast = g.getMonsters().get(0).hp;
+        for (int i = 0; i < 30; i++) g.tick();
+        assertTrue("燃烧区必须造成后续伤害", g.getMonsters().get(0).hp < hpAfterBlast);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();

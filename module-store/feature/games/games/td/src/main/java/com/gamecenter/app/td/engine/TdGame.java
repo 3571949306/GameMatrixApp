@@ -230,6 +230,19 @@ public class TdGame {
         }
     }
 
+    /** Lv3 地雷短暂留下的燃烧区；以固定帧扣血且有硬时长。 */
+    public static class BurnZone {
+        public final float x, y, radius;
+        public float secondsLeft;
+
+        BurnZone(float x, float y, float radius, float secondsLeft) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+            this.secondsLeft = secondsLeft;
+        }
+    }
+
     // ===== 关卡结构 =====
     private final int cols;
     private final int rows;
@@ -259,6 +272,7 @@ public class TdGame {
     private final List<Tower> towers = new ArrayList<>();
     private final List<Beam> beams = new ArrayList<>();
     private final List<KillEvent> killEvents = new ArrayList<>();
+    private final List<BurnZone> burnZones = new ArrayList<>();
     private int nextMonsterId = 1;
     /** 蛋蛋受击反馈计时（秒，UI 做红闪），0 表示无受击 */
     private float eggHitTimer = 0f;
@@ -389,6 +403,7 @@ public class TdGame {
     public List<Monster> getMonsters() { return monsters; }
     public List<Tower> getTowers() { return towers; }
     public List<Beam> getBeams() { return beams; }
+    public List<BurnZone> getBurnZones() { return burnZones; }
     public float getEggHitTimer() { return eggHitTimer; }
 
     /**
@@ -464,6 +479,20 @@ public class TdGame {
         return row == eggRow && col == eggCol;
     }
 
+    /** 地雷只能贴着道路布置，既保持陷阱语义，也不会占用道路本身。 */
+    public boolean isMinePlacementCell(int row, int col) {
+        if (row < 0 || row >= rows || col < 0 || col >= cols || isPathCell(row, col) || isEggCell(row, col)) {
+            return false;
+        }
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                if (Math.abs(dr) + Math.abs(dc) != 1) continue;
+                if (isPathCell(row + dr, col + dc)) return true;
+            }
+        }
+        return false;
+    }
+
     private static int key(int row, int col) { return row * 1000 + col; }
 
     // ===== 玩家操作 =====
@@ -474,7 +503,10 @@ public class TdGame {
         if (type == null) { return fail("无效的塔类型"); }
         if (state == State.WON || state == State.LOST) { return fail("对局已结束"); }
         if (row < 0 || row >= rows || col < 0 || col >= cols) { return fail("位置越界"); }
-        if (isPathCell(row, col)) { return fail("不能在路径上建塔"); }
+        if (type == TowerType.MINE && !isMinePlacementCell(row, col)) {
+            return fail("地雷塔只能放在紧邻路径的陷阱位");
+        }
+        if (type != TowerType.MINE && isPathCell(row, col)) { return fail("不能在路径上建塔"); }
         if (isEggCell(row, col)) { return fail("不能占蛋蛋的位置"); }
         if (towerGrid.containsKey(key(row, col))) { return fail("该位置已有塔"); }
         if (coin < type.baseCost) { return fail("金币不足，需要 " + type.baseCost); }
@@ -657,6 +689,7 @@ public class TdGame {
         if (eggHitTimer > 0f) eggHitTimer = Math.max(0f, eggHitTimer - FIXED_DT);
         updateSpawning();
         updateMonsters();
+        updateBurnZones();
         updateTowers();
         pruneBeams();
         checkEnd();
@@ -712,6 +745,18 @@ public class TdGame {
         }
         // 移除死亡/到达终点的怪
         monsters.removeIf(m -> m.dead);
+    }
+
+    private void updateBurnZones() {
+        for (BurnZone zone : burnZones) {
+            zone.secondsLeft -= FIXED_DT;
+            for (Monster monster : monsters) {
+                if (!monster.dead && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
+                    takeDamage(monster, TowerType.MINE_BURN_DPS * FIXED_DT, true);
+                }
+            }
+        }
+        burnZones.removeIf(zone -> zone.secondsLeft <= 0f);
     }
 
     /** 医生怪优先治疗范围内受伤最重的存活同伴，不能复活或超量治疗。 */
@@ -902,6 +947,19 @@ public class TdGame {
             case SNIPER:
                 takeDamage(target, dmg, false);
                 break;
+            case MINE: {
+                float radius = t.type.mineBlastRadiusAt(t.level);
+                for (Monster monster : monsters) {
+                    if (!monster.dead && dist(monster.x, monster.y, tx, ty) <= radius) {
+                        takeDamage(monster, dmg, false);
+                    }
+                }
+                if (t.level >= 3) {
+                    burnZones.add(new BurnZone(tx, ty, radius, TowerType.MINE_BURN_SEC));
+                    if (burnZones.size() > 24) burnZones.remove(0);
+                }
+                break;
+            }
             default:
                 break;
         }
