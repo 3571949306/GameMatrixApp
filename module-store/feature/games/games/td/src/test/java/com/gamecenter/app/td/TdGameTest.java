@@ -401,6 +401,15 @@ public class TdGameTest {
                 MonsterType.SHIELD_GENERATOR, MonsterType.SUMMONER, MonsterType.RESISTANT, MonsterType.RAGER);
     }
 
+    @Test
+    public void mergeLevelGrowth_usesUnifiedPrimarySpeedAndRangeRules() {
+        assertEquals(TowerType.BOTTLE.damage * 1.35f, TowerType.BOTTLE.damageAt(2), .0001f);
+        assertEquals(TowerType.BOTTLE.damage * 1.35f * 1.35f, TowerType.BOTTLE.damageAt(3), .0001f);
+        assertEquals(TowerType.BOTTLE.fireInterval * .93f, TowerType.BOTTLE.fireIntervalAt(2), .0001f);
+        assertEquals(TowerType.BOTTLE.range * 1.05f, TowerType.BOTTLE.rangeAt(2), .0001f);
+        assertEquals(TowerType.SUN.income * 1.35f, TowerType.SUN.incomeAt(2), .0001f);
+    }
+
     private static void assertWaveContains(String levelId, MonsterType... required) {
         java.util.HashSet<MonsterType> present = waveTypes(levelId);
         for (MonsterType type : required) assertTrue(levelId + " 应教学 " + type, present.contains(type));

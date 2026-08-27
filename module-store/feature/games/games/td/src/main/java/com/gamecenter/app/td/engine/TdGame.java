@@ -1001,7 +1001,7 @@ public class TdGame {
                 t.incomeTimer -= FIXED_DT;
                 if (t.incomeTimer <= 0f) {
                     t.incomeTimer = 1.8f; // 每 1.8 秒产一次
-                    int gained = (int) (t.type.income * t.level);
+                    int gained = Math.round(t.type.incomeAt(t.level));
                     coin += gained;
                     coinsEarned += gained;
                 }
