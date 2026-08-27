@@ -880,10 +880,10 @@ public class TdGame {
                     coin += gained;
                     coinsEarned += gained;
                 }
-            } else {
+            } else if (t.type != TowerType.AMPLIFIER) {
                 t.cooldown -= FIXED_DT;
                 if (t.cooldown <= 0f) {
-                    t.cooldown = t.fireIntervalAt();
+                    t.cooldown = effectiveFireIntervalAt(t);
                     fire(t);
                 }
             }
@@ -1003,7 +1003,7 @@ public class TdGame {
             if (m.dead) continue;
             if (m.type.fly && !t.type.canAir) continue;
             float d = dist(m.x, m.y, cx, cy);
-            if (d > t.rangeAt()) continue;
+            if (d > effectiveRangeAt(t)) continue;
             // 狙击塔固定优先关键强敌，避免玩家忘记切目标模式时退化成昂贵瓶子炮。
             TargetMode mode = t.type == TowerType.SNIPER ? TargetMode.STRONG : t.targetMode;
             float score = targetScore(mode, m);
@@ -1057,6 +1057,41 @@ public class TdGame {
     /** 是否仍被该塔所在格子占用（卖掉后该格可重建） */
     public boolean isCellOccupied(int row, int col) {
         return towerGrid.containsKey(key(row, col));
+    }
+
+    /** 当前塔获得的攻击速度加成。重叠增幅塔只取最高等级的一份。 */
+    public float getAttackSpeedBonus(Tower target) {
+        Tower source = strongestAmplifierFor(target);
+        return source == null ? 0f : source.type.amplifierAttackSpeedBonusAt(source.level);
+    }
+
+    /** 当前塔获得的射程加成；和攻速一样不叠加。 */
+    public float getRangeBonus(Tower target) {
+        Tower source = strongestAmplifierFor(target);
+        return source == null ? 0f : source.type.amplifierRangeBonusAt(source.level);
+    }
+
+    public float effectiveRangeAt(Tower tower) {
+        return tower.rangeAt() * (1f + getRangeBonus(tower));
+    }
+
+    public float effectiveFireIntervalAt(Tower tower) {
+        return tower.fireIntervalAt() / (1f + getAttackSpeedBonus(tower));
+    }
+
+    private Tower strongestAmplifierFor(Tower target) {
+        if (target == null || target.type == TowerType.AMPLIFIER || target.type == TowerType.SUN) return null;
+        Tower strongest = null;
+        float tx = target.col + .5f;
+        float ty = target.row + .5f;
+        for (Tower candidate : towers) {
+            if (candidate.type != TowerType.AMPLIFIER || candidate == target) continue;
+            float cx = candidate.col + .5f;
+            float cy = candidate.row + .5f;
+            if (dist(tx, ty, cx, cy) > candidate.rangeAt()) continue;
+            if (strongest == null || candidate.level > strongest.level) strongest = candidate;
+        }
+        return strongest;
     }
 
     private static float dist(float x1, float y1, float x2, float y2) {

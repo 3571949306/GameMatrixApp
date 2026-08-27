@@ -211,6 +211,27 @@ public class TdGameTest {
         assertTrue("燃烧区必须造成后续伤害", g.getMonsters().get(0).hp < hpAfterBlast);
     }
 
+    @Test
+    public void amplifierTower_usesOnlyHighestOverlappingBuff_andRecalculatesOnSell() {
+        TdGame g = mergeTestGame();
+        TdGame.Tower bottle = g.placeTower(TowerType.BOTTLE, 1, 1);
+        TdGame.Tower ampLow = g.placeTower(TowerType.AMPLIFIER, 2, 1);
+        TdGame.Tower ampHigh = g.placeTower(TowerType.AMPLIFIER, 2, 0);
+        assertNotNull(bottle);
+        assertNotNull(ampLow);
+        assertNotNull(ampHigh);
+        ampHigh.level = 3;
+        assertEquals("两座重叠增幅不能叠乘，只取 Lv3", .20f, g.getAttackSpeedBonus(bottle), .0001f);
+        assertEquals(.10f, g.getRangeBonus(bottle), .0001f);
+        assertEquals(bottle.fireIntervalAt() / 1.20f, g.effectiveFireIntervalAt(bottle), .0001f);
+        assertEquals(bottle.rangeAt() * 1.10f, g.effectiveRangeAt(bottle), .0001f);
+        assertEquals("增幅塔不强化自身", 0f, g.getAttackSpeedBonus(ampHigh), .0001f);
+        assertTrue(g.sellTower(ampHigh.row, ampHigh.col));
+        assertEquals("卖掉高等级增幅后应立即回退到剩余最高值", .10f,
+                g.getAttackSpeedBonus(bottle), .0001f);
+        assertEquals(0f, g.getRangeBonus(bottle), .0001f);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
