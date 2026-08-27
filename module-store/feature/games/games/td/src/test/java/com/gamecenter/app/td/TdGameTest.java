@@ -274,6 +274,36 @@ public class TdGameTest {
         assertTrue("冲锋怪必须在固定冷却后出现短冲刺", sawCharge);
     }
 
+    @Test
+    public void shieldGenerator_buffsAtMostThreeAllies_withoutSelfOrInfiniteStacking() {
+        int[][] path = new int[40][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {
+                MonsterType.SHIELD_GENERATOR, MonsterType.NORMAL, MonsterType.NORMAL,
+                MonsterType.NORMAL, MonsterType.NORMAL
+        }, 0, 5, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(40, 2, path, 0, 39, 1000, 10, waves);
+        assertTrue(g.startNextWaveEarly());
+        for (int i = 0; i < 60 * 2; i++) g.tick();
+        int shielded = 0;
+        TdGame.Monster generator = null;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (monster.type == MonsterType.SHIELD_GENERATOR) generator = monster;
+            else if (monster.shield > 0f) {
+                shielded++;
+                assertTrue("护盾必须受上限控制", monster.shield <= monster.maxShield + .0001f);
+            }
+        }
+        assertNotNull(generator);
+        assertEquals("每次最多影响三名友军", 3, shielded);
+        assertEquals("护盾发生器不能给自己套盾", 0f, generator.shield, .0001f);
+        for (int i = 0; i < 60 * 3; i++) g.tick();
+        for (TdGame.Monster monster : g.getMonsters()) {
+            assertTrue("多次脉冲不能无限叠盾", monster.shield <= monster.maxShield + .0001f);
+        }
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
