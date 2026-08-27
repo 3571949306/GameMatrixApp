@@ -101,6 +101,42 @@ public class TdGameTest {
     }
 
     @Test
+    public void placeOrMergeTower_paletteDrop_mergesSameTypeAndChargesOneCard() {
+        TdGame g = mergeTestGame();
+        TdGame.Tower target = g.placeTower(TowerType.BOTTLE, 1, 0);
+        assertNotNull(target);
+        int coinBefore = g.getCoin();
+        int towersBefore = g.getTowers().size();
+
+        assertTrue(g.placeOrMergeTower(TowerType.BOTTLE, 1, 0));
+        assertEquals(2, target.level);
+        assertEquals(coinBefore - TowerType.BOTTLE.baseCost, g.getCoin());
+        assertEquals(towersBefore, g.getTowers().size());
+
+        int coinAfter = g.getCoin();
+        assertFalse("不同类型拖入必须拒绝且不扣金币",
+                g.placeOrMergeTower(TowerType.ROCKET, 1, 0));
+        assertEquals(coinAfter, g.getCoin());
+        assertEquals(2, target.level);
+    }
+
+    @Test
+    public void placeOrMergeTower_paletteDrop_buildsEmptyCellAndRejectsMaxLevel() {
+        TdGame g = mergeTestGame();
+        int coinBefore = g.getCoin();
+        assertTrue(g.placeOrMergeTower(TowerType.SNOW, 1, 0));
+        assertNotNull(g.getTowerAt(1, 0));
+        assertEquals(coinBefore - TowerType.SNOW.baseCost, g.getCoin());
+
+        TdGame.Tower target = g.getTowerAt(1, 0);
+        target.level = 3;
+        int coinAtMax = g.getCoin();
+        assertFalse(g.placeOrMergeTower(TowerType.SNOW, 1, 0));
+        assertEquals(coinAtMax, g.getCoin());
+        assertEquals(3, target.level);
+    }
+
+    @Test
     public void merge_sellRefund_usesBothSourceInvestments() {
         TdGame g = mergeTestGame();
         g.placeTower(TowerType.BOTTLE, 1, 0);

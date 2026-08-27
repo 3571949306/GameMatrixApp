@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <com.gamecenter.app.tools.BubbleLevelView
+        android:id="@+id/v_bubble_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:background="?attr/colorSurfaceVariant" />
+
+    <TextView
+        android:id="@+id/tv_level_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="@string/level_status_ready"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tv_level_angle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/gm_spacing_1"
+        android:text="@string/level_angles_format"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_level_calibrate"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/gm_spacing_3"
+        android:text="@string/level_calibrate" />
+
+</LinearLayout>

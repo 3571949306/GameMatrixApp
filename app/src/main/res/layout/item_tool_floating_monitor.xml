@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_float_start"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="@string/float_btn_start" />
+
+    <TextView
+        android:id="@+id/tv_float_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="@string/float_permission_required"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp" />
+
+    <CheckBox
+        android:id="@+id/cb_float_cpu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="CPU"
+        android:textColor="?android:attr/textColorPrimary" />
+
+    <CheckBox
+        android:id="@+id/cb_float_ram"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RAM"
+        android:textColor="?android:attr/textColorPrimary" />
+
+    <CheckBox
+        android:id="@+id/cb_float_temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="温度"
+        android:textColor="?android:attr/textColorPrimary" />
+
+    <CheckBox
+        android:id="@+id/cb_float_fps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="帧率 FPS"
+        android:textColor="?android:attr/textColorPrimary" />
+
+</LinearLayout>

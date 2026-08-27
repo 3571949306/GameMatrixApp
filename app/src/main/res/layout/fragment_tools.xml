@@ -1,162 +1,210 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/fl_tools_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"
-    android:orientation="vertical"
-    android:paddingTop="@dimen/gm_spacing_6">
+    android:background="?android:attr/colorBackground">
 
-    <!-- 顶部工具栏 -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
+        android:id="@+id/ll_tools_hub"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/gm_spacing_5"
-        android:layout_marginEnd="@dimen/gm_spacing_5"
-        android:layout_marginTop="@dimen/gm_spacing_3">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="@dimen/gm_spacing_6">
 
         <TextView
             android:id="@+id/tv_tools_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/gm_spacing_5"
+            android:layout_marginTop="@dimen/gm_spacing_3"
             android:text="@string/tools_title"
             android:textAppearance="@style/TextAppearance.GameMatrix.Title"
-            android:textSize="22sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:textSize="22sp" />
 
-        <ImageButton
-            android:id="@+id/btn_tools_layout"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="布局"
-            android:padding="@dimen/gm_spacing_2"
-            android:src="@drawable/ic_drag_handle"
-            app:tint="?attr/colorOnSurfaceVariant"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+        <TextView
+            android:id="@+id/tv_tools_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/gm_spacing_5"
+            android:layout_marginTop="2dp"
+            android:text="多功能工具箱"
+            android:textAppearance="@style/TextAppearance.GameMatrix.Subtitle"
+            android:textSize="13sp" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <TextView
-        android:id="@+id/tv_tools_subtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/gm_spacing_5"
-        android:layout_marginTop="2dp"
-        android:text="多功能工具箱"
-        android:textAppearance="@style/TextAppearance.GameMatrix.Subtitle"
-        android:textSize="13sp" />
-
-    <!-- 刷新按钮 -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_refresh"
-        style="@style/Widget.GameMatrix.Button.Tonal"
-        android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="@dimen/gm_spacing_2"
-        android:text="@string/refresh"
-        android:textSize="12sp"
-        app:icon="@drawable/ic_refresh"
-        app:iconSize="16dp" />
-
-    <!-- 搜索框 -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tool_search_layout"
-        style="@style/Widget.GameMatrix.Search"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/gm_spacing_4"
-        android:layout_marginTop="@dimen/gm_spacing_2"
-        android:layout_marginEnd="@dimen/gm_spacing_4"
-        android:hint="搜索工具"
-        app:startIconDrawable="@drawable/ic_search">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_tool_search"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tool_search_layout"
+            style="@style/Widget.GameMatrix.Search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:textSize="14sp" />
+            android:layout_marginStart="@dimen/gm_spacing_4"
+            android:layout_marginTop="@dimen/gm_spacing_2"
+            android:layout_marginEnd="@dimen/gm_spacing_4"
+            android:hint="搜索工具"
+            app:startIconDrawable="@drawable/ic_search">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_tool_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textSize="14sp" />
 
-    <!-- 筛选Chip组 -->
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/tool_filter_chips"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="@dimen/gm_spacing_2"
-        android:paddingStart="@dimen/gm_spacing_4"
-        android:paddingEnd="@dimen/gm_spacing_4"
-        app:singleSelection="true"
-        app:checkedChip="@id/chip_filter_all">
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_all"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="全部"
-            android:checked="true" />
+        <ScrollView
+            android:id="@+id/sv_hub_content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/gm_spacing_2"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:paddingBottom="24dp">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_favorites"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="收藏" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/gm_spacing_4"
+                android:paddingEnd="@dimen/gm_spacing_4">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_recent"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="最近" />
+                <include
+                    android:id="@+id/toolbox_dashboard"
+                    layout="@layout/item_toolbox_dashboard" />
 
-        <!-- 2026-06-23: 分类筛选 chip -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_network"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="网络" />
+                <LinearLayout
+                    android:id="@+id/ll_fav_block"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_device"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="设备" />
+                    <TextView
+                        android:id="@+id/tv_favorites_header"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="收藏"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_tool"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="工具" />
+                <LinearLayout
+                    android:id="@+id/ll_recent_block"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_filter_hot"
-            style="@style/Widget.GameMatrix.Chip"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="最热" />
+                    <TextView
+                        android:id="@+id/tv_recent_header"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="最近使用"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-    </com.google.android.material.chip.ChipGroup>
+                <TextView
+                    android:id="@+id/tv_sections_header"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:text="全部工具"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_tools"
+                <TextView
+                    android:id="@+id/tv_tools_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingTop="32dp"
+                    android:paddingBottom="32dp"
+                    android:text="未找到匹配的工具"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/ll_sections"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+            </LinearLayout>
+        </ScrollView>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/fl_tool_workspace"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:padding="@dimen/gm_spacing_3"
-        app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-        app:spanCount="2" />
+        android:background="?android:attr/colorBackground"
+        android:orientation="vertical"
+        android:visibility="gone">
 
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <ImageButton
+                android:id="@+id/ib_ws_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="返回"
+                android:src="@drawable/ic_back"
+                app:tint="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/tv_ws_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/ib_ws_fav"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="收藏工具"
+                android:src="@drawable/ic_star_border" />
+
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:fillViewport="true">
+
+            <FrameLayout
+                android:id="@+id/fl_ws_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="24dp" />
+
+        </ScrollView>
+
+    </LinearLayout>
+
+</FrameLayout>

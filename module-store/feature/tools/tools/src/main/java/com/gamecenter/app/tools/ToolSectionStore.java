@@ -408,6 +408,10 @@ public final class ToolSectionStore {
             sections.add(new ToolSection("crypto_tool", appContext.getString(R.string.tool_name_crypto_tool), R.layout.item_tool_crypto_tool, true, "tool", appContext.getString(R.string.tool_desc_crypto_tool)));
             sections.add(new ToolSection("jwt_parser", appContext.getString(R.string.tool_name_jwt_parser), R.layout.item_tool_jwt_parser, true, "tool", appContext.getString(R.string.tool_desc_jwt_parser)));
         }
+        sections.add(new ToolSection("bubble_level", appContext.getString(R.string.tool_bubble_level), R.layout.item_tool_bubble_level, true, "device", appContext.getString(R.string.tool_bubble_level_desc)));
+        sections.add(new ToolSection("sound_meter", appContext.getString(R.string.tool_sound_meter), R.layout.item_tool_sound_meter, true, "device", appContext.getString(R.string.tool_sound_meter_desc)));
+        sections.add(new ToolSection("color_test", appContext.getString(R.string.tool_color_test), R.layout.item_tool_color_test, true, "device", appContext.getString(R.string.tool_color_test_desc)));
+        sections.add(new ToolSection("floating_monitor", appContext.getString(R.string.tool_floating_monitor), R.layout.item_tool_floating_monitor, true, "device", appContext.getString(R.string.tool_floating_monitor_desc)));
         return sections;
     }
 
