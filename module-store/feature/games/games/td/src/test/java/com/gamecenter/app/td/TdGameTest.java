@@ -48,10 +48,14 @@ public class TdGameTest {
     @Test
     public void placeTower_insufficientCoin_fails() {
         TdGame g = TdLevels.buildLevel("level_01");
-        for (int i = 0; i < 20; i++) {
-            g.placeTower(TowerType.BOTTLE, 2 + i / 8, 3 + i % 5);
+        for (int row = 0; row < g.getRows() && g.getCoin() >= TowerType.BOTTLE.baseCost; row++) {
+            for (int col = 0; col < g.getCols() && g.getCoin() >= TowerType.BOTTLE.baseCost; col++) {
+                if (!g.isPathCell(row, col) && !g.isEggCell(row, col)) {
+                    g.placeTower(TowerType.BOTTLE, row, col);
+                }
+            }
         }
-        // 金币应已耗尽（每塔 60）
+        assertTrue("循环必须真实花到无法再造瓶子炮", g.getCoin() < TowerType.BOTTLE.baseCost);
         assertNull(g.placeTower(TowerType.BOTTLE, 5, 8));
     }
 
@@ -383,6 +387,36 @@ public class TdGameTest {
             }
         }
         assertTrue("必须在低于半血后才进入狂暴", sawBelowHalfBeforeEnrage);
+    }
+
+    @Test
+    public void unitRosterAndLevelTeachingSchedule_matchExpansionPlan() {
+        assertEquals("最终必须有十种防御塔", 10, TowerType.values().length);
+        assertEquals("最终必须有十四种怪物", 14, MonsterType.values().length);
+        assertWaveContains("level_02", MonsterType.FLY, MonsterType.SPLITTER);
+        assertWaveContains("level_03", MonsterType.HEALER, MonsterType.SHIELD_GENERATOR);
+        assertWaveContains("level_04", MonsterType.CHARGER);
+        assertWaveContains("level_05", MonsterType.SUMMONER, MonsterType.RESISTANT, MonsterType.RAGER);
+        assertWaveExcludes("level_01", MonsterType.SPLITTER, MonsterType.CHARGER,
+                MonsterType.SHIELD_GENERATOR, MonsterType.SUMMONER, MonsterType.RESISTANT, MonsterType.RAGER);
+    }
+
+    private static void assertWaveContains(String levelId, MonsterType... required) {
+        java.util.HashSet<MonsterType> present = waveTypes(levelId);
+        for (MonsterType type : required) assertTrue(levelId + " 应教学 " + type, present.contains(type));
+    }
+
+    private static void assertWaveExcludes(String levelId, MonsterType... excluded) {
+        java.util.HashSet<MonsterType> present = waveTypes(levelId);
+        for (MonsterType type : excluded) assertFalse(levelId + " 不应提前投放 " + type, present.contains(type));
+    }
+
+    private static java.util.HashSet<MonsterType> waveTypes(String levelId) {
+        java.util.HashSet<MonsterType> types = new java.util.HashSet<>();
+        for (TdGame.Wave wave : TdLevels.buildLevel(levelId).getWaves()) {
+            for (int i = 0; i < wave.count; i++) types.add(wave.typeAt(i));
+        }
+        return types;
     }
 
     private static TdGame mergeTestGame() {
