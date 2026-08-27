@@ -896,8 +896,41 @@ public class TdGame {
                 }
                 break;
             }
+            case LIGHTNING:
+                fireLightning(t, target, dmg);
+                break;
             default:
                 break;
+        }
+    }
+
+    /**
+     * 有上限、不可回跳的雷电链。每次均从上一命中点搜索，且只接受存活目标，
+     * 因而不会重复命中、不会攻击死亡单位，也不会无限扩张。
+     */
+    private void fireLightning(Tower tower, Monster first, float damage) {
+        java.util.HashSet<Monster> hit = new java.util.HashSet<>();
+        hit.add(first);
+        takeDamage(first, damage, false);
+        Monster previous = first;
+        int maxTargets = tower.type.chainTargetCountAt(tower.level);
+        for (int count = 1; count < maxTargets; count++) {
+            Monster next = null;
+            float bestDistance = Float.MAX_VALUE;
+            for (Monster candidate : monsters) {
+                if (candidate.dead || hit.contains(candidate)) continue;
+                float distance = dist(previous.x, previous.y, candidate.x, candidate.y);
+                if (distance <= TowerType.LIGHTNING_CHAIN_RANGE && distance < bestDistance) {
+                    bestDistance = distance;
+                    next = candidate;
+                }
+            }
+            if (next == null) return;
+            beams.add(new Beam(previous.x, previous.y, next.x, next.y, TowerType.LIGHTNING));
+            if (beams.size() > 40) beams.remove(0);
+            hit.add(next);
+            takeDamage(next, damage * tower.type.chainDamageMultiplierAt(tower.level), false);
+            previous = next;
         }
     }
 
