@@ -136,6 +136,43 @@ public class TdGameTest {
         assertTrue(g.getMonsters().get(0).hitFlash > 0f);
     }
 
+    @Test
+    public void sniperTower_prioritizesStrongTarget_withHighSingleHit() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {MonsterType.NORMAL, MonsterType.TANK},
+                0, 2, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
+        TdGame.Tower sniper = g.placeTower(TowerType.SNIPER, 1, 1);
+        assertNotNull(sniper);
+        assertTrue("狙击塔必须拥有超远射程", sniper.rangeAt() > TowerType.BOTTLE.rangeAt(1));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster normal = null;
+        TdGame.Monster tank = null;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (monster.type == MonsterType.NORMAL) normal = monster;
+            if (monster.type == MonsterType.TANK) tank = monster;
+        }
+        assertNotNull(normal);
+        assertNotNull(tank);
+        assertEquals("狙击塔不能产生群伤", normal.maxHp, normal.hp, .0001f);
+        assertTrue("狙击塔应先重击强敌", tank.hp < tank.maxHp);
+    }
+
+    @Test
+    public void sniperTower_cannotTargetFlyingMonster() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.FLY, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(4, 2, path, 0, 3, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNIPER, 1, 1));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster fly = g.getMonsters().get(0);
+        assertEquals("狙击塔不应误伤飞行兵", fly.maxHp, fly.hp, .0001f);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();

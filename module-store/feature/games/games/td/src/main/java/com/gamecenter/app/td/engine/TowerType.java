@@ -11,7 +11,9 @@ public enum TowerType {
     POISON("毒泡泡", 100, 1.5f, 5.5f, 8f, 1.0f, true, 0f),
     ROCKET("火箭", 150, 1.8f, 6.5f, 48f, 2.0f, true, 0f),
     /** 低单体伤害，依靠有限次数的近距弹射清理密集队列。 */
-    LIGHTNING("雷电塔", 125, 1.35f, 4.8f, 19f, 1.05f, true, 0f);
+    LIGHTNING("雷电塔", 125, 1.35f, 4.8f, 19f, 1.05f, true, 0f),
+    /** 超远程重击塔，不具备对空能力，不能替代所有基础塔。 */
+    SNIPER("狙击塔", 175, 1.35f, 8.4f, 105f, 2.45f, false, 0f);
 
     public final String displayName;
     /** 基础造价 */

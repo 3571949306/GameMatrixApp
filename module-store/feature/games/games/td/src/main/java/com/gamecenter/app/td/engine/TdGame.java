@@ -899,6 +899,9 @@ public class TdGame {
             case LIGHTNING:
                 fireLightning(t, target, dmg);
                 break;
+            case SNIPER:
+                takeDamage(target, dmg, false);
+                break;
             default:
                 break;
         }
@@ -943,7 +946,9 @@ public class TdGame {
             if (m.type.fly && !t.type.canAir) continue;
             float d = dist(m.x, m.y, cx, cy);
             if (d > t.rangeAt()) continue;
-            float score = targetScore(t.targetMode, m);
+            // 狙击塔固定优先关键强敌，避免玩家忘记切目标模式时退化成昂贵瓶子炮。
+            TargetMode mode = t.type == TowerType.SNIPER ? TargetMode.STRONG : t.targetMode;
+            float score = targetScore(mode, m);
             if (score > bestScore) {
                 bestScore = score;
                 best = m;
