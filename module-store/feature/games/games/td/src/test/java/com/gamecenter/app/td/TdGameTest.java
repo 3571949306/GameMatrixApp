@@ -362,6 +362,29 @@ public class TdGameTest {
         assertTrue("软抗不能把伤害归零", resistant.hp < resistant.maxHp);
     }
 
+    @Test
+    public void ragerMonster_enragesOnlyBelowHalfHealth_andKeepsNormalDamageRules() {
+        int[][] path = new int[30][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.RAGER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(30, 2, path, 0, 29, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.BOTTLE, 1, 0));
+        assertTrue(g.startNextWaveEarly());
+        boolean sawBelowHalfBeforeEnrage = false;
+        for (int i = 0; i < 60; i++) {
+            g.tick();
+            TdGame.Monster rager = g.getMonsters().get(0);
+            if (rager.hp <= rager.maxHp * .5f) sawBelowHalfBeforeEnrage = true;
+            if (rager.enraged) {
+                assertEquals("狂暴只提高移动速度", 1.3f, g.getBehaviorSpeedMultiplier(rager), .0001f);
+                assertTrue("狂暴仍可被普通塔伤害", rager.hp > 0f && rager.hp < rager.maxHp);
+                break;
+            }
+        }
+        assertTrue("必须在低于半血后才进入狂暴", sawBelowHalfBeforeEnrage);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();

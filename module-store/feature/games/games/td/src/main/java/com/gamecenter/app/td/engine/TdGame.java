@@ -177,6 +177,7 @@ public class TdGame {
         public float chargeCooldown = 2.4f;
         public float chargeTimer = 0f;
         public boolean charging = false;
+        public boolean enraged = false;
         public float summonTimer = 6f;
         public int summonsRemaining = 4;
         /** 医生怪的治疗冷却和受治疗后的视觉提示。 */
@@ -863,7 +864,7 @@ public class TdGame {
     }
 
     private void moveMonster(Monster m) {
-        float behaviorSpeedMul = m.charging ? 1.9f : 1f;
+        float behaviorSpeedMul = getBehaviorSpeedMultiplier(m);
         float effSpeed = m.type.speed * m.speedMul * behaviorSpeedMul * FIXED_DT;
         float remaining = effSpeed;
         int[][] route = paths[m.routeIndex];
@@ -941,6 +942,9 @@ public class TdGame {
             float applied = Math.max(dmg - armorAbsorb, dmg * 0.2f); // 装甲最多减 80%
             m.hp -= applied;
             m.hitFlash = 0.18f; // 受击闪白（纯视觉）
+        }
+        if (m.type == MonsterType.RAGER && m.hp > 0f && m.hp <= m.maxHp * .5f) {
+            m.enraged = true;
         }
         if (m.hp <= 0f) {
             m.hp = 0f;
@@ -1179,6 +1183,13 @@ public class TdGame {
     /** 是否仍被该塔所在格子占用（卖掉后该格可重建） */
     public boolean isCellOccupied(int row, int col) {
         return towerGrid.containsKey(key(row, col));
+    }
+
+    /** 供渲染和测试读取的临时行为倍率；始终与基础/减速倍率相乘。 */
+    public float getBehaviorSpeedMultiplier(Monster monster) {
+        if (monster == null) return 1f;
+        if (monster.charging) return 1.9f;
+        return monster.enraged ? 1.3f : 1f;
     }
 
     /** 当前塔获得的攻击速度加成。重叠增幅塔只取最高等级的一份。 */
