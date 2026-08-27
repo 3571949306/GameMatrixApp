@@ -174,6 +174,8 @@ public class TdGame {
         public float chargeCooldown = 2.4f;
         public float chargeTimer = 0f;
         public boolean charging = false;
+        public float summonTimer = 6f;
+        public int summonsRemaining = 4;
         /** 医生怪的治疗冷却和受治疗后的视觉提示。 */
         public float healTimer = 0.8f;
         public float healedFlash = 0f;
@@ -762,6 +764,7 @@ public class TdGame {
             if (m.type == MonsterType.HEALER) updateHealer(m);
             if (m.type == MonsterType.CHARGER) updateCharger(m);
             if (m.type == MonsterType.SHIELD_GENERATOR) updateShieldGenerator(m);
+            if (m.type == MonsterType.SUMMONER) updateSummoner(m);
             // 移动
             moveMonster(m);
         }
@@ -843,6 +846,17 @@ public class TdGame {
             candidate.shieldFlash = .38f;
             if (++affected >= 3) return;
         }
+    }
+
+    /** 每名召唤怪最多进行四次召唤，每次两只带来源标记的低价值喽罗。 */
+    private void updateSummoner(Monster summoner) {
+        if (summoner.summoned || summoner.summonsRemaining <= 0) return;
+        summoner.summonTimer -= FIXED_DT;
+        if (summoner.summonTimer > 0f) return;
+        summoner.summonTimer = 6f;
+        summoner.summonsRemaining--;
+        queueSummonedMinion(summoner);
+        queueSummonedMinion(summoner);
     }
 
     private void moveMonster(Monster m) {
@@ -938,20 +952,31 @@ public class TdGame {
     /** 分裂怪只派生两只低赏金喽罗；幼体带来源标记且不会再次分裂。 */
     private void queueSplitChildren(Monster parent) {
         for (int i = 0; i < 2; i++) {
-            int[][] route = paths[parent.routeIndex];
-            int[] start = route[0];
-            Monster child = new Monster(MonsterType.SWARM, start[1], start[0], route.length,
-                    nextMonsterId++, parent.maxHp / parent.type.hp, parent.baseSpeedMul,
-                    parent.waveNo, parent.routeIndex);
-            child.pathIndex = parent.pathIndex;
-            child.segT = parent.segT;
-            child.x = parent.x;
-            child.y = parent.y;
+            Monster child = createDerivedSwarm(parent);
             child.splitChild = true;
-            child.originMonsterId = parent.id;
-            child.reward = 1;
             pendingDerivedMonsters.add(child);
         }
+    }
+
+    private void queueSummonedMinion(Monster parent) {
+        Monster minion = createDerivedSwarm(parent);
+        minion.summoned = true;
+        pendingDerivedMonsters.add(minion);
+    }
+
+    private Monster createDerivedSwarm(Monster parent) {
+        int[][] route = paths[parent.routeIndex];
+        int[] start = route[0];
+        Monster child = new Monster(MonsterType.SWARM, start[1], start[0], route.length,
+                nextMonsterId++, parent.maxHp / parent.type.hp, parent.baseSpeedMul,
+                parent.waveNo, parent.routeIndex);
+        child.pathIndex = parent.pathIndex;
+        child.segT = parent.segT;
+        child.x = parent.x;
+        child.y = parent.y;
+        child.originMonsterId = parent.id;
+        child.reward = 1;
+        return child;
     }
 
     private void updateTowers() {

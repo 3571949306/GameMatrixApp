@@ -17,7 +17,9 @@ public enum MonsterType {
     /** 平时缓行、周期性短冲刺；冲刺与减速倍率相乘而非覆盖。 */
     CHARGER("冲锋怪", 46f, 1.25f, 16, false, 0, 1),
     /** 定期给邻近同伴补充有上限的护盾。 */
-    SHIELD_GENERATOR("护盾发生器", 50f, 1.2f, 19, false, 0, 1);
+    SHIELD_GENERATOR("护盾发生器", 50f, 1.2f, 19, false, 0, 1),
+    /** 周期生成低价值喽罗，派生物绝不具备召唤能力。 */
+    SUMMONER("召唤怪", 62f, 1.1f, 21, false, 0, 1);
 
     public final String displayName;
     /** 基础血量 */
