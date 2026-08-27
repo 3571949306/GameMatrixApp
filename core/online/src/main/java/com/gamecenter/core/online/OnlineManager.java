@@ -1,5 +1,9 @@
 package com.gamecenter.core.online;
 
+// [DEAD-ONLINE] 联机功能已通过 OnlinePlayGate 统一下线。
+// 本类属于完全死模块：运行时入口全部被闸门挡住，全仓库零外部调用。
+// 清理时连同所属 Gradle 模块整体删除。
+
 import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;

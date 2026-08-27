@@ -63,6 +63,7 @@ object ModuleScopedPreferences {
      * 注意：调用方需保证 oldFlatName 是该模块独占的扁平名，避免跨模块误迁移。
      */
     @JvmStatic
+    @JvmOverloads
     fun migrateFrom(
         context: Context,
         moduleId: String,

@@ -527,23 +527,7 @@ public class AiTaskRouter {
      * @return 设备内存是否足够；获取信息失败时返回 true（保守放行）
      */
     private boolean hasEnoughMemory(int minRamMb) {
-        try {
-            // 通过系统服务获取内存信息
-            android.app.ActivityManager am =
-                    (android.app.ActivityManager) appContext.getSystemService(Context.ACTIVITY_SERVICE);
-            android.app.ActivityManager.MemoryInfo info = new android.app.ActivityManager.MemoryInfo();
-            if (am == null) return true; // 无法获取 ActivityManager，保守放行
-            am.getMemoryInfo(info);
-            // 使用可用内存而非总内存
-            long availableMb = info.availMem / 1024L / 1024L;
-            // 预留 500MB 给系统和其他应用，避免加载模型后系统卡顿
-            long safeAvailableMb = availableMb - 500;
-            // safeAvailableMb <= 0 表示可用内存不足，直接拒绝
-            // 否则与最低要求比较
-            return safeAvailableMb > 0 && safeAvailableMb >= minRamMb;
-        } catch (Exception e) {
-            return true; // 异常时保守放行，避免误拦截
-        }
+        return com.gamecenter.app.ai.model.DeviceProfiler.INSTANCE.canRunModel(appContext, minRamMb, 24);
     }
 
     /**

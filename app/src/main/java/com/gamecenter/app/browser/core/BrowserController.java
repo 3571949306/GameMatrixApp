@@ -2,6 +2,8 @@ package com.gamecenter.app.browser.core;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Bundle;
+import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
@@ -13,6 +15,9 @@ import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.browser.bridge.BrowserJsBridge;
 import com.gamecenter.app.browser.security.JsBridgePolicy;
 import com.gamecenter.app.browser.util.UrlUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Browser core controller, manages WebView operations.
@@ -33,7 +38,8 @@ public class BrowserController {
     @Nullable private FrameLayout webViewContainer;
     @Nullable private BrowserWebViewClient webViewClient;
     @Nullable private BrowserChromeClient chromeClient;
-    private boolean jsBridgeInjected = false;
+    // A5: 按 tabId 管理 JS Bridge 注入状态，支持多 Tab 独立追踪
+    private final Map<String, Boolean> jsBridgeInjectedTabs = new HashMap<>();
 
     // ===== 多 Tab 模式字段（BROWSER_REAL_MULTI_TAB=true） =====
     @Nullable private BrowserWebViewPool pool;
@@ -85,18 +91,12 @@ public class BrowserController {
             } catch (Throwable ignored) {}
         }
 
-        WebSettings settings = webView.getSettings();
-        settings.setUseWideViewPort(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setSupportZoom(true);
-        settings.setBuiltInZoomControls(true);
-        settings.setDisplayZoomControls(false);
-        settings.setAllowContentAccess(false);
-        settings.setAllowFileAccess(false);
+        // Phase 3: 使用统一的通用 WebSettings 配置（消除重复代码）
+        BrowserSettingsManager.applyCommonSettings(webView);
 
-        String defaultUA = settings.getUserAgentString();
+        String defaultUA = webView.getSettings().getUserAgentString();
         mobileUserAgent = defaultUA;
-        settings.setUserAgentString(defaultUA + " GameMatrixBrowser/1.0");
+        webView.getSettings().setUserAgentString(defaultUA + " GameMatrixBrowser/1.0");
 
         webViewClient = new BrowserWebViewClient(pageLoadCallback);
         webViewClient.setExternalUrlHandler(externalUrlHandler);
@@ -147,6 +147,53 @@ public class BrowserController {
 
     public int getPoolReleasedCount() {
         return pool != null ? pool.getReleasedCount() : 0;
+    }
+
+    /** A2: 注册 ChromeClient 配置器（多 Tab 模式转发给 pool，应用于每个新建 WebView 的 ChromeClient）。 */
+    public void setChromeClientConfigurator(@Nullable java.util.function.Consumer<BrowserChromeClient> configurator) {
+        if (BuildConfig.BROWSER_REAL_MULTI_TAB && pool != null) {
+            pool.setChromeClientConfigurator(configurator);
+        }
+    }
+
+    /** A1: 保存所有活跃 Tab 的 WebView 状态（配置变更前调用）。 */
+    public void saveAllTabStates() {
+        if (pool != null) pool.saveAllStates();
+    }
+
+    /** #8: 单 WebView 模式下保存页面状态（多 Tab 模式走 saveAllTabStates）。 */
+    @Nullable
+    public Bundle saveSingleWebViewState() {
+        if (webView == null) return null;
+        try {
+            Bundle state = new Bundle();
+            webView.saveState(state);
+            return state;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** #8: 单 WebView 模式下恢复页面状态。返回是否恢复成功（成功后调用方不再加载初始页）。 */
+    public boolean restoreSingleWebViewState(@Nullable Bundle state) {
+        if (webView == null || state == null) return false;
+        try {
+            return webView.restoreState(state) != null;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+    // 注意：saveAllTabStates / collectTabStateMap / restoreTabStateMap 仅在多 Tab 模式生效
+
+    /** A1: 收集所有 Tab 的已保存状态到 Bundle。 */
+    @NonNull
+    public Bundle collectTabStateMap() {
+        return pool != null ? pool.collectStateMap() : new Bundle();
+    }
+
+    /** A1: 恢复 Tab 状态映射（重建 pool 后、首次切换 Tab 前调用）。 */
+    public void restoreTabStateMap(@Nullable Bundle map) {
+        if (pool != null) pool.restoreStateMap(map);
     }
 
     @Nullable
@@ -261,45 +308,91 @@ public class BrowserController {
     @NonNull
     public String getDefaultHomeUrl() { return DEFAULT_HOME_URL; }
 
-    /** Clear WebView history, cache and form data (for incognito cleanup). */
+    /** Clear WebView history, cache and form data (for incognito cleanup). S6: 增强清理。 */
     public void clearWebViewData() {
         WebView wv = getActiveWebView();
         if (wv != null) {
             wv.clearHistory();
             wv.clearCache(true);
             wv.clearFormData();
+            // S6: 增加 Cookie 和 WebStorage 清理
+            try {
+                CookieManager.getInstance().removeAllCookies(null);
+                CookieManager.getInstance().flush();
+            } catch (Exception ignored) {}
+            try {
+                android.webkit.WebStorage.getInstance().deleteAllData();
+            } catch (Exception ignored) {}
         }
+    }
+
+    /**
+     * S6: 无痕模式切换时的完整数据清理。
+     * 清除当前 WebView 的所有浏览数据，包括 Cookie、存储、历史等。
+     */
+    public void clearAllBrowsingDataForIncognito() {
+        WebView wv = getActiveWebView();
+        if (wv != null) {
+            wv.clearHistory();
+            wv.clearCache(true);
+            wv.clearFormData();
+        }
+        // 清除全局 Cookie（S6: 注意这影响所有 Tab，仅在真正退出无痕时调用）
+        try {
+            CookieManager cookieManager = CookieManager.getInstance();
+            cookieManager.removeAllCookies(null);
+            cookieManager.flush();
+        } catch (Exception ignored) {}
+        try {
+            android.webkit.WebStorage.getInstance().deleteAllData();
+        } catch (Exception ignored) {}
+        // 清除所有 Tab 的 Bridge 注入状态
+        jsBridgeInjectedTabs.clear();
     }
 
     /**
      * 根据当前 URL 决定是否注入/移除 JSBridge。
      * 仅在可信 HTTPS 域名下注入，页面离开可信域时立即移除。
+     * A5: 按 tabId 追踪注入状态，支持多 Tab 独立管理。
      */
     public void injectJsBridge(@NonNull Context context, @Nullable String url) {
         WebView wv = getActiveWebView();
         if (wv == null || !BuildConfig.BROWSER_JS_BRIDGE_ENABLED) return;
         JsBridgePolicy policy = JsBridgePolicy.getInstance();
         boolean trusted = url != null && policy.canUseJsBridge(url);
+        String tabId = activeTabId != null ? activeTabId : "__single__";
+        boolean injected = Boolean.TRUE.equals(jsBridgeInjectedTabs.get(tabId));
+
         if (trusted) {
-            if (!jsBridgeInjected) {
+            if (!injected) {
                 wv.addJavascriptInterface(new BrowserJsBridge(context.getApplicationContext()), "GameMatrixBridge");
-                jsBridgeInjected = true;
+                jsBridgeInjectedTabs.put(tabId, true);
             }
         } else {
-            if (jsBridgeInjected) {
+            if (injected) {
                 wv.removeJavascriptInterface("GameMatrixBridge");
-                jsBridgeInjected = false;
+                jsBridgeInjectedTabs.put(tabId, false);
             }
         }
     }
 
-    /** 强制移除 JSBridge，用于页面开始加载或不可信域。 */
+    /** 强制移除 JSBridge，用于页面开始加载或不可信域。 A5: 移除当前 Tab 的注入状态。 */
     public void removeJsBridge() {
         WebView wv = getActiveWebView();
-        if (wv != null && jsBridgeInjected) {
-            wv.removeJavascriptInterface("GameMatrixBridge");
-            jsBridgeInjected = false;
+        if (wv != null) {
+            String tabId = activeTabId != null ? activeTabId : "__single__";
+            if (Boolean.TRUE.equals(jsBridgeInjectedTabs.get(tabId))) {
+                wv.removeJavascriptInterface("GameMatrixBridge");
+                jsBridgeInjectedTabs.put(tabId, false);
+            }
         }
+    }
+
+    /** A5: 关闭 Tab 时清理该 Tab 的 JS Bridge 状态。 */
+    public void clearJsBridgeForTab(@NonNull String tabId) {
+        WebView wv = pool != null ? pool.getActiveWebView() : null;
+        // 移除对应 Tab 的注入标记
+        jsBridgeInjectedTabs.remove(tabId);
     }
 
     public void onResume(Context context) {
@@ -332,6 +425,9 @@ public class BrowserController {
     }
 
     public void destroy() {
+        // A5: 清理所有 Tab 的 JS Bridge 状态
+        jsBridgeInjectedTabs.clear();
+
         if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
             if (pool != null) {
                 pool.releaseAll();

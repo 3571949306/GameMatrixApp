@@ -222,6 +222,11 @@
 -keep class com.gamecenter.app.modules.ModuleManager$* { *; }
 -keep class com.gamecenter.app.modules.ModuleLoader { *; }
 -keep class com.gamecenter.app.modules.ModuleLoader$* { *; }
+-keep class com.gamecenter.app.modules.ModuleVerifier { *; }
+
+# 统一加载器真源（core:module-host）：经 facade 委托与 DexClassLoader 反射加载，
+# R8 混淆会破坏类名/签名，必须整体保留。
+-keep class com.gamecenter.app.core.modulehost.** { *; }
 
 # modular 包：模块 APK 通过 ModuleManager.getModuleResources() 等方法返回的类型
 # 被 wrongbook 等模块引用。R8 若重命名 ModuleResourceLoader$ModuleResources 等类型，

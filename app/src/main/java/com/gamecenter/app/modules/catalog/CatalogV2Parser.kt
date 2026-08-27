@@ -10,6 +10,13 @@ object CatalogV2Parser {
 
     fun parse(rawJson: String, source: String = "unknown"): CatalogV2 {
         val root = JSONObject(rawJson)
+        // 目录双轨已收敛：宿主只接受正式 Catalog V2（schemaVersion=2 且声明 runtimeType/deliveryType）。
+        // 旧版 V1 目录（modules.json 等）不再作为目录来源，解析失败会让商店回退到清单展示而非崩溃。
+        if (root.optInt("schemaVersion", 0) < 2) {
+            throw IllegalArgumentException(
+                "Catalog schemaVersion must be 2 (legacy V1 catalogs are no longer accepted), source=$source"
+            )
+        }
         val modulesJson = root.optJSONArray("modules")
             ?: throw IllegalArgumentException("Catalog does not contain a modules array")
         val usesRuntimeContract = (0 until modulesJson.length()).all { index ->
@@ -17,11 +24,10 @@ object CatalogV2Parser {
                 module.has("runtimeType") && module.has("deliveryType")
             } == true
         }
-        // The deployed display catalog also calls itself schemaVersion=2 but
-        // predates the multi-runtime contract. Keep it on the lossless legacy
-        // adapter until every entry declares runtime and delivery explicitly.
-        if (root.optInt("schemaVersion", 0) < 2 || !usesRuntimeContract) {
-            return LegacyCatalogAdapter.adapt(rawJson, source)
+        if (!usesRuntimeContract) {
+            throw IllegalArgumentException(
+                "Catalog entries must declare runtimeType/deliveryType (legacy schema rejected), source=$source"
+            )
         }
         val catalog = CatalogV2(
             schemaVersion = root.optInt("schemaVersion", 2),

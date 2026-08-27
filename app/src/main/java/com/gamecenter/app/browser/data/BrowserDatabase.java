@@ -28,7 +28,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
         SearchHistoryEntity.class,
         BrowserReadingListEntity.class
     },
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 public abstract class BrowserDatabase extends RoomDatabase {
@@ -70,6 +70,15 @@ public abstract class BrowserDatabase extends RoomDatabase {
         }
     };
 
+    /** v3 → v4：新增 browser_download.dangerous 字段（D4 危险文件标记） */
+    static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Phase 3: 为下载表添加 dangerous 字段，标记危险文件（APK/EXE 等）
+            database.execSQL("ALTER TABLE browser_download ADD COLUMN dangerous INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public static BrowserDatabase getInstance(Context context) {
         if (INSTANCE == null) {
             synchronized (BrowserDatabase.class) {
@@ -79,7 +88,9 @@ public abstract class BrowserDatabase extends RoomDatabase {
                             BrowserDatabase.class,
                             DATABASE_NAME
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    // Phase 3: 安全回退 - 当迁移缺失时允许破坏性迁移（避免旧用户升级失败）
+                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build();
                 }
             }

@@ -1,17 +1,11 @@
 package com.gamecenter.app
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.Menu
 import android.view.View
-import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
-import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -25,7 +19,6 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import com.gamecenter.app.modules.BottomNavigationManager
 import com.gamecenter.app.modules.CoreModulePreloader
@@ -49,7 +42,6 @@ import java.util.Locale
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    private var navController: NavController? = null
     private var bottomNavigationManager: com.gamecenter.app.modules.BottomNavigationManager? = null
     private var permissionHelper: PermissionHelper? = null
     private var permissionLauncher: ActivityResultLauncher<Array<String>>? = null
@@ -92,12 +84,10 @@ class MainActivity : AppCompatActivity() {
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
         val navView = findViewById<BottomNavigationView>(R.id.nav_view)
 
-        // P0 流畅度优化：核心模块（games_hall/browser/tools）的 Dex 加载已移至 SplashActivity
-        // 的后台预加载线程（CoreModulePreloader），不再在主线程同步阻塞。
-        // 若进入 MainActivity 时预加载尚未完成（极端：超时/失败），则在后台线程补加载，
-        // 完成后回到主线程构建动态导航，既不阻塞主线程又保证导航完整。
-        if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION && navHostFragment != null) {
-            // P4: 使用模块贡献动态构建底部导航
+        // P4: 使用模块贡献动态构建底部导航（统一路径，双轨已收敛）。
+        // 核心模块（games_hall/browser/tools）的 Dex 加载已移至 SplashActivity 后台预加载
+        // （CoreModulePreloader），不再在主线程同步阻塞；未就绪时后台补加载后回主线程构建。
+        if (navHostFragment != null) {
             bottomNavigationManager = BottomNavigationManager(
                 this,
                 navHostFragment.childFragmentManager,
@@ -111,15 +101,6 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread { setupP4DynamicNavigation(navView) }
                 }
             }
-        } else if (navHostFragment != null) {
-            // 旧逻辑：使用 Navigation 组件
-            navController = navHostFragment.navController
-            val keepStateNavigator = KeepStateNavigator(
-                this, navHostFragment.childFragmentManager, R.id.nav_host_fragment
-            )
-            navController?.navigatorProvider?.addNavigator(keepStateNavigator)
-            navController?.setGraph(R.navigation.mobile_navigation)
-            setupDynamicNavigation(navView)
         }
 
         handleNavTabIntent()
@@ -146,44 +127,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 注册全局返回拦截：当当前 destination 不是"游戏大厅"时，按系统返回键或
+     * 注册全局返回拦截：当当前显示的不是"游戏大厅"时，按系统返回键或
      * 边缘滑动 predictive back 手势会切回游戏大厅，而不是退出应用。
      *
-     * 原因：使用 KeepStateNavigator 时，navigate() 不会把目标 destination
-     * 真正 push 到系统 back stack 上，所以系统返回键会跳过 NavController
-     * 直接走 Activity.finish()。这里手动拦截，保证用户体验。
+     * 原因：动态导航使用 show/hide 切换 Fragment，系统 back stack 不含页面切换记录，
+     * 系统返回键会直接走 Activity.finish()。这里手动拦截，保证用户体验。
      */
     private fun setupBackToGamesHandler() {
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // P4: 使用动态导航管理器处理返回
-                if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-                    val manager = bottomNavigationManager ?: return
-                    val currentId = manager.getCurrentContributionId()
-                    if (currentId == null || currentId == "games_hall") {
-                        isEnabled = false
-                        onBackPressedDispatcher.onBackPressed()
-                        isEnabled = true
-                        return
-                    }
-                    // 用户可以重排 tab，必须按稳定 ID 返回游戏大厅，不能假设它排第一。
-                    manager.selectContribution("games_hall")
-                    return
-                }
-
-                val controller = navController ?: return
-                val currentId = controller.currentDestination?.id
-                if (currentId == null || currentId == R.id.navigation_games) {
-                    // 已在游戏大厅（或未知）：让系统处理（退出应用）
+                // 动态导航：用户可以重排 tab，必须按稳定贡献 ID 返回游戏大厅，不能假设它排第一。
+                val manager = bottomNavigationManager ?: return
+                val currentId = manager.getCurrentContributionId()
+                if (currentId == null || currentId == "games_hall") {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                     isEnabled = true
                     return
                 }
-                // 其他 destination：先尝试 popBackStack，失败再直接 navigate 回游戏大厅
-                if (!controller.popBackStack(R.id.navigation_games, false)) {
-                    controller.navigate(R.id.navigation_games)
-                }
+                manager.selectContribution("games_hall")
             }
         }
         onBackPressedDispatcher.addCallback(this, callback)
@@ -199,72 +161,6 @@ class MainActivity : AppCompatActivity() {
         // 默认选中游戏大厅
         if (manager.getCurrentContributionId() == null) {
             manager.selectContribution("games_hall")
-        }
-    }
-
-    private fun setupDynamicNavigation(navView: BottomNavigationView) {
-        val installedIds = ModuleManager.getInstalledModuleIds(this)
-        val menu = navView.menu
-        menu.clear()
-
-        menu.add(Menu.NONE, R.id.navigation_games, Menu.NONE, R.string.nav_games)
-            .setIcon(R.drawable.ic_games)
-
-        if (installedIds.contains("browser")) {
-            menu.add(Menu.NONE, R.id.navigation_browser, Menu.NONE, R.string.nav_browser)
-                .setIcon(R.drawable.ic_browser)
-        }
-
-        if (installedIds.contains("tools")) {
-            menu.add(Menu.NONE, R.id.navigation_tools, Menu.NONE, R.string.nav_tools)
-                .setIcon(R.drawable.ic_tools)
-        }
-
-        if (installedIds.contains("ai")) {
-            menu.add(Menu.NONE, R.id.navigation_ai, Menu.NONE, R.string.nav_ai)
-                .setIcon(R.drawable.ic_ai)
-        }
-
-        if (installedIds.contains("vpn")) {
-            menu.add(Menu.NONE, R.id.navigation_vpn, Menu.NONE, R.string.nav_vpn)
-                .setIcon(R.drawable.ic_vpn)
-        }
-
-        if (BuildConfig.ENABLE_WRONGBOOK && installedIds.contains("wrongbook")) {
-            // wrongbook 已从底部导航移除（最多 6 个 item 限制），改由 GamesFragment 头像菜单进入
-        }
-
-        if (BuildConfig.PROFILE_FRAGMENT) {
-            menu.add(Menu.NONE, R.id.navigation_profile, Menu.NONE, R.string.nav_profile)
-                .setIcon(R.drawable.ic_nav_profile)
-        }
-
-        navView.setOnItemSelectedListener { item ->
-            navController?.navigate(item.itemId)
-            // Batch 6 (NAV_ACTIVE_ANIM): 选中 item 图标缩放动画
-            if (BuildConfig.NAV_ACTIVE_ANIM) {
-                animateNavItemIcon(navView, item.itemId)
-            }
-            true
-        }
-
-        // 关键修复：点击已选中 item 时也触发导航。
-        // 场景：进入错题本（不在底部导航 menu 中）后，"游戏大厅" item 会被
-        // BottomNavigationView 默认置为 selected。此时点击它触发的是
-        // setOnItemReselectedListener 而不是 setOnItemSelectedListener，
-        // 若回调为空则用户卡死在错题本无法返回游戏大厅。
-        navView.setOnItemReselectedListener { item ->
-            navController?.navigate(item.itemId)
-            if (BuildConfig.NAV_ACTIVE_ANIM) {
-                animateNavItemIcon(navView, item.itemId)
-            }
-        }
-
-        navController?.currentDestination?.let { destination ->
-            val currentId = destination.id
-            if (menu.findItem(currentId) != null) {
-                menu.findItem(currentId).isChecked = true
-            }
         }
     }
 
@@ -284,11 +180,7 @@ class MainActivity : AppCompatActivity() {
                                 if (isFinishing || isDestroyed) return@runOnUiThread
                                 val navView = findViewById<BottomNavigationView>(R.id.nav_view)
                                 if (navView != null) {
-                                    if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-                                        setupP4DynamicNavigation(navView)
-                                    } else {
-                                        setupDynamicNavigation(navView)
-                                    }
+                                    setupP4DynamicNavigation(navView)
                                 }
                             }
                         }
@@ -307,31 +199,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleNavTabIntent() {
         val tab = intent?.getStringExtra(EXTRA_NAV_TAB) ?: return
-
-        if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-            val manager = bottomNavigationManager ?: return
-            // 自定义排序后索引会变化，因此始终通过稳定贡献 ID 跳转。
-            if (!manager.selectContribution(tab)) manager.selectContribution("games_hall")
-            intent?.removeExtra(EXTRA_NAV_TAB)
-            return
-        }
-
-        val destId = when (tab) {
-            "games_hall" -> R.id.navigation_games
-            "browser" -> R.id.navigation_browser
-            "tools" -> R.id.navigation_tools
-            "ai" -> R.id.navigation_ai
-            "vpn" -> R.id.navigation_vpn
-            "wrongbook" -> R.id.navigation_wrongbook
-            "profile" -> R.id.navigation_profile
-            else -> return
-        }
-        val navView = findViewById<BottomNavigationView>(R.id.nav_view)
-        if (navView != null && navView.menu.findItem(destId) != null) {
-            navView.selectedItemId = destId
-        } else {
-            navController?.navigate(destId)
-        }
+        val manager = bottomNavigationManager ?: return
+        // 自定义排序后索引会变化，因此始终通过稳定贡献 ID 跳转。
+        if (!manager.selectContribution(tab)) manager.selectContribution("games_hall")
         intent?.removeExtra(EXTRA_NAV_TAB)
     }
 
@@ -353,63 +223,14 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Batch 6 (NAV_ACTIVE_ANIM): 底部导航选中 item 图标缩放动画。
-     *
-     * 实现：BottomNavigationMenuView 是 BottomNavigationView 的第 0 个子 view，
-     * 它的子 view 是 BottomNavigationItemView，每个 item 的第 0 个 ImageView 子 view 即图标。
-     * 通过 menu 中 itemId 找到 position，定位到对应的 item view 并对其图标应用缩放动画。
+     * 已下沉至 BottomNavigationManager（P4 动态导航统一实现）。
      */
-    private fun animateNavItemIcon(navView: BottomNavigationView, itemId: Int) {
-        try {
-            val menuView = navView.getChildAt(0) as? ViewGroup ?: return
-            // 找到 itemId 在 menu 中的位置（仅计算可见 item）
-            val menu = navView.menu
-            var position = -1
-            for (i in 0 until menu.size()) {
-                if (menu.getItem(i).itemId == itemId) {
-                    position++
-                    break
-                }
-                position++
-            }
-            if (position < 0 || position >= menuView.childCount) return
-            val itemView = menuView.getChildAt(position) ?: return
-            val iconView = findFirstImageView(itemView) ?: return
-            val scaleX = ObjectAnimator.ofFloat(iconView, "scaleX", 1f, 1.25f, 1f)
-            val scaleY = ObjectAnimator.ofFloat(iconView, "scaleY", 1f, 1.25f, 1f)
-            AnimatorSet().apply {
-                playTogether(scaleX, scaleY)
-                duration = 220
-                interpolator = DecelerateInterpolator()
-                start()
-            }
-        } catch (e: Exception) {
-            Log.d("MainActivity", "导航动画播放失败", e)
-        }
-    }
-
-    /** 在 view 树中找到第一个 ImageView（用于定位 BottomNavigationItemView 的图标 view）。 */
-    private fun findFirstImageView(view: View): ImageView? {
-        if (view is ImageView) return view
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                val child = view.getChildAt(i) ?: continue
-                val found = findFirstImageView(child)
-                if (found != null) return found
-            }
-        }
-        return null
-    }
-
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         val navView = findViewById<BottomNavigationView>(R.id.nav_view)
         if (navView != null) {
-            if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-                setupP4DynamicNavigation(navView)
-            } else {
-                setupDynamicNavigation(navView)
-            }
+            setupP4DynamicNavigation(navView)
         }
         handleNavTabIntent()
         // Batch 9-1 (GAME_LONG_PRESS_MENU): 顶部再启动时也要处理桌面快捷方式 Intent
@@ -429,11 +250,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         val navView = findViewById<BottomNavigationView>(R.id.nav_view)
         if (navView != null) {
-            if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-                setupP4DynamicNavigation(navView)
-            } else {
-                setupDynamicNavigation(navView)
-            }
+            setupP4DynamicNavigation(navView)
         }
         handleNavTabIntent()
         // Batch 9-4 (NAV_BADGE_UNREAD): 每次回到前台刷新未读徽章
@@ -719,11 +536,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        // P4: 动态导航模式下不使用 NavController
-        if (BuildConfig.ENABLE_P4_DYNAMIC_NAVIGATION) {
-            return super.onSupportNavigateUp()
-        }
-        return navController?.navigateUp() ?: false || super.onSupportNavigateUp()
+        // 动态导航模式下不使用 NavController
+        return super.onSupportNavigateUp()
     }
 
     /**

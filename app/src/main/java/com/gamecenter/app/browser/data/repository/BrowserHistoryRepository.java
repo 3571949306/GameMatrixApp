@@ -13,42 +13,54 @@ import java.util.concurrent.Executors;
 public class BrowserHistoryRepository {
 
     private final BrowserHistoryDao historyDao;
-    private final ExecutorService executor;
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public BrowserHistoryRepository(Application application) {
         BrowserDatabase db = BrowserDatabase.getInstance(application);
         historyDao = db.historyDao();
-        executor = Executors.newSingleThreadExecutor();
+    }
+
+    private synchronized ExecutorService getExecutor() {
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+        return executor;
+    }
+
+    public void shutdown() {
+        if (!getExecutor().isShutdown()) {
+            getExecutor().shutdown();
+        }
     }
 
     public void insert(BrowserHistoryEntity history) {
-        executor.execute(() -> historyDao.insert(history));
+        getExecutor().execute(() -> historyDao.insert(history));
     }
 
     public void getAllHistory(HistoryListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             List<BrowserHistoryEntity> list = historyDao.getAllHistory();
             callback.onResult(list);
         });
     }
 
     public void searchHistory(String keyword, HistoryListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             List<BrowserHistoryEntity> list = historyDao.searchHistory(keyword);
             callback.onResult(list);
         });
     }
 
     public void deleteById(long id) {
-        executor.execute(() -> historyDao.deleteById(id));
+        getExecutor().execute(() -> historyDao.deleteById(id));
     }
 
     public void deleteAll() {
-        executor.execute(() -> historyDao.deleteAll());
+        getExecutor().execute(() -> historyDao.deleteAll());
     }
 
     public void updateVisitCount(long id, long lastVisitTime) {
-        executor.execute(() -> historyDao.updateVisitCount(id, lastVisitTime));
+        getExecutor().execute(() -> historyDao.updateVisitCount(id, lastVisitTime));
     }
 
     public interface HistoryListCallback {

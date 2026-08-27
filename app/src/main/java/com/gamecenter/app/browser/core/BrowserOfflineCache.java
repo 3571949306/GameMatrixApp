@@ -1,7 +1,6 @@
 package com.gamecenter.app.browser.core;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.webkit.WebView;
 import android.webkit.ValueCallback;
 
@@ -11,6 +10,10 @@ import androidx.annotation.Nullable;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -22,24 +25,27 @@ import java.util.Map;
  * 离线缓存（P1-4）。
  *
  * <p>LRU 缓存最近 10 个页面的 URL + 标题 + 提取的 HTML 正文快照。
- * 持久化到 SharedPreferences（JSON 序列化）。当用户访问已缓存 URL 时，
- * 可通过 OfflineCacheActivity 离线重新打开。</p>
+ * 持久化到应用私有文件目录（filesDir）的 JSON 文件。
+ *
+ * <p>安全说明（P2 加固）：旧版把整页 outerHTML 明文写入 SharedPreferences，快照含
+ * 页面内可能出现的登录态/token 且 shared_prefs 位于标准的 xml 明文目录；现改为落
+ * 应用私有文件，避免与其它 SP 数据混存。若页面含敏感数据，页面本身的快照语义仍由
+ * 用户决定是否开启该功能。</p>
  *
  * <p>LRU 策略：访问/插入时移到末尾，超出容量时移除头部。</p>
  */
 public class BrowserOfflineCache {
 
     private static volatile BrowserOfflineCache instance;
-    private static final String PREFS_NAME = "browser_offline_cache";
-    private static final String KEY_CACHE_JSON = "cache_json";
+    private static final String CACHE_FILE_NAME = "browser_offline_cache.json";
     private static final int MAX_ENTRIES = 10;
 
-    private final SharedPreferences prefs;
+    private final File cacheFile;
     /** LinkedHashMap accessOrder=true 实现 LRU；末尾为最近访问 */
     private final LinkedHashMap<String, CacheEntry> cache = new LinkedHashMap<>(16, 0.75f, true);
 
     private BrowserOfflineCache(@NonNull Context context) {
-        prefs = context.getApplicationContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        cacheFile = new File(context.getApplicationContext().getFilesDir(), CACHE_FILE_NAME);
         loadFromDisk();
     }
 
@@ -146,14 +152,29 @@ public class BrowserOfflineCache {
                 o.put("savedAt", e.savedAt);
                 arr.put(o);
             }
-            prefs.edit().putString(KEY_CACHE_JSON, arr.toString()).apply();
+            byte[] payload = arr.toString().getBytes(StandardCharsets.UTF_8);
+            File tmp = new File(cacheFile.getParentFile(), CACHE_FILE_NAME + ".tmp");
+            try (FileOutputStream out = new FileOutputStream(tmp)) {
+                out.write(payload);
+            }
+            if (!tmp.renameTo(cacheFile)) {
+                try (FileOutputStream out = new FileOutputStream(cacheFile)) {
+                    out.write(payload);
+                }
+            }
         } catch (Throwable ignored) {}
     }
 
     private void loadFromDisk() {
         try {
-            String json = prefs.getString(KEY_CACHE_JSON, null);
-            if (json == null || json.isEmpty()) return;
+            if (!cacheFile.isFile() || cacheFile.length() <= 0) return;
+            byte[] bytes = new byte[(int) cacheFile.length()];
+            try (FileInputStream in = new FileInputStream(cacheFile)) {
+                int off = 0, n;
+                while (off < bytes.length && (n = in.read(bytes, off, bytes.length - off)) > 0) off += n;
+            }
+            String json = new String(bytes, 0, bytes.length, StandardCharsets.UTF_8);
+            if (json.isEmpty()) return;
             JSONArray arr = new JSONArray(json);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);

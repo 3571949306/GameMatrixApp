@@ -13,42 +13,54 @@ import java.util.concurrent.Executors;
 public class BrowserBookmarkRepository {
 
     private final BrowserBookmarkDao bookmarkDao;
-    private final ExecutorService executor;
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public BrowserBookmarkRepository(Application application) {
         BrowserDatabase db = BrowserDatabase.getInstance(application);
         bookmarkDao = db.bookmarkDao();
-        executor = Executors.newSingleThreadExecutor();
+    }
+
+    private synchronized ExecutorService getExecutor() {
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+        return executor;
+    }
+
+    public void shutdown() {
+        if (!getExecutor().isShutdown()) {
+            getExecutor().shutdown();
+        }
     }
 
     public void insert(BrowserBookmarkEntity bookmark) {
-        executor.execute(() -> bookmarkDao.insert(bookmark));
+        getExecutor().execute(() -> bookmarkDao.insert(bookmark));
     }
 
     public void deleteById(long id) {
-        executor.execute(() -> bookmarkDao.deleteById(id));
+        getExecutor().execute(() -> bookmarkDao.deleteById(id));
     }
 
     public void deleteAll() {
-        executor.execute(() -> bookmarkDao.deleteAll());
+        getExecutor().execute(() -> bookmarkDao.deleteAll());
     }
 
     public void getAllBookmarks(BookmarkListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             List<BrowserBookmarkEntity> list = bookmarkDao.getAllBookmarks();
             callback.onResult(list);
         });
     }
 
     public void searchBookmarks(String keyword, BookmarkListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             List<BrowserBookmarkEntity> list = bookmarkDao.searchBookmarks(keyword);
             callback.onResult(list);
         });
     }
 
     public void isBookmarked(String url, BookmarkCountCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             int count = bookmarkDao.countByUrl(url);
             callback.onResult(count > 0);
         });

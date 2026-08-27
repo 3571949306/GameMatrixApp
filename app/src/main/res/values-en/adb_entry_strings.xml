@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_entry_title">ADB Workbench</string>
+    <string name="adb_entry_description">Connect to and manage authorized Android devices with ADB debugging tools.</string>
+    <string name="adb_entry_open_label">Open ADB Workbench</string>
+    <string name="adb_entry_unavailable">ADB Workbench is unavailable in this host. Check your app version.</string>
+</resources>

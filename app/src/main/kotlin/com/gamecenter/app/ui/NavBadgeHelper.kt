@@ -16,6 +16,9 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
  *
  * 受 [com.gamecenter.app.BuildConfig.NAV_BADGE_UNREAD] feature flag 控制。
  * 由 MainActivity 在 onCreate / onResume 时调用 [updateBadges]。
+ *
+ * 导航双轨收敛后底部导航菜单由 BottomNavigationManager 动态构建，item id 不再是
+ * 固定的 R.id.navigation_games，此处按"游戏大厅"标题在菜单中定位稳定入口。
  */
 object NavBadgeHelper {
 
@@ -30,12 +33,13 @@ object NavBadgeHelper {
      */
     fun updateBadges(context: Context, navView: BottomNavigationView) {
         val unread = computeUnreadCount(context)
-        // 游戏大厅 tab 是固定的 R.id.navigation_games
+        val gamesHallItemId = findGamesHallItemId(context, navView)
+        if (gamesHallItemId == 0) return
         if (unread <= 0) {
-            navView.removeBadge(R.id.navigation_games)
+            navView.removeBadge(gamesHallItemId)
             return
         }
-        val badge = navView.getOrCreateBadge(R.id.navigation_games)
+        val badge = navView.getOrCreateBadge(gamesHallItemId)
         badge.isVisible = true
         badge.backgroundColor = ERROR_COLOR
         badge.badgeTextColor = ON_ERROR_COLOR
@@ -48,6 +52,18 @@ object NavBadgeHelper {
             badge.maxCharacterCount = 2
             badge.number = unread
         }
+    }
+
+    /**
+     * 在动态构建的底部导航菜单中按"游戏大厅"标题定位 item id；找不到返回 0。
+     */
+    private fun findGamesHallItemId(context: Context, navView: BottomNavigationView): Int {
+        val gamesTitle = context.getString(R.string.nav_games)
+        for (i in 0 until navView.menu.size()) {
+            val item = navView.menu.getItem(i)
+            if (item.title.toString() == gamesTitle) return item.itemId
+        }
+        return 0
     }
 
     /**

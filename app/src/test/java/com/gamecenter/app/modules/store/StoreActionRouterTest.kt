@@ -303,7 +303,7 @@ class StoreActionRouterTest {
     @Test
     fun `safe moduleIds pass through`() {
         val host = FakeRendererHost()
-        val safeIds = listOf("wrongbook", "browser", "games_hall", "gomoku", "tts_voice", "vpn", "ai", "tools")
+        val safeIds = listOf("wrongbook", "browser", "games_hall", "gomoku", "vpn", "ai", "tools")
         for (id in safeIds) {
             assertTrue("Safe moduleId 应通过: $id", StoreActionRouter.isParamValueSafe(id))
             val result = StoreActionRouter.dispatch("open_module", mapOf("moduleId" to id), host)

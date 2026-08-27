@@ -94,7 +94,7 @@ def shouldPublishGitHubRelease = (project.findProperty("publishGitHubRelease") ?
 def flutterStoreEnabled = (project.findProperty("enableFlutterModuleStore") ?: "false").toString().toBoolean()
 def flutterNdkVersion = (project.findProperty("flutterNdkVersion") ?: "28.2.13676358").toString().trim()
 def releaseApkMaxSizeMb = (project.findProperty("releaseApkMaxSizeMb") ?: "120").toString().trim()
-def catalogSignatureEnabled = (project.findProperty("enableCatalogSignature") ?: "false").toString().toBoolean()
+def catalogSignatureEnabled = (project.findProperty("enableCatalogSignature") ?: "true").toString().toBoolean()
 def catalogSigningProfile = (project.findProperty("catalogSigningProfile") ?: "development").toString().trim().toLowerCase()
 def useStagingApplicationIdSuffix = (
         project.findProperty("stagingApplicationIdSuffix") ?: "false"
@@ -176,11 +176,19 @@ def validateCatalogTrustConfig = {
             .collect { it.trim() }
             .findAll { !it.isEmpty() }
     if (encodedKeys.isEmpty()) {
-        throw new GradleException(
-                "Catalog signature verification is enabled but no Ed25519 public key is configured. " +
-                        "Use -PcatalogEd25519PublicKeys=<base64-raw-32-byte-key>[,...] or " +
-                        "GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS."
-        )
+        // P1 隔离加固：目录签名默认开启；未配置公钥时，生产（release/稳定）构建必须失败，
+        // 本地开发构建降级为"验签未配置"警告运行（运行时以兼容模式放行未签名目录）。
+        def productionBuild = releaseSigningRequired || currentVersionChannel == "stable"
+        if (productionBuild) {
+            throw new GradleException(
+                    "Catalog signature verification is enabled but no Ed25519 public key is configured. " +
+                            "Use -PcatalogEd25519PublicKeys=<base64-raw-32-byte-key>[,...] or " +
+                            "GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS."
+            )
+        }
+        println "WARNING: Catalog signature enabled but no Ed25519 public key configured; " +
+                "local builds run in compat (no-enforce) mode."
+        return
     }
     if (encodedKeys.size() > 3 || encodedKeys.toSet().size() != encodedKeys.size()) {
         throw new GradleException("Catalog trust must contain 1-3 unique Ed25519 public keys.")
@@ -516,6 +524,11 @@ android {
         buildConfigField "boolean", "ENABLE_CATALOG_SIGNATURE", catalogSignatureEnabled.toString()
         buildConfigField "String", "CATALOG_ED25519_PUBLIC_KEYS_BASE64", toJavaStringLiteral(catalogEd25519PublicKeys)
         buildConfigField "String", "CATALOG_SIGNING_PROFILE", toJavaStringLiteral(catalogSigningProfile)
+        // P1 隔离加固：目录签名"可信"标志 = 开关开启 且 已配置公钥。
+        // 默认开启签名验证；未配公钥的本地构建自动退化为兼容模式（不强制验签），
+        // 生产构建（release/stable）在未配公钥时已被 validateCatalogTrustConfig 拒绝。
+        def catalogSignatureTrusted = catalogSignatureEnabled && !catalogEd25519PublicKeys.isBlank()
+        buildConfigField "boolean", "CATALOG_SIGNATURE_TRUSTED", catalogSignatureTrusted.toString()
         // 事务性安装开关：开启后使用staging/current/last_good/quarantine目录结构
         buildConfigField "boolean", "ENABLE_TRANSACTIONAL_INSTALL", "true"
 
@@ -676,12 +689,14 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation project(':core:common')
+    implementation project(':core:adb')
     implementation project(':core:network')
     implementation project(':core:update')
     implementation project(':core:security')
     implementation project(':core:module-host')
     implementation project(':core:moduleloader')
     implementation project(':core:modulestore')
+    // [DEAD-ONLINE] 联机核心库 OnlinePlayGate.ENABLED=false 时全仓库零调用，可整体删除
     implementation project(':core:online')
     implementation project(':flutter')
     if (rootProject.findProject(':modules:capabilities:mimo-tts') != null) {
@@ -1058,7 +1073,7 @@ task bundlePreinstalledModules() {
     // skipModuleBuild=true 时跳过所有模块的编译依赖，直接使用已有预构建 APK 产物
     def skipModuleBuild = project.hasProperty('skipModuleBuild') && project.findProperty('skipModuleBuild') == 'true'
     // 预装模块：wrongbook（学习）+ tools（创作）+ chinesechess（玩，代表性经典游戏）
-    // ai/vpn/tts_voice 及其余游戏模块通过模块商店下载，不预装到 assets/modules/
+    // ai/vpn 及其余游戏模块通过模块商店下载，不预装到 assets/modules/
     if (!skipModuleBuild) {
         dependsOn ':module-store:feature:tools:wrongbook:assembleRelease'
         dependsOn ':module-store:feature:tools:tools:assembleRelease'

@@ -5,10 +5,14 @@ import android.util.Log
 import com.gamecenter.app.ai.cloud.AiApiClient
 import com.gamecenter.app.ai.coroutine.AppDispatchers
 import com.gamecenter.app.ai.data.*
+import com.gamecenter.app.ai.local.ILocalLlmEngine
 import com.gamecenter.app.ai.local.LocalAiProcessor
 import com.gamecenter.app.ai.local.LocalLlmOutputGuard
+import com.gamecenter.app.ai.local.LocalRuleEngine
 import com.gamecenter.app.ai.local.MediaPipeLocalLlmEngine
 import com.gamecenter.app.ai.model.AiModelDownloadManager
+import com.gamecenter.app.ai.model.DeviceProfiler
+import com.gamecenter.app.ai.session.ChatContextManager
 import com.gamecenter.app.utils.NetworkErrorHandler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
@@ -24,26 +28,8 @@ import kotlinx.coroutines.flow.flowOn
  * - 同步风格代码：没有回调地狱
  * - 自动切换线程：withContext 自动切换到合适的线程
  *
- * 使用示例：
- * ```kotlin
- * // 在 ViewModel 中使用
- * class AiViewModel : ViewModel() {
- *     private val router = AiTaskRouterCoroutine(context)
- *
- *     fun submitTask(taskType: String, input: String) {
- *         viewModelScope.launch {
- *             router.executeTask(taskType, input)
- *                 .collect { result ->
- *                     // 更新UI
- *                     _uiState.value = result
- *                 }
- *         }
- *     }
- * }
- * ```
- *
  * 路由优先级：
- * 1. 本地 LLM（Gemma）→ 在 ModelInference 线程执行
+ * 1. 本地 LLM（Qwen/Gemma）→ 在 ModelInference 线程执行
  * 2. 本地规则引擎 → 在 Computation 线程执行
  * 3. 云端 API → 在 IO 线程执行
  */
@@ -57,7 +43,8 @@ class AiTaskRouterCoroutine(
     private val appContext = context.applicationContext
     private val aiPrefs = AiPreferences(appContext)
     private val modelDownloadManager = AiModelDownloadManager()
-    private val localLlmEngine = MediaPipeLocalLlmEngine()
+    private var activeLlmEngine: ILocalLlmEngine = MediaPipeLocalLlmEngine()
+    private val ruleEngine = LocalRuleEngine()
 
     // 统计信息
     private var totalTasks = 0
@@ -233,20 +220,23 @@ class AiTaskRouterCoroutine(
         // 在专用线程执行模型推理
         return withContext(AppDispatchers.ModelInference) {
             try {
-                localLlmEngine.load(appContext, modelDownloadManager.getModelFile(appContext, model))
-                val output = localLlmEngine.generate(buildPrompt(task.taskType, task.input))
+                val modelFile = modelDownloadManager.getModelFile(appContext, model)
+                activeLlmEngine.load(appContext, modelFile)
+                val prompt = buildPrompt(task.taskType, task.input, model.id)
+                val rawOutput = activeLlmEngine.generate(prompt)
+                val output = ChatContextManager.cleanOutput(rawOutput)
 
                 val guardMessage = LocalLlmOutputGuard.validate(output)
                 if (guardMessage != null) {
                     AiResult.fail(guardMessage)
-                        .source("local-gemma")
+                        .source("local-llm")
                         .errorCode(AiErrorCode.LOCAL_LLM_DEGENERATED_OUTPUT)
                         .build()
                 } else {
                     AiResult.success(output).source("local-llm").build()
                 }
             } catch (t: Throwable) {
-                Log.e(TAG, "Local Gemma task failed", t)
+                Log.e(TAG, "Local LLM task failed", t)
                 AiResult.fail("本地模型推理失败: ${t.message}")
                     .source("local-llm")
                     .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
@@ -353,20 +343,10 @@ class AiTaskRouterCoroutine(
     }
 
     /**
-     * 检查设备内存是否足够
+     * 检查设备内存是否足够（集成 DeviceProfiler）
      */
     private fun hasEnoughMemory(minRamMb: Int): Boolean {
-        return try {
-            val am = appContext.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
-            val info = android.app.ActivityManager.MemoryInfo()
-            if (am == null) return true
-            am.getMemoryInfo(info)
-            val availableMb = info.availMem / 1024L / 1024L
-            val safeAvailableMb = availableMb - 500
-            safeAvailableMb > 0 && safeAvailableMb >= minRamMb
-        } catch (e: Exception) {
-            true
-        }
+        return DeviceProfiler.canRunModel(appContext, minRamMb)
     }
 
     /**
@@ -388,25 +368,25 @@ class AiTaskRouterCoroutine(
     }
 
     /**
-     * 构建提示词
+     * 构建提示词（支持 ChatML / Gemma / DeepSeek 模板自动适配）
      */
-    private fun buildPrompt(taskType: String, input: String): String {
-        return when (taskType) {
+    private fun buildPrompt(taskType: String, input: String, modelId: String = ""): String {
+        val systemPrompt = "你是一个运行在手机本地的中文 AI 助手。请用简体中文直接回答。控制在800字以内，保持准确精炼。"
+        val rawInput = when (taskType) {
             "ocr" -> "请对以下OCR识别结果进行清洗和格式化，修正错别字和乱码，保持原文结构：\n\n$input"
             "summary" -> "请对以下文本进行摘要，提取要点，简洁明了：\n\n$input"
             "translate" -> "请将以下文本翻译成中文，保持原意：\n\n$input"
             "rewrite" -> "请对以下文本进行润色，使其更通顺、专业：\n\n$input"
             "qa_pairs", "qa" -> "请根据以下文本，生成5个问答对（问题和答案），用于复习和测试：\n\n$input"
-            "chat" -> """你是一个运行在手机本地的中文 AI 助手。请用简体中文直接回答。
-规则：
-1. 不要复述用户输入。
-2. 不要输出无意义数字、乱码、重复字符或循环片段。
-3. 常规回答控制在800字以内；用户要求长文、方案或分析时可以更完整，但要分段清楚。
-4. 如果无法可靠回答，请直接说明不确定，并给出可验证的建议。
-
-用户问题：$input"""
             else -> input
         }
+
+        val format = if (modelId.isNotBlank()) ChatContextManager.resolveFormat(modelId) else ChatContextManager.TemplateFormat.CHAT_ML
+        return ChatContextManager.formatPrompt(
+            messages = listOf(ChatContextManager.Message("user", rawInput)),
+            systemPrompt = systemPrompt,
+            format = format
+        )
     }
 
     /**
@@ -421,6 +401,8 @@ class AiTaskRouterCoroutine(
      */
     fun shutdown() {
         modelDownloadManager.shutdown()
-        localLlmEngine.close()
+        activeLlmEngine.close()
+        ruleEngine.close()
     }
 }
+

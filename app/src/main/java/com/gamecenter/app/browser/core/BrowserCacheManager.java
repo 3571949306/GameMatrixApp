@@ -1,6 +1,7 @@
 package com.gamecenter.app.browser.core;
 
 import android.content.Context;
+import android.util.Log;
 import android.webkit.CookieManager;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
@@ -16,6 +17,9 @@ import java.io.File;
  */
 public class BrowserCacheManager {
 
+    private static final String TAG = "BrowserCacheManager";
+    private static final String BROWSER_CACHE_SUBDIR = "browser_cache";
+
     /**
      * 清理 WebView 缓存（不删除数据库）。
      */
@@ -24,7 +28,7 @@ public class BrowserCacheManager {
             WebView webView = new WebView(context);
             webView.clearCache(true);
             webView.destroy();
-        } catch (Exception ignored) {}
+        } catch (Exception e) { Log.w(TAG, "clearWebViewCache failed", e); }
     }
 
     /**
@@ -33,7 +37,7 @@ public class BrowserCacheManager {
     public static void clearWebStorage() {
         try {
             WebStorage.getInstance().deleteAllData();
-        } catch (Exception ignored) {}
+        } catch (Exception e) { Log.w(TAG, "clearWebStorage failed", e); }
     }
 
     /**
@@ -44,19 +48,19 @@ public class BrowserCacheManager {
             CookieManager cookieManager = CookieManager.getInstance();
             cookieManager.removeAllCookies(null);
             cookieManager.flush();
-        } catch (Exception ignored) {}
+        } catch (Exception e) { Log.w(TAG, "clearCookies failed", e); }
     }
 
     /**
-     * 清理应用缓存目录下的浏览器缓存文件。
+     * A3: 仅清理浏览器专属缓存子目录，不影响其他模块（Glide/OkHttp 等）。
      */
     public static void clearAppBrowserCache(@NonNull Context context) {
         try {
-            File cacheDir = context.getCacheDir();
-            if (cacheDir != null && cacheDir.isDirectory()) {
-                deleteDir(cacheDir);
+            File browserCacheDir = new File(context.getCacheDir(), BROWSER_CACHE_SUBDIR);
+            if (browserCacheDir.exists() && browserCacheDir.isDirectory()) {
+                deleteDir(browserCacheDir);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) { Log.w(TAG, "clearAppBrowserCache failed", e); }
     }
 
     /**

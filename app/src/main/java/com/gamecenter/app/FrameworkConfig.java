@@ -76,7 +76,7 @@ public class FrameworkConfig {
         FEATURE_TOGGLES = new HashMap<>();
         FEATURE_TOGGLES.put("module_hot_reload", false); // 热更新（开发模式）
         FEATURE_TOGGLES.put("module_auto_update", true); // 自动更新
-        FEATURE_TOGGLES.put("online_enabled", true); // 联机功能
+        FEATURE_TOGGLES.put("online_enabled", false); // 联机功能（与 OnlinePlayGate.ENABLED 保持一致，当前统一下线）
         FEATURE_TOGGLES.put("analytics_enabled", false); // 数据分析
         FEATURE_TOGGLES.put("crash_report_enabled", true); // 崩溃报告
     }

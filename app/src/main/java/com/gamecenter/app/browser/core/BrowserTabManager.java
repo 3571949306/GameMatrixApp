@@ -6,13 +6,16 @@ import android.graphics.Bitmap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.collection.LruCache;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Multi-tab manager.
@@ -27,9 +30,11 @@ public class BrowserTabManager {
 
     private static volatile BrowserTabManager instance;
     private final SharedPreferences prefs;
-    private final List<Tab> tabs = new ArrayList<>();
+    // A8: 使用线程安全的 CopyOnWriteArrayList 替代 ArrayList
+    private final List<Tab> tabs = new CopyOnWriteArrayList<>();
     private String activeTabId;
-    private TabChangeListener listener;
+    // A8: LruCache 管理 favicon 内存，最多缓存 100 个（约 10 Tab * 10 倍冗余）
+    private final LruCache<String, Bitmap> faviconCache = new LruCache<>(100);
 
     public static class Tab {
         private String id;
@@ -37,7 +42,6 @@ public class BrowserTabManager {
         private String url;
         private boolean isIncognito;
         private long lastActiveTime;
-        private transient Bitmap favicon;
 
         public Tab(String id, String title, String url) {
             this.id = id;
@@ -55,13 +59,6 @@ public class BrowserTabManager {
         public void setIncognito(boolean incognito) { isIncognito = incognito; }
         public long getLastActiveTime() { return lastActiveTime; }
         public void setLastActiveTime(long time) { this.lastActiveTime = time; }
-        public Bitmap getFavicon() { return favicon; }
-        public void setFavicon(Bitmap favicon) { this.favicon = favicon; }
-    }
-
-    public interface TabChangeListener {
-        void onTabChanged(Tab activeTab);
-        void onTabListChanged(List<Tab> tabs);
     }
 
     private BrowserTabManager(Context context) {
@@ -79,8 +76,6 @@ public class BrowserTabManager {
         return instance;
     }
 
-    public void setTabChangeListener(TabChangeListener listener) { this.listener = listener; }
-
     public Tab createTab(@Nullable String url) {
         if (tabs.size() >= MAX_TABS) return null;
         Tab tab = new Tab(String.valueOf(System.currentTimeMillis()),
@@ -88,7 +83,6 @@ public class BrowserTabManager {
         tabs.add(tab);
         activeTabId = tab.getId();
         saveTabs();
-        notifyListeners(tab);
         return tab;
     }
 
@@ -99,10 +93,6 @@ public class BrowserTabManager {
         tab.setIncognito(true);
         tabs.add(tab);
         activeTabId = tab.getId();
-        if (listener != null) {
-            listener.onTabListChanged(new ArrayList<>(tabs));
-            listener.onTabChanged(tab);
-        }
         return tab;
     }
 
@@ -110,16 +100,13 @@ public class BrowserTabManager {
         for (int i = 0; i < tabs.size(); i++) {
             if (tabs.get(i).getId().equals(tabId)) {
                 tabs.remove(i);
+                removeTabFavicon(tabId);  // A8: 清理 favicon 缓存
                 if (tabs.isEmpty()) {
                     createTab("https://www.baidu.com");
                 } else if (activeTabId.equals(tabId)) {
                     activeTabId = tabs.get(Math.min(i, tabs.size() - 1)).getId();
                 }
                 saveTabs();
-                if (listener != null) {
-                    listener.onTabListChanged(new ArrayList<>(tabs));
-                    listener.onTabChanged(getCurrentTab());
-                }
                 return;
             }
         }
@@ -128,6 +115,7 @@ public class BrowserTabManager {
     public void closeAllTabs() {
         tabs.clear();
         activeTabId = null;
+        faviconCache.evictAll();  // A8: 清理所有 favicon 缓存
         prefs.edit().remove(KEY_TABS).remove(KEY_ACTIVE_ID).apply();
         createTab("https://www.baidu.com");
     }
@@ -138,7 +126,6 @@ public class BrowserTabManager {
                 activeTabId = tabId;
                 tab.setLastActiveTime(System.currentTimeMillis());
                 saveTabs();
-                if (listener != null) listener.onTabChanged(tab);
                 return;
             }
         }
@@ -151,6 +138,11 @@ public class BrowserTabManager {
     }
 
     public List<Tab> getTabList() { return new ArrayList<>(tabs); }
+
+    /** A8: 清理 favicon 缓存（供内存管理调用）。 */
+    public void clearFaviconCache() {
+        faviconCache.evictAll();
+    }
     public int getTabCount() { return tabs.size(); }
     public String getActiveTabId() { return activeTabId; }
 
@@ -171,16 +163,23 @@ public class BrowserTabManager {
         }
     }
 
+    // A8: favicon 改由 LruCache 管理，Tab 不再持有 Bitmap
     public void updateTabFavicon(String tabId, Bitmap favicon) {
-        for (Tab tab : tabs) {
-            if (tab.getId().equals(tabId)) { tab.setFavicon(favicon); return; }
+        if (tabId != null && favicon != null) {
+            faviconCache.put(tabId, favicon);
         }
     }
 
-    private void notifyListeners(Tab tab) {
-        if (listener != null) {
-            listener.onTabListChanged(new ArrayList<>(tabs));
-            listener.onTabChanged(tab);
+    /** A8: 从 LruCache 获取指定 Tab 的 favicon。 */
+    @Nullable
+    public Bitmap getTabFavicon(String tabId) {
+        return tabId != null ? faviconCache.get(tabId) : null;
+    }
+
+    /** A8: 移除指定 Tab 的 favicon 缓存。 */
+    public void removeTabFavicon(String tabId) {
+        if (tabId != null) {
+            faviconCache.remove(tabId);
         }
     }
 

@@ -318,24 +318,85 @@ public final class AiModelDownloadManager {
 
     /**
      * 返回不依赖服务器清单的端侧模型选项。
-     * 规则引擎用于低端机兜底；真实可下载模型仍以 VPS models.json 为准。
+     * 涵盖规则引擎兜底以及精选推荐的 Qwen2.5、DeepSeek 蒸馏与 Gemma 端侧量化模型。
      */
     private static List<AiModelInfo> buildBuiltInModels() {
         List<AiModelInfo> models = new ArrayList<>();
         try {
+            // 1. 本地规则引擎
             JSONObject rules = new JSONObject();
             rules.put("id", "on-device");
-            rules.put("name", "本地规则引擎（低端机）");
+            rules.put("name", "本地规则引擎（全机型）");
             rules.put("runtime", "rules");
             rules.put("version", "builtin");
             rules.put("fileName", "on-device");
             rules.put("sizeBytes", 0);
-            rules.put("estimatedPeakMemoryBytes", 128L * 1024L * 1024L);
+            rules.put("estimatedPeakMemoryBytes", 64L * 1024L * 1024L);
             rules.put("minSdk", 24);
             rules.put("minRamMb", 1024);
             rules.put("enabled", true);
-            rules.put("note", "无需下载，适合低端手机、离线环境和基础摘要/关键词/分类任务。");
+            rules.put("note", "无需下载，0 内存开销，适合离线基础摘要、关键词提取与格式清洗。");
             models.add(AiModelInfo.fromJson(rules));
+
+            // 2. Qwen2.5-0.5B (主流机型推荐)
+            JSONObject qwen05 = new JSONObject();
+            qwen05.put("id", "qwen2.5-0.5b-it-q4");
+            qwen05.put("name", "Qwen2.5-0.5B Instruct (极速轻量)");
+            qwen05.put("runtime", "mediapipe-llm");
+            qwen05.put("version", "2.5.0");
+            qwen05.put("fileName", "qwen2.5-0.5b-instruct-q4.task");
+            qwen05.put("sizeBytes", 350L * 1024L * 1024L);
+            qwen05.put("estimatedPeakMemoryBytes", 520L * 1024L * 1024L);
+            qwen05.put("minSdk", 26);
+            qwen05.put("minRamMb", 3500);
+            qwen05.put("enabled", true);
+            qwen05.put("note", "约 350MB，中文问答、错题初解与网页速读首选，低时延低发热。");
+            models.add(AiModelInfo.fromJson(qwen05));
+
+            // 3. Qwen2.5-1.5B (高性能机型推荐)
+            JSONObject qwen15 = new JSONObject();
+            qwen15.put("id", "qwen2.5-1.5b-it-q4");
+            qwen15.put("name", "Qwen2.5-1.5B Instruct (进阶全能)");
+            qwen15.put("runtime", "mediapipe-llm");
+            qwen15.put("version", "2.5.0");
+            qwen15.put("fileName", "qwen2.5-1.5b-instruct-q4.task");
+            qwen15.put("sizeBytes", 980L * 1024L * 1024L);
+            qwen15.put("estimatedPeakMemoryBytes", 1350L * 1024L * 1024L);
+            qwen15.put("minSdk", 26);
+            qwen15.put("minRamMb", 6000);
+            qwen15.put("enabled", true);
+            qwen15.put("note", "约 980MB，支持多步错题推导、复杂自然语言指令与棋局深度解说。");
+            models.add(AiModelInfo.fromJson(qwen15));
+
+            // 4. Gemma-3-1B-IT
+            JSONObject gemma = new JSONObject();
+            gemma.put("id", "gemma3-1b-it-q4");
+            gemma.put("name", "Gemma3-1B-IT Q4 (Google 官方)");
+            gemma.put("runtime", "mediapipe-llm");
+            gemma.put("version", "3.0.0");
+            gemma.put("fileName", "gemma3-1b-it-q4.task");
+            gemma.put("sizeBytes", 750L * 1024L * 1024L);
+            gemma.put("estimatedPeakMemoryBytes", 1100L * 1024L * 1024L);
+            gemma.put("minSdk", 26);
+            gemma.put("minRamMb", 4000);
+            gemma.put("enabled", true);
+            gemma.put("note", "Google 官方轻量模型，英语与跨语言能力强，深度结合 MediaPipe GPU 加速。");
+            models.add(AiModelInfo.fromJson(gemma));
+
+            // 5. DeepSeek-R1-Distill-Qwen-1.5B (深度思考模型)
+            JSONObject deepseek = new JSONObject();
+            deepseek.put("id", "deepseek-r1-distill-qwen-1.5b-q4");
+            deepseek.put("name", "DeepSeek-R1-Distill-1.5B (推理增强)");
+            deepseek.put("runtime", "mediapipe-llm");
+            deepseek.put("version", "1.0.0");
+            deepseek.put("fileName", "deepseek-r1-distill-qwen-1.5b-q4.task");
+            deepseek.put("sizeBytes", 1024L * 1024L * 1024L);
+            deepseek.put("estimatedPeakMemoryBytes", 1450L * 1024L * 1024L);
+            deepseek.put("minSdk", 26);
+            deepseek.put("minRamMb", 6000);
+            deepseek.put("enabled", true);
+            deepseek.put("note", "包含完整思维链（<think>...</think>），适合数学定理证明与复杂数理题目拆解。");
+            models.add(AiModelInfo.fromJson(deepseek));
         } catch (Exception ignored) {
             // Built-in metadata is static; ignore and return any entries already added.
         }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="adb_primary">#137F76</color>
+    <color name="adb_primary_dark">#0E5F59</color>
+    <color name="adb_primary_light">#E8F5F4</color>
+    <color name="adb_background">#F3F7F6</color>
+    <color name="adb_surface">#FFFFFF</color>
+    <color name="adb_text_primary">#212121</color>
+    <color name="adb_text_secondary">#757575</color>
+    <color name="adb_text_hint">#BDBDBD</color>
+    <color name="adb_divider">#E0E0E0</color>
+    <color name="adb_connected">#4CAF50</color>
+    <color name="adb_disconnected">#9E9E9E</color>
+    <color name="adb_connecting">#FF9800</color>
+    <color name="adb_error">#F44336</color>
+    <color name="adb_warning">#FFC107</color>
+    <color name="adb_tab_selected">#137F76</color>
+    <color name="adb_tab_unselected">#757575</color>
+    <color name="adb_tab_bg_selected">#E8F5F4</color>
+    <color name="adb_card">#FFFFFF</color>
+    <color name="adb_input_bg">#F5F5F5</color>
+    <color name="adb_button_bg">#137F76</color>
+    <color name="adb_button_text">#FFFFFF</color>
+    <color name="adb_button_disabled">#BDBDBD</color>
+    <color name="adb_dangerous">#F44336</color>
+    <color name="adb_fastboot">#FF5722</color>
+</resources>

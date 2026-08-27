@@ -10,8 +10,10 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
@@ -31,9 +33,16 @@ public class BrowserDownloadManager {
     private static volatile BrowserDownloadManager instance;
     private final Context context;
     private final DownloadManager downloadManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private long lastDownloadId = -1;
+
+    private synchronized ExecutorService getExecutor() {
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+        return executor;
+    }
 
     /**
      * P0 内存泄漏修复：进度轮询改为按需启动。
@@ -73,16 +82,28 @@ public class BrowserDownloadManager {
         return downloadFile(url, fileName, mimeType, null);
     }
 
+    /**
+     * S1/D3: 下载文件名净化，防止路径穿越（../）。
+     * S4: 危险文件检测，APK/EXE 等可执行文件走私有目录而非公共 Downloads。
+     */
     public long downloadFile(String url, String fileName, String mimeType, String userAgent) {
+        // #8：shutdown 后（配置变更）懒重注册广播接收
+        ensureReceiverRegistered();
+
+        // S1: 净化文件名，去除路径穿越字符
+        String safeFileName = sanitizeFileName(fileName);
+
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-        request.setTitle(fileName);
+
+        // S1/D3: 使用净化后的文件名
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
+        request.setTitle(safeFileName);
         request.setDescription(context.getString(R.string.browser_download_description));
 
         String finalMimeType = (mimeType != null && !mimeType.isEmpty()) ? mimeType : getMimeType(url);
         if ("*/*".equals(finalMimeType)) {
-            finalMimeType = getMimeType(fileName);
+            finalMimeType = getMimeType(safeFileName);
         }
         request.setMimeType(finalMimeType);
         if (userAgent != null && !userAgent.isEmpty()) {
@@ -96,9 +117,12 @@ public class BrowserDownloadManager {
 
         final long systemDownloadId = lastDownloadId;
         final String finalUrl = url;
-        final String finalName = fileName;
+        final String finalName = safeFileName;  // S1: 使用净化后的文件名
         final String persistedMimeType = finalMimeType;
-        executor.execute(() -> {
+        // D4: 危险文件标记（供 UI 确认/拦截使用）
+        final boolean isDangerous = isDangerousFile(safeFileName);
+
+        getExecutor().execute(() -> {
             try {
                 BrowserDownloadEntity entity = new BrowserDownloadEntity();
                 entity.setFileName(finalName);
@@ -108,10 +132,49 @@ public class BrowserDownloadManager {
                 entity.setStatus(BrowserDownloadEntity.STATUS_DOWNLOADING);
                 entity.setSystemDownloadId(systemDownloadId);
                 entity.setCreateTime(System.currentTimeMillis());
+                entity.setDangerous(isDangerous);  // D4: 记录危险标记
                 BrowserDatabase.getInstance(context).downloadDao().insert(entity);
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
         });
         return lastDownloadId;
+    }
+
+    /**
+     * S1/D3: 文件名净化 - 仅保留基本字符，去除路径穿越风险。
+     */
+    @NonNull
+    private String sanitizeFileName(@Nullable String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return "download";
+        }
+        // 移除路径分隔符和非法字符
+        String sanitized = fileName
+            .replace("/", "_")
+            .replace("\\", "_")
+            .replace("..", "_")
+            .replace(":", "_")
+            .replace("*", "_")
+            .replace("?", "_")
+            .replace("\"", "_")
+            .replace("<", "_")
+            .replace(">", "|")
+            .replace("|", "_");
+        // 仅保留 ASCII 可打印字符和中文
+        sanitized = sanitized.replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}._\\- ]", "_");
+        // 限制长度
+        if (sanitized.length() > 100) {
+            // 保留扩展名
+            int dotIdx = sanitized.lastIndexOf('.');
+            if (dotIdx > 0 && dotIdx < sanitized.length() - 5) {
+                sanitized = sanitized.substring(0, 96) + sanitized.substring(dotIdx);
+            } else {
+                sanitized = sanitized.substring(0, 100);
+            }
+        }
+        // 去除首尾空白和点号
+        sanitized = sanitized.trim().replaceAll("^\\.+|\\.+$", "");
+        if (sanitized.isEmpty()) sanitized = "download";
+        return sanitized;
     }
 
     public boolean isDangerousFile(String fileName) {
@@ -142,7 +205,7 @@ public class BrowserDownloadManager {
     }
 
     public void getAllDownloads(DownloadListCallback callback) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 List<BrowserDownloadEntity> list = BrowserDatabase.getInstance(context).downloadDao().getAllDownloads();
                 callback.onResult(list);
@@ -153,28 +216,28 @@ public class BrowserDownloadManager {
     }
 
     public void deleteDownload(long id) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 BrowserDownloadEntity entity = BrowserDatabase.getInstance(context).downloadDao().getById(id);
                 if (entity != null && entity.getSystemDownloadId() != -1) {
                     try {
                         downloadManager.remove(entity.getSystemDownloadId());
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
                 }
                 BrowserDatabase.getInstance(context).downloadDao().deleteById(id);
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
         });
     }
 
     public void deleteDownloadWithFile(long id) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 BrowserDownloadEntity entity = BrowserDatabase.getInstance(context).downloadDao().getById(id);
                 if (entity != null) {
                     if (entity.getSystemDownloadId() != -1) {
                         try {
                             downloadManager.remove(entity.getSystemDownloadId());
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
                     }
                     if (entity.getFilePath() != null && !entity.getFilePath().isEmpty()) {
                         String path = entity.getFilePath();
@@ -188,18 +251,18 @@ public class BrowserDownloadManager {
                     }
                 }
                 BrowserDatabase.getInstance(context).downloadDao().deleteById(id);
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
         });
     }
 
     public void clearAllDownloads(boolean deleteFiles) {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             try {
                 if (deleteFiles) {
                     List<BrowserDownloadEntity> list = BrowserDatabase.getInstance(context).downloadDao().getAllDownloads();
                     for (BrowserDownloadEntity entity : list) {
                         if (entity.getSystemDownloadId() != -1) {
-                            try { downloadManager.remove(entity.getSystemDownloadId()); } catch (Exception ignored) {}
+                            try { downloadManager.remove(entity.getSystemDownloadId()); } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
                         }
                         if (entity.getFilePath() != null && !entity.getFilePath().isEmpty()) {
                             String path = entity.getFilePath();
@@ -212,7 +275,7 @@ public class BrowserDownloadManager {
                     }
                 }
                 BrowserDatabase.getInstance(context).downloadDao().deleteAll();
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
         });
     }
 
@@ -239,7 +302,7 @@ public class BrowserDownloadManager {
      * 无活跃下载任务（WAITING/DOWNLOADING）时自动停止轮询，避免空转。
      */
     private void queryProgressAndAutoStop() {
-        executor.execute(() -> {
+        getExecutor().execute(() -> {
             boolean hasActive = false;
             try {
                 List<BrowserDownloadEntity> list = BrowserDatabase.getInstance(context).downloadDao()
@@ -263,9 +326,9 @@ public class BrowserDownloadManager {
                             BrowserDatabase.getInstance(context).downloadDao()
                                     .updateProgressBySystemDownloadId(systemId, newStatus, total, downloaded);
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
             // 仍有活跃任务则继续轮询，否则停止
             if (hasActive && isPolling) {
                 progressHandler.postDelayed(progressRunnable, 1000);
@@ -284,6 +347,10 @@ public class BrowserDownloadManager {
 
     private void registerReceiver() {
         try {
+            if (downloadReceiver != null) {
+                try { context.unregisterReceiver(downloadReceiver); } catch (Exception ignored) {}
+                downloadReceiver = null;
+            }
             downloadReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context ctx, Intent intent) {
@@ -309,14 +376,14 @@ public class BrowserDownloadManager {
                             if (totalIdx >= 0) total = c.getLong(totalIdx);
                             if (downloadedIdx >= 0) downloaded = c.getLong(downloadedIdx);
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
                     final int newStatus = (status == DownloadManager.STATUS_SUCCESSFUL)
                             ? BrowserDownloadEntity.STATUS_COMPLETED
                             : BrowserDownloadEntity.STATUS_FAILED;
                     final String finalLocalUri = localUri;
                     final long finalTotal = total;
                     final long finalDownloaded = downloaded;
-                    executor.execute(() -> {
+                    getExecutor().execute(() -> {
                         try {
                             BrowserDownloadEntity entity = BrowserDatabase.getInstance(context)
                                     .downloadDao().getBySystemDownloadId(downloadId);
@@ -331,7 +398,7 @@ public class BrowserDownloadManager {
                                 BrowserDatabase.getInstance(context).downloadDao()
                                         .updateProgressBySystemDownloadId(downloadId, newStatus, finalTotal, finalDownloaded);
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
                     });
                 }
             };
@@ -340,6 +407,36 @@ public class BrowserDownloadManager {
         } catch (Exception e) {
             // 忽略注册失败
         }
+    }
+
+    /**
+     * #8：shutdown 后（如配置变更重建）懒重注册广播接收，避免完成广播永久失效。
+     */
+    public void ensureReceiverRegistered() {
+        synchronized (BrowserDownloadManager.class) {
+            if (downloadReceiver == null) registerReceiver();
+        }
+    }
+
+    /**
+     * #8：配置变更（旋转）重建 Fragment 后调用。恢复广播接收注册，
+     * 且若存在 in-flight 下载则重新启动进度轮询，避免状态卡在“下载中”。
+     */
+    public void refresh() {
+        ensureReceiverRegistered();
+        getExecutor().execute(() -> {
+            try {
+                boolean hasActive = !BrowserDatabase.getInstance(context).downloadDao()
+                        .getByStatuses(new int[]{BrowserDownloadEntity.STATUS_WAITING,
+                                BrowserDownloadEntity.STATUS_DOWNLOADING})
+                        .isEmpty();
+                if (hasActive) {
+                    progressHandler.post(() -> startProgressPolling());
+                }
+            } catch (Exception e) {
+                Log.e("BrowserDownloadMgr", "refresh failed", e);
+            }
+        });
     }
 
     /**
@@ -352,11 +449,11 @@ public class BrowserDownloadManager {
         if (downloadReceiver != null) {
             try {
                 context.unregisterReceiver(downloadReceiver);
-            } catch (Exception ignored) {}
+            } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
             downloadReceiver = null;
         }
-        if (!executor.isShutdown()) {
-            executor.shutdown();
+        if (!getExecutor().isShutdown()) {
+            getExecutor().shutdown();
         }
     }
 

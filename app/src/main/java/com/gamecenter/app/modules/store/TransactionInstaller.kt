@@ -3,6 +3,7 @@ package com.gamecenter.app.modules.store
 import android.content.Context
 import android.util.Log
 import com.gamecenter.app.BuildConfig
+import com.gamecenter.app.core.security.ModuleSignatureVerifier
 import com.gamecenter.app.modules.ModuleManifest
 import com.gamecenter.app.modules.ModuleVerifier
 import java.io.File
@@ -136,6 +137,26 @@ object TransactionInstaller {
                 Log.e(TAG, "模块SHA-256校验失败: ${manifest.id}")
                 downloadedFile.delete()
                 return InstallResult.Failure("SHA-256校验失败")
+            }
+
+            // 1.5 APK 签名强校验（发布证书钉扎）：与 ModuleDownloader 下载路径保持一致。
+            // 此前事务安装只做 SHA-256，是下载链路上唯一未校验发布证书的旁路。
+            // 归档包（.zip）不走此处：其信任由 Catalog V2 绑定在下载路径断言。
+            if (downloadedFile.name.endsWith(".apk", ignoreCase = true)) {
+                when (val signature = ModuleSignatureVerifier.verify(downloadedFile, context)) {
+                    ModuleSignatureVerifier.Result.Success -> Unit
+                    is ModuleSignatureVerifier.Result.Warning,
+                    is ModuleSignatureVerifier.Result.Failure -> {
+                        val reason = when (signature) {
+                            is ModuleSignatureVerifier.Result.Warning -> signature.reason
+                            is ModuleSignatureVerifier.Result.Failure -> signature.reason
+                            else -> "未知原因"
+                        }
+                        Log.e(TAG, "模块签名校验失败: ${manifest.id}, $reason")
+                        downloadedFile.delete()
+                        return InstallResult.Failure("模块签名验证失败")
+                    }
+                }
             }
             
             // 2. 备份当前版本到last_good

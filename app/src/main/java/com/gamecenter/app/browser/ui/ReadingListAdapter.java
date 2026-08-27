@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.R;
@@ -19,6 +20,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * 阅读列表适配器（P1-3）。
@@ -39,8 +41,46 @@ public class ReadingListAdapter extends RecyclerView.Adapter<ReadingListAdapter.
     public void setOnDeleteClickListener(OnDeleteClickListener l) { this.deleteListener = l; }
 
     public void setData(List<BrowserReadingListEntity> items) {
-        this.items = items != null ? items : new ArrayList<>();
-        notifyDataSetChanged();
+        List<BrowserReadingListEntity> newList = items != null ? items : new ArrayList<>();
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new ReadingListDiffCallback(this.items, newList));
+        this.items = newList;
+        diffResult.dispatchUpdatesTo(this);
+    }
+
+    private static class ReadingListDiffCallback extends DiffUtil.Callback {
+        private final List<BrowserReadingListEntity> oldList;
+        private final List<BrowserReadingListEntity> newList;
+
+        ReadingListDiffCallback(List<BrowserReadingListEntity> oldList, List<BrowserReadingListEntity> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            return oldList.get(oldItemPosition).getId() == newList.get(newItemPosition).getId();
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            BrowserReadingListEntity oldItem = oldList.get(oldItemPosition);
+            BrowserReadingListEntity newItem = newList.get(newItemPosition);
+            return Objects.equals(oldItem.getTitle(), newItem.getTitle())
+                    && Objects.equals(oldItem.getUrl(), newItem.getUrl())
+                    && Objects.equals(oldItem.getSummary(), newItem.getSummary())
+                    && oldItem.getSavedAt() == newItem.getSavedAt()
+                    && oldItem.getRead() == newItem.getRead();
+        }
     }
 
     @NonNull @Override

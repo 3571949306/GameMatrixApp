@@ -55,7 +55,13 @@ public class BrowserHomeHelper {
     private static final String KEY_PINNED_SITES = "pinned_sites";
     private static final int MAX_TOP_SITES = 8;
 
-    private static final ExecutorService IO_EXECUTOR = Executors.newFixedThreadPool(4);
+    private static final class ExecutorHolder {
+        private static final ExecutorService INSTANCE = Executors.newFixedThreadPool(4);
+    }
+
+    private static ExecutorService getIoExecutor() {
+        return ExecutorHolder.INSTANCE;
+    }
 
     public interface HomeCallback {
         void onSiteClicked(@NonNull String url);
@@ -142,7 +148,7 @@ public class BrowserHomeHelper {
 
     /** 异步加载 Top Sites 并填充到当前风格的容器 */
     public void loadTopSitesAsync() {
-        IO_EXECUTOR.execute(() -> {
+        getIoExecutor().execute(() -> {
             try {
                 List<BrowserHistoryEntity> all = historyDao.getAllHistory();
                 List<SiteEntry> top = computeTopSites(all);

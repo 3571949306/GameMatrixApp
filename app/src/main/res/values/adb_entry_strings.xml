@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_entry_title">ADB 工作台</string>
+    <string name="adb_entry_description">连接与管理已授权的 Android 设备，使用 ADB 调试工具。</string>
+    <string name="adb_entry_open_label">打开 ADB 工作台</string>
+    <string name="adb_entry_unavailable">当前宿主无法打开 ADB 工作台，请检查应用版本。</string>
+    <item name="adb_entry_menu" type="id" />
+</resources>

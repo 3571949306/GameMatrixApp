@@ -108,6 +108,15 @@ public class BrowserFragment extends Fragment implements
     private SearchHistoryRepository searchHistoryRepository;
     private BrowserFindInPageHelper findInPageHelper;
     private BrowserReaderModeHelper readerModeHelper;
+    /** A6: 供切 Tab 后重新绑定到新 WebView 的宿主回调引用 */
+    @Nullable private BrowserFindInPageHelper.HostCallback findInPageHostCallback;
+    @Nullable private BrowserReaderModeHelper.ReaderModeCallback readerModeCallback;
+    /** A1: WebView 状态快照 Bundle 的保存键（配置变更后恢复） */
+    private static final String STATE_KEY_TAB_STATES = "browser_tab_webview_states";
+    /** A1: 单 WebView 模式下的页面状态保存键 */
+    private static final String STATE_KEY_SINGLE_STATE = "browser_single_webview_state";
+    /** A1: 旋转后是否已恢复单 WebView 页面状态（恢复成功则不再加载初始页） */
+    private boolean restoredSingleView;
     private BrowserGestureHelper gestureHelper;
     private com.gamecenter.app.browser.core.BrowserHomeHelper homeHelper;
     private com.gamecenter.app.browser.core.UrlInputHelper urlInputHelper;
@@ -147,7 +156,6 @@ public class BrowserFragment extends Fragment implements
     private boolean isDesktopMode = false;
     private boolean isIncognitoMode = false;
     private boolean hasPageError = false;
-    private String defaultUserAgent;
     private String currentTitle = "";
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -160,6 +168,8 @@ public class BrowserFragment extends Fragment implements
     private PopupWindow enginePopup;
     private Runnable pendingSuggestionRunnable;
     private static final long SUGGESTION_DEBOUNCE_MS = 300;
+    // [BUGFIX-2026-08-27] 建议查询会话代次，每次 hide/onPause 递增，异步回调校验防止 Fragment 不可见后仍弹出
+    private int suggestionSessionId = 0;
 
     // 文件上传（支持多选）
     @Nullable private ValueCallback<Uri[]> filePathCallback;
@@ -272,6 +282,19 @@ public class BrowserFragment extends Fragment implements
         }
         initViews(view);
         initWebView();
+        // A1: 配置变更（旋转）后恢复 WebView 状态快照（须在首次 switchToTab / loadUrl 之前）
+        if (savedInstanceState != null && controller != null) {
+            if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                Bundle stateMap = savedInstanceState.getBundle(STATE_KEY_TAB_STATES);
+                if (stateMap != null) {
+                    controller.restoreTabStateMap(stateMap);
+                }
+            } else {
+                Bundle singleState = savedInstanceState.getBundle(STATE_KEY_SINGLE_STATE);
+                restoredSingleView = singleState != null
+                        && controller.restoreSingleWebViewState(singleState);
+            }
+        }
         // P0-1 多 Tab：初始化 tabManager 并为当前 Tab 创建 WebView
         if (BuildConfig.BROWSER_REAL_MULTI_TAB && getContext() != null) {
             tabManager = BrowserTabManager.getInstance(getContext());
@@ -292,28 +315,34 @@ public class BrowserFragment extends Fragment implements
         setupListeners();
         setupGestureNavigation(view);
         setupBackPressHandler();
+        // #8：配置变更（旋转）重建后恢复下载广播接收与进度轮询，避免 in-flight 下载卡“下载中”
+        if (getContext() != null) {
+            BrowserDownloadManager.getInstance(getContext()).refresh();
+        }
 
         String initialUrl = null;
         if (getArguments() != null) {
             initialUrl = getArguments().getString(ARG_URL);
         }
         String homeUrl = getHomeUrl();
-        if (initialUrl != null && !initialUrl.isEmpty()) {
-            if (isHomePageUrl(initialUrl)) {
-                showHomePage();
-                etUrl.setText("");
+        if (!restoredSingleView) {
+            if (initialUrl != null && !initialUrl.isEmpty()) {
+                if (isHomePageUrl(initialUrl)) {
+                    showHomePage();
+                    etUrl.setText("");
+                } else {
+                    controller.loadUrl(initialUrl);
+                    etUrl.setText(initialUrl);
+                }
             } else {
-                controller.loadUrl(initialUrl);
-                etUrl.setText(initialUrl);
-            }
-        } else {
-            // 默认显示起始页而非加载 baidu.com
-            if (BuildConfig.BROWSER_HOME_PAGE) {
-                showHomePage();
-                etUrl.setText("");
-            } else {
-                controller.loadUrl(homeUrl);
-                etUrl.setText(homeUrl);
+                // 默认显示起始页而非加载 baidu.com
+                if (BuildConfig.BROWSER_HOME_PAGE) {
+                    showHomePage();
+                    etUrl.setText("");
+                } else {
+                    controller.loadUrl(homeUrl);
+                    etUrl.setText(homeUrl);
+                }
             }
         }
 
@@ -334,23 +363,24 @@ public class BrowserFragment extends Fragment implements
         // Find In Page
         if (BuildConfig.BROWSER_FIND_IN_PAGE) {
             findInPageHelper = new BrowserFindInPageHelper();
+            findInPageHostCallback = new BrowserFindInPageHelper.HostCallback() {
+                @Override public void showFindBar() {
+                    if (findInPageBar != null) findInPageBar.setVisibility(View.VISIBLE);
+                }
+                @Override public void hideFindBar() {
+                    if (findInPageBar != null) findInPageBar.setVisibility(View.GONE);
+                    hideKeyboardFrom(findInPageBar);
+                }
+            };
             findInPageHelper.bind(webView, etFindQuery, tvFindMatchCount,
                     btnFindPrev, btnFindNext, btnFindClose,
-                    new BrowserFindInPageHelper.HostCallback() {
-                        @Override public void showFindBar() {
-                            if (findInPageBar != null) findInPageBar.setVisibility(View.VISIBLE);
-                        }
-                        @Override public void hideFindBar() {
-                            if (findInPageBar != null) findInPageBar.setVisibility(View.GONE);
-                            hideKeyboardFrom(findInPageBar);
-                        }
-                    });
+                    findInPageHostCallback);
         }
 
         // Reader Mode
         if (BuildConfig.BROWSER_READER_MODE) {
             readerModeHelper = new BrowserReaderModeHelper();
-            readerModeHelper.bind(webView, new BrowserReaderModeHelper.ReaderModeCallback() {
+            readerModeCallback = new BrowserReaderModeHelper.ReaderModeCallback() {
                 @Override public void onReaderModeEntered() {
                     if (getContext() != null) {
                         Toast.makeText(getContext(), R.string.browser_reader_entered, Toast.LENGTH_SHORT).show();
@@ -361,7 +391,8 @@ public class BrowserFragment extends Fragment implements
                         Toast.makeText(getContext(), R.string.browser_reader_exited, Toast.LENGTH_SHORT).show();
                     }
                 }
-            });
+            };
+            readerModeHelper.bind(webView, readerModeCallback);
         }
     }
 
@@ -389,8 +420,10 @@ public class BrowserFragment extends Fragment implements
                 startActivity(new android.content.Intent(getContext(), com.gamecenter.app.browser.ui.HistoryActivity.class));
             }
             @Override public void onReadingListClicked() {
-                // 待 P1-3 阅读列表功能实现后在此接入
-                Toast.makeText(getContext(), R.string.browser_reading_list_empty, Toast.LENGTH_SHORT).show();
+                // Phase 4 (U1): 接线阅读列表按钮，启动 ReadingListActivity
+                if (getContext() != null) {
+                    ReadingListActivity.start(getContext());
+                }
             }
         });
         View homeView = homeHelper.createHomeView(LayoutInflater.from(getContext()), homeContainer);
@@ -610,9 +643,6 @@ public class BrowserFragment extends Fragment implements
 
     private void initWebView() {
         if (getContext() == null) return;
-        WebView tempWebView = new WebView(getContext());
-        defaultUserAgent = tempWebView.getSettings().getUserAgentString();
-        tempWebView.destroy();
         if (controller != null) {
             controller.initWebView(getContext(), webViewContainer, this, this, this);
             // 设置下载监听
@@ -642,7 +672,7 @@ public class BrowserFragment extends Fragment implements
             .setMessage(isDangerous ? message : fileName)
             .setPositiveButton(isDangerous ? R.string.browser_download_dangerous_confirm : android.R.string.ok, (d, w) -> {
                 downloadMgr.downloadFile(url, fileName, mimeType, userAgent);
-                Toast.makeText(getContext(), getString(R.string.browser_download_started, fileName), Toast.LENGTH_SHORT).show();
+                safeToast(R.string.browser_download_started, fileName);
             })
             .setNegativeButton(android.R.string.cancel, null)
             .show();
@@ -728,13 +758,8 @@ public class BrowserFragment extends Fragment implements
         etUrl.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 etUrl.selectAll();
-                // 获得焦点且有内容时立即查询建议
-                if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null) {
-                    String text = etUrl.getText().toString().trim();
-                    if (!text.isEmpty()) {
-                        scheduleSuggestionQuery(text);
-                    }
-                }
+                // 注意：不在获焦时自动弹出建议列表，避免页面加载/焦点回弹等非用户主动操作时遮挡内容。
+                // 建议仅在用户实际输入时由 TextWatcher(afterTextChanged) 触发。
             } else {
                 hideUrlSuggestions();
             }
@@ -750,9 +775,13 @@ public class BrowserFragment extends Fragment implements
                     String text = s == null ? "" : s.toString().trim();
                     if (text.isEmpty()) {
                         hideUrlSuggestions();
-                    } else {
-                        scheduleSuggestionQuery(text);
+                        return;
                     }
+                    // [BUGFIX-2026-08-27] Bug1：仅在 EditText 有焦点时触发建议查询。
+                    // 程序化 setText（页面加载同步 URL、Tab 切换、初始化）不会聚焦 EditText，
+                    // 因此 hasFocus() 为 false → 跳过，避免自动弹出建议列表。
+                    if (!etUrl.hasFocus()) return;
+                    scheduleSuggestionQuery(text);
                 }
             });
 
@@ -772,11 +801,17 @@ public class BrowserFragment extends Fragment implements
             mainHandler.removeCallbacks(pendingSuggestionRunnable);
         }
         final String query = keyword;
+        // [BUGFIX-2026-08-27] Bug2：捕获当前会话代次，回调中校验防止 Fragment hide 后仍弹出
+        final int capturedSession = suggestionSessionId;
         pendingSuggestionRunnable = () -> {
             if (urlInputHelper == null || getContext() == null) return;
             urlInputHelper.querySuggestionsAsync(query, items ->
                     mainHandler.post(() -> {
+                        // [BUGFIX-2026-08-27] Bug2 双保险：
+                        // 1. 会话代次校验 —— hide/onPause 后 sessionId 已递增，旧回调作废
+                        if (capturedSession != suggestionSessionId) return;
                         if (getContext() == null) return;
+                        if (!isSuggestionWindowUsable()) return;
                         // 校验当前 EditText 内容仍然匹配（避免延迟导致显示过时建议）
                         String current = etUrl.getText().toString().trim();
                         if (!current.equalsIgnoreCase(query)) return;
@@ -788,6 +823,16 @@ public class BrowserFragment extends Fragment implements
                     }));
         };
         mainHandler.postDelayed(pendingSuggestionRunnable, SUGGESTION_DEBOUNCE_MS);
+    }
+
+    /** [BUGFIX-2026-08-27] Bug2：Fragment 建议窗口是否可安全显示（可见且未被 hide）。 */
+    private boolean isSuggestionWindowUsable() {
+        if (!isAdded()) return false;
+        if (getView() == null) return false;
+        View v = getView();
+        if (!v.isShown()) return false;
+        if (v.getVisibility() != View.VISIBLE) return false;
+        return etUrl != null && etUrl.getWindowToken() != null;
     }
 
     /** 显示 URL 建议下拉 */
@@ -828,10 +873,10 @@ public class BrowserFragment extends Fragment implements
                 com.gamecenter.app.browser.data.BrowserDatabase.getInstance(ctx)
                         .historyDao().deleteAll();
                 mainHandler.post(() ->
-                        Toast.makeText(getContext(), R.string.browser_url_suggestion_cleared, Toast.LENGTH_SHORT).show());
+                        safeToast(R.string.browser_url_suggestion_cleared));
             } catch (Exception e) {
                 mainHandler.post(() ->
-                        Toast.makeText(getContext(), R.string.browser_url_suggestion_clear_failed, Toast.LENGTH_SHORT).show());
+                        safeToast(R.string.browser_url_suggestion_clear_failed));
             }
         });
     }
@@ -954,7 +999,7 @@ public class BrowserFragment extends Fragment implements
                 if (existing != null) {
                     BrowserDatabase.getInstance(ctx).bookmarkDao().deleteByUrl(bookmarkUrl);
                     mainHandler.post(() -> {
-                        Toast.makeText(getContext(), R.string.browser_btn_bookmark_remove, Toast.LENGTH_SHORT).show();
+                        safeToast(R.string.browser_btn_bookmark_remove);
                         updateBookmarkIcon();
                     });
                 } else {
@@ -965,7 +1010,7 @@ public class BrowserFragment extends Fragment implements
                     entity.setUpdateTime(System.currentTimeMillis());
                     BrowserDatabase.getInstance(ctx).bookmarkDao().insert(entity);
                     mainHandler.post(() -> {
-                        Toast.makeText(getContext(), R.string.browser_btn_bookmark_add, Toast.LENGTH_SHORT).show();
+                        safeToast(R.string.browser_btn_bookmark_add);
                         updateBookmarkIcon();
                     });
                 }
@@ -999,8 +1044,7 @@ public class BrowserFragment extends Fragment implements
             try {
                 int count = BrowserDatabase.getInstance(ctx).readingListDao().countByUrl(pageUrl);
                 if (count > 0) {
-                    mainHandler.post(() -> Toast.makeText(getContext(),
-                            R.string.browser_reading_list_already_exists, Toast.LENGTH_SHORT).show());
+                    mainHandler.post(() -> safeToast(R.string.browser_reading_list_already_exists));
                     return;
                 }
                 // 在主线程调用 evaluateJavascript 提取摘要
@@ -1060,8 +1104,7 @@ public class BrowserFragment extends Fragment implements
         ioExecutor.execute(() -> {
             try {
                 BrowserDatabase.getInstance(ctx).readingListDao().insert(entity);
-                mainHandler.post(() -> Toast.makeText(getContext(),
-                        R.string.browser_reading_list_added, Toast.LENGTH_SHORT).show());
+                mainHandler.post(() -> safeToast(R.string.browser_reading_list_added));
             } catch (Exception ignored) {}
         });
     }
@@ -1276,7 +1319,7 @@ public class BrowserFragment extends Fragment implements
         if (getContext() == null) return;
         Context ctx = getContext();
         if (!BrowserSecurityPolicy.getInstance().canExternalAppHandle(ctx, url)) {
-            Toast.makeText(ctx, R.string.browser_open_external_failed, Toast.LENGTH_SHORT).show();
+            safeToast(R.string.browser_open_external_failed);
             return;
         }
         new AlertDialog.Builder(requireContext())
@@ -1287,7 +1330,7 @@ public class BrowserFragment extends Fragment implements
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
                 } catch (Exception e) {
-                    Toast.makeText(getContext(), R.string.browser_open_external_failed, Toast.LENGTH_SHORT).show();
+                    safeToast(R.string.browser_open_external_failed);
                 }
             })
             .setNegativeButton(R.string.browser_security_external_deny, null)
@@ -1314,9 +1357,7 @@ public class BrowserFragment extends Fragment implements
                 CookieManager.getInstance().removeAllCookies(null);
             } catch (Exception ignored) {}
         }
-        Toast.makeText(getContext(),
-            isIncognitoMode ? R.string.browser_incognito_on : R.string.browser_incognito_off,
-            Toast.LENGTH_SHORT).show();
+        safeToast(isIncognitoMode ? R.string.browser_incognito_on : R.string.browser_incognito_off);
     }
 
     /** P0-1 多 Tab：启动 TabManagerActivity 全屏切换器（带结果回传）。 */
@@ -1355,6 +1396,18 @@ public class BrowserFragment extends Fragment implements
                     return consumed || false;
                 });
             } catch (Throwable ignored) {}
+        }
+        // A6: 切换 Tab 后重新绑定 Find-In-Page / Reader-Mode 到新 WebView
+        // 阅读模式是按 WebView 的状态，切换后先退出旧 Tab 的阅读模式再重绑
+        if (readerModeHelper != null && readerModeHelper.isActive()) {
+            readerModeHelper.exitReaderMode();
+        }
+        if (findInPageHelper != null) {
+            findInPageHelper.bind(wv, etFindQuery, tvFindMatchCount,
+                    btnFindPrev, btnFindNext, btnFindClose, findInPageHostCallback);
+        }
+        if (readerModeHelper != null) {
+            readerModeHelper.bind(wv, readerModeCallback);
         }
     }
 
@@ -1450,7 +1503,8 @@ public class BrowserFragment extends Fragment implements
     }
 
     @Override
-    public void onPageStarted(String url, Bitmap favicon) {
+    public void onPageStarted(@Nullable String tabId, String url, Bitmap favicon) {
+        if (!isCallbackForActiveTab(tabId)) return; // 后台 Tab 的加载事件不得驱动前台 UI
         isLoading = true;
         hasPageError = false;
         // 阅读模式时 about:blank 不更新地址栏
@@ -1471,12 +1525,23 @@ public class BrowserFragment extends Fragment implements
     }
 
     @Override
-    public void onPageFinished(String url) {
+    public void onPageFinished(@Nullable String tabId, String url) {
+        boolean forActiveTab = isCallbackForActiveTab(tabId);
+        if (!forActiveTab) {
+            // 后台 Tab：只更新该 Tab 自己的元数据，不改地址栏/进度/JSBridge/离线缓存
+            if (tabManager != null && controller != null && url != null && !isReaderModeUrl(url)) {
+                BrowserTabManager.Tab finishedTab = findTabById(tabId);
+                if (finishedTab != null && finishedTab.getId() != null) {
+                    tabManager.updateTabInfo(finishedTab.getId(), finishedTab.getTitle(), url);
+                }
+            }
+            return;
+        }
         isLoading = false;
         if (etUrl != null && !isReaderModeUrl(url)) {
             etUrl.setText(url);
         }
-        if (progressBar != null) progressBar.setVisibility(View.GONE);
+        if (progressBar != null) { progressBar.setVisibility(View.GONE); }
         // P3-4 骨架屏：页面加载完成时隐藏
         if (skeletonOverlay != null) skeletonOverlay.setVisibility(View.GONE);
         if (controller != null) currentTitle = controller.getTitle();
@@ -1507,6 +1572,12 @@ public class BrowserFragment extends Fragment implements
         }
     }
 
+    /** 判断回调事件是否属于当前前台 Tab（单 WebView 模式 tabId 为 null，恒视为前台）。 */
+    private boolean isCallbackForActiveTab(@Nullable String tabId) {
+        return tabId == null || controller == null
+                || tabId.equals(controller.getActiveTabId());
+    }
+
     /** 阅读模式触发 about:blank 加载时跳过历史/书签/JSBridge 处理 */
     private boolean isReaderModeUrl(@Nullable String url) {
         return readerModeHelper != null && readerModeHelper.isActive()
@@ -1514,7 +1585,8 @@ public class BrowserFragment extends Fragment implements
     }
 
     @Override
-    public void onPageError(String url, String description) {
+    public void onPageError(@Nullable String tabId, String url, String description) {
+        if (!isCallbackForActiveTab(tabId)) return; // 后台 Tab 错误不驱动前台错误视图
         isLoading = false;
         hasPageError = true;
         if (progressBar != null) progressBar.setVisibility(View.GONE);
@@ -1522,15 +1594,31 @@ public class BrowserFragment extends Fragment implements
     }
 
     @Override
-    public void onReceivedSslError(String url) {
-        if (getContext() != null) Toast.makeText(getContext(), R.string.browser_ssl_error, Toast.LENGTH_SHORT).show();
+    public void onReceivedSslError(@Nullable String tabId, String url) {
+        if (!isCallbackForActiveTab(tabId)) return;
+        safeToast(R.string.browser_ssl_error);
+    }
+
+    /** A7: 安全显示 Toast，检查 Fragment 是否仍然附加到 Activity。 */
+    private void safeToast(int resId) {
+        if (!isAdded() || getContext() == null) return;
+        Toast.makeText(getContext(), resId, Toast.LENGTH_SHORT).show();
+    }
+
+    /** A7: 安全显示 Toast（带格式化参数）。 */
+    private void safeToast(int resId, Object... formatArgs) {
+        if (!isAdded() || getContext() == null) return;
+        Toast.makeText(getContext(), getString(resId, formatArgs), Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public void onTitleChanged(String title) { currentTitle = title; }
+    public void onTitleChanged(@Nullable String tabId, String title) {
+        if (isCallbackForActiveTab(tabId)) currentTitle = title;
+    }
 
     @Override
-    public void onProgressChanged(int progress) {
+    public void onProgressChanged(@Nullable String tabId, int progress) {
+        if (!isCallbackForActiveTab(tabId)) return; // 后台 Tab 进度不驱动前台进度条
         if (progressBar != null) {
             progressBar.setProgress(progress);
             if (progress >= 100) progressBar.setVisibility(View.GONE);
@@ -1538,7 +1626,7 @@ public class BrowserFragment extends Fragment implements
     }
 
     @Override
-    public void onReceivedIcon(Bitmap icon) {}
+    public void onReceivedIcon(@Nullable String tabId, Bitmap icon) {}
 
     @Override
     public void onResume() {
@@ -1559,6 +1647,8 @@ public class BrowserFragment extends Fragment implements
         if (controller != null) controller.onPause();
         // P0：切走/锁屏/切换模块时强制收起 URL Bar 建议 popup 与搜索引擎选择 popup，
         // 避免 PopupWindow 作为系统浮窗在 Fragment 不可见后仍覆盖其他模块。
+        // [BUGFIX-2026-08-27] Bug2：递增会话代次，使所有在飞的异步查询回调在返回时作废。
+        suggestionSessionId++;
         cancelPendingUrlSuggestions();
         hideUrlSuggestions();
         hideEngineSelector();
@@ -1570,6 +1660,8 @@ public class BrowserFragment extends Fragment implements
         super.onHiddenChanged(hidden);
         if (hidden) {
             // P0：Fragment 被 hide（底部导航切换标签）时，PopupWindow 不会随视图隐藏，必须主动关闭。
+            // [BUGFIX-2026-08-27] Bug2：递增会话代次，使所有在飞的异步查询回调在返回时作废。
+            suggestionSessionId++;
             cancelPendingUrlSuggestions();
             hideUrlSuggestions();
             hideEngineSelector();
@@ -1594,6 +1686,30 @@ public class BrowserFragment extends Fragment implements
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // #8：无论单/多 WebView 模式，配置变更（旋转）/进程重建前都保存页面状态，
+        // 在 onDestroyView 销毁 WebView 之前取快照，随 savedInstanceState 传递。
+        if (controller == null) return;
+        try {
+            if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                controller.saveAllTabStates();
+                Bundle stateMap = controller.collectTabStateMap();
+                if (!stateMap.isEmpty()) {
+                    outState.putBundle(STATE_KEY_TAB_STATES, stateMap);
+                }
+            } else {
+                Bundle singleState = controller.saveSingleWebViewState();
+                if (singleState != null) {
+                    outState.putBundle(STATE_KEY_SINGLE_STATE, singleState);
+                }
+            }
+        } catch (Throwable t) {
+            android.util.Log.w(TAG, "onSaveInstanceState save WebView states failed", t);
+        }
+    }
+
+    @Override
     public void onDestroyView() {
         if (getContext() != null) {
             BrowserSettingsManager.getInstance(getContext()).removeListener(this);
@@ -1612,6 +1728,9 @@ public class BrowserFragment extends Fragment implements
         // P0 内存泄漏修复：清理 BrowserHomeHelper（之前完全遗漏，导致 View 树和站点图标 Bitmap 无法回收）
         if (homeHelper != null) { homeHelper.destroy(); homeHelper = null; }
         if (controller != null) { controller.destroy(); controller = null; }
+        if (getContext() != null) {
+            BrowserDownloadManager.getInstance(getContext()).shutdown();
+        }
         // P0 内存泄漏修复：兜底清理所有 mainHandler 延迟任务（含 pendingRefreshPrompt 等）
         mainHandler.removeCallbacksAndMessages(null);
         // P0 内存泄漏修复：关闭 ioExecutor，避免线程常驻并阻止 Fragment 回收
@@ -1649,9 +1768,19 @@ public class BrowserFragment extends Fragment implements
      */
     private void setupChromeClientCallbacks() {
         if (controller == null) return;
+        if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+            // A2: 多 Tab 模式下 ChromeClient 由 pool 为每个 WebView 创建，
+            // 这里把配置器注册到 pool，使后续每个新建 WebView 的 ChromeClient 都应用宿主回调。
+            controller.setChromeClientConfigurator(this::configureChromeClient);
+            return;
+        }
         BrowserChromeClient chromeClient = controller.getChromeClient();
         if (chromeClient == null) return;
+        configureChromeClient(chromeClient);
+    }
 
+    /** A2: 将文件上传/全屏/权限回调应用到指定 ChromeClient（单/多 Tab 共用）。 */
+    private void configureChromeClient(@NonNull BrowserChromeClient chromeClient) {
         // 文件上传（支持多选）
         chromeClient.setFileChooserCallback((callback, params) -> {
             if (filePathCallback != null) {

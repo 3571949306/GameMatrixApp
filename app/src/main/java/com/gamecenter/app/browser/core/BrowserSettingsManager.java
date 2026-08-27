@@ -345,6 +345,24 @@ public class BrowserSettingsManager {
 
     // ===== Apply to WebView =====
 
+    /**
+     * Phase 3: 统一通用 WebSettings 配置，消除 BrowserController 和 BrowserWebViewPool 中的重复代码。
+     * 这些是静态配置（不依赖用户设置），因此使用静态方法。
+     */
+    @SuppressWarnings("SetJavaScriptEnabled")
+    public static void applyCommonSettings(@NonNull WebView webView) {
+        WebSettings s = webView.getSettings();
+        s.setUseWideViewPort(true);
+        s.setLoadWithOverviewMode(true);
+        s.setSupportZoom(true);
+        s.setBuiltInZoomControls(true);
+        s.setDisplayZoomControls(false);
+        s.setAllowContentAccess(false);
+        s.setAllowFileAccess(false);
+        // S5: 禁止混合内容
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+    }
+
     @SuppressWarnings("deprecation")
     public void applyToWebView(@NonNull WebView webView) {
         WebSettings s = webView.getSettings();

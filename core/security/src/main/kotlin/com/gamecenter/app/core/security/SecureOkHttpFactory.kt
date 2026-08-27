@@ -102,13 +102,16 @@ object SecureOkHttpFactory {
      * 在 Debug 构建中启动时调用，提醒开发者替换占位证书指纹。
      */
     fun validatePinsConfigured(): Boolean {
+        // R10：仅检测占位符不够——默认 host 依然是占位域名同样视为未配置。
+        // 真实证书匹配无法在运行时自证，只能保证"非占位"不被误判为已配置。
+        val placeholderHost = MODULE_HOST.isEmpty() || MODULE_HOST == "your-server.example.com"
         val hasPlaceholder = MODULE_SERVER_PINS.any { it.contains("REPLACE_WITH_ACTUAL") }
-        if (hasPlaceholder) {
+        if (hasPlaceholder || placeholderHost) {
             Log.w(TAG, "⚠️  证书固定指纹尚未配置！请运行以下命令获取真实指纹并替换 SecureOkHttpFactory 中的占位符：\n" +
                     "openssl s_client -connect $MODULE_HOST:443 2>/dev/null | " +
                     "openssl x509 -pubkey -noout | openssl pkey -pubin -outform DER | " +
                     "openssl dgst -sha256 -binary | base64")
         }
-        return !hasPlaceholder
+        return !hasPlaceholder && !placeholderHost
     }
 }

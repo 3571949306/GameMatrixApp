@@ -33,6 +33,14 @@ public class DownloadActivity extends AppCompatActivity {
     private DownloadAdapter adapter;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (!io.isShutdown()) {
+            io.shutdownNow();
+        }
+    }
+
     public static void start(Context context) {
         context.startActivity(new Intent(context, DownloadActivity.class));
     }

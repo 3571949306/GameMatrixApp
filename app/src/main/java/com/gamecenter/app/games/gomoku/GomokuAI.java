@@ -860,8 +860,9 @@ public class GomokuAI implements GameAI {
      * VCF递归搜索：仅考虑能形成"冲四"的着法，寻找连续进攻必胜路径。
      * <p>
      * 每层只生成冲四着法（{@link Threat#fours} > 0 且 {@link Threat#openFours} == 0），
-     * 若形成五连则胜利。对手防守时取评分前5的着法递归验证，
-     * 只有对手所有防守都失败才算必胜。
+     * 若形成五连则胜利。对手防守时对其全部候选着法递归验证，
+     * 只有对手所有防守都失败才算必胜（受时间截止保护：验证不完即放弃本次必胜判定，
+     * 避免“只验前 N 手”而误判必胜）。
      * <p>
      * 【初学者提示】VCF是什么？
      * 想象AI不断"将军"（冲四迫使对手防守），一路进攻直到五连获胜。
@@ -901,9 +902,9 @@ public class GomokuAI implements GameAI {
                 return true;
             }
 
-            // 对手防守：取评分前5的防守着法，所有防守都失败才算必胜
+            // 对手防守：校验其全部候选防守着法，全部失败才算必胜（防止“前N手启发式”漏掉真解）
             List<int[]> defenseMoves = scoreAndSortMoves(
-                    getCandidateMoves(board), board, defender, 5);
+                    getCandidateMoves(board), board, defender, Integer.MAX_VALUE);
             boolean allDefensesFail = true;
 
             if (defenseMoves.isEmpty()) {

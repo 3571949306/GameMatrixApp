@@ -12,6 +12,8 @@ import androidx.core.os.LocaleListCompat
 import com.gamecenter.app.recovery.CrashDetector
 import com.gamecenter.app.util.CrashHandler
 import com.gamecenter.app.core.security.SecureOkHttpFactory
+import com.gamecenter.app.process.AppProcessIdentity
+import com.gamecenter.app.process.AppProcessPolicy
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +30,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 @HiltAndroidApp
 class App : Application() {
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    // The ADB process must not allocate a host coroutine scope or start host work.
+    private val applicationScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
+    private var hostInitializationEnabled = false
 
     private var isDarkMode = false
     private var updateAutoCheckDone = false
@@ -206,6 +210,19 @@ class App : Application() {
     }
 
     override fun onCreate() {
+        val processRole = AppProcessPolicy.classify(packageName, AppProcessIdentity.currentName(this))
+        hostInitializationEnabled = AppProcessPolicy.shouldInitializeHost(processRole)
+        if (!hostInitializationEnabled) {
+            // Keep Application/Hilt lifecycle intact, but do not share host recovery state,
+            // module extraction, Flutter, downloads or Activity callbacks with :adb.
+            super.onCreate()
+            Log.i("App", "ADB process initialized without host services")
+            return
+        }
+        if (processRole == AppProcessPolicy.Role.UNKNOWN) {
+            Log.w("App", "Process name unavailable; preserving legacy host initialization")
+        }
+
         // 尽早安装全局崩溃处理器：置于 super.onCreate() 之前，
         // 使 Hilt/DI 初始化期崩溃也能被 UncaughtExceptionHandler 捕获并驱动恢复模式。
         CrashHandler.init(this) { _, throwable ->
@@ -258,6 +275,26 @@ class App : Application() {
         })
 
         Log.i("App", "模块系统已初始化")
+
+        // 统一加载器（core:module-host）失败清理/回滚回调注入：
+        // 校验失败删除损坏文件并清理安装状态（SP），加载失败按事务策略回滚 last_good。
+        com.gamecenter.app.modules.ModuleLoader.attachHostCleanup(
+            onVerifyFailure = { manifest, file ->
+                runCatching {
+                    if (file.exists()) file.delete()
+                    com.gamecenter.app.modules.ModuleManager.removeInstalledModulePublic(this, manifest.id)
+                    Log.w("App", "加载器校验失败已清理: ${manifest.id}")
+                }
+            },
+            onLoadFailureRollback = { manifest ->
+                runCatching {
+                    if (com.gamecenter.app.BuildConfig.ENABLE_TRANSACTIONAL_INSTALL) {
+                        com.gamecenter.app.modules.store.TransactionInstaller.rollback(this, manifest)
+                        Log.w("App", "加载失败已回滚: ${manifest.id}")
+                    }
+                }
+            }
+        )
 
         // P3-14 (OFFLINE_MODULE_PRELOAD): 初始化模块预下载管理器（WiFi 环境下自动预下载）
         runCatching {
@@ -338,6 +375,7 @@ class App : Application() {
 
     override fun onTerminate() {
         super.onTerminate()
+        if (!hostInitializationEnabled) return
         // Batch 21 改进：应用终止时 flush 下载指标，避免丢失未达 buffer 上限的数据
         com.gamecenter.app.modules.DownloadMetricsCollector.flush()
         Log.i("App", "应用程序已终止，所有资源已释放")

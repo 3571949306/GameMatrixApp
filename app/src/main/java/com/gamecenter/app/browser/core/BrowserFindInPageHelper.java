@@ -64,6 +64,7 @@ public class BrowserFindInPageHelper {
                      @NonNull ImageButton btnNext,
                      @NonNull ImageButton btnClose,
                      @Nullable HostCallback callback) {
+        boolean firstBind = (this.webView == null);
         this.webView = webView;
         this.editFind = editFind;
         this.textMatchCount = textMatchCount;
@@ -72,11 +73,14 @@ public class BrowserFindInPageHelper {
         this.btnClose = btnClose;
         this.hostCallback = callback;
 
-        if (!listenerRegistered) {
-            webView.setFindListener(findListener);
-            listenerRegistered = true;
+        // A6: FindListener 必须跟随当前 WebView；切换 Tab 后需重新注册到新 WebView
+        webView.setFindListener(findListener);
+        listenerRegistered = true;
+
+        // 仅首次绑定时挂接 UI 监听，避免切 Tab 重复 addTextChangedListener/OnClickListener
+        if (firstBind) {
+            setupListeners();
         }
-        setupListeners();
     }
 
     private void setupListeners() {

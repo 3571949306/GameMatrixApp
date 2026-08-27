@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.R;
@@ -19,6 +20,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * 浏览历史记录列表适配器（Room 数据源）。
@@ -64,8 +66,14 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public void setData(List<BrowserHistoryEntity> items) {
         this.historyItems = items != null ? items : new ArrayList<>();
+
+        List<Object> oldList = new ArrayList<>(displayList);
         rebuildDisplayList();
-        notifyDataSetChanged();
+        List<Object> newList = new ArrayList<>(displayList);
+
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(
+                new HistoryDiffCallback(oldList, newList));
+        diffResult.dispatchUpdatesTo(this);
     }
 
     private void rebuildDisplayList() {
@@ -233,6 +241,73 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             tvTime = itemView.findViewById(R.id.tv_history_time);
             tvCount = itemView.findViewById(R.id.tv_history_count);
             btnDelete = itemView.findViewById(R.id.btn_history_delete);
+        }
+    }
+
+    private static class HistoryDiffCallback extends DiffUtil.Callback {
+
+        private final List<Object> oldList;
+        private final List<Object> newList;
+
+        HistoryDiffCallback(List<Object> oldList, List<Object> newList) {
+            this.oldList = oldList;
+            this.newList = newList;
+        }
+
+        @Override
+        public int getOldListSize() {
+            return oldList.size();
+        }
+
+        @Override
+        public int getNewListSize() {
+            return newList.size();
+        }
+
+        @Override
+        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+            Object oldItem = oldList.get(oldItemPosition);
+            Object newItem = newList.get(newItemPosition);
+
+            if (oldItem instanceof String && newItem instanceof String) {
+                return getHeaderStableId((String) oldItem).equals(
+                        getHeaderStableId((String) newItem));
+            } else if (oldItem instanceof BrowserHistoryEntity
+                    && newItem instanceof BrowserHistoryEntity) {
+                return ((BrowserHistoryEntity) oldItem).getId()
+                        == ((BrowserHistoryEntity) newItem).getId();
+            }
+            return false;
+        }
+
+        @Override
+        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+            Object oldItem = oldList.get(oldItemPosition);
+            Object newItem = newList.get(newItemPosition);
+
+            if (oldItem instanceof String && newItem instanceof String) {
+                return oldItem.equals(newItem);
+            } else if (oldItem instanceof BrowserHistoryEntity
+                    && newItem instanceof BrowserHistoryEntity) {
+                BrowserHistoryEntity oldEntity = (BrowserHistoryEntity) oldItem;
+                BrowserHistoryEntity newEntity = (BrowserHistoryEntity) newItem;
+                return Objects.equals(oldEntity.getTitle(), newEntity.getTitle())
+                        && Objects.equals(oldEntity.getUrl(), newEntity.getUrl())
+                        && oldEntity.getLastVisitTime() == newEntity.getLastVisitTime()
+                        && oldEntity.getVisitCount() == newEntity.getVisitCount();
+            }
+            return false;
+        }
+
+        private static String getHeaderStableId(String headerText) {
+            switch (headerText) {
+                case "\u4eca\u5929":
+                    return "header_today";
+                case "\u6628\u5929":
+                    return "header_yesterday";
+                default:
+                    return "header_earlier";
+            }
         }
     }
 }

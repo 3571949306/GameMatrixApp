@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Control bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/adb_screen_toggle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_start"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:padding="10dp"
+            android:background="@drawable/adb_button_bg"
+            android:textColor="@color/adb_button_text"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/adb_screen_screenshot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_screen_screenshot"
+            android:textSize="12sp"
+            android:padding="10dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp" />
+
+        <TextView
+            android:id="@+id/adb_screen_fullscreen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_screen_fullscreen"
+            android:textSize="12sp"
+            android:padding="10dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- View controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/adb_screen_back"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_back"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/adb_screen_home"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_home"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="4dp" />
+
+        <TextView
+            android:id="@+id/adb_screen_recent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_recent"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="4dp" />
+
+        <TextView
+            android:id="@+id/adb_screen_rotate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_landscape"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@drawable/adb_card_bg"
+            android:textColor="@color/adb_text_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- Scrcpy surface -->
+    <FrameLayout
+        android:id="@+id/adb_screen_surface_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#000000">
+
+        <SurfaceView
+            android:id="@+id/adb_screen_surface"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/adb_screen_placeholder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/adb_screen_not_running"
+            android:textSize="14sp"
+            android:textColor="@color/adb_text_hint" />
+    </FrameLayout>
+
+    <!-- Settings row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_resolution"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary" />
+
+        <TextView
+            android:id="@+id/adb_screen_resolution_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1080"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_primary"
+            android:padding="6dp"
+            android:background="@drawable/adb_card_bg"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/adb_screen_bitrate"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:layout_marginStart="8dp" />
+
+        <TextView
+            android:id="@+id/adb_screen_bitrate_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="8 Mbps"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_primary"
+            android:padding="6dp"
+            android:background="@drawable/adb_card_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+</LinearLayout>

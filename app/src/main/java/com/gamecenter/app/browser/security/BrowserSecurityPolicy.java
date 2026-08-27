@@ -65,28 +65,34 @@ public class BrowserSecurityPolicy {
 
     /**
      * 判断 URL 应该被如何处理。
+     * S4: 即使 BROWSER_SECURITY_POLICY=false，也始终拦截 BLOCKED_SCHEMES（file/javascript 等）。
      */
     @NonNull
     public UrlPolicy checkUrlPolicy(@Nullable String url) {
-        if (!BuildConfig.BROWSER_SECURITY_POLICY) {
-            return UrlPolicy.ALLOW_INTERNAL;
-        }
         if (url == null || url.isEmpty()) return UrlPolicy.BLOCK;
         String scheme = extractScheme(url);
         if (scheme == null || scheme.isEmpty()) return UrlPolicy.BLOCK;
+
+        String lowerScheme = scheme.toLowerCase(Locale.ROOT);
+
+        // S4: 始终拦截危险协议，不受 BROWSER_SECURITY_POLICY 开关影响
+        if (BLOCKED_SCHEMES.contains(lowerScheme)) {
+            return UrlPolicy.BLOCK;
+        }
+
+        if (!BuildConfig.BROWSER_SECURITY_POLICY) {
+            // S4: 策略关闭时，除 BLOCKED_SCHEMES 外的协议放行
+            return UrlPolicy.ALLOW_INTERNAL;
+        }
 
         if ("http".equals(scheme) || "https".equals(scheme)) {
             return UrlPolicy.ALLOW_INTERNAL;
         }
 
-        String lowerScheme = scheme.toLowerCase(Locale.ROOT);
-        if (BLOCKED_SCHEMES.contains(lowerScheme)) {
-            return UrlPolicy.BLOCK;
-        }
         if (CONFIRM_SCHEMES.contains(lowerScheme)) {
             return UrlPolicy.CONFIRM_EXTERNAL;
         }
-        // 未知协议默认拦截，防止静默调用外部应用
+        // 未知协议默认拦截
         return UrlPolicy.BLOCK;
     }
 

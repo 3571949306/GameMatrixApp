@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Warning notice -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_fastboot_flash_warning"
+            android:textSize="11sp"
+            android:textColor="@color/adb_dangerous"
+            android:background="@drawable/adb_card_bg"
+            android:padding="8dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Device info -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_fastboot_info"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/adb_fb_device_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="未检测到 Fastboot 设备"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:background="@drawable/adb_card_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Command execution -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_fastboot_command"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:paddingBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="8dp">
+
+            <EditText
+                android:id="@+id/adb_fb_command_input"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="fastboot getvar all"
+                android:inputType="text"
+                android:textSize="13sp"
+                android:background="@drawable/adb_input_bg"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/adb_fb_execute"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_fastboot_execute"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:background="@drawable/adb_button_bg"
+                android:textColor="@color/adb_button_text"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <!-- Result display -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_fastboot_result"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:paddingBottom="4dp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="150dp"
+            android:background="@drawable/adb_card_bg"
+            android:padding="8dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/adb_fb_result"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </ScrollView>
+
+        <!-- Flash/boot actions -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="刷写与启动"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:paddingBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/adb_card_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <EditText
+                    android:id="@+id/adb_fb_flash_partition"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/adb_fastboot_partition_hint"
+                    android:inputType="text"
+                    android:textSize="13sp"
+                    android:background="@drawable/adb_input_bg" />
+
+                <TextView
+                    android:id="@+id/adb_fb_flash_image"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/adb_fastboot_flash_image"
+                    android:textSize="12sp"
+                    android:padding="8dp"
+                    android:background="@drawable/adb_card_bg"
+                    android:textColor="@color/adb_text_primary"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/adb_fb_flash"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_fastboot_flash_partition"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:padding="10dp"
+                android:background="@drawable/adb_button_bg"
+                android:textColor="@color/adb_button_text"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/adb_fb_boot_temp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_fastboot_boot_temp"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="@drawable/adb_card_bg"
+                android:textColor="@color/adb_text_primary"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/adb_fb_erase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_fastboot_erase_partition"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="@drawable/adb_card_bg"
+                android:textColor="@color/adb_dangerous"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="8dp" />
+        </LinearLayout>
+
+        <!-- Mode switch -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/adb_fb_enter_fastboot"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/adb_fastboot_enter_fastboot"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="@drawable/adb_card_bg"
+                android:textColor="@color/adb_text_primary"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/adb_fb_exit_fastboot"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/adb_fastboot_exit_fastboot"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="@drawable/adb_card_bg"
+                android:textColor="@color/adb_text_primary"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Current device status card -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="已连接设备"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/adb_connected_device"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_topbar_no_device"
+            android:textSize="14sp"
+            android:textColor="@color/adb_text_primary"
+            android:paddingBottom="12dp" />
+
+        <!-- Connection type tabs -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/adb_connect_tcp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/adb_device_tab_tcp"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="@drawable/adb_tab_bg_selected"
+                android:textColor="@color/adb_tab_selected"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/adb_connect_pair"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/adb_device_tab_pair"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textColor="@color/adb_text_secondary"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/adb_connect_usb"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/adb_device_tab_usb"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textColor="@color/adb_text_secondary"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- TCP connection form -->
+        <LinearLayout
+            android:id="@+id/adb_tcp_form"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/adb_card_bg"
+            android:padding="12dp">
+
+            <EditText
+                android:id="@+id/adb_tcp_host"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/adb_device_host_hint"
+                android:inputType="text"
+                android:textSize="14sp"
+                android:background="@drawable/adb_input_bg"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/adb_tcp_port"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/adb_device_port_hint"
+                android:inputType="number"
+                android:textSize="14sp"
+                android:background="@drawable/adb_input_bg"
+                android:layout_marginBottom="8dp" />
+
+            <CheckBox
+                android:id="@+id/adb_tcp_tls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_connect_tls"
+                android:textSize="13sp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_discovery_description"
+                android:textSize="12sp"
+                android:textColor="@color/adb_text_secondary"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:id="@+id/adb_mdns_scan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_discovery_start"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingVertical="10dp"
+                android:background="@drawable/adb_input_bg"
+                android:textColor="@color/adb_primary"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:id="@+id/adb_mdns_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:textSize="12sp"
+                android:textColor="@color/adb_text_secondary"
+                android:layout_marginBottom="4dp" />
+
+            <ListView
+                android:id="@+id/adb_mdns_device_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/adb_tcp_connect"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_connect"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingVertical="10dp"
+                android:background="@drawable/adb_button_bg"
+                android:textColor="@color/adb_button_text"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Pairing form -->
+        <LinearLayout
+            android:id="@+id/adb_pair_form"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/adb_card_bg"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/adb_pair_host"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/adb_device_host_hint"
+                android:inputType="text"
+                android:textSize="14sp"
+                android:background="@drawable/adb_input_bg"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/adb_pair_port"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/adb_device_pair_connect_port"
+                android:inputType="number"
+                android:textSize="14sp"
+                android:background="@drawable/adb_input_bg"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/adb_pair_code"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/adb_device_pair_code"
+                android:inputType="text"
+                android:textSize="14sp"
+                android:background="@drawable/adb_input_bg"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/adb_pair_connect"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_pair"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingVertical="10dp"
+                android:background="@drawable/adb_button_bg"
+                android:textColor="@color/adb_button_text"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- USB form -->
+        <LinearLayout
+            android:id="@+id/adb_usb_form"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/adb_card_bg"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/adb_usb_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_scan_usb"
+                android:textSize="14sp"
+                android:textColor="@color/adb_text_primary"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:id="@+id/adb_usb_scan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/adb_device_scan_usb"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingVertical="10dp"
+                android:background="@drawable/adb_button_bg"
+                android:textColor="@color/adb_button_text"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginBottom="8dp" />
+
+            <ListView
+                android:id="@+id/adb_usb_device_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <!-- Connection records -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/adb_device_records"
+            android:textSize="12sp"
+            android:textColor="@color/adb_text_secondary"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp" />
+
+        <ListView
+            android:id="@+id/adb_connection_records"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+</ScrollView>

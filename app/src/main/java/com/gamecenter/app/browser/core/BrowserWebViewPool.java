@@ -14,9 +14,12 @@ import androidx.annotation.Nullable;
 
 import com.gamecenter.app.BuildConfig;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 浏览器 WebView 池（P0-1 真·多 Tab 架构）。
@@ -44,13 +47,19 @@ public class BrowserWebViewPool {
     private final BrowserChromeClient.PageInfoCallback pageInfoCallback;
     @Nullable private final BrowserWebViewClient.ExternalUrlHandler externalUrlHandler;
 
-    /** tabId → WebView 实例（活跃池，可见或可快速恢复） */
-    private final Map<String, WebView> activePool = new HashMap<>();
-    /** tabId → 已释放 WebView 前保存的状态（restoreState 用） */
-    private final Map<String, Bundle> releasedStates = new HashMap<>();
-    /** tabId → 创建时间戳，用于 LRU 释放策略 */
-    private final Map<String, Long> lastAccessMap = new LinkedHashMap<>();
-    private String activeTabId;
+    /** A4: 池操作的全局锁，确保复合操作的原子性。 */
+    private final ReentrantLock poolLock = new ReentrantLock();
+
+    /** tabId → WebView 实例（活跃池，可见或可快速恢复） — A4: ConcurrentHashMap 替代 HashMap */
+    private final Map<String, WebView> activePool = new ConcurrentHashMap<>();
+    /** tabId → 已释放 WebView 前保存的状态（restoreState 用） — A4: ConcurrentHashMap 替代 HashMap */
+    private final Map<String, Bundle> releasedStates = new ConcurrentHashMap<>();
+    /** tabId → 创建时间戳，用于 LRU 释放策略 — A4: 包装为线程安全 map */
+    private final Map<String, Long> lastAccessMap = Collections.synchronizedMap(new LinkedHashMap<>());
+    private volatile String activeTabId;
+
+    /** A2: 为每个新建 WebView 的 ChromeClient 应用宿主回调（文件上传/全屏/权限）。 */
+    @Nullable private java.util.function.Consumer<BrowserChromeClient> chromeClientConfigurator;
 
     public BrowserWebViewPool(@NonNull Context context,
                               @NonNull FrameLayout container,
@@ -64,38 +73,48 @@ public class BrowserWebViewPool {
         this.externalUrlHandler = externalUrlHandler;
     }
 
+    /** A2: 注册 ChromeClient 配置器，应用于此后池内每个新建 WebView 的 ChromeClient。 */
+    public void setChromeClientConfigurator(@Nullable java.util.function.Consumer<BrowserChromeClient> configurator) {
+        this.chromeClientConfigurator = configurator;
+    }
+
     /** 获取或创建指定 Tab 的 WebView，并将其设为可见。其他 WebView 设为 GONE。 */
     @SuppressLint("SetJavaScriptEnabled")
     @Nullable
     public WebView acquireWebView(@NonNull String tabId, @Nullable String fallbackUrl) {
-        WebView webView = activePool.get(tabId);
-        if (webView == null) {
-            // 已释放过 → 从 savedState 恢复
-            Bundle savedState = releasedStates.remove(tabId);
-            webView = createWebView(context);
-            configureWebView(webView);
-            if (savedState != null) {
-                try {
-                    webView.restoreState(savedState);
-                    Log.d(TAG, "acquireWebView: restored tab=" + tabId);
-                } catch (Throwable t) {
-                    Log.w(TAG, "restoreState failed for tab=" + tabId, t);
-                    if (fallbackUrl != null) webView.loadUrl(fallbackUrl);
+        poolLock.lock();
+        try {
+            WebView webView = activePool.get(tabId);
+            if (webView == null) {
+                // 已释放过 → 从 savedState 恢复
+                Bundle savedState = releasedStates.remove(tabId);
+                webView = createWebView(context);
+                configureWebView(webView, tabId);
+                if (savedState != null) {
+                    try {
+                        webView.restoreState(savedState);
+                        Log.d(TAG, "acquireWebView: restored tab=" + tabId);
+                    } catch (Throwable t) {
+                        Log.w(TAG, "restoreState failed for tab=" + tabId, t);
+                        if (fallbackUrl != null) webView.loadUrl(fallbackUrl);
+                    }
+                } else if (fallbackUrl != null) {
+                    webView.loadUrl(fallbackUrl);
                 }
-            } else if (fallbackUrl != null) {
-                webView.loadUrl(fallbackUrl);
+                container.addView(webView);
+                activePool.put(tabId, webView);
             }
-            container.addView(webView);
-            activePool.put(tabId, webView);
+            // 切换可见性
+            for (Map.Entry<String, WebView> entry : activePool.entrySet()) {
+                entry.getValue().setVisibility(entry.getKey().equals(tabId) ? View.VISIBLE : View.GONE);
+            }
+            activeTabId = tabId;
+            touchAccess(tabId);
+        } finally {
+            poolLock.unlock();
         }
-        // 切换可见性
-        for (Map.Entry<String, WebView> entry : activePool.entrySet()) {
-            entry.getValue().setVisibility(entry.getKey().equals(tabId) ? View.VISIBLE : View.GONE);
-        }
-        activeTabId = tabId;
-        touchAccess(tabId);
         trimIfNeeded();
-        return webView;
+        return activePool.get(tabId);
     }
 
     /** 仅获取当前 active WebView（不创建）。 */
@@ -106,53 +125,113 @@ public class BrowserWebViewPool {
 
     /** 保存指定 Tab 的 WebView 状态（不释放）。用于切换前的快照。 */
     public void saveTabState(@NonNull String tabId) {
-        WebView webView = activePool.get(tabId);
-        if (webView == null) return;
+        poolLock.lock();
         try {
-            Bundle state = new Bundle();
-            webView.saveState(state);
-            releasedStates.put(tabId, state);
-            Log.d(TAG, "saveTabState: tab=" + tabId);
+            WebView webView = activePool.get(tabId);
+            if (webView == null) return;
+            try {
+                Bundle state = new Bundle();
+                webView.saveState(state);
+                releasedStates.put(tabId, state);
+                Log.d(TAG, "saveTabState: tab=" + tabId);
+            } catch (Throwable t) {
+                Log.w(TAG, "saveTabState failed for tab=" + tabId, t);
+            }
+        } finally {
+            poolLock.unlock();
+        }
+    }
+
+    /**
+     * A1: 保存所有活跃 Tab 的 WebView 状态快照到 releasedStates，
+     * 供配置变更（旋转）后重建 pool 时通过 {@link #restoreStateMap} 恢复。
+     */
+    public void saveAllStates() {
+        poolLock.lock();
+        try {
+            for (Map.Entry<String, WebView> entry : activePool.entrySet()) {
+                try {
+                    Bundle state = new Bundle();
+                    entry.getValue().saveState(state);
+                    releasedStates.put(entry.getKey(), state);
+                    Log.d(TAG, "saveAllStates: tab=" + entry.getKey());
+                } catch (Throwable t) {
+                    Log.w(TAG, "saveAllStates failed for tab=" + entry.getKey(), t);
+                }
+            }
+        } finally {
+            poolLock.unlock();
+        }
+    }
+
+    /** A1: 收集当前所有已保存状态到外层 Bundle，用于跨 Fragment 重建传递。 */
+    @NonNull
+    public Bundle collectStateMap() {
+        Bundle map = new Bundle();
+        for (Map.Entry<String, Bundle> entry : releasedStates.entrySet()) {
+            map.putBundle(entry.getKey(), entry.getValue());
+        }
+        return map;
+    }
+
+    /** A1: 从外层 Bundle 恢复已保存状态（须在首次 switchToTab 之前调用）。 */
+    public void restoreStateMap(@Nullable Bundle map) {
+        if (map == null) return;
+        try {
+            for (String key : map.keySet()) {
+                Bundle state = map.getBundle(key);
+                if (state != null) releasedStates.put(key, state);
+            }
         } catch (Throwable t) {
-            Log.w(TAG, "saveTabState failed for tab=" + tabId, t);
+            Log.w(TAG, "restoreStateMap failed", t);
         }
     }
 
     /** 销毁指定 Tab 的 WebView 并清理所有引用（关闭 Tab 时调用）。 */
     public void releaseTab(@NonNull String tabId) {
-        WebView webView = activePool.remove(tabId);
-        if (webView != null) {
-            try {
-                container.removeView(webView);
-                webView.stopLoading();
-                webView.removeAllViews();
-                webView.destroy();
-            } catch (Throwable t) {
-                Log.w(TAG, "releaseTab destroy failed for tab=" + tabId, t);
+        poolLock.lock();
+        try {
+            WebView webView = activePool.remove(tabId);
+            if (webView != null) {
+                try {
+                    container.removeView(webView);
+                    webView.stopLoading();
+                    webView.removeAllViews();
+                    webView.destroy();
+                } catch (Throwable t) {
+                    Log.w(TAG, "releaseTab destroy failed for tab=" + tabId, t);
+                }
             }
+            releasedStates.remove(tabId);
+            lastAccessMap.remove(tabId);
+            if (tabId.equals(activeTabId)) activeTabId = null;
+        } finally {
+            poolLock.unlock();
         }
-        releasedStates.remove(tabId);
-        lastAccessMap.remove(tabId);
-        if (tabId.equals(activeTabId)) activeTabId = null;
     }
 
     /** 销毁所有 WebView（onDestroyView 调用）。 */
     public void releaseAll() {
-        for (Map.Entry<String, WebView> entry : activePool.entrySet()) {
-            WebView webView = entry.getValue();
-            try {
-                container.removeView(webView);
-                webView.stopLoading();
-                webView.removeAllViews();
-                webView.destroy();
-            } catch (Throwable t) {
-                Log.w(TAG, "releaseAll destroy failed for tab=" + entry.getKey(), t);
+        poolLock.lock();
+        try {
+            for (Map.Entry<String, WebView> entry : activePool.entrySet()) {
+                WebView webView = entry.getValue();
+                try {
+                    container.removeView(webView);
+                    webView.stopLoading();
+                    webView.removeAllViews();
+                    webView.destroy();
+                } catch (Throwable t) {
+                    Log.w(TAG, "releaseAll destroy failed for tab=" + entry.getKey(), t);
+                }
             }
+            activePool.clear();
+            releasedStates.clear();
+            lastAccessMap.clear();
+            activeTabId = null;
+        } finally {
+            poolLock.unlock();
         }
-        activePool.clear();
-        releasedStates.clear();
-        lastAccessMap.clear();
-        activeTabId = null;
     }
 
     /** 对所有 WebView 调用 onPause。 */
@@ -183,28 +262,33 @@ public class BrowserWebViewPool {
 
     /** 销毁并移除非 active 的 WebView（用于 onTrimMemory 或主动降内存）。 */
     public void trimToActiveOnly() {
-        String keep = activeTabId;
-        if (keep == null) return;
-        // 先 saveState 再 destroy
-        for (Map.Entry<String, WebView> entry : new HashMap<>(activePool).entrySet()) {
-            String tabId = entry.getKey();
-            if (tabId.equals(keep)) continue;
-            WebView webView = entry.getValue();
-            try {
-                Bundle state = new Bundle();
-                webView.saveState(state);
-                releasedStates.put(tabId, state);
-                container.removeView(webView);
-                webView.stopLoading();
-                webView.removeAllViews();
-                webView.destroy();
-            } catch (Throwable t) {
-                Log.w(TAG, "trimToActiveOnly failed for tab=" + tabId, t);
+        poolLock.lock();
+        try {
+            String keep = activeTabId;
+            if (keep == null) return;
+            // 先 saveState 再 destroy
+            for (Map.Entry<String, WebView> entry : new HashMap<>(activePool).entrySet()) {
+                String tabId = entry.getKey();
+                if (tabId.equals(keep)) continue;
+                WebView webView = entry.getValue();
+                try {
+                    Bundle state = new Bundle();
+                    webView.saveState(state);
+                    releasedStates.put(tabId, state);
+                    container.removeView(webView);
+                    webView.stopLoading();
+                    webView.removeAllViews();
+                    webView.destroy();
+                } catch (Throwable t) {
+                    Log.w(TAG, "trimToActiveOnly failed for tab=" + tabId, t);
+                }
+                activePool.remove(tabId);
+                lastAccessMap.remove(tabId);
             }
-            activePool.remove(tabId);
-            lastAccessMap.remove(tabId);
+            Log.d(TAG, "trimToActiveOnly: kept=" + keep + ", released=" + releasedStates.size());
+        } finally {
+            poolLock.unlock();
         }
-        Log.d(TAG, "trimToActiveOnly: kept=" + keep + ", released=" + releasedStates.size());
     }
 
     public int getActiveCount() { return activePool.size(); }
@@ -218,7 +302,7 @@ public class BrowserWebViewPool {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private void configureWebView(@NonNull WebView webView) {
+    private void configureWebView(@NonNull WebView webView, @Nullable String tabId) {
         webView.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
@@ -232,21 +316,21 @@ public class BrowserWebViewPool {
             } catch (Throwable ignored) {}
         }
 
-        WebSettings settings = webView.getSettings();
-        settings.setUseWideViewPort(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setSupportZoom(true);
-        settings.setBuiltInZoomControls(true);
-        settings.setDisplayZoomControls(false);
-        settings.setAllowContentAccess(false);
-        settings.setAllowFileAccess(false);
+        // Phase 3: 使用统一的通用 WebSettings 配置（消除重复代码）
+        BrowserSettingsManager.applyCommonSettings(webView);
 
-        String defaultUA = settings.getUserAgentString();
-        settings.setUserAgentString(defaultUA + " GameMatrixBrowser/1.0");
+        String defaultUA = webView.getSettings().getUserAgentString();
+        webView.getSettings().setUserAgentString(defaultUA + " GameMatrixBrowser/1.0");
 
-        BrowserWebViewClient client = new BrowserWebViewClient(pageLoadCallback);
+        BrowserWebViewClient client = new BrowserWebViewClient(pageLoadCallback, tabId);
         client.setExternalUrlHandler(externalUrlHandler);
-        BrowserChromeClient chrome = new BrowserChromeClient(pageInfoCallback);
+        BrowserChromeClient chrome = new BrowserChromeClient(pageInfoCallback, tabId);
+        // A2: 新建 WebView 的 ChromeClient 应用宿主回调（文件上传/全屏/权限）
+        if (chromeClientConfigurator != null) {
+            try {
+                chromeClientConfigurator.accept(chrome);
+            } catch (Throwable ignored) {}
+        }
         webView.setWebViewClient(client);
         webView.setWebChromeClient(chrome);
     }
@@ -258,33 +342,38 @@ public class BrowserWebViewPool {
 
     /** 池大小超过 MAX 时，按 LRU 释放最久未活跃的 WebView。 */
     private void trimIfNeeded() {
-        while (activePool.size() > MAX_ACTIVE_WEBVIEWS) {
-            String oldest = null;
-            long oldestTime = Long.MAX_VALUE;
-            for (Map.Entry<String, Long> entry : lastAccessMap.entrySet()) {
-                if (entry.getKey().equals(activeTabId)) continue;
-                if (entry.getValue() < oldestTime) {
-                    oldestTime = entry.getValue();
-                    oldest = entry.getKey();
+        poolLock.lock();
+        try {
+            while (activePool.size() > MAX_ACTIVE_WEBVIEWS) {
+                String oldest = null;
+                long oldestTime = Long.MAX_VALUE;
+                for (Map.Entry<String, Long> entry : lastAccessMap.entrySet()) {
+                    if (entry.getKey().equals(activeTabId)) continue;
+                    if (entry.getValue() < oldestTime) {
+                        oldestTime = entry.getValue();
+                        oldest = entry.getKey();
+                    }
                 }
-            }
-            if (oldest == null) break;
-            WebView webView = activePool.remove(oldest);
-            if (webView != null) {
-                try {
-                    Bundle state = new Bundle();
-                    webView.saveState(state);
-                    releasedStates.put(oldest, state);
-                    container.removeView(webView);
-                    webView.stopLoading();
-                    webView.removeAllViews();
-                    webView.destroy();
-                    Log.d(TAG, "trimIfNeeded: LRU released tab=" + oldest);
-                } catch (Throwable t) {
-                    Log.w(TAG, "trimIfNeeded release failed for tab=" + oldest, t);
+                if (oldest == null) break;
+                WebView webView = activePool.remove(oldest);
+                if (webView != null) {
+                    try {
+                        Bundle state = new Bundle();
+                        webView.saveState(state);
+                        releasedStates.put(oldest, state);
+                        container.removeView(webView);
+                        webView.stopLoading();
+                        webView.removeAllViews();
+                        webView.destroy();
+                        Log.d(TAG, "trimIfNeeded: LRU released tab=" + oldest);
+                    } catch (Throwable t) {
+                        Log.w(TAG, "trimIfNeeded release failed for tab=" + oldest, t);
+                    }
                 }
+                lastAccessMap.remove(oldest);
             }
-            lastAccessMap.remove(oldest);
+        } finally {
+            poolLock.unlock();
         }
     }
 }

@@ -81,3 +81,12 @@ python scripts/verify_protected_assets.py verify
 - AI 思考期间玩家不得停一手或重复提交；返回菜单、重开、结束和销毁必须取消搜索并递增对局代次，回写前再次校验代次、白方回合和游戏未结束。程序化创建的动态模块 `Button` 必须调用 `setStateListAnimator(null)`，避免宿主主题资源 ID 冲突。
 - 围棋专项回归优先运行 `python scripts/verify_go.py`。规则测试至少覆盖提子、自杀、越界、即时劫、隔手可回、两次停着和面积计分；AI 测试必须覆盖搜索不改输入、四档原始非法着法为 0、普通档无随机停着和旧回调隔离。棋力或完整对局验收记录 `difficulty`、真实策略/预算、总 ply、`undoCount=0`、`restartCount`、raw illegal、rejected commit 与 fallback；围棋没有悔棋按钮，不得通过重开筛选有利对局。
 - 模拟器自动验收可通过 `app/src/debug/AndroidManifest.xml` 直接启动围棋；该入口只能存在于 Debug source set，Release 的 `GoActivity` 必须保持 `android:exported="false"`。
+
+## 8. 模块隔离与目录信任策略（P1）
+
+- 模块装载判定唯一真源为 `core/module-host ModuleLoader`；宿主侧 `com.gamecenter.app.modules.ModuleLoader` 仅是兼容门面，不得再新增第二套 Dex/资源/校验实现。
+- 隔离策略：`catalog fileName` 为空 → 视为宿主内嵌代码（允许宿主 classloader 直载，随宿主发布）；`fileName` 非空（含预装内置 APK）→ 一律走外置 `DexClassLoader` 加载，文件缺失或清单缺 SHA-256 时必须拒绝，**禁止回退宿主陈旧副本**。
+- 外置模块与预装内置 APK 装载必须同时通过：非空 SHA-256+大小校验、`ModuleSignatureVerifier` 发布证书钉扎（`core/security/res/raw/release_signer.cer`）。清单缺 SHA 或校验失败走 `onVerifyFailure` 清理回调，不允许"免检装载"。
+- 动态模块资源加载依赖运行时探测 `AssetManager.addAssetPath` 私有 API 可用性；探测失败时记录 `MODULE_RESOURCE_FALLBACK` 并以宿主资源降级运行，不做任何绕过。
+- 目录 Ed25519 签名默认开启（`enableCatalogSignature=true`）：已配置 `catalogEd25519PublicKeys` 时为强验证模式；未配置公钥的 release/stable 发布构建必须失败，本地开发构建仅警告并以兼容模式运行（`CATALOG_SIGNATURE_TRUSTED=false`）。
+- 交付前必须核对 `version.properties`：默认 `autoBumpVersion=true` 会在每次 `assembleDebug` 后自动递增 versionCode 并回写，属构建系统既定行为；任何"成功构建"都必须记录当前 versionCode，避免把自动递增误报为本次改动。如不需要自动递增，使用 `-PautoBumpVersion=false` 构建。
