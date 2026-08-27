@@ -15,7 +15,9 @@ public enum TowerType {
     /** 超远程重击塔，不具备对空能力，不能替代所有基础塔。 */
     SNIPER("狙击塔", 175, 1.35f, 8.4f, 105f, 2.45f, false, 0f),
     /** 可重复触发的近路径陷阱，不是一次性消耗品。 */
-    MINE("地雷塔", 90, 1.35f, 1.05f, 58f, 2.6f, false, 0f);
+    MINE("地雷塔", 90, 1.35f, 1.05f, 58f, 2.6f, false, 0f),
+    /** 不直接造成伤害，只为范围内其他防御塔提供最高一份强化。 */
+    AMPLIFIER("增幅塔", 130, 1f, 2.35f, 0f, 0f, false, 0f);
 
     public final String displayName;
     /** 基础造价 */
@@ -109,6 +111,24 @@ public enum TowerType {
     public float mineBlastRadiusAt(int level) {
         if (this != MINE) return 0f;
         return level >= 2 ? 1.45f : 1.05f;
+    }
+
+    public float amplifierAttackSpeedBonusAt(int level) {
+        if (this != AMPLIFIER) return 0f;
+        switch (Math.max(1, Math.min(3, level))) {
+            case 1: return .10f;
+            case 2: return .15f;
+            default: return .20f;
+        }
+    }
+
+    public float amplifierRangeBonusAt(int level) {
+        if (this != AMPLIFIER) return 0f;
+        switch (Math.max(1, Math.min(3, level))) {
+            case 1: return 0f;
+            case 2: return .05f;
+            default: return .10f;
+        }
     }
 
     private static float pow(float base, int exp) {
