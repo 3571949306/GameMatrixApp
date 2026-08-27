@@ -64,17 +64,22 @@ public enum TowerType {
 
     /** 升级到 lv(1..3) 后的攻击间隔 */
     public float fireIntervalAt(int level) {
-        return (float) (fireInterval * Math.pow(0.88, level - 1));
+        return (float) (fireInterval * Math.pow(.93, level - 1));
     }
 
     /** 升级到 lv 后的伤害 */
     public float damageAt(int level) {
-        return damage * pow(dmgMul, level - 1);
+        return damage * pow(1.35f, level - 1);
     }
 
     /** 升级到 lv 后的射程 */
     public float rangeAt(int level) {
-        return range * (1f + 0.08f * (level - 1));
+        return range * (1f + .05f * (level - 1));
+    }
+
+    /** 经济塔遵循与伤害塔相同的主属性成长规则。 */
+    public float incomeAt(int level) {
+        return income * pow(1.35f, level - 1);
     }
 
     /** 建塔 + 升到 lv 的累计花费 */
