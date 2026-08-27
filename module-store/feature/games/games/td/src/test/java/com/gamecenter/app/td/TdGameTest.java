@@ -304,6 +304,27 @@ public class TdGameTest {
         }
     }
 
+    @Test
+    public void summonerMonster_hasSourceMarkedNonRecursiveMinions_andHardCap() {
+        int[][] path = new int[80][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.SUMMONER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(80, 2, path, 0, 79, 1000, 10, waves);
+        assertTrue(g.startNextWaveEarly());
+        for (int i = 0; i < 60 * 26; i++) g.tick();
+        int summoned = 0;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (!monster.summoned) continue;
+            summoned++;
+            assertEquals("召唤物不能继续召唤", MonsterType.SWARM, monster.type);
+            assertEquals("召唤物必须有低奖励", 1, monster.reward);
+            assertTrue("召唤物必须记录来源", monster.originMonsterId > 0);
+        }
+        assertEquals("四次召唤、每次两只，不能无限增长", 8, summoned);
+        assertEquals("总生成数必须包括合法派生物", 9, g.getMonstersSpawnedTotal());
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
