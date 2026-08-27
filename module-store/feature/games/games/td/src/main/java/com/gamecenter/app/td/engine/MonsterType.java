@@ -11,7 +11,9 @@ public enum MonsterType {
     SWARM("喽罗", 12f, 2.0f, 5, false, 0, 1),
     HEALER("医生", 44f, 1.3f, 15, false, 0, 1),
     SHIELD("护盾兵", 40f, 1.2f, 14, false, 0, 2),
-    BOSS("Boss", 600f, 0.8f, 60, false, 1, 3);
+    BOSS("Boss", 600f, 0.8f, 60, false, 1, 3),
+    /** 死亡后只会派生两只不可再次分裂的幼体。 */
+    SPLITTER("分裂怪", 52f, 1.45f, 16, false, 0, 1);
 
     public final String displayName;
     /** 基础血量 */
