@@ -441,8 +441,12 @@ public class TdView extends View {
         float cx = originX + (game.getEggCol() + 0.5f) * cellSize;
         float cy = originY + (game.getEggRow() + 0.5f) * cellSize;
         float r = cellSize * 0.46f;
-        boolean hurt = game.getMascotHpLost() > 0;
-        float shake = hurt && (frameCount % 8 < 3) ? cellSize * 0.03f : 0f;
+        // 受击瞬时态与慢性表情分离：抖动只看 eggHitTimer 窗口；
+        // 嘴形按剩余血量比例分级，不再用「累计掉过血」导致首伤后永远哭脸。
+        boolean justHit = game.getEggHitTimer() > 0f;
+        float hpRatio = game.getMaxMascotHp() <= 0 ? 1f
+                : (float) game.getMascotHp() / game.getMaxMascotHp();
+        float shake = justHit && (frameCount % 8 < 3) ? cellSize * 0.03f : 0f;
         // 草窝（底部）
         paint.setColor(0xFF7C8A38);
         for (int i = -2; i <= 2; i++) {
@@ -481,9 +485,16 @@ public class TdView extends View {
         paint.setStrokeWidth(r * 0.07f);
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setColor(C_TEXT);
-        if (hurt) {
+        if (justHit || hpRatio < 0.5f) {
+            // 正被攻击或重伤：o 形痛叫嘴
             canvas.drawOval(cx - r * 0.12f + shake, cy + r * 0.28f,
                     cx + r * 0.12f + shake, cy + r * 0.46f, paint);
+        } else if (hpRatio < 0.999f) {
+            // 中等伤情：抿平的小嘴
+            Path flat = new Path();
+            flat.moveTo(cx - r * 0.18f + shake, cy + r * 0.36f);
+            flat.quadTo(cx + shake, cy + r * 0.40f, cx + r * 0.18f + shake, cy + r * 0.36f);
+            canvas.drawPath(flat, paint);
         } else {
             Path mouth = new Path();
             mouth.moveTo(cx - r * 0.2f + shake, cy + r * 0.32f);

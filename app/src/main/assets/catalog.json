@@ -1452,9 +1452,9 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.td.TdModuleEntryPoint",
       "fileName": "game_td_v100.apk",
-      "fileSize": 1339790,
-      "sha256": "F44988136369D7A567B82BE62F8DF16AB3152C64EE9E649F81E23A808921047F",
-      "downloadUrl": "http://127.0.0.1:8765/game_td_v100.apk",
+      "fileSize": 4024252,
+      "sha256": "46FC95B12BC405CDE0291CDB9B5E8D3046F9A29F176B50BFDA9EC18579A4D003",
+      "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_td_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
       "iconUrl": "",
@@ -1479,9 +1479,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_td_v100.apk",
-        "fileSize": 1264819,
-        "downloadUrl": "http://127.0.0.1:8765/game_td_v100.apk",
-        "sha256": "B53A3FE342F70F84C5E0979110D240D692B5F6F0D1F6A05C3FF52B0A8740501E"
+        "fileSize": 4024252,
+        "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_td_v100.apk",
+        "sha256": "46FC95B12BC405CDE0291CDB9B5E8D3046F9A29F176B50BFDA9EC18579A4D003"
       }
     }
   ]

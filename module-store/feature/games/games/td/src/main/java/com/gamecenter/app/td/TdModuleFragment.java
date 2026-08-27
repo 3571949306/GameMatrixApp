@@ -41,6 +41,8 @@ import java.util.Locale;
 public class TdModuleFragment extends Fragment {
 
     private static final long TICK_INTERVAL_MS = 16; // ≈60Hz
+    /** 空闲态（暂停/准备/结算/覆盖层打开）的降频刷新间隔，避免 60Hz 软渲染空转耗电 */
+    private static final long IDLE_TICK_INTERVAL_MS = 200;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private FrameLayout root;
@@ -372,6 +374,8 @@ public class TdModuleFragment extends Fragment {
             } else {
                 showMsg(game.getLastActionMessage(), "err");
             }
+            // 升级（或失败）后立即同步按钮价格/满级文案与可用态，避免显示旧值
+            showTowerOps(t);
             updateHud();
         });
         btnSell.setOnClickListener(v -> {
@@ -519,7 +523,7 @@ public class TdModuleFragment extends Fragment {
         panel.addView(stats, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38)));
 
         Button back = ctrlButton(requireContext(), "返回大厅");
-        back.setOnClickListener(v -> clearOverlay());
+        back.setOnClickListener(v -> exitToHall());
         panel.addView(back, new LinearLayout.LayoutParams(dp(120), dp(40)));
         ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
 
@@ -590,6 +594,14 @@ public class TdModuleFragment extends Fragment {
         overlayRoot.removeAllViews();
     }
 
+    /** 真正返回大厅：把「系统返回键」语义交还宿主容器决定后续动作。 */
+    private void exitToHall() {
+        // - V2 独立 Activity 容器：命中宿主统一退出确认框，确认后 finish 回到大厅；
+        // - P4 addToBackStack 路径：由 FragmentActivity 内建回退栈弹出回到大厅视图。
+        // 不在此移除 tick 循环：宿主确认取消时对局需继续，onPause/onDestroyView 钩子负责兜底清理。
+        requireActivity().getOnBackPressedDispatcher().onBackPressed();
+    }
+
     // ===== 对局管理 =====
 
     private void startLevel(int idx, TdGame.Difficulty diff) {
@@ -622,16 +634,22 @@ public class TdModuleFragment extends Fragment {
         if (game == null) return;
         int session = gameSession;
         if (isDetached()) return;
-        if (!paused && !game.isEnded() && game.getState() == TdGame.State.RUNNING) {
+        // 选关/难度/结算等覆盖层打开时视为菜单暂停：怪物不得在菜单里继续前进甚至判负
+        boolean overlayOpen = overlayRoot != null && overlayRoot.getChildCount() > 0;
+        boolean combatLive = !paused && !overlayOpen
+                && game.getState() == TdGame.State.RUNNING;
+        if (!game.isEnded() && combatLive) {
             game.tick();
             tdView.drainKillEvents(game.drainKillEvents());
             if (game.isEnded()) onGameEnded();
         }
         if (gameSession == session && !isDetached()) {
+            // 战斗活跃期保持 60Hz；其余空闲态降到 5Hz，只维持 HUD/画布的低频一致性
+            long delay = combatLive ? TICK_INTERVAL_MS : IDLE_TICK_INTERVAL_MS;
             updateHud();
             tdView.invalidate();
             mainHandler.removeCallbacks(tickLoop);
-            mainHandler.postDelayed(tickLoop, TICK_INTERVAL_MS);
+            mainHandler.postDelayed(tickLoop, delay);
         }
     }
 

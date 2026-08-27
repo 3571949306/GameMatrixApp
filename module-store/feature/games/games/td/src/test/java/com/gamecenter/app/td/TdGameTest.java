@@ -480,6 +480,96 @@ public class TdGameTest {
         assertTrue("医生怪应治疗附近已受伤的同伴", sawHealing);
     }
 
+    // ===== 回归：出怪间隔必须真实生效 =====
+
+    @Test
+    public void spawnInterval_pacesMonstersAcrossFrames() {
+        // 一波 3 只、间隔 1 秒：修复缺陷前全部在同一逻辑帧生成，intervalSec 形同虚设。
+        int[][] path = new int[][] {
+                {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}
+        };
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 3, 1.0f, 0f, 50f, 1f));
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 9999f, 1f, 1f)); // 永不开始
+        TdGame g = new TdGame(9, 2, path, 0, 8, 500, 8, waves);
+        assertTrue(g.startNextWaveEarly());
+        int firstSeenAt = -1, secondSeenAt = -1, thirdSeenAt = -1;
+        for (int i = 0; i < 60 * 4; i++) { // 最多观察 4 秒
+            g.tick();
+            int spawned = g.getMonstersSpawnedTotal();
+            if (firstSeenAt < 0) {
+                assertEquals("倒计时归零的首帧至多生成一只", 1, spawned);
+                firstSeenAt = i;
+            }
+            if (secondSeenAt < 0 && spawned >= 2) secondSeenAt = i;
+            if (thirdSeenAt < 0 && spawned >= 3) thirdSeenAt = i;
+            if (thirdSeenAt >= 0) break;
+        }
+        assertTrue("观察窗口内三只怪都应登场", thirdSeenAt >= 0);
+        assertTrue("第二只登场至少间隔一个出怪周期",
+                secondSeenAt - firstSeenAt >= 55);
+        assertTrue("第三只登场至少间隔一个出怪周期",
+                thirdSeenAt - secondSeenAt >= 55);
+    }
+
+    // ===== 回归：雪花减速不得覆盖怪物基础速度倍率 =====
+
+    @Test
+    public void snowSlow_multipliesBaseSpeed_andRestoresIt() {
+        // FAST 波自带 1.6 倍速（困难模式速度系数同理）；受冻=基础×0.65，
+        // 减速过期后必须还原基础倍率而不是复位成 1。
+        int cols = 20;
+        int[][] path = new int[cols][2];
+        for (int i = 0; i < cols; i++) path[i] = new int[] {0, i};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.FAST, 1, 1f, 0f, 100f, 1.6f));
+        TdGame g = new TdGame(cols, 2, path, 0, cols - 1, 300, 100, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 4)); // 射程 5.0，覆盖出生段
+        g.startNextWaveEarly();
+        // 理论基础倍率：wave.speedMul × Difficulty.NORMAL(1f)；不得从运行时反推，
+        // 否则 bug 自身的复位值会污染期望值。
+        final float expectedBase = 1.6f;
+        Float frozenMul = null, restoredMul = null;
+        for (int i = 0; i < MAX_TICKS && !g.isEnded() && restoredMul == null; i++) {
+            g.tick();
+            if (g.getMonsters().isEmpty()) continue;
+            TdGame.Monster m = g.getMonsters().get(0);
+            if (frozenMul == null && m.slowTimer > 0f) frozenMul = m.speedMul;
+            if (frozenMul != null && m.slowTimer <= 0f) restoredMul = m.speedMul;
+        }
+        assertNotNull("雪花应命中一次", frozenMul);
+        assertNotNull("怪走出射程后减速应过期", restoredMul);
+        assertEquals("受冻中的倍率必须是基础×(1-0.35)",
+                expectedBase * (1f - TowerType.SNOW_SLOW_PCT), frozenMul, 0.001f);
+        assertEquals("减速过期后必须还原基础倍率", expectedBase, restoredMul, 0.001f);
+    }
+
+    // ===== 回归：太阳花只在战斗活跃期产币 =====
+
+    @Test
+    public void sunTower_stopsEarning_whenNoCombat() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0.1f, 200f, 1f));
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 9999f, 1f, 1f)); // 永不开始
+        TdGame g = new TdGame(4, 2, path, 0, 3, 400, 8, waves);
+        assertNotNull(g.placeTower(TowerType.SUN, 1, 0));
+        // 准备期无限挂机窗口：金币增量必须为 0
+        for (int i = 0; i < 600; i++) g.tick();
+        assertEquals("准备阶段太阳花不应产币", 0, g.getCoinsEarned());
+        // 开战后的战斗期应正常产出（正向回归）
+        assertTrue(g.startNextWaveEarly());
+        for (int i = 0; i < 60 * 3 && !g.isEnded(); i++) g.tick(); // 覆盖约 2 秒的行进+战斗期
+        assertTrue("战斗期太阳花应产出金币", g.getCoinsEarned() > 0);
+        // 唯一怪漏到终点离场后进入波间空闲：增量必须回到 0
+        for (int i = 0; i < 60 * 30 && !g.getMonsters().isEmpty(); i++) g.tick();
+        assertTrue("怪应已离场", g.getMonsters().isEmpty());
+        assertFalse("下一波未开始，对局应停留在可挂机状态", g.isEnded());
+        int beforeIdle = g.getCoinsEarned();
+        for (int i = 0; i < 600; i++) g.tick();
+        assertEquals("波间空闲期太阳花不应继续产币", beforeIdle, g.getCoinsEarned());
+    }
+
     private static void assertIllegalArgument(Runnable action) {
         try {
             action.run();
