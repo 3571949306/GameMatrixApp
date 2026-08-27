@@ -11,7 +11,19 @@ public enum MonsterType {
     SWARM("喽罗", 12f, 2.0f, 5, false, 0, 1),
     HEALER("医生", 44f, 1.3f, 15, false, 0, 1),
     SHIELD("护盾兵", 40f, 1.2f, 14, false, 0, 2),
-    BOSS("Boss", 600f, 0.8f, 60, false, 1, 3);
+    BOSS("Boss", 600f, 0.8f, 60, false, 1, 3),
+    /** 死亡后只会派生两只不可再次分裂的幼体。 */
+    SPLITTER("分裂怪", 52f, 1.45f, 16, false, 0, 1),
+    /** 平时缓行、周期性短冲刺；冲刺与减速倍率相乘而非覆盖。 */
+    CHARGER("冲锋怪", 46f, 1.25f, 16, false, 0, 1),
+    /** 定期给邻近同伴补充有上限的护盾。 */
+    SHIELD_GENERATOR("护盾发生器", 50f, 1.2f, 19, false, 0, 1),
+    /** 周期生成低价值喽罗，派生物绝不具备召唤能力。 */
+    SUMMONER("召唤怪", 62f, 1.1f, 21, false, 0, 1),
+    /** 仅软化减速、中毒和雷电后续弹射，任何塔都仍可攻击。 */
+    RESISTANT("抗性怪", 82f, 1.08f, 24, false, 1, 1),
+    /** 低于半血后加速 30%，不引入额外攻击能力。 */
+    RAGER("狂暴怪", 62f, 1.25f, 20, false, 0, 1);
 
     public final String displayName;
     /** 基础血量 */

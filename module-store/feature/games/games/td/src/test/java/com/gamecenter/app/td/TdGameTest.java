@@ -48,10 +48,14 @@ public class TdGameTest {
     @Test
     public void placeTower_insufficientCoin_fails() {
         TdGame g = TdLevels.buildLevel("level_01");
-        for (int i = 0; i < 20; i++) {
-            g.placeTower(TowerType.BOTTLE, 2 + i / 8, 3 + i % 5);
+        for (int row = 0; row < g.getRows() && g.getCoin() >= TowerType.BOTTLE.baseCost; row++) {
+            for (int col = 0; col < g.getCols() && g.getCoin() >= TowerType.BOTTLE.baseCost; col++) {
+                if (!g.isPathCell(row, col) && !g.isEggCell(row, col)) {
+                    g.placeTower(TowerType.BOTTLE, row, col);
+                }
+            }
         }
-        // 金币应已耗尽（每塔 60）
+        assertTrue("循环必须真实花到无法再造瓶子炮", g.getCoin() < TowerType.BOTTLE.baseCost);
         assertNull(g.placeTower(TowerType.BOTTLE, 5, 8));
     }
 
@@ -97,6 +101,42 @@ public class TdGameTest {
     }
 
     @Test
+    public void placeOrMergeTower_paletteDrop_mergesSameTypeAndChargesOneCard() {
+        TdGame g = mergeTestGame();
+        TdGame.Tower target = g.placeTower(TowerType.BOTTLE, 1, 0);
+        assertNotNull(target);
+        int coinBefore = g.getCoin();
+        int towersBefore = g.getTowers().size();
+
+        assertTrue(g.placeOrMergeTower(TowerType.BOTTLE, 1, 0));
+        assertEquals(2, target.level);
+        assertEquals(coinBefore - TowerType.BOTTLE.baseCost, g.getCoin());
+        assertEquals(towersBefore, g.getTowers().size());
+
+        int coinAfter = g.getCoin();
+        assertFalse("不同类型拖入必须拒绝且不扣金币",
+                g.placeOrMergeTower(TowerType.ROCKET, 1, 0));
+        assertEquals(coinAfter, g.getCoin());
+        assertEquals(2, target.level);
+    }
+
+    @Test
+    public void placeOrMergeTower_paletteDrop_buildsEmptyCellAndRejectsMaxLevel() {
+        TdGame g = mergeTestGame();
+        int coinBefore = g.getCoin();
+        assertTrue(g.placeOrMergeTower(TowerType.SNOW, 1, 0));
+        assertNotNull(g.getTowerAt(1, 0));
+        assertEquals(coinBefore - TowerType.SNOW.baseCost, g.getCoin());
+
+        TdGame.Tower target = g.getTowerAt(1, 0);
+        target.level = 3;
+        int coinAtMax = g.getCoin();
+        assertFalse(g.placeOrMergeTower(TowerType.SNOW, 1, 0));
+        assertEquals(coinAtMax, g.getCoin());
+        assertEquals(3, target.level);
+    }
+
+    @Test
     public void merge_sellRefund_usesBothSourceInvestments() {
         TdGame g = mergeTestGame();
         g.placeTower(TowerType.BOTTLE, 1, 0);
@@ -108,11 +148,334 @@ public class TdGameTest {
         assertEquals("合成塔出售应返还总投入的 60%", 952, g.getCoin());
     }
 
+    @Test
+    public void lightningTower_hitsLimitedUniqueTargetsAtEachLevel() {
+        for (int level = 1; level <= 3; level++) {
+            TdGame g = clusteredMonsterGame(4);
+            TdGame.Tower tower = g.placeTower(TowerType.LIGHTNING, 1, 1);
+            assertNotNull(tower);
+            tower.level = level; // 合成规则已在独立测试覆盖；此处只校验各等级战斗上限。
+            assertTrue(g.startNextWaveEarly());
+            g.tick();
+            int hitCount = 0;
+            for (TdGame.Monster monster : g.getMonsters()) {
+                if (monster.hitFlash > 0f) hitCount++;
+            }
+            assertEquals("雷电塔只命中等级规定数量，且不会重复命中", level + 1, hitCount);
+        }
+    }
+
+    @Test
+    public void lightningTower_stopsWhenNoNearbyChainTargetExists() {
+        TdGame g = clusteredMonsterGame(1);
+        TdGame.Tower tower = g.placeTower(TowerType.LIGHTNING, 1, 1);
+        tower.level = 3;
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        assertEquals("没有第二目标时连锁必须安全结束", 1, g.getMonsters().size());
+        assertTrue(g.getMonsters().get(0).hitFlash > 0f);
+    }
+
+    @Test
+    public void sniperTower_prioritizesStrongTarget_withHighSingleHit() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {MonsterType.NORMAL, MonsterType.TANK},
+                0, 2, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
+        TdGame.Tower sniper = g.placeTower(TowerType.SNIPER, 1, 1);
+        assertNotNull(sniper);
+        assertTrue("狙击塔必须拥有超远射程", sniper.rangeAt() > TowerType.BOTTLE.rangeAt(1));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster normal = null;
+        TdGame.Monster tank = null;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (monster.type == MonsterType.NORMAL) normal = monster;
+            if (monster.type == MonsterType.TANK) tank = monster;
+        }
+        assertNotNull(normal);
+        assertNotNull(tank);
+        assertEquals("狙击塔不能产生群伤", normal.maxHp, normal.hp, .0001f);
+        assertTrue("狙击塔应先重击强敌", tank.hp < tank.maxHp);
+    }
+
+    @Test
+    public void sniperTower_cannotTargetFlyingMonster() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.FLY, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(4, 2, path, 0, 3, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNIPER, 1, 1));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster fly = g.getMonsters().get(0);
+        assertEquals("狙击塔不应误伤飞行兵", fly.maxHp, fly.hp, .0001f);
+    }
+
+    @Test
+    public void mineTower_requiresPathAdjacentTrapCell() {
+        TdGame g = mergeTestGame();
+        assertNotNull("相邻道路格应能放置地雷", g.placeTower(TowerType.MINE, 1, 1));
+        assertNull("远离道路不能放置地雷", g.placeTower(TowerType.MINE, 2, 1));
+        assertNull("道路本身不能放置地雷", g.placeTower(TowerType.MINE, 0, 2));
+    }
+
+    @Test
+    public void mineTower_explodesInAreaThenRecharges() {
+        TdGame g = clusteredMonsterGame(2);
+        TdGame.Tower mine = g.placeTower(TowerType.MINE, 1, 0);
+        assertNotNull(mine);
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        int dead = 0;
+        for (TdGame.Monster monster : g.getMonsters()) if (monster.dead) dead++;
+        assertEquals("同一触发区内的两只怪必须同时受爆炸伤害", 2, dead);
+        assertTrue("地雷触发后必须进入冷却而非一次性消失", mine.cooldown > 0f);
+        assertNotNull("冷却中的地雷仍应保留在棋盘", g.getTowerAt(1, 0));
+    }
+
+    @Test
+    public void levelThreeMine_leavesBoundedBurnZone() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.TANK, 1, 0f, 0f, 2f, 1f));
+        TdGame g = new TdGame(5, 2, path, 0, 4, 1000, 10, waves);
+        TdGame.Tower mine = g.placeTower(TowerType.MINE, 1, 0);
+        mine.level = 3;
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        assertEquals(1, g.getBurnZones().size());
+        float hpAfterBlast = g.getMonsters().get(0).hp;
+        for (int i = 0; i < 30; i++) g.tick();
+        assertTrue("燃烧区必须造成后续伤害", g.getMonsters().get(0).hp < hpAfterBlast);
+    }
+
+    @Test
+    public void amplifierTower_usesOnlyHighestOverlappingBuff_andRecalculatesOnSell() {
+        TdGame g = mergeTestGame();
+        TdGame.Tower bottle = g.placeTower(TowerType.BOTTLE, 1, 1);
+        TdGame.Tower ampLow = g.placeTower(TowerType.AMPLIFIER, 2, 1);
+        TdGame.Tower ampHigh = g.placeTower(TowerType.AMPLIFIER, 2, 0);
+        assertNotNull(bottle);
+        assertNotNull(ampLow);
+        assertNotNull(ampHigh);
+        ampHigh.level = 3;
+        assertEquals("两座重叠增幅不能叠乘，只取 Lv3", .20f, g.getAttackSpeedBonus(bottle), .0001f);
+        assertEquals(.10f, g.getRangeBonus(bottle), .0001f);
+        assertEquals(bottle.fireIntervalAt() / 1.20f, g.effectiveFireIntervalAt(bottle), .0001f);
+        assertEquals(bottle.rangeAt() * 1.10f, g.effectiveRangeAt(bottle), .0001f);
+        assertEquals("增幅塔不强化自身", 0f, g.getAttackSpeedBonus(ampHigh), .0001f);
+        assertTrue(g.sellTower(ampHigh.row, ampHigh.col));
+        assertEquals("卖掉高等级增幅后应立即回退到剩余最高值", .10f,
+                g.getAttackSpeedBonus(bottle), .0001f);
+        assertEquals(0f, g.getRangeBonus(bottle), .0001f);
+    }
+
+    @Test
+    public void splitterMonster_createsExactlyTwoNonRecursiveLowRewardChildren() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.SPLITTER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNIPER, 1, 0));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        int children = 0;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (!monster.dead && monster.splitChild) {
+                children++;
+                assertEquals("幼体复用低血高速喽罗，不是新的分裂母体", MonsterType.SWARM, monster.type);
+                assertEquals("幼体奖励必须很低", 1, monster.reward);
+                assertTrue("幼体必须记录来源", monster.originMonsterId > 0);
+            }
+        }
+        assertEquals("一只母体只能分裂两只幼体", 2, children);
+        assertEquals("派生单位必须计入胜负与统计", 3, g.getMonstersSpawnedTotal());
+    }
+
+    @Test
+    public void chargerMonster_hasCooldownBoundedCharge_andPreservesSlowMultiplier() {
+        int[][] path = new int[40][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.CHARGER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(40, 2, path, 0, 39, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 0));
+        assertTrue(g.startNextWaveEarly());
+        boolean sawCharge = false;
+        for (int i = 0; i < 60 * 5; i++) {
+            g.tick();
+            if (g.getMonsters().isEmpty()) break;
+            TdGame.Monster charger = g.getMonsters().get(0);
+            sawCharge |= charger.charging;
+            assertTrue("雪花减速必须持续基于出生倍率，冲锋不可覆盖", charger.speedMul <= charger.baseSpeedMul);
+        }
+        assertTrue("冲锋怪必须在固定冷却后出现短冲刺", sawCharge);
+    }
+
+    @Test
+    public void shieldGenerator_buffsAtMostThreeAllies_withoutSelfOrInfiniteStacking() {
+        int[][] path = new int[40][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {
+                MonsterType.SHIELD_GENERATOR, MonsterType.NORMAL, MonsterType.NORMAL,
+                MonsterType.NORMAL, MonsterType.NORMAL
+        }, 0, 5, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(40, 2, path, 0, 39, 1000, 10, waves);
+        assertTrue(g.startNextWaveEarly());
+        for (int i = 0; i < 60 * 2; i++) g.tick();
+        int shielded = 0;
+        TdGame.Monster generator = null;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (monster.type == MonsterType.SHIELD_GENERATOR) generator = monster;
+            else if (monster.shield > 0f) {
+                shielded++;
+                assertTrue("护盾必须受上限控制", monster.shield <= monster.maxShield + .0001f);
+            }
+        }
+        assertNotNull(generator);
+        assertEquals("每次最多影响三名友军", 3, shielded);
+        assertEquals("护盾发生器不能给自己套盾", 0f, generator.shield, .0001f);
+        for (int i = 0; i < 60 * 3; i++) g.tick();
+        for (TdGame.Monster monster : g.getMonsters()) {
+            assertTrue("多次脉冲不能无限叠盾", monster.shield <= monster.maxShield + .0001f);
+        }
+    }
+
+    @Test
+    public void summonerMonster_hasSourceMarkedNonRecursiveMinions_andHardCap() {
+        int[][] path = new int[80][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.SUMMONER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(80, 2, path, 0, 79, 1000, 10, waves);
+        assertTrue(g.startNextWaveEarly());
+        for (int i = 0; i < 60 * 26; i++) g.tick();
+        int summoned = 0;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (!monster.summoned) continue;
+            summoned++;
+            assertEquals("召唤物不能继续召唤", MonsterType.SWARM, monster.type);
+            assertEquals("召唤物必须有低奖励", 1, monster.reward);
+            assertTrue("召唤物必须记录来源", monster.originMonsterId > 0);
+        }
+        assertEquals("四次召唤、每次两只，不能无限增长", 8, summoned);
+        assertEquals("总生成数必须包括合法派生物", 9, g.getMonstersSpawnedTotal());
+    }
+
+    @Test
+    public void resistantMonster_hasSoftControlPoisonAndLightningResistance_notImmunity() {
+        int[][] path = new int[30][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.RESISTANT, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(30, 2, path, 0, 29, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 0));
+        assertNotNull(g.placeTower(TowerType.POISON, 1, 1));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster resistant = g.getMonsters().get(0);
+        assertTrue("软抗减速仍应允许减速，但效果低于普通怪", resistant.speedMul > resistant.baseSpeedMul * .65f);
+        assertTrue("软抗中毒仍应附着", resistant.dotTimer > 0f);
+        assertTrue("抗性怪的中毒持续时间必须缩短", resistant.dotTimer < TowerType.POISON_SEC);
+        assertTrue("所有塔仍可造成直接伤害", resistant.hp < resistant.maxHp);
+    }
+
+    @Test
+    public void resistantMonster_reducesLightningBounceDamage() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {MonsterType.NORMAL, MonsterType.RESISTANT},
+                0, 2, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(5, 2, path, 0, 4, 1000, 10, waves);
+        TdGame.Tower lightning = g.placeTower(TowerType.LIGHTNING, 1, 0);
+        assertNotNull(lightning);
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster resistant = null;
+        for (TdGame.Monster monster : g.getMonsters()) if (monster.type == MonsterType.RESISTANT) resistant = monster;
+        assertNotNull(resistant);
+        float expectedMax = lightning.damageAt() * .70f * .65f;
+        assertTrue("雷电后续弹射必须被软抗降低", resistant.maxHp - resistant.hp <= expectedMax + .0001f);
+        assertTrue("软抗不能把伤害归零", resistant.hp < resistant.maxHp);
+    }
+
+    @Test
+    public void ragerMonster_enragesOnlyBelowHalfHealth_andKeepsNormalDamageRules() {
+        int[][] path = new int[30][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.RAGER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(30, 2, path, 0, 29, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.BOTTLE, 1, 0));
+        assertTrue(g.startNextWaveEarly());
+        boolean sawBelowHalfBeforeEnrage = false;
+        for (int i = 0; i < 60; i++) {
+            g.tick();
+            TdGame.Monster rager = g.getMonsters().get(0);
+            if (rager.hp <= rager.maxHp * .5f) sawBelowHalfBeforeEnrage = true;
+            if (rager.enraged) {
+                assertEquals("狂暴只提高移动速度", 1.3f, g.getBehaviorSpeedMultiplier(rager), .0001f);
+                assertTrue("狂暴仍可被普通塔伤害", rager.hp > 0f && rager.hp < rager.maxHp);
+                break;
+            }
+        }
+        assertTrue("必须在低于半血后才进入狂暴", sawBelowHalfBeforeEnrage);
+    }
+
+    @Test
+    public void unitRosterAndLevelTeachingSchedule_matchExpansionPlan() {
+        assertEquals("最终必须有十种防御塔", 10, TowerType.values().length);
+        assertEquals("最终必须有十四种怪物", 14, MonsterType.values().length);
+        assertWaveContains("level_02", MonsterType.FLY, MonsterType.SPLITTER);
+        assertWaveContains("level_03", MonsterType.HEALER, MonsterType.SHIELD_GENERATOR);
+        assertWaveContains("level_04", MonsterType.CHARGER);
+        assertWaveContains("level_05", MonsterType.SUMMONER, MonsterType.RESISTANT, MonsterType.RAGER);
+        assertWaveExcludes("level_01", MonsterType.SPLITTER, MonsterType.CHARGER,
+                MonsterType.SHIELD_GENERATOR, MonsterType.SUMMONER, MonsterType.RESISTANT, MonsterType.RAGER);
+    }
+
+    @Test
+    public void mergeLevelGrowth_usesUnifiedPrimarySpeedAndRangeRules() {
+        assertEquals(TowerType.BOTTLE.damage * 1.35f, TowerType.BOTTLE.damageAt(2), .0001f);
+        assertEquals(TowerType.BOTTLE.damage * 1.35f * 1.35f, TowerType.BOTTLE.damageAt(3), .0001f);
+        assertEquals(TowerType.BOTTLE.fireInterval * .93f, TowerType.BOTTLE.fireIntervalAt(2), .0001f);
+        assertEquals(TowerType.BOTTLE.range * 1.05f, TowerType.BOTTLE.rangeAt(2), .0001f);
+        assertEquals(TowerType.SUN.income * 1.35f, TowerType.SUN.incomeAt(2), .0001f);
+    }
+
+    private static void assertWaveContains(String levelId, MonsterType... required) {
+        java.util.HashSet<MonsterType> present = waveTypes(levelId);
+        for (MonsterType type : required) assertTrue(levelId + " 应教学 " + type, present.contains(type));
+    }
+
+    private static void assertWaveExcludes(String levelId, MonsterType... excluded) {
+        java.util.HashSet<MonsterType> present = waveTypes(levelId);
+        for (MonsterType type : excluded) assertFalse(levelId + " 不应提前投放 " + type, present.contains(type));
+    }
+
+    private static java.util.HashSet<MonsterType> waveTypes(String levelId) {
+        java.util.HashSet<MonsterType> types = new java.util.HashSet<>();
+        for (TdGame.Wave wave : TdLevels.buildLevel(levelId).getWaves()) {
+            for (int i = 0; i < wave.count; i++) types.add(wave.typeAt(i));
+        }
+        return types;
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
         waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f, 1f, 1f));
         return new TdGame(4, 3, path, 0, 3, 1000, 10, waves);
+    }
+
+    private static TdGame clusteredMonsterGame(int count) {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, count, 0f, 0f, 1f, 1f));
+        return new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
     }
 
     @Test

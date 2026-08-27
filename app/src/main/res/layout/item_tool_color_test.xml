@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_color_full"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="@string/color_test_full" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_color_touch"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="@string/color_test_touch" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_color_greyscale"
+        style="@style/Widget.GameMatrix.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:text="@string/color_test_greyscale" />
+
+</LinearLayout>

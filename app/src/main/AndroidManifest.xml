@@ -21,6 +21,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- 浏览器手势导航触觉反馈 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 悬浮性能监控：TYPE_APPLICATION_OVERLAY 全局悬浮窗 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <uses-feature
         android:name="android.hardware.camera"
