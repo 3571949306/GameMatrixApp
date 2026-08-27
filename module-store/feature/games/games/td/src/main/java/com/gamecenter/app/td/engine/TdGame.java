@@ -414,6 +414,8 @@ public class TdGame {
     public int getMaxMascotHp() { return maxMascotHp; }
     public int getWaveIndex() { return Math.min(waveIndex + 1, totalWaves); }
     public int getTotalWaves() { return totalWaves; }
+    /** 波次定义的只读快照，供关卡预览和规则测试检查教学投放。 */
+    public List<Wave> getWaves() { return new ArrayList<>(waves); }
     public long getTicks() { return gameTicks; }
     public int getCoinsEarned() { return coinsEarned; }
     public int getMonstersKilled() { return monstersKilled; }
