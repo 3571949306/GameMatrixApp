@@ -610,7 +610,13 @@ public class TdView extends View {
             paint.setColor(0x40FFF176);
             canvas.drawCircle(cx, cy - b * 0.2f, b * 1.25f, paint);
         }
-        if (drawSprite(canvas, towerSprites, t.type.ordinal(), cx, cy - b * 0.12f, b * 1.48f)) {
+        float spriteScale = 1f + .025f * (float) Math.sin(frameCount * .10f + t.row * 3 + t.col);
+        if (firing) spriteScale += .055f;
+        canvas.save();
+        canvas.scale(spriteScale, spriteScale, cx, cy - b * .12f);
+        boolean drewSprite = drawSprite(canvas, towerSprites, t.type.ordinal(), cx, cy - b * 0.12f, b * 1.48f);
+        canvas.restore();
+        if (drewSprite) {
             return;
         }
         switch (t.type) {
@@ -759,6 +765,79 @@ public class TdView extends View {
                         cx + b * 0.12f, cy + b * (0.32f + 0.35f * flame), paint);
                 break;
             }
+            case LIGHTNING: {
+                float pulse = .78f + .22f * (float) Math.sin(frameCount * .22f + t.row);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(b * .11f);
+                paint.setColor(0xFF7E57C2);
+                canvas.drawCircle(cx, cy - b * .18f, b * .72f * pulse, paint);
+                paint.setStrokeWidth(b * .05f);
+                paint.setColor(0xFFE1BEE7);
+                for (int i = 0; i < 4; i++) {
+                    double angle = i * Math.PI / 2d + frameCount * .05d;
+                    float ex = cx + (float) Math.cos(angle) * b * .92f;
+                    float ey = cy - b * .18f + (float) Math.sin(angle) * b * .78f;
+                    canvas.drawLine(cx, cy - b * .18f, ex, ey, paint);
+                }
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(0xFFB388FF);
+                canvas.drawCircle(cx, cy - b * .18f, b * .32f, paint);
+                break;
+            }
+            case SNIPER: {
+                paint.setColor(0xFF37474F);
+                canvas.drawRoundRect(cx - b * .2f, cy - b * 1.22f, cx + b * .2f, cy + b * .42f,
+                        b * .12f, b * .12f, paint);
+                paint.setColor(0xFF90A4AE);
+                canvas.drawRoundRect(cx - b * .1f, cy - b * 1.55f, cx + b * .1f, cy - b * .7f,
+                        b * .06f, b * .06f, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(b * .09f);
+                paint.setColor(0xFF80DEEA);
+                canvas.drawCircle(cx, cy - b * .55f, b * .37f, paint);
+                canvas.drawLine(cx - b * .22f, cy - b * .55f, cx + b * .22f, cy - b * .55f, paint);
+                canvas.drawLine(cx, cy - b * .77f, cx, cy - b * .33f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            }
+            case MINE: {
+                float blink = .55f + .45f * (float) Math.sin(frameCount * .18f + t.row + t.col);
+                paint.setColor(0xFF546E7A);
+                canvas.drawCircle(cx, cy - b * .03f, b * .72f, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(b * .09f);
+                paint.setColor(0xFF90A4AE);
+                canvas.drawCircle(cx, cy - b * .03f, b * .72f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(blink > .72f ? 0xFFFF5252 : 0xFF8D1B1B);
+                canvas.drawCircle(cx, cy - b * .03f, b * .17f, paint);
+                for (int i = 0; i < 4; i++) {
+                    double angle = i * Math.PI / 2d + Math.PI / 4d;
+                    canvas.drawCircle(cx + (float) Math.cos(angle) * b * .92f,
+                            cy - b * .03f + (float) Math.sin(angle) * b * .72f, b * .12f, paint);
+                }
+                break;
+            }
+            case AMPLIFIER: {
+                float orbit = (float) (frameCount * .06f);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(b * .08f);
+                paint.setColor(0xFF26C6DA);
+                canvas.drawCircle(cx, cy - b * .2f, b * .72f, paint);
+                paint.setColor(0x884DD0E1);
+                canvas.drawCircle(cx, cy - b * .2f, b * 1.03f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(0xFF00695C);
+                canvas.drawRoundRect(cx - b * .28f, cy - b * .86f, cx + b * .28f, cy + b * .32f,
+                        b * .15f, b * .15f, paint);
+                paint.setColor(0xFFB2EBF2);
+                for (int i = 0; i < 3; i++) {
+                    double angle = orbit + i * Math.PI * 2d / 3d;
+                    canvas.drawCircle(cx + (float) Math.cos(angle) * b * .92f,
+                            cy - b * .2f + (float) Math.sin(angle) * b * .7f, b * .12f, paint);
+                }
+                break;
+            }
         }
     }
 
@@ -769,7 +848,7 @@ public class TdView extends View {
         if (t != null) {
             cx = originX + (t.col + 0.5f) * cellSize;
             cy = originY + (t.row + 0.5f) * cellSize;
-            r = t.rangeAt();
+            r = game.effectiveRangeAt(t);
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(0x1881C784);
             canvas.drawCircle(cx, cy, r * cellSize, paint);
@@ -837,15 +916,18 @@ public class TdView extends View {
         for (TdGame.Monster m : game.getMonsters()) {
             float cx = originX + m.x * cellSize;
             boolean boss = m.type == MonsterType.BOSS;
-            // 行进小弹跳（Boss/飞行兵稳重）
+            // 行进小弹跳完全依赖帧数；避免静态精灵只随路径坐标变化而显得僵硬。
             float bob = 0f;
             if (m.type == MonsterType.FLY) {
                 bob = (float) (Math.abs(Math.sin(frameCount * 0.12f + m.id)) * cellSize * 0.06);
             } else if (!boss && m.pathIndex < game.getRouteLength(m.routeIndex) - 1) {
-                bob = (float) (Math.abs(Math.sin(m.pathProgress() * 16.0 + m.id * 1.7)) * cellSize * 0.05);
+                float motion = m.charging ? .11f : .075f;
+                bob = (float) (Math.abs(Math.sin(frameCount * motion + m.id * 1.7)) * cellSize * 0.05);
             }
             float cy = originY + m.y * cellSize - bob;
-            float r = cellSize * (boss ? 0.42f : (m.type == MonsterType.TANK ? 0.34f : 0.26f));
+            boolean heavy = m.type == MonsterType.TANK || m.type == MonsterType.RESISTANT
+                    || m.type == MonsterType.SHIELD_GENERATOR;
+            float r = cellSize * (boss ? 0.42f : (heavy ? 0.34f : 0.26f));
             float groundY = originY + m.y * cellSize;
             // 阴影（飞行兵阴影更淡更高）
             if (m.type == MonsterType.FLY) {
@@ -900,6 +982,20 @@ public class TdView extends View {
                 canvas.drawText("+", cx, cy - r * 1.05f, textPaint);
                 textPaint.setFakeBoldText(false);
             }
+            if (m.shieldFlash > 0f) {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(cellSize * .04f);
+                paint.setColor(0xCC80DEEA);
+                canvas.drawCircle(cx, cy, r * (1.15f + .5f * (0.38f - m.shieldFlash)), paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
+            if (m.charging || m.enraged) {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(cellSize * .055f);
+                paint.setColor(m.enraged ? 0xCCFF5252 : 0xCCFFCA28);
+                canvas.drawCircle(cx, cy, r * 1.22f, paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
 
             // BOSS 名牌
             if (boss) {
@@ -925,7 +1021,15 @@ public class TdView extends View {
 
     private void drawMonsterBody(Canvas canvas, TdGame.Monster m, float cx, float cy,
                                  float r, boolean boss, int body) {
-        if (drawSprite(canvas, monsterSprites, monsterSpriteIndex(m.type), cx, cy, r * (boss ? 1.28f : 1.38f))) {
+        float bodyScale = 1f + .025f * (float) Math.sin(frameCount * .12f + m.id);
+        if (m.charging) bodyScale = 1.1f;
+        if (m.enraged) bodyScale = 1.06f + .03f * (float) Math.sin(frameCount * .25f);
+        canvas.save();
+        canvas.scale(bodyScale, bodyScale, cx, cy);
+        boolean drewSprite = drawSprite(canvas, monsterSprites, monsterSpriteIndex(m.type),
+                cx, cy, r * (boss ? 1.28f : 1.38f));
+        canvas.restore();
+        if (drewSprite) {
             if (m.hitFlash > 0f) {
                 paint.setColor(0x55FFFFFF);
                 canvas.drawCircle(cx, cy, r * 0.92f, paint);
@@ -1072,6 +1176,88 @@ public class TdView extends View {
                 canvas.drawCircle(cx - r * 0.05f, cy - r * 0.62f, r * 0.36f, paint); // 额头瘤
                 break;
             }
+            case SPLITTER: {
+                paint.setColor(body);
+                canvas.drawCircle(cx, cy, r, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(r * .1f);
+                paint.setColor(0xFFD1C4E9);
+                canvas.drawLine(cx - r * .55f, cy - r * .55f, cx + r * .05f, cy + r * .08f, paint);
+                canvas.drawLine(cx + r * .05f, cy + r * .08f, cx + r * .5f, cy - r * .28f, paint);
+                canvas.drawLine(cx + r * .05f, cy + r * .08f, cx + r * .32f, cy + r * .58f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            }
+            case CHARGER: {
+                paint.setColor(body);
+                canvas.drawOval(cx - r * 1.05f, cy - r * .72f, cx + r * 1.05f, cy + r * .72f, paint);
+                paint.setColor(0xFFFFD54F);
+                Path horn = new Path();
+                horn.moveTo(cx + r * .4f, cy - r * .35f);
+                horn.lineTo(cx + r * 1.15f, cy - r * .7f);
+                horn.lineTo(cx + r * .78f, cy - r * .05f);
+                horn.close();
+                canvas.drawPath(horn, paint);
+                break;
+            }
+            case SHIELD_GENERATOR: {
+                paint.setColor(body);
+                canvas.drawRoundRect(cx - r * .72f, cy - r * .76f, cx + r * .72f, cy + r * .72f,
+                        r * .25f, r * .25f, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(r * .11f);
+                paint.setColor(0xFF80DEEA);
+                canvas.drawCircle(cx, cy - r * .12f, r * .45f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                for (int i = 0; i < 3; i++) {
+                    double angle = frameCount * .08d + i * Math.PI * 2d / 3d;
+                    canvas.drawCircle(cx + (float) Math.cos(angle) * r * .9f,
+                            cy + (float) Math.sin(angle) * r * .72f, r * .12f, paint);
+                }
+                break;
+            }
+            case SUMMONER: {
+                paint.setColor(body);
+                canvas.drawCircle(cx, cy, r, paint);
+                paint.setColor(0xFFE1BEE7);
+                Path hat = new Path();
+                hat.moveTo(cx - r * .7f, cy - r * .35f);
+                hat.lineTo(cx, cy - r * 1.15f);
+                hat.lineTo(cx + r * .7f, cy - r * .35f);
+                hat.close();
+                canvas.drawPath(hat, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setColor(0x99EA80FC);
+                paint.setStrokeWidth(r * .08f);
+                canvas.drawCircle(cx + r * .82f, cy + r * .45f, r * (.28f + .07f * (float) Math.sin(frameCount * .16f)), paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            }
+            case RESISTANT: {
+                paint.setColor(body);
+                canvas.drawRoundRect(cx - r * .82f, cy - r * .82f, cx + r * .82f, cy + r * .82f,
+                        r * .28f, r * .28f, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(r * .12f);
+                paint.setColor(0xFFB0BEC5);
+                canvas.drawRoundRect(cx - r * .62f, cy - r * .64f, cx + r * .62f, cy + r * .58f,
+                        r * .2f, r * .2f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            }
+            case RAGER: {
+                paint.setColor(m.enraged ? 0xFFE53935 : body);
+                canvas.drawCircle(cx, cy, r, paint);
+                paint.setColor(0xFFFFCC80);
+                canvas.drawCircle(cx - r * .5f, cy - r * .55f, r * .18f, paint);
+                canvas.drawCircle(cx + r * .5f, cy - r * .55f, r * .18f, paint);
+                paint.setColor(0xFF4E342E);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(r * .1f);
+                canvas.drawLine(cx - r * .45f, cy + r * .35f, cx + r * .45f, cy + r * .35f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            }
             default:
                 paint.setColor(body);
                 canvas.drawCircle(cx, cy, r, paint);
@@ -1131,6 +1317,13 @@ public class TdView extends View {
             case FLY: return 3;
             case HEALER: return 4;
             case BOSS: return 5;
+            case SPLITTER:
+            case CHARGER:
+            case SHIELD_GENERATOR:
+            case SUMMONER:
+            case RESISTANT:
+            case RAGER:
+                return -1;
             case NORMAL:
             case SWARM:
             default: return 0;
@@ -1402,6 +1595,10 @@ public class TdView extends View {
             case FAN: return 0xFFB0BEC5;
             case POISON: return 0xFFCE93D8;
             case ROCKET: return 0xFFFF8A80;
+            case LIGHTNING: return 0xFFB388FF;
+            case SNIPER: return 0xFF80DEEA;
+            case MINE: return 0xFF78909C;
+            case AMPLIFIER: return 0xFF26C6DA;
             default: return 0xFF9E9E9E;
         }
     }
@@ -1416,6 +1613,12 @@ public class TdView extends View {
             case HEALER: return 0xFFF48FB1;
             case SHIELD: return 0xFF90A4AE;
             case BOSS: return 0xFFE53935;
+            case SPLITTER: return 0xFF9575CD;
+            case CHARGER: return 0xFFFFA726;
+            case SHIELD_GENERATOR: return 0xFF26A69A;
+            case SUMMONER: return 0xFFAB47BC;
+            case RESISTANT: return 0xFF607D8B;
+            case RAGER: return 0xFFEF5350;
             default: return 0xFF455A64;
         }
     }
@@ -1434,6 +1637,9 @@ public class TdView extends View {
             case FAN: return 0xFFCFD8DC;
             case POISON: return 0xFFBA68C8;
             case ROCKET: return 0xFFFF8A80;
+            case LIGHTNING: return 0xFFE1BEE7;
+            case SNIPER: return 0xFF80DEEA;
+            case MINE: return 0xFFFF7043;
             default: return 0xFFFFEB3B;
         }
     }

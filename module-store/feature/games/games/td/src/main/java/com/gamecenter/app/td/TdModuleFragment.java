@@ -298,6 +298,10 @@ public class TdModuleFragment extends Fragment {
             case FAN: return 0xFFB0BEC5;
             case POISON: return 0xFFCE93D8;
             case ROCKET: return 0xFFFF8A80;
+            case LIGHTNING: return 0xFFB388FF;
+            case SNIPER: return 0xFF80DEEA;
+            case MINE: return 0xFF78909C;
+            case AMPLIFIER: return 0xFF26C6DA;
             default: return 0xFF9E9E9E;
         }
     }
@@ -310,6 +314,10 @@ public class TdModuleFragment extends Fragment {
             case FAN: return "范围清群";
             case POISON: return "持续伤害";
             case ROCKET: return "重炮爆发";
+            case LIGHTNING: return "连锁清群";
+            case SNIPER: return "超远强敌";
+            case MINE: return "路径陷阱";
+            case AMPLIFIER: return "强化友军";
             default: return "防御塔";
         }
     }
