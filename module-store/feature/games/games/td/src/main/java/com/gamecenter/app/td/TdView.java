@@ -13,6 +13,7 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
@@ -63,11 +64,30 @@ public class TdView extends View {
     private long frameCount = 0;
     private int pressedRow = -1;
     private int pressedCol = -1;
+    private int dragStartRow = -1;
+    private int dragStartCol = -1;
+    private boolean draggingTower;
+    private float downX;
+    private float downY;
+    private int dragTargetRow = -1;
+    private int dragTargetCol = -1;
+    private boolean dragTargetValid;
+    private int paletteDragRow = -1;
+    private int paletteDragCol = -1;
+    private TowerType paletteDragType;
+    private boolean paletteDragValid;
+    private final int touchSlop;
 
     public interface OnTowerActionListener {
         void onTowerPlaced(int row, int col, TowerType type);
         void onTowerSelected(int row, int col);
         void onTowerDeselected();
+
+        /** 棋盘塔拖到另一座塔上时触发；默认空实现保持旧版门面兼容。 */
+        default void onTowerDragged(int sourceRow, int sourceCol, int targetRow, int targetCol) { }
+
+        /** 底部塔牌拖到棋盘时触发；默认空实现保持旧版门面兼容。 */
+        default void onPaletteTowerDropped(int row, int col, TowerType type) { }
     }
 
     private OnTowerActionListener listener;
@@ -79,6 +99,7 @@ public class TdView extends View {
         textPaint.setColor(C_TEXT);
         textPaint.setTextAlign(Paint.Align.CENTER);
         setLayerType(View.LAYER_TYPE_SOFTWARE, null); // 渐变需要软件层
+        touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
     public void bind(TdGame game) {
@@ -157,6 +178,7 @@ public class TdView extends View {
         drawDecorations(canvas);
         drawPath(canvas);
         drawPlacementHint(canvas);
+        drawDragTarget(canvas);
         drawEgg(canvas);
         drawSelectedRange(canvas);
         drawTowers(canvas);
@@ -434,6 +456,37 @@ public class TdView extends View {
         textPaint.setColor(C_TEXT);
     }
 
+    /** 拖拽时的落点预览，绿色表示可合成/建造，红色表示会被规则拒绝。 */
+    private void drawDragTarget(Canvas canvas) {
+        int row = draggingTower ? dragTargetRow : paletteDragRow;
+        int col = draggingTower ? dragTargetCol : paletteDragCol;
+        if (row < 0 || col < 0 || game == null) return;
+        float x = originX + col * cellSize;
+        float y = originY + row * cellSize;
+        int color = (draggingTower ? dragTargetValid : paletteDragValid)
+                ? 0x9A65E6A5 : 0x9AE57373;
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(color);
+        canvas.drawRoundRect(x + cellSize * 0.06f, y + cellSize * 0.06f,
+                x + cellSize * 0.94f, y + cellSize * 0.94f,
+                cellSize * 0.14f, cellSize * 0.14f, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(cellSize * 0.07f);
+        paint.setColor((draggingTower ? dragTargetValid : paletteDragValid)
+                ? 0xFFE8FFF0 : 0xFFFFD0D0);
+        canvas.drawRoundRect(x + cellSize * 0.1f, y + cellSize * 0.1f,
+                x + cellSize * 0.9f, y + cellSize * 0.9f,
+                cellSize * 0.11f, cellSize * 0.11f, paint);
+        paint.setStyle(Paint.Style.FILL);
+        textPaint.setTextSize(cellSize * 0.32f);
+        textPaint.setColor(0xFFFFFFFF);
+        textPaint.setFakeBoldText(true);
+        canvas.drawText((draggingTower ? dragTargetValid : paletteDragValid) ? "合" : "×",
+                x + cellSize * 0.5f, y + cellSize * 0.62f, textPaint);
+        textPaint.setFakeBoldText(false);
+        textPaint.setColor(C_TEXT);
+    }
+
     // =====================================================================
     // 蛋蛋：草窝 + 大眼萌脸 + 受击震屏
     // =====================================================================
@@ -534,7 +587,8 @@ public class TdView extends View {
         for (TdGame.Tower t : game.getTowers()) {
             float cx = originX + (t.col + 0.5f) * cellSize;
             float cy = originY + (t.row + 0.5f) * cellSize;
-            float base = cellSize * 0.32f;
+            // 塔体留出明显轮廓，避免在高分辨率小格子上被压成“彩色小点”。
+            float base = cellSize * 0.39f;
             // 等级体型放大
             if (t.level >= 2) base *= 1.06f;
             if (t.level >= 3) base *= 1.1f;
@@ -1664,17 +1718,53 @@ public class TdView extends View {
             int[] cell = cellAt(event.getX(), event.getY());
             pressedRow = cell == null ? -1 : cell[0];
             pressedCol = cell == null ? -1 : cell[1];
+            dragStartRow = pressedRow;
+            dragStartCol = pressedCol;
+            downX = event.getX();
+            downY = event.getY();
+            draggingTower = false;
+            dragTargetRow = dragTargetCol = -1;
+            dragTargetValid = false;
             invalidate();
+            return true;
+        }
+        if (action == MotionEvent.ACTION_MOVE) {
+            if (!draggingTower && dragStartRow >= 0 && dragStartCol >= 0
+                    && game.getTowerAt(dragStartRow, dragStartCol) != null
+                    && Math.hypot(event.getX() - downX, event.getY() - downY) >= touchSlop) {
+                draggingTower = true;
+                pressedRow = pressedCol = -1;
+            }
+            if (draggingTower) {
+                int[] cell = cellAt(event.getX(), event.getY());
+                dragTargetRow = cell == null ? -1 : cell[0];
+                dragTargetCol = cell == null ? -1 : cell[1];
+                TdGame.Tower source = game.getTowerAt(dragStartRow, dragStartCol);
+                TdGame.Tower target = cell == null ? null : game.getTowerAt(cell[0], cell[1]);
+                dragTargetValid = source != null && target != null && target != source
+                        && source.type == target.type && source.level == target.level
+                        && target.level < 3;
+                invalidate();
+            }
             return true;
         }
         if (action == MotionEvent.ACTION_CANCEL) {
             pressedRow = -1;
             pressedCol = -1;
+            resetDragState();
             invalidate();
             return true;
         }
         if (action == MotionEvent.ACTION_UP) {
             int[] cell = cellAt(event.getX(), event.getY());
+            if (draggingTower) {
+                if (cell != null && listener != null) {
+                    listener.onTowerDragged(dragStartRow, dragStartCol, cell[0], cell[1]);
+                }
+                resetDragState();
+                invalidate();
+                return true;
+            }
             boolean sameCell = cell != null && cell[0] == pressedRow && cell[1] == pressedCol;
             pressedRow = -1;
             pressedCol = -1;
@@ -1699,7 +1789,8 @@ public class TdView extends View {
         return true;
     }
 
-    private int[] cellAt(float x, float y) {
+    /** 把 TdView 本地像素坐标转换成棋盘格，供塔牌拖拽落点使用。 */
+    public int[] cellAt(float x, float y) {
         if (x < originX || y < originY
                 || x >= originX + game.getCols() * cellSize
                 || y >= originY + game.getRows() * cellSize) return null;
@@ -1712,6 +1803,29 @@ public class TdView extends View {
     public void clearSelection() {
         hoverTower = null;
         invalidate();
+    }
+
+    /** Fragment 的底部塔牌拖拽预览。 */
+    public void setPaletteDragTarget(TowerType type, int row, int col, boolean valid) {
+        paletteDragType = type;
+        paletteDragRow = row;
+        paletteDragCol = col;
+        paletteDragValid = valid;
+        invalidate();
+    }
+
+    public void clearPaletteDragTarget() {
+        paletteDragType = null;
+        paletteDragRow = paletteDragCol = -1;
+        paletteDragValid = false;
+        invalidate();
+    }
+
+    private void resetDragState() {
+        draggingTower = false;
+        dragStartRow = dragStartCol = -1;
+        dragTargetRow = dragTargetCol = -1;
+        dragTargetValid = false;
     }
 
     public TdGame.Tower getHoverTower() { return hoverTower; }

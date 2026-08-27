@@ -3077,4 +3077,33 @@
     <string name="consent_sync_provider">数据发送到你配置的 WebDAV 服务器。</string>
     <string name="consent_sync_retention">数据保留在 WebDAV 服务器上，直到你手动删除或覆盖。</string>
 
+    <!-- 新增工具：气泡水平仪 -->
+    <string name="tool_bubble_level">气泡水平仪</string>
+    <string name="tool_bubble_level_desc">检测设备是否水平</string>
+    <string name="tool_sound_meter">噪音检测</string>
+    <string name="tool_sound_meter_desc">实时声级计，单位 dB</string>
+    <string name="tool_color_test">屏幕测试</string>
+    <string name="tool_color_test_desc">色彩坏点触控自检套件</string>
+    <string name="tool_floating_monitor">悬浮性能监控</string>
+    <string name="tool_floating_monitor_desc">全局悬浮窗显示 CPU/温度/FPS</string>
+    <string name="level_status_ready">水平仪就绪</string>
+    <string name="level_angles_format">X: %.1f°  Y: %.1f°</string>
+    <string name="level_angles_merged_format">%1$.1f°  |  %2$.1f°</string>
+    <string name="level_near_level">几乎水平</string>
+    <string name="level_tilted">倾斜</string>
+    <string name="level_calibrate">校准零点</string>
+    <string name="sound_btn_start">开始检测</string>
+    <string name="sound_btn_stop">停止检测</string>
+    <string name="sound_current_format">当前: %.1f dB</string>
+    <string name="sound_max_format">峰值: %.1f dB</string>
+    <string name="sound_avg_format">平均: %.1f dB</string>
+    <string name="sound_status_ready">就绪，点击开始</string>
+    <string name="sound_status_running">采集中…</string>
+    <string name="sound_status_no_permission">麦克风未授权</string>
+    <string name="color_test_full">全屏色彩测试</string>
+    <string name="color_test_touch">触控测试</string>
+    <string name="color_test_greyscale">灰度/饱和度测试</string>
+    <string name="float_btn_start">开启悬浮监控</string>
+    <string name="float_permission_required">悬浮窗需要 SYSTEM_ALERT_WINDOW 权限</string>
+
 </resources>

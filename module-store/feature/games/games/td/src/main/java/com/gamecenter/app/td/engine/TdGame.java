@@ -545,6 +545,31 @@ public class TdGame {
     }
 
     /**
+     * 塔牌拖拽的统一提交入口：空格执行建塔，同类型目标执行一次“塔牌合成”。
+     * 目标已有塔时，塔牌视为一座 Lv1 同类塔，只有目标仍可升级且金币足够才提交；
+     * 所有校验发生在扣款和等级写入之前，失败不会改变任何状态。
+     */
+    public boolean placeOrMergeTower(TowerType type, int row, int col) {
+        Tower target = towerGrid.get(key(row, col));
+        if (target == null) {
+            return placeTower(type, row, col) != null;
+        }
+        clearAction();
+        if (type == null) { return failBoolean("无效的塔类型"); }
+        if (state == State.WON || state == State.LOST) { return failBoolean("对局已结束"); }
+        if (target.type != type) { return failBoolean("只能拖到同类型防御塔上"); }
+        if (target.level >= 3) { return failBoolean("Lv3 已是最高等级，不能继续合成"); }
+        if (coin < type.baseCost) { return failBoolean("金币不足，需要 " + type.baseCost); }
+        coin -= type.baseCost;
+        target.level++;
+        target.investedCost += type.baseCost;
+        target.buildAge = 0;
+        lastActionTone = "ok";
+        lastActionMessage = type.displayName + " 合成为 Lv" + target.level;
+        return true;
+    }
+
+    /**
      * 旧的点按升级入口保留为兼容门面，但不再改变状态。
      * 统一等级规则为同类型、同等级的两座塔合成；调用方须使用 {@link #mergeTowers}。
      */
@@ -1240,5 +1265,11 @@ public class TdGame {
         lastActionMessage = msg;
         lastActionTone = "err";
         return null;
+    }
+
+    private boolean failBoolean(String msg) {
+        lastActionMessage = msg;
+        lastActionTone = "err";
+        return false;
     }
 }

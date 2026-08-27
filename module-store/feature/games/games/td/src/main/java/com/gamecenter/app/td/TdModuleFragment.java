@@ -1,6 +1,11 @@
 package com.gamecenter.app.td;
 
 import android.content.Context;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -8,6 +13,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.DragEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -27,7 +34,13 @@ import com.gamecenter.app.td.engine.TdLevels;
 import com.gamecenter.app.td.engine.TowerType;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * 塔防「保卫蛋蛋」主 Fragment — 成品版。
@@ -59,6 +72,14 @@ public class TdModuleFragment extends Fragment {
     private int gameSession = 0;
     private boolean paused = false;
     private boolean gameEnded = false;
+
+    /** PVZ 式开局塔组：每局只带 5 张牌，避免小屏横向挤压。 */
+    private static final int DECK_SIZE = 5;
+    private final List<TowerType> activeDeck = new ArrayList<>(Arrays.asList(
+            TowerType.BOTTLE, TowerType.SUN, TowerType.SNOW, TowerType.FAN, TowerType.ROCKET));
+    private final Map<TowerType, View> towerItemByType = new HashMap<>();
+    /** Android DragEvent 在部分系统版本的 STARTED 阶段不提供 ClipData，保留本地拖拽类型。 */
+    private TowerType paletteDragType;
 
     private FrameLayout overlayRoot;
     private TdSaveManager save;
@@ -188,8 +209,107 @@ public class TdModuleFragment extends Fragment {
                 }
                 hideTowerOps();
             }
+
+            @Override public void onTowerDragged(int sourceRow, int sourceCol, int targetRow, int targetCol) {
+                if (game == null) return;
+                boolean ok = game.mergeTowers(sourceRow, sourceCol, targetRow, targetCol);
+                showMsg(game.getLastActionMessage(), game.getLastActionTone());
+                if (ok) {
+                    mergeSource = null;
+                    hideTowerOps();
+                }
+                updateHud();
+            }
+
+            @Override public void onPaletteTowerDropped(int row, int col, TowerType type) {
+                handlePaletteDrop(row, col, type);
+            }
+        });
+        tdView.setOnDragListener((v, event) -> {
+            TowerType dragType = parsePaletteDragType(event);
+            switch (event.getAction()) {
+                case DragEvent.ACTION_DRAG_STARTED:
+                    return event.getClipDescription() != null
+                            && event.getClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
+                case DragEvent.ACTION_DRAG_LOCATION: {
+                    if (dragType == null) dragType = paletteDragType;
+                    if (dragType == null) return true;
+                    int[] cell = tdView.cellAt(event.getX(), event.getY());
+                    if (cell == null) {
+                        tdView.setPaletteDragTarget(dragType, -1, -1, false);
+                    } else {
+                        tdView.setPaletteDragTarget(dragType, cell[0], cell[1],
+                                canDropPalette(dragType, cell[0], cell[1]));
+                    }
+                    return true;
+                }
+                case DragEvent.ACTION_DROP: {
+                    if (dragType == null) dragType = paletteDragType;
+                    if (dragType == null) return false;
+                    int[] cell = tdView.cellAt(event.getX(), event.getY());
+                    tdView.clearPaletteDragTarget();
+                    if (cell == null) {
+                        showMsg("请把塔牌拖到棋盘格内", "err");
+                        return true;
+                    }
+                    if (canDropPalette(dragType, cell[0], cell[1])) {
+                        handlePaletteDrop(cell[0], cell[1], dragType);
+                    } else {
+                        showMsg("这里不能放置或合成该塔", "err");
+                    }
+                    return true;
+                }
+                case DragEvent.ACTION_DRAG_ENDED:
+                    paletteDragType = null;
+                    tdView.clearPaletteDragTarget();
+                    return true;
+                default:
+                    return true;
+            }
         });
         return tdView;
+    }
+
+    private TowerType parsePaletteDragType(DragEvent event) {
+        if (event == null || event.getClipDescription() == null
+                || !event.getClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                || event.getClipData() == null || event.getClipData().getItemCount() == 0) return null;
+        CharSequence text = event.getClipData().getItemAt(0).getText();
+        if (text == null) return null;
+        String value = text.toString();
+        if (!value.startsWith("palette:")) return null;
+        try {
+            TowerType type = TowerType.valueOf(value.substring("palette:".length()));
+            return activeDeck.contains(type) ? type : null;
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private boolean canDropPalette(TowerType type, int row, int col) {
+        if (game == null || type == null || row < 0 || col < 0
+                || row >= game.getRows() || col >= game.getCols()) return false;
+        TdGame.Tower target = game.getTowerAt(row, col);
+        if (target != null) {
+            return target.type == type && target.level < 3 && game.getCoin() >= type.baseCost;
+        }
+        if (game.getCoin() < type.baseCost || game.isEggCell(row, col) || game.isPathCell(row, col)) {
+            return false;
+        }
+        return type != TowerType.MINE || game.isMinePlacementCell(row, col);
+    }
+
+    private void handlePaletteDrop(int row, int col, TowerType type) {
+        if (game == null) return;
+        boolean ok = game.placeOrMergeTower(type, row, col);
+        showMsg(game.getLastActionMessage(), game.getLastActionTone());
+        if (ok) {
+            selectedType = null;
+            tdView.setSelectedType(null);
+            updateTowerBarSelection();
+            hideTowerOps();
+        }
+        updateHud();
     }
 
     private View buildMessageBar(Context ctx) {
@@ -217,12 +337,8 @@ public class TdModuleFragment extends Fragment {
             item.setGravity(Gravity.CENTER);
             item.setTag(t);
 
-            // 图标色块
-            View dot = new View(ctx);
-            GradientDrawable dotBg = new GradientDrawable();
-            dotBg.setShape(GradientDrawable.OVAL);
-            dotBg.setColor(towerUiColor(t));
-            dot.setBackground(dotBg);
+            // 卡牌图标使用和棋盘一致的程序化小模型，缺少精灵资源时仍然清晰可辨。
+            View dot = new TowerGlyphView(ctx, t);
 
             TextView name = new TextView(ctx);
             name.setText(t.displayName);
@@ -259,6 +375,36 @@ public class TdModuleFragment extends Fragment {
                 updateTowerBarSelection();
                 showMsg("选择 " + t.displayName + "，点击棋盘绿色空格建造", "info");
             });
+            final float[] dragDown = new float[2];
+            final boolean[] dragStarted = {false};
+            item.setOnTouchListener((v, event) -> {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        dragDown[0] = event.getRawX();
+                        dragDown[1] = event.getRawY();
+                        dragStarted[0] = false;
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        if (!dragStarted[0] && Math.hypot(event.getRawX() - dragDown[0],
+                                event.getRawY() - dragDown[1]) >= dp(8)) {
+                            ClipData data = ClipData.newPlainText("td-tower", "palette:" + t.name());
+                            View.DragShadowBuilder shadow = new View.DragShadowBuilder(item);
+                            paletteDragType = t;
+                            dragStarted[0] = item.startDragAndDrop(data, shadow, null, 0);
+                            if (!dragStarted[0]) paletteDragType = null;
+                            if (dragStarted[0]) showMsg("拖动 " + t.displayName + " 到空格或同类塔上", "info");
+                        }
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        if (!dragStarted[0]) v.performClick();
+                        return true;
+                    case MotionEvent.ACTION_CANCEL:
+                        dragStarted[0] = false;
+                        return true;
+                    default:
+                        return true;
+                }
+            });
 
             item.addView(dot, new LinearLayout.LayoutParams(dp(18), dp(18)));
             LinearLayout.LayoutParams dotLp = (LinearLayout.LayoutParams) dot.getLayoutParams();
@@ -270,12 +416,26 @@ public class TdModuleFragment extends Fragment {
             cardLp.setMargins(dp(2), 0, dp(2), 0);
             bar.addView(item, cardLp);
             towerItems.add(item);
+            towerItemByType.put(t, item);
+            item.setVisibility(activeDeck.contains(t) ? View.VISIBLE : View.GONE);
         }
         scroller.addView(bar);
         return scroller;
     }
 
     private final java.util.List<View> towerItems = new java.util.ArrayList<>();
+
+    private void refreshTowerDeck() {
+        for (TowerType t : TowerType.values()) {
+            View item = towerItemByType.get(t);
+            if (item != null) item.setVisibility(activeDeck.contains(t) ? View.VISIBLE : View.GONE);
+        }
+        if (selectedType != null && !activeDeck.contains(selectedType)) {
+            selectedType = null;
+            if (tdView != null) tdView.setSelectedType(null);
+        }
+        updateTowerBarSelection();
+    }
 
     /** 塔栏选中高亮：金边 + 亮底 */
     private void updateTowerBarSelection() {
@@ -363,7 +523,9 @@ public class TdModuleFragment extends Fragment {
         });
         btnQuitToMenu.setOnClickListener(v -> showLevelSelect());
         btnSelectTower.setOnClickListener(v -> {
-            selectedType = selectedType == null ? TowerType.BOTTLE : null;
+            selectedType = selectedType == null
+                    ? (activeDeck.isEmpty() ? null : activeDeck.get(0))
+                    : null;
             tdView.setSelectedType(selectedType);
             updateTowerBarSelection();
             showMsg(selectedType == null ? "已取消选择" : "请选择塔并点击棋盘", "info");
@@ -585,9 +747,7 @@ public class TdModuleFragment extends Fragment {
             b.setBackground(gb);
             b.setTextSize(15);
             b.setOnClickListener(v -> {
-                save.recordPlay();
-                startLevel(levelIdx, d);
-                clearOverlay();
+                showDeckSelect(levelIdx, d);
             });
             panel.addView(b, new LinearLayout.LayoutParams(dp(180), dp(46)));
             ((LinearLayout.LayoutParams) b.getLayoutParams()).topMargin = dp(12);
@@ -604,6 +764,107 @@ public class TdModuleFragment extends Fragment {
 
         overlayRoot.addView(panel, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /** 开局选塔：最多 5 张牌，底部只显示本次选中的塔。 */
+    private void showDeckSelect(final int levelIdx, final TdGame.Difficulty difficulty) {
+        clearOverlay();
+        final Set<TowerType> draft = new LinkedHashSet<>(activeDeck);
+        LinearLayout panel = new LinearLayout(requireContext());
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(16), dp(24), dp(16), dp(16));
+        panel.setBackgroundColor(0xF01E2A1F);
+
+        TextView title = new TextView(requireContext());
+        title.setText("选择本局塔组");
+        title.setTextSize(22);
+        title.setTextColor(0xFFFFD54F);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
+
+        TextView hint = new TextView(requireContext());
+        hint.setText("像植物大战僵尸一样，带上 3～" + DECK_SIZE + " 张牌；拖动塔牌即可建造或合成");
+        hint.setTextSize(12);
+        hint.setTextColor(0xFFCCFFE0);
+        hint.setGravity(Gravity.CENTER);
+        panel.addView(hint, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
+
+        final TextView count = new TextView(requireContext());
+        count.setText("已选 " + draft.size() + "/" + DECK_SIZE);
+        count.setTextSize(14);
+        count.setTextColor(0xFFFFF176);
+        count.setGravity(Gravity.CENTER);
+        panel.addView(count, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(28)));
+
+        LinearLayout grid = new LinearLayout(requireContext());
+        grid.setOrientation(LinearLayout.VERTICAL);
+        for (int start = 0; start < TowerType.values().length; start += 2) {
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER);
+            for (int offset = 0; offset < 2 && start + offset < TowerType.values().length; offset++) {
+                final TowerType type = TowerType.values()[start + offset];
+                LinearLayout card = new LinearLayout(requireContext());
+                card.setOrientation(LinearLayout.HORIZONTAL);
+                card.setGravity(Gravity.CENTER_VERTICAL);
+                card.setPadding(dp(7), dp(5), dp(7), dp(5));
+                card.addView(new TowerGlyphView(requireContext(), type),
+                        new LinearLayout.LayoutParams(dp(32), dp(32)));
+                TextView label = new TextView(requireContext());
+                label.setText(type.displayName + "\n" + towerRole(type));
+                label.setTextSize(10);
+                label.setTextColor(0xFFFFFFFF);
+                card.addView(label, new LinearLayout.LayoutParams(0, dp(38), 1f));
+                LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, dp(50), 1f);
+                cardLp.setMargins(dp(3), dp(3), dp(3), dp(3));
+                row.addView(card, cardLp);
+                card.setOnClickListener(v -> {
+                    if (draft.contains(type)) {
+                        draft.remove(type);
+                    } else if (draft.size() < DECK_SIZE) {
+                        draft.add(type);
+                    } else {
+                        showMsg("最多选择 " + DECK_SIZE + " 张塔牌", "info");
+                        return;
+                    }
+                    updateDeckCard(card, draft.contains(type));
+                    count.setText("已选 " + draft.size() + "/" + DECK_SIZE);
+                });
+                updateDeckCard(card, draft.contains(type));
+            }
+            grid.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
+        }
+        panel.addView(grid, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        Button start = ctrlButton(requireContext(), "带上塔组，开始关卡");
+        start.setTextSize(15);
+        start.setOnClickListener(v -> {
+            if (draft.size() < 3) {
+                showMsg("至少选择 3 张塔牌", "err");
+                return;
+            }
+            activeDeck.clear();
+            activeDeck.addAll(draft);
+            save.recordPlay();
+            startLevel(levelIdx, difficulty);
+            clearOverlay();
+        });
+        panel.addView(start, new LinearLayout.LayoutParams(dp(220), dp(44)));
+        ((LinearLayout.LayoutParams) start.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+        overlayRoot.addView(panel, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private void updateDeckCard(View card, boolean selected) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(selected ? 0xFF5A5238 : 0xFF3A3A3A);
+        bg.setStroke(dp(selected ? 2 : 1), selected ? 0xFFFFC107 : 0xFF666666);
+        bg.setCornerRadius(dp(10));
+        card.setBackground(bg);
     }
 
     private int countCleared(int unlocked) {
@@ -640,6 +901,7 @@ public class TdModuleFragment extends Fragment {
         tdView.bind(game);
         tdView.setSelectedType(null);
         selectedType = null;
+        refreshTowerDeck();
         updateTowerBarSelection();
         hideTowerOps();
         tvLevelLabel.setText("关" + (idx + 1) + "/" + TdLevels.levelIds().size());
@@ -768,6 +1030,140 @@ public class TdModuleFragment extends Fragment {
     }
 
     // ===== HUD =====
+
+    /** 底部塔牌/选塔面板使用的轻量单位模型；不依赖模块资源，所有塔都有可辨识轮廓。 */
+    private final class TowerGlyphView extends View {
+        private final TowerType type;
+        private final Paint glyphPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        TowerGlyphView(Context context, TowerType type) {
+            super(context);
+            this.type = type;
+            glyphPaint.setStrokeCap(Paint.Cap.ROUND);
+            glyphPaint.setStrokeJoin(Paint.Join.ROUND);
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth(), h = getHeight();
+            float cx = w / 2f, cy = h / 2f;
+            float r = Math.min(w, h) * .34f;
+            glyphPaint.setStyle(Paint.Style.FILL);
+            glyphPaint.setColor(0x33000000);
+            canvas.drawOval(cx - r * 1.15f, cy + r * .52f, cx + r * 1.15f, cy + r * .86f, glyphPaint);
+            glyphPaint.setColor(towerUiColor(type));
+            canvas.drawCircle(cx, cy, r, glyphPaint);
+            glyphPaint.setStyle(Paint.Style.STROKE);
+            glyphPaint.setStrokeWidth(Math.max(1.2f, r * .12f));
+            glyphPaint.setColor(0xCCFFFFFF);
+            canvas.drawCircle(cx, cy, r * .94f, glyphPaint);
+            glyphPaint.setStyle(Paint.Style.FILL);
+            switch (type) {
+                case BOTTLE:
+                    glyphPaint.setColor(0xFF4FC3F7);
+                    canvas.drawRoundRect(cx - r * .35f, cy - r * .05f, cx + r * .35f, cy + r * .62f, r * .14f, r * .14f, glyphPaint);
+                    canvas.drawRect(cx - r * .13f, cy - r * .6f, cx + r * .13f, cy - r * .1f, glyphPaint);
+                    glyphPaint.setColor(0xFF795548);
+                    canvas.drawRect(cx - r * .16f, cy - r * .7f, cx + r * .16f, cy - r * .55f, glyphPaint);
+                    break;
+                case SUN:
+                    glyphPaint.setColor(0xFFFFB300);
+                    for (int i = 0; i < 8; i++) {
+                        double a = i * Math.PI / 4d;
+                        canvas.drawCircle(cx + (float) Math.cos(a) * r * .62f,
+                                cy + (float) Math.sin(a) * r * .62f, r * .16f, glyphPaint);
+                    }
+                    glyphPaint.setColor(0xFF795548);
+                    canvas.drawCircle(cx, cy, r * .34f, glyphPaint);
+                    glyphPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(cx - r * .12f, cy - r * .06f, r * .05f, glyphPaint);
+                    canvas.drawCircle(cx + r * .12f, cy - r * .06f, r * .05f, glyphPaint);
+                    break;
+                case SNOW:
+                    glyphPaint.setColor(0xFF0D47A1);
+                    glyphPaint.setStrokeWidth(r * .13f);
+                    glyphPaint.setStyle(Paint.Style.STROKE);
+                    for (int i = 0; i < 3; i++) {
+                        double a = i * Math.PI / 3d;
+                        canvas.drawLine(cx - (float) Math.cos(a) * r * .58f, cy - (float) Math.sin(a) * r * .58f,
+                                cx + (float) Math.cos(a) * r * .58f, cy + (float) Math.sin(a) * r * .58f, glyphPaint);
+                    }
+                    glyphPaint.setStyle(Paint.Style.FILL);
+                    break;
+                case FAN:
+                    glyphPaint.setColor(0xFF607D8B);
+                    for (int i = 0; i < 3; i++) {
+                        double a = i * Math.PI * 2d / 3d;
+                        Path blade = new Path();
+                        blade.moveTo(cx, cy);
+                        blade.lineTo(cx + (float) Math.cos(a) * r * .7f, cy + (float) Math.sin(a) * r * .7f);
+                        blade.lineTo(cx + (float) Math.cos(a + .45) * r * .42f, cy + (float) Math.sin(a + .45) * r * .42f);
+                        blade.close();
+                        canvas.drawPath(blade, glyphPaint);
+                    }
+                    glyphPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(cx, cy, r * .14f, glyphPaint);
+                    break;
+                case POISON:
+                    glyphPaint.setColor(0xFF7B1FA2);
+                    canvas.drawCircle(cx - r * .2f, cy + r * .12f, r * .26f, glyphPaint);
+                    canvas.drawCircle(cx + r * .25f, cy - r * .08f, r * .2f, glyphPaint);
+                    canvas.drawCircle(cx, cy - r * .42f, r * .12f, glyphPaint);
+                    break;
+                case ROCKET:
+                    glyphPaint.setColor(0xFFE53935);
+                    canvas.drawRoundRect(cx - r * .22f, cy - r * .62f, cx + r * .22f, cy + r * .45f, r * .12f, r * .12f, glyphPaint);
+                    glyphPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(cx, cy - r * .1f, r * .12f, glyphPaint);
+                    glyphPaint.setColor(0xFFFFD54F);
+                    canvas.drawCircle(cx, cy + r * .62f, r * .18f, glyphPaint);
+                    break;
+                case LIGHTNING:
+                    glyphPaint.setColor(0xFFFFF176);
+                    Path bolt = new Path();
+                    bolt.moveTo(cx + r * .12f, cy - r * .7f);
+                    bolt.lineTo(cx - r * .36f, cy + r * .02f);
+                    bolt.lineTo(cx - r * .02f, cy + r * .02f);
+                    bolt.lineTo(cx - r * .18f, cy + r * .7f);
+                    bolt.lineTo(cx + r * .4f, cy - r * .12f);
+                    bolt.lineTo(cx + r * .05f, cy - r * .12f);
+                    bolt.close();
+                    canvas.drawPath(bolt, glyphPaint);
+                    break;
+                case SNIPER:
+                    glyphPaint.setColor(0xFF37474F);
+                    canvas.drawRoundRect(cx - r * .2f, cy - r * .58f, cx + r * .2f, cy + r * .58f, r * .08f, r * .08f, glyphPaint);
+                    glyphPaint.setStyle(Paint.Style.STROKE);
+                    glyphPaint.setStrokeWidth(r * .1f);
+                    glyphPaint.setColor(0xFFB2EBF2);
+                    canvas.drawCircle(cx, cy - r * .1f, r * .3f, glyphPaint);
+                    canvas.drawLine(cx - r * .3f, cy - r * .1f, cx + r * .3f, cy - r * .1f, glyphPaint);
+                    canvas.drawLine(cx, cy - r * .4f, cx, cy + r * .2f, glyphPaint);
+                    glyphPaint.setStyle(Paint.Style.FILL);
+                    break;
+                case MINE:
+                    glyphPaint.setColor(0xFF263238);
+                    canvas.drawCircle(cx, cy, r * .5f, glyphPaint);
+                    glyphPaint.setColor(0xFFFF5252);
+                    canvas.drawCircle(cx, cy, r * .13f, glyphPaint);
+                    for (int i = 0; i < 4; i++) {
+                        double a = i * Math.PI / 2d + Math.PI / 4d;
+                        canvas.drawCircle(cx + (float) Math.cos(a) * r * .62f,
+                                cy + (float) Math.sin(a) * r * .62f, r * .11f, glyphPaint);
+                    }
+                    break;
+                case AMPLIFIER:
+                    glyphPaint.setStyle(Paint.Style.STROKE);
+                    glyphPaint.setStrokeWidth(r * .15f);
+                    glyphPaint.setColor(0xFFB2EBF2);
+                    canvas.drawCircle(cx, cy, r * .5f, glyphPaint);
+                    glyphPaint.setStyle(Paint.Style.FILL);
+                    glyphPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(cx, cy, r * .16f, glyphPaint);
+                    break;
+            }
+        }
+    }
 
     private void updateHud() {
         if (game == null) return;
