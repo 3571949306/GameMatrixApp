@@ -178,6 +178,13 @@ public class TdGame {
         public int pathIndex = 0; // 当前所在路径段
         public float segT = 0f;   // 段内进度 0..1
         public boolean dead = false;
+        /** 分裂产生的幼体只复用喽罗的基础类型，绝不再触发分裂。 */
+        public boolean splitChild = false;
+        /** 召唤产生的单位会在后续机制中设置，始终携带来源 ID。 */
+        public boolean summoned = false;
+        public int originMonsterId = 0;
+        /** 派生单位可使用低于原型的击杀奖励。 */
+        public int reward;
         public int id;
         private final int pathLen;
         /** 当前波次序号（用于波次报错/统计） */
@@ -201,6 +208,7 @@ public class TdGame {
             this.id = id;
             this.waveNo = waveNo;
             this.routeIndex = routeIndex;
+            this.reward = type.value;
         }
 
         /** 已走路径比例（0..1），用于决定攻击优先级（越靠近终点越优先） */
@@ -273,6 +281,8 @@ public class TdGame {
     private final List<Beam> beams = new ArrayList<>();
     private final List<KillEvent> killEvents = new ArrayList<>();
     private final List<BurnZone> burnZones = new ArrayList<>();
+    /** 死亡/技能产生的派生单位先入队，避免在敌人遍历期间修改 monsters。 */
+    private final List<Monster> pendingDerivedMonsters = new ArrayList<>();
     private int nextMonsterId = 1;
     /** 蛋蛋受击反馈计时（秒，UI 做红闪），0 表示无受击 */
     private float eggHitTimer = 0f;
@@ -689,8 +699,10 @@ public class TdGame {
         if (eggHitTimer > 0f) eggHitTimer = Math.max(0f, eggHitTimer - FIXED_DT);
         updateSpawning();
         updateMonsters();
+        flushDerivedMonsters();
         updateBurnZones();
         updateTowers();
+        flushDerivedMonsters();
         pruneBeams();
         checkEnd();
         return state;
@@ -745,6 +757,13 @@ public class TdGame {
         }
         // 移除死亡/到达终点的怪
         monsters.removeIf(m -> m.dead);
+    }
+
+    private void flushDerivedMonsters() {
+        if (pendingDerivedMonsters.isEmpty()) return;
+        monsters.addAll(pendingDerivedMonsters);
+        monstersSpawnedTotal += pendingDerivedMonsters.size();
+        pendingDerivedMonsters.clear();
     }
 
     private void updateBurnZones() {
@@ -845,6 +864,7 @@ public class TdGame {
     }
 
     private void takeDamage(Monster m, float dmg, boolean isPoisonLike) {
+        if (m == null || m.dead || dmg <= 0f) return;
         if (m.shield > 0f) {
             float absorbed = Math.min(m.shield, dmg);
             m.shield -= absorbed;
@@ -859,11 +879,33 @@ public class TdGame {
         if (m.hp <= 0f) {
             m.hp = 0f;
             m.dead = true;
-            coin += m.type.value;
-            coinsEarned += m.type.value;
+            coin += m.reward;
+            coinsEarned += m.reward;
             monstersKilled++;
-            killEvents.add(new KillEvent(m.x, m.y, m.type.value,
+            killEvents.add(new KillEvent(m.x, m.y, m.reward,
                     m.type == MonsterType.BOSS));
+            if (m.type == MonsterType.SPLITTER && !m.splitChild) {
+                queueSplitChildren(m);
+            }
+        }
+    }
+
+    /** 分裂怪只派生两只低赏金喽罗；幼体带来源标记且不会再次分裂。 */
+    private void queueSplitChildren(Monster parent) {
+        for (int i = 0; i < 2; i++) {
+            int[][] route = paths[parent.routeIndex];
+            int[] start = route[0];
+            Monster child = new Monster(MonsterType.SWARM, start[1], start[0], route.length,
+                    nextMonsterId++, parent.maxHp / parent.type.hp, parent.baseSpeedMul,
+                    parent.waveNo, parent.routeIndex);
+            child.pathIndex = parent.pathIndex;
+            child.segT = parent.segT;
+            child.x = parent.x;
+            child.y = parent.y;
+            child.splitChild = true;
+            child.originMonsterId = parent.id;
+            child.reward = 1;
+            pendingDerivedMonsters.add(child);
         }
     }
 

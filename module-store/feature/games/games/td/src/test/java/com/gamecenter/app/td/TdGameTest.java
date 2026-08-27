@@ -232,6 +232,28 @@ public class TdGameTest {
         assertEquals(0f, g.getRangeBonus(bottle), .0001f);
     }
 
+    @Test
+    public void splitterMonster_createsExactlyTwoNonRecursiveLowRewardChildren() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.SPLITTER, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNIPER, 1, 0));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        int children = 0;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (!monster.dead && monster.splitChild) {
+                children++;
+                assertEquals("幼体复用低血高速喽罗，不是新的分裂母体", MonsterType.SWARM, monster.type);
+                assertEquals("幼体奖励必须很低", 1, monster.reward);
+                assertTrue("幼体必须记录来源", monster.originMonsterId > 0);
+            }
+        }
+        assertEquals("一只母体只能分裂两只幼体", 2, children);
+        assertEquals("派生单位必须计入胜负与统计", 3, g.getMonstersSpawnedTotal());
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
