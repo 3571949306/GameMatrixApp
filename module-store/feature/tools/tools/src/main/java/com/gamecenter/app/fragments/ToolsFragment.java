@@ -1,146 +1,118 @@
 package com.gamecenter.app.fragments;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Vibrator;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.PopupMenu;
+import android.widget.GridLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.ItemTouchHelper;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.ColorSchemeManager;
 import com.gamecenter.app.R;
 import com.gamecenter.app.SettingsManager;
-import com.gamecenter.app.tools.AdvancedToolBinders;
 import com.gamecenter.app.tools.AdbWorkbenchToolBinder;
+import com.gamecenter.app.tools.AdvancedToolBinders;
 import com.gamecenter.app.tools.BatteryToolBinder;
+import com.gamecenter.app.tools.BubbleLevelToolBinder;
 import com.gamecenter.app.tools.ClipboardToolBinder;
 import com.gamecenter.app.tools.ColorPickerToolBinder;
 import com.gamecenter.app.tools.ColorPlusToolBinder;
+import com.gamecenter.app.tools.CryptoToolBinder;
 import com.gamecenter.app.tools.DiagnosticReportToolBinder;
 import com.gamecenter.app.tools.DnsLookupToolBinder;
 import com.gamecenter.app.tools.DnsToolBinder;
 import com.gamecenter.app.tools.FileHashToolBinder;
+import com.gamecenter.app.tools.FloatingMonitorToolBinder;
 import com.gamecenter.app.tools.HashToolBinder;
 import com.gamecenter.app.tools.IpToolBinder;
+import com.gamecenter.app.tools.JwtParserToolBinder;
 import com.gamecenter.app.tools.LanScanToolBinder;
 import com.gamecenter.app.tools.NetworkDiagnosisToolBinder;
+import com.gamecenter.app.tools.PasswordGeneratorToolBinder;
 import com.gamecenter.app.tools.PermissionPrivacyToolBinder;
 import com.gamecenter.app.tools.PingToolBinder;
 import com.gamecenter.app.tools.PortScanToolBinder;
 import com.gamecenter.app.tools.QrPlusToolBinder;
+import com.gamecenter.app.tools.RadixConverterToolBinder;
+import com.gamecenter.app.tools.RegexTestToolBinder;
+import com.gamecenter.app.tools.ScreenTestToolBinder;
 import com.gamecenter.app.tools.ScreenToolBinder;
 import com.gamecenter.app.tools.SensorToolBinder;
+import com.gamecenter.app.tools.SoundMeterToolBinder;
 import com.gamecenter.app.tools.SpeedTestToolBinder;
 import com.gamecenter.app.tools.SubnetToolBinder;
 import com.gamecenter.app.tools.SystemInfoToolBinder;
 import com.gamecenter.app.tools.TextCodecToolBinder;
-import com.gamecenter.app.tools.RegexTestToolBinder;
 import com.gamecenter.app.tools.ToolBinder;
-import com.gamecenter.app.tools.ToolHelper;
+import com.gamecenter.app.tools.ToolboxDashboardController;
 import com.gamecenter.app.tools.ToolSection;
 import com.gamecenter.app.tools.ToolSectionStore;
 import com.gamecenter.app.tools.TracerouteToolBinder;
-import com.gamecenter.app.tools.WifiToolBinder;
 import com.gamecenter.app.tools.UnitConverterToolBinder;
-import com.gamecenter.app.tools.RadixConverterToolBinder;
-import com.gamecenter.app.tools.PasswordGeneratorToolBinder;
 import com.gamecenter.app.tools.UuidGeneratorToolBinder;
-import com.gamecenter.app.tools.CryptoToolBinder;
-import com.gamecenter.app.tools.JwtParserToolBinder;
-import com.google.android.material.chip.ChipGroup;
+import com.gamecenter.app.tools.WifiToolBinder;
 import com.google.android.material.textfield.TextInputEditText;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * 工具箱 Fragment — 以可拖拽排序的卡片列表展示所有工具。
- * <p>
- * 核心职责：
- * <ul>
- *   <li>加载并展示所有工具分区（ToolSection），每个分区对应一个可展开的卡片</li>
- *   <li>通过 ToolBinder 机制将各工具的功能逻辑绑定到对应的 UI 布局</li>
- *   <li>支持拖拽排序（ItemTouchHelper）和收藏功能</li>
- *   <li>支持单列/双列布局切换</li>
- * </ul>
- * </p>
- * <p>
- * 关键设计决策：
- * <ul>
- *   <li>所有 ToolBinder 实例在 initBinders 中统一注册到 Map，以工具 ID 为键</li>
- *   <li>工具排序和收藏状态持久化到 ToolSectionStore</li>
- *   <li>BatteryToolBinder 需要在视图销毁时调用 unbind() 注销广播接收器</li>
- *   <li>使用 CachedThreadPool 以支持多个工具并发执行网络操作</li>
- * </ul>
- * </p>
- */
 public class ToolsFragment extends Fragment {
 
     private static final String TAG = "ToolsFragment";
 
-    private RecyclerView recyclerView;
-    private ToolsAdapter adapter;
-    /** 工具分区持久化存储，管理排序和收藏状态 */
     private ToolSectionStore store;
-    /** 当前加载的工具分区列表 */
     private List<ToolSection> sections;
-    // 2026-06-23: 原始完整列表（用于搜索/分类过滤还原）
-    private List<ToolSection> allSections;
-    /** 布局模式：0=单列，1=双列 */
-    private int layoutMode;
-
-    /** 电池工具绑定器，需在视图销毁时显式 unbind */
     private BatteryToolBinder batteryToolBinder;
-    /** 工具 ID 到 ToolBinder 实例的映射表 */
     private final Map<String, ToolBinder> binders = new HashMap<>();
-
-    /** 用于执行工具中耗时操作的线程池 */
     private ExecutorService executor;
 
-    /**
-     * 文件/图片选择回调接口，用于 file_hash/qr_plus/color_plus 工具。
-     * 当用户选择文件后，此回调被调用以处理选中的 Uri。
-     */
+    private ToolboxDashboardController dashboardController;
+    private OnBackPressedCallback backCallback;
+
+    private View hubArea;
+    private View workspaceArea;
+    private FrameLayout workspaceContent;
+    private TextView wsTitle;
+    private ImageButton wsFavButton;
+    private LinearLayout llFavBlock;
+    private LinearLayout llRecentBlock;
+    private LinearLayout llSections;
+    private TextView tvToolsEmpty;
+    private TextInputEditText etSearch;
+    private String searchKeywordLower = "";
+
+    private ToolSection currentSection;
+
     public interface PickFileCallback {
         void onFilePicked(Uri uri);
     }
 
-    /** 当前待处理文件选择回调（由 Binder 设置，由 ActivityResultLauncher 触发） */
     private PickFileCallback pendingPickFileCallback;
-    /** 共享的文件选择 Launcher，支持任意类型文件/图片 */
     private ActivityResultLauncher<String[]> pickFileLauncher;
 
-    /**
-     * 触发系统文件选择器。
-     * 由 Binder 通过 ToolsFragment 实例调用，传入回调。
-     *
-     * @param callback 文件选择完成后的回调
-     * @param mimeTypes 允许的 MIME 类型（如 image 或 所有类型）
-     */
     public void requestPickFile(PickFileCallback callback, String[] mimeTypes) {
         this.pendingPickFileCallback = callback;
         pickFileLauncher.launch(mimeTypes);
@@ -150,8 +122,6 @@ public class ToolsFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         executor = Executors.newCachedThreadPool();
-        // 注册文件选择 Launcher，必须在 onCreate 或之前调用
-        // 用于 file_hash（任意文件）、qr_plus/color_plus（图片）工具
         pickFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(),
                 uri -> {
@@ -159,11 +129,9 @@ public class ToolsFragment extends Fragment {
                     pendingPickFileCallback = null;
                     if (cb != null && uri != null) {
                         try {
-                            // 授予持久化读取权限，避免后续读取失败
                             requireContext().getContentResolver().takePersistableUriPermission(
                                     uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
                         } catch (SecurityException ignored) {
-                            // 部分设备不支持 takePersistableUriPermission，忽略错误
                         }
                         cb.onFilePicked(uri);
                     }
@@ -178,13 +146,6 @@ public class ToolsFragment extends Fragment {
         }
     }
 
-    /**
-     * 初始化所有工具绑定器，将工具 ID 映射到对应的 Binder 实例。
-     * <p>
-     * 新增工具时需要在此方法中注册对应的 Binder。
-     * BatteryToolBinder 额外保存引用，因为需要在 onDestroyView 中调用 unbind()。
-     * </p>
-     */
     private void initBinders() {
         binders.put(AdbWorkbenchToolBinder.TOOL_ID, new AdbWorkbenchToolBinder());
         binders.put("network_diagnosis", new NetworkDiagnosisToolBinder());
@@ -203,7 +164,6 @@ public class ToolsFragment extends Fragment {
         binders.put("portscan", new PortScanToolBinder());
         batteryToolBinder = new BatteryToolBinder();
         binders.put("battery", batteryToolBinder);
-        // 2026-07-25: device 工具已合并到 sysinfo，不再单独注册 DeviceToolBinder
         binders.put("ping", new PingToolBinder());
         binders.put("traceroute", new TracerouteToolBinder());
         binders.put("subnet", new SubnetToolBinder());
@@ -214,7 +174,6 @@ public class ToolsFragment extends Fragment {
         binders.put("color", new ColorPickerToolBinder());
         binders.put("sysinfo", new SystemInfoToolBinder());
         binders.put("regex_test", new RegexTestToolBinder());
-        // 阶段3：新增 6 个工具（受 ENABLE_TOOLS_ENHANCEMENT flag 控制）
         if (BuildConfig.ENABLE_TOOLS_ENHANCEMENT) {
             binders.put("unit_converter", new UnitConverterToolBinder());
             binders.put("radix_converter", new RadixConverterToolBinder());
@@ -223,6 +182,10 @@ public class ToolsFragment extends Fragment {
             binders.put("crypto_tool", new CryptoToolBinder());
             binders.put("jwt_parser", new JwtParserToolBinder());
         }
+        binders.put("bubble_level", new BubbleLevelToolBinder());
+        binders.put("sound_meter", new SoundMeterToolBinder());
+        binders.put("color_test", new ScreenTestToolBinder());
+        binders.put("floating_monitor", new FloatingMonitorToolBinder());
     }
 
     @Nullable
@@ -231,257 +194,332 @@ public class ToolsFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_tools, container, false);
     }
 
-    /**
-     * 视图创建完成后的初始化入口。
-     * <p>
-     * 依次初始化绑定器、布局模式、RecyclerView、拖拽排序和配色方案。
-     * </p>
-     */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         store = new ToolSectionStore(requireContext());
         initBinders();
-        layoutMode = store.getLayoutMode();
 
+        hubArea = view.findViewById(R.id.ll_tools_hub);
+        workspaceArea = view.findViewById(R.id.fl_tool_workspace);
+        workspaceContent = view.findViewById(R.id.fl_ws_content);
+        wsTitle = view.findViewById(R.id.tv_ws_title);
+        wsFavButton = view.findViewById(R.id.ib_ws_fav);
+        llFavBlock = view.findViewById(R.id.ll_fav_block);
+        llRecentBlock = view.findViewById(R.id.ll_recent_block);
+        llSections = view.findViewById(R.id.ll_sections);
+        tvToolsEmpty = view.findViewById(R.id.tv_tools_empty);
+        etSearch = view.findViewById(R.id.et_tool_search);
         TextView tvTitle = view.findViewById(R.id.tv_tools_title);
         tvTitle.setText(getString(R.string.app_name));
-
-        ImageView btnLayout = view.findViewById(R.id.btn_tools_layout);
-        if (btnLayout != null) {
-            btnLayout.setOnClickListener(v -> showLayoutModeMenu(v));
+        TextView tvSubtitle = view.findViewById(R.id.tv_tools_subtitle);
+        if (tvSubtitle != null) {
+            tvSubtitle.setText("实时仪表盘 · 电池 / 内存 / CPU / 存储");
+        }
+        View sectionsHeader = view.findViewById(R.id.tv_sections_header);
+        if (sectionsHeader != null) {
+            sectionsHeader.setVisibility(View.GONE);
         }
 
-        recyclerView = view.findViewById(R.id.rv_tools);
-        sections = store.loadSections();
-        allSections = new ArrayList<>(sections);  // 备份原始列表用于过滤
-        adapter = new ToolsAdapter();
-        applyLayoutManager();
-        attachTouchHelper();
-        recyclerView.setAdapter(adapter);
-        recyclerView.addItemDecoration(new SimpleDividerItemDecoration(requireContext(), 16));
+        dashboardController = new ToolboxDashboardController();
+        View dashboardRoot = view.findViewById(R.id.toolbox_dashboard);
+        if (dashboardRoot != null) {
+            dashboardController.attach(dashboardRoot);
+        }
 
-        applyColorScheme();
+        ImageButton btnBack = view.findViewById(R.id.ib_ws_back);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> closeWorkspace());
+        }
+        if (wsFavButton != null) {
+            wsFavButton.setOnClickListener(v -> {
+                if (currentSection == null || store == null) return;
+                boolean favorite = store.toggleFavorite(currentSection.id);
+                updateWorkspaceFavIcon(favorite);
+                Toast.makeText(requireContext(), favorite ? "已收藏" : "取消收藏", Toast.LENGTH_SHORT).show();
+            });
+        }
 
-        // 2026-06-23: 搜索框 + Chip 筛选
-        setupSearchAndFilter(view);
-        applyFilter("", currentChipFilter);
-    }
+        backCallback = new OnBackPressedCallback(false) {
+            @Override
+            public void handleOnBackPressed() {
+                closeWorkspace();
+            }
+        };
+        requireActivity().getOnBackPressedDispatcher()
+                .addCallback(getViewLifecycleOwner(), backCallback);
 
-    /**
-     * 2026-06-23: 设置搜索框 + 分类 Chip 筛选逻辑。
-     * - 搜索框实时过滤工具标题/描述
-     * - Chip 单选切换：全部/收藏/最近/网络/设备/工具/最热
-     */
-    private void setupSearchAndFilter(View view) {
-        // 搜索框
-        TextInputEditText etSearch = view.findViewById(R.id.et_tool_search);
         if (etSearch != null) {
             etSearch.addTextChangedListener(new android.text.TextWatcher() {
                 @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                 @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                     String keyword = s == null ? "" : s.toString().trim();
-                    applyFilter(keyword, currentChipFilter);
+                    searchKeywordLower = keyword.toLowerCase();
+                    if (workspaceArea == null || workspaceArea.getVisibility() != View.VISIBLE) {
+                        renderSections();
+                    }
                 }
                 @Override public void afterTextChanged(android.text.Editable s) {}
             });
         }
 
-        // Chip 筛选
-        ChipGroup chipGroup = view.findViewById(R.id.tool_filter_chips);
-        if (chipGroup != null) {
-            chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-                if (checkedIds.isEmpty()) return;
-                int checkedId = checkedIds.get(0);
-                String chipKey = resolveChipKey(checkedId);
-                currentChipFilter = chipKey;
-                String keyword = etSearch != null ? etSearch.getText().toString().trim() : "";
-                applyFilter(keyword, chipKey);
-            });
-        }
+        applyColorScheme();
+        renderHub();
     }
 
-    private String currentChipFilter = "all";
-
-    private String resolveChipKey(int viewId) {
-        if (viewId == R.id.chip_filter_all) return "all";
-        if (viewId == R.id.chip_filter_favorites) return "favorites";
-        if (viewId == R.id.chip_filter_recent) return "recent";
-        if (viewId == R.id.chip_filter_network) return "network";
-        if (viewId == R.id.chip_filter_device) return "device";
-        if (viewId == R.id.chip_filter_tool) return "tool";
-        if (viewId == R.id.chip_filter_hot) return "hot";
-        return "all";
-    }
-
-    /**
-     * 应用搜索 + 分类过滤：更新 sections 并刷新 adapter。
-     */
-    private void applyFilter(String keyword, String chipKey) {
-        List<ToolSection> base;
-        switch (chipKey) {
-            case "favorites":
-                Set<String> favIds = store.getFavoriteIds();
-                base = new ArrayList<>();
-                for (ToolSection s : allSections) {
-                    if (favIds.contains(s.id)) base.add(s);
-                }
-                break;
-            case "recent":
-                List<String> recentIds = store.getRecentIds();
-                base = new ArrayList<>();
-                for (String rid : recentIds) {
-                    ToolSection s = findById(allSections, rid);
-                    if (s != null && s.visible) base.add(s);
-                }
-                break;
-            case "network":
-            case "device":
-            case "tool":
-                base = new ArrayList<>();
-                for (ToolSection s : allSections) {
-                    if (chipKey.equals(s.category) && s.visible) base.add(s);
-                }
-                break;
-            case "hot":
-                List<String> topIds = store.getTopUsedTools(allSections.size());
-                base = new ArrayList<>();
-                for (String tid : topIds) {
-                    ToolSection s = findById(allSections, tid);
-                    if (s != null && s.visible) base.add(s);
-                }
-                break;
-            default:
-                base = new ArrayList<>(allSections);
-                break;
-        }
-
-        // 搜索过滤
-        base.removeIf(section -> !section.visible);
-        if (keyword != null && !keyword.isEmpty()) {
-            List<ToolSection> filtered = new ArrayList<>();
-            for (ToolSection s : base) {
-                if (s.title.toLowerCase().contains(keyword.toLowerCase())
-                        || s.id.toLowerCase().contains(keyword.toLowerCase())
-                        || s.description.toLowerCase().contains(keyword.toLowerCase())) {
-                    filtered.add(s);
-                }
+    private void renderHub() {
+        if (store == null) return;
+        sections = store.loadSections();
+        Set<String> favIds = store.getFavoriteIds();
+        List<ToolSection> favorites = new ArrayList<>();
+        for (ToolSection s : sections) {
+            if (s.visible && favIds.contains(s.id)) {
+                favorites.add(s);
             }
-            base = filtered;
         }
-
-        sections.clear();
-        sections.addAll(base);
-        adapter.notifyDataSetChanged();
+        List<ToolSection> recents = new ArrayList<>();
+        for (String recentId : store.getRecentIds()) {
+            ToolSection s = findById(recentId);
+            if (s != null && s.visible) {
+                recents.add(s);
+            }
+        }
+        renderShortcutRow(llFavBlock, "收藏", favorites, favIds);
+        renderShortcutRow(llRecentBlock, "最近使用", recents, favIds);
+        renderSections();
     }
 
-    private ToolSection findById(List<ToolSection> list, String id) {
-        for (ToolSection s : list) {
+    private void renderShortcutRow(LinearLayout block, String title, List<ToolSection> items, Set<String> favIds) {
+        if (block == null) return;
+        Context ctx = block.getContext();
+        block.removeAllViews();
+        if (items.isEmpty()) {
+            block.setVisibility(View.GONE);
+            return;
+        }
+        block.setVisibility(View.VISIBLE);
+        TextView header = makeHeader(ctx, title);
+        header.setPadding(0, dip(14), 0, 0);
+        block.addView(header);
+        HorizontalScrollView scroller = new HorizontalScrollView(ctx);
+        scroller.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dip(8), 0, 0);
+        for (ToolSection s : items) {
+            View tile = buildTile(ctx, s, favIds.contains(s.id));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dip(92), ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, 0, dip(8), 0);
+            row.addView(tile, lp);
+        }
+        scroller.addView(row);
+        block.addView(scroller);
+    }
+
+    private void renderSections() {
+        if (llSections == null || store == null) return;
+        Context ctx = llSections.getContext();
+        llSections.removeAllViews();
+        Set<String> favIds = store.getFavoriteIds();
+        LinkedHashMap<String, List<ToolSection>> groups = new LinkedHashMap<>();
+        int matched = 0;
+        for (ToolSection s : loadVisibleSections()) {
+            if (!matches(s)) continue;
+            matched++;
+            List<ToolSection> bucket = groups.get(s.category);
+            if (bucket == null) {
+                bucket = new ArrayList<>();
+                groups.put(s.category, bucket);
+            }
+            bucket.add(s);
+        }
+        for (Map.Entry<String, List<ToolSection>> entry : groups.entrySet()) {
+            TextView header = makeHeader(ctx, categoryLabel(entry.getKey()));
+            header.setPadding(0, dip(16), 0, 0);
+            llSections.addView(header, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            GridLayout grid = new GridLayout(ctx);
+            grid.setColumnCount(4);
+            for (ToolSection s : entry.getValue()) {
+                View tile = buildTile(ctx, s, favIds.contains(s.id));
+                GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+                lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                lp.rowSpec = GridLayout.spec(GridLayout.UNDEFINED);
+                lp.width = 0;
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                int margin = dip(5);
+                lp.setMargins(margin, margin, margin, margin);
+                grid.addView(tile, lp);
+            }
+            llSections.addView(grid, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        if (tvToolsEmpty != null) {
+            tvToolsEmpty.setVisibility(matched == 0 ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private boolean matches(ToolSection s) {
+        if (searchKeywordLower == null || searchKeywordLower.isEmpty()) return s.visible;
+        return s.title.toLowerCase().contains(searchKeywordLower)
+                || s.id.toLowerCase().contains(searchKeywordLower)
+                || s.description.toLowerCase().contains(searchKeywordLower);
+    }
+
+    private List<ToolSection> loadVisibleSections() {
+        if (sections == null) {
+            sections = store.loadSections();
+        }
+        return sections;
+    }
+
+    private View buildTile(Context ctx, ToolSection section, boolean favorite) {
+        LayoutInflater inflater = LayoutInflater.from(ctx);
+        View tile = inflater.inflate(R.layout.item_tool_tile, null, false);
+        TextView icon = tile.findViewById(R.id.tv_tile_icon);
+        TextView label = tile.findViewById(R.id.tv_tile_label);
+        TextView star = tile.findViewById(R.id.tv_tile_star);
+        if (icon != null) {
+            icon.setText(com.gamecenter.app.tools.ToolTileIcons.iconFor(section.id));
+        }
+        if (label != null) {
+            label.setText(section.title);
+        }
+        if (star != null) {
+            star.setVisibility(favorite ? View.VISIBLE : View.GONE);
+        }
+        tile.setOnClickListener(v -> openWorkspace(section));
+        tile.setOnLongClickListener(v -> {
+            if (store == null) return true;
+            boolean fav = store.toggleFavorite(section.id);
+            Toast.makeText(ctx, fav ? "已收藏" : "取消收藏", Toast.LENGTH_SHORT).show();
+            renderHub();
+            return true;
+        });
+        return tile;
+    }
+
+    private TextView makeHeader(Context ctx, String text) {
+        TextView header = new TextView(ctx);
+        header.setText(text);
+        header.setTextColor(
+                resolveAttrColor(ctx, android.R.attr.textColorPrimary, 0xFF1F1B24));
+        header.setTextSize(16f);
+        header.setTypeface(Typeface.DEFAULT_BOLD);
+        return header;
+    }
+
+    private static int resolveAttrColor(Context ctx, int attr, int fallback) {
+        android.util.TypedValue value = new android.util.TypedValue();
+        if (!ctx.getTheme().resolveAttribute(attr, value, true)) return fallback;
+        if (value.type >= android.util.TypedValue.TYPE_FIRST_COLOR_INT
+                && value.type <= android.util.TypedValue.TYPE_LAST_COLOR_INT) {
+            return value.data;
+        }
+        try {
+            return androidx.core.content.ContextCompat.getColor(ctx, value.resourceId);
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private static String categoryLabel(String category) {
+        if (category == null) return "工具";
+        switch (category) {
+            case "network": return "网络";
+            case "device": return "设备";
+            case "tool": return "工具";
+            default: return "其他";
+        }
+    }
+
+    private int dip(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private ToolSection findById(String id) {
+        if (sections == null || id == null) return null;
+        for (ToolSection s : sections) {
             if (s.id.equals(id)) return s;
         }
         return null;
     }
 
-    /**
-     * 显示布局模式切换菜单（单列/双列）。
-     *
-     * @param anchor 菜单锚点视图
-     */
-    private void showLayoutModeMenu(View anchor) {
-        PopupMenu popup = new PopupMenu(requireContext(), anchor);
-        popup.getMenuInflater().inflate(R.menu.menu_tools_layout, popup.getMenu());
-        // 根据当前布局模式设置选中状态
-        if (layoutMode == 0) {
-            popup.getMenu().findItem(R.id.action_single_column).setChecked(true);
-        } else {
-            popup.getMenu().findItem(R.id.action_double_column).setChecked(true);
+    private void openWorkspace(ToolSection section) {
+        View root = getView();
+        if (root == null || section == null || store == null) return;
+        currentSection = section;
+        if (wsTitle != null) {
+            wsTitle.setText(section.title);
         }
-        popup.setOnMenuItemClickListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.action_single_column) {
-                layoutMode = 0;
-                store.saveLayoutMode(0);
-                applyLayoutManager();
-                attachTouchHelper();
-                return true;
-            } else if (id == R.id.action_double_column) {
-                layoutMode = 1;
-                store.saveLayoutMode(1);
-                applyLayoutManager();
-                attachTouchHelper();
-                return true;
-            }
-            return false;
-        });
-        popup.show();
-    }
+        updateWorkspaceFavIcon(store.isFavorite(section.id));
 
-    /**
-     * 根据当前布局模式设置 RecyclerView 的 LayoutManager。
-     * <p>
-     * 单列模式使用 LinearLayoutManager，双列模式使用 GridLayoutManager(2)。
-     * </p>
-     */
-    private void applyLayoutManager() {
-        if (layoutMode == 1) {
-            recyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
-        } else {
-            recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        workspaceContent.removeAllViews();
+        Context ctx = requireContext();
+        View contentView;
+        try {
+            contentView = LayoutInflater.from(ctx).inflate(section.contentLayoutId, workspaceContent, false);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to inflate tool workspace: " + section.id, e);
+            contentView = makeErrorView(ctx, section.title);
+        }
+        ToolBinder binder = binders.get(section.id);
+        if (binder != null) {
+            boolean isAdb = AdbWorkbenchToolBinder.TOOL_ID.equals(section.id);
+            if (!isAdb) {
+                contentView.setTag(R.id.tag_tools_fragment, ToolsFragment.this);
+            }
+            try {
+                binder.bind(ctx, contentView, executor);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to bind tool workspace: " + section.id, e);
+            }
+            if (!isAdb) {
+                store.incrementUsage(section.id);
+                store.recordRecent(section.id);
+            }
+        }
+        hubArea.setVisibility(View.GONE);
+        workspaceArea.setVisibility(View.VISIBLE);
+        if (backCallback != null) {
+            backCallback.setEnabled(true);
         }
     }
 
-    /**
-     * 为 RecyclerView 附加拖拽排序的 ItemTouchHelper。
-     * <p>
-     * 单列模式仅支持上下拖拽，双列模式支持上下左右拖拽。
-     * 拖拽开始时降低透明度并震动反馈，拖拽结束后恢复透明度并持久化排序。
-     * </p>
-     */
-    private void attachTouchHelper() {
-        ItemTouchHelper touchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
-                // 双列模式额外支持左右拖拽方向
-                ItemTouchHelper.UP | ItemTouchHelper.DOWN | (layoutMode == 1 ? ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT : 0),
-                0) {
-            @Override
-            public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                int from = viewHolder.getBindingAdapterPosition();
-                int to = target.getBindingAdapterPosition();
-                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false;
-                // 交换列表中的位置并通知适配器
-                Collections.swap(sections, from, to);
-                adapter.notifyItemMoved(from, to);
-                return true;
-            }
-
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-            }
-
-            @Override
-            public void onSelectedChanged(@Nullable RecyclerView.ViewHolder viewHolder, int actionState) {
-                super.onSelectedChanged(viewHolder, actionState);
-                // 拖拽开始时提供视觉和触觉反馈
-                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder instanceof SectionViewHolder) {
-                    ((SectionViewHolder) viewHolder).drag();
-                }
-            }
-
-            @Override
-            public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
-                super.clearView(recyclerView, viewHolder);
-                // 拖拽结束后恢复视觉状态并持久化排序
-                if (viewHolder instanceof SectionViewHolder) {
-                    ((SectionViewHolder) viewHolder).drop();
-                }
-                store.saveOrder(sections);
-            }
-        });
-        touchHelper.attachToRecyclerView(this.recyclerView);
+    private void closeWorkspace() {
+        if (workspaceArea == null || workspaceArea.getVisibility() != View.VISIBLE) return;
+        if (currentSection != null && "battery".equals(currentSection.id)
+                && batteryToolBinder != null) {
+            batteryToolBinder.unbind();
+        }
+        workspaceContent.removeAllViews();
+        workspaceArea.setVisibility(View.GONE);
+        hubArea.setVisibility(View.VISIBLE);
+        if (backCallback != null) {
+            backCallback.setEnabled(false);
+        }
+        currentSection = null;
+        renderHub();
     }
 
-    /**
-     * 根据当前设置应用配色方案到根视图。
-     */
+    private void updateWorkspaceFavIcon(boolean favorite) {
+        if (wsFavButton != null) {
+            wsFavButton.setImageResource(favorite
+                    ? R.drawable.ic_star_filled
+                    : R.drawable.ic_star_border);
+        }
+    }
+
+    private View makeErrorView(Context context, String title) {
+        TextView errorView = new TextView(context);
+        int padding = dip(12);
+        errorView.setPadding(padding, padding, padding, padding);
+        errorView.setText(context.getString(R.string.tool_load_failed_format, title));
+        errorView.setTextColor(0xFFB00020);
+        errorView.setTextSize(14);
+        return errorView;
+    }
+
     private void applyColorScheme() {
         if (getActivity() == null) return;
         boolean isDark = SettingsManager.isDarkMode(requireContext());
@@ -493,22 +531,17 @@ public class ToolsFragment extends Fragment {
         }
     }
 
-    /**
-     * 视图销毁时注销 BatteryToolBinder 的广播接收器，防止内存泄漏。
-     */
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (dashboardController != null) {
+            dashboardController.detach();
+            dashboardController = null;
+        }
         if (batteryToolBinder != null) {
             batteryToolBinder.unbind();
             batteryToolBinder = null;
         }
-        if (recyclerView != null) {
-            recyclerView.setAdapter(null);
-        }
-        adapter = null;
-        // sections 可能来自不可修改集合，只置空引用不调用 clear()
-        sections = null;
         if (binders != null) {
             for (ToolBinder binder : binders.values()) {
                 if (binder instanceof BatteryToolBinder) {
@@ -517,178 +550,21 @@ public class ToolsFragment extends Fragment {
             }
             binders.clear();
         }
-    }
-
-    /**
-     * 工具分区列表适配器。
-     * <p>
-     * 每个列表项对应一个工具分区卡片，包含标题、内容和收藏按钮。
-     * </p>
-     */
-    private class ToolsAdapter extends RecyclerView.Adapter<SectionViewHolder> {
-        @NonNull
-        @Override
-        public SectionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View itemView = LayoutInflater.from(parent.getContext()).inflate(viewType, parent, false);
-            return new SectionViewHolder(itemView);
+        if (workspaceContent != null) {
+            workspaceContent.removeAllViews();
         }
-
-        @Override
-        public void onBindViewHolder(@NonNull SectionViewHolder holder, int position) {
-            ToolSection section = sections.get(position);
-            holder.bind(section);
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return R.layout.item_tool_section;
-        }
-
-        @Override
-        public int getItemCount() {
-            return sections.size();
-        }
-    }
-
-    /**
-     * 工具分区卡片 ViewHolder。
-     * <p>
-     * 负责渲染工具分区标题、动态加载内容布局、绑定 ToolBinder，
-     * 以及处理收藏按钮交互。拖拽时提供视觉反馈（透明度变化和震动）。
-     * </p>
-     */
-    class SectionViewHolder extends RecyclerView.ViewHolder {
-        private final TextView tvToolTitle;
-        private final FrameLayout contentRoot;
-
-        SectionViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvToolTitle = itemView.findViewById(R.id.tv_section_title);
-            contentRoot = itemView.findViewById(R.id.tool_content_container);
-        }
-
-        /**
-         * 绑定工具分区数据到视图。
-         * <p>
-         * 每次绑定时重新加载内容布局并调用对应的 ToolBinder.bind()，
-         * 确保内容与分区数据一致。
-         * </p>
-         *
-         * @param section 工具分区数据
-         */
-        void bind(ToolSection section) {
-            if (tvToolTitle != null) {
-                tvToolTitle.setText(section.title);
-            }
-            if (contentRoot != null) {
-                // 清除旧的内容视图，避免重复添加
-                View existing = contentRoot.getChildAt(0);
-                if (existing != null) {
-                    contentRoot.removeAllViews();
-                }
-                try {
-                    // 动态加载工具的内容布局并绑定功能
-                    View contentView = LayoutInflater.from(itemView.getContext()).inflate(section.contentLayoutId, contentRoot, false);
-                    contentRoot.addView(contentView);
-                    bindContent(section, contentView);
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to bind tool section: " + section.id, e);
-                    // 布局加载失败时显示错误提示
-                    contentRoot.addView(createToolErrorView(itemView.getContext(), section));
-                }
-            }
-            View btnFavorite = itemView.findViewById(R.id.btn_tool_favorite);
-            if (btnFavorite != null) {
-                btnFavorite.setOnClickListener(v -> {
-                    boolean favorite = store.toggleFavorite(section.id);
-                    ((android.widget.ImageView) btnFavorite).setImageResource(favorite
-                            ? android.R.drawable.btn_star_big_on
-                            : android.R.drawable.btn_star_big_off);
-                    Context ctx = v.getContext();
-                    if (ctx != null) Toast.makeText(ctx, favorite ? "已收藏" : "取消收藏", Toast.LENGTH_SHORT).show();
-                });
-            }
-        }
-
-        /**
-         * 查找并调用对应工具的 ToolBinder 进行功能绑定。
-         *
-         * @param section     工具分区数据
-         * @param contentView 已加载的内容视图
-         */
-        void bindContent(ToolSection section, View contentView) {
-            ToolBinder binder = binders.get(section.id);
-            if (binder != null) {
-                Context ctx = getContext();
-                if (ctx != null) {
-                    // 在 contentView 的 tag 中存储 ToolsFragment 引用，
-                    // 供需要文件选择器的 Binder（file_hash/qr_plus/color_plus）使用
-                    if (!AdbWorkbenchToolBinder.TOOL_ID.equals(section.id)) {
-                        contentView.setTag(R.id.tag_tools_fragment, ToolsFragment.this);
-                    }
-                    binder.bind(ctx, contentView, executor);
-                    // 2026-06-23: 记录使用次数（用于按热度排序）
-                    if (store != null && !AdbWorkbenchToolBinder.TOOL_ID.equals(section.id)) {
-                        store.incrementUsage(section.id);
-                    }
-                }
-            }
-        }
-
-        /**
-         * 创建工具加载失败时的错误提示视图。
-         *
-         * @param context 上下文
-         * @param section 加载失败的分区
-         * @return 显示错误信息的 TextView
-         */
-        private View createToolErrorView(Context context, ToolSection section) {
-            TextView errorView = new TextView(context);
-            int padding = (int) (12 * context.getResources().getDisplayMetrics().density);
-            errorView.setPadding(padding, padding, padding, padding);
-            errorView.setText(context.getString(R.string.tool_load_failed_format, section.title));
-            errorView.setTextColor(0xFFB00020);
-            errorView.setTextSize(14);
-            return errorView;
-        }
-
-        /**
-         * 拖拽开始时的视觉反馈：降低透明度并触发短震动。
-         */
-        void drag() {
-            itemView.setAlpha(0.5f);
-            if (getActivity() != null) {
-                Vibrator vibrator = (Vibrator) getActivity().getSystemService(Context.VIBRATOR_SERVICE);
-                if (vibrator != null && vibrator.hasVibrator()) {
-                    vibrator.vibrate(20);
-                }
-            }
-        }
-
-        /**
-         * 拖拽结束时的视觉恢复：还原透明度。
-         */
-        void drop() {
-            itemView.setAlpha(1.0f);
-        }
-    }
-
-    /**
-     * 简单的 RecyclerView 间距装饰，为每个列表项添加统一的四周间距。
-     */
-    private static class SimpleDividerItemDecoration extends RecyclerView.ItemDecoration {
-        private final int space;
-
-        SimpleDividerItemDecoration(Context context, int space) {
-            this.space = space;
-        }
-
-        @Override
-        public void getItemOffsets(@NonNull android.graphics.Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
-            outRect.top = space;
-            outRect.bottom = space;
-            outRect.left = space;
-            outRect.right = space;
-        }
+        sections = null;
+        currentSection = null;
+        hubArea = null;
+        workspaceArea = null;
+        workspaceContent = null;
+        wsTitle = null;
+        wsFavButton = null;
+        llFavBlock = null;
+        llRecentBlock = null;
+        llSections = null;
+        tvToolsEmpty = null;
+        etSearch = null;
+        backCallback = null;
     }
 }

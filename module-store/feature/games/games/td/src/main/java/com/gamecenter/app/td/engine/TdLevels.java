@@ -34,11 +34,11 @@ public final class TdLevels {
     /** 关卡一句话描述，明确这一关的策略重点。 */
     public static String levelSub(int idx, String id) {
         switch (id) {
-            case "level_01": return "双回廊教学 · 单体与减速协同";
-            case "level_02": return "错位窄口 · 首次应对混编和空袭";
-            case "level_03": return "水晶折线 · 护盾兵与医生怪登场";
-            case "level_04": return "双入口围攻 · 根据路线预告布防";
-            case "level_05": return "终局攻城 · 清群、集火与 Boss 决战";
+            case "level_01": return "合成教学 · 单体、减速与 Lv3 组合";
+            case "level_02": return "错位窄口 · 空袭与分裂怪初登场";
+            case "level_03": return "水晶折线 · 医生、护盾与狙击优先级";
+            case "level_04": return "双入口围攻 · 冲锋怪与增幅阵地";
+            case "level_05": return "终局攻城 · 召唤、抗性、狂暴与 Boss";
             default: return "";
         }
     }
@@ -62,15 +62,12 @@ public final class TdLevels {
                 3,2, 4,2, 4,3, 4,4, 4,5, 4,6, 4,7, 4,8, 4,9,
                 5,9, 6,9, 6,8, 6,7, 6,6, 6,5, 6,4, 6,3, 6,2, 6,1, 6,0, 7,0);
         List<TdGame.Wave> waves = new ArrayList<>();
-        waves.add(w(MonsterType.NORMAL, 6, .82f, .4f, 1f, 1f));
-        waves.add(w(MonsterType.FAST, 5, .58f, .45f, .92f, 1f));
-        waves.add(mix(0, 8, .62f, .45f, 1f, 1f, MonsterType.NORMAL, MonsterType.FAST));
-        waves.add(w(MonsterType.TANK, 2, 1.8f, .5f, .92f, 1f));
-        waves.add(w(MonsterType.SWARM, 10, .35f, .45f, 1f, 1f));
-        waves.add(mix(0, 7, .52f, .45f, 1.08f, 1f, MonsterType.TANK, MonsterType.FAST));
-        waves.add(w(MonsterType.SHIELD, 3, 1.2f, .5f, 1f, 1f));
-        waves.add(mix(0, 6, .65f, .5f, 1.08f, 1f, MonsterType.HEALER, MonsterType.NORMAL));
-        return new TdGame(12, 8, path, 7, 0, 220, 5, waves);
+        waves.add(w(MonsterType.NORMAL, 6, .82f, .4f, .92f, 1f));
+        waves.add(w(MonsterType.FAST, 5, .62f, .45f, .88f, 1f));
+        waves.add(mix(0, 8, .62f, .45f, .98f, 1f, MonsterType.NORMAL, MonsterType.FAST));
+        waves.add(w(MonsterType.TANK, 2, 1.8f, .5f, .88f, 1f));
+        waves.add(w(MonsterType.SWARM, 10, .35f, .45f, .95f, 1f));
+        return new TdGame(12, 8, path, 7, 0, 360, 5, waves);
     }
 
     /** 第 2 关：不等距折线留下三处窄口，范围塔和对空塔开始各有明确职责。 */
@@ -84,13 +81,10 @@ public final class TdLevels {
         waves.add(w(MonsterType.NORMAL, 8, .75f, .45f, 1f, 1f));
         waves.add(mix(0, 8, .55f, .45f, 1f, 1f, MonsterType.FAST, MonsterType.NORMAL));
         waves.add(w(MonsterType.FLY, 6, .65f, .45f, 1f, 1f));
-        waves.add(w(MonsterType.SWARM, 12, .3f, .45f, 1.05f, 1f));
-        waves.add(mix(0, 7, .65f, .5f, 1.12f, 1f, MonsterType.TANK, MonsterType.FAST));
-        waves.add(w(MonsterType.SHIELD, 4, 1f, .45f, 1.05f, 1f));
-        waves.add(mix(0, 8, .58f, .5f, 1.1f, 1f, MonsterType.HEALER, MonsterType.FLY));
-        waves.add(w(MonsterType.TANK, 3, 1.5f, .55f, 1.2f, .95f));
-        waves.add(mix(0, 10, .45f, .45f, 1.15f, 1.05f, MonsterType.FAST, MonsterType.SHIELD));
-        waves.add(w(MonsterType.BOSS, 1, 0f, .8f, .42f, .9f));
+        waves.add(w(MonsterType.SPLITTER, 5, .72f, .45f, 1f, 1f));
+        waves.add(mix(0, 10, .42f, .45f, 1.04f, 1f, MonsterType.SWARM, MonsterType.SPLITTER));
+        waves.add(mix(0, 8, .58f, .5f, 1.08f, 1f, MonsterType.FLY, MonsterType.TANK));
+        waves.add(w(MonsterType.BOSS, 1, 0f, .8f, .38f, .9f));
         return new TdGame(12, 8, path, 7, 0, 235, 5, waves);
     }
 
@@ -105,14 +99,12 @@ public final class TdLevels {
         List<TdGame.Wave> waves = new ArrayList<>();
         waves.add(w(MonsterType.FAST, 7, .52f, .45f, 1f, 1f));
         waves.add(w(MonsterType.SWARM, 13, .28f, .4f, 1.05f, 1f));
-        waves.add(mix(0, 8, .58f, .45f, 1.08f, 1f, MonsterType.NORMAL, MonsterType.FLY));
-        waves.add(w(MonsterType.SHIELD, 5, .85f, .5f, 1.08f, 1f));
-        waves.add(mix(0, 8, .6f, .5f, 1.12f, 1f, MonsterType.HEALER, MonsterType.TANK));
-        waves.add(w(MonsterType.FLY, 7, .55f, .45f, 1.15f, 1.05f));
-        waves.add(mix(0, 12, .36f, .45f, 1.15f, 1.05f, MonsterType.SWARM, MonsterType.FAST));
-        waves.add(w(MonsterType.TANK, 4, 1.3f, .55f, 1.25f, .95f));
-        waves.add(mix(0, 9, .5f, .5f, 1.2f, 1.05f, MonsterType.SHIELD, MonsterType.HEALER, MonsterType.FAST));
-        waves.add(w(MonsterType.BOSS, 1, 0f, .8f, .55f, .88f));
+        waves.add(w(MonsterType.SHIELD, 5, .85f, .5f, 1.06f, 1f));
+        waves.add(mix(0, 8, .6f, .5f, 1.1f, 1f, MonsterType.HEALER, MonsterType.TANK));
+        waves.add(w(MonsterType.SHIELD_GENERATOR, 4, .9f, .5f, 1.05f, 1f));
+        waves.add(mix(0, 10, .5f, .5f, 1.12f, 1f,
+                MonsterType.HEALER, MonsterType.SHIELD_GENERATOR, MonsterType.TANK));
+        waves.add(w(MonsterType.BOSS, 1, 0f, .8f, .52f, .9f));
         return new TdGame(12, 9, path, 8, 0, 260, 6, waves);
     }
 
@@ -128,14 +120,12 @@ public final class TdLevels {
         List<TdGame.Wave> waves = new ArrayList<>();
         waves.add(w(0, MonsterType.NORMAL, 7, .7f, .4f, 1f, 1f));
         waves.add(w(1, MonsterType.FAST, 7, .5f, .45f, 1f, 1f));
-        waves.add(mix(0, 9, .5f, .45f, 1.08f, 1f, MonsterType.FLY, MonsterType.NORMAL));
-        waves.add(mix(1, 10, .34f, .45f, 1.08f, 1f, MonsterType.SWARM, MonsterType.FAST));
-        waves.add(w(0, MonsterType.SHIELD, 5, .8f, .5f, 1.1f, 1f));
-        waves.add(mix(1, 7, .65f, .5f, 1.15f, 1f, MonsterType.HEALER, MonsterType.TANK));
-        waves.add(mix(0, 10, .45f, .45f, 1.18f, 1.05f, MonsterType.FAST, MonsterType.SHIELD));
-        waves.add(mix(1, 9, .55f, .5f, 1.22f, 1f, MonsterType.FLY, MonsterType.HEALER, MonsterType.NORMAL));
-        waves.add(w(0, MonsterType.TANK, 4, 1.25f, .55f, 1.28f, .92f));
-        waves.add(w(1, MonsterType.BOSS, 1, 0f, .8f, .62f, .85f));
+        waves.add(w(0, MonsterType.CHARGER, 6, .7f, .45f, 1f, 1f));
+        waves.add(mix(1, 10, .34f, .45f, 1.06f, 1f, MonsterType.SWARM, MonsterType.CHARGER));
+        waves.add(w(0, MonsterType.SHIELD, 5, .8f, .5f, 1.08f, 1f));
+        waves.add(mix(1, 8, .6f, .5f, 1.12f, 1f, MonsterType.CHARGER, MonsterType.TANK));
+        waves.add(mix(0, 10, .45f, .45f, 1.16f, 1.04f, MonsterType.FAST, MonsterType.CHARGER));
+        waves.add(w(1, MonsterType.BOSS, 1, 0f, .8f, .58f, .88f));
         return new TdGame(12, 9, new int[][][] { north, south }, 4, 6, 285, 6, waves);
     }
 
@@ -149,17 +139,16 @@ public final class TdLevels {
                 7,4, 8,4, 8,3, 8,2, 8,1, 8,0);
         List<TdGame.Wave> waves = new ArrayList<>();
         waves.add(mix(0, 10, .48f, .4f, 1f, 1f, MonsterType.NORMAL, MonsterType.FAST));
-        waves.add(w(MonsterType.SWARM, 16, .25f, .4f, 1.06f, 1f));
-        waves.add(mix(0, 10, .48f, .45f, 1.1f, 1f, MonsterType.FLY, MonsterType.FAST));
-        waves.add(mix(0, 8, .62f, .5f, 1.12f, 1f, MonsterType.SHIELD, MonsterType.HEALER));
-        waves.add(w(MonsterType.TANK, 5, 1.1f, .55f, 1.2f, .95f));
-        waves.add(mix(0, 14, .32f, .45f, 1.14f, 1.05f, MonsterType.SWARM, MonsterType.FAST, MonsterType.FLY));
-        waves.add(mix(0, 9, .56f, .5f, 1.2f, 1f, MonsterType.TANK, MonsterType.HEALER, MonsterType.SHIELD));
-        waves.add(w(MonsterType.FLY, 9, .5f, .45f, 1.25f, 1.05f));
-        waves.add(mix(0, 12, .42f, .5f, 1.25f, 1.05f, MonsterType.SHIELD, MonsterType.FAST));
-        waves.add(w(MonsterType.TANK, 5, 1.0f, .55f, 1.35f, .92f));
-        waves.add(mix(0, 12, .34f, .5f, 1.3f, 1.08f, MonsterType.SWARM, MonsterType.FLY, MonsterType.HEALER));
-        waves.add(w(MonsterType.BOSS, 1, 0f, .9f, .78f, .84f));
+        waves.add(w(MonsterType.SUMMONER, 3, 1.4f, .45f, 1f, 1f));
+        waves.add(w(MonsterType.RESISTANT, 6, .72f, .45f, 1f, 1f));
+        waves.add(mix(0, 10, .48f, .45f, 1.08f, 1f, MonsterType.SPLITTER, MonsterType.RAGER));
+        waves.add(mix(0, 8, .58f, .5f, 1.1f, 1f, MonsterType.SUMMONER, MonsterType.RESISTANT));
+        waves.add(w(MonsterType.RAGER, 7, .56f, .48f, 1.14f, 1f));
+        waves.add(mix(0, 12, .42f, .5f, 1.18f, 1.04f,
+                MonsterType.TANK, MonsterType.SHIELD_GENERATOR, MonsterType.RESISTANT));
+        waves.add(mix(0, 12, .36f, .5f, 1.2f, 1.05f,
+                MonsterType.SWARM, MonsterType.RAGER, MonsterType.SUMMONER));
+        waves.add(w(MonsterType.BOSS, 1, 0f, .9f, .72f, .86f));
         return new TdGame(13, 9, path, 8, 0, 310, 7, waves);
     }
 

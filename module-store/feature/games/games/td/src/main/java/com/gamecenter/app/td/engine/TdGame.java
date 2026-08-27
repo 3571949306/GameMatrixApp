@@ -19,6 +19,9 @@ public class TdGame {
     public static final float FIXED_HZ = 60f;
     public static final float FIXED_DT = 1f / FIXED_HZ;
 
+    /** 伤害来源只用于软抗性计算，所有来源最终仍走同一护甲/护盾/死亡提交。 */
+    private enum DamageKind { DIRECT, POISON, LIGHTNING_CHAIN, BURN }
+
     /** 游戏状态 */
     public enum State {
         PREPARING,   // 准备中（可建塔）
@@ -168,6 +171,15 @@ public class TdGame {
         public float dotDps = 0f;
         public float dotTimer = 0f;
         public float shield = 0f;
+        public float maxShield;
+        public float shieldPulseTimer = 1.1f;
+        public float shieldFlash = 0f;
+        public float chargeCooldown = 2.4f;
+        public float chargeTimer = 0f;
+        public boolean charging = false;
+        public boolean enraged = false;
+        public float summonTimer = 6f;
+        public int summonsRemaining = 4;
         /** 医生怪的治疗冷却和受治疗后的视觉提示。 */
         public float healTimer = 0.8f;
         public float healedFlash = 0f;
@@ -178,6 +190,13 @@ public class TdGame {
         public int pathIndex = 0; // 当前所在路径段
         public float segT = 0f;   // 段内进度 0..1
         public boolean dead = false;
+        /** 分裂产生的幼体只复用喽罗的基础类型，绝不再触发分裂。 */
+        public boolean splitChild = false;
+        /** 召唤产生的单位会在后续机制中设置，始终携带来源 ID。 */
+        public boolean summoned = false;
+        public int originMonsterId = 0;
+        /** 派生单位可使用低于原型的击杀奖励。 */
+        public int reward;
         public int id;
         private final int pathLen;
         /** 当前波次序号（用于波次报错/统计） */
@@ -193,6 +212,7 @@ public class TdGame {
             this.baseSpeedMul = speedMul;
             this.speedMul = speedMul;
             this.shield = type.shieldHp(type);
+            this.maxShield = this.shield;
             this.x = startingX + 0.5f;
             this.y = startingY + 0.5f;
             this.pathIndex = 0;
@@ -201,6 +221,7 @@ public class TdGame {
             this.id = id;
             this.waveNo = waveNo;
             this.routeIndex = routeIndex;
+            this.reward = type.value;
         }
 
         /** 已走路径比例（0..1），用于决定攻击优先级（越靠近终点越优先） */
@@ -227,6 +248,19 @@ public class TdGame {
         public final boolean boss;
         KillEvent(float x, float y, int value, boolean boss) {
             this.x = x; this.y = y; this.value = value; this.boss = boss;
+        }
+    }
+
+    /** Lv3 地雷短暂留下的燃烧区；以固定帧扣血且有硬时长。 */
+    public static class BurnZone {
+        public final float x, y, radius;
+        public float secondsLeft;
+
+        BurnZone(float x, float y, float radius, float secondsLeft) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+            this.secondsLeft = secondsLeft;
         }
     }
 
@@ -259,6 +293,9 @@ public class TdGame {
     private final List<Tower> towers = new ArrayList<>();
     private final List<Beam> beams = new ArrayList<>();
     private final List<KillEvent> killEvents = new ArrayList<>();
+    private final List<BurnZone> burnZones = new ArrayList<>();
+    /** 死亡/技能产生的派生单位先入队，避免在敌人遍历期间修改 monsters。 */
+    private final List<Monster> pendingDerivedMonsters = new ArrayList<>();
     private int nextMonsterId = 1;
     /** 蛋蛋受击反馈计时（秒，UI 做红闪），0 表示无受击 */
     private float eggHitTimer = 0f;
@@ -377,6 +414,8 @@ public class TdGame {
     public int getMaxMascotHp() { return maxMascotHp; }
     public int getWaveIndex() { return Math.min(waveIndex + 1, totalWaves); }
     public int getTotalWaves() { return totalWaves; }
+    /** 波次定义的只读快照，供关卡预览和规则测试检查教学投放。 */
+    public List<Wave> getWaves() { return new ArrayList<>(waves); }
     public long getTicks() { return gameTicks; }
     public int getCoinsEarned() { return coinsEarned; }
     public int getMonstersKilled() { return monstersKilled; }
@@ -389,6 +428,7 @@ public class TdGame {
     public List<Monster> getMonsters() { return monsters; }
     public List<Tower> getTowers() { return towers; }
     public List<Beam> getBeams() { return beams; }
+    public List<BurnZone> getBurnZones() { return burnZones; }
     public float getEggHitTimer() { return eggHitTimer; }
 
     /**
@@ -464,6 +504,20 @@ public class TdGame {
         return row == eggRow && col == eggCol;
     }
 
+    /** 地雷只能贴着道路布置，既保持陷阱语义，也不会占用道路本身。 */
+    public boolean isMinePlacementCell(int row, int col) {
+        if (row < 0 || row >= rows || col < 0 || col >= cols || isPathCell(row, col) || isEggCell(row, col)) {
+            return false;
+        }
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                if (Math.abs(dr) + Math.abs(dc) != 1) continue;
+                if (isPathCell(row + dr, col + dc)) return true;
+            }
+        }
+        return false;
+    }
+
     private static int key(int row, int col) { return row * 1000 + col; }
 
     // ===== 玩家操作 =====
@@ -474,7 +528,10 @@ public class TdGame {
         if (type == null) { return fail("无效的塔类型"); }
         if (state == State.WON || state == State.LOST) { return fail("对局已结束"); }
         if (row < 0 || row >= rows || col < 0 || col >= cols) { return fail("位置越界"); }
-        if (isPathCell(row, col)) { return fail("不能在路径上建塔"); }
+        if (type == TowerType.MINE && !isMinePlacementCell(row, col)) {
+            return fail("地雷塔只能放在紧邻路径的陷阱位");
+        }
+        if (type != TowerType.MINE && isPathCell(row, col)) { return fail("不能在路径上建塔"); }
         if (isEggCell(row, col)) { return fail("不能占蛋蛋的位置"); }
         if (towerGrid.containsKey(key(row, col))) { return fail("该位置已有塔"); }
         if (coin < type.baseCost) { return fail("金币不足，需要 " + type.baseCost); }
@@ -485,6 +542,31 @@ public class TdGame {
         lastActionTone = "ok";
         lastActionMessage = "已放置 " + type.displayName;
         return t;
+    }
+
+    /**
+     * 塔牌拖拽的统一提交入口：空格执行建塔，同类型目标执行一次“塔牌合成”。
+     * 目标已有塔时，塔牌视为一座 Lv1 同类塔，只有目标仍可升级且金币足够才提交；
+     * 所有校验发生在扣款和等级写入之前，失败不会改变任何状态。
+     */
+    public boolean placeOrMergeTower(TowerType type, int row, int col) {
+        Tower target = towerGrid.get(key(row, col));
+        if (target == null) {
+            return placeTower(type, row, col) != null;
+        }
+        clearAction();
+        if (type == null) { return failBoolean("无效的塔类型"); }
+        if (state == State.WON || state == State.LOST) { return failBoolean("对局已结束"); }
+        if (target.type != type) { return failBoolean("只能拖到同类型防御塔上"); }
+        if (target.level >= 3) { return failBoolean("Lv3 已是最高等级，不能继续合成"); }
+        if (coin < type.baseCost) { return failBoolean("金币不足，需要 " + type.baseCost); }
+        coin -= type.baseCost;
+        target.level++;
+        target.investedCost += type.baseCost;
+        target.buildAge = 0;
+        lastActionTone = "ok";
+        lastActionMessage = type.displayName + " 合成为 Lv" + target.level;
+        return true;
     }
 
     /**
@@ -657,7 +739,10 @@ public class TdGame {
         if (eggHitTimer > 0f) eggHitTimer = Math.max(0f, eggHitTimer - FIXED_DT);
         updateSpawning();
         updateMonsters();
+        flushDerivedMonsters();
+        updateBurnZones();
         updateTowers();
+        flushDerivedMonsters();
         pruneBeams();
         checkEnd();
         return state;
@@ -694,6 +779,7 @@ public class TdGame {
             if (m.dead) continue;
             if (m.hitFlash > 0f) m.hitFlash = Math.max(0f, m.hitFlash - FIXED_DT);
             if (m.healedFlash > 0f) m.healedFlash = Math.max(0f, m.healedFlash - FIXED_DT);
+            if (m.shieldFlash > 0f) m.shieldFlash = Math.max(0f, m.shieldFlash - FIXED_DT);
             // 减速：只临时缩放，过期后还原出生倍率（困难/特殊波的速度系数不被抹掉）
             if (m.slowTimer > 0f) {
                 m.slowTimer -= FIXED_DT;
@@ -702,16 +788,38 @@ public class TdGame {
             // 中毒
             if (m.dotTimer > 0f) {
                 m.dotTimer -= FIXED_DT;
-                takeDamage(m, m.dotDps * FIXED_DT, false);
+                takeDamage(m, m.dotDps * FIXED_DT, DamageKind.POISON);
                 if (m.dotTimer <= 0f) { m.dotDps = 0f; }
             }
             if (m.dead) continue;
             if (m.type == MonsterType.HEALER) updateHealer(m);
+            if (m.type == MonsterType.CHARGER) updateCharger(m);
+            if (m.type == MonsterType.SHIELD_GENERATOR) updateShieldGenerator(m);
+            if (m.type == MonsterType.SUMMONER) updateSummoner(m);
             // 移动
             moveMonster(m);
         }
         // 移除死亡/到达终点的怪
         monsters.removeIf(m -> m.dead);
+    }
+
+    private void flushDerivedMonsters() {
+        if (pendingDerivedMonsters.isEmpty()) return;
+        monsters.addAll(pendingDerivedMonsters);
+        monstersSpawnedTotal += pendingDerivedMonsters.size();
+        pendingDerivedMonsters.clear();
+    }
+
+    private void updateBurnZones() {
+        for (BurnZone zone : burnZones) {
+            zone.secondsLeft -= FIXED_DT;
+            for (Monster monster : monsters) {
+                if (!monster.dead && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
+                    takeDamage(monster, TowerType.MINE_BURN_DPS * FIXED_DT, DamageKind.BURN);
+                }
+            }
+        }
+        burnZones.removeIf(zone -> zone.secondsLeft <= 0f);
     }
 
     /** 医生怪优先治疗范围内受伤最重的存活同伴，不能复活或超量治疗。 */
@@ -737,8 +845,54 @@ public class TdGame {
         }
     }
 
+    /** 冲锋使用独立临时倍率，绝不写入或覆盖雪花维护的 speedMul/baseSpeedMul。 */
+    private void updateCharger(Monster charger) {
+        if (charger.chargeTimer > 0f) {
+            charger.chargeTimer -= FIXED_DT;
+            if (charger.chargeTimer <= 0f) charger.charging = false;
+            return;
+        }
+        charger.chargeCooldown -= FIXED_DT;
+        if (charger.chargeCooldown <= 0f) {
+            charger.charging = true;
+            charger.chargeTimer = .65f;
+            charger.chargeCooldown = 3.6f;
+        }
+    }
+
+    /** 护盾发生器每次最多照顾三名同伴；同一目标护盾永远受 maxShield 限制。 */
+    private void updateShieldGenerator(Monster generator) {
+        generator.shieldPulseTimer -= FIXED_DT;
+        if (generator.shieldPulseTimer > 0f) return;
+        generator.shieldPulseTimer = 2.5f;
+        int affected = 0;
+        for (Monster candidate : monsters) {
+            if (candidate.dead || candidate == generator
+                    || dist(candidate.x, candidate.y, generator.x, generator.y) > 2.15f) {
+                continue;
+            }
+            float cap = MonsterType.SHIELD.shieldHp(MonsterType.SHIELD) + 32f;
+            candidate.maxShield = Math.max(candidate.maxShield, cap);
+            candidate.shield = Math.min(candidate.maxShield, candidate.shield + 32f);
+            candidate.shieldFlash = .38f;
+            if (++affected >= 3) return;
+        }
+    }
+
+    /** 每名召唤怪最多进行四次召唤，每次两只带来源标记的低价值喽罗。 */
+    private void updateSummoner(Monster summoner) {
+        if (summoner.summoned || summoner.summonsRemaining <= 0) return;
+        summoner.summonTimer -= FIXED_DT;
+        if (summoner.summonTimer > 0f) return;
+        summoner.summonTimer = 6f;
+        summoner.summonsRemaining--;
+        queueSummonedMinion(summoner);
+        queueSummonedMinion(summoner);
+    }
+
     private void moveMonster(Monster m) {
-        float effSpeed = m.type.speed * m.speedMul * FIXED_DT;
+        float behaviorSpeedMul = getBehaviorSpeedMultiplier(m);
+        float effSpeed = m.type.speed * m.speedMul * behaviorSpeedMul * FIXED_DT;
         float remaining = effSpeed;
         int[][] route = paths[m.routeIndex];
         // 当前所在格子起点
@@ -799,7 +953,12 @@ public class TdGame {
         }
     }
 
-    private void takeDamage(Monster m, float dmg, boolean isPoisonLike) {
+    private void takeDamage(Monster m, float dmg, DamageKind kind) {
+        if (m == null || m.dead || dmg <= 0f) return;
+        if (m.type == MonsterType.RESISTANT) {
+            if (kind == DamageKind.POISON) dmg *= .60f;
+            else if (kind == DamageKind.LIGHTNING_CHAIN) dmg *= .65f;
+        }
         if (m.shield > 0f) {
             float absorbed = Math.min(m.shield, dmg);
             m.shield -= absorbed;
@@ -811,15 +970,51 @@ public class TdGame {
             m.hp -= applied;
             m.hitFlash = 0.18f; // 受击闪白（纯视觉）
         }
+        if (m.type == MonsterType.RAGER && m.hp > 0f && m.hp <= m.maxHp * .5f) {
+            m.enraged = true;
+        }
         if (m.hp <= 0f) {
             m.hp = 0f;
             m.dead = true;
-            coin += m.type.value;
-            coinsEarned += m.type.value;
+            coin += m.reward;
+            coinsEarned += m.reward;
             monstersKilled++;
-            killEvents.add(new KillEvent(m.x, m.y, m.type.value,
+            killEvents.add(new KillEvent(m.x, m.y, m.reward,
                     m.type == MonsterType.BOSS));
+            if (m.type == MonsterType.SPLITTER && !m.splitChild) {
+                queueSplitChildren(m);
+            }
         }
+    }
+
+    /** 分裂怪只派生两只低赏金喽罗；幼体带来源标记且不会再次分裂。 */
+    private void queueSplitChildren(Monster parent) {
+        for (int i = 0; i < 2; i++) {
+            Monster child = createDerivedSwarm(parent);
+            child.splitChild = true;
+            pendingDerivedMonsters.add(child);
+        }
+    }
+
+    private void queueSummonedMinion(Monster parent) {
+        Monster minion = createDerivedSwarm(parent);
+        minion.summoned = true;
+        pendingDerivedMonsters.add(minion);
+    }
+
+    private Monster createDerivedSwarm(Monster parent) {
+        int[][] route = paths[parent.routeIndex];
+        int[] start = route[0];
+        Monster child = new Monster(MonsterType.SWARM, start[1], start[0], route.length,
+                nextMonsterId++, parent.maxHp / parent.type.hp, parent.baseSpeedMul,
+                parent.waveNo, parent.routeIndex);
+        child.pathIndex = parent.pathIndex;
+        child.segT = parent.segT;
+        child.x = parent.x;
+        child.y = parent.y;
+        child.originMonsterId = parent.id;
+        child.reward = 1;
+        return child;
     }
 
     private void updateTowers() {
@@ -831,14 +1026,14 @@ public class TdGame {
                 t.incomeTimer -= FIXED_DT;
                 if (t.incomeTimer <= 0f) {
                     t.incomeTimer = 1.8f; // 每 1.8 秒产一次
-                    int gained = (int) (t.type.income * t.level);
+                    int gained = Math.round(t.type.incomeAt(t.level));
                     coin += gained;
                     coinsEarned += gained;
                 }
-            } else {
+            } else if (t.type != TowerType.AMPLIFIER) {
                 t.cooldown -= FIXED_DT;
                 if (t.cooldown <= 0f) {
-                    t.cooldown = t.fireIntervalAt();
+                    t.cooldown = effectiveFireIntervalAt(t);
                     fire(t);
                 }
             }
@@ -855,13 +1050,14 @@ public class TdGame {
         float dmg = t.damageAt();
         switch (t.type) {
             case BOTTLE:
-                takeDamage(target, dmg, false);
+                takeDamage(target, dmg, DamageKind.DIRECT);
                 break;
             case SNOW: {
-                target.slowTimer = TowerType.SNOW_SLOW_SEC;
+                float slowEffect = target.type == MonsterType.RESISTANT ? .55f : 1f;
+                target.slowTimer = TowerType.SNOW_SLOW_SEC * slowEffect;
                 // 在出生倍率基础上缩放，避免覆盖波次/难度叠加出的原始速度
-                target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT);
-                takeDamage(target, dmg * 0.4f, false);
+                target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT * slowEffect);
+                takeDamage(target, dmg * 0.4f, DamageKind.DIRECT);
                 break;
             }
             case FAN: {
@@ -869,21 +1065,23 @@ public class TdGame {
                 for (Monster m : monsters) {
                     if (m.dead) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.8f, false);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.8f, DamageKind.DIRECT);
                 }
                 break;
             }
             case POISON: {
                 // 对单个目标上毒，若附近有怪再溅射一点点
                 target.dotDps = TowerType.POISON_DPS * (0.7f + 0.3f * t.level);
-                target.dotTimer = TowerType.POISON_SEC;
-                takeDamage(target, dmg * 0.3f, true);
+                float poisonEffect = target.type == MonsterType.RESISTANT ? .65f : 1f;
+                target.dotTimer = TowerType.POISON_SEC * poisonEffect;
+                takeDamage(target, dmg * 0.3f, DamageKind.DIRECT);
                 for (Monster m : monsters) {
                     if (m.dead || m == target) continue;
                     float d = dist(m.x, m.y, tx, ty);
                     if (d <= TowerType.AOE_RADIUS * 0.8f) {
                         m.dotDps = TowerType.POISON_DPS * 0.5f;
-                        m.dotTimer = TowerType.POISON_SEC * 0.7f;
+                        float splashPoisonEffect = m.type == MonsterType.RESISTANT ? .65f : 1f;
+                        m.dotTimer = TowerType.POISON_SEC * 0.7f * splashPoisonEffect;
                     }
                 }
                 break;
@@ -892,12 +1090,61 @@ public class TdGame {
                 for (Monster m : monsters) {
                     if (m.dead) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.7f, false);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.7f, DamageKind.DIRECT);
+                }
+                break;
+            }
+            case LIGHTNING:
+                fireLightning(t, target, dmg);
+                break;
+            case SNIPER:
+                takeDamage(target, dmg, DamageKind.DIRECT);
+                break;
+            case MINE: {
+                float radius = t.type.mineBlastRadiusAt(t.level);
+                for (Monster monster : monsters) {
+                    if (!monster.dead && dist(monster.x, monster.y, tx, ty) <= radius) {
+                        takeDamage(monster, dmg, DamageKind.DIRECT);
+                    }
+                }
+                if (t.level >= 3) {
+                    burnZones.add(new BurnZone(tx, ty, radius, TowerType.MINE_BURN_SEC));
+                    if (burnZones.size() > 24) burnZones.remove(0);
                 }
                 break;
             }
             default:
                 break;
+        }
+    }
+
+    /**
+     * 有上限、不可回跳的雷电链。每次均从上一命中点搜索，且只接受存活目标，
+     * 因而不会重复命中、不会攻击死亡单位，也不会无限扩张。
+     */
+    private void fireLightning(Tower tower, Monster first, float damage) {
+        java.util.HashSet<Monster> hit = new java.util.HashSet<>();
+        hit.add(first);
+        takeDamage(first, damage, DamageKind.DIRECT);
+        Monster previous = first;
+        int maxTargets = tower.type.chainTargetCountAt(tower.level);
+        for (int count = 1; count < maxTargets; count++) {
+            Monster next = null;
+            float bestDistance = Float.MAX_VALUE;
+            for (Monster candidate : monsters) {
+                if (candidate.dead || hit.contains(candidate)) continue;
+                float distance = dist(previous.x, previous.y, candidate.x, candidate.y);
+                if (distance <= TowerType.LIGHTNING_CHAIN_RANGE && distance < bestDistance) {
+                    bestDistance = distance;
+                    next = candidate;
+                }
+            }
+            if (next == null) return;
+            beams.add(new Beam(previous.x, previous.y, next.x, next.y, TowerType.LIGHTNING));
+            if (beams.size() > 40) beams.remove(0);
+            hit.add(next);
+            takeDamage(next, damage * tower.type.chainDamageMultiplierAt(tower.level), DamageKind.LIGHTNING_CHAIN);
+            previous = next;
         }
     }
 
@@ -909,8 +1156,10 @@ public class TdGame {
             if (m.dead) continue;
             if (m.type.fly && !t.type.canAir) continue;
             float d = dist(m.x, m.y, cx, cy);
-            if (d > t.rangeAt()) continue;
-            float score = targetScore(t.targetMode, m);
+            if (d > effectiveRangeAt(t)) continue;
+            // 狙击塔固定优先关键强敌，避免玩家忘记切目标模式时退化成昂贵瓶子炮。
+            TargetMode mode = t.type == TowerType.SNIPER ? TargetMode.STRONG : t.targetMode;
+            float score = targetScore(mode, m);
             if (score > bestScore) {
                 bestScore = score;
                 best = m;
@@ -963,6 +1212,48 @@ public class TdGame {
         return towerGrid.containsKey(key(row, col));
     }
 
+    /** 供渲染和测试读取的临时行为倍率；始终与基础/减速倍率相乘。 */
+    public float getBehaviorSpeedMultiplier(Monster monster) {
+        if (monster == null) return 1f;
+        if (monster.charging) return 1.9f;
+        return monster.enraged ? 1.3f : 1f;
+    }
+
+    /** 当前塔获得的攻击速度加成。重叠增幅塔只取最高等级的一份。 */
+    public float getAttackSpeedBonus(Tower target) {
+        Tower source = strongestAmplifierFor(target);
+        return source == null ? 0f : source.type.amplifierAttackSpeedBonusAt(source.level);
+    }
+
+    /** 当前塔获得的射程加成；和攻速一样不叠加。 */
+    public float getRangeBonus(Tower target) {
+        Tower source = strongestAmplifierFor(target);
+        return source == null ? 0f : source.type.amplifierRangeBonusAt(source.level);
+    }
+
+    public float effectiveRangeAt(Tower tower) {
+        return tower.rangeAt() * (1f + getRangeBonus(tower));
+    }
+
+    public float effectiveFireIntervalAt(Tower tower) {
+        return tower.fireIntervalAt() / (1f + getAttackSpeedBonus(tower));
+    }
+
+    private Tower strongestAmplifierFor(Tower target) {
+        if (target == null || target.type == TowerType.AMPLIFIER || target.type == TowerType.SUN) return null;
+        Tower strongest = null;
+        float tx = target.col + .5f;
+        float ty = target.row + .5f;
+        for (Tower candidate : towers) {
+            if (candidate.type != TowerType.AMPLIFIER || candidate == target) continue;
+            float cx = candidate.col + .5f;
+            float cy = candidate.row + .5f;
+            if (dist(tx, ty, cx, cy) > candidate.rangeAt()) continue;
+            if (strongest == null || candidate.level > strongest.level) strongest = candidate;
+        }
+        return strongest;
+    }
+
     private static float dist(float x1, float y1, float x2, float y2) {
         float dx = x1 - x2, dy = y1 - y2;
         return (float) Math.sqrt(dx * dx + dy * dy);
@@ -974,5 +1265,11 @@ public class TdGame {
         lastActionMessage = msg;
         lastActionTone = "err";
         return null;
+    }
+
+    private boolean failBoolean(String msg) {
+        lastActionMessage = msg;
+        lastActionTone = "err";
+        return false;
     }
 }

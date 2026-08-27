@@ -108,8 +108,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.modules.ToolsModuleEntryPoint",
       "fileName": "feature_tools_v100.apk",
-      "fileSize": 693013,
-      "sha256": "ffcf8264569ba4c6da3993fbe065083d9c2c3987bf9bebb136667aba3ac010d2",
+      "fileSize": 706196,
+      "sha256": "e72fb0979e07a66445e4d5f6aa4bfbf0504f7732d38070b007a5a85669ae32fd",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tools_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -135,9 +135,9 @@
       "dependencies": [],
       "package": {
         "fileName": "feature_tools_v100.apk",
-        "fileSize": 693013,
+        "fileSize": 706196,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_tools_v100.apk",
-        "sha256": "ffcf8264569ba4c6da3993fbe065083d9c2c3987bf9bebb136667aba3ac010d2"
+        "sha256": "e72fb0979e07a66445e4d5f6aa4bfbf0504f7732d38070b007a5a85669ae32fd"
       },
       "details": {
         "valueDescription": "提供设备诊断、二维码、电池信息、传感器测试等实用工具集合。",
@@ -173,8 +173,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.modules.AiModuleEntryPoint",
       "fileName": "feature_ai_v100.apk",
-      "fileSize": 1120773,
-      "sha256": "68d454992949462dcbb8e855800268e032fe6f50236689cc48e2f09b269f35be",
+      "fileSize": 1132082,
+      "sha256": "fe51381885df0da85a01b9f292221fe417ff6fa4da8f6805dc266618f30f6e5a",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_ai_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -200,9 +200,9 @@
       "dependencies": [],
       "package": {
         "fileName": "feature_ai_v100.apk",
-        "fileSize": 1120773,
+        "fileSize": 1132082,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_ai_v100.apk",
-        "sha256": "68d454992949462dcbb8e855800268e032fe6f50236689cc48e2f09b269f35be"
+        "sha256": "fe51381885df0da85a01b9f292221fe417ff6fa4da8f6805dc266618f30f6e5a"
       },
       "details": {
         "valueDescription": "AI 对话助手，支持文本创作、问答、工具调用与上下文记忆。",
@@ -241,8 +241,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.wrongbook.WrongBookModuleEntryPoint",
       "fileName": "feature_wrongbook_v100.apk",
-      "fileSize": 6175109,
-      "sha256": "94711da6f92733022c689652e2f13f8378283ff8f7505305b84ba87b40dc5cc7",
+      "fileSize": 6175157,
+      "sha256": "075b0f6e5e65c02720c1c8c23817306184b3ccbf15e6a0fa088201248b4d4627",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -268,9 +268,9 @@
       "dependencies": [],
       "package": {
         "fileName": "feature_wrongbook_v100.apk",
-        "fileSize": 6175109,
+        "fileSize": 6175157,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/feature_wrongbook_v100.apk",
-        "sha256": "94711da6f92733022c689652e2f13f8378283ff8f7505305b84ba87b40dc5cc7"
+        "sha256": "075b0f6e5e65c02720c1c8c23817306184b3ccbf15e6a0fa088201248b4d4627"
       },
       "details": {
         "valueDescription": "基于 AI 的错题整理与复习工具，支持拍照识题、AI 分析与艾宾浩斯复习计划。",
@@ -310,8 +310,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.vpn.VpnModuleEntryPoint",
       "fileName": "vpn-release.apk",
-      "fileSize": 1070598,
-      "sha256": "94aa7b1f6ab39a576f33dcc007508cf100532e8fb0f25e8df47e4df34ee894e6",
+      "fileSize": 1070595,
+      "sha256": "fa1053289ddee2db007bb14a0b7eab8b9784a04c3f9a14807ea36d3aa2dd4672",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/vpn-release.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -338,9 +338,9 @@
       "serviceType": "vpn",
       "package": {
         "fileName": "vpn-release.apk",
-        "fileSize": 1070598,
+        "fileSize": 1070595,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/vpn-release.apk",
-        "sha256": "94aa7b1f6ab39a576f33dcc007508cf100532e8fb0f25e8df47e4df34ee894e6"
+        "sha256": "fa1053289ddee2db007bb14a0b7eab8b9784a04c3f9a14807ea36d3aa2dd4672"
       },
       "details": {
         "valueDescription": "提供远程代理连接能力，支持配置管理与连接状态控制。",
@@ -378,8 +378,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.gomoku.GomokuModuleEntryPoint",
       "fileName": "game_gomoku_v100.apk",
-      "fileSize": 649966,
-      "sha256": "0bd8a04cf52a2ac992fd7ae797e89cad3aad22a1e2cc2fcb8015d2c4f8347f0b",
+      "fileSize": 649886,
+      "sha256": "42bd4930cff7a3a405da998670c776e072545a7d21c3236d3ead08f27af34a34",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_gomoku_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -405,9 +405,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_gomoku_v100.apk",
-        "fileSize": 649966,
+        "fileSize": 649886,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_gomoku_v100.apk",
-        "sha256": "0bd8a04cf52a2ac992fd7ae797e89cad3aad22a1e2cc2fcb8015d2c4f8347f0b"
+        "sha256": "42bd4930cff7a3a405da998670c776e072545a7d21c3236d3ead08f27af34a34"
       }
     },
     {
@@ -418,8 +418,8 @@
       "versionCode": 300,
       "entryClass": "com.gamecenter.app.chinesechess.ChineseChessModuleEntryPoint",
       "fileName": "game_chinesechess_v300.apk",
-      "fileSize": 666229,
-      "sha256": "780c21431985a9d874a036abf0f486c35409b6b3bf02e2a46af94a9cbdb08fdd",
+      "fileSize": 675215,
+      "sha256": "d486623847156538e8b388a60769e97f3882bbcf3e0b90d25f7c031b89338b98",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_chinesechess_v300.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -445,9 +445,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_chinesechess_v300.apk",
-        "fileSize": 666229,
+        "fileSize": 675215,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_chinesechess_v300.apk",
-        "sha256": "780c21431985a9d874a036abf0f486c35409b6b3bf02e2a46af94a9cbdb08fdd"
+        "sha256": "d486623847156538e8b388a60769e97f3882bbcf3e0b90d25f7c031b89338b98"
       }
     },
     {
@@ -458,8 +458,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.go.GoModuleEntryPoint",
       "fileName": "game_go_v100.apk",
-      "fileSize": 639912,
-      "sha256": "cbe6a7043bb4e7b0448c938bbb67271b6f7cc66a2ceb41fbe538ce29658a5bc0",
+      "fileSize": 654041,
+      "sha256": "8d975a2e277619b0b80206495eb308fa4af856cddafb5c43bc73f93171c8f16b",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_go_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -485,9 +485,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_go_v100.apk",
-        "fileSize": 639912,
+        "fileSize": 654041,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_go_v100.apk",
-        "sha256": "cbe6a7043bb4e7b0448c938bbb67271b6f7cc66a2ceb41fbe538ce29658a5bc0"
+        "sha256": "8d975a2e277619b0b80206495eb308fa4af856cddafb5c43bc73f93171c8f16b"
       }
     },
     {
@@ -498,8 +498,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.doudizhu.DoudizhuModuleEntryPoint",
       "fileName": "game_doudizhu_v100.apk",
-      "fileSize": 680808,
-      "sha256": "9a5f226503e917e67be3a22998fa2aa07516e3026bf2300078db59edfb406c55",
+      "fileSize": 680937,
+      "sha256": "e143be59a80edab4957b6a80cb88984640cb528780680a0b56c79df34672ed0d",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_doudizhu_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -525,9 +525,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_doudizhu_v100.apk",
-        "fileSize": 680808,
+        "fileSize": 680937,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_doudizhu_v100.apk",
-        "sha256": "9a5f226503e917e67be3a22998fa2aa07516e3026bf2300078db59edfb406c55"
+        "sha256": "e143be59a80edab4957b6a80cb88984640cb528780680a0b56c79df34672ed0d"
       }
     },
     {
@@ -538,8 +538,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.blackjack.BlackjackModuleEntryPoint",
       "fileName": "game_blackjack_v100.apk",
-      "fileSize": 631819,
-      "sha256": "a82b9075990efc400613e232a830f5d43fc6edf700f059d5c86511fa166f76dc",
+      "fileSize": 631808,
+      "sha256": "865e93042109f6d9b71cc9400306ec2fd4e752bdef1805ae9f66b62c5b132672",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_blackjack_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -565,9 +565,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_blackjack_v100.apk",
-        "fileSize": 631819,
+        "fileSize": 631808,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_blackjack_v100.apk",
-        "sha256": "a82b9075990efc400613e232a830f5d43fc6edf700f059d5c86511fa166f76dc"
+        "sha256": "865e93042109f6d9b71cc9400306ec2fd4e752bdef1805ae9f66b62c5b132672"
       }
     },
     {
@@ -578,8 +578,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.checkers.CheckersModuleEntryPoint",
       "fileName": "game_checkers_v100.apk",
-      "fileSize": 634552,
-      "sha256": "d83afc61f319762d8f4ff1be586577e489be1b95034491ca9847e5a41042abf7",
+      "fileSize": 634555,
+      "sha256": "4c976dbf4befaa5ade7bf464af70313128a0f6dce418132bc962e0a01bcabd6b",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_checkers_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -605,9 +605,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_checkers_v100.apk",
-        "fileSize": 634552,
+        "fileSize": 634555,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_checkers_v100.apk",
-        "sha256": "d83afc61f319762d8f4ff1be586577e489be1b95034491ca9847e5a41042abf7"
+        "sha256": "4c976dbf4befaa5ade7bf464af70313128a0f6dce418132bc962e0a01bcabd6b"
       }
     },
     {
@@ -618,8 +618,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.dice.DiceModuleEntryPoint",
       "fileName": "game_dice_v100.apk",
-      "fileSize": 631051,
-      "sha256": "1ce6c47a0bab83f3bdd4be14cf2f8b2ed7fdb098ef46aa6119542ce19cc0fb9a",
+      "fileSize": 631053,
+      "sha256": "90d3da625466689420343d99fcab5a723b69acfe8356eb2ddf2b05dcf14d879c",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_dice_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -645,9 +645,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_dice_v100.apk",
-        "fileSize": 631051,
+        "fileSize": 631053,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_dice_v100.apk",
-        "sha256": "1ce6c47a0bab83f3bdd4be14cf2f8b2ed7fdb098ef46aa6119542ce19cc0fb9a"
+        "sha256": "90d3da625466689420343d99fcab5a723b69acfe8356eb2ddf2b05dcf14d879c"
       }
     },
     {
@@ -659,7 +659,7 @@
       "entryClass": "com.gamecenter.app.rock.RockModuleEntryPoint",
       "fileName": "game_rock_v100.apk",
       "fileSize": 630610,
-      "sha256": "5ae97adef0b25f06a60c8896b9f9278e9a265ef7b5da326a2f6c293df02e5ad4",
+      "sha256": "26d438f7052dc4d896a714df82eb2943ca2fefeaea8bc5fc4b075a8ad66a49c9",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_rock_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -687,7 +687,7 @@
         "fileName": "game_rock_v100.apk",
         "fileSize": 630610,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_rock_v100.apk",
-        "sha256": "5ae97adef0b25f06a60c8896b9f9278e9a265ef7b5da326a2f6c293df02e5ad4"
+        "sha256": "26d438f7052dc4d896a714df82eb2943ca2fefeaea8bc5fc4b075a8ad66a49c9"
       }
     },
     {
@@ -698,8 +698,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.game2048.Game2048ModuleEntryPoint",
       "fileName": "game_2048_v100.apk",
-      "fileSize": 632674,
-      "sha256": "57578870c5b4cf79bc0a256d3f0201d222f267f00b5a89af71027a217cc33841",
+      "fileSize": 632606,
+      "sha256": "05b3d467bc5af8da6e51a740069eddcd254ca3f05d4211a318b3e19c6f3e8113",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_2048_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -725,9 +725,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_2048_v100.apk",
-        "fileSize": 632674,
+        "fileSize": 632606,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_2048_v100.apk",
-        "sha256": "57578870c5b4cf79bc0a256d3f0201d222f267f00b5a89af71027a217cc33841"
+        "sha256": "05b3d467bc5af8da6e51a740069eddcd254ca3f05d4211a318b3e19c6f3e8113"
       }
     },
     {
@@ -738,8 +738,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.sudoku.SudokuModuleEntryPoint",
       "fileName": "game_sudoku_v100.apk",
-      "fileSize": 634953,
-      "sha256": "b3bfbaecdad60276affeafad33b212fbade69002582f1f332ba2271339e48e76",
+      "fileSize": 634955,
+      "sha256": "ef4aa13caed28c3112bf9c73a0b86044df9824781544b64882dc0a7c82a79b18",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_sudoku_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -765,9 +765,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_sudoku_v100.apk",
-        "fileSize": 634953,
+        "fileSize": 634955,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_sudoku_v100.apk",
-        "sha256": "b3bfbaecdad60276affeafad33b212fbade69002582f1f332ba2271339e48e76"
+        "sha256": "ef4aa13caed28c3112bf9c73a0b86044df9824781544b64882dc0a7c82a79b18"
       }
     },
     {
@@ -778,8 +778,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.klotski.KlotskiModuleEntryPoint",
       "fileName": "game_klotski_v100.apk",
-      "fileSize": 642053,
-      "sha256": "fd439fa6569813356e0169e1e1e328cc81b54d588a34ec6f004ffdaec8629c22",
+      "fileSize": 642032,
+      "sha256": "18ff0933d3e4e08ef7ee5ea65ffd253afc3296850a7a1f803249272f9d2209d6",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_klotski_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -805,9 +805,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_klotski_v100.apk",
-        "fileSize": 642053,
+        "fileSize": 642032,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_klotski_v100.apk",
-        "sha256": "fd439fa6569813356e0169e1e1e328cc81b54d588a34ec6f004ffdaec8629c22"
+        "sha256": "18ff0933d3e4e08ef7ee5ea65ffd253afc3296850a7a1f803249272f9d2209d6"
       }
     },
     {
@@ -818,8 +818,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.sokoban.SokobanModuleEntryPoint",
       "fileName": "game_sokoban_v100.apk",
-      "fileSize": 634301,
-      "sha256": "ddee1c69974757a21d7279c8e0d3025bbe1780e14600f78ed38e64d78a6bdbe5",
+      "fileSize": 634295,
+      "sha256": "7933cdcc092845d2b869daaac2645b151cfe89540b47ed85d8ce9c4ce4fde071",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_sokoban_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -845,9 +845,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_sokoban_v100.apk",
-        "fileSize": 634301,
+        "fileSize": 634295,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_sokoban_v100.apk",
-        "sha256": "ddee1c69974757a21d7279c8e0d3025bbe1780e14600f78ed38e64d78a6bdbe5"
+        "sha256": "7933cdcc092845d2b869daaac2645b151cfe89540b47ed85d8ce9c4ce4fde071"
       }
     },
     {
@@ -858,8 +858,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.pipeline.PipelineModuleEntryPoint",
       "fileName": "game_pipeline_v100.apk",
-      "fileSize": 632006,
-      "sha256": "9d1288958fbeb84145efae5a4ebac3e9f70756858ad26450cf84e6171a87d151",
+      "fileSize": 632000,
+      "sha256": "cc5ee09c249ee8f0bc3b9c7bd3d4e6545b9050f5e72c5fa2b6e064e812ec1d44",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_pipeline_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -885,9 +885,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_pipeline_v100.apk",
-        "fileSize": 632006,
+        "fileSize": 632000,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_pipeline_v100.apk",
-        "sha256": "9d1288958fbeb84145efae5a4ebac3e9f70756858ad26450cf84e6171a87d151"
+        "sha256": "cc5ee09c249ee8f0bc3b9c7bd3d4e6545b9050f5e72c5fa2b6e064e812ec1d44"
       }
     },
     {
@@ -898,8 +898,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.minesweeper.MinesweeperModuleEntryPoint",
       "fileName": "game_minesweeper_v100.apk",
-      "fileSize": 634142,
-      "sha256": "c6b25e35fb0d1528721f83ef8292a61384a32bdd745b15ec216f1ca459ade3fb",
+      "fileSize": 634140,
+      "sha256": "d1444e01893f76af42786d886d0099e48c95c8d573c06e5529779ff987da695a",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_minesweeper_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -925,9 +925,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_minesweeper_v100.apk",
-        "fileSize": 634142,
+        "fileSize": 634140,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_minesweeper_v100.apk",
-        "sha256": "c6b25e35fb0d1528721f83ef8292a61384a32bdd745b15ec216f1ca459ade3fb"
+        "sha256": "d1444e01893f76af42786d886d0099e48c95c8d573c06e5529779ff987da695a"
       }
     },
     {
@@ -938,8 +938,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.match.MatchModuleEntryPoint",
       "fileName": "game_match_v100.apk",
-      "fileSize": 632433,
-      "sha256": "57984729b4c2dd29fb99d872e9e04a4929b3e370da4864ea4fd76fe9e6fd55a5",
+      "fileSize": 632424,
+      "sha256": "00686c004106cae4f57849ecc1eca4d26c8a8b5e2d20deef67b2b3b425c6901c",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_match_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -965,9 +965,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_match_v100.apk",
-        "fileSize": 632433,
+        "fileSize": 632424,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_match_v100.apk",
-        "sha256": "57984729b4c2dd29fb99d872e9e04a4929b3e370da4864ea4fd76fe9e6fd55a5"
+        "sha256": "00686c004106cae4f57849ecc1eca4d26c8a8b5e2d20deef67b2b3b425c6901c"
       }
     },
     {
@@ -978,8 +978,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.memory.MemoryModuleEntryPoint",
       "fileName": "game_memory_v100.apk",
-      "fileSize": 632504,
-      "sha256": "0658ea9ed5f2384786f7d9f17bec46e05823f998628ad5acfa8172fe4fa2ee5e",
+      "fileSize": 632497,
+      "sha256": "ef12984cbc33eabc95e1643a6de41dc0008513b8a769ccd0c59db3645287929d",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_memory_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1005,9 +1005,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_memory_v100.apk",
-        "fileSize": 632504,
+        "fileSize": 632497,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_memory_v100.apk",
-        "sha256": "0658ea9ed5f2384786f7d9f17bec46e05823f998628ad5acfa8172fe4fa2ee5e"
+        "sha256": "ef12984cbc33eabc95e1643a6de41dc0008513b8a769ccd0c59db3645287929d"
       }
     },
     {
@@ -1052,8 +1052,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.tiles.TilesModuleEntryPoint",
       "fileName": "game_tiles_v100.apk",
-      "fileSize": 631500,
-      "sha256": "7839fb438fd33282ea9ae5770cf6f9d92017367b181797865dcadea05cbf7c3b",
+      "fileSize": 631496,
+      "sha256": "89931e8c9a46c715bf672031cd9c8d0cede6d8b9fcfb124f7d7ed0dcab42fb47",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_tiles_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1079,9 +1079,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_tiles_v100.apk",
-        "fileSize": 631500,
+        "fileSize": 631496,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_tiles_v100.apk",
-        "sha256": "7839fb438fd33282ea9ae5770cf6f9d92017367b181797865dcadea05cbf7c3b"
+        "sha256": "89931e8c9a46c715bf672031cd9c8d0cede6d8b9fcfb124f7d7ed0dcab42fb47"
       }
     },
     {
@@ -1092,8 +1092,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.tetris.TetrisModuleEntryPoint",
       "fileName": "game_tetris_v100.apk",
-      "fileSize": 635189,
-      "sha256": "fad5169e3047eb2ac5fa310fe657780837ef2e6ffc8148854ccc7bc09cd13e80",
+      "fileSize": 649280,
+      "sha256": "cf2563c78e72c8e944f75874610343cb7608cbf4f95f5d78f1a183bca2319dc8",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_tetris_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1119,9 +1119,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_tetris_v100.apk",
-        "fileSize": 635189,
+        "fileSize": 649280,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_tetris_v100.apk",
-        "sha256": "fad5169e3047eb2ac5fa310fe657780837ef2e6ffc8148854ccc7bc09cd13e80"
+        "sha256": "cf2563c78e72c8e944f75874610343cb7608cbf4f95f5d78f1a183bca2319dc8"
       }
     },
     {
@@ -1132,8 +1132,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.snake.SnakeModuleEntryPoint",
       "fileName": "game_snake_v100.apk",
-      "fileSize": 633176,
-      "sha256": "11b442fc0712490d58ce515d3603e302f6f438e9467478a3777504ecdae1a8b6",
+      "fileSize": 633161,
+      "sha256": "094b187f5e5c97027c95d46c3f986f3dd391f4e4d5ef4df229d30852deb00459",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_snake_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1159,9 +1159,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_snake_v100.apk",
-        "fileSize": 633176,
+        "fileSize": 633161,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_snake_v100.apk",
-        "sha256": "11b442fc0712490d58ce515d3603e302f6f438e9467478a3777504ecdae1a8b6"
+        "sha256": "094b187f5e5c97027c95d46c3f986f3dd391f4e4d5ef4df229d30852deb00459"
       }
     },
     {
@@ -1172,8 +1172,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.flappy.FlappyModuleEntryPoint",
       "fileName": "game_flappy_v100.apk",
-      "fileSize": 633077,
-      "sha256": "75c66a38b536ba2be8697631c118f150e967c09592354ddd718e18fd25aacb47",
+      "fileSize": 632996,
+      "sha256": "11b782093cc61dcb0eede366131b6c1fe33640ec261aff92c3ce486242ae62f8",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_flappy_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1199,9 +1199,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_flappy_v100.apk",
-        "fileSize": 633077,
+        "fileSize": 632996,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_flappy_v100.apk",
-        "sha256": "75c66a38b536ba2be8697631c118f150e967c09592354ddd718e18fd25aacb47"
+        "sha256": "11b782093cc61dcb0eede366131b6c1fe33640ec261aff92c3ce486242ae62f8"
       }
     },
     {
@@ -1212,8 +1212,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.brotato.BrotatoModuleEntryPoint",
       "fileName": "game_brotato_v100.apk",
-      "fileSize": 634399,
-      "sha256": "ad6b8eaa020fd791a7ebc29de2b25174f9160ebcaa71b691bddca1b4880732ca",
+      "fileSize": 634374,
+      "sha256": "eaedf1a1b8144905fde371392e6d6db76e3d1d2a807450184e62d41a8e09318c",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_brotato_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1239,9 +1239,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_brotato_v100.apk",
-        "fileSize": 634399,
+        "fileSize": 634374,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_brotato_v100.apk",
-        "sha256": "ad6b8eaa020fd791a7ebc29de2b25174f9160ebcaa71b691bddca1b4880732ca"
+        "sha256": "eaedf1a1b8144905fde371392e6d6db76e3d1d2a807450184e62d41a8e09318c"
       }
     },
     {
@@ -1252,8 +1252,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.plane.PlaneModuleEntryPoint",
       "fileName": "game_plane_v100.apk",
-      "fileSize": 633333,
-      "sha256": "1be165a183bdaf8b8ab6d512114efdcac768d82db880d8b57a24df267852e32e",
+      "fileSize": 633327,
+      "sha256": "2362e7dd9f60bc15ed9d37e9ee93072d5aebb0f708e0fc7c8d634201f5cbc1e1",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_plane_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1279,9 +1279,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_plane_v100.apk",
-        "fileSize": 633333,
+        "fileSize": 633327,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_plane_v100.apk",
-        "sha256": "1be165a183bdaf8b8ab6d512114efdcac768d82db880d8b57a24df267852e32e"
+        "sha256": "2362e7dd9f60bc15ed9d37e9ee93072d5aebb0f708e0fc7c8d634201f5cbc1e1"
       }
     },
     {
@@ -1292,8 +1292,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.reaction.ReactionModuleEntryPoint",
       "fileName": "game_reaction_v100.apk",
-      "fileSize": 631170,
-      "sha256": "226230c0cc3e6dfbe07fd99e200e1f6f30659ee03502649b4b8d042b737de5e9",
+      "fileSize": 631168,
+      "sha256": "93c2f1c29f5fe51d65838e51dc1e82c8a70cc64924cf66db93375f810bebe2d3",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_reaction_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1319,9 +1319,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_reaction_v100.apk",
-        "fileSize": 631170,
+        "fileSize": 631168,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_reaction_v100.apk",
-        "sha256": "226230c0cc3e6dfbe07fd99e200e1f6f30659ee03502649b4b8d042b737de5e9"
+        "sha256": "93c2f1c29f5fe51d65838e51dc1e82c8a70cc64924cf66db93375f810bebe2d3"
       }
     },
     {
@@ -1332,8 +1332,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.guess.GuessModuleEntryPoint",
       "fileName": "game_guess_v100.apk",
-      "fileSize": 631375,
-      "sha256": "5c375e8bbc7946acd2cf709fd94c53308c7ef597a2747f4c5e4b2104423871b0",
+      "fileSize": 631374,
+      "sha256": "c9b3ed26afd78917903bef79a46caa548b2c8456c197a056976a2f3aba86d1d9",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_guess_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1359,9 +1359,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_guess_v100.apk",
-        "fileSize": 631375,
+        "fileSize": 631374,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_guess_v100.apk",
-        "sha256": "5c375e8bbc7946acd2cf709fd94c53308c7ef597a2747f4c5e4b2104423871b0"
+        "sha256": "c9b3ed26afd78917903bef79a46caa548b2c8456c197a056976a2f3aba86d1d9"
       }
     },
     {
@@ -1372,8 +1372,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.tic.TicTacToeModuleEntryPoint",
       "fileName": "game_tic_v100.apk",
-      "fileSize": 633997,
-      "sha256": "55d992d309b3e0a502546266aaf5ce47fa963aca2bf36deafe4e96e095f243bc",
+      "fileSize": 633996,
+      "sha256": "ed27015e544c647214af03a878c7c2ccf71df81398815508a36d165709292b36",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_tic_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1399,9 +1399,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_tic_v100.apk",
-        "fileSize": 633997,
+        "fileSize": 633996,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_tic_v100.apk",
-        "sha256": "55d992d309b3e0a502546266aaf5ce47fa963aca2bf36deafe4e96e095f243bc"
+        "sha256": "ed27015e544c647214af03a878c7c2ccf71df81398815508a36d165709292b36"
       }
     },
     {
@@ -1412,8 +1412,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.whack.WhackModuleEntryPoint",
       "fileName": "game_whack_v100.apk",
-      "fileSize": 631960,
-      "sha256": "404b8f39d26fdc459e9521e7e8468d60be489c8bbc8980a92fa66001af86fe6e",
+      "fileSize": 631886,
+      "sha256": "e0e8f5fea4a05237ce7700509f4c3b8a9d4d0d0c30576cf15600418e395fd23e",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_whack_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1439,9 +1439,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_whack_v100.apk",
-        "fileSize": 631960,
+        "fileSize": 631886,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_whack_v100.apk",
-        "sha256": "404b8f39d26fdc459e9521e7e8468d60be489c8bbc8980a92fa66001af86fe6e"
+        "sha256": "e0e8f5fea4a05237ce7700509f4c3b8a9d4d0d0c30576cf15600418e395fd23e"
       }
     },
     {
@@ -1452,8 +1452,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.td.TdModuleEntryPoint",
       "fileName": "game_td_v100.apk",
-      "fileSize": 4024252,
-      "sha256": "46FC95B12BC405CDE0291CDB9B5E8D3046F9A29F176B50BFDA9EC18579A4D003",
+      "fileSize": 4035672,
+      "sha256": "ae22049164d739758508d59584dc5a416be067b5be7eda2503efb179279537a2",
       "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_td_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -1479,9 +1479,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_td_v100.apk",
-        "fileSize": 4024252,
+        "fileSize": 4035672,
         "downloadUrl": "https://hk-update.tcp0053.shop/modules/game_td_v100.apk",
-        "sha256": "46FC95B12BC405CDE0291CDB9B5E8D3046F9A29F176B50BFDA9EC18579A4D003"
+        "sha256": "ae22049164d739758508d59584dc5a416be067b5be7eda2503efb179279537a2"
       }
     }
   ]

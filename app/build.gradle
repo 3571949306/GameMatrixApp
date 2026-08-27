@@ -1049,12 +1049,11 @@ task packageAppClasses(type: Jar) {
 
 // =============================================================================
 // 模块预装：把与宿主同证书签名的 Release 模块 APK 打包到 assets/modules/。
-// 仅由显式的 *WithPreinstalledModules 生命周期任务触发；普通编译/测试只读取现有 assets，
-// 不得重打包模块或改写受版本控制的目录清单。
+// 宿主 Debug/Release 打包默认刷新并内置全部可构建的 feature 模块，避免安装后
+// 进入游戏/工具时出现“模块未安装”。专项测试仍只读取现有 assets，不触发模块重打包。
 // 保留 VPS 更新通道：modules.json 的 downloadUrl 仍指向 VPS，versionCode 升级时下载覆盖。
-// VPN 模块刻意不预装（合规/分发约束）。
-// 注意：ai/tools/tts 模块走 VPS 下载通道（不预装到 assets/modules/），
-// 见 modules.json 中 downloadUrl 字段。ai 模块源码编译已于 2026-06-23 修复（Step 嵌套类已补全）。
+// MiMo TTS 仅在通过 mimo.tts.dir 接入时参与构建；browser/breakout 等目录清单条目没有
+// 对应仓库模块，不能伪造 APK。ai 模块源码编译已于 2026-06-23 修复（Step 嵌套类已补全）。
 // -----------------------------------------------------------------------------
 // 用法：
 //   普通构建（无发布资产副作用）：./gradlew :app:assembleDebug
@@ -1072,9 +1071,10 @@ task bundlePreinstalledModules() {
     description = '构建、签名并复制预装模块，同时刷新 modules.json 完整性元数据'
     // skipModuleBuild=true 时跳过所有模块的编译依赖，直接使用已有预构建 APK 产物
     def skipModuleBuild = project.hasProperty('skipModuleBuild') && project.findProperty('skipModuleBuild') == 'true'
-    // 预装模块：wrongbook（学习）+ tools（创作）+ chinesechess（玩，代表性经典游戏）
-    // ai/vpn 及其余游戏模块通过模块商店下载，不预装到 assets/modules/
+    // 所有仓库内 feature 模块均构建 Release 后预装；可选的 MiMo TTS 由 settings.gradle
+    // 按路径存在性决定是否加入，清单中没有实现的模块不会被伪造。
     if (!skipModuleBuild) {
+        dependsOn ':module-store:feature:tools:ai:assembleRelease'
         dependsOn ':module-store:feature:tools:wrongbook:assembleRelease'
         dependsOn ':module-store:feature:tools:tools:assembleRelease'
         dependsOn ':module-store:feature:tools:vpn:assembleRelease'
@@ -1105,43 +1105,45 @@ task bundlePreinstalledModules() {
         dependsOn ':module-store:feature:games:games:checkers:assembleRelease'
         dependsOn ':module-store:feature:games:games:gomoku:assembleRelease'
         dependsOn ':module-store:feature:games:games:doudizhu:assembleRelease'
+        dependsOn ':module-store:feature:games:games:td:assembleRelease'
     }
 
-    // preinstall=true 的模块会复制到 assets/modules/；preinstall=false 的仅刷新元数据不复制
+    // 所有已纳入 settings.gradle 的 feature 模块都复制到 assets/modules/，并同步清单完整性元数据。
     def moduleMappings = [
         // [模块项目路径, 源APK名, 目标文件名, catalog id, 是否预装到assets]
-        // 工具模块：预装（wrongbook 学习意图 + tools 创作意图）
+        // 工具模块：全部预装
+        [':module-store:feature:tools:ai', 'ai-release.apk', 'feature_ai_v100.apk', 'ai', true],
         [':module-store:feature:tools:wrongbook', 'wrongbook-release.apk', 'feature_wrongbook_v100.apk', 'wrongbook', true],
         [':module-store:feature:tools:tools', 'tools-release.apk', 'feature_tools_v100.apk', 'tools', true],
-        // 工具模块：不预装（ai/vpn 权限或网络敏感，按需下载）
-        [':module-store:feature:tools:vpn', 'vpn-release.apk', 'vpn-release.apk', 'vpn', false],
-        // 游戏模块：chinesechess 预装（玩意图代表性经典游戏）；其余不预装，仅刷新 sha256/fileSize 供模块商店下载校验
+        [':module-store:feature:tools:vpn', 'vpn-release.apk', 'vpn-release.apk', 'vpn', true],
+        // 游戏模块：全部预装
         [':module-store:feature:games:games:chinesechess', 'chinesechess-release.apk', 'game_chinesechess_v300.apk', 'chinesechess', true],
-        [':module-store:feature:games:games:game2048', 'game2048-release.apk', 'game_2048_v100.apk', 'game_2048', false],
-        [':module-store:feature:games:games:klotski', 'klotski-release.apk', 'game_klotski_v100.apk', 'klotski', false],
-        [':module-store:feature:games:games:snake', 'snake-release.apk', 'game_snake_v100.apk', 'snake', false],
-        [':module-store:feature:games:games:tic', 'tic-release.apk', 'game_tic_v100.apk', 'tic', false],
-        [':module-store:feature:games:games:whack', 'whack-release.apk', 'game_whack_v100.apk', 'whack', false],
-        [':module-store:feature:games:games:reaction', 'reaction-release.apk', 'game_reaction_v100.apk', 'reaction', false],
-        [':module-store:feature:games:games:rock', 'rock-release.apk', 'game_rock_v100.apk', 'rock', false],
-        [':module-store:feature:games:games:dice', 'dice-release.apk', 'game_dice_v100.apk', 'dice', false],
-        [':module-store:feature:games:games:guess', 'guess-release.apk', 'game_guess_v100.apk', 'guess', false],
-        [':module-store:feature:games:games:tiles', 'tiles-release.apk', 'game_tiles_v100.apk', 'tiles', false],
-        [':module-store:feature:games:games:memory', 'memory-release.apk', 'game_memory_v100.apk', 'memory', false],
-        [':module-store:feature:games:games:match', 'match-release.apk', 'game_match_v100.apk', 'match', false],
-        [':module-store:feature:games:games:blackjack', 'blackjack-release.apk', 'game_blackjack_v100.apk', 'blackjack', false],
-        [':module-store:feature:games:games:flappy', 'flappy-release.apk', 'game_flappy_v100.apk', 'flappy', false],
-        [':module-store:feature:games:games:brotato', 'brotato-release.apk', 'game_brotato_v100.apk', 'brotato', false],
-        [':module-store:feature:games:games:plane', 'plane-release.apk', 'game_plane_v100.apk', 'plane', false],
-        [':module-store:feature:games:games:pipeline', 'pipeline-release.apk', 'game_pipeline_v100.apk', 'pipeline', false],
-        [':module-store:feature:games:games:sokoban', 'sokoban-release.apk', 'game_sokoban_v100.apk', 'sokoban', false],
-        [':module-store:feature:games:games:minesweeper', 'minesweeper-release.apk', 'game_minesweeper_v100.apk', 'minesweeper', false],
-        [':module-store:feature:games:games:tetris', 'tetris-release.apk', 'game_tetris_v100.apk', 'tetris', false],
-        [':module-store:feature:games:games:sudoku', 'sudoku-release.apk', 'game_sudoku_v100.apk', 'sudoku', false],
-        [':module-store:feature:games:games:go', 'go-release.apk', 'game_go_v100.apk', 'go', false],
-        [':module-store:feature:games:games:checkers', 'checkers-release.apk', 'game_checkers_v100.apk', 'checkers', false],
-        [':module-store:feature:games:games:gomoku', 'gomoku-release.apk', 'game_gomoku_v100.apk', 'gomoku', false],
-        [':module-store:feature:games:games:doudizhu', 'doudizhu-release.apk', 'game_doudizhu_v100.apk', 'doudizhu', false]
+        [':module-store:feature:games:games:game2048', 'game2048-release.apk', 'game_2048_v100.apk', 'game_2048', true],
+        [':module-store:feature:games:games:klotski', 'klotski-release.apk', 'game_klotski_v100.apk', 'klotski', true],
+        [':module-store:feature:games:games:snake', 'snake-release.apk', 'game_snake_v100.apk', 'snake', true],
+        [':module-store:feature:games:games:tic', 'tic-release.apk', 'game_tic_v100.apk', 'tic', true],
+        [':module-store:feature:games:games:whack', 'whack-release.apk', 'game_whack_v100.apk', 'whack', true],
+        [':module-store:feature:games:games:reaction', 'reaction-release.apk', 'game_reaction_v100.apk', 'reaction', true],
+        [':module-store:feature:games:games:rock', 'rock-release.apk', 'game_rock_v100.apk', 'rock', true],
+        [':module-store:feature:games:games:dice', 'dice-release.apk', 'game_dice_v100.apk', 'dice', true],
+        [':module-store:feature:games:games:guess', 'guess-release.apk', 'game_guess_v100.apk', 'guess', true],
+        [':module-store:feature:games:games:tiles', 'tiles-release.apk', 'game_tiles_v100.apk', 'tiles', true],
+        [':module-store:feature:games:games:memory', 'memory-release.apk', 'game_memory_v100.apk', 'memory', true],
+        [':module-store:feature:games:games:match', 'match-release.apk', 'game_match_v100.apk', 'match', true],
+        [':module-store:feature:games:games:blackjack', 'blackjack-release.apk', 'game_blackjack_v100.apk', 'blackjack', true],
+        [':module-store:feature:games:games:flappy', 'flappy-release.apk', 'game_flappy_v100.apk', 'flappy', true],
+        [':module-store:feature:games:games:brotato', 'brotato-release.apk', 'game_brotato_v100.apk', 'brotato', true],
+        [':module-store:feature:games:games:plane', 'plane-release.apk', 'game_plane_v100.apk', 'plane', true],
+        [':module-store:feature:games:games:pipeline', 'pipeline-release.apk', 'game_pipeline_v100.apk', 'pipeline', true],
+        [':module-store:feature:games:games:sokoban', 'sokoban-release.apk', 'game_sokoban_v100.apk', 'sokoban', true],
+        [':module-store:feature:games:games:minesweeper', 'minesweeper-release.apk', 'game_minesweeper_v100.apk', 'minesweeper', true],
+        [':module-store:feature:games:games:tetris', 'tetris-release.apk', 'game_tetris_v100.apk', 'tetris', true],
+        [':module-store:feature:games:games:sudoku', 'sudoku-release.apk', 'game_sudoku_v100.apk', 'sudoku', true],
+        [':module-store:feature:games:games:go', 'go-release.apk', 'game_go_v100.apk', 'go', true],
+        [':module-store:feature:games:games:checkers', 'checkers-release.apk', 'game_checkers_v100.apk', 'checkers', true],
+        [':module-store:feature:games:games:gomoku', 'gomoku-release.apk', 'game_gomoku_v100.apk', 'gomoku', true],
+        [':module-store:feature:games:games:doudizhu', 'doudizhu-release.apk', 'game_doudizhu_v100.apk', 'doudizhu', true],
+        [':module-store:feature:games:games:td', 'td-release.apk', 'game_td_v100.apk', 'td', true]
     ]
 
     doLast {
@@ -1242,4 +1244,9 @@ afterEvaluate {
     tasks.named('assembleReleaseWithPreinstalledModules').configure {
         it.dependsOn preinstalledModules, tasks.named('assembleRelease')
     }
+
+    // 默认宿主打包也必须携带全部 feature 模块；否则开发者执行普通 assembleDebug
+    // 时会得到一个能启动但在模块商店中显示“未安装”的宿主 APK。
+    tasks.named('assembleDebug').configure { it.dependsOn preinstalledModules }
+    tasks.named('assembleRelease').configure { it.dependsOn preinstalledModules }
 }
