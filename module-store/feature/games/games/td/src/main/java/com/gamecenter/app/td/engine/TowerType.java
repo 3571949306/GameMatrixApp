@@ -9,7 +9,9 @@ public enum TowerType {
     SNOW("雪花", 70, 1.45f, 5.0f, 8f, 0.90f, false, 0f),
     FAN("风扇", 110, 1.6f, 4.2f, 12f, 1.15f, true, 0f),
     POISON("毒泡泡", 100, 1.5f, 5.5f, 8f, 1.0f, true, 0f),
-    ROCKET("火箭", 150, 1.8f, 6.5f, 48f, 2.0f, true, 0f);
+    ROCKET("火箭", 150, 1.8f, 6.5f, 48f, 2.0f, true, 0f),
+    /** 低单体伤害，依靠有限次数的近距弹射清理密集队列。 */
+    LIGHTNING("雷电塔", 125, 1.35f, 4.8f, 19f, 1.05f, true, 0f);
 
     public final String displayName;
     /** 基础造价 */
@@ -37,6 +39,8 @@ public enum TowerType {
     public static final float POISON_SEC = 3.0f;
     /** 火箭/风扇溅射半径（格子） */
     public static final float AOE_RADIUS = 1.3f;
+    /** 雷电塔相邻两次弹射允许的最大距离（格子）。 */
+    public static final float LIGHTNING_CHAIN_RANGE = 2.25f;
 
     TowerType(String displayName, int baseCost, float dmgMul, float range,
               float damage, float fireInterval, boolean canAir, float income) {
@@ -77,6 +81,22 @@ public enum TowerType {
     /** 从当前 level 升到 level+1 的花费 */
     public int upgradeCost(int nextLevel) {
         return (int) (baseCost * (0.55f + 0.28f * (nextLevel - 1)));
+    }
+
+    /** 含首个目标在内的最大命中数，连锁永远有限。 */
+    public int chainTargetCountAt(int level) {
+        if (this != LIGHTNING) return 1;
+        return Math.max(2, Math.min(4, level + 1));
+    }
+
+    /** 首目标之后每次弹射相对首击的伤害比例。 */
+    public float chainDamageMultiplierAt(int level) {
+        if (this != LIGHTNING) return 1f;
+        switch (Math.max(1, Math.min(3, level))) {
+            case 1: return .70f;
+            case 2: return .72f;
+            default: return .75f;
+        }
     }
 
     private static float pow(float base, int exp) {

@@ -108,11 +108,46 @@ public class TdGameTest {
         assertEquals("合成塔出售应返还总投入的 60%", 952, g.getCoin());
     }
 
+    @Test
+    public void lightningTower_hitsLimitedUniqueTargetsAtEachLevel() {
+        for (int level = 1; level <= 3; level++) {
+            TdGame g = clusteredMonsterGame(4);
+            TdGame.Tower tower = g.placeTower(TowerType.LIGHTNING, 1, 1);
+            assertNotNull(tower);
+            tower.level = level; // 合成规则已在独立测试覆盖；此处只校验各等级战斗上限。
+            assertTrue(g.startNextWaveEarly());
+            g.tick();
+            int hitCount = 0;
+            for (TdGame.Monster monster : g.getMonsters()) {
+                if (monster.hitFlash > 0f) hitCount++;
+            }
+            assertEquals("雷电塔只命中等级规定数量，且不会重复命中", level + 1, hitCount);
+        }
+    }
+
+    @Test
+    public void lightningTower_stopsWhenNoNearbyChainTargetExists() {
+        TdGame g = clusteredMonsterGame(1);
+        TdGame.Tower tower = g.placeTower(TowerType.LIGHTNING, 1, 1);
+        tower.level = 3;
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        assertEquals("没有第二目标时连锁必须安全结束", 1, g.getMonsters().size());
+        assertTrue(g.getMonsters().get(0).hitFlash > 0f);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
         waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f, 1f, 1f));
         return new TdGame(4, 3, path, 0, 3, 1000, 10, waves);
+    }
+
+    private static TdGame clusteredMonsterGame(int count) {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, count, 0f, 0f, 1f, 1f));
+        return new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
     }
 
     @Test
