@@ -63,15 +63,56 @@ public class TdGameTest {
     }
 
     @Test
-    public void upgrade_maxLevelThree() {
-        TdGame g = TdLevels.buildLevel("level_01");
-        TdGame.Tower t = g.placeTower(TowerType.BOTTLE, 3, 3);
-        assertNotNull(t);
-        // 升到 3 级
-        assertTrue(g.upgradeTower(3, 3));
-        assertTrue(g.upgradeTower(3, 3));
-        assertEquals(3, t.level);
-        assertFalse("已满级不可再升", g.upgradeTower(3, 3));
+    public void merge_sameLevelSameType_reachesLevelThree() {
+        TdGame g = mergeTestGame();
+        TdGame.Tower a = g.placeTower(TowerType.BOTTLE, 1, 0);
+        TdGame.Tower b = g.placeTower(TowerType.BOTTLE, 1, 1);
+        TdGame.Tower c = g.placeTower(TowerType.BOTTLE, 1, 2);
+        TdGame.Tower d = g.placeTower(TowerType.BOTTLE, 2, 0);
+        assertTrue(g.mergeTowers(a.row, a.col, b.row, b.col));
+        assertTrue(g.mergeTowers(c.row, c.col, d.row, d.col));
+        assertEquals(2, b.level);
+        assertEquals(2, d.level);
+        assertTrue(g.mergeTowers(b.row, b.col, d.row, d.col));
+        assertEquals(3, d.level);
+        assertNull("来源塔必须被消耗", g.getTowerAt(1, 1));
+        assertFalse("Lv3 不能继续合成", g.mergeTowers(2, 0, 1, 0));
+    }
+
+    @Test
+    public void merge_invalidInputs_areAtomic() {
+        TdGame g = mergeTestGame();
+        TdGame.Tower bottle = g.placeTower(TowerType.BOTTLE, 1, 0);
+        TdGame.Tower rocket = g.placeTower(TowerType.ROCKET, 1, 1);
+        int coinBefore = g.getCoin();
+        int towerCountBefore = g.getTowers().size();
+        assertFalse("不同类型必须拒绝", g.mergeTowers(1, 0, 1, 1));
+        assertEquals(coinBefore, g.getCoin());
+        assertEquals(towerCountBefore, g.getTowers().size());
+        assertEquals(1, bottle.level);
+        assertEquals(1, rocket.level);
+        assertFalse("同一座塔必须拒绝", g.mergeTowers(1, 0, 1, 0));
+        assertEquals(coinBefore, g.getCoin());
+        assertEquals(towerCountBefore, g.getTowers().size());
+    }
+
+    @Test
+    public void merge_sellRefund_usesBothSourceInvestments() {
+        TdGame g = mergeTestGame();
+        g.placeTower(TowerType.BOTTLE, 1, 0);
+        g.placeTower(TowerType.BOTTLE, 1, 1);
+        assertTrue(g.mergeTowers(1, 0, 1, 1));
+        TdGame.Tower merged = g.getTowerAt(1, 1);
+        assertEquals(120, merged.totalInvested());
+        assertTrue(g.sellTower(1, 1));
+        assertEquals("合成塔出售应返还总投入的 60%", 952, g.getCoin());
+    }
+
+    private static TdGame mergeTestGame() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f, 1f, 1f));
+        return new TdGame(4, 3, path, 0, 3, 1000, 10, waves);
     }
 
     @Test

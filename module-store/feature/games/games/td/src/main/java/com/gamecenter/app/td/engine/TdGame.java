@@ -132,6 +132,11 @@ public class TdGame {
         public final int row;
         public final int col;
         public int level = 1;
+        /**
+         * 这座塔实际投入的金币。合成会汇总两座来源塔的投入，出售据此返还，
+         * 不使用“假设按点按升级”的推导价格，避免合成后少返还。
+         */
+        public int investedCost;
         public float cooldown = 0f;
         public float incomeTimer = 0f;
         public TargetMode targetMode = TargetMode.FIRST;
@@ -142,12 +147,13 @@ public class TdGame {
             this.type = type;
             this.row = row;
             this.col = col;
+            this.investedCost = type.baseCost;
         }
 
         public float damageAt() { return type.damageAt(level); }
         public float rangeAt() { return type.rangeAt(level); }
         public float fireIntervalAt() { return type.fireIntervalAt(level); }
-        public int totalInvested() { return type.totalCostUpTo(level); }
+        public int totalInvested() { return investedCost; }
     }
 
     /** 怪兽实例 */
@@ -481,19 +487,65 @@ public class TdGame {
         return t;
     }
 
-    /** 升级塔。失败返回 false（已满级/金币不足）。 */
+    /**
+     * 旧的点按升级入口保留为兼容门面，但不再改变状态。
+     * 统一等级规则为同类型、同等级的两座塔合成；调用方须使用 {@link #mergeTowers}。
+     */
     public boolean upgradeTower(int row, int col) {
         clearAction();
-        if (state == State.WON || state == State.LOST) { return false; }
         Tower t = towerGrid.get(key(row, col));
-        if (t == null) { lastActionMessage = "该位置没有塔"; lastActionTone = "err"; return false; }
-        if (t.level >= 3) { lastActionMessage = "已满级（Lv3）"; lastActionTone = "info"; return false; }
-        int cost = t.type.upgradeCost(t.level + 1);
-        if (coin < cost) { lastActionMessage = "金币不足，升级需要 " + cost; lastActionTone = "err"; return false; }
-        coin -= cost;
-        t.level++;
+        lastActionMessage = t == null ? "该位置没有塔" : "请用两座同级" + t.type.displayName + "合成升级";
+        lastActionTone = t == null ? "err" : "info";
+        return false;
+    }
+
+    /**
+     * 原子合成：source 被消耗，target 原地升一级。
+     * 所有校验均发生在状态写入前；任何失败都不会改变金币、塔列表、网格索引或等级。
+     */
+    public boolean mergeTowers(int sourceRow, int sourceCol, int targetRow, int targetCol) {
+        clearAction();
+        if (state == State.WON || state == State.LOST) {
+            lastActionMessage = "对局已结束";
+            lastActionTone = "err";
+            return false;
+        }
+        if (sourceRow == targetRow && sourceCol == targetCol) {
+            lastActionMessage = "请选择另一座同级同类塔";
+            lastActionTone = "err";
+            return false;
+        }
+        Tower source = towerGrid.get(key(sourceRow, sourceCol));
+        Tower target = towerGrid.get(key(targetRow, targetCol));
+        if (source == null || target == null) {
+            lastActionMessage = "合成需要两座已建造的塔";
+            lastActionTone = "err";
+            return false;
+        }
+        if (source.type != target.type) {
+            lastActionMessage = "只能合成同类型防御塔";
+            lastActionTone = "err";
+            return false;
+        }
+        if (source.level != target.level) {
+            lastActionMessage = "只能合成相同等级的防御塔";
+            lastActionTone = "err";
+            return false;
+        }
+        if (target.level >= 3) {
+            lastActionMessage = "Lv3 已是最高等级，不能继续合成";
+            lastActionTone = "info";
+            return false;
+        }
+
+        // 所有条件已满足，以下为一次性提交点。
+        towerGrid.remove(key(sourceRow, sourceCol));
+        towers.remove(source);
+        target.level++;
+        target.investedCost += source.investedCost;
+        target.buildAge = 0;
         lastActionTone = "ok";
-        lastActionMessage = t.type.displayName + " 升级到 Lv" + t.level;
+        lastActionMessage = source.type.displayName + " 合成为 Lv" + target.level;
         return true;
     }
 

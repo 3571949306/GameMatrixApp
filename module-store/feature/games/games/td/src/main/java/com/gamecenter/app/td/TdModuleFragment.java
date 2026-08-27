@@ -53,6 +53,8 @@ public class TdModuleFragment extends Fragment {
     private Button btnUpgrade, btnSell, btnTarget, btnDeselect;
     private final Runnable tickLoop = this::tickOnce;
     private TowerType selectedType = null;
+    /** 合成源塔；非空时下一次点选塔会作为合成目标。 */
+    private TdGame.Tower mergeSource;
     private int selectedLevelIdx = 0;
     private int gameSession = 0;
     private boolean paused = false;
@@ -168,10 +170,24 @@ public class TdModuleFragment extends Fragment {
             }
             @Override public void onTowerSelected(int row, int col) {
                 if (game == null) return;
-                showTowerOps(game.getTowerAt(row, col));
+                TdGame.Tower tapped = game.getTowerAt(row, col);
+                if (mergeSource != null) {
+                    game.mergeTowers(mergeSource.row, mergeSource.col, row, col);
+                    showMsg(game.getLastActionMessage(), game.getLastActionTone());
+                    mergeSource = null;
+                    hideTowerOps();
+                } else {
+                    showTowerOps(tapped);
+                }
                 updateHud();
             }
-            @Override public void onTowerDeselected() { hideTowerOps(); }
+            @Override public void onTowerDeselected() {
+                if (mergeSource != null) {
+                    mergeSource = null;
+                    showMsg("已取消合成", "info");
+                }
+                hideTowerOps();
+            }
         });
         return tdView;
     }
@@ -369,13 +385,14 @@ public class TdModuleFragment extends Fragment {
         btnUpgrade.setOnClickListener(v -> {
             TdGame.Tower t = tdView.getHoverTower();
             if (t == null) return;
-            if (game.upgradeTower(t.row, t.col)) {
-                showMsg(game.getLastActionMessage(), "ok");
-            } else {
-                showMsg(game.getLastActionMessage(), "err");
+            if (t.level >= 3) {
+                showMsg("Lv3 已是最高等级", "info");
+                return;
             }
-            // 升级（或失败）后立即同步按钮价格/满级文案与可用态，避免显示旧值
-            showTowerOps(t);
+            mergeSource = t;
+            showMsg("已选择 " + t.type.displayName + " Lv" + t.level
+                    + "，请点击另一座同级同类塔合成", "info");
+            hideTowerOps();
             updateHud();
         });
         btnSell.setOnClickListener(v -> {
@@ -407,8 +424,7 @@ public class TdModuleFragment extends Fragment {
 
     private void showTowerOps(TdGame.Tower t) {
         towerOpsBar.setVisibility(View.VISIBLE);
-        btnUpgrade.setText(t.level >= 3 ? "已满级 Lv3"
-                : "升级 ₿" + t.type.upgradeCost(t.level + 1));
+        btnUpgrade.setText(t.level >= 3 ? "已满级 Lv3" : "合成 Lv" + (t.level + 1));
         btnUpgrade.setEnabled(t.level < 3);
         btnTarget.setEnabled(t.type != TowerType.SUN);
         btnTarget.setText(t.type == TowerType.SUN ? "经济塔" : "目标·" + t.targetMode.displayName);
