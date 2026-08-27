@@ -19,7 +19,9 @@ public enum MonsterType {
     /** 定期给邻近同伴补充有上限的护盾。 */
     SHIELD_GENERATOR("护盾发生器", 50f, 1.2f, 19, false, 0, 1),
     /** 周期生成低价值喽罗，派生物绝不具备召唤能力。 */
-    SUMMONER("召唤怪", 62f, 1.1f, 21, false, 0, 1);
+    SUMMONER("召唤怪", 62f, 1.1f, 21, false, 0, 1),
+    /** 仅软化减速、中毒和雷电后续弹射，任何塔都仍可攻击。 */
+    RESISTANT("抗性怪", 82f, 1.08f, 24, false, 1, 1);
 
     public final String displayName;
     /** 基础血量 */

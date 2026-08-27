@@ -19,6 +19,9 @@ public class TdGame {
     public static final float FIXED_HZ = 60f;
     public static final float FIXED_DT = 1f / FIXED_HZ;
 
+    /** 伤害来源只用于软抗性计算，所有来源最终仍走同一护甲/护盾/死亡提交。 */
+    private enum DamageKind { DIRECT, POISON, LIGHTNING_CHAIN, BURN }
+
     /** 游戏状态 */
     public enum State {
         PREPARING,   // 准备中（可建塔）
@@ -757,7 +760,7 @@ public class TdGame {
             // 中毒
             if (m.dotTimer > 0f) {
                 m.dotTimer -= FIXED_DT;
-                takeDamage(m, m.dotDps * FIXED_DT, false);
+                takeDamage(m, m.dotDps * FIXED_DT, DamageKind.POISON);
                 if (m.dotTimer <= 0f) { m.dotDps = 0f; }
             }
             if (m.dead) continue;
@@ -784,7 +787,7 @@ public class TdGame {
             zone.secondsLeft -= FIXED_DT;
             for (Monster monster : monsters) {
                 if (!monster.dead && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
-                    takeDamage(monster, TowerType.MINE_BURN_DPS * FIXED_DT, true);
+                    takeDamage(monster, TowerType.MINE_BURN_DPS * FIXED_DT, DamageKind.BURN);
                 }
             }
         }
@@ -922,8 +925,12 @@ public class TdGame {
         }
     }
 
-    private void takeDamage(Monster m, float dmg, boolean isPoisonLike) {
+    private void takeDamage(Monster m, float dmg, DamageKind kind) {
         if (m == null || m.dead || dmg <= 0f) return;
+        if (m.type == MonsterType.RESISTANT) {
+            if (kind == DamageKind.POISON) dmg *= .60f;
+            else if (kind == DamageKind.LIGHTNING_CHAIN) dmg *= .65f;
+        }
         if (m.shield > 0f) {
             float absorbed = Math.min(m.shield, dmg);
             m.shield -= absorbed;
@@ -1012,13 +1019,14 @@ public class TdGame {
         float dmg = t.damageAt();
         switch (t.type) {
             case BOTTLE:
-                takeDamage(target, dmg, false);
+                takeDamage(target, dmg, DamageKind.DIRECT);
                 break;
             case SNOW: {
-                target.slowTimer = TowerType.SNOW_SLOW_SEC;
+                float slowEffect = target.type == MonsterType.RESISTANT ? .55f : 1f;
+                target.slowTimer = TowerType.SNOW_SLOW_SEC * slowEffect;
                 // 在出生倍率基础上缩放，避免覆盖波次/难度叠加出的原始速度
-                target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT);
-                takeDamage(target, dmg * 0.4f, false);
+                target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT * slowEffect);
+                takeDamage(target, dmg * 0.4f, DamageKind.DIRECT);
                 break;
             }
             case FAN: {
@@ -1026,21 +1034,23 @@ public class TdGame {
                 for (Monster m : monsters) {
                     if (m.dead) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.8f, false);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.8f, DamageKind.DIRECT);
                 }
                 break;
             }
             case POISON: {
                 // 对单个目标上毒，若附近有怪再溅射一点点
                 target.dotDps = TowerType.POISON_DPS * (0.7f + 0.3f * t.level);
-                target.dotTimer = TowerType.POISON_SEC;
-                takeDamage(target, dmg * 0.3f, true);
+                float poisonEffect = target.type == MonsterType.RESISTANT ? .65f : 1f;
+                target.dotTimer = TowerType.POISON_SEC * poisonEffect;
+                takeDamage(target, dmg * 0.3f, DamageKind.DIRECT);
                 for (Monster m : monsters) {
                     if (m.dead || m == target) continue;
                     float d = dist(m.x, m.y, tx, ty);
                     if (d <= TowerType.AOE_RADIUS * 0.8f) {
                         m.dotDps = TowerType.POISON_DPS * 0.5f;
-                        m.dotTimer = TowerType.POISON_SEC * 0.7f;
+                        float splashPoisonEffect = m.type == MonsterType.RESISTANT ? .65f : 1f;
+                        m.dotTimer = TowerType.POISON_SEC * 0.7f * splashPoisonEffect;
                     }
                 }
                 break;
@@ -1049,7 +1059,7 @@ public class TdGame {
                 for (Monster m : monsters) {
                     if (m.dead) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.7f, false);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.7f, DamageKind.DIRECT);
                 }
                 break;
             }
@@ -1057,13 +1067,13 @@ public class TdGame {
                 fireLightning(t, target, dmg);
                 break;
             case SNIPER:
-                takeDamage(target, dmg, false);
+                takeDamage(target, dmg, DamageKind.DIRECT);
                 break;
             case MINE: {
                 float radius = t.type.mineBlastRadiusAt(t.level);
                 for (Monster monster : monsters) {
                     if (!monster.dead && dist(monster.x, monster.y, tx, ty) <= radius) {
-                        takeDamage(monster, dmg, false);
+                        takeDamage(monster, dmg, DamageKind.DIRECT);
                     }
                 }
                 if (t.level >= 3) {
@@ -1084,7 +1094,7 @@ public class TdGame {
     private void fireLightning(Tower tower, Monster first, float damage) {
         java.util.HashSet<Monster> hit = new java.util.HashSet<>();
         hit.add(first);
-        takeDamage(first, damage, false);
+        takeDamage(first, damage, DamageKind.DIRECT);
         Monster previous = first;
         int maxTargets = tower.type.chainTargetCountAt(tower.level);
         for (int count = 1; count < maxTargets; count++) {
@@ -1102,7 +1112,7 @@ public class TdGame {
             beams.add(new Beam(previous.x, previous.y, next.x, next.y, TowerType.LIGHTNING));
             if (beams.size() > 40) beams.remove(0);
             hit.add(next);
-            takeDamage(next, damage * tower.type.chainDamageMultiplierAt(tower.level), false);
+            takeDamage(next, damage * tower.type.chainDamageMultiplierAt(tower.level), DamageKind.LIGHTNING_CHAIN);
             previous = next;
         }
     }

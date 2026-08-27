@@ -325,6 +325,43 @@ public class TdGameTest {
         assertEquals("总生成数必须包括合法派生物", 9, g.getMonstersSpawnedTotal());
     }
 
+    @Test
+    public void resistantMonster_hasSoftControlPoisonAndLightningResistance_notImmunity() {
+        int[][] path = new int[30][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.RESISTANT, 1, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(30, 2, path, 0, 29, 1000, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 0));
+        assertNotNull(g.placeTower(TowerType.POISON, 1, 1));
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster resistant = g.getMonsters().get(0);
+        assertTrue("软抗减速仍应允许减速，但效果低于普通怪", resistant.speedMul > resistant.baseSpeedMul * .65f);
+        assertTrue("软抗中毒仍应附着", resistant.dotTimer > 0f);
+        assertTrue("抗性怪的中毒持续时间必须缩短", resistant.dotTimer < TowerType.POISON_SEC);
+        assertTrue("所有塔仍可造成直接伤害", resistant.hp < resistant.maxHp);
+    }
+
+    @Test
+    public void resistantMonster_reducesLightningBounceDamage() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {MonsterType.NORMAL, MonsterType.RESISTANT},
+                0, 2, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(5, 2, path, 0, 4, 1000, 10, waves);
+        TdGame.Tower lightning = g.placeTower(TowerType.LIGHTNING, 1, 0);
+        assertNotNull(lightning);
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+        TdGame.Monster resistant = null;
+        for (TdGame.Monster monster : g.getMonsters()) if (monster.type == MonsterType.RESISTANT) resistant = monster;
+        assertNotNull(resistant);
+        float expectedMax = lightning.damageAt() * .70f * .65f;
+        assertTrue("雷电后续弹射必须被软抗降低", resistant.maxHp - resistant.hp <= expectedMax + .0001f);
+        assertTrue("软抗不能把伤害归零", resistant.hp < resistant.maxHp);
+    }
+
     private static TdGame mergeTestGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
         java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
