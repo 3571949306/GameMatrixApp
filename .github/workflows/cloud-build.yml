@@ -21,7 +21,6 @@ on:
 
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4g"
-  JAVA_HOME: ${{ matrix.java_home }}
   HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
 
 jobs:
