@@ -640,6 +640,12 @@ android {
         unitTests {
             returnDefaultValues = true
             includeAndroidResources = true
+            // GameRegistryTest intentionally covers multiple Robolectric SDKs. The
+            // application resource table is large enough that the default test
+            // worker heap can exhaust native resource mappings before assertions run.
+            all {
+                maxHeapSize = "2g"
+            }
         }
     }
 
