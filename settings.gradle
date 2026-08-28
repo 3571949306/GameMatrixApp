@@ -104,14 +104,28 @@ include ':module-store:feature:games:games:gomoku'
 include ':module-store:feature:games:games:doudizhu'
 
 // Flutter Add-to-App module. The generated .android directory is recreated by
-// `flutter pub get`; keeping the check explicit makes a missing SDK/bootstrap
-// step fail with a useful message instead of an opaque Gradle project error.
+// `flutter pub get`. Metadata-only Gradle invocations (used by GitHub's
+// dependency submission action) must remain inspectable without a Flutter SDK;
+// actual Android builds still fail with an actionable bootstrap message.
 def flutterModuleRoot = new File(rootDir, 'flutter_module')
 def flutterIncludeScript = new File(flutterModuleRoot, 'host_include.gradle')
-if (!flutterIncludeScript.exists()) {
-    throw new GradleException(
-        "Flutter module bootstrap is missing. Run " +
-        "D:\\Developmment\\flutter\\bin\\flutter.bat pub get in ${flutterModuleRoot}."
-    )
+def flutterLocalProperties = new File(flutterModuleRoot, '.android/local.properties')
+if (!flutterLocalProperties.exists()) {
+    def taskNames = gradle.startParameter.taskNames
+    def metadataOnly = !taskNames.isEmpty() && taskNames.every { taskName ->
+        def normalized = taskName.toLowerCase()
+        normalized == 'help' || normalized.endsWith(':help') ||
+                normalized == 'tasks' || normalized.endsWith(':tasks') ||
+                normalized.contains('forcedependencyresolutionplugin')
+    }
+    if (metadataOnly) {
+        logger.lifecycle("[settings] Flutter module is not bootstrapped; skipping Add-to-App for metadata task.")
+    } else {
+        throw new GradleException(
+            "Flutter module bootstrap is missing. Run " +
+            "D:\\Developmment\\flutter\\bin\\flutter.bat pub get in ${flutterModuleRoot}."
+        )
+    }
+} else {
+    apply from: flutterIncludeScript
 }
-apply from: flutterIncludeScript

@@ -48,7 +48,10 @@ object SecureArchiveInstaller {
             rejectPackage(context, manifest, archive)
             return invalid
         }
-        lastGood.deleteRecursively()
+        if (lastGood.exists()) {
+            makeWritableRecursively(lastGood)
+            lastGood.deleteRecursively()
+        }
         if (current.exists() && !current.renameTo(lastGood)) {
             staging.deleteRecursively()
             rejectPackage(context, manifest, archive)
@@ -70,6 +73,8 @@ object SecureArchiveInstaller {
         if (!lastGood.isDirectory) return RuntimeResult(false, "rollback_unavailable", context.getString(R.string.module_error_no_last_good_package))
         val quarantine = File(root, "quarantine/${System.currentTimeMillis()}")
         quarantine.parentFile?.mkdirs()
+        makeWritableRecursively(current)
+        makeWritableRecursively(lastGood)
         if (current.exists() && !current.renameTo(quarantine)) {
             return RuntimeResult(false, "quarantine_failed", context.getString(R.string.module_error_unable_quarantine))
         }
@@ -79,7 +84,9 @@ object SecureArchiveInstaller {
 
     fun uninstall(context: Context, moduleId: String): RuntimeResult {
         val root = runtimeRoot(context, moduleId)
-        return if (!root.exists() || root.deleteRecursively()) RuntimeResult(true)
+        if (!root.exists()) return RuntimeResult(true)
+        makeWritableRecursively(root)
+        return if (root.deleteRecursively()) RuntimeResult(true)
         else RuntimeResult(false, "uninstall_failed", context.getString(R.string.module_error_unable_remove_runtime_dir))
     }
 
@@ -133,6 +140,12 @@ object SecureArchiveInstaller {
     private fun runtimeRoot(context: Context, moduleId: String): File {
         require(moduleId.matches(Regex("[A-Za-z0-9_.-]+"))) { "Invalid module id" }
         return File(context.filesDir, "modules/runtime/$moduleId").apply { mkdirs() }
+    }
+
+    /** Restore write access before a lifecycle operation replaces or removes read-only content. */
+    private fun makeWritableRecursively(root: File) {
+        if (!root.exists()) return
+        root.walkBottomUp().forEach { it.setWritable(true, false) }
     }
 
     /**

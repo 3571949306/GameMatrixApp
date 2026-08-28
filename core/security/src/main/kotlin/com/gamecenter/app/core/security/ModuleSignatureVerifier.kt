@@ -3,7 +3,6 @@ package com.gamecenter.app.core.security
 import android.content.Context
 import android.util.Log
 import com.android.apksig.ApkVerifier
-import com.gamecenter.app.core.security.R
 import java.io.File
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -120,7 +119,21 @@ object ModuleSignatureVerifier {
      */
     private fun loadPinnedCertificate(context: Context): X509Certificate? {
         return try {
-            context.resources.openRawResource(R.raw.release_signer).use { input ->
+            // The public repository intentionally does not contain the release
+            // certificate; release builds inject it into the merged app resources.
+            // Resolve the resource by name so the library remains compilable in
+            // CI and in development builds without weakening the hard-fail path
+            // in verify() when the certificate is absent.
+            val resourceId = context.resources.getIdentifier(
+                "release_signer",
+                "raw",
+                context.packageName
+            )
+            if (resourceId == 0) {
+                Log.w(TAG, "release_signer.cer 资源缺失")
+                return null
+            }
+            context.resources.openRawResource(resourceId).use { input ->
                 val certBytes = input.readBytes()
                 if (certBytes.isEmpty()) {
                     Log.w(TAG, "release_signer.cer 为空占位，签名者强校验暂未启用")

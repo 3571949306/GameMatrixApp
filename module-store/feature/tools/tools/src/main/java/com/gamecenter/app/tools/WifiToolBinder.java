@@ -53,7 +53,7 @@ public class WifiToolBinder implements ToolBinder {
         TextView tvMobileSignal = contentView.findViewById(R.id.tv_mobile_signal);
         TextView tvMobileOperator = contentView.findViewById(R.id.tv_mobile_operator);
 
-        if (tvMobileType != null) tvMobileType.setText(context.getString(R.string.tool_wifi_type_format, getMobileNetworkType()));
+        if (tvMobileType != null) tvMobileType.setText(context.getString(R.string.tool_wifi_type_format, getMobileNetworkType(context)));
         if (tvMobileSignal != null) tvMobileSignal.setText(context.getString(R.string.tool_wifi_signal_format, getMobileSignalText(context)));
         if (tvMobileOperator != null) tvMobileOperator.setText(context.getString(R.string.tool_wifi_operator_format, getMobileOperator()));
     }
@@ -63,9 +63,9 @@ public class WifiToolBinder implements ToolBinder {
      *
      * @return 网络类型字符串，异常时返回"未连接"
      */
-    private String getMobileNetworkType() {
+    private String getMobileNetworkType(Context context) {
         try {
-            return ToolHelper.getMobileNetworkType(telephonyManager);
+            return ToolHelper.getMobileNetworkType(context, telephonyManager);
         } catch (Exception ignored) {
             return "未连接";
         }
@@ -138,7 +138,7 @@ public class WifiToolBinder implements ToolBinder {
                 // 优先查找已注册的小区
                 for (android.telephony.CellInfo info : cellInfoList) {
                     if (info.isRegistered()) {
-                        android.telephony.CellSignalStrength css = info.getCellSignalStrength();
+                        android.telephony.CellSignalStrength css = getCellSignalStrength(info);
                         if (css != null) {
                             mobileSignalDbm = css.getDbm();
                             // 获取到有效的 dBm 值（负数）即可停止
@@ -148,10 +148,36 @@ public class WifiToolBinder implements ToolBinder {
                 }
                 // 若未找到已注册小区的信号，回退使用第一个小区
                 if (mobileSignalDbm == 0 && !cellInfoList.isEmpty()) {
-                    android.telephony.CellSignalStrength css = cellInfoList.get(0).getCellSignalStrength();
+                    android.telephony.CellSignalStrength css = getCellSignalStrength(cellInfoList.get(0));
                     if (css != null) mobileSignalDbm = css.getDbm();
                 }
             }
         } catch (Exception ignored) { Log.w(TAG, "Fetch cell signal failed: " + ignored.getMessage()); }
+    }
+
+    /**
+     * Reads the signal strength through the API available on the device's OS version.
+     * CellInfo#getCellSignalStrength() was added in API 30; the type-specific methods
+     * keep the signal tool useful on the module's API 26 minimum.
+     */
+    private static android.telephony.CellSignalStrength getCellSignalStrength(
+            android.telephony.CellInfo info) {
+        if (info == null) return null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            return info.getCellSignalStrength();
+        }
+        if (info instanceof android.telephony.CellInfoLte) {
+            return ((android.telephony.CellInfoLte) info).getCellSignalStrength();
+        }
+        if (info instanceof android.telephony.CellInfoGsm) {
+            return ((android.telephony.CellInfoGsm) info).getCellSignalStrength();
+        }
+        if (info instanceof android.telephony.CellInfoCdma) {
+            return ((android.telephony.CellInfoCdma) info).getCellSignalStrength();
+        }
+        if (info instanceof android.telephony.CellInfoWcdma) {
+            return ((android.telephony.CellInfoWcdma) info).getCellSignalStrength();
+        }
+        return null;
     }
 }

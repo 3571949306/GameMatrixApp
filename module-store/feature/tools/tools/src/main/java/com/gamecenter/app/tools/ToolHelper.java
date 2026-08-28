@@ -364,14 +364,23 @@ public final class ToolHelper {
      * 获取当前移动网络类型的中文名称。
      * <p>通过 TelephonyManager 获取网络类型常量，并映射为可读的名称。</p>
      *
+     * @param context          上下文，用于检查电话状态权限，可为 null
      * @param telephonyManager 电话管理器实例，可为 null
      * @return 网络类型名称（如 "LTE(4G)"、"NR(5G)"）；未连接时返回 "未连接"
      */
-    public static String getMobileNetworkType(android.telephony.TelephonyManager telephonyManager) {
-        if (telephonyManager == null) return "未连接";
+    public static String getMobileNetworkType(Context context,
+            android.telephony.TelephonyManager telephonyManager) {
+        if (context == null || telephonyManager == null) return "未连接";
+        if (context.checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return "未知";
+        }
         try {
             int type = telephonyManager.getNetworkType();
             return telephonyNetworkTypeName(type);
+        } catch (SecurityException e) {
+            // READ_PHONE_STATE may be denied; the diagnostic tool can still report other data.
+            return "未知";
         } catch (Exception e) {
             return "未知";
         }
