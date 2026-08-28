@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">ADB Workbench</string>
+    <string name="adb_notification_channel">ADB device tasks</string>
+    <string name="adb_notification_title">ADB task in progress</string>
+    <string name="adb_notification_text">Tap to return to the workbench and view progress. Do not unplug the device or turn off debugging.</string>
+
+    <!-- Menu / Entry -->
+    <string name="adb_entry_title">ADB Workbench</string>
+    <string name="adb_entry_description">Connect to and manage ADB devices, run commands, install apps, and control the screen</string>
+    <string name="adb_entry_unavailable">ADB Workbench unavailable</string>
+
+    <!-- Top bar -->
+    <string name="adb_topbar_no_device">No device connected</string>
+    <string name="adb_topbar_connecting">Connecting…</string>
+    <string name="adb_topbar_tcp">TCP</string>
+    <string name="adb_topbar_usb">USB</string>
+    <string name="adb_topbar_tls">TLS</string>
+    <string name="adb_topbar_fastboot">Fastboot</string>
+    <string name="adb_btn_disconnect">Disconnect</string>
+    <string name="adb_btn_switch">Switch device</string>
+
+    <!-- Tabs -->
+    <string name="adb_tab_device">Device</string>
+    <string name="adb_tab_app">Apps</string>
+    <string name="adb_tab_file">Files</string>
+    <string name="adb_tab_shell">Terminal</string>
+    <string name="adb_tab_screen">Screen</string>
+    <string name="adb_tab_system">System</string>
+    <string name="adb_tab_fastboot">Fastboot</string>
+
+    <!-- Device connect -->
+    <string name="adb_device_tab_tcp">TCP/IP connection</string>
+    <string name="adb_device_tab_pair">Wireless pairing</string>
+    <string name="adb_device_tab_usb">USB device</string>
+    <string name="adb_device_host_hint">Host address, e.g. 192.168.1.100</string>
+    <string name="adb_device_port_hint">Port</string>
+    <string name="adb_device_connect">Connect</string>
+    <string name="adb_device_connect_tls">TLS connection (recommended)</string>
+    <string name="adb_device_discovery_description">Only discovers devices actively advertising wireless ADB on the current LAN; it does not scan the subnet or connect automatically.</string>
+    <string name="adb_device_discovery_start">Scan for online ADB devices</string>
+    <string name="adb_device_discovery_stop">Stop scanning</string>
+    <string name="adb_device_discovery_scanning">Discovering wireless ADB devices on the LAN…</string>
+    <string name="adb_device_discovery_empty">No device advertising wireless ADB was found. Make sure Wireless debugging is enabled and both devices are on the same LAN.</string>
+    <string name="adb_device_discovery_found">Found %1$d devices. Select one, then connect manually.</string>
+    <string name="adb_device_discovery_selected">Filled in %1$s:%2$d. Confirm manually before connecting.</string>
+    <string name="adb_device_pair_code">Pairing code</string>
+    <string name="adb_device_pair_connect_port">Connection port</string>
+    <string name="adb_device_pair">Pair</string>
+    <string name="adb_device_scan_usb">Scan USB devices</string>
+    <string name="adb_device_no_usb">No USB device detected</string>
+    <string name="adb_device_usb_authorization">Allow USB debugging on the device</string>
+    <string name="adb_device_authorized">Authorized</string>
+    <string name="adb_device_unauthorized">Unauthorized</string>
+    <string name="adb_device_offline">Offline</string>
+    <string name="adb_device_selected">Current device</string>
+    <string name="adb_device_records">History</string>
+    <string name="adb_device_remove_record">Remove record</string>
+    <string name="adb_device_connecting">Connecting…</string>
+    <string name="adb_device_connect_success">Connected: %1$s</string>
+    <string name="adb_device_connect_failure">Connection failed: %1$s</string>
+    <string name="adb_device_disconnected">Disconnected</string>
+
+    <!-- Terminal / Shell -->
+    <string name="adb_shell_hint">Enter an ADB shell command…</string>
+    <string name="adb_shell_send">Run</string>
+    <string name="adb_shell_cancel">Cancel</string>
+    <string name="adb_shell_history">History</string>
+    <string name="adb_shell_shortcuts">Shortcuts</string>
+    <string name="adb_shell_add_shortcut">Save as shortcut</string>
+    <string name="adb_shell_shortcut_name">Shortcut name</string>
+    <string name="adb_shell_output_empty">No output</string>
+    <string name="adb_shell_not_connected">Connect a device first</string>
+    <string name="adb_shell_running">Running command…</string>
+
+    <!-- App manager -->
+    <string name="adb_app_search_hint">Search package names</string>
+    <string name="adb_app_filter_all">All</string>
+    <string name="adb_app_filter_system">System apps</string>
+    <string name="adb_app_filter_user">User apps</string>
+    <string name="adb_app_launch">Launch</string>
+    <string name="adb_app_force_stop">Force stop</string>
+    <string name="adb_app_enable">Enable</string>
+    <string name="adb_app_disable">Disable</string>
+    <string name="adb_app_uninstall">Uninstall</string>
+    <string name="adb_app_clear_data">Clear data</string>
+    <string name="adb_app_permissions">Permissions</string>
+    <string name="adb_app_install">Install APK</string>
+    <string name="adb_app_install_from_device">Install from this device</string>
+    <string name="adb_app_select_apk">Choose an APK file</string>
+    <string name="adb_app_installing">Installing…</string>
+    <string name="adb_app_install_success">Installation successful</string>
+    <string name="adb_app_install_failure">Installation failed: %1$s</string>
+    <string name="adb_app_list_empty">No apps found</string>
+    <string name="adb_app_uninstall_confirm">Uninstall %1$s?</string>
+    <string name="adb_app_clear_confirm">Clear data for %1$s?</string>
+    <string name="adb_app_no_device">Connect a device first</string>
+
+    <!-- File manager -->
+    <string name="adb_file_current_path">Current path: %1$s</string>
+    <string name="adb_file_btn_back">Parent directory</string>
+    <string name="adb_file_btn_upload">Upload</string>
+    <string name="adb_file_btn_download">Download</string>
+    <string name="adb_file_btn_new_dir">New directory</string>
+    <string name="adb_file_btn_delete">Delete</string>
+    <string name="adb_file_btn_rename">Rename</string>
+    <string name="adb_file_btn_select_all">Select all</string>
+    <string name="adb_file_btn_copy">Copy</string>
+    <string name="adb_file_btn_move">Move</string>
+    <string name="adb_file_list_empty">Directory is empty</string>
+    <string name="adb_file_select_files">Select files</string>
+    <string name="adb_file_select_local">Choose local files</string>
+    <string name="adb_file_progress">Transfer progress: %1$d / %2$d KiB</string>
+    <string name="adb_file_upload_success">Upload successful</string>
+    <string name="adb_file_download_success">Download successful</string>
+    <string name="adb_file_delete_confirm">Delete %1$d files/directories?</string>
+    <string name="adb_file_no_device">Connect a device first</string>
+    <string name="adb_file_new_dir_hint">Enter directory name</string>
+    <string name="adb_file_rename_hint">Enter a new name</string>
+
+    <!-- Screen control / Scrcpy -->
+    <string name="adb_screen_start">Start screen mirroring</string>
+    <string name="adb_screen_stop">Stop screen mirroring</string>
+    <string name="adb_screen_screenshot">Screenshot</string>
+    <string name="adb_screen_fullscreen">Full screen</string>
+    <string name="adb_screen_back">Back button</string>
+    <string name="adb_screen_home">Home button</string>
+    <string name="adb_screen_recent">Recents button</string>
+    <string name="adb_screen_enter_text">Enter text</string>
+    <string name="adb_screen_resolution">Resolution</string>
+    <string name="adb_screen_bitrate">Bitrate</string>
+    <string name="adb_screen_landscape">Landscape</string>
+    <string name="adb_screen_portrait">Portrait</string>
+    <string name="adb_screen_starting">Starting screen mirroring…</string>
+    <string name="adb_screen_no_device">Connect a device first</string>
+    <string name="adb_screen_saved_to">Screenshot saved to %1$s</string>
+    <string name="adb_screen_not_running">Screen mirroring is not running</string>
+
+    <!-- System settings -->
+    <string name="adb_system_device_info">Device information</string>
+    <string name="adb_system_dpi">DPI</string>
+    <string name="adb_system_resolution">Resolution</string>
+    <string name="adb_system_animation_scale">Animation scale</string>
+    <string name="adb_system_apply">Apply</string>
+    <string name="adb_system_reset_default">Restore defaults</string>
+    <string name="adb_system_reboot">Reboot device</string>
+    <string name="adb_system_reboot_recovery">Reboot to Recovery</string>
+    <string name="adb_system_reboot_bootloader">Reboot to Bootloader</string>
+    <string name="adb_system_reboot_confirm">%1$s?</string>
+    <string name="adb_system_model">Model</string>
+    <string name="adb_system_brand">Brand</string>
+    <string name="adb_system_android_version">Android version</string>
+    <string name="adb_system_sdk">SDK version</string>
+    <string name="adb_system_build">Build number</string>
+    <string name="adb_system_serial">Serial number</string>
+    <string name="adb_system_current_dpi">Current DPI: %1$d</string>
+    <string name="adb_system_current_resolution">Current resolution: %1$dx%2$d</string>
+    <string name="adb_system_no_device">Connect a device first</string>
+
+    <!-- Fastboot -->
+    <string name="adb_fastboot_info">Device information</string>
+    <string name="adb_fastboot_command">Fastboot command</string>
+    <string name="adb_fastboot_execute">Run</string>
+    <string name="adb_fastboot_flash_partition">Flash partition</string>
+    <string name="adb_fastboot_flash_image">Choose image</string>
+    <string name="adb_fastboot_boot_temp">Temporary boot</string>
+    <string name="adb_fastboot_erase_partition">Erase partition</string>
+    <string name="adb_fastboot_partition_hint">Partition name, e.g. boot_a or system</string>
+    <string name="adb_fastboot_enter_fastboot">Enter Fastboot mode</string>
+    <string name="adb_fastboot_exit_fastboot">Exit Fastboot mode</string>
+    <string name="adb_fastboot_result">Result</string>
+    <string name="adb_fastboot_no_device">Connect a device over USB first</string>
+    <string name="adb_fastboot_flash_warning">Flashing may brick the device. Make sure the operation is correct!</string>
+    <string name="adb_fastboot_erase_warning">Erasing a partition deletes all data and cannot be undone!</string>
+    <string name="adb_fastboot_confirm_type">Enter the partition name to confirm</string>
+    <string name="adb_fastboot_running">Fastboot operation in progress…</string>
+    <string name="adb_fastboot_done">Operation complete</string>
+
+    <!-- Generic -->
+    <string name="adb_ok">OK</string>
+    <string name="adb_cancel">Cancel</string>
+    <string name="adb_retry">Retry</string>
+    <string name="adb_delete">Delete</string>
+    <string name="adb_confirm">Confirm</string>
+    <string name="adb_yes">Yes</string>
+    <string name="adb_no">No</string>
+    <string name="adb_loading">Loading…</string>
+    <string name="adb_no_selection">Nothing selected</string>
+    <string name="adb_selected_count">%1$d items selected</string>
+    <string name="adb_operation_cancelled">Operation cancelled</string>
+    <string name="adb_operation_unknown">Operation result pending confirmation</string>
+    <string name="adb_enter_text">Enter text</string>
+    <string name="adb_name_hint">Name</string>
+
+    <!-- Process / Session -->
+    <string name="adb_session_leave_confirm">A task is still running. Leave anyway?</string>
+    <string name="adb_session_exit_confirm">Exit ADB Workbench?</string>
+    <string name="adb_session_dangerous_warning">A high-risk operation is in progress; disconnecting is not allowed</string>
+
+    <!-- About / Safety -->
+    <string name="adb_safety_notice">Connect only to devices you own or are authorized to manage. Every operation must be started manually.</string>
+    <string name="adb_safety_notice_title">Safety notice</string>
+
+    <!-- File picker -->
+    <string name="adb_filepicker_apk">Choose an APK file</string>
+    <string name="adb_filepicker_image">Choose an image file</string>
+    <string name="adb_filepicker_any">Choose a file</string>
+
+    <!-- Styles -->
+    <style name="AdbWorkbenchTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="colorAccent">#137F76</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F3F7F6</item>
+        <item name="android:navigationBarColor">#F3F7F6</item>
+        <item name="windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="AdbWorkbenchTheme.Dark" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="colorAccent">#137F76</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#1A1A1A</item>
+        <item name="android:navigationBarColor">#1A1A1A</item>
+        <item name="windowActionModeOverlay">true</item>
+    </style>
+</resources>

@@ -3008,6 +3008,25 @@
 
     <!-- HistoryAdapter (浏览器) -->
     <string name="history_visit_count_format">访问 %1$d 次</string>
+    <string name="game_checkers_difficulty_medium">普通</string>
+    <string name="game_sudoku_notes">笔记</string>
+    <string name="game_sudoku_notes_on">笔记：开</string>
+    <string name="game_sudoku_notes_off">笔记：关</string>
+    <string name="achievement_detail_title">成就详情</string>
+    <string name="achievement_detail_game_icon">游戏图标</string>
+    <string name="achievement_detail_filter_all">全部</string>
+    <string name="achievement_detail_filter_unlocked">已解锁</string>
+    <string name="achievement_detail_filter_locked">未解锁</string>
+    <string name="achievement_detail_empty">该游戏暂无成就配置</string>
+    <string name="achievement_detail_empty_filter">没有符合当前筛选条件的成就</string>
+    <string name="achievement_detail_percent_format">%1$d%%</string>
+    <string name="achievement_detail_unlocked_format">已解锁 %1$d / %2$d</string>
+    <string name="achievement_detail_unlock_date_format">解锁时间：%1$s</string>
+    <string name="achievement_detail_default_desc">完成指定条件即可解锁此成就</string>
+    <string name="achievement_rarity_bronze">铜</string>
+    <string name="achievement_rarity_silver">银</string>
+    <string name="achievement_rarity_gold">金</string>
+    <string name="achievement_rarity_platinum">铂金</string>
 
     <!-- DataConnectionCenter (#23 数据与连接中心) -->
     <string name="data_center_title">数据与连接中心</string>
@@ -3180,5 +3199,7 @@
     <string name="tool_satellite_constellation_irnss">NavIC</string>
     <string name="tool_satellite_constellation_sbas">SBAS</string>
     <string name="tool_satellite_constellation_other">其他</string>
+
+    <!-- Achievement and game strings kept in sync with the English catalog -->
 
 </resources>
