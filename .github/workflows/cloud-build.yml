@@ -86,7 +86,7 @@ jobs:
 
       # 编译
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleDebug -PautoBumpVersion=false --stacktrace
 
       - name: Build release APK (unsigned, lint-skipped)
         if: github.event_name != 'pull_request'

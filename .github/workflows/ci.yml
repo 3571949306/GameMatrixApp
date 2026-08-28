@@ -135,7 +135,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleDebug -PautoBumpVersion=false --stacktrace
 
       - name: Build release APK (unsigned, lint-skipped)
         # CI 不签名, 只验证 release 路径能跑通
