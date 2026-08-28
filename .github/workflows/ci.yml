@@ -15,7 +15,6 @@ permissions:
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4g"
   ANDROID_HOME: ${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}
-  JAVA_HOME: ${{ matrix.java_home }}
 
 jobs:
   lint-and-test:
