@@ -12,9 +12,6 @@
     <string name="game_sudoku_hint">提示</string>
 
     <!-- 笔记/草稿功能 -->
-    <string name="game_sudoku_notes">笔记</string>
-    <string name="game_sudoku_notes_on">笔记：开</string>
-    <string name="game_sudoku_notes_off">笔记：关</string>
 
     <!-- 游戏规则 -->
     <string name="game_sudoku_rules_title">数独规则</string>

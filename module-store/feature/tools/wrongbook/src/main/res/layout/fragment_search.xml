@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/wrongbook_background"
@@ -24,7 +25,7 @@
             android:focusable="true"
             android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
-            android:tint="@color/wrongbook_primary"
+            app:tint="@color/wrongbook_primary"
             android:contentDescription="Back" />
 
         <LinearLayout
@@ -42,7 +43,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_menu_search"
-                android:tint="@color/wrongbook_outline"
+                app:tint="@color/wrongbook_outline"
                 android:contentDescription="Search" />
 
             <EditText
@@ -68,7 +69,7 @@
                 android:layout_height="20dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:tint="@color/wrongbook_outline"
+                app:tint="@color/wrongbook_outline"
                 android:clickable="true"
                 android:focusable="true"
                 android:visibility="gone"
@@ -174,7 +175,7 @@
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:src="@android:drawable/ic_menu_search"
-                android:tint="@color/wrongbook_text_tertiary"
+                app:tint="@color/wrongbook_text_tertiary"
                 android:contentDescription="No Result" />
 
             <TextView
