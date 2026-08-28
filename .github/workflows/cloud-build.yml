@@ -90,7 +90,7 @@ jobs:
 
       - name: Build release APK (unsigned, lint-skipped)
         if: github.event_name != 'pull_request'
-        run: ./gradlew :app:assembleRelease -PskipReleaseLint=true --stacktrace
+        run: ./gradlew :app:assembleRelease -PskipReleaseLint=true -PciUnsignedRelease=true -PautoBumpVersion=false --stacktrace
 
       # 单元测试覆盖率
       - name: Generate coverage report
