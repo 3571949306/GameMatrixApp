@@ -96,6 +96,10 @@ def flutterNdkVersion = (project.findProperty("flutterNdkVersion") ?: "28.2.1367
 def releaseApkMaxSizeMb = (project.findProperty("releaseApkMaxSizeMb") ?: "120").toString().trim()
 def catalogSignatureEnabled = (project.findProperty("enableCatalogSignature") ?: "true").toString().toBoolean()
 def catalogSigningProfile = (project.findProperty("catalogSigningProfile") ?: "development").toString().trim().toLowerCase()
+// CI's unsigned Release APK is a compile-path artifact, not a publishable build.
+// Keep the default Release/stable trust requirement strict; only this explicit
+// non-publishing QA path may run without the production catalog public key.
+def ciUnsignedRelease = (project.findProperty("ciUnsignedRelease") ?: "false").toString().toBoolean()
 def useStagingApplicationIdSuffix = (
         project.findProperty("stagingApplicationIdSuffix") ?: "false"
 ).toString().toBoolean()
@@ -178,7 +182,7 @@ def validateCatalogTrustConfig = {
     if (encodedKeys.isEmpty()) {
         // P1 隔离加固：目录签名默认开启；未配置公钥时，生产（release/稳定）构建必须失败，
         // 本地开发构建降级为"验签未配置"警告运行（运行时以兼容模式放行未签名目录）。
-        def productionBuild = releaseSigningRequired || currentVersionChannel == "stable"
+        def productionBuild = (releaseSigningRequired && !ciUnsignedRelease) || currentVersionChannel == "stable"
         if (productionBuild) {
             throw new GradleException(
                     "Catalog signature verification is enabled but no Ed25519 public key is configured. " +
