@@ -10,7 +10,6 @@
     <string name="game_checkers_ai_turn">AI 思考中…</string>
     <string name="game_checkers_you_win">恭喜你获胜了！</string>
     <string name="game_checkers_ai_win">AI 获胜，再接再厉！</string>
-    <string name="game_checkers_difficulty_medium">中等</string>
 
     <!-- 游戏规则 -->
     <string name="game_checkers_rules_title">跳棋规则</string>

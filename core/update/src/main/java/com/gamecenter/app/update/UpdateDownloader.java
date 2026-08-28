@@ -357,8 +357,8 @@ public class UpdateDownloader {
             // 使用 GET_META_DATA 确保能完整解析 AndroidManifest.xml
             int flags = PackageManager.GET_META_DATA;
             PackageInfo packageInfo;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // Android 9+ 使用 PackageInfoFlags，避免 deprecated 警告
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13+ 使用 PackageInfoFlags，避免 deprecated 警告
                 packageInfo = pm.getPackageArchiveInfo(apkFile.getAbsolutePath(),
                         PackageManager.PackageInfoFlags.of(flags));
             } else {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="56dp"
     android:layout_marginStart="16dp"
@@ -20,7 +21,7 @@
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:src="@drawable/wrongbook_drag_handle"
-        android:tint="@color/wrongbook_outline"
+        app:tint="@color/wrongbook_outline"
         android:layout_marginEnd="12dp"
         android:contentDescription="Drag" />
 
@@ -51,7 +52,7 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="8dp"
         android:src="@android:drawable/ic_menu_edit"
-        android:tint="@color/wrongbook_primary"
+        app:tint="@color/wrongbook_primary"
         android:contentDescription="Edit" />
 
     <ImageView
@@ -62,7 +63,7 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="8dp"
         android:src="@android:drawable/ic_menu_delete"
-        android:tint="@color/wrongbook_error"
+        app:tint="@color/wrongbook_error"
         android:contentDescription="Delete" />
 
 </LinearLayout>
