@@ -34,6 +34,10 @@ public final class ToolTileIcons {
         ICONS.put("clipboard", "\uD83D\uDCCB");
         ICONS.put("color", "\uD83C\uDFA8");
         ICONS.put("sysinfo", "\u2139");
+        ICONS.put("device_overview", "\uD83D\uDCF1");
+        ICONS.put("installed_apps", "\uD83D\uDCE6");
+        ICONS.put("compass", "\uD83E\uDDED");
+        ICONS.put("satellite", "\uD83D\uDEF0");
         ICONS.put("regex_test", "\uD83D\uDD23");
         ICONS.put("unit_converter", "\uD83D\uDCD0");
         ICONS.put("radix_converter", "\uD83D\uDD00");

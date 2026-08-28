@@ -52,6 +52,18 @@ public class TdGame {
         }
     }
 
+    /**
+     * 仅供渲染层读取的关卡视觉主题。它不参与判定、随机数或存档，因此更换地图画风
+     * 不会改变同一局游戏的逻辑结果。
+     */
+    public enum VisualTheme {
+        GARDEN,
+        BRAMBLE,
+        CRYSTAL,
+        VALLEY,
+        STORM
+    }
+
     /** 单条波次定义 */
     public static class Wave {
         public final MonsterType type;
@@ -313,6 +325,7 @@ public class TdGame {
     private int monstersSpawnedTotal = 0;
     private long elapsedTicks = 0;
     private Difficulty difficulty = Difficulty.NORMAL;
+    private VisualTheme visualTheme = VisualTheme.GARDEN;
 
     public TdGame(int cols, int rows, int[][] path, int eggRow, int eggCol,
                   int startCoin, int mascotHp, List<Wave> waves) {
@@ -399,6 +412,13 @@ public class TdGame {
 
     public State getState() { return state; }
     public Difficulty getDifficulty() { return difficulty; }
+    public VisualTheme getVisualTheme() { return visualTheme; }
+
+    /** 关卡工厂在创建后设置主题；空值安全地退回晨露花园。 */
+    public TdGame setVisualTheme(VisualTheme theme) {
+        visualTheme = theme != null ? theme : VisualTheme.GARDEN;
+        return this;
+    }
 
     /** 应用难度：初始金币 × 难度倍率（仅 PREPARING 阶段生效）。 */
     public void applyDifficulty(Difficulty d) {
@@ -686,7 +706,8 @@ public class TdGame {
             int remaining = w.count - spawnedInWave;
             if (remaining > 0) {
                 spawnRemainingInstantly(w, spawnedInWave);
-                int bonus = 2 * remaining;
+                // 加速召唤仍有风险补偿，但不再让它成为主要经济来源。
+                int bonus = remaining;
                 coin += bonus;
                 coinsEarned += bonus;
                 lastActionTone = "info";

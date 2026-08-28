@@ -2,12 +2,22 @@ package com.gamecenter.app.td;
 
 import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
+import com.gamecenter.app.td.engine.TdLevelJsonParser;
 import com.gamecenter.app.td.engine.TdLevels;
 import com.gamecenter.app.td.engine.TowerType;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -22,6 +32,65 @@ public class TdGameTest {
 
     private static final int MAX_TICKS = 60 * 240; // 最多模拟 4 分钟（真实时间）
 
+    @BeforeClass
+    public static void loadProductionCampaignData() throws IOException {
+        Path assetRoot = findAssetsRoot();
+        TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(readAsset(
+                assetRoot.resolve("td/manifest.json")));
+        List<com.gamecenter.app.td.engine.TdLevelDefinition> definitions = new ArrayList<>();
+        for (TdLevelJsonParser.ChapterRef chapter : manifest.chapters) {
+            definitions.addAll(TdLevelJsonParser.parseChapter(readAsset(
+                    assetRoot.resolve("td").resolve(chapter.file))).levels);
+        }
+        TdLevels.installForTesting(definitions);
+    }
+
+    private static Path findAssetsRoot() {
+        Path[] candidates = new Path[] {
+                Paths.get("src/main/assets"),
+                Paths.get("module-store/feature/games/games/td/src/main/assets")
+        };
+        for (Path candidate : candidates) {
+            if (Files.isRegularFile(candidate.resolve("td/manifest.json"))) return candidate;
+        }
+        throw new IllegalStateException("production TD campaign asset was not found for JVM test");
+    }
+
+    private static String readAsset(Path path) throws IOException {
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+    }
+
+    @Test
+    public void campaignUsesStableIdsWhileSupportingLegacyDeepLinks() {
+        assertEquals(25, TdLevels.levelIds().size());
+        assertEquals("main_001", TdLevels.levelIds().get(0));
+        assertEquals("main_025", TdLevels.levelIds().get(24));
+        assertTrue(TdLevels.isKnownLevelId("main_001"));
+        assertTrue(TdLevels.isKnownLevelId("level_01"));
+        assertEquals(TdLevels.buildLevel("main_001").getRouteLength(0),
+                TdLevels.buildLevel("level_01").getRouteLength(0));
+    }
+
+    @Test
+    public void campaignHasLongRoutesAndEnoughDistinctMapTopologies() {
+        Set<String> routeTopologies = new HashSet<>();
+        for (String id : TdLevels.levelIds()) {
+            TdGame game = TdLevels.buildLevel(id);
+            StringBuilder topology = new StringBuilder(game.getRows() + "x" + game.getCols());
+            for (int row = 0; row < game.getRows(); row++) {
+                for (int col = 0; col < game.getCols(); col++) {
+                    topology.append(game.isPathCell(row, col) ? 'P' : '.');
+                }
+            }
+            routeTopologies.add(topology.toString());
+            for (int route = 0; route < game.getPaths().length; route++) {
+                assertTrue(id + " 的每条入口路线都必须足够长", game.getRouteLength(route) >= 30);
+            }
+        }
+        assertTrue("25 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
+                routeTopologies.size() >= 8);
+    }
+
     // ===== 基础规则 =====
 
     @Test
@@ -35,7 +104,7 @@ public class TdGameTest {
     @Test
     public void placeTower_onEgg_fails() {
         TdGame g = TdLevels.buildLevel("level_01");
-        assertNull(g.placeTower(TowerType.BOTTLE, 7, 0)); // 蛋蛋格
+        assertNull(g.placeTower(TowerType.BOTTLE, g.getEggRow(), g.getEggCol()));
     }
 
     @Test
@@ -551,18 +620,11 @@ public class TdGameTest {
     @Test
     public void canWin_level01_withStrategy() {
         TdGame g = TdLevels.buildLevel("level_01");
-        // 简单但有效的策略：在路径内侧布置交错炮塔
-        g.placeTower(TowerType.BOTTLE, 2, 3);
-        g.placeTower(TowerType.BOTTLE, 2, 6);
-        g.placeTower(TowerType.SNOW, 3, 3);
-        g.placeTower(TowerType.ROCKET, 3, 6);
-        g.placeTower(TowerType.BOTTLE, 4, 3);
-        g.placeTower(TowerType.BOTTLE, 4, 6);
-        g.placeTower(TowerType.BOTTLE, 5, 3);
-        g.placeTower(TowerType.BOTTLE, 5, 6);
-        g.upgradeTower(3, 3);
-        g.upgradeTower(3, 6);
-        playThrough(g);
+        // 首关只使用玩家真实可带入的基础卡组：瓶子炮、雪花、太阳花。
+        assertNotNull(g.placeTower(TowerType.BOTTLE, 1, 8));
+        assertNotNull(g.placeTower(TowerType.BOTTLE, 3, 5));
+        assertNotNull(g.placeTower(TowerType.SNOW, 5, 5));
+        playThroughStarterDeck(g);
         assertTrue("应到达终态", g.isEnded());
         assertTrue("应获胜", g.getState() == TdGame.State.WON);
         assertTrue("通关至少 1 星", g.starsEarned() >= 1);
@@ -579,6 +641,32 @@ public class TdGameTest {
             if (waveCleared) {
                 g.startNextWaveEarly();
             }
+        }
+    }
+
+    /** 固定、可复现的首关补塔策略：不使用尚未解锁的后期塔。 */
+    private static void playThroughStarterDeck(TdGame g) {
+        final int[][] bottleSpots = {
+                {7, 6}, {8, 6}, {3, 0}, {5, 7}, {1, 4}
+        };
+        int nextBottleSpot = 0;
+        g.startNextWaveEarly();
+        for (int i = 0; i < MAX_TICKS; i++) {
+            g.tick();
+            if (g.isEnded()) break;
+            if (nextBottleSpot < bottleSpots.length && g.getCoin() >= TowerType.BOTTLE.baseCost) {
+                int[] spot = bottleSpots[nextBottleSpot];
+                if (g.placeTower(TowerType.BOTTLE, spot[0], spot[1]) != null) {
+                    nextBottleSpot++;
+                }
+            }
+            // 中后段优先把核心拐点炮塔升到 Lv2，体现首关需要主动成长而不是一次铺满。
+            TdGame.Tower core = g.getTowerAt(3, 5);
+            if (core != null && core.level < 2 && g.getCoin() >= TowerType.BOTTLE.upgradeCost(core.level)) {
+                g.upgradeTower(3, 5);
+            }
+            boolean waveCleared = !g.isWaveSpawning() && g.getMonsters().isEmpty();
+            if (waveCleared) g.startNextWaveEarly();
         }
     }
 
@@ -701,11 +789,12 @@ public class TdGameTest {
     public void startNextWave_earlyBonus_onRunningWave() {
         TdGame g = TdLevels.buildLevel("level_01");
         g.startNextWaveEarly();
-        // 第 1 波 6 只，跑 1 秒后立刻提前结束（剩余约 5 只）
+        // 跑 1 秒后立刻提前结束；奖励只能等于尚未生成敌人的数量，不能成为主要经济来源。
         for (int i = 0; i < 60; i++) g.tick();
         int coinBefore = g.getCoin();
+        int remaining = g.getWaves().get(0).count - g.getMonstersSpawnedTotal();
         assertTrue(g.startNextWaveEarly());
-        assertTrue(g.getCoin() >= coinBefore);
+        assertEquals("加速奖励应为每名未生成敌人 1 金币", coinBefore + remaining, g.getCoin());
     }
 
     @Test
@@ -816,6 +905,68 @@ public class TdGameTest {
         assertTrue("准备阶段必须预告第 1 波而非第 2 波", game.nextWaveCount() > 0);
         assertTrue(game.startNextWaveEarly());
         assertEquals("首波开始后才预告第 2 波路线", 1, game.nextWaveRouteIndex());
+    }
+
+    @Test
+    public void campaignRoutes_areLongEnoughForMeaningfulDefenseWindows() {
+        assertTrue("第一关路线应有完整的教学火力窗口",
+                TdLevels.buildLevel("level_01").getRouteLength(0) >= 50);
+        assertTrue("第二关路线应覆盖分裂与对空教学",
+                TdLevels.buildLevel("level_02").getRouteLength(0) >= 48);
+        assertTrue("第三关路线应允许处理治疗与护盾",
+                TdLevels.buildLevel("level_03").getRouteLength(0) >= 50);
+
+        TdGame valley = TdLevels.buildLevel("level_04");
+        assertTrue("双入口北路不能再是十几格短路", valley.getRouteLength(0) >= 33);
+        assertTrue("双入口南路不能再是十几格短路", valley.getRouteLength(1) >= 33);
+        assertTrue("双入口长度要公平", Math.abs(valley.getRouteLength(0) - valley.getRouteLength(1)) <= 2);
+
+        assertTrue("终局路线应给 Boss 足够的承压时间",
+                TdLevels.buildLevel("level_05").getRouteLength(0) >= 53);
+    }
+
+    @Test
+    public void campaignBalance_hasTighterOpeningEconomyAndStrongerBosses() {
+        String[] ids = {"level_01", "level_02", "level_03", "level_04", "level_05"};
+        int[] normalCoins = {240, 210, 220, 235, 260};
+        int[] waveCounts = {6, 8, 8, 8, 9};
+        TdGame.VisualTheme[] themes = {
+                TdGame.VisualTheme.GARDEN, TdGame.VisualTheme.BRAMBLE,
+                TdGame.VisualTheme.CRYSTAL, TdGame.VisualTheme.VALLEY,
+                TdGame.VisualTheme.STORM
+        };
+        for (int i = 0; i < ids.length; i++) {
+            TdGame normal = TdLevels.buildLevel(ids[i]);
+            assertEquals("普通档开局金币", normalCoins[i], normal.getCoin());
+            assertEquals("波次数应体现中后期压力", waveCounts[i], normal.getWaves().size());
+            assertEquals("每关应有独立视觉主题", themes[i], normal.getVisualTheme());
+
+            TdGame easy = TdLevels.buildLevel(ids[i]);
+            easy.applyDifficulty(TdGame.Difficulty.EASY);
+            assertEquals("简单档金币倍率", Math.round(normalCoins[i] * 1.3f), easy.getCoin());
+            TdGame hard = TdLevels.buildLevel(ids[i]);
+            hard.applyDifficulty(TdGame.Difficulty.HARD);
+            assertEquals("困难档金币倍率", Math.round(normalCoins[i] * .8f), hard.getCoin());
+        }
+
+        assertEquals("第二关 Boss 不应再是一碰就碎", .85f,
+                TdLevels.buildLevel("level_02").getWaves().get(7).hpMul, .0001f);
+        assertEquals("第三关 Boss 应要求处理机制怪", .90f,
+                TdLevels.buildLevel("level_03").getWaves().get(7).hpMul, .0001f);
+        assertEquals("双入口 Boss 应具备守点压力", .95f,
+                TdLevels.buildLevel("level_04").getWaves().get(7).hpMul, .0001f);
+        assertEquals("终局 Boss 应接近完整血量", .95f,
+                TdLevels.buildLevel("level_05").getWaves().get(8).hpMul, .0001f);
+    }
+
+    @Test
+    public void level01Opening_allowsStarterDeckButNotInstantTowerSpam() {
+        TdGame game = TdLevels.buildLevel("level_01");
+        assertNotNull(game.placeTower(TowerType.BOTTLE, 1, 8));
+        assertNotNull(game.placeTower(TowerType.SNOW, 1, 7));
+        assertNotNull(game.placeTower(TowerType.BOTTLE, 3, 5));
+        assertEquals("三张教学塔后只保留小额缓冲", 50, game.getCoin());
+        assertNull("不能再在准备阶段直接铺第六座炮塔", game.placeTower(TowerType.BOTTLE, 3, 6));
     }
 
     @Test

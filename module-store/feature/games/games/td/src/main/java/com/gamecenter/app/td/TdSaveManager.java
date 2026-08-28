@@ -24,6 +24,7 @@ public class TdSaveManager {
     private static final String KEY_PLAY_COUNT = "td_play_count";
     private static final String KEY_EASY_DONE = "td_easy_done";
     private static final String KEY_HARD_DONE = "td_hard_done";
+    private static final String KEY_ID_MIGRATED = "td_level_id_migrated_v1";
 
     private final SharedPreferences prefs;
 
@@ -33,6 +34,45 @@ public class TdSaveManager {
         // 之后一律走带 moduleId 前缀的作用域 SP，禁止模块间以任意文件名互读。
         ModuleScopedPreferences.migrateFrom(appContext, MODULE_ID, PREFS);
         this.prefs = ModuleScopedPreferences.get(appContext, MODULE_ID, PREFS);
+        migrateLegacyLevelIndexes();
+    }
+
+    /** Returns the stable campaign id for a legacy zero-based index, or null for invalid input. */
+    public static String levelIdForIndex(int levelIndex) {
+        return levelIndex >= 0 && levelIndex < 5
+                ? String.format(java.util.Locale.US, "main_%03d", levelIndex + 1) : null;
+    }
+
+    /**
+     * Allows bounded main-campaign IDs so later chapter data does not require a save-code release.
+     * Callers still receive IDs only from the validated {@code TdLevels} catalog.
+     */
+    public static boolean isValidLevelId(String levelId) {
+        if (levelId == null || !levelId.matches("main_[0-9]{3}")) return false;
+        int order = Integer.parseInt(levelId.substring("main_".length()));
+        return order >= 1 && order <= 999;
+    }
+
+    private static String checkedLevelId(String levelId) {
+        return isValidLevelId(levelId) ? levelId : null;
+    }
+
+    /** Idempotently copies numeric keys to stable-id keys, retaining all legacy keys. */
+    private void migrateLegacyLevelIndexes() {
+        if (prefs.getBoolean(KEY_ID_MIGRATED, false)) return;
+        SharedPreferences.Editor e = prefs.edit();
+        for (int i = 0; i < 5; i++) {
+            String id = levelIdForIndex(i);
+            copyIfAbsent(e, KEY_STARS_PREFIX + id, KEY_STARS_PREFIX + i, 0);
+            copyIfAbsent(e, KEY_BEST_TIME_PREFIX + id, KEY_BEST_TIME_PREFIX + i, 0);
+        }
+        e.putBoolean(KEY_ID_MIGRATED, true).apply();
+    }
+
+    private void copyIfAbsent(SharedPreferences.Editor e, String target, String legacy, int fallback) {
+        if (!prefs.contains(target) && prefs.contains(legacy)) {
+            e.putInt(target, prefs.getInt(legacy, fallback));
+        }
     }
 
     /** 解锁关卡数量（index 从 0 开始，level 1 恒解锁） */
@@ -49,6 +89,12 @@ public class TdSaveManager {
         }
     }
 
+    public void recordWin(String levelId) {
+        if (!isValidLevelId(levelId)) return;
+        int index = Integer.parseInt(levelId.substring(5)) - 1;
+        recordWin(index);
+    }
+
     public void recordPlay() {
         prefs.edit().putInt(KEY_PLAY_COUNT, getPlayCount() + 1).apply();
     }
@@ -59,16 +105,25 @@ public class TdSaveManager {
 
     /** 获取某关最高星级（0=未通过） */
     public int getBestStars(int levelIndex) {
-        return prefs.getInt(KEY_STARS_PREFIX + levelIndex, 0);
+        String id = levelIdForIndex(levelIndex);
+        return id == null ? 0 : getBestStars(id);
+    }
+
+    public int getBestStars(String levelId) {
+        String id = checkedLevelId(levelId);
+        return id == null ? 0 : prefs.getInt(KEY_STARS_PREFIX + id, 0);
     }
 
     /** 设定某关最高星级（只增不减） */
     public void setBestStars(int levelIndex, int stars) {
-        SharedPreferences.Editor e = prefs.edit();
-        if (stars > getBestStars(levelIndex)) {
-            e.putInt(KEY_STARS_PREFIX + levelIndex, stars);
-        }
-        e.apply();
+        String id = levelIdForIndex(levelIndex);
+        if (id != null) setBestStars(id, stars);
+    }
+
+    public void setBestStars(String levelId, int stars) {
+        String id = checkedLevelId(levelId);
+        if (id == null) return;
+        if (stars > getBestStars(id)) prefs.edit().putInt(KEY_STARS_PREFIX + id, stars).apply();
     }
 
     /** 累计击杀数 */
@@ -82,13 +137,26 @@ public class TdSaveManager {
 
     /** 某关最佳战绩秒数（0 表示未记录） */
     public int getBestTimeSec(int levelIndex) {
-        return prefs.getInt(KEY_BEST_TIME_PREFIX + levelIndex, 0);
+        String id = levelIdForIndex(levelIndex);
+        return id == null ? 0 : getBestTimeSec(id);
+    }
+
+    public int getBestTimeSec(String levelId) {
+        String id = checkedLevelId(levelId);
+        return id == null ? 0 : prefs.getInt(KEY_BEST_TIME_PREFIX + id, 0);
     }
 
     public void setBestTimeSec(int levelIndex, int sec) {
-        int cur = getBestTimeSec(levelIndex);
+        String id = levelIdForIndex(levelIndex);
+        if (id != null) setBestTimeSec(id, sec);
+    }
+
+    public void setBestTimeSec(String levelId, int sec) {
+        String id = checkedLevelId(levelId);
+        if (id == null) return;
+        int cur = getBestTimeSec(id);
         if (cur == 0 || sec < cur) {
-            prefs.edit().putInt(KEY_BEST_TIME_PREFIX + levelIndex, sec).apply();
+            prefs.edit().putInt(KEY_BEST_TIME_PREFIX + id, sec).apply();
         }
     }
 

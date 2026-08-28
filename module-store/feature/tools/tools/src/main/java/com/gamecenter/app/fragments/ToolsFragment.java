@@ -1,6 +1,8 @@
 package com.gamecenter.app.fragments;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -31,16 +33,19 @@ import com.gamecenter.app.tools.AdbWorkbenchToolBinder;
 import com.gamecenter.app.tools.AdvancedToolBinders;
 import com.gamecenter.app.tools.BatteryToolBinder;
 import com.gamecenter.app.tools.BubbleLevelToolBinder;
+import com.gamecenter.app.tools.CompassToolBinder;
 import com.gamecenter.app.tools.ClipboardToolBinder;
 import com.gamecenter.app.tools.ColorPickerToolBinder;
 import com.gamecenter.app.tools.ColorPlusToolBinder;
 import com.gamecenter.app.tools.CryptoToolBinder;
+import com.gamecenter.app.tools.DeviceOverviewToolBinder;
 import com.gamecenter.app.tools.DiagnosticReportToolBinder;
 import com.gamecenter.app.tools.DnsLookupToolBinder;
 import com.gamecenter.app.tools.DnsToolBinder;
 import com.gamecenter.app.tools.FileHashToolBinder;
 import com.gamecenter.app.tools.FloatingMonitorToolBinder;
 import com.gamecenter.app.tools.HashToolBinder;
+import com.gamecenter.app.tools.InstalledAppsToolBinder;
 import com.gamecenter.app.tools.IpToolBinder;
 import com.gamecenter.app.tools.JwtParserToolBinder;
 import com.gamecenter.app.tools.LanScanToolBinder;
@@ -55,6 +60,7 @@ import com.gamecenter.app.tools.RegexTestToolBinder;
 import com.gamecenter.app.tools.ScreenTestToolBinder;
 import com.gamecenter.app.tools.ScreenToolBinder;
 import com.gamecenter.app.tools.SensorToolBinder;
+import com.gamecenter.app.tools.SatelliteToolBinder;
 import com.gamecenter.app.tools.SoundMeterToolBinder;
 import com.gamecenter.app.tools.SpeedTestToolBinder;
 import com.gamecenter.app.tools.SubnetToolBinder;
@@ -86,6 +92,8 @@ public class ToolsFragment extends Fragment {
     private ToolSectionStore store;
     private List<ToolSection> sections;
     private BatteryToolBinder batteryToolBinder;
+    private CompassToolBinder compassToolBinder;
+    private SatelliteToolBinder satelliteToolBinder;
     private final Map<String, ToolBinder> binders = new HashMap<>();
     private ExecutorService executor;
 
@@ -110,12 +118,53 @@ public class ToolsFragment extends Fragment {
         void onFilePicked(Uri uri);
     }
 
+    /**
+     * Narrow, on-demand permission bridge for the GNSS tool. The tool itself receives no
+     * Activity reference and cannot request permission while merely rendering its workspace.
+     */
+    public interface SatellitePermissionCallback {
+        void onSatelliteLocationPermissionResult(boolean fineLocationGranted);
+    }
+
     private PickFileCallback pendingPickFileCallback;
     private ActivityResultLauncher<String[]> pickFileLauncher;
+    private SatellitePermissionCallback pendingSatellitePermissionCallback;
+    private ActivityResultLauncher<String[]> satelliteLocationPermissionLauncher;
 
     public void requestPickFile(PickFileCallback callback, String[] mimeTypes) {
         this.pendingPickFileCallback = callback;
         pickFileLauncher.launch(mimeTypes);
+    }
+
+    /**
+     * Requests foreground location only after an explicit satellite-tool action.
+     *
+     * <p>Android 12+ expects coarse and fine location to be requested together. GNSS callbacks
+     * still require fine permission, and the result passed back therefore reflects only the fine
+     * grant. This method never requests background location.</p>
+     */
+    public void requestSatelliteLocationPermission(SatellitePermissionCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        if (!isAdded()) {
+            callback.onSatelliteLocationPermissionResult(false);
+            return;
+        }
+        if (requireContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            callback.onSatelliteLocationPermissionResult(true);
+            return;
+        }
+        if (satelliteLocationPermissionLauncher == null || pendingSatellitePermissionCallback != null) {
+            callback.onSatelliteLocationPermissionResult(false);
+            return;
+        }
+        pendingSatellitePermissionCallback = callback;
+        satelliteLocationPermissionLauncher.launch(new String[] {
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+        });
     }
 
     @Override
@@ -136,11 +185,34 @@ public class ToolsFragment extends Fragment {
                         cb.onFilePicked(uri);
                     }
                 });
+        satelliteLocationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    SatellitePermissionCallback callback = pendingSatellitePermissionCallback;
+                    pendingSatellitePermissionCallback = null;
+                    boolean fineGranted = Boolean.TRUE.equals(
+                            result.get(Manifest.permission.ACCESS_FINE_LOCATION));
+                    if (!fineGranted && isAdded()) {
+                        fineGranted = requireContext().checkSelfPermission(
+                                Manifest.permission.ACCESS_FINE_LOCATION)
+                                == PackageManager.PERMISSION_GRANTED;
+                    }
+                    if (callback != null) {
+                        callback.onSatelliteLocationPermissionResult(fineGranted);
+                    }
+                });
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        pendingSatellitePermissionCallback = null;
+        if (compassToolBinder != null) {
+            compassToolBinder.unbind();
+        }
+        if (satelliteToolBinder != null) {
+            satelliteToolBinder.unbind();
+        }
         if (executor != null) {
             executor.shutdownNow();
         }
@@ -173,6 +245,8 @@ public class ToolsFragment extends Fragment {
         binders.put("clipboard", new ClipboardToolBinder());
         binders.put("color", new ColorPickerToolBinder());
         binders.put("sysinfo", new SystemInfoToolBinder());
+        binders.put("device_overview", new DeviceOverviewToolBinder());
+        binders.put("installed_apps", new InstalledAppsToolBinder());
         binders.put("regex_test", new RegexTestToolBinder());
         if (BuildConfig.ENABLE_TOOLS_ENHANCEMENT) {
             binders.put("unit_converter", new UnitConverterToolBinder());
@@ -182,6 +256,10 @@ public class ToolsFragment extends Fragment {
             binders.put("crypto_tool", new CryptoToolBinder());
             binders.put("jwt_parser", new JwtParserToolBinder());
         }
+        compassToolBinder = new CompassToolBinder();
+        binders.put("compass", compassToolBinder);
+        satelliteToolBinder = new SatelliteToolBinder();
+        binders.put("satellite", satelliteToolBinder);
         binders.put("bubble_level", new BubbleLevelToolBinder());
         binders.put("sound_meter", new SoundMeterToolBinder());
         binders.put("color_test", new ScreenTestToolBinder());
@@ -479,6 +557,9 @@ public class ToolsFragment extends Fragment {
                 store.recordRecent(section.id);
             }
         }
+        // Attach the inflated workspace after binding so every tool (including dynamic
+        // module tools) is actually rendered inside the scroll container.
+        workspaceContent.addView(contentView);
         hubArea.setVisibility(View.GONE);
         workspaceArea.setVisibility(View.VISIBLE);
         if (backCallback != null) {
@@ -491,6 +572,14 @@ public class ToolsFragment extends Fragment {
         if (currentSection != null && "battery".equals(currentSection.id)
                 && batteryToolBinder != null) {
             batteryToolBinder.unbind();
+        }
+        if (currentSection != null && "compass".equals(currentSection.id)
+                && compassToolBinder != null) {
+            compassToolBinder.unbind();
+        }
+        if (currentSection != null && "satellite".equals(currentSection.id)
+                && satelliteToolBinder != null) {
+            satelliteToolBinder.unbind();
         }
         workspaceContent.removeAllViews();
         workspaceArea.setVisibility(View.GONE);
@@ -542,10 +631,22 @@ public class ToolsFragment extends Fragment {
             batteryToolBinder.unbind();
             batteryToolBinder = null;
         }
+        if (compassToolBinder != null) {
+            compassToolBinder.unbind();
+            compassToolBinder = null;
+        }
+        if (satelliteToolBinder != null) {
+            satelliteToolBinder.unbind();
+            satelliteToolBinder = null;
+        }
         if (binders != null) {
             for (ToolBinder binder : binders.values()) {
                 if (binder instanceof BatteryToolBinder) {
                     ((BatteryToolBinder) binder).unbind();
+                } else if (binder instanceof CompassToolBinder) {
+                    ((CompassToolBinder) binder).unbind();
+                } else if (binder instanceof SatelliteToolBinder) {
+                    ((SatelliteToolBinder) binder).unbind();
                 }
             }
             binders.clear();

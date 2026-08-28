@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "chapter_main_01",
+  "name": "主线第一章",
+  "levels": [
+    {
+      "id": "main_001", "order": 1, "name": "晨露花园", "subtitle": "合成教学 · 单体、减速与 Lv3 组合", "theme": "GARDEN",
+      "rows": 10, "cols": 12, "egg": [9, 0], "startCoin": 240, "mascotHp": 5,
+      "routes": [[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[1,11],[2,11],[2,10],[2,9],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[4,9],[5,9],[6,9],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[6,0],[7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[9,4],[9,3],[9,2],[9,1],[9,0]]],
+      "waves": [
+        {"types":["NORMAL"],"route":0,"count":7,"interval":0.82,"delay":0.4,"hpMul":1.0,"speedMul":1.0},
+        {"types":["FAST"],"route":0,"count":6,"interval":0.60,"delay":0.45,"hpMul":0.98,"speedMul":1.05},
+        {"types":["NORMAL","FAST"],"route":0,"count":10,"interval":0.56,"delay":0.45,"hpMul":1.04,"speedMul":1.05},
+        {"types":["TANK"],"route":0,"count":3,"interval":1.55,"delay":0.5,"hpMul":1.08,"speedMul":1.0},
+        {"types":["SWARM","NORMAL"],"route":0,"count":14,"interval":0.32,"delay":0.45,"hpMul":1.08,"speedMul":1.08},
+        {"types":["FAST","TANK"],"route":0,"count":8,"interval":0.50,"delay":0.5,"hpMul":1.16,"speedMul":1.10}
+      ]
+    },
+    {
+      "id":"main_002","order":2,"name":"荆棘林地","subtitle":"错位窄口 · 空袭与分裂怪初登场","theme":"BRAMBLE","rows":10,"cols":12,"egg":[9,0],"startCoin":210,"mascotHp":5,
+      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[1,10],[2,10],[2,9],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[3,3],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[4,9],[5,9],[6,9],[6,8],[6,7],[6,6],[6,5],[7,5],[7,4],[7,3],[7,2],[7,1],[7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[9,4],[9,3],[9,2],[9,1],[9,0]]],
+      "waves":[{"types":["NORMAL"],"route":0,"count":10,"interval":0.75,"delay":0.45,"hpMul":1,"speedMul":1},{"types":["FAST","NORMAL"],"route":0,"count":10,"interval":0.55,"delay":0.45,"hpMul":1.04,"speedMul":1.06},{"types":["FLY"],"route":0,"count":8,"interval":0.65,"delay":0.45,"hpMul":1.08,"speedMul":1.08},{"types":["SPLITTER"],"route":0,"count":6,"interval":0.72,"delay":0.45,"hpMul":1.1,"speedMul":1.04},{"types":["SWARM","SPLITTER"],"route":0,"count":14,"interval":0.42,"delay":0.45,"hpMul":1.12,"speedMul":1.1},{"types":["FLY","TANK"],"route":0,"count":10,"interval":0.58,"delay":0.5,"hpMul":1.18,"speedMul":1.08},{"types":["FAST","SPLITTER"],"route":0,"count":12,"interval":0.5,"delay":0.5,"hpMul":1.22,"speedMul":1.12},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.8,"hpMul":0.85,"speedMul":0.95}]
+    },
+    {
+      "id":"main_003","order":3,"name":"水晶回廊","subtitle":"水晶折线 · 医生、护盾与狙击优先级","theme":"CRYSTAL","rows":11,"cols":12,"egg":[10,0],"startCoin":220,"mascotHp":6,
+      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[1,11],[2,11],[2,10],[2,9],[2,8],[2,7],[2,6],[2,5],[2,4],[3,4],[4,4],[4,5],[4,6],[4,7],[4,8],[4,9],[5,9],[6,9],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[7,2],[8,2],[8,1],[8,0],[9,0],[9,1],[9,2],[9,3],[9,4],[10,4],[10,3],[10,2],[10,1],[10,0]]],
+      "waves":[{"types":["FAST"],"route":0,"count":8,"interval":0.52,"delay":0.45,"hpMul":1.05,"speedMul":1.08},{"types":["SWARM"],"route":0,"count":16,"interval":0.28,"delay":0.4,"hpMul":1.1,"speedMul":1.05},{"types":["SHIELD"],"route":0,"count":6,"interval":0.85,"delay":0.5,"hpMul":1.14,"speedMul":1.02},{"types":["HEALER","TANK"],"route":0,"count":10,"interval":0.6,"delay":0.5,"hpMul":1.18,"speedMul":1.03},{"types":["SHIELD_GENERATOR"],"route":0,"count":5,"interval":0.9,"delay":0.5,"hpMul":1.16,"speedMul":1.04},{"types":["HEALER","SHIELD_GENERATOR","TANK"],"route":0,"count":12,"interval":0.6,"delay":0.5,"hpMul":1.24,"speedMul":1.06},{"types":["FAST","SHIELD"],"route":0,"count":12,"interval":0.5,"delay":0.5,"hpMul":1.28,"speedMul":1.12},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.8,"hpMul":0.9,"speedMul":0.95}]
+    },
+    {
+      "id":"main_004","order":4,"name":"双岔溪谷","subtitle":"双入口围攻 · 冲锋怪与增幅阵地","theme":"VALLEY","rows":12,"cols":12,"egg":[6,6],"startCoin":235,"mascotHp":6,
+      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[4,9],[4,10],[5,10],[6,10],[6,9],[6,8],[6,7],[7,7],[7,6],[6,6]],[[11,11],[11,10],[11,9],[11,8],[11,7],[11,6],[11,5],[11,4],[11,3],[10,3],[9,3],[9,4],[9,5],[9,6],[9,7],[9,8],[9,9],[9,10],[8,10],[7,10],[7,9],[7,8],[7,7],[7,6],[7,5],[7,4],[6,4],[5,4],[5,5],[5,6],[5,7],[6,7],[6,6]]],
+      "waves":[{"types":["NORMAL"],"route":0,"count":8,"interval":0.7,"delay":0.4,"hpMul":1.04,"speedMul":1},{"types":["FAST"],"route":1,"count":8,"interval":0.5,"delay":0.45,"hpMul":1.06,"speedMul":1.08},{"types":["CHARGER"],"route":0,"count":7,"interval":0.7,"delay":0.45,"hpMul":1.12,"speedMul":1.06},{"types":["SWARM","CHARGER"],"route":1,"count":12,"interval":0.34,"delay":0.45,"hpMul":1.16,"speedMul":1.1},{"types":["SHIELD"],"route":0,"count":6,"interval":0.8,"delay":0.5,"hpMul":1.2,"speedMul":1.05},{"types":["CHARGER","TANK"],"route":1,"count":10,"interval":0.6,"delay":0.5,"hpMul":1.28,"speedMul":1.08},{"types":["FAST","CHARGER"],"route":0,"count":12,"interval":0.45,"delay":0.45,"hpMul":1.34,"speedMul":1.14},{"types":["BOSS"],"route":1,"count":1,"interval":0,"delay":0.8,"hpMul":0.95,"speedMul":0.95}]
+    },
+    {
+      "id":"main_005","order":5,"name":"风暴巢穴","subtitle":"终局攻城 · 召唤、抗性、狂暴与 Boss","theme":"STORM","rows":12,"cols":13,"egg":[11,0],"startCoin":260,"mascotHp":7,
+      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[1,12],[2,12],[2,11],[2,10],[2,9],[2,8],[2,7],[3,7],[4,7],[4,8],[4,9],[4,10],[4,11],[5,11],[6,11],[6,10],[6,9],[6,8],[6,7],[6,6],[6,5],[6,4],[7,4],[8,4],[8,3],[8,2],[8,1],[8,0],[9,0],[9,1],[9,2],[9,3],[9,4],[9,5],[10,5],[10,4],[10,3],[10,2],[10,1],[10,0],[11,0]]],
+      "waves":[{"types":["NORMAL","FAST"],"route":0,"count":12,"interval":0.48,"delay":0.4,"hpMul":1.06,"speedMul":1.04},{"types":["SUMMONER"],"route":0,"count":4,"interval":1.4,"delay":0.45,"hpMul":1.1,"speedMul":1.02},{"types":["RESISTANT"],"route":0,"count":8,"interval":0.72,"delay":0.45,"hpMul":1.14,"speedMul":1.04},{"types":["SPLITTER","RAGER"],"route":0,"count":12,"interval":0.48,"delay":0.45,"hpMul":1.2,"speedMul":1.08},{"types":["SUMMONER","RESISTANT"],"route":0,"count":10,"interval":0.58,"delay":0.5,"hpMul":1.24,"speedMul":1.08},{"types":["RAGER"],"route":0,"count":9,"interval":0.56,"delay":0.48,"hpMul":1.3,"speedMul":1.12},{"types":["TANK","SHIELD_GENERATOR","RESISTANT"],"route":0,"count":14,"interval":0.42,"delay":0.5,"hpMul":1.38,"speedMul":1.1},{"types":["SWARM","RAGER","SUMMONER"],"route":0,"count":16,"interval":0.36,"delay":0.5,"hpMul":1.42,"speedMul":1.14},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":0.95,"speedMul":0.9}]
+    }
+  ]
+}

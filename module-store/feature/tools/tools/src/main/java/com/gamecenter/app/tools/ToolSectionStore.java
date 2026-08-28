@@ -53,6 +53,8 @@ public final class ToolSectionStore {
     /** 工具可见性集合的存储键 */
     private static final String KEY_VISIBLE = "tools_visible";
     private static final String KEY_ADB_VISIBILITY_MIGRATED = "adb_visibility_v1";
+    private static final String KEY_DEVICE_TOOLS_VISIBILITY_MIGRATED = "device_tools_visibility_v1";
+    private static final String KEY_SATELLITE_TOOL_VISIBILITY_MIGRATED = "satellite_tool_visibility_v1";
     /** 布局模式的存储键 */
     private static final String KEY_LAYOUT_MODE = "tools_layout_mode";
     /** 收藏列表的存储键 */
@@ -106,6 +108,28 @@ public final class ToolSectionStore {
                 editor.putStringSet(KEY_VISIBLE, visibleSet);
             }
             editor.putBoolean(KEY_ADB_VISIBILITY_MIGRATED, true).apply();
+        }
+        // Make newly added local device tools visible for existing installs that already
+        // have a non-empty visibility set. An empty set is an intentional hide-all choice.
+        Set<String> migratedDeviceTools = migrateDeviceToolsVisibility(
+                visibleSet, prefs.getBoolean(KEY_DEVICE_TOOLS_VISIBILITY_MIGRATED, false));
+        if (migratedDeviceTools != visibleSet) {
+            visibleSet = migratedDeviceTools;
+            prefs.edit().putStringSet(KEY_VISIBLE, visibleSet).apply();
+        }
+        if (!prefs.getBoolean(KEY_DEVICE_TOOLS_VISIBILITY_MIGRATED, false)) {
+            prefs.edit().putBoolean(KEY_DEVICE_TOOLS_VISIBILITY_MIGRATED, true).apply();
+        }
+        // Satellite status arrived after the first device-tools migration. Use a separately
+        // versioned migration so existing users see the card without reviving a hide-all choice.
+        Set<String> migratedSatelliteTool = migrateSatelliteToolVisibility(
+                visibleSet, prefs.getBoolean(KEY_SATELLITE_TOOL_VISIBILITY_MIGRATED, false));
+        if (migratedSatelliteTool != visibleSet) {
+            visibleSet = migratedSatelliteTool;
+            prefs.edit().putStringSet(KEY_VISIBLE, visibleSet).apply();
+        }
+        if (!prefs.getBoolean(KEY_SATELLITE_TOOL_VISIBILITY_MIGRATED, false)) {
+            prefs.edit().putBoolean(KEY_SATELLITE_TOOL_VISIBILITY_MIGRATED, true).apply();
         }
         // 应用已保存的可见性配置
         if (visibleSet != null) {
@@ -398,6 +422,10 @@ public final class ToolSectionStore {
         sections.add(new ToolSection("clipboard", appContext.getString(R.string.tool_name_clipboard), R.layout.item_tool_clipboard, true, "tool", ""));
         sections.add(new ToolSection("color", appContext.getString(R.string.tool_name_color), R.layout.item_tool_color, true, "tool", ""));
         sections.add(new ToolSection("sysinfo", appContext.getString(R.string.tool_name_sysinfo), R.layout.item_tool_sysinfo, true, "device", ""));
+        sections.add(new ToolSection("device_overview", appContext.getString(R.string.tool_name_device_overview), R.layout.item_tool_device_overview, true, "device", appContext.getString(R.string.tool_desc_device_overview)));
+        sections.add(new ToolSection("installed_apps", appContext.getString(R.string.tool_name_installed_apps), R.layout.item_tool_installed_apps, true, "device", appContext.getString(R.string.tool_desc_installed_apps)));
+        sections.add(new ToolSection("compass", appContext.getString(R.string.tool_name_compass), R.layout.item_tool_compass, true, "device", appContext.getString(R.string.tool_desc_compass)));
+        sections.add(new ToolSection("satellite", appContext.getString(R.string.tool_name_satellite), R.layout.item_tool_satellite, true, "device", appContext.getString(R.string.tool_desc_satellite)));
         sections.add(new ToolSection("regex_test", appContext.getString(R.string.tool_name_regex_test), R.layout.item_tool_regex_test, true, "tool", ""));
         // 阶段3：新增 6 个工具（受 ENABLE_TOOLS_ENHANCEMENT flag 控制）
         if (BuildConfig.ENABLE_TOOLS_ENHANCEMENT) {
@@ -429,5 +457,29 @@ public final class ToolSectionStore {
             }
         }
         return null;
+    }
+
+    /**
+     * Adds the first version of the local device tools to an existing non-empty visibility
+     * set without overriding an explicit hide-all choice. Package-private for regression tests.
+     */
+    static Set<String> migrateDeviceToolsVisibility(Set<String> visibleSet, boolean migrated) {
+        if (migrated || visibleSet == null || visibleSet.isEmpty()) return visibleSet;
+        Set<String> result = new HashSet<>(visibleSet);
+        result.add("device_overview");
+        result.add("installed_apps");
+        result.add("compass");
+        return result;
+    }
+
+    /**
+     * Adds satellite status to a previously non-empty visible set. Kept separate from the first
+     * device-tool migration because that marker has already been persisted on existing devices.
+     */
+    static Set<String> migrateSatelliteToolVisibility(Set<String> visibleSet, boolean migrated) {
+        if (migrated || visibleSet == null || visibleSet.isEmpty()) return visibleSet;
+        Set<String> result = new HashSet<>(visibleSet);
+        result.add("satellite");
+        return result;
     }
 }

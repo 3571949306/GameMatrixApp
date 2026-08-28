@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "contentVersion": 1,
+  "gameId": "td",
+  "chapters": [
+    { "id": "chapter_main_01", "file": "chapters/chapter_main_01.json", "levelCount": 5 },
+    { "id": "chapter_main_02", "file": "chapters/chapter_main_02.json", "levelCount": 10 },
+    { "id": "chapter_main_03", "file": "chapters/chapter_main_03.json", "levelCount": 10 }
+  ]
+}
