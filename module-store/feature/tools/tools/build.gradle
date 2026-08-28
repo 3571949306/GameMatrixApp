@@ -64,6 +64,8 @@ dependencies {
     compileOnly 'androidx.recyclerview:recyclerview:1.4.0'
     compileOnly 'androidx.fragment:fragment-ktx:1.5.0'
     compileOnly 'com.google.zxing:core:3.5.3'
+
+    testImplementation 'junit:junit:4.13.2'
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {

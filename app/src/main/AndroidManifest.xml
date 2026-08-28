@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- GNSS status is requested only when the user starts the Satellite tool.
+         The app never requests background location and does not read coordinates there. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -26,6 +30,10 @@
 
     <uses-feature
         android:name="android.hardware.camera"
+        android:required="false" />
+    <!-- Keep the application installable on Wi-Fi-only tablets and emulators. -->
+    <uses-feature
+        android:name="android.hardware.location.gps"
         android:required="false" />
 
     <queries>

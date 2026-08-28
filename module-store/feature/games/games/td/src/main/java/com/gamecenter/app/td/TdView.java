@@ -11,6 +11,8 @@ import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.LinearGradient;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -20,6 +22,7 @@ import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TowerType;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 /**
@@ -36,16 +39,52 @@ import java.util.List;
 public class TdView extends View {
 
     // ===== 主题色 =====
-    private static final int C_BG_DARK = 0xFF2A9950;
-    private static final int C_BG_LIGHT = 0xFF45C46F;
-    private static final int C_GRID_LINE = 0x733FA75C;
-    private static final int C_PATH = 0xFFE9C585;
-    private static final int C_PATH_BORDER = 0xFFB98A4E;
-    private static final int C_PATH_LIGHT = 0xFFFFE6B3;
     private static final int C_TEXT = 0xFF3B3327;
     private static final int C_TEXT_LIGHT = 0xFFFFF8E1;
     private static final int C_GOLD = 0xFFFFC107;
     private static final int C_GOLD_DARK = 0xFF8D6E20;
+
+    /** 每关只切换色板和少量程序化装饰，避免加载大背景图造成低端机内存抖动。 */
+    private static final class ThemePalette {
+        final int bgDark, bgLight, gridLine, groundPatch;
+        final int pathBorder, path, pathLight, routeAccent, pathSpot, pathArrow;
+
+        ThemePalette(int bgDark, int bgLight, int gridLine, int groundPatch,
+                     int pathBorder, int path, int pathLight, int routeAccent,
+                     int pathSpot, int pathArrow) {
+            this.bgDark = bgDark;
+            this.bgLight = bgLight;
+            this.gridLine = gridLine;
+            this.groundPatch = groundPatch;
+            this.pathBorder = pathBorder;
+            this.path = path;
+            this.pathLight = pathLight;
+            this.routeAccent = routeAccent;
+            this.pathSpot = pathSpot;
+            this.pathArrow = pathArrow;
+        }
+    }
+
+    private static final ThemePalette THEME_GARDEN = new ThemePalette(
+            0xFF227F45, 0xFF54C978, 0x733FA75C, 0x1845A05A,
+            0xFFB98A4E, 0xFFE9C585, 0xFFFFE6B3, 0xFFFFE6B3,
+            0x30996B30, 0x59FFFFFF);
+    private static final ThemePalette THEME_BRAMBLE = new ThemePalette(
+            0xFF193F35, 0xFF346D52, 0x7A619460, 0x203C7A50,
+            0xFF704742, 0xFFB76C5C, 0xFFF0B18D, 0xFFD69474,
+            0x3D542A35, 0x63FFF2DD);
+    private static final ThemePalette THEME_CRYSTAL = new ThemePalette(
+            0xFF125878, 0xFF2A9EB0, 0x7348C7D8, 0x1A73D4DF,
+            0xFF416989, 0xFF77B9C6, 0xFFC3F3F2, 0xFFB58BDF,
+            0x30517F92, 0x73FFFFFF);
+    private static final ThemePalette THEME_VALLEY = new ThemePalette(
+            0xFF17636A, 0xFF3AA6A0, 0x7352C4C2, 0x164FAFA7,
+            0xFF326C71, 0xFF71C7C2, 0xFFD4FAEA, 0xFF9ADAF4,
+            0x2949827A, 0x75FFFFFF);
+    private static final ThemePalette THEME_STORM = new ThemePalette(
+            0xFF29214C, 0xFF595084, 0x735F85C5, 0x2049347A,
+            0xFF43355F, 0xFF776190, 0xFFC6B6E8, 0xFFFFB46B,
+            0x3534274A, 0x79FFFFFF);
 
     private TdGame game;
     private TowerType selectedType;
@@ -57,11 +96,18 @@ public class TdView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint gradPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** 主题晶体复用路径，避免战斗中的装饰每帧分配对象。 */
+    private final Path reusableShapePath = new Path();
     private Bitmap towerSprites;
     private Bitmap monsterSprites;
+    private Bitmap towerExpansionSprites;
+    private Bitmap monsterExpansionSprites;
+    /** 视觉时钟独立于逻辑 tick 和 View 刷新频率，菜单态也不会变成 5Hz 动画。 */
+    private long animationTimeMs;
+    /** 新建塔的落成动画只属于 View，不再依赖准备阶段暂停的游戏逻辑 tick。 */
+    private final IdentityHashMap<TdGame.Tower, Long> towerVisualStartTimes = new IdentityHashMap<>();
     private float cellSize;
     private float originX, originY;
-    private long frameCount = 0;
     private int pressedRow = -1;
     private int pressedCol = -1;
     private int dragStartRow = -1;
@@ -105,6 +151,8 @@ public class TdView extends View {
     public void bind(TdGame game) {
         this.game = game;
         particles.clear();
+        towerVisualStartTimes.clear();
+        animationTimeMs = SystemClock.uptimeMillis();
         waveBannerTicks = 0;
         updateBoardGeometry(getWidth(), getHeight());
         invalidate();
@@ -124,14 +172,31 @@ public class TdView extends View {
      * 通过 getResources() 查找模块图片。缺图时保留下面的程序化绘制作为安全降级。
      */
     public void loadSpriteSheets(Resources moduleResources, int towerResourceId, int monsterResourceId) {
+        loadSpriteSheets(moduleResources, towerResourceId, monsterResourceId, 0, 0);
+    }
+
+    /**
+     * 旧版 3×2 图集和新增 4×4 图集并存。即使新资源因模块版本不同而缺失，也会安全
+     * 降级为旧图集或 Canvas 造型，避免动态资源加载失败影响对局。
+     */
+    public void loadSpriteSheets(Resources moduleResources, int towerResourceId, int monsterResourceId,
+                                 int towerExpansionResourceId, int monsterExpansionResourceId) {
         if (moduleResources == null) return;
         try {
-            if (towerResourceId != 0) towerSprites = BitmapFactory.decodeResource(moduleResources, towerResourceId);
-            if (monsterResourceId != 0) monsterSprites = BitmapFactory.decodeResource(moduleResources, monsterResourceId);
+            towerSprites = towerResourceId == 0 ? null
+                    : BitmapFactory.decodeResource(moduleResources, towerResourceId);
+            monsterSprites = monsterResourceId == 0 ? null
+                    : BitmapFactory.decodeResource(moduleResources, monsterResourceId);
+            towerExpansionSprites = towerExpansionResourceId == 0 ? null
+                    : BitmapFactory.decodeResource(moduleResources, towerExpansionResourceId);
+            monsterExpansionSprites = monsterExpansionResourceId == 0 ? null
+                    : BitmapFactory.decodeResource(moduleResources, monsterExpansionResourceId);
         } catch (RuntimeException ignored) {
             // 动态模块资源不可用时，继续使用程序化角色，避免影响对局。
             towerSprites = null;
             monsterSprites = null;
+            towerExpansionSprites = null;
+            monsterExpansionSprites = null;
         }
         invalidate();
     }
@@ -170,11 +235,12 @@ public class TdView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (game == null) return;
-        frameCount++;
+        animationTimeMs = SystemClock.uptimeMillis();
         updateBoardGeometry(getWidth(), getHeight());
         if (cellSize <= 0f) return;
 
         drawBackground(canvas);
+        drawAmbientLayer(canvas);
         drawDecorations(canvas);
         drawPath(canvas);
         drawPlacementHint(canvas);
@@ -187,6 +253,11 @@ public class TdView extends View {
         drawParticles(canvas);
         drawWaveBanner(canvas);
         drawOverlay(canvas);
+        // Fragment 在准备阶段只低频刷新 UI；新塔的短落成动画由 View 自己补足帧率，
+        // 不触发任何游戏逻辑 tick，也不会让整个准备界面长期保持 60fps。
+        if (hasActiveTowerBuildAnimation() || hasContinuousVisualMotion()) {
+            postInvalidateOnAnimation();
+        }
     }
 
     /** 将所有棋盘几何计算集中起来，绘制和触摸始终使用同一套坐标。 */
@@ -203,16 +274,34 @@ public class TdView extends View {
         originY = (height - drawingHeight) / 2f + cellSize * headerCells;
     }
 
+    private float animationSeconds() {
+        return animationTimeMs * 0.001f;
+    }
+
+    private ThemePalette themePalette() {
+        if (game == null) return THEME_GARDEN;
+        switch (game.getVisualTheme()) {
+            case BRAMBLE: return THEME_BRAMBLE;
+            case CRYSTAL: return THEME_CRYSTAL;
+            case VALLEY: return THEME_VALLEY;
+            case STORM: return THEME_STORM;
+            case GARDEN:
+            default: return THEME_GARDEN;
+        }
+    }
+
     // =====================================================================
     // 背景：多层草地
     // =====================================================================
     private void drawBackground(Canvas canvas) {
+        ThemePalette palette = themePalette();
         // 径向渐变草地
         gradPaint.setShader(new RadialGradient(getWidth() / 2f, getHeight() / 2f,
-                Math.max(getWidth(), getHeight()) * 0.75f, C_BG_LIGHT, C_BG_DARK, Shader.TileMode.CLAMP));
+                Math.max(getWidth(), getHeight()) * 0.75f, palette.bgLight, palette.bgDark,
+                Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, getWidth(), getHeight(), gradPaint);
         // 方格线
-        paint.setColor(C_GRID_LINE);
+        paint.setColor(palette.gridLine);
         paint.setStrokeWidth(Math.max(1f, cellSize * 0.02f));
         int cols = game.getCols(), rows = game.getRows();
         for (int r = 0; r <= rows; r++) {
@@ -224,7 +313,7 @@ public class TdView extends View {
             canvas.drawLine(x, originY, x, originY + rows * cellSize, paint);
         }
         // 大块草色斑驳（确定性）
-        paint.setColor(0x1445A05A);
+        paint.setColor(palette.groundPatch);
         for (int r = 0; r < rows; r += 2) {
             for (int c = 0; c < cols; c += 2) {
                 if (game.isPathCell(r, c) || game.isEggCell(r, c)) continue;
@@ -239,22 +328,91 @@ public class TdView extends View {
         }
     }
 
+    /**
+     * 给纯色棋盘增加非常轻的空间层次：中心柔光、边缘压暗和少量环境微光。
+     * 这些效果完全由 Canvas 绘制，不引入额外大图资源，低端设备也能安全降级。
+     */
+    private void drawAmbientLayer(Canvas canvas) {
+        ThemePalette palette = themePalette();
+        float w = getWidth();
+        float h = getHeight();
+        float eggX = originX + (game.getEggCol() + 0.5f) * cellSize;
+        float eggY = originY + (game.getEggRow() + 0.5f) * cellSize;
+
+        gradPaint.setShader(new RadialGradient(eggX, eggY, cellSize * 5.8f,
+                0x243FFFFF, 0x001FFFFF, Shader.TileMode.CLAMP));
+        canvas.drawCircle(eggX, eggY, cellSize * 5.8f, gradPaint);
+        gradPaint.setShader(null);
+
+        // 顶部和底部微暗，避免路径与 HUD 连成一片，形成类似关卡海报的聚焦感。
+        gradPaint.setShader(new LinearGradient(0, 0, 0, h * 0.24f,
+                0x26000000, 0x00000000, Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h * 0.24f, gradPaint);
+        gradPaint.setShader(new LinearGradient(0, h * 0.76f, 0, h,
+                0x00000000, 0x30000000, Shader.TileMode.CLAMP));
+        canvas.drawRect(0, h * 0.76f, w, h, gradPaint);
+        gradPaint.setShader(null);
+
+        // 确定性环境微光：每关位置固定，避免随机数导致截图和回放抖动。
+        paint.setStyle(Paint.Style.FILL);
+        for (int i = 0; i < 18; i++) {
+            int row = (i * 7 + 2) % game.getRows();
+            int col = (i * 11 + 3) % game.getCols();
+            if (game.isPathCell(row, col) || game.isEggCell(row, col)) continue;
+            float x = originX + (col + 0.26f + (i % 3) * 0.22f) * cellSize;
+            float y = originY + (row + 0.22f + (i % 4) * 0.17f) * cellSize;
+            paint.setColor((i & 1) == 0 ? 0x3ED8FFF0 : 0x35FFF2A8);
+            canvas.drawCircle(x, y, Math.max(1.2f, cellSize * 0.028f), paint);
+            if (i % 5 == 0) {
+                paint.setColor(palette.pathLight & 0x44FFFFFF);
+                canvas.drawCircle(x, y, cellSize * 0.09f, paint);
+            }
+        }
+    }
+
     // =====================================================================
     // 确定性植被装饰（花/草丛/蘑菇/岩石/树木）
     // =====================================================================
     private void drawDecorations(Canvas canvas) {
         int cols = game.getCols(), rows = game.getRows();
+        TdGame.VisualTheme theme = game.getVisualTheme();
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 if (game.isPathCell(r, c) || game.isEggCell(r, c)) continue;
                 float cx = originX + (c + 0.5f) * cellSize;
                 float cy = originY + (r + 0.5f) * cellSize;
                 int seed = (r * 131 + c * 57) % 100;
-                if (seed < 10) drawFlower(canvas, cx, cy);
-                else if (seed < 22) drawGrass(canvas, cx, cy, seed);
-                else if (seed < 29) drawMushroom(canvas, cx, cy, seed);
-                else if (seed < 35) drawRock(canvas, cx, cy, seed);
-                else if (seed < 40) drawBush(canvas, cx, cy, seed);
+                switch (theme) {
+                    case BRAMBLE:
+                        if (seed < 18) drawBramble(canvas, cx, cy, seed);
+                        else if (seed < 28) drawDarkLeaf(canvas, cx, cy, seed);
+                        else if (seed < 35) drawRock(canvas, cx, cy, seed);
+                        break;
+                    case CRYSTAL:
+                        if (seed < 18) drawCrystal(canvas, cx, cy, seed);
+                        else if (seed < 27) drawCrystalShard(canvas, cx, cy, seed);
+                        else if (seed < 34) drawRock(canvas, cx, cy, seed);
+                        break;
+                    case VALLEY:
+                        if (seed < 18) drawReed(canvas, cx, cy, seed);
+                        else if (seed < 29) drawValleyPebbles(canvas, cx, cy, seed);
+                        else if (seed < 36) drawGrass(canvas, cx, cy, seed);
+                        break;
+                    case STORM:
+                        if (seed < 18) drawStormStone(canvas, cx, cy, seed);
+                        else if (seed < 27) drawStormSpark(canvas, cx, cy, seed);
+                        else if (seed < 34) drawDarkLeaf(canvas, cx, cy, seed);
+                        break;
+                    case GARDEN:
+                    default:
+                        if (seed < 10) drawFlower(canvas, cx, cy);
+                        else if (seed < 22) drawGrass(canvas, cx, cy, seed);
+                        else if (seed < 29) drawMushroom(canvas, cx, cy, seed);
+                        else if (seed < 35) drawRock(canvas, cx, cy, seed);
+                        else if (seed < 40) drawBush(canvas, cx, cy, seed);
+                        else if (seed < 48) drawLeafPair(canvas, cx, cy, seed);
+                        break;
+                }
             }
         }
     }
@@ -318,16 +476,129 @@ public class TdView extends View {
         canvas.drawCircle(cx - s * 0.2f, cy - s * 0.3f, s * 0.32f, paint);
     }
 
+    private void drawLeafPair(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (0.08f + (seed % 3) * 0.012f);
+        paint.setColor(seed % 2 == 0 ? 0xFF3E8D57 : 0xFF4FAF67);
+        canvas.save();
+        canvas.rotate(seed % 2 == 0 ? -20f : 20f, cx, cy);
+        canvas.drawOval(cx - s * 1.2f, cy - s * 0.28f, cx - s * 0.05f, cy + s * 0.42f, paint);
+        canvas.rotate(40f, cx, cy);
+        canvas.drawOval(cx + s * 0.05f, cy - s * 0.42f, cx + s * 1.2f, cy + s * 0.28f, paint);
+        canvas.restore();
+        paint.setColor(0x6686D99A);
+        paint.setStrokeWidth(Math.max(1f, cellSize * 0.018f));
+        canvas.drawLine(cx, cy + s * 0.55f, cx, cy - s * 0.35f, paint);
+    }
+
+    private void drawBramble(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (0.13f + (seed % 3) * 0.015f);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1f, s * 0.28f));
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setColor(0xFF5A355C);
+        canvas.drawLine(cx - s, cy + s * .55f, cx + s * .9f, cy - s * .65f, paint);
+        canvas.drawLine(cx - s * .7f, cy - s * .1f, cx + s * .82f, cy + s * .5f, paint);
+        paint.setStrokeWidth(Math.max(1f, s * 0.14f));
+        paint.setColor(0xFFC76A86);
+        for (int i = 0; i < 3; i++) {
+            float x = cx - s * .45f + i * s * .55f;
+            canvas.drawLine(x, cy + s * .18f, x + s * .18f, cy - s * .12f, paint);
+        }
+        paint.setStrokeCap(Paint.Cap.BUTT);
+        paint.setStyle(Paint.Style.FILL);
+    }
+
+    private void drawDarkLeaf(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (0.09f + (seed % 3) * .015f);
+        paint.setColor(seed % 2 == 0 ? 0xFF245344 : 0xFF315D4A);
+        canvas.drawOval(cx - s, cy - s * .45f, cx + s, cy + s * .45f, paint);
+        paint.setColor(0x8854A875);
+        canvas.drawLine(cx - s * .7f, cy, cx + s * .7f, cy, paint);
+    }
+
+    private void drawCrystal(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (0.14f + (seed % 3) * .018f);
+        reusableShapePath.reset();
+        reusableShapePath.moveTo(cx, cy - s * 1.35f);
+        reusableShapePath.lineTo(cx + s * .64f, cy - s * .15f);
+        reusableShapePath.lineTo(cx + s * .34f, cy + s * .85f);
+        reusableShapePath.lineTo(cx - s * .45f, cy + s * .75f);
+        reusableShapePath.lineTo(cx - s * .62f, cy - s * .12f);
+        reusableShapePath.close();
+        paint.setColor(seed % 2 == 0 ? 0xFF72E8E8 : 0xFFAC8EE7);
+        canvas.drawPath(reusableShapePath, paint);
+        paint.setColor(0xAAE7FFFF);
+        canvas.drawLine(cx, cy - s * 1.08f, cx - s * .23f, cy + s * .5f, paint);
+    }
+
+    private void drawCrystalShard(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (.08f + (seed % 2) * .02f);
+        paint.setColor(0xFF9DEFF2);
+        canvas.drawRect(cx - s * .35f, cy - s, cx + s * .35f, cy + s, paint);
+        paint.setColor(0x88FFFFFF);
+        canvas.drawCircle(cx - s * .1f, cy - s * .45f, s * .18f, paint);
+    }
+
+    private void drawReed(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * .13f;
+        paint.setColor(0xFF176B62);
+        paint.setStrokeWidth(Math.max(1f, s * .22f));
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        for (int i = 0; i < 3; i++) {
+            float x = cx + (i - 1) * s * .52f;
+            float bend = ((seed + i) % 2 == 0 ? -.45f : .45f) * s;
+            canvas.drawLine(x, cy + s * .65f, x + bend, cy - s * .9f, paint);
+        }
+        paint.setStrokeCap(Paint.Cap.BUTT);
+        paint.setStrokeWidth(1f);
+        paint.setColor(0xFF91D5C4);
+        canvas.drawCircle(cx, cy - s * .42f, s * .13f, paint);
+    }
+
+    private void drawValleyPebbles(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (.07f + (seed % 3) * .012f);
+        paint.setColor(seed % 2 == 0 ? 0xFF9AC9C2 : 0xFF6BABB2);
+        canvas.drawOval(cx - s, cy - s * .5f, cx + s, cy + s * .5f, paint);
+        paint.setColor(0x88D6FFF3);
+        canvas.drawCircle(cx - s * .28f, cy - s * .18f, s * .28f, paint);
+    }
+
+    private void drawStormStone(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (.10f + (seed % 3) * .014f);
+        paint.setColor(0xFF41355B);
+        canvas.drawOval(cx - s, cy - s * .65f, cx + s, cy + s * .65f, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1f, s * .13f));
+        paint.setColor(0xFF8972B5);
+        canvas.drawLine(cx - s * .55f, cy - s * .3f, cx + s * .45f, cy + s * .28f, paint);
+        paint.setStyle(Paint.Style.FILL);
+    }
+
+    private void drawStormSpark(Canvas canvas, float cx, float cy, int seed) {
+        float s = cellSize * (.09f + (seed % 2) * .015f);
+        paint.setColor(seed % 2 == 0 ? 0xFFFFC764 : 0xFFB99CFF);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1f, s * .16f));
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        canvas.drawLine(cx - s * .45f, cy - s * .6f, cx + s * .08f, cy - s * .08f, paint);
+        canvas.drawLine(cx + s * .08f, cy - s * .08f, cx - s * .14f, cy + s * .6f, paint);
+        canvas.drawLine(cx - s * .14f, cy + s * .6f, cx + s * .5f, cy + s * .05f, paint);
+        paint.setStrokeCap(Paint.Cap.BUTT);
+        paint.setStyle(Paint.Style.FILL);
+    }
+
     // =====================================================================
     // 路径：圆角沙土 + 中部浅带 + 入口木牌
     // =====================================================================
     private void drawPath(Canvas canvas) {
+        ThemePalette palette = themePalette();
+        int routeIndex = 0;
         for (int[][] route : game.getPaths()) {
-            drawRoute(canvas, route);
+            drawRoute(canvas, route, palette, routeIndex++);
         }
     }
 
-    private void drawRoute(Canvas canvas, int[][] path) {
+    private void drawRoute(Canvas canvas, int[][] path, ThemePalette palette, int routeIndex) {
         if (path.length < 2) return;
         float[] xs = new float[path.length];
         float[] ys = new float[path.length];
@@ -343,21 +614,23 @@ public class TdView extends View {
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStrokeJoin(Paint.Join.ROUND);
         // 外描边
-        paint.setColor(C_PATH_BORDER);
+        paint.setColor(palette.pathBorder);
         paint.setStrokeWidth(cellSize * 0.86f);
+        paint.setShadowLayer(cellSize * 0.11f, 0f, cellSize * 0.08f, 0x66000000);
         canvas.drawPath(p, paint);
+        paint.clearShadowLayer();
         // 沙土主体
-        paint.setColor(C_PATH);
+        paint.setColor(palette.path);
         paint.setStrokeWidth(cellSize * 0.7f);
         canvas.drawPath(p, paint);
         // 中部浅带
-        paint.setColor(C_PATH_LIGHT);
+        paint.setColor(routeIndex == 0 ? palette.pathLight : palette.routeAccent);
         paint.setStrokeWidth(cellSize * 0.26f);
         canvas.drawPath(p, paint);
         paint.setStyle(Paint.Style.FILL);
 
         // 泥土斑点
-        paint.setColor(0x30996B30);
+        paint.setColor(palette.pathSpot);
         for (int i = 2; i < path.length; i += 3) {
             int c = path[i][1], r = path[i][0];
             float cx = originX + (c + 0.5f) * cellSize;
@@ -370,7 +643,7 @@ public class TdView extends View {
         }
 
         // 方向箭头（半透明）
-        paint.setColor(0x59FFFFFF);
+        paint.setColor(palette.pathArrow);
         for (int i = 1; i < path.length; i += Math.max(1, path.length / 8)) {
             float ax = (xs[i - 1] + xs[i]) / 2f, ay = (ys[i - 1] + ys[i]) / 2f;
             float dx = xs[i] - xs[i - 1], dy = ys[i] - ys[i - 1];
@@ -410,6 +683,7 @@ public class TdView extends View {
     private void drawPlacementHint(Canvas canvas) {
         boolean selected = selectedType != null;
         boolean affordable = selected && game.getCoin() >= selectedType.baseCost;
+        float pulse = 0.78f + 0.22f * (float) Math.sin(animationSeconds() * 4.2f);
         for (int r = 0; r < game.getRows(); r++) {
             for (int c = 0; c < game.getCols(); c++) {
                 if (game.isPathCell(r, c) || game.isEggCell(r, c)
@@ -418,7 +692,8 @@ public class TdView extends View {
                 float y = originY + r * cellSize;
                 boolean pressed = r == pressedRow && c == pressedCol;
                 paint.setStyle(Paint.Style.FILL);
-                paint.setColor(!selected ? 0x1F7EE6C0
+                int idleAlpha = Math.round(42f * pulse);
+                paint.setColor(!selected ? ((idleAlpha & 0xFF) << 24) | 0x007EE6C0
                         : pressed ? 0x9CFFD54F : affordable ? 0x7A38D9A9 : 0x70EF8A80);
                 canvas.drawRoundRect(x + cellSize * 0.08f, y + cellSize * 0.08f,
                         x + cellSize * 0.92f, y + cellSize * 0.92f, cellSize * 0.1f, cellSize * 0.1f, paint);
@@ -428,6 +703,13 @@ public class TdView extends View {
                         : pressed ? 0xFFFFF3B0 : affordable ? 0xFF8DFFD5 : 0xFFFFAB91);
                 canvas.drawRoundRect(x + cellSize * 0.11f, y + cellSize * 0.11f,
                         x + cellSize * 0.89f, y + cellSize * 0.89f, cellSize * 0.08f, cellSize * 0.08f, paint);
+                if (!selected && cellSize >= 22f) {
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(0x8AD8FFF0);
+                    float dot = cellSize * 0.035f;
+                    canvas.drawCircle(x + cellSize * 0.22f, y + cellSize * 0.22f, dot, paint);
+                    canvas.drawCircle(x + cellSize * 0.78f, y + cellSize * 0.78f, dot, paint);
+                }
                 if (selected && cellSize >= 22f) {
                     textPaint.setTextSize(cellSize * 0.29f);
                     textPaint.setColor(affordable ? 0xFFECFFF8 : 0xFFFFEDEA);
@@ -494,12 +776,13 @@ public class TdView extends View {
         float cx = originX + (game.getEggCol() + 0.5f) * cellSize;
         float cy = originY + (game.getEggRow() + 0.5f) * cellSize;
         float r = cellSize * 0.46f;
+        float time = animationSeconds();
         // 受击瞬时态与慢性表情分离：抖动只看 eggHitTimer 窗口；
         // 嘴形按剩余血量比例分级，不再用「累计掉过血」导致首伤后永远哭脸。
         boolean justHit = game.getEggHitTimer() > 0f;
         float hpRatio = game.getMaxMascotHp() <= 0 ? 1f
                 : (float) game.getMascotHp() / game.getMaxMascotHp();
-        float shake = justHit && (frameCount % 8 < 3) ? cellSize * 0.03f : 0f;
+        float shake = justHit ? (float) Math.sin(time * 58f) * cellSize * 0.03f : 0f;
         // 草窝（底部）
         paint.setColor(0xFF7C8A38);
         for (int i = -2; i <= 2; i++) {
@@ -523,7 +806,7 @@ public class TdView extends View {
         canvas.drawCircle(cx + r * 0.5f + shake, cy + r * 0.32f, r * 0.16f, paint);
         // 大眼（白底 + 黑瞳 + 高光）
         float eyeY = cy - r * 0.05f;
-        float look = Math.min(1f, Math.max(-1f, (float) Math.sin(frameCount * 0.01)));
+        float look = Math.min(1f, Math.max(-1f, (float) Math.sin(time * 0.6f)));
         for (int side = -1; side <= 1; side += 2) {
             float ex0 = cx + side * r * 0.32f + shake;
             paint.setColor(0xFFFFFFFF);
@@ -584,6 +867,9 @@ public class TdView extends View {
     // 塔：底座 + 差异化造型 + 等级金圈 + 落成弹跳 + 开火闪光
     // =====================================================================
     private void drawTowers(Canvas canvas) {
+        if (towerVisualStartTimes.size() > game.getTowers().size() + 8) {
+            towerVisualStartTimes.keySet().retainAll(game.getTowers());
+        }
         for (TdGame.Tower t : game.getTowers()) {
             float cx = originX + (t.col + 0.5f) * cellSize;
             float cy = originY + (t.row + 0.5f) * cellSize;
@@ -592,13 +878,9 @@ public class TdView extends View {
             // 等级体型放大
             if (t.level >= 2) base *= 1.06f;
             if (t.level >= 3) base *= 1.1f;
-            // 落成弹跳动画
-            float k = 1f;
-            if (t.buildAge < 10) {
-                float p = t.buildAge / 10f;
-                k = 0.45f + 0.55f * (1f - (1f - p) * (1f - p)); // ease-out
-            }
-            if (k < 1f) {
+            // 落成弹跳动画必须只看视觉时间：准备阶段没有逻辑 tick，也能自然长成。
+            float k = towerBuildScale(t);
+            if (Math.abs(k - 1f) > .001f) {
                 canvas.save();
                 canvas.translate(cx, cy);
                 canvas.scale(k, k);
@@ -643,34 +925,95 @@ public class TdView extends View {
                 paint.setColor(0xFFFFC107);
                 canvas.drawCircle(cx, cy - base * 1.4f, base * 0.13f, paint);
             }
-            if (k < 1f) {
+            if (Math.abs(k - 1f) > .001f) {
                 canvas.restore();
             }
         }
     }
 
-    /** 该塔当前帧是否正在开火（存在以塔心为起点的光束） */
-    private boolean isFiring(TdGame.Tower t) {
-        float tx = t.col + 0.5f, ty = t.row + 0.5f;
-        for (TdGame.Beam b : game.getBeams()) {
-            if (Math.abs(b.x1 - tx) < 0.01f && Math.abs(b.y1 - ty) < 0.01f) return true;
+    private float towerBuildScale(TdGame.Tower tower) {
+        Long startedAt = towerVisualStartTimes.get(tower);
+        if (startedAt == null) {
+            startedAt = animationTimeMs;
+            towerVisualStartTimes.put(tower, startedAt);
+        }
+        float progress = Math.max(0f, Math.min(1f, (animationTimeMs - startedAt) / 260f));
+        float eased = 1f - (1f - progress) * (1f - progress) * (1f - progress);
+        float spring = (float) Math.sin(progress * Math.PI) * (1f - progress) * .07f;
+        return .62f + .38f * eased + spring;
+    }
+
+    private boolean hasActiveTowerBuildAnimation() {
+        for (Long startedAt : towerVisualStartTimes.values()) {
+            if (animationTimeMs - startedAt < 320L) return true;
         }
         return false;
     }
 
+    /**
+     * 图集是静态帧，因此需要在 View 层保持轻量的视觉时钟：已部署塔会呼吸，
+     * 怪物会走路/漂浮。该刷新不会推进任何游戏规则，暂停时也不会让敌人继续走。
+     */
+    private boolean hasContinuousVisualMotion() {
+        return game != null && !game.isEnded()
+                && (!game.getTowers().isEmpty() || !game.getMonsters().isEmpty());
+    }
+
+    /** 该塔当前帧是否正在开火（存在以塔心为起点的光束） */
+    private boolean isFiring(TdGame.Tower t) {
+        return firingBeamFor(t) != null;
+    }
+
+    /**
+     * 将光束的终点暴露给表现层，供炮塔炮管朝真实目标转向。
+     * Beam 的存续时间很短，因此这不会把“正在攻击”的规则状态存进 View；
+     * 它仅使用当前帧已有的视觉事件。
+     */
+    private TdGame.Beam firingBeamFor(TdGame.Tower t) {
+        float tx = t.col + 0.5f, ty = t.row + 0.5f;
+        for (TdGame.Beam b : game.getBeams()) {
+            if (Math.abs(b.x1 - tx) < 0.01f && Math.abs(b.y1 - ty) < 0.01f) return b;
+        }
+        return null;
+    }
+
+    /** 攻击时锁定光束终点，空闲时慢速搜索，避免静态炮台贴图显得冻结。 */
+    private float towerAimDegrees(TdGame.Tower tower, float time) {
+        TdGame.Beam beam = firingBeamFor(tower);
+        if (beam != null) {
+            return (float) Math.toDegrees(Math.atan2(beam.y2 - beam.y1, beam.x2 - beam.x1));
+        }
+        return -22f + 34f * (float) Math.sin(time * 1.25f + tower.row * .8f + tower.col * .55f);
+    }
+
     private void drawTowerBody(Canvas canvas, TdGame.Tower t, float cx, float cy, float b, boolean firing) {
+        float time = animationSeconds();
         // 开火闪光（围绕塔体质心的暖色光晕）
         if (firing) {
             paint.setColor(0x40FFF176);
             canvas.drawCircle(cx, cy - b * 0.2f, b * 1.25f, paint);
         }
-        float spriteScale = 1f + .025f * (float) Math.sin(frameCount * .10f + t.row * 3 + t.col);
-        if (firing) spriteScale += .055f;
+        float idleStrength = (t.type == TowerType.MINE || t.type == TowerType.SNIPER) ? .028f
+                : (t.type == TowerType.SUN || t.type == TowerType.AMPLIFIER) ? .052f : .060f;
+        float spriteScale = 1f + idleStrength * (float) Math.sin(time * 5.5f + t.row * 3 + t.col);
+        if (firing) spriteScale += .075f;
+        float idleLift = (float) Math.sin(time * 5.5f + t.row * 3 + t.col) * b * .085f;
+        float idleSway = (float) Math.sin(time * 2.7f + t.row * 1.7f + t.col) *
+                (t.type == TowerType.SNIPER || t.type == TowerType.MINE ? .9f : 2.2f);
         canvas.save();
+        canvas.translate(0f, idleLift);
+        canvas.rotate(idleSway, cx, cy - b * .12f);
         canvas.scale(spriteScale, spriteScale, cx, cy - b * .12f);
-        boolean drewSprite = drawSprite(canvas, towerSprites, t.type.ordinal(), cx, cy - b * 0.12f, b * 1.48f);
+        boolean drewSprite = drawSprite(canvas, towerSprites, towerLegacySpriteIndex(t.type),
+                cx, cy - b * 0.12f, b * 1.48f, 3, 2);
+        if (!drewSprite) {
+            drewSprite = drawSprite(canvas, towerExpansionSprites, towerExpansionSpriteIndex(t.type),
+                    cx, cy - b * 0.12f, b * 1.48f, 4, 4);
+        }
         canvas.restore();
         if (drewSprite) {
+            drawTowerSpriteMotionOverlay(canvas, t, cx, cy + idleLift, b, firing, time,
+                    towerAimDegrees(t, time));
             return;
         }
         switch (t.type) {
@@ -690,7 +1033,7 @@ public class TdView extends View {
             case SUN: {
                 // 向日葵：旋转花瓣 + 笑脸花蕊 + 叶子
                 for (int i = 0; i < 9; i++) {
-                    double a = Math.PI * 2 * i / 9 + frameCount * 0.03;
+                    double a = Math.PI * 2 * i / 9 + time * 1.8f;
                     float px = cx + (float) Math.cos(a) * b * 0.95f;
                     float py = cy - b * 0.25f + (float) Math.sin(a) * b * 0.8f;
                     paint.setColor(0xFFFFB300);
@@ -716,7 +1059,7 @@ public class TdView extends View {
             case SNOW: {
                 // 雪花：六角冰晶 + 光核
                 for (int i = 0; i < 6; i++) {
-                    double a = Math.PI * 2 * i / 6 + frameCount * 0.008;
+                    double a = Math.PI * 2 * i / 6 + time * .48f;
                     float px = cx + (float) Math.cos(a) * b * 1.05f;
                     float py = cy - b * 0.2f + (float) Math.sin(a) * b * 0.92f;
                     paint.setStrokeWidth(b * 0.13f);
@@ -753,7 +1096,7 @@ public class TdView extends View {
                 canvas.drawCircle(cx, cy - b * 0.25f, b * 0.88f, paint);
                 paint.setStyle(Paint.Style.FILL);
                 for (int i = 0; i < 3; i++) {
-                    double a = Math.PI * 2 * i / 3 + frameCount * 0.09;
+                    double a = Math.PI * 2 * i / 3 + time * 5.4f;
                     paint.setColor(0xFFCFD8DC);
                     Path blade = new Path();
                     float bx0 = cx + (float) Math.cos(a) * b * 0.2f;
@@ -781,7 +1124,7 @@ public class TdView extends View {
                 paint.setColor(0x66AA40D0);
                 canvas.drawCircle(cx, cy - b * 0.5f, b * 0.55f, paint);
                 // 上浮小气泡
-                float rise = (frameCount * 0.01f) % 1f;
+                float rise = (time * .6f) % 1f;
                 for (int i = 0; i < 2; i++) {
                     float tt = (rise + i * 0.5f) % 1f;
                     float bx = cx - b * 0.4f + i * b * 0.55f;
@@ -810,7 +1153,7 @@ public class TdView extends View {
                 paint.setColor(0xFFFF8A80);
                 canvas.drawCircle(cx, cy - b * 1.15f, b * 0.35f, paint);
                 // 尾焰闪烁
-                float flame = 0.7f + 0.3f * (float) Math.sin(frameCount * 0.5f + t.row * 2 + t.col);
+                float flame = 0.7f + 0.3f * (float) Math.sin(time * 30f + t.row * 2 + t.col);
                 paint.setColor(0xFFFFF176);
                 canvas.drawOval(cx - b * 0.22f, cy + b * 0.3f,
                         cx + b * 0.22f, cy + b * (0.3f + 0.55f * flame), paint);
@@ -820,7 +1163,7 @@ public class TdView extends View {
                 break;
             }
             case LIGHTNING: {
-                float pulse = .78f + .22f * (float) Math.sin(frameCount * .22f + t.row);
+                float pulse = .78f + .22f * (float) Math.sin(time * 13.2f + t.row);
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(b * .11f);
                 paint.setColor(0xFF7E57C2);
@@ -828,7 +1171,7 @@ public class TdView extends View {
                 paint.setStrokeWidth(b * .05f);
                 paint.setColor(0xFFE1BEE7);
                 for (int i = 0; i < 4; i++) {
-                    double angle = i * Math.PI / 2d + frameCount * .05d;
+                    double angle = i * Math.PI / 2d + time * 3d;
                     float ex = cx + (float) Math.cos(angle) * b * .92f;
                     float ey = cy - b * .18f + (float) Math.sin(angle) * b * .78f;
                     canvas.drawLine(cx, cy - b * .18f, ex, ey, paint);
@@ -855,7 +1198,7 @@ public class TdView extends View {
                 break;
             }
             case MINE: {
-                float blink = .55f + .45f * (float) Math.sin(frameCount * .18f + t.row + t.col);
+                float blink = .55f + .45f * (float) Math.sin(time * 10.8f + t.row + t.col);
                 paint.setColor(0xFF546E7A);
                 canvas.drawCircle(cx, cy - b * .03f, b * .72f, paint);
                 paint.setStyle(Paint.Style.STROKE);
@@ -873,7 +1216,7 @@ public class TdView extends View {
                 break;
             }
             case AMPLIFIER: {
-                float orbit = (float) (frameCount * .06f);
+                float orbit = time * 3.6f;
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(b * .08f);
                 paint.setColor(0xFF26C6DA);
@@ -893,6 +1236,112 @@ public class TdView extends View {
                 break;
             }
         }
+    }
+
+    /**
+     * 静态图集之上的低成本动效层。图集保证角色辨识度，叠层让玩家能一眼看出
+     * 风扇在转、火箭在蓄力、向日葵在呼吸，而不是一张不会动的贴纸。
+     */
+    private void drawTowerSpriteMotionOverlay(Canvas canvas, TdGame.Tower tower,
+                                               float cx, float cy, float b,
+                                               boolean firing, float time, float aimDegrees) {
+        float phase = time * 5.5f + tower.row * 3f + tower.col;
+        canvas.save();
+        switch (tower.type) {
+            case BOTTLE: {
+                // 图集中的瓶子炮保留外观；独立炮台层负责“搜敌 → 转向 → 后坐”。
+                // 这是玩家最容易感知的攻击反馈，故意使用比待机呼吸更大的位移。
+                float recoil = firing ? b * .23f : 0f;
+                float barrelBob = (float) Math.sin(time * 7.5f + tower.col) * b * .035f;
+                float turretY = cy - b * .16f + barrelBob;
+                paint.setColor(0xB4133F63);
+                canvas.drawOval(cx - b * .48f, turretY - b * .22f, cx + b * .48f, turretY + b * .25f, paint);
+                paint.setColor(0xF4288BC0);
+                canvas.drawCircle(cx, turretY, b * .23f, paint);
+                canvas.save();
+                canvas.rotate(aimDegrees, cx, turretY);
+                paint.setColor(0xFF0D47A1);
+                canvas.drawRoundRect(cx + b * (.07f - recoil / b), turretY - b * .15f,
+                        cx + b * (.88f - recoil / b), turretY + b * .15f,
+                        b * .10f, b * .10f, paint);
+                paint.setColor(0xFF81D4FA);
+                canvas.drawRoundRect(cx + b * (.18f - recoil / b), turretY - b * .075f,
+                        cx + b * (.80f - recoil / b), turretY + b * .015f,
+                        b * .045f, b * .045f, paint);
+                paint.setColor(firing ? 0xFFFFF176 : 0xAAE1F5FE);
+                canvas.drawCircle(cx + b * (.91f - recoil / b), turretY, firing ? b * .17f : b * .09f, paint);
+                if (firing) {
+                    paint.setColor(0x88FFF59D);
+                    canvas.drawCircle(cx + b * (1.12f - recoil / b), turretY, b * .30f, paint);
+                }
+                canvas.restore();
+                paint.setColor(0xA2D9F6FF);
+                canvas.drawCircle(cx + b * .46f, cy - b * (.54f + .12f * (float) Math.sin(phase)), b * .09f, paint);
+                canvas.drawCircle(cx - b * .35f, cy - b * (.22f + .10f * (float) Math.cos(phase)), b * .055f, paint);
+                break;
+            }
+            case SUN:
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(Math.max(1f, b * .065f));
+                paint.setColor(0xB8FFE082);
+                canvas.drawCircle(cx, cy - b * .2f, b * (.90f + .08f * (float) Math.sin(phase)), paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            case SNOW:
+                paint.setColor(0xBCE1F5FE);
+                for (int i = 0; i < 3; i++) {
+                    double angle = time * 4.1d + i * Math.PI * 2d / 3d;
+                    canvas.drawCircle(cx + (float) Math.cos(angle) * b * .92f,
+                            cy - b * .18f + (float) Math.sin(angle) * b * .72f, b * .075f, paint);
+                }
+                break;
+            case FAN:
+                canvas.rotate(time * 360f, cx, cy - b * .18f);
+                paint.setColor(0x887DE4E8);
+                for (int i = 0; i < 3; i++) {
+                    canvas.save();
+                    canvas.rotate(i * 120f, cx, cy - b * .18f);
+                    canvas.drawOval(cx + b * .16f, cy - b * .35f, cx + b * .86f, cy - b * .02f, paint);
+                    canvas.restore();
+                }
+                paint.setColor(0xCCFFFFFF);
+                canvas.drawCircle(cx, cy - b * .18f, b * .14f, paint);
+                break;
+            case ROCKET:
+                paint.setColor(firing ? 0xFFFFF176 : 0x88FFB74D);
+                float flame = (firing ? .62f : .30f) + .16f * (float) Math.sin(time * 20f + tower.col);
+                canvas.drawOval(cx - b * .13f, cy + b * .32f, cx + b * .13f, cy + b * (.32f + flame), paint);
+                break;
+            case LIGHTNING:
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(Math.max(1f, b * .05f));
+                paint.setColor(0xAEE1BEE7);
+                canvas.drawCircle(cx, cy - b * .18f, b * (.82f + .08f * (float) Math.sin(time * 12f)), paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            case SNIPER:
+                paint.setColor(firing ? 0xE0FFFFFF : 0x9880DEEA);
+                float scan = (float) Math.sin(time * 3.3f + tower.row) * b * .25f;
+                canvas.drawRect(cx - b * .23f, cy - b * .56f + scan, cx + b * .23f,
+                        cy - b * .51f + scan, paint);
+                break;
+            case MINE:
+                paint.setColor((Math.sin(time * 11f + tower.row + tower.col) > .1f)
+                        ? 0xFFFF5252 : 0x668D1B1B);
+                canvas.drawCircle(cx, cy - b * .03f, b * .12f, paint);
+                break;
+            case AMPLIFIER:
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(Math.max(1f, b * .045f));
+                paint.setColor(0xA64DD0E1);
+                canvas.drawCircle(cx, cy - b * .2f, b * (1.06f + .06f * (float) Math.sin(time * 4f)), paint);
+                paint.setStyle(Paint.Style.FILL);
+                break;
+            default:
+                break;
+        }
+        canvas.restore();
+        paint.setStyle(Paint.Style.FILL);
     }
 
     private void drawSelectedRange(Canvas canvas) {
@@ -967,16 +1416,24 @@ public class TdView extends View {
     // =====================================================================
     private void drawMonsters(Canvas canvas) {
         float hpBarW = cellSize * 0.62f;
+        float time = animationSeconds();
         for (TdGame.Monster m : game.getMonsters()) {
             float cx = originX + m.x * cellSize;
             boolean boss = m.type == MonsterType.BOSS;
-            // 行进小弹跳完全依赖帧数；避免静态精灵只随路径坐标变化而显得僵硬。
+            // 类型化的步态/漂浮。使用真实视觉时间，掉帧和准备状态都不改变动作速度。
             float bob = 0f;
             if (m.type == MonsterType.FLY) {
-                bob = (float) (Math.abs(Math.sin(frameCount * 0.12f + m.id)) * cellSize * 0.06);
+                bob = (float) Math.sin(time * 7.2f + m.id) * cellSize * .065f;
+            } else if (boss) {
+                bob = (float) Math.sin(time * 1.35f + m.id) * cellSize * .012f;
             } else if (!boss && m.pathIndex < game.getRouteLength(m.routeIndex) - 1) {
-                float motion = m.charging ? .11f : .075f;
-                bob = (float) (Math.abs(Math.sin(frameCount * motion + m.id * 1.7)) * cellSize * 0.05);
+                boolean heavy = m.type == MonsterType.TANK || m.type == MonsterType.RESISTANT
+                        || m.type == MonsterType.SHIELD_GENERATOR;
+                boolean quick = m.type == MonsterType.FAST || m.type == MonsterType.SWARM
+                        || m.type == MonsterType.CHARGER || m.type == MonsterType.RAGER;
+                float motion = m.charging ? 9f : (quick ? 7.2f : heavy ? 2.4f : 4.8f);
+                float amplitude = heavy ? .018f : quick ? .052f : .032f;
+                bob = Math.abs((float) Math.sin(time * motion + m.id * 1.7f)) * cellSize * amplitude;
             }
             float cy = originY + m.y * cellSize - bob;
             boolean heavy = m.type == MonsterType.TANK || m.type == MonsterType.RESISTANT
@@ -1009,7 +1466,7 @@ public class TdView extends View {
             }
             if (m.dotTimer > 0f) {
                 paint.setColor(0x66BA68C8);
-                canvas.drawCircle(cx, cy, r * (1.06f + 0.08f * (float) Math.sin(frameCount * 0.2f + m.id)), paint);
+                canvas.drawCircle(cx, cy, r * (1.06f + 0.08f * (float) Math.sin(time * 12f + m.id)), paint);
                 paint.setColor(0xCCCE93D8);
                 canvas.drawCircle(cx + r * 0.6f, cy - r * 0.72f, cellSize * 0.06f, paint);
             }
@@ -1075,15 +1532,41 @@ public class TdView extends View {
 
     private void drawMonsterBody(Canvas canvas, TdGame.Monster m, float cx, float cy,
                                  float r, boolean boss, int body) {
-        float bodyScale = 1f + .025f * (float) Math.sin(frameCount * .12f + m.id);
-        if (m.charging) bodyScale = 1.1f;
-        if (m.enraged) bodyScale = 1.06f + .03f * (float) Math.sin(frameCount * .25f);
+        float time = animationSeconds();
+        boolean heavy = m.type == MonsterType.TANK || m.type == MonsterType.RESISTANT
+                || m.type == MonsterType.SHIELD_GENERATOR;
+        float pulse = boss ? .012f : heavy ? .010f : .018f;
+        float bodyScale = 1f + pulse * (float) Math.sin(time * (boss ? 1.5f : 4.2f) + m.id);
+        float scaleX = bodyScale;
+        float scaleY = bodyScale;
+        if (m.charging) {
+            scaleX *= 1.10f;
+            scaleY *= .94f;
+        } else if (m.enraged) {
+            float ragePulse = 1.04f + .025f * (float) Math.sin(time * 13f + m.id);
+            scaleX *= ragePulse;
+            scaleY *= ragePulse;
+        }
+        boolean mobile = m.pathIndex < game.getRouteLength(m.routeIndex) - 1;
+        boolean quick = m.type == MonsterType.FAST || m.type == MonsterType.SWARM
+                || m.type == MonsterType.CHARGER || m.type == MonsterType.RAGER;
+        float stride = (float) Math.sin(time * (quick ? 10.5f : heavy ? 3.2f : 6.5f) + m.id * 1.9f);
+        float walkLift = mobile && m.type != MonsterType.FLY ? -Math.abs(stride) * r * (heavy ? .045f : .11f) : 0f;
+        float walkTilt = mobile && m.type != MonsterType.FLY ? stride * (heavy ? .8f : 2.8f) : 0f;
         canvas.save();
-        canvas.scale(bodyScale, bodyScale, cx, cy);
-        boolean drewSprite = drawSprite(canvas, monsterSprites, monsterSpriteIndex(m.type),
-                cx, cy, r * (boss ? 1.28f : 1.38f));
-        canvas.restore();
+        canvas.translate(0f, walkLift);
+        canvas.rotate(walkTilt, cx, cy);
+        canvas.scale(scaleX, scaleY, cx, cy);
+        drawMonsterSpriteUnderlay(canvas, m, cx, cy, r, time, stride);
+        boolean drewSprite = drawSprite(canvas, monsterSprites, monsterLegacySpriteIndex(m.type),
+                cx, cy, r * (boss ? 1.28f : 1.38f), 3, 2);
+        if (!drewSprite) {
+            drewSprite = drawSprite(canvas, monsterExpansionSprites, monsterExpansionSpriteIndex(m.type),
+                    cx, cy, r * (boss ? 1.28f : 1.38f), 4, 4);
+        }
         if (drewSprite) {
+            canvas.restore();
+            drawMonsterSpriteMotionOverlay(canvas, m, cx, cy + walkLift, r, time, stride);
             if (m.hitFlash > 0f) {
                 paint.setColor(0x55FFFFFF);
                 canvas.drawCircle(cx, cy, r * 0.92f, paint);
@@ -1149,7 +1632,7 @@ public class TdView extends View {
             }
             case FLY: {
                 // 飞行兵：圆身 + 扇动双翅
-                float flap = (float) Math.sin(frameCount * 0.25f + m.id);
+                float flap = (float) Math.sin(time * 15f + m.id);
                 paint.setColor(0x7781C784);
                 canvas.drawOval(cx - r * 0.85f, cy - r * 0.75f - Math.abs(flap) * r * 0.18f,
                         cx + r * 0.85f, cy - r * 0.35f + Math.abs(flap) * r * 0.18f, paint);
@@ -1191,7 +1674,7 @@ public class TdView extends View {
                 // 护盾兵：圆身 + 前方盾牌
                 paint.setColor(body);
                 canvas.drawCircle(cx, cy, r, paint);
-                float sx = cx + (float) Math.cos(frameCount * 0.01) * r * 0.0f;
+                float sx = cx;
                 paint.setColor(0xFF78909C);
                 RectF shield = new RectF(sx + r * 0.05f, cy - r * 0.62f,
                         sx + r * 0.72f, cy + r * 0.62f);
@@ -1264,7 +1747,7 @@ public class TdView extends View {
                 canvas.drawCircle(cx, cy - r * .12f, r * .45f, paint);
                 paint.setStyle(Paint.Style.FILL);
                 for (int i = 0; i < 3; i++) {
-                    double angle = frameCount * .08d + i * Math.PI * 2d / 3d;
+                    double angle = time * 4.8d + i * Math.PI * 2d / 3d;
                     canvas.drawCircle(cx + (float) Math.cos(angle) * r * .9f,
                             cy + (float) Math.sin(angle) * r * .72f, r * .12f, paint);
                 }
@@ -1283,7 +1766,8 @@ public class TdView extends View {
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setColor(0x99EA80FC);
                 paint.setStrokeWidth(r * .08f);
-                canvas.drawCircle(cx + r * .82f, cy + r * .45f, r * (.28f + .07f * (float) Math.sin(frameCount * .16f)), paint);
+                canvas.drawCircle(cx + r * .82f, cy + r * .45f,
+                        r * (.28f + .07f * (float) Math.sin(time * 9.6f)), paint);
                 paint.setStyle(Paint.Style.FILL);
                 break;
             }
@@ -1321,6 +1805,54 @@ public class TdView extends View {
         }
         // 眼睛朝向移动方向
         drawMonsterEyes(canvas, m, cx, cy, r, boss, body);
+        canvas.restore();
+    }
+
+    /** 静态怪物图集的“走路骨架”：飞行兵扇翅，地面怪物交替迈步并留下轻微尘点。 */
+    private void drawMonsterSpriteUnderlay(Canvas canvas, TdGame.Monster monster,
+                                            float cx, float cy, float r, float time, float stride) {
+        if (monster.type == MonsterType.FLY) {
+            float flap = Math.abs((float) Math.sin(time * 15f + monster.id));
+            paint.setColor(0x6CC5F6ED);
+            canvas.drawOval(cx - r * 1.18f, cy - r * (.70f + flap * .28f),
+                    cx - r * .18f, cy + r * (.28f + flap * .10f), paint);
+            canvas.drawOval(cx + r * .18f, cy - r * (.70f + flap * .28f),
+                    cx + r * 1.18f, cy + r * (.28f + flap * .10f), paint);
+            return;
+        }
+        if (monster.pathIndex >= game.getRouteLength(monster.routeIndex) - 1) return;
+        paint.setColor(0x4A3D2B1F);
+        float footY = cy + r * .72f;
+        canvas.drawOval(cx - r * .72f, footY - r * .10f, cx - r * .12f, footY + r * .13f, paint);
+        canvas.drawOval(cx + r * .12f, footY - r * .10f, cx + r * .72f, footY + r * .13f, paint);
+    }
+
+    /** 图集模型的可读动效：冲刺尘迹、飞行微光和受击以外的行走节奏。 */
+    private void drawMonsterSpriteMotionOverlay(Canvas canvas, TdGame.Monster monster,
+                                                float cx, float cy, float r,
+                                                float time, float stride) {
+        if (monster.type == MonsterType.FLY) {
+            paint.setColor(0x9DE1F5FE);
+            canvas.drawCircle(cx - r * .70f, cy - r * (.65f + .12f * (float) Math.sin(time * 15f + monster.id)),
+                    r * .075f, paint);
+            canvas.drawCircle(cx + r * .70f, cy - r * (.65f + .12f * (float) Math.cos(time * 15f + monster.id)),
+                    r * .075f, paint);
+            return;
+        }
+        if (monster.pathIndex >= game.getRouteLength(monster.routeIndex) - 1) return;
+        float dust = Math.max(0f, -stride);
+        if (dust > .35f) {
+            paint.setColor(0x559FF1DC);
+            canvas.drawCircle(cx - r * .72f, cy + r * .73f, r * (.12f + dust * .11f), paint);
+            canvas.drawCircle(cx + r * .58f, cy + r * .75f, r * (.07f + dust * .08f), paint);
+        }
+        if (monster.charging) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(1f, r * .11f));
+            paint.setColor(0xBBFFCA28);
+            canvas.drawLine(cx - r * 1.15f, cy + r * .20f, cx - r * .45f, cy + r * .20f, paint);
+            paint.setStyle(Paint.Style.FILL);
+        }
     }
 
     private void drawMonsterEyes(Canvas canvas, TdGame.Monster m, float cx, float cy,
@@ -1362,8 +1894,32 @@ public class TdView extends View {
         }
     }
 
-    /** 两张精灵表均为 3×2：按类型稳定取格，未覆盖的变体复用同阵营模型。 */
-    private static int monsterSpriteIndex(MonsterType type) {
+    /** 旧版塔图集为 3×2。显式映射可避免枚举重排后资源错位。 */
+    private static int towerLegacySpriteIndex(TowerType type) {
+        switch (type) {
+            case BOTTLE: return 0;
+            case SUN: return 1;
+            case SNOW: return 2;
+            case FAN: return 3;
+            case POISON: return 4;
+            case ROCKET: return 5;
+            default: return -1;
+        }
+    }
+
+    /** 新增塔图集是 4×4，其中首行依次覆盖雷电、狙击、地雷和增幅。 */
+    private static int towerExpansionSpriteIndex(TowerType type) {
+        switch (type) {
+            case LIGHTNING: return 0;
+            case SNIPER: return 1;
+            case MINE: return 2;
+            case AMPLIFIER: return 3;
+            default: return -1;
+        }
+    }
+
+    /** 旧版怪物图集为 3×2，保留原有关卡角色的兼容映射。 */
+    private static int monsterLegacySpriteIndex(MonsterType type) {
         switch (type) {
             case FAST: return 1;
             case TANK:
@@ -1384,26 +1940,45 @@ public class TdView extends View {
         }
     }
 
+    /** 新增怪物图集是 4×4，其中前六格覆盖后期机制怪物。 */
+    private static int monsterExpansionSpriteIndex(MonsterType type) {
+        switch (type) {
+            case SPLITTER: return 0;
+            case CHARGER: return 1;
+            case SHIELD_GENERATOR: return 2;
+            case SUMMONER: return 3;
+            case RESISTANT: return 4;
+            case RAGER: return 5;
+            default: return -1;
+        }
+    }
+
     /**
-     * 把精灵表中一个 3×2 格子按棋盘单元缩放绘制。所有资源均按 drawable-nodpi 加载，
+     * 把指定图集中一个格子按棋盘单元缩放绘制。所有资源均按 drawable-nodpi 加载，
      * 因而不会出现屏幕密度二次缩放；失败时调用方回退到原来的 Canvas 造型。
      */
-    private boolean drawSprite(Canvas canvas, Bitmap sheet, int index, float cx, float cy, float radius) {
-        if (sheet == null || sheet.isRecycled() || index < 0 || index >= 6 || radius <= 0f) return false;
-        int sourceWidth = sheet.getWidth() / 3;
-        int sourceHeight = sheet.getHeight() / 2;
-        if (sourceWidth <= 0 || sourceHeight <= 0) return false;
+    private boolean drawSprite(Canvas canvas, Bitmap sheet, int index, float cx, float cy, float radius,
+                               int columns, int rows) {
+        if (sheet == null || sheet.isRecycled() || index < 0 || radius <= 0f
+                || columns <= 0 || rows <= 0 || index >= columns * rows) return false;
+        if (sheet.getWidth() < columns || sheet.getHeight() < rows) return false;
 
-        int column = index % 3;
-        int row = index / 3;
-        Rect source = new Rect(column * sourceWidth, row * sourceHeight,
-                (column + 1) * sourceWidth, (row + 1) * sourceHeight);
+        int column = index % columns;
+        int row = index / columns;
+        int left = column * sheet.getWidth() / columns;
+        int top = row * sheet.getHeight() / rows;
+        int right = (column + 1) * sheet.getWidth() / columns;
+        int bottom = (row + 1) * sheet.getHeight() / rows;
+        if (right <= left || bottom <= top) return false;
+        Rect source = new Rect(left, top, right, bottom);
         RectF destination = new RectF(cx - radius, cy - radius, cx + radius, cy + radius);
         int oldAlpha = paint.getAlpha();
+        Paint.Style oldStyle = paint.getStyle();
         paint.setStyle(Paint.Style.FILL);
         paint.setAlpha(255);
         canvas.drawBitmap(sheet, source, destination, paint);
         paint.setAlpha(oldAlpha);
+        paint.setStyle(oldStyle);
         return true;
     }
 
@@ -1582,7 +2157,7 @@ public class TdView extends View {
         if (win) {
             paint.setColor(0xFFFFC107);
             for (int i = 0; i < 6; i++) {
-                double a = Math.PI * 2 * i / 6 + frameCount * 0.004;
+                double a = Math.PI * 2 * i / 6 + animationSeconds() * .24f;
                 float sx = w / 2f + (float) Math.cos(a) * cellSize * 2.4f;
                 float sy = oy + (float) Math.sin(a) * cellSize * 2.1f;
                 drawStar(canvas, sx, sy, cellSize * 0.14f);

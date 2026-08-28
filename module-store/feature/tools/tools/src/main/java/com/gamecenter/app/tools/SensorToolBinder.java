@@ -4,6 +4,7 @@ import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import com.gamecenter.app.R;
 import java.util.List;
@@ -41,6 +42,14 @@ public final class SensorToolBinder implements ToolBinder {
     public void bind(Context context, View contentView, ExecutorService executor) {
         if (contentView == null) return;
         TextView tvList = contentView.findViewById(R.id.tv_sensor_list);
+        Button refreshButton = contentView.findViewById(R.id.btn_refresh_sensors);
+        if (refreshButton != null) {
+            refreshButton.setOnClickListener(v -> renderSensors(context, tvList));
+        }
+        renderSensors(context, tvList);
+    }
+
+    private static void renderSensors(Context context, TextView tvList) {
         // 获取系统传感器服务
         SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         if (sm != null && tvList != null) {

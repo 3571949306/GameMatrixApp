@@ -31,6 +31,7 @@ import androidx.fragment.app.Fragment;
 import com.gamecenter.app.modules.ModuleManager;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TdLevels;
+import com.gamecenter.app.td.engine.TdTowerProgression;
 import com.gamecenter.app.td.engine.TowerType;
 
 import java.util.List;
@@ -76,13 +77,15 @@ public class TdModuleFragment extends Fragment {
     /** PVZ 式开局塔组：每局只带 5 张牌，避免小屏横向挤压。 */
     private static final int DECK_SIZE = 5;
     private final List<TowerType> activeDeck = new ArrayList<>(Arrays.asList(
-            TowerType.BOTTLE, TowerType.SUN, TowerType.SNOW, TowerType.FAN, TowerType.ROCKET));
+            TowerType.BOTTLE, TowerType.SUN, TowerType.SNOW));
     private final Map<TowerType, View> towerItemByType = new HashMap<>();
     /** Android DragEvent 在部分系统版本的 STARTED 阶段不提供 ClipData，保留本地拖拽类型。 */
     private TowerType paletteDragType;
 
     private FrameLayout overlayRoot;
     private TdSaveManager save;
+    /** 模块 APK 的真实资源；宿主 Context 不能替代它读取本模块 assets。 */
+    private com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources moduleResources;
 
     @Nullable
     @Override
@@ -90,7 +93,29 @@ public class TdModuleFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         save = new TdSaveManager(requireContext().getApplicationContext());
+        try {
+            moduleResources = ModuleManager.INSTANCE.getModuleResources("td");
+            if (moduleResources == null) {
+                throw new IllegalStateException("TD module resources are unavailable");
+            }
+            // 关卡数据是模块资产真源。加载器会先完成 schema、路径、波次和枚举校验，
+            // 绝不回退到陈旧 Java 关卡，避免内容版本与 UI/存档悄悄错配。
+            TdLevels.initialize(moduleResources.getAssetManager());
+        } catch (RuntimeException contentFailure) {
+            return buildCampaignUnavailableView();
+        }
         return buildUi();
+    }
+
+    private View buildCampaignUnavailableView() {
+        TextView message = new TextView(requireContext());
+        message.setText("关卡内容加载失败\n请重新安装“保卫蛋蛋”模块后再试");
+        message.setTextColor(0xFFFFFFFF);
+        message.setTextSize(17);
+        message.setGravity(Gravity.CENTER);
+        message.setPadding(dp(24), dp(24), dp(24), dp(24));
+        message.setBackgroundColor(0xFF1E2A1F);
+        return message;
     }
 
     // ===== UI 构建 =====
@@ -171,13 +196,13 @@ public class TdModuleFragment extends Fragment {
     private View buildBoardArea(Context ctx) {
         tdView = new TdView(ctx);
         // 动态模块的 View 使用的是宿主 Context；精灵资源必须从模块 Resources 显式取得。
-        com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources moduleResources =
-                ModuleManager.INSTANCE.getModuleResources("td");
         if (moduleResources != null) {
             tdView.loadSpriteSheets(
                     moduleResources.getResources(),
                     moduleResources.getResId("td_towers", "drawable"),
-                    moduleResources.getResId("td_monsters", "drawable"));
+                    moduleResources.getResId("td_monsters", "drawable"),
+                    moduleResources.getResId("td_towers_expansion_v1", "drawable"),
+                    moduleResources.getResId("td_monsters_expansion_v1", "drawable"));
         }
         tdView.setListener(new TdView.OnTowerActionListener() {
             @Override public void onTowerPlaced(int row, int col, TowerType type) {
@@ -651,7 +676,7 @@ public class TdModuleFragment extends Fragment {
             final int idx = i;
             String id = ids.get(i);
             boolean locked = idx >= unlocked;
-            int stars = save.getBestStars(idx);
+            int stars = save.getBestStars(id);
 
             LinearLayout card = new LinearLayout(requireContext());
             card.setOrientation(LinearLayout.HORIZONTAL);
@@ -700,7 +725,7 @@ public class TdModuleFragment extends Fragment {
         }
 
         TextView stats = new TextView(requireContext());
-        stats.setText("已通关 " + countCleared(unlocked) + " · 总击杀 " + save.getTotalKills()
+        stats.setText("已通关 " + countCleared() + " · 总击杀 " + save.getTotalKills()
                 + " · 游玩 " + save.getPlayCount() + " 次");
         stats.setTextSize(12);
         stats.setTextColor(0xFFB0BEC5);
@@ -769,7 +794,21 @@ public class TdModuleFragment extends Fragment {
     /** 开局选塔：最多 5 张牌，底部只显示本次选中的塔。 */
     private void showDeckSelect(final int levelIdx, final TdGame.Difficulty difficulty) {
         clearOverlay();
-        final Set<TowerType> draft = new LinkedHashSet<>(activeDeck);
+        final List<TowerType> availableTowers = TdTowerProgression
+                .availableForUnlockedLevelCount(save.getUnlockedLevelCount());
+        final Set<TowerType> availableSet = new LinkedHashSet<>(availableTowers);
+        final Set<TowerType> draft = new LinkedHashSet<>();
+        for (TowerType tower : activeDeck) {
+            if (availableSet.contains(tower)) {
+                draft.add(tower);
+            }
+        }
+        // 旧版本曾默认把后期塔带入首关。修复到新进度规则时，补齐一个可直接开局的基础塔组，
+        // 但不替玩家覆盖已有的有效选择。
+        for (TowerType tower : availableTowers) {
+            if (draft.size() >= 3) break;
+            draft.add(tower);
+        }
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
@@ -785,14 +824,15 @@ public class TdModuleFragment extends Fragment {
         panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
 
         TextView hint = new TextView(requireContext());
-        hint.setText("像植物大战僵尸一样，带上 3～" + DECK_SIZE + " 张牌；拖动塔牌即可建造或合成");
+        hint.setText("从已解锁的 " + availableTowers.size() + "/" + TowerType.values().length
+                + " 张塔牌中带上 3～" + DECK_SIZE + " 张；通关主线会解锁新塔");
         hint.setTextSize(12);
         hint.setTextColor(0xFFCCFFE0);
         hint.setGravity(Gravity.CENTER);
-        panel.addView(hint, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
+        panel.addView(hint, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38)));
 
         final TextView count = new TextView(requireContext());
-        count.setText("已选 " + draft.size() + "/" + DECK_SIZE);
+        count.setText(deckCountText(draft.size(), availableTowers.size()));
         count.setTextSize(14);
         count.setTextColor(0xFFFFF176);
         count.setGravity(Gravity.CENTER);
@@ -806,6 +846,7 @@ public class TdModuleFragment extends Fragment {
             row.setGravity(Gravity.CENTER);
             for (int offset = 0; offset < 2 && start + offset < TowerType.values().length; offset++) {
                 final TowerType type = TowerType.values()[start + offset];
+                final boolean towerUnlocked = availableSet.contains(type);
                 LinearLayout card = new LinearLayout(requireContext());
                 card.setOrientation(LinearLayout.HORIZONTAL);
                 card.setGravity(Gravity.CENTER_VERTICAL);
@@ -813,14 +854,20 @@ public class TdModuleFragment extends Fragment {
                 card.addView(new TowerGlyphView(requireContext(), type),
                         new LinearLayout.LayoutParams(dp(32), dp(32)));
                 TextView label = new TextView(requireContext());
-                label.setText(type.displayName + "\n" + towerRole(type));
+                label.setText(towerUnlocked
+                        ? type.displayName + "\n" + towerRole(type)
+                        : "🔒 " + type.displayName + "\n" + TdTowerProgression.unlockRequirement(type));
                 label.setTextSize(10);
-                label.setTextColor(0xFFFFFFFF);
+                label.setTextColor(towerUnlocked ? 0xFFFFFFFF : 0xFF9E9E9E);
                 card.addView(label, new LinearLayout.LayoutParams(0, dp(38), 1f));
                 LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(0, dp(50), 1f);
                 cardLp.setMargins(dp(3), dp(3), dp(3), dp(3));
                 row.addView(card, cardLp);
                 card.setOnClickListener(v -> {
+                    if (!towerUnlocked) {
+                        showMsg(type.displayName + "：" + TdTowerProgression.unlockRequirement(type), "info");
+                        return;
+                    }
                     if (draft.contains(type)) {
                         draft.remove(type);
                     } else if (draft.size() < DECK_SIZE) {
@@ -829,10 +876,13 @@ public class TdModuleFragment extends Fragment {
                         showMsg("最多选择 " + DECK_SIZE + " 张塔牌", "info");
                         return;
                     }
-                    updateDeckCard(card, draft.contains(type));
-                    count.setText("已选 " + draft.size() + "/" + DECK_SIZE);
+                    updateDeckCard(card, draft.contains(type), true);
+                    count.setText(deckCountText(draft.size(), availableTowers.size()));
                 });
-                updateDeckCard(card, draft.contains(type));
+                card.setContentDescription(towerUnlocked
+                        ? type.displayName + (draft.contains(type) ? "，已选择" : "，未选择")
+                        : type.displayName + "，" + TdTowerProgression.unlockRequirement(type));
+                updateDeckCard(card, draft.contains(type), towerUnlocked);
             }
             grid.addView(row, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
@@ -859,18 +909,28 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
-    private void updateDeckCard(View card, boolean selected) {
+    private String deckCountText(int selectedCount, int availableCount) {
+        return "已选 " + selectedCount + "/" + DECK_SIZE + " · 已解锁 "
+                + availableCount + "/" + TowerType.values().length;
+    }
+
+    private void updateDeckCard(View card, boolean selected, boolean unlocked) {
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(selected ? 0xFF5A5238 : 0xFF3A3A3A);
-        bg.setStroke(dp(selected ? 2 : 1), selected ? 0xFFFFC107 : 0xFF666666);
+        if (!unlocked) {
+            bg.setColor(0xFF2F302D);
+            bg.setStroke(dp(1), 0xFF555B55);
+        } else {
+            bg.setColor(selected ? 0xFF5A5238 : 0xFF3A3A3A);
+            bg.setStroke(dp(selected ? 2 : 1), selected ? 0xFFFFC107 : 0xFF666666);
+        }
         bg.setCornerRadius(dp(10));
         card.setBackground(bg);
     }
 
-    private int countCleared(int unlocked) {
+    private int countCleared() {
         int c = 0;
-        for (int i = 0; i < TdLevels.levelIds().size(); i++) {
-            if (save.getBestStars(i) > 0) c++;
+        for (String levelId : TdLevels.levelIds()) {
+            if (save.getBestStars(levelId) > 0) c++;
         }
         return c;
     }
@@ -944,15 +1004,23 @@ public class TdModuleFragment extends Fragment {
         gameEnded = true;
         if (game.getState() == TdGame.State.WON) {
             int stars = game.starsEarned();
-            save.recordWin(selectedLevelIdx);
-            save.setBestStars(selectedLevelIdx, stars);
+            int unlockedBefore = save.getUnlockedLevelCount();
+            String levelId = TdLevels.levelIds().get(selectedLevelIdx);
+            save.recordWin(levelId);
+            List<TowerType> newlyUnlocked = TdTowerProgression.newlyUnlockedBetween(
+                    unlockedBefore, save.getUnlockedLevelCount());
+            save.setBestStars(levelId, stars);
             save.addKills(game.getMonstersKilled());
-            save.setBestTimeSec(selectedLevelIdx, (int) game.getElapsedSeconds());
+            save.setBestTimeSec(levelId, (int) game.getElapsedSeconds());
             if (game.getDifficulty() == TdGame.Difficulty.EASY) save.setEasyCleared(true);
             if (game.getDifficulty() == TdGame.Difficulty.HARD) save.setHardCleared(true);
+            String resultStats = "击杀 " + game.getMonstersKilled() + " · 用时 "
+                    + (int) game.getElapsedSeconds() + "s";
+            if (!newlyUnlocked.isEmpty()) {
+                resultStats += "\n新塔解锁：" + towerNames(newlyUnlocked);
+            }
             showResult("🎉 通关成功", "星级 ★★★★★".replace("★★★★★", starsText(stars)),
-                    "击杀 " + game.getMonstersKilled() + " · 用时 "
-                            + (int) game.getElapsedSeconds() + "s", 0xFF66BB6A);
+                    resultStats, 0xFF66BB6A);
         } else {
             showResult("💔 蛋蛋被吃掉了", "",
                     "坚持到第 " + game.getWaveIndex() + " 波  ·  击杀 " + game.getMonstersKilled(),
@@ -990,7 +1058,9 @@ public class TdModuleFragment extends Fragment {
         t3.setTextSize(13);
         t3.setTextColor(0xFFB0BEC5);
         t3.setGravity(Gravity.CENTER);
-        panel.addView(t3, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(30)));
+        t3.setMaxLines(2);
+        panel.addView(t3, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(line3.contains("\n") ? 52 : 30)));
 
         boolean won = game.getState() == TdGame.State.WON;
         if (won && selectedLevelIdx + 1 < TdLevels.levelIds().size()) {
@@ -1230,6 +1300,15 @@ public class TdModuleFragment extends Fragment {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < Math.max(0, n); i++) sb.append('★');
         return n > 0 ? sb.toString() : "☆ ☆ ☆";
+    }
+
+    private static String towerNames(List<TowerType> towers) {
+        StringBuilder out = new StringBuilder();
+        for (TowerType tower : towers) {
+            if (out.length() > 0) out.append("、");
+            out.append(tower.displayName);
+        }
+        return out.toString();
     }
 
     private int dp(float v) {
