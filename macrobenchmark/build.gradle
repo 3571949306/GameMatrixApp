@@ -54,7 +54,9 @@ android {
 
 dependencies {
     // BaselineProfileRule — 记录冷启动热路径并生成 profile
-    implementation 'androidx.benchmark:benchmark-macro-junit4:1.4.1'
+    // Keep this aligned with the Baseline Profile plugin in the root build.
+    // The 1.5.0-rc02 train resolves Wire 6.4.0, above the GHSA fixed version.
+    implementation 'androidx.benchmark:benchmark-macro-junit4:1.5.0-rc02'
     // AndroidJUnit4 runner
     implementation 'androidx.test.ext:junit:1.2.1'
     // Test rules
