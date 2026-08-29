@@ -90,3 +90,10 @@ python scripts/verify_protected_assets.py verify
 - 动态模块资源加载依赖运行时探测 `AssetManager.addAssetPath` 私有 API 可用性；探测失败时记录 `MODULE_RESOURCE_FALLBACK` 并以宿主资源降级运行，不做任何绕过。
 - 目录 Ed25519 签名默认开启（`enableCatalogSignature=true`）：已配置 `catalogEd25519PublicKeys` 时为强验证模式；未配置公钥的 release/stable 发布构建必须失败，本地开发构建仅警告并以兼容模式运行（`CATALOG_SIGNATURE_TRUSTED=false`）。
 - 交付前必须核对 `version.properties`：默认 `autoBumpVersion=true` 会在每次 `assembleDebug` 后自动递增 versionCode 并回写，属构建系统既定行为；任何"成功构建"都必须记录当前 versionCode，避免把自动递增误报为本次改动。如不需要自动递增，使用 `-PautoBumpVersion=false` 构建。
+
+## 9. 分支与发布规范（强制）
+
+- 主分支 `main` 受分支保护：CI（lint-and-test / build / gitleaks）全绿才允许合入。
+- 所有改动先推子分支 `feature/**` 或 `hotfix/**`（推送即触发 CI），CI 绿灯后才可合并回 `main`。
+- 完整规范（分支模型、提交流程、发布流程、禁止上传清单）见本地文件
+  `docs/开发规范-分支与发布.md`（该文件不上传 GitHub，任何 agent 开工前必读）。
