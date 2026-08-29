@@ -867,15 +867,11 @@ object ModuleManager {
     private fun registerGameFromManifest(context: Context, manifest: ModuleManifest) {
         try {
             val gameId = manifest.gameId.ifEmpty { manifest.id }
-            // 2026-08-23 模块分层重构：移除 doudizhu 跳过。
-            // 历史上（v1.4.0）跳过 gomoku/doudizhu 是因宿主与模块双注册冲突；
-            // 现在 doudizhu 在 modules.json 中为 builtIn=true 且
-            // activityClass 指向宿主 DouDiZhuMenuActivity，由本方法统一注册。
-            val activityClass = if (manifest.builtIn && manifest.activityClass.isNotEmpty()) {
-                Class.forName(manifest.activityClass)
-            } else {
-                DynamicGameActivity::class.java
-            }
+            // 2026-08-29 模块热更改造：所有游戏统一注册 DynamicGameActivity（模块加载器路径），
+            // 启动后由 tryLoadModuleGame 按清单加载外置模块 APK，支持经商店单独热更。
+            // 数据回退兼容：若清单把某游戏翻回 builtIn=true + activityClass，
+            // getHostGameActivityClassName 仍会在 tryLoadModuleGame 中接管宿主直启。
+            val activityClass = DynamicGameActivity::class.java
             val categoryKey = manifest.gameCategory.ifEmpty { "casual" }
             val categoryLabel = when (categoryKey) {
                 "classics" -> context.getString(R.string.category_classics)

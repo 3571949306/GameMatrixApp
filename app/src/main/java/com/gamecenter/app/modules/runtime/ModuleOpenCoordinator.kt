@@ -24,13 +24,9 @@ object ModuleOpenCoordinator {
             context.startActivity(intent)
             return RuntimeResult(true)
         }
-        if (manifest.type == "game" && manifest.activityClass.isNotEmpty() && manifest.builtIn) {
-            return runCatching {
-                val activityClass = Class.forName(manifest.activityClass)
-                context.startActivity(Intent(context, activityClass).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                RuntimeResult(true)
-            }.getOrElse { RuntimeResult(false, "activity_not_found", it.message.orEmpty()) }
-        }
+        // 2026-08-29 模块热更改造：游戏统一走 DynamicGameActivity → tryLoadModuleGame 加载
+        // 外置模块 APK（预装或商店下载），支持单独热更；宿主直启分支已删除，
+        // 数据回退由 DynamicGameActivity 内 getHostGameActivityClassName 兜底接管。
         if (manifest.type == "game") {
             val gameId = manifest.gameId.ifEmpty { manifest.id }
             context.startActivity(
