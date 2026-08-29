@@ -1,7 +1,6 @@
 package com.gamecenter.app.ai.model;
 
 import android.content.Context;
-import android.os.Environment;
 
 import com.gamecenter.app.BuildConfig;
 
@@ -10,13 +9,14 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +45,7 @@ import java.util.concurrent.Executors;
  *       在同一后台线程顺序执行，避免并发下载导致的资源竞争</li>
  *   <li>采用"先下载临时文件，校验通过后重命名"的策略，防止下载中断导致损坏文件覆盖已有模型</li>
  *   <li>使用回调接口（Callback / DownloadCallback）而非返回值，适配异步执行模型</li>
- *   <li>优先使用外部存储（getExternalFilesDir），不可用时回退到内部存储（getFilesDir）</li>
+ *   <li>始终使用应用私有内部存储，避免旧版外部存储权限允许其他应用替换模型文件</li>
  * </ul>
  */
 public final class AiModelDownloadManager {
@@ -55,6 +55,9 @@ public final class AiModelDownloadManager {
 
     /** 远程模型清单文件的路径（相对于服务器根路径） */
     private static final String MANIFEST_PATH = "/ai-models/models.json";
+
+    /** 清单文件本身也必须有上限，避免把远程响应无限读入内存。 */
+    private static final long MAX_MANIFEST_SIZE_BYTES = 4L * 1024L * 1024L;
 
     /** 单线程执行器，确保所有下载和网络操作串行执行，避免并发问题 */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -103,7 +106,7 @@ public final class AiModelDownloadManager {
      *   <li>检查模型是否启用且下载地址有效</li>
      *   <li>确保本地模型目录存在</li>
      *   <li>下载到临时文件（.download 后缀）</li>
-     *   <li>SHA-256 完整性校验（如果清单中提供了校验值）</li>
+     *   <li>强制执行 SHA-256 和文件大小完整性校验</li>
      *   <li>校验通过后，将临时文件重命名为正式文件名</li>
      * </ol>
      *
@@ -115,42 +118,49 @@ public final class AiModelDownloadManager {
      */
     public void download(Context context, AiModelInfo model, DownloadCallback callback) {
         executor.execute(() -> {
+            File temp = null;
             try {
                 // 前置检查：模型必须启用且具有有效下载地址
+                if (model == null) {
+                    throw new IllegalArgumentException("Model metadata is null");
+                }
                 if (!model.enabled || model.downloadUrl.isEmpty()) {
                     throw new IllegalStateException(model.note.isEmpty()
                             ? "Model package is not enabled on VPS"
                             : model.note);
                 }
+                validateDownloadMetadata(model);
                 File dir = getModelDir(context);
                 // 确保模型目录存在，mkdirs() 在目录已存在时返回 false 但不报错
                 if (!dir.exists() && !dir.mkdirs()) {
                     throw new IllegalStateException("Cannot create model directory");
                 }
-                File target = new File(dir, model.fileName);
+                File target = AiModelDownloadValidator.resolveContainedFile(dir, model.fileName);
                 // 使用 .download 后缀的临时文件，防止下载中断导致损坏文件覆盖已有模型
-                File temp = new File(dir, model.fileName + ".download");
+                temp = AiModelDownloadValidator.resolveContainedFile(dir, model.fileName + ".download");
                 downloadFile(model.downloadUrl, temp, model.sizeBytes, callback);
-                // SHA-256 完整性校验：仅在清单中提供了校验值时执行
-                // 就像收快递时核对防伪码，确保文件没被篡改
-                if (!model.sha256.isEmpty()) {
-                    String actual = sha256(temp);
-                    if (!model.sha256.equalsIgnoreCase(actual)) {
-                        // 校验失败：删除临时文件，抛出异常，避免损坏数据残留
-                        temp.delete();
-                        throw new IllegalStateException("Model SHA-256 verification failed");
-                    }
+                // SHA-256 完整性校验是下载模型的强制条件，不能由清单选择性关闭。
+                String actual = sha256(temp);
+                if (!model.sha256.equalsIgnoreCase(actual)) {
+                    throw new IllegalStateException("Model SHA-256 verification failed");
                 }
                 // 删除已存在的旧版本模型文件
                 if (target.exists()) {
-                    target.delete();
+                    if (!target.delete()) {
+                        throw new IllegalStateException("Cannot replace existing model file");
+                    }
                 }
                 // 将校验通过的临时文件重命名为正式文件名，完成下载
                 if (!temp.renameTo(target)) {
                     throw new IllegalStateException("Cannot finalize model file");
                 }
+                temp = null;
                 callback.onComplete(target);
             } catch (Exception e) {
+                if (temp != null && temp.exists() && !temp.delete()) {
+                    // 不覆盖原始错误，但确保后续不会误用未完成的临时文件。
+                    temp.deleteOnExit();
+                }
                 callback.onError(e);
             }
         });
@@ -158,18 +168,15 @@ public final class AiModelDownloadManager {
 
     /**
      * 获取模型文件的本地存储目录。
-     * 优先使用外部存储（getExternalFilesDir），当外部存储不可用时回退到内部存储（getFilesDir）。
+     * 使用应用私有内部存储。模型文件稍后会被完整性校验后交给推理引擎；
+     * 将根目录固定在 {@link Context#getDir(String, int)} 可避免旧版外部存储权限
+     * 允许其他应用在“校验通过”和“引擎打开”之间替换文件或符号链接。
      *
      * @param context Android 上下文
      * @return 模型存储目录的 File 对象
      */
     public File getModelDir(Context context) {
-        File base = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
-        // 外部存储可能不可用（如 SD 卡被移除），此时回退到内部存储
-        if (base == null) {
-            base = context.getFilesDir();
-        }
-        return new File(base, MODEL_DIR);
+        return context.getDir(MODEL_DIR, Context.MODE_PRIVATE);
     }
 
     /**
@@ -180,7 +187,14 @@ public final class AiModelDownloadManager {
      * @return 模型文件的 File 对象（文件不一定存在）
      */
     public File getModelFile(Context context, AiModelInfo model) {
-        return new File(getModelDir(context), model.fileName);
+        if (model == null) {
+            throw new IllegalArgumentException("Model metadata is null");
+        }
+        try {
+            return AiModelDownloadValidator.resolveContainedFile(getModelDir(context), model.fileName);
+        } catch (IOException error) {
+            throw new IllegalArgumentException("Invalid model file path", error);
+        }
     }
 
     /**
@@ -188,9 +202,9 @@ public final class AiModelDownloadManager {
      *
      * <p>判断逻辑：</p>
      * <ul>
-     *   <li>文件必须存在</li>
-     *   <li>如果清单中指定了文件大小（sizeBytes > 0），则文件大小必须完全匹配</li>
-     *   <li>如果清单中未指定文件大小（sizeBytes <= 0），则仅检查文件是否存在</li>
+     *   <li>文件必须存在且是普通文件</li>
+     *   <li>文件名、SHA-256 和正数文件大小必须通过安全边界校验</li>
+     *   <li>文件大小必须与已保存的清单元数据完全匹配</li>
      * </ul>
      *
      * @param context Android 上下文
@@ -198,8 +212,44 @@ public final class AiModelDownloadManager {
      * @return true 表示模型文件已完整下载
      */
     public boolean isDownloaded(Context context, AiModelInfo model) {
-        File file = getModelFile(context, model);
-        return file.exists() && (model.sizeBytes <= 0 || file.length() == model.sizeBytes);
+        if (model == null) {
+            return false;
+        }
+        try {
+            AiModelDownloadValidator.validateModelMetadata(model.fileName, model.sha256, model.sizeBytes);
+            File file = getModelFile(context, model);
+            return file.isFile() && file.length() == model.sizeBytes;
+        } catch (RuntimeException error) {
+            return false;
+        }
+    }
+
+    /**
+     * 在加载模型前执行不可跳过的完整性校验。
+     *
+     * <p>{@link #isDownloaded(Context, AiModelInfo)} 只用于主线程上的列表展示，
+     * 因为重新计算大型模型的哈希会阻塞界面。所有真正进入推理引擎的调用方
+     * 必须使用本方法；它会重新计算本地文件的 SHA-256，防止同尺寸的篡改文件
+     * 绕过快速存在性检查。</p>
+     *
+     * @param context Android 上下文
+     * @param model   清单或持久化偏好中的模型元数据
+     * @return 文件存在、大小匹配且 SHA-256 与元数据一致时返回 true
+     */
+    public boolean verifyDownloadedModel(Context context, AiModelInfo model) {
+        if (model == null) {
+            return false;
+        }
+        try {
+            AiModelDownloadValidator.validateModelMetadata(model.fileName, model.sha256, model.sizeBytes);
+            File file = getModelFile(context, model);
+            if (!file.isFile() || file.length() != model.sizeBytes) {
+                return false;
+            }
+            return model.sha256.equalsIgnoreCase(sha256(file));
+        } catch (Exception error) {
+            return false;
+        }
     }
 
     /**
@@ -218,18 +268,35 @@ public final class AiModelDownloadManager {
      * @throws Exception 网络请求或 JSON 解析失败时抛出
      */
     private JSONObject fetchJson(String urlStr) throws Exception {
+        AiModelDownloadValidator.validateDownloadUrl(
+                urlStr, BuildConfig.SERVER_URL, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        conn.setInstanceFollowRedirects(false);
         // 连接超时 10 秒，读取超时 30 秒（清单文件较小，无需过长超时）
         conn.setConnectTimeout(10000);
         conn.setReadTimeout(30000);
         conn.setRequestProperty("Accept", "application/json");
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-            StringBuilder builder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                builder.append(line);
+        int responseCode = conn.getResponseCode();
+        if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
+            throw new IOException("Model manifest HTTP " + responseCode);
+        }
+        long contentLength = conn.getContentLengthLong();
+        if (contentLength > MAX_MANIFEST_SIZE_BYTES) {
+            throw new IOException("Model manifest is too large");
+        }
+        try (BufferedInputStream input = new BufferedInputStream(conn.getInputStream());
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            long readTotal = 0;
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                readTotal += read;
+                if (readTotal > MAX_MANIFEST_SIZE_BYTES) {
+                    throw new IOException("Model manifest is too large");
+                }
+                output.write(buffer, 0, read);
             }
-            return new JSONObject(builder.toString());
+            return new JSONObject(new String(output.toByteArray(), StandardCharsets.UTF_8));
         } finally {
             conn.disconnect();
         }
@@ -248,11 +315,23 @@ public final class AiModelDownloadManager {
      * @throws Exception 网络或 IO 异常
      */
     private void downloadFile(String urlStr, File target, long expectedSize, DownloadCallback callback) throws Exception {
+        AiModelDownloadValidator.validateDownloadUrl(
+                urlStr, BuildConfig.SERVER_URL, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+        AiModelDownloadValidator.validateSize(expectedSize);
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        conn.setInstanceFollowRedirects(false);
         // 下载模型文件使用更长的超时：连接 15 秒，读取 300 秒（5分钟）
         conn.setConnectTimeout(15000);
         conn.setReadTimeout(300000);
+        int responseCode = conn.getResponseCode();
+        if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
+            throw new IOException("Model download HTTP " + responseCode);
+        }
         long total = conn.getContentLengthLong();
+        if (total > AiModelDownloadValidator.MAX_MODEL_SIZE_BYTES
+                || (total > 0 && total != expectedSize)) {
+            throw new IOException("Model content length does not match manifest");
+        }
         // 服务器未返回 Content-Length 时，使用清单中的预期大小作为进度参考
         if (total <= 0) {
             total = expectedSize;
@@ -266,7 +345,14 @@ public final class AiModelDownloadManager {
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
                 downloaded += read;
+                if (downloaded > expectedSize
+                        || downloaded > AiModelDownloadValidator.MAX_MODEL_SIZE_BYTES) {
+                    throw new IOException("Model download exceeds manifest size");
+                }
                 callback.onProgress(downloaded, total);
+            }
+            if (downloaded != expectedSize) {
+                throw new IOException("Model download size does not match manifest");
             }
         } finally {
             conn.disconnect();
@@ -300,6 +386,12 @@ public final class AiModelDownloadManager {
             builder.append(String.format("%02x", b));
         }
         return builder.toString();
+    }
+
+    private static void validateDownloadMetadata(AiModelInfo model) {
+        AiModelDownloadValidator.validateModelMetadata(model.fileName, model.sha256, model.sizeBytes);
+        AiModelDownloadValidator.validateDownloadUrl(
+                model.downloadUrl, BuildConfig.SERVER_URL, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
     }
 
     /**

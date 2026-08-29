@@ -21,15 +21,24 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
+from urllib.error import HTTPError
+from urllib.parse import urljoin, urlparse
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 import paramiko
 
 REPO = Path(__file__).resolve().parent.parent
 ASSETS = REPO / "app" / "src" / "main" / "assets"
 MANIFESTS = [ASSETS / "modules.json", ASSETS / "catalog.json"]
+SAFE_ASSET_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+MAX_PUBLIC_METADATA_BYTES = 4 * 1024 * 1024
+MAX_PUBLIC_APK_BYTES = 1024 * 1024 * 1024
+MAX_PUBLIC_REDIRECTS = 5
+REDIRECT_CODES = {301, 302, 303, 307, 308}
 
 
 def sha256_of(path: Path) -> str:
@@ -53,6 +62,164 @@ def load_creds(cfg: Path):
     if m:
         pw = m.group(1)
     return d, pw
+
+
+def configure_ssh_client(client: paramiko.SSHClient, cfg: dict) -> None:
+    """Require an operator-provided host key before any publish connection."""
+    client.set_missing_host_key_policy(paramiko.RejectPolicy())
+    known_hosts_file = (
+        cfg.get("knownHostsFile")
+        or os.environ.get("UPLOAD_KNOWN_HOSTS_FILE")
+        or os.path.expanduser("~/.ssh/known_hosts")
+    )
+    known_hosts_path = Path(known_hosts_file).expanduser()
+    if not known_hosts_path.is_file():
+        raise RuntimeError(
+            f"known_hosts file not found: {known_hosts_path}. "
+            f"Please run: ssh-keyscan -H {cfg.get('host', '<host>')} >> {known_hosts_path}"
+        )
+    try:
+        client.load_host_keys(str(known_hosts_path))
+    except Exception as exc:
+        raise RuntimeError(f"failed to load trusted host keys: {known_hosts_path}") from exc
+
+
+def validate_publish_metadata_name(name: str) -> str:
+    """Keep the remote SFTP target a single, bounded APK filename."""
+    if not name or not SAFE_ASSET_NAME.fullmatch(name) or not name.lower().endswith(".apk"):
+        raise ValueError(f"unsafe module APK filename: {name!r}")
+    return name
+
+
+def validate_public_base_url(raw_url: str) -> str:
+    """Publishing must advertise an HTTPS endpoint, never a clear-text URL."""
+    normalized = raw_url or ""
+    if normalized != normalized.strip():
+        raise ValueError("publicBaseUrl must not contain surrounding whitespace")
+    normalized = normalized.strip()
+    parsed = urlparse(normalized)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("publicBaseUrl has an invalid port") from exc
+    if (parsed.scheme.lower() != "https" or not parsed.hostname
+            or parsed.username is not None or parsed.password is not None
+            or parsed.fragment or port == 0 or (port is not None and not 1 <= port <= 65535)):
+        raise ValueError("publicBaseUrl must be an HTTPS URL without credentials or fragments")
+    return normalized.rstrip("/")
+
+
+def _parse_public_https_url(raw_url: str):
+    """Parse a public URL and reject credentials, fragments and bad ports."""
+    normalized = raw_url or ""
+    if normalized != normalized.strip():
+        raise ValueError("public URL must not contain surrounding whitespace")
+    normalized = normalized.strip()
+    parsed = urlparse(normalized)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("public URL has an invalid port") from exc
+    if (parsed.scheme.lower() != "https" or not parsed.hostname
+            or parsed.username is not None or parsed.password is not None
+            or parsed.fragment or port == 0 or (port is not None and not 1 <= port <= 65535)):
+        raise ValueError("public URL must be HTTPS without credentials or fragments")
+    return normalized, parsed
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    """Expose redirects to the caller so every hop can be checked."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _public_origin(parsed) -> tuple[str, int]:
+    return parsed.hostname.lower(), parsed.port or 443
+
+
+def _resolve_public_redirect(current_url: str, location: str, expected_origin: tuple[str, int]) -> str:
+    if not location or location != location.strip():
+        raise ValueError("public verification redirect has no safe Location")
+    next_url = urljoin(current_url, location)
+    normalized, parsed = _parse_public_https_url(next_url)
+    if _public_origin(parsed) != expected_origin:
+        raise ValueError("public verification redirect changed origin")
+    return normalized
+
+
+def _open_public_response(url: str, max_bytes: int):
+    """Open an HTTPS response with bounded same-origin redirects."""
+    normalized, parsed = _parse_public_https_url(url)
+    expected_origin = _public_origin(parsed)
+    opener = build_opener(_NoRedirectHandler())
+    current_url = normalized
+    for redirect_count in range(MAX_PUBLIC_REDIRECTS + 1):
+        request = Request(current_url, headers={"User-Agent": "GameMatrixApp-publisher/1"})
+        try:
+            response = opener.open(request, timeout=20)
+        except HTTPError as error:
+            if error.code not in REDIRECT_CODES:
+                raise
+            if redirect_count >= MAX_PUBLIC_REDIRECTS:
+                raise RuntimeError("too many public verification redirects") from error
+            try:
+                location = error.headers.get("Location")
+            finally:
+                error.close()
+            current_url = _resolve_public_redirect(current_url, location, expected_origin)
+            continue
+        status = response.getcode()
+        if status is not None and not 200 <= status < 300:
+            response.close()
+            raise RuntimeError(f"public verification HTTP {status}")
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            try:
+                if int(content_length) > max_bytes:
+                    response.close()
+                    raise RuntimeError("public verification response is too large")
+            except ValueError as exc:
+                response.close()
+                raise RuntimeError("public verification returned an invalid Content-Length") from exc
+        return response
+    raise RuntimeError("public verification redirect loop")
+
+
+def _read_public_bytes(url: str, max_bytes: int) -> bytes:
+    response = _open_public_response(url, max_bytes)
+    try:
+        chunks = []
+        total = 0
+        while True:
+            chunk = response.read(1 << 20)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise RuntimeError("public verification response is too large")
+            chunks.append(chunk)
+        return b"".join(chunks)
+    finally:
+        response.close()
+
+
+def _sha256_public_file(url: str) -> tuple[str, int]:
+    response = _open_public_response(url, MAX_PUBLIC_APK_BYTES)
+    digest = hashlib.sha256()
+    total = 0
+    try:
+        while True:
+            chunk = response.read(1 << 20)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_PUBLIC_APK_BYTES:
+                raise RuntimeError("public APK is too large")
+            digest.update(chunk)
+    finally:
+        response.close()
+    return digest.hexdigest(), total
 
 
 def main() -> int:
@@ -86,11 +253,11 @@ def main() -> int:
     # 沿用仓库既有约定：fileName 跨版本稳定（bundle 任务目标名亦不随 versionCode 变化），
     # 仅递增 versionCode/versionName——否则"已安装/有更新"判定会因文件名漂移而失效。
     old_name = entry.get("fileName") or f"{args.id}.apk"
-    new_name = args.new_name or old_name
+    new_name = validate_publish_metadata_name(args.new_name or old_name)
     digest = sha256_of(apk_path)
 
     cfg, password = load_creds(REPO / "local_private" / "服务器部署" / "upload_config_hk.json")
-    base = cfg["publicBaseUrl"].rstrip("/")
+    base = validate_public_base_url(cfg["publicBaseUrl"])
     entry.update({
         "versionCode": new_vc,
         "versionName": new_vn,
@@ -119,7 +286,7 @@ def main() -> int:
 
     # 上传（APK + 双清单）
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    configure_ssh_client(client, cfg)
     client.connect(cfg["host"], port=int(cfg.get("port", 22)), username=cfg["user"],
                    password=password, timeout=15, banner_timeout=15)
     sftp = client.open_sftp()
@@ -131,14 +298,27 @@ def main() -> int:
     client.close()
     print(f"已上传: modules/{new_name} + modules.json + catalog.json -> {cfg['host']}:{remote_dir}")
 
-    # 公网回读校验
-    import urllib.request
-    url = f"{base}/modules.json"
-    with urllib.request.urlopen(url, timeout=20) as r:
-        remote = json.loads(r.read().decode("utf-8"))
+    # 公网回读校验：清单和实际 APK 都必须从同一 HTTPS origin 返回，
+    # 并且 APK 字节哈希/大小必须与刚发布的本地产物一致。仅回读清单
+    # 无法发现对象存储/CDN 的旧缓存、部分上传或远端文件被替换。
+    manifest_url = f"{base}/modules.json"
+    remote = json.loads(_read_public_bytes(manifest_url, MAX_PUBLIC_METADATA_BYTES).decode("utf-8"))
     re_ = next((m for m in remote["modules"] if m["id"] == args.id), None)
-    ok = re_ and re_["sha256"] == digest and int(re_["versionCode"]) == new_vc
-    print("公网校验:", "PASS" if ok else "FAIL", f"(remote version={remote.get('version')})")
+    remote_name = re_.get("fileName") if re_ else None
+    remote_apk_sha = ""
+    remote_apk_size = -1
+    if re_ and remote_name == new_name:
+        remote_apk_sha, remote_apk_size = _sha256_public_file(
+            f"{base}/modules/{new_name}"
+        )
+    ok = (re_ and remote_name == new_name
+          and re_.get("sha256", "").lower() == digest.lower()
+          and int(re_.get("versionCode", -1)) == new_vc
+          and remote_apk_sha.lower() == digest.lower()
+          and remote_apk_size == apk_path.stat().st_size)
+    print("公网校验:", "PASS" if ok else "FAIL",
+          f"(remote version={remote.get('version')}, apk_size={remote_apk_size}, "
+          f"apk_sha256={remote_apk_sha[:16]}...)")
     return 0 if ok else 1
 
 

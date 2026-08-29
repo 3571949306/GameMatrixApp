@@ -13,41 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE = ROOT / "module-store/feature/games/games/go"
 SOURCE = MODULE / "src/main/java/com/gamecenter/app/go"
 TESTS = MODULE / "tests"
-HOST_SOURCE = ROOT / "app/src/main/java/com/gamecenter/app/games/go"
 OUTPUT = (ROOT / "build/agent-verification/go").resolve()
-
-
-def normalized_source(path: Path, package_name: str, mirror_path: str) -> str:
-    text = path.read_text(encoding="utf-8")
-    text = text.replace(package_name, "package com.gamecenter.app.go_mirror;")
-    text = text.replace(mirror_path, "<mirror>")
-    return text.replace("\r\n", "\n").strip()
-
-
-def verify_mirrors() -> None:
-    pairs = [
-        (
-            SOURCE / "GoGame.java",
-            HOST_SOURCE / "GoGame.java",
-            "package com.gamecenter.app.go;",
-            "package com.gamecenter.app.games.go;",
-            "app/src/main/java/com/gamecenter/app/games/go/GoGame.java",
-            "module-store/feature/games/games/go/src/main/java/com/gamecenter/app/go/GoGame.java",
-        ),
-        (
-            SOURCE / "GoAI.java",
-            HOST_SOURCE / "GoAI.java",
-            "package com.gamecenter.app.go;",
-            "package com.gamecenter.app.games.go;",
-            "app/src/main/java/com/gamecenter/app/games/go/GoAI.java",
-            "module-store/feature/games/games/go/src/main/java/com/gamecenter/app/go/GoAI.java",
-        ),
-    ]
-    for module, host, module_package, host_package, host_ref, module_ref in pairs:
-        module_text = normalized_source(module, module_package, host_ref)
-        host_text = normalized_source(host, host_package, module_ref)
-        if module_text != host_text:
-            raise RuntimeError(f"Go source mirror drift: {module.relative_to(ROOT)} != {host.relative_to(ROOT)}")
 
 
 def main() -> int:
@@ -59,7 +25,9 @@ def main() -> int:
         print("JDK is required: javac/java not found on PATH", file=sys.stderr)
         return 2
 
-    verify_mirrors()
+    # Host mirror sync checks were removed with the hot-update flip (0c52cb9):
+    # module-store is the single runtime truth source and no host copy exists.
+
     allowed_root = (ROOT / "build/agent-verification").resolve()
     if allowed_root not in OUTPUT.parents:
         print(f"refusing unsafe output path: {OUTPUT}", file=sys.stderr)

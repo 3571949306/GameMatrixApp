@@ -576,9 +576,7 @@ public class AiFragment extends Fragment {
         message.append("大小: ").append(formatBytes(model.sizeBytes)).append("\n");
         message.append("峰值内存: ").append(formatBytes(model.estimatedPeakMemoryBytes)).append("\n");
         if (!rulesModel) {
-            message.append("存储位置: App 私有目录 / Android/data/")
-                    .append(requireContext().getPackageName())
-                    .append("/files/Documents/ai_models\n\n");
+            message.append("存储位置: App 私有内部目录（仅本应用可访问）\n\n");
         } else {
             message.append("\n");
         }

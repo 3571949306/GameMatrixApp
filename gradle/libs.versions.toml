@@ -1,8 +1,8 @@
 [versions]
-kotlin = "2.0.21"
+kotlin = "2.4.20-RC2"
 room = "2.7.1"
-hilt = "2.57.2"
-coroutines = "1.10.1"
+hilt = "2.60.1"
+coroutines = "1.11.0"
 jacoco = "0.8.12"
 appcompat = "1.7.1"
 material = "1.13.0"
@@ -27,7 +27,7 @@ okio = "3.10.2"
 
 # Compose (Phase 1 试点：设置页) — Kotlin 2.0+ 用 compose-compiler-gradle-plugin
 compose-bom = "2024.12.01"
-compose-compiler-plugin = "2.0.21"
+compose-compiler-plugin = "2.4.20-RC2"
 activity-compose = "1.9.3"
 junit = "4.13.2"
 json = "20250107"
