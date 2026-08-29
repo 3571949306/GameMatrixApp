@@ -98,7 +98,8 @@ jobs:
           retention-days: 14
 
   build:
-    name: Build (debug)
+    # Keep this check name stable: main branch protection requires it.
+    name: Build and Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: lint-and-test
