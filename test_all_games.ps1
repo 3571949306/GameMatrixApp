@@ -1,87 +1,53 @@
-$games = @(
-    @{name="gomoku"; activity=".games.gomoku.GomokuActivity"},
-    @{name="doudizhu"; activity=".games.doudizhu.DouDiZhuMenuActivity"},
-    @{name="blackjack"; activity=".games.blackjack.BlackjackActivity"},
-    @{name="breakout"; activity=".games.breakout.BreakoutActivity"},
-    @{name="brotato"; activity=".games.brotato.BrotatoActivity"},
-    @{name="checkers"; activity=".games.checkers.CheckersActivity"},
-    @{name="dice"; activity=".games.dice.DiceActivity"},
-    @{name="flappy"; activity=".games.flappy.FlappyActivity"},
-    @{name="go"; activity=".games.go.GoActivity"},
-    @{name="guess"; activity=".games.guess.GuessActivity"},
-    @{name="match"; activity=".games.match.MatchActivity"},
-    @{name="memory"; activity=".games.memory.MemoryActivity"},
-    @{name="minesweeper"; activity=".games.minesweeper.MinesweeperActivity"},
-    @{name="pipeline"; activity=".games.pipeline.PipelineActivity"},
-    @{name="plane"; activity=".games.plane.PlaneActivity"},
-    @{name="reaction"; activity=".games.reaction.ReactionActivity"},
-    @{name="rock"; activity=".games.rock.RockActivity"},
-    @{name="snake"; activity=".games.snake.SnakeActivity"},
-    @{name="sokoban"; activity=".games.sokoban.SokobanActivity"},
-    @{name="sudoku"; activity=".games.sudoku.SudokuActivity"},
-    @{name="tetris"; activity=".games.tetris.TetrisActivity"},
-    @{name="tic"; activity=".games.tic.TicTacToeActivity"},
-    @{name="tiles"; activity=".games.tiles.TilesActivity"},
-    @{name="whack"; activity=".games.whack.WhackActivity"},
-    @{name="klotski"; activity=".games.klotski.KlotskiActivity"},
-    @{name="chinesechess"; activity=".games.chinesechess.ChineseChessActivity"},
-    @{name="game2048"; activity=".games.game2048.Game2048Activity"}
+# 全量游戏回归脚本（模块热更改造版，2026-08-29）
+# 26 个游戏已模块化：统一经 DynamicGameActivity(--es gameId) 加载外置模块 APK。
+# DynamicGameActivity 未导出，需 root adb（脚本内自动执行 adb root）。
+# breakout 仍为宿主内置（GameRegistry 静态 Entry 直启 BreakoutActivity）。
+#
+# 用法: .\test_all_games.ps1 [-AdbSerial 127.0.0.1:16384]
+param(
+    [string]$AdbSerial = "127.0.0.1:16384",
+    [string]$OutDir = "test_output\all_games_sweep"
 )
 
-$results = @()
-$serial = "emulator-5554"
+$ErrorActionPreference = "Continue"
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+if (-not (Test-Path $adb)) { $adb = "adb" }
 
-foreach ($game in $games) {
-    $n = $game.name
-    $act = $game.activity
-    Write-Host "=== Testing $n ($act) ===" -ForegroundColor Cyan
+$games = @(
+    "gomoku","doudizhu","blackjack","checkers","dice","rock","game_2048",
+    "sudoku","klotski","sokoban","pipeline","minesweeper","match","memory",
+    "breakout","tiles","tetris","snake","flappy","brotato","plane",
+    "reaction","guess","tic","whack","chinesechess","td"
+)
 
-    # Start activity
-    $startOut = adb -s $serial shell am start -n "com.gamecenter.app/$act" 2>&1
-    $startStr = $startOut -join " "
-    Write-Host "  Start: $startStr"
+New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+& $adb -s $AdbSerial root | Out-Null
+& $adb -s $AdbSerial shell rm /sdcard/gm_sweep.png 2>$null | Out-Null
 
-    # Check if start failed
-    $startFailed = $false
-    if ($startStr -match "Error|Exception|not found|does not exist") {
-        $startFailed = $true
-        Write-Host "  START FAILED!" -ForegroundColor Red
-    }
-
-    # Wait 2 seconds
-    Start-Sleep -Seconds 2
-
-    # Screenshot
-    $ssPath = "/sdcard/test_${n}.png"
-    $localPath = "d:\Developmment\GameMatrixApp\test_${n}.png"
-    adb -s $serial shell screencap -p $ssPath 2>&1 | Out-Null
-    adb -s $serial pull $ssPath $localPath 2>&1 | Out-Null
-    $ssOk = Test-Path $localPath
-    if ($ssOk) {
-        $sz = (Get-Item $localPath).Length
-        Write-Host "  Screenshot: OK ($sz bytes)" -ForegroundColor Green
+$failed = @()
+$passed = 0
+foreach ($g in $games) {
+    & $adb -s $AdbSerial shell am force-stop com.gamecenter.app
+    Start-Sleep -Milliseconds 800
+    & $adb -s $AdbSerial logcat -c
+    & $adb -s $AdbSerial shell am start -n com.gamecenter.app/.SplashActivity | Out-Null
+    Start-Sleep -Seconds 8
+    & $adb -s $AdbSerial shell am start -n com.gamecenter.app/.DynamicGameActivity --es gameId $g 2>$null | Out-Null
+    Start-Sleep -Seconds 5
+    & $adb -s $AdbSerial shell screencap -p /sdcard/gm_sweep.png | Out-Null
+    & $adb -s $AdbSerial pull /sdcard/gm_sweep.png "$OutDir\$g.png" 2>$null | Out-Null
+    & $adb -s $AdbSerial shell rm /sdcard/gm_sweep.png | Out-Null
+    $log = & $adb -s $AdbSerial logcat -d 2>$null
+    $loaded  = ($log -match "外置模块加载成功" -or $log -match "BreakoutActivity").Count -gt 0
+    $crashed = ($log -match "FATAL EXCEPTION").Count -gt 0
+    if ($loaded -and -not $crashed) {
+        Write-Host "PASS  $g" -ForegroundColor Green
+        $passed++
     } else {
-        Write-Host "  Screenshot: FAILED" -ForegroundColor Red
-    }
-
-    # Press back
-    adb -s $serial shell input keyevent KEYCODE_BACK 2>&1 | Out-Null
-    Start-Sleep -Milliseconds 500
-
-    $results += [PSCustomObject]@{
-        Game = $n
-        Activity = $act
-        StartFailed = $startFailed
-        StartOutput = $startStr
-        ScreenshotOK = $ssOk
+        Write-Host "FAIL  $g (loaded=$loaded crashed=$crashed)" -ForegroundColor Red
+        $failed += $g
     }
 }
-
 Write-Host ""
-Write-Host "========== SUMMARY ==========" -ForegroundColor Yellow
-foreach ($r in $results) {
-    $status = if ($r.StartFailed) { "FAIL" } else { "OK" }
-    $ss = if ($r.ScreenshotOK) { "SS:OK" } else { "SS:FAIL" }
-    Write-Host ("  {0,-16} {1,-8} {2}" -f $r.Game, $status, $ss)
-}
-Write-Host "=============================" -ForegroundColor Yellow
+Write-Host "结果: $passed/$($games.Count) 通过" -ForegroundColor Cyan
+if ($failed.Count -gt 0) { Write-Host "失败清单: $($failed -join ', ')" -ForegroundColor Red; exit 1 }
