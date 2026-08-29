@@ -36,6 +36,14 @@ jobs:
             build-mode: none
           - language: python
             build-mode: none
+          # Scan the workflow definitions themselves so permission regressions
+          # are evaluated against the current configuration.
+          - language: actions
+            build-mode: none
+          # Keep removed JavaScript paths from leaving stale alerts and cover
+          # any future repository-owned JavaScript without a build step.
+          - language: javascript-typescript
+            build-mode: none
 
     steps:
       - name: Checkout
