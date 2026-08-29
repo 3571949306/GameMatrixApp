@@ -225,3 +225,12 @@ wrongbook_module.zip
 /CODE_WIKI.md
 /CLOUD-BUILD.md
 /core/security/src/main/res/raw/release_signer.cer
+
+# ============================================================
+# 2026-08-29 仓库清理：测试产物/内部方案文档永久排除
+# ============================================================
+/e2e_tetris/
+/chess_auto/
+/*.xml
+/中国象棋*.md
+/浏览器*.md
