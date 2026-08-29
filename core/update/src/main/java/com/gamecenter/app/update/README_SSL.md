@@ -5,19 +5,20 @@
 
 ## 当前实现
 
-App 端通过 `SSLHelper.trustUpdateServer(baseUrl)` 只对更新服务器域名禁用证书验证，不再全局禁用所有 HTTPS 连接。
+App 端所有更新请求都强制使用 HTTPS，并由 Android/Java 系统验证证书链和主机名。
+`SSLHelper.trustUpdateServer(baseUrl)` 仅保留为兼容旧调用方的校验日志入口，不会修改信任链或安装 TrustAll 验证器。
 
 ```java
-SSLHelper.trustUpdateServer("http://<YOUR_DOMAIN>"); // 只信任更新服务器
+SSLHelper.trustUpdateServer("https://<YOUR_DOMAIN>"); // 仅记录协议检查，不改变系统信任
 ```
 
-`UpdateManager` 初始化时会自动从默认 URL 提取域名并信任：
+`UpdateManager` 初始化时会自动检查默认 URL：
 
 ```java
-SSLHelper.trustUpdateServer(DEFAULT_BASE_URL); // 提取 <YOUR_DOMAIN>
+SSLHelper.trustUpdateServer(DEFAULT_BASE_URL); // 不绕过证书/主机名验证
 ```
 
-用户自定义更新 URL 时也会自动添加信任：
+用户自定义更新 URL 时也会执行相同的 HTTPS 检查：
 
 ```java
 SSLHelper.trustUpdateServer(baseUrl); // setBaseUrl() 时调用
@@ -29,7 +30,7 @@ VPS 端已在 nginx 1443 端口配置了 HTTPS（使用 Let's Encrypt 证书）�
 
 由于 443 端口被 Xray 占用，使用 1443 端口。HTTPS 已启用，APP 默认更新地址为 `https://<YOUR_DOMAIN>:1443`。
 
-HTTP 80 端口仍保持向后兼容，旧版 APP 仍可通过 HTTP 检查更新。
+HTTP 80 端口不再作为当前客户端的更新通道；旧版客户端如仍使用明文 HTTP，必须在服务端单独迁移或停止支持。
 
 ## 服务端 HTTPS 参考配置
 
@@ -74,9 +75,9 @@ curl -k -sI https://<YOUR_DOMAIN>:1443/version-beta.json
 ## 检查清单
 
 - 确认客户端 `DEFAULT_BASE_URL` 与服务端协议一致
-- 确认公网 `/version.json` 和 `/app-beta.apk` 可通过 HTTP 访问
+- 确认公网 `/version.json` 和 `/app-beta.apk` 可通过 HTTPS 访问
 - 确认 APK 下载支持足够大的 `client_max_body_size`
-- 确认 Android 9+ 明文 HTTP 策略已经在 `network_security_config.xml` 中允许
+- 确认 Android 网络安全配置保持 `cleartextTrafficPermitted="false"`
 - 在模拟器或真机上触发一次检查更新，查看 `UpdateManager` 日志
 
 ## 常见错误
@@ -85,13 +86,13 @@ curl -k -sI https://<YOUR_DOMAIN>:1443/version-beta.json
 | --- | --- | --- |
 | `SSLV3_ALERT_HANDSHAKE_FAILURE` | TLS 协议或证书配置不兼容 | 使用 `"TLS"` 自动协商，并检查 nginx SSL 配置 |
 | `Failed to connect` | 端口不可达或反向代理未启动 | 检查防火墙、nginx 和服务进程 |
-| `CLEARTEXT communication not permitted` | Android 禁止明文 HTTP | 检查 `network_security_config.xml` |
-| `Certificate not trusted` | 证书链不被系统信任 | 当前方案只对更新服务器域名禁用验证，不影响其他连接 |
+| `CLEARTEXT communication not permitted` | 更新 URL 仍是明文 HTTP | 将版本清单和 APK 地址迁移到 HTTPS；当前客户端不会降级到 HTTP |
+| `Certificate not trusted` | 证书链不被系统信任 | 使用受系统信任的完整证书链；代码不会绕过证书验证 |
 
 ## 相关文件
 
 - [UpdateManager.java](/core/update/src/main/java/com/gamecenter/app/update/UpdateManager.java): 更新检查、下载和安装流程
-- [SSLHelper.java](/core/update/src/main/java/com/gamecenter/app/update/SSLHelper.java): TLS 信任管理
+- [SSLHelper.java](/core/update/src/main/java/com/gamecenter/app/update/SSLHelper.java): 系统默认 TLS 验证兼容入口
 - [network_security_config.xml](/app/src/main/res/xml/network_security_config.xml): Android 网络安全配置
 - [AndroidManifest.xml](/app/src/main/AndroidManifest.xml): 应用清单与网络配置引用
 - VPS 更新服务模板不在当前仓库中，部署时必须以受控服务器仓库/配置为准。

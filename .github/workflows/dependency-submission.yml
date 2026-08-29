@@ -1,0 +1,35 @@
+name: Dependency Submission
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '41 3 * * 1'
+
+# The Gradle dependency-submission action updates the repository dependency
+# graph, so this is intentionally scoped to the main branch and write access
+# is limited to that purpose.
+permissions:
+  contents: write
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Submit Gradle dependency graph
+        uses: gradle/actions/dependency-submission@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0

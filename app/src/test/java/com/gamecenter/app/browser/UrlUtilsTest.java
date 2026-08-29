@@ -51,6 +51,7 @@ public class UrlUtilsTest {
         assertNull(UrlUtils.normalizeWebUrl("http://example.com:99999"));
         assertNull(UrlUtils.normalizeWebUrl("999.1.1.1"));
         assertNull(UrlUtils.normalizeWebUrl("https://example.com/has space"));
+        assertNull(UrlUtils.normalizeWebUrl("https://user:pass@example.com"));
     }
 
     @Test

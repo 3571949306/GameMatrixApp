@@ -247,7 +247,7 @@ class AiTaskRouterCoroutine(
             .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
             .build()
 
-        if (!modelDownloadManager.isDownloaded(appContext, model)) return AiResult.fail("本地模型尚未下载完成")
+        if (!modelDownloadManager.verifyDownloadedModel(appContext, model)) return AiResult.fail("本地模型尚未下载完成或完整性校验失败")
             .source("local-llm")
             .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
             .build()
