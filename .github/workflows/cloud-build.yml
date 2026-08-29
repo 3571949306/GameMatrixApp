@@ -17,7 +17,12 @@ on:
         options:
           - debug
           - release-unsigned
-          - release-signed
+
+# Cloud builds are intentionally read-only.  Release signing runs in the
+# separate workflow_run workflow after a successful main-branch build, so a
+# tag or manually selected branch can never execute code with signing secrets.
+permissions:
+  contents: read
 
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx4g"
@@ -36,16 +41,18 @@ jobs:
         java_home: [/usr/lib/jvm/temurin-17-jdk-amd64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17 (Temurin)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: 17
           distribution: temurin
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.1'
           channel: stable
@@ -59,7 +66,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Cache Gradle (复用依赖下载)
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.gradle/caches
@@ -69,7 +76,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Setup Android SDK (commandline-tools)
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           packages: platform-tools platforms;android-36 build-tools;35.0.0 ndk;28.2.13676358
 
@@ -102,7 +109,7 @@ jobs:
       # 上传 artifact (核心 — VPS 拉的就是这些)
       # ============================================
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
@@ -111,7 +118,7 @@ jobs:
 
       - name: Upload release APK (unsigned)
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: app-release-unsigned
           path: app/build/outputs/apk/release/*-unsigned*.apk
@@ -119,7 +126,7 @@ jobs:
           retention-days: 7
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coverage-report
           path: |
@@ -129,10 +136,12 @@ jobs:
           retention-days: 14
 
       # ============================================
-      # 通知 openclaw / VPS (可选)
+      # 通知 openclaw / VPS (可选)。仅允许受保护 main 分支的 push 读取
+      # webhook secret；tag、手动运行和 PR 的工作流文件可能来自不受信任
+      # 的提交，不能让它们接触该 secret。
       # ============================================
       - name: Notify VPS (POST to webhook)
-        if: success() && github.event_name != 'pull_request'
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           # 如果 VPS 暴露了 webhook，可以 push 通知
           if [ -n "$VPS_WEBHOOK_URL" ]; then
@@ -142,123 +151,3 @@ jobs:
           fi
         env:
           VPS_WEBHOOK_URL: ${{ secrets.VPS_WEBHOOK_URL }}
-
-  # ========================================================
-  # Job 2: 签名 release (需要 secrets, 失败也不阻塞主 build)
-  # ========================================================
-  signed-release:
-    name: Signed Release APK
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: build
-    if: |
-      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') ||
-      github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check signing configuration
-        id: signing-config
-        shell: bash
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Signing secrets are not configured; skipping signed release steps."
-          fi
-
-      - uses: actions/setup-java@v5
-        if: steps.signing-config.outputs.available == 'true'
-        with:
-          java-version: 17
-          distribution: temurin
-
-      - uses: subosito/flutter-action@v2
-        if: steps.signing-config.outputs.available == 'true'
-        with:
-          flutter-version: '3.44.1'
-          channel: stable
-          cache: true
-
-      - name: Bootstrap Flutter module
-        if: steps.signing-config.outputs.available == 'true'
-        working-directory: flutter_module
-        run: flutter pub get
-
-      - name: Decode keystore
-        if: steps.signing-config.outputs.available == 'true'
-        run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::KEYSTORE_BASE64 secret not set"
-            exit 1
-          fi
-          echo "$KEYSTORE_BASE64" | base64 -d > gamematrix.jks
-          ls -la gamematrix.jks
-
-      - uses: android-actions/setup-android@v3
-        if: steps.signing-config.outputs.available == 'true'
-        with:
-          packages: platform-tools platforms;android-36 build-tools;35.0.0 ndk;28.2.13676358
-
-      - name: Cache Gradle
-        if: steps.signing-config.outputs.available == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Build signed release APK
-        if: steps.signing-config.outputs.available == 'true'
-        run: >-
-          ./gradlew :app:bundlePreinstalledModules :app:generateVersionJson :app:validateReleaseApk
-          -PupdateChannel=stable
-          -PenableFlutterModuleStore=true
-          -Ptarget-platform=android-arm64
-          -PenableCatalogSignature=true
-          -PcatalogSigningProfile=production
-          -PautoBumpVersion=false
-          -PautoUploadVps=false
-          -PpublishGitHubRelease=false
-          --no-parallel --max-workers=1 --stacktrace
-        env:
-          KEYSTORE_PATH: gamematrix.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS: ${{ secrets.GAME_MATRIX_CATALOG_ED25519_PUBLIC_KEYS }}
-
-      - name: Upload signed release APK
-        if: steps.signing-config.outputs.available == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-signed
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/release/version.json
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: Validate user-facing release notes
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: >-
-          python3 tools/validate_release_notes.py RELEASE_NOTES.md
-          --version-file version.properties
-          --tag "${GITHUB_REF_NAME}"
-
-      - name: Attach to GitHub Release (tag 触发时)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/release/version.json
-          body_path: RELEASE_NOTES.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

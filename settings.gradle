@@ -116,7 +116,12 @@ if (!flutterLocalProperties.exists()) {
         def normalized = taskName.toLowerCase()
         normalized == 'help' || normalized.endsWith(':help') ||
                 normalized == 'tasks' || normalized.endsWith(':tasks') ||
-                normalized.contains('forcedependencyresolutionplugin')
+                normalized.contains('forcedependencyresolutionplugin') ||
+                normalized == 'dependencies' || normalized.endsWith(':dependencies') ||
+                normalized == 'dependencyinsight' || normalized.endsWith(':dependencyinsight') ||
+                normalized == 'buildenvironment' || normalized.endsWith(':buildenvironment') ||
+                normalized == 'projects' || normalized.endsWith(':projects') ||
+                normalized == 'properties' || normalized.endsWith(':properties')
     }
     if (metadataOnly) {
         logger.lifecycle("[settings] Flutter module is not bootstrapped; skipping Add-to-App for metadata task.")

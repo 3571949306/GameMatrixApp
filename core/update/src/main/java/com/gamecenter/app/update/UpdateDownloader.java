@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  * APK 下载器，负责从多个下载源下载更新安装包。
  * <p>
  * 支持多源自动切换：当首选下载源失败或速度过慢时，自动切换到下一个源重试。
- * 下载完成后会进行 MD5 校验，确保安装包完整性。
+ * 下载完成后优先使用 SHA-256（旧元数据才回退 MD5）校验，确保安装包完整性。
  * </p>
  * <p>
  * 关键设计决策：
@@ -56,6 +56,11 @@ public class UpdateDownloader {
     static final long MIN_DOWNLOAD_SPEED_BYTES_PER_SEC = 30 * 1024; // 30 KB/s（原50KB/s）
     // 速度检测时间：下载开始后等待此时间再检测速度
     static final long SPEED_CHECK_INTERVAL_MS = 2000; // 2 秒（原3秒）
+
+    /** Reject unbounded remote APK responses before they fill public storage. */
+    private static final long MAX_APK_SIZE_BYTES = UpdateUrlValidator.MAX_APK_SIZE_BYTES;
+    private static final Pattern SAFE_ASSET_NAME =
+            Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,127}");
 
     /** 单线程线程池，确保下载任务串行执行 */
     private final ExecutorService executor;
@@ -91,6 +96,10 @@ public class UpdateDownloader {
         executor.execute(new Runnable() {
             @Override
             public void run() {
+                if (info == null) {
+                    if (callback != null) callback.onError("更新元数据无效");
+                    return;
+                }
                 List<String> downloadUrls = buildDownloadUrls(info);
                 File apkFile = null;
                 String errorMsg = null;
@@ -138,10 +147,10 @@ public class UpdateDownloader {
      * 下载流程：
      * <ol>
      *   <li>清理旧 APK 文件</li>
-     *   <li>检查本地是否已有 MD5 匹配的 APK（断点续传检测）</li>
+     *   <li>检查本地是否已有 SHA-256（旧元数据回退 MD5）匹配的 APK</li>
      *   <li>建立 HTTP 连接，读取数据并写入文件</li>
      *   <li>下载过程中进行速度检测，速度过慢时抛异常触发换源</li>
-     *   <li>下载完成后进行 MD5 校验</li>
+     *   <li>下载完成后进行完整性校验</li>
      * </ol>
      * </p>
      *
@@ -153,15 +162,40 @@ public class UpdateDownloader {
      * @throws Exception 下载失败、速度过慢或校验失败时抛出
      */
     File downloadFromUrl(Context context, UpdateInfo info, String downloadUrl, UpdateManager.DownloadCallback callback) throws Exception {
+        if (info == null) {
+            throw new IllegalArgumentException("Update metadata is null");
+        }
+        UpdateUrlValidator.requireAllowedHttpsUrl(
+                downloadUrl,
+                info.getSourceVersionUrl(),
+                UpdateChecker.HK_BASE_URL,
+                UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+        validateIntegrityMetadata(info);
+
         // 下载前清理旧 APK，释放存储空间
         cleanOldApksBeforeDownload(context);
         File downloadDir = getDownloadDir(context);
-        if (!downloadDir.exists()) {
-            downloadDir.mkdirs();
+        if (!downloadDir.exists() && !downloadDir.mkdirs()) {
+            throw new IllegalStateException("Cannot create APK download directory");
         }
+        if (!downloadDir.isDirectory()) {
+            throw new IllegalStateException("APK download path is not a directory");
+        }
+        String safeVersionName = sanitizeAssetName(info.getVersionName(), "unknown");
         File apkFile = new File(downloadDir,
                 MessageFormat.format("GameMatrix_v{0}_{1}.apk",
-                        String.valueOf(info.getVersionCode()), info.getVersionName()));
+                        String.valueOf(info.getVersionCode()), safeVersionName));
+        try {
+            File canonicalDir = downloadDir.getCanonicalFile();
+            File canonicalApk = apkFile.getCanonicalFile();
+            String dirPrefix = canonicalDir.getPath() + File.separator;
+            if (!canonicalApk.getPath().startsWith(dirPrefix)) {
+                throw new IllegalStateException("APK path escapes download directory");
+            }
+        } catch (java.io.IOException error) {
+            throw new IllegalStateException("Cannot resolve APK download path", error);
+        }
 
         // 若本地已有经 SHA-256（旧元数据则回退 MD5）验证的 APK，直接复用。
         // 2026-07-23 修复：除哈希校验外，额外校验 APK 内部 versionCode 与服务器声明一致，
@@ -192,116 +226,174 @@ public class UpdateDownloader {
             }
         }
 
-        URL url = new URL(downloadUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        // 对 HTTPS 连接应用自定义 SSL 配置
-        if (conn instanceof HttpsURLConnection) {
-            SSLHelper.applySsl((HttpsURLConnection) conn);
-        }
-        conn.setRequestMethod("GET");
-        conn.setConnectTimeout(UpdateChecker.FALLBACK_CONNECT_TIMEOUT);
-        // 读取超时设为 5 分钟，适应大文件下载
-        conn.setReadTimeout(300000);
-        conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
+        HttpURLConnection conn = null;
+        long totalSize = -1;
+        long expectedSize = info.getFileSize();
+        try {
+            String currentUrl = downloadUrl;
+            for (int redirectCount = 0; ; redirectCount++) {
+                UpdateUrlValidator.requireAllowedHttpsUrl(
+                        currentUrl,
+                        downloadUrl,
+                        info.getSourceVersionUrl(),
+                        UpdateChecker.HK_BASE_URL,
+                        UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                URL url = new URL(currentUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                // Handle redirects ourselves so an HTTP downgrade is rejected
+                // before any APK bytes are read over clear text.
+                conn.setInstanceFollowRedirects(false);
+                // 对 HTTPS 连接应用自定义 SSL 配置
+                if (conn instanceof HttpsURLConnection) {
+                    SSLHelper.applySsl((HttpsURLConnection) conn);
+                }
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(UpdateChecker.FALLBACK_CONNECT_TIMEOUT);
+                // 读取超时设为 5 分钟，适应大文件下载
+                conn.setReadTimeout(300000);
+                conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
 
-        // 连接建立后再次检查取消状态
-        if (isCancelled) {
-            conn.disconnect();
-            return null;
-        }
+                // 连接建立后再次检查取消状态
+                if (isCancelled) {
+                    return null;
+                }
 
-        // 获取文件总大小，优先使用服务端返回的 Content-Length
-        long totalSize = conn.getContentLength();
-        // 若服务端未返回 Content-Length，使用 UpdateInfo 中的 fileSize
-        if (totalSize <= 0 && info.getFileSize() > 0) {
-            totalSize = info.getFileSize();
-        }
+                int responseCode = conn.getResponseCode();
+                if (isRedirect(responseCode)) {
+                    if (redirectCount >= UpdateUrlValidator.MAX_REDIRECTS) {
+                        throw new java.io.IOException("Too many APK redirects");
+                    }
+                    currentUrl = UpdateUrlValidator.resolveHttpsRedirect(
+                            conn.getURL(), conn.getHeaderField("Location"),
+                            downloadUrl,
+                            info.getSourceVersionUrl(),
+                            UpdateChecker.HK_BASE_URL,
+                            UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                            BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                    conn.disconnect();
+                    conn = null;
+                    continue;
+                }
+                if (responseCode < HttpURLConnection.HTTP_OK
+                        || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
+                    throw new java.io.IOException("APK download HTTP " + responseCode);
+                }
+                UpdateUrlValidator.requireAllowedHttpsUrl(
+                        conn.getURL().toExternalForm(),
+                        downloadUrl,
+                        info.getSourceVersionUrl(),
+                        UpdateChecker.HK_BASE_URL,
+                        UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
 
-        BufferedInputStream in = new BufferedInputStream(conn.getInputStream());
-        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(apkFile));
-        byte[] buf = new byte[65536];
-        long downloaded = 0;
-        long lastReportTime = 0;
-        long lastSpeedCheckTime = System.currentTimeMillis();
-        long lastSpeedCheckBytes = 0;
-        int read;
-        // 速度检测相关变量
-        long speedCheckStartTime = 0;
-        long speedCheckBytes = 0;
-        boolean speedChecked = false;
-
-        while ((read = in.read(buf)) != -1) {
-            // 下载过程中检查取消状态
-            if (isCancelled) {
-                in.close();
-                out.close();
-                apkFile.delete();
-                conn.disconnect();
-                return null;
+                // 获取文件总大小，优先使用服务端返回的 Content-Length
+                totalSize = conn.getContentLengthLong();
+                if (totalSize > MAX_APK_SIZE_BYTES
+                        || (expectedSize > 0 && expectedSize > MAX_APK_SIZE_BYTES)
+                        || (totalSize > 0 && expectedSize > 0 && totalSize != expectedSize)) {
+                    throw new java.io.IOException("APK content length does not match metadata");
+                }
+                // 若服务端未返回 Content-Length，使用 UpdateInfo 中的 fileSize
+                if (totalSize <= 0 && expectedSize > 0) {
+                    totalSize = expectedSize;
+                }
+                break;
             }
-            out.write(buf, 0, read);
-            downloaded += read;
 
-            // 速度检测逻辑：仅在首次检测前执行
-            if (!speedChecked) {
-                long now = System.currentTimeMillis();
-                if (speedCheckStartTime == 0) {
-                    // 记录速度检测起始时间和已下载字节数
-                    speedCheckStartTime = now;
-                    speedCheckBytes = downloaded;
-                } else if (now - speedCheckStartTime >= SPEED_CHECK_INTERVAL_MS) {
-                    // 达到检测间隔，计算下载速度
-                    long elapsed = now - speedCheckStartTime;
-                    long speed = (downloaded - speedCheckBytes) * 1000 / elapsed;
-                    Log.d(TAG, "Download speed: " + (speed / 1024) + " KB/s");
-                    if (speed < MIN_DOWNLOAD_SPEED_BYTES_PER_SEC) {
-                        // 速度过慢，关闭连接并抛异常触发换源
-                        Log.w(TAG, "Speed too low, switching source...");
-                        in.close();
-                        out.close();
+            byte[] buf = new byte[65536];
+            long downloaded = 0;
+            long lastReportTime = 0;
+            long lastSpeedCheckTime = System.currentTimeMillis();
+            long lastSpeedCheckBytes = 0;
+            // 速度检测相关变量
+            long speedCheckStartTime = 0;
+            long speedCheckBytes = 0;
+            boolean speedChecked = false;
+
+            try (BufferedInputStream in = new BufferedInputStream(conn.getInputStream());
+                 BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(apkFile))) {
+                int read;
+                while ((read = in.read(buf)) != -1) {
+                    // 下载过程中检查取消状态
+                    if (isCancelled) {
                         apkFile.delete();
-                        conn.disconnect();
-                        throw new Exception("下载速度过慢，正在切换下载源");
+                        return null;
                     }
-                    speedChecked = true;
+                    out.write(buf, 0, read);
+                    downloaded += read;
+                    if (downloaded > MAX_APK_SIZE_BYTES
+                            || (expectedSize > 0 && downloaded > expectedSize)) {
+                        apkFile.delete();
+                        throw new java.io.IOException("APK download exceeds metadata size");
+                    }
+
+                    // 速度检测逻辑：仅在首次检测前执行
+                    if (!speedChecked) {
+                        long now = System.currentTimeMillis();
+                        if (speedCheckStartTime == 0) {
+                            // 记录速度检测起始时间和已下载字节数
+                            speedCheckStartTime = now;
+                            speedCheckBytes = downloaded;
+                        } else if (now - speedCheckStartTime >= SPEED_CHECK_INTERVAL_MS) {
+                            // 达到检测间隔，计算下载速度
+                            long elapsed = now - speedCheckStartTime;
+                            long speed = (downloaded - speedCheckBytes) * 1000 / elapsed;
+                            Log.d(TAG, "Download speed: " + (speed / 1024) + " KB/s");
+                            if (speed < MIN_DOWNLOAD_SPEED_BYTES_PER_SEC) {
+                                // 速度过慢，抛异常触发换源；try-with-resources 会释放 IO。
+                                Log.w(TAG, "Speed too low, switching source...");
+                                throw new Exception("下载速度过慢，正在切换下载源");
+                            }
+                            speedChecked = true;
+                        }
+                    }
+
+                    // 进度上报：间隔至少 80ms 或读取到末尾时上报
+                    long now = System.currentTimeMillis();
+                    if (now - lastReportTime >= 80 || read < buf.length) {
+                        final long fDownloaded = downloaded;
+                        final long fTotal = totalSize;
+                        if (callback != null) callback.onProgress(fDownloaded, fTotal);
+                        int percent = totalSize > 0 ? (int) (downloaded * 100 / totalSize) : 0;
+
+                        // 计算并显示下载速度
+                        String speedStr = "";
+                        if (now - lastSpeedCheckTime >= 1000) { // 每秒计算一次速度
+                            long elapsed = now - lastSpeedCheckTime;
+                            long bytesDiff = downloaded - lastSpeedCheckBytes;
+                            long speedKb = elapsed > 0 ? (bytesDiff * 1000 / elapsed) / 1024 : 0;
+                            if (speedKb > 0) {
+                                speedStr = speedKb >= 1024 ?
+                                    String.format("%.1f MB/s", speedKb / 1024.0) :
+                                    String.format("%d KB/s", speedKb);
+                            }
+                            lastSpeedCheckTime = now;
+                            lastSpeedCheckBytes = downloaded;
+                        }
+
+                        notificationHelper.showDownloadNotification(context, percent, info.getVersionName(), speedStr);
+                        lastReportTime = now;
+                    }
                 }
             }
-
-            // 进度上报：间隔至少 80ms 或读取到末尾时上报
-            long now = System.currentTimeMillis();
-            if (now - lastReportTime >= 80 || read < buf.length) {
-                final long fDownloaded = downloaded;
-                final long fTotal = totalSize;
-                if (callback != null) callback.onProgress(fDownloaded, fTotal);
-                int percent = totalSize > 0 ? (int) (downloaded * 100 / totalSize) : 0;
-
-                // 计算并显示下载速度
-                String speedStr = "";
-                if (now - lastSpeedCheckTime >= 1000) { // 每秒计算一次速度
-                    long elapsed = now - lastSpeedCheckTime;
-                    long bytesDiff = downloaded - lastSpeedCheckBytes;
-                    long speedKb = elapsed > 0 ? (bytesDiff * 1000 / elapsed) / 1024 : 0;
-                    if (speedKb > 0) {
-                        speedStr = speedKb >= 1024 ?
-                            String.format("%.1f MB/s", speedKb / 1024.0) :
-                            String.format("%d KB/s", speedKb);
-                    }
-                    lastSpeedCheckTime = now;
-                    lastSpeedCheckBytes = downloaded;
-                }
-
-                notificationHelper.showDownloadNotification(context, percent, info.getVersionName(), speedStr);
-                lastReportTime = now;
+        } catch (Exception error) {
+            if (apkFile.exists() && !apkFile.delete()) {
+                apkFile.deleteOnExit();
+            }
+            throw error;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
             }
         }
-        in.close();
-        out.close();
-        conn.disconnect();
 
         // 下载完成后进行完整性校验：文件大小 + SHA-256（兼容旧元数据的 MD5）。
-        if (totalSize > 0 && apkFile.length() != totalSize) {
+        if ((expectedSize > 0 && apkFile.length() != expectedSize)
+                || (expectedSize <= 0 && totalSize > 0 && apkFile.length() != totalSize)) {
             apkFile.delete();
-            throw new Exception("下载文件大小不匹配，期望 " + totalSize + " 字节，实际 " + apkFile.length() + " 字节");
+            long expectedLength = expectedSize > 0 ? expectedSize : totalSize;
+            throw new Exception("下载文件大小不匹配，期望 " + expectedLength + " 字节，实际 " + apkFile.length() + " 字节");
         }
         if (!info.getSha256().isEmpty()) {
             String actualSha256 = computeSha256(apkFile);
@@ -399,18 +491,27 @@ public class UpdateDownloader {
      */
     List<String> buildDownloadUrls(UpdateInfo info) {
         List<String> urls = new ArrayList<>();
-        String primaryUrl = info.getDownloadUrl();
-        if (primaryUrl != null && !primaryUrl.isEmpty()) {
-            urls.add(primaryUrl);
+        if (info == null) {
+            return urls;
         }
+        String primaryUrl = info.getDownloadUrl();
+        addSafeUrl(urls, primaryUrl);
         String apkName = extractApkName(primaryUrl, info);
         String githubUrl = buildGitHubAssetUrl(info);
         String hkUrl = UpdateManager.trimTrailingSlash(UpdateChecker.HK_BASE_URL) + "/" + apkName;
 
         // 添加备用源，自动去重（2026-06-19: 移除美国 VPS 源）
-        if (!urls.contains(githubUrl)) urls.add(githubUrl);
-        if (!urls.contains(hkUrl)) urls.add(hkUrl);
+        addSafeUrl(urls, githubUrl);
+        addSafeUrl(urls, hkUrl);
         return urls;
+    }
+
+    private void addSafeUrl(List<String> urls, String candidate) {
+        if (candidate != null && !candidate.isEmpty()
+                && UpdateUrlValidator.isValidHttpsUrl(candidate)
+                && !urls.contains(candidate)) {
+            urls.add(candidate);
+        }
     }
 
     /**
@@ -432,7 +533,8 @@ public class UpdateDownloader {
         if (query >= 0) {
             name = name.substring(0, query);
         }
-        return name.isEmpty() || name.endsWith(".json") ? fallback : name;
+        return name.isEmpty() || name.endsWith(".json") || !SAFE_ASSET_NAME.matcher(name).matches()
+                ? fallback : name;
     }
 
     /**
@@ -444,14 +546,53 @@ public class UpdateDownloader {
      */
     String buildGitHubAssetUrl(UpdateInfo info) {
         String tag = info != null ? info.getReleaseTag() : "";
+        if (tag != null && !SAFE_ASSET_NAME.matcher(tag).matches()) {
+            tag = "";
+        }
         if ((tag == null || tag.isEmpty()) && info != null) {
-            tag = "v" + info.getVersionName() + "-vc" + info.getVersionCode();
+            String safeVersionName = sanitizeAssetName(info.getVersionName(), "unknown");
+            String generatedTag = "v" + safeVersionName + "-vc" + info.getVersionCode();
+            tag = SAFE_ASSET_NAME.matcher(generatedTag).matches() ? generatedTag : "";
         }
         String apkName = info != null && info.isBetaRelease() ? "app-beta.apk" : "app-release.apk";
         if (tag == null || tag.isEmpty()) {
             return "https://github.com/3571949306/GameMatrixApp/releases/latest/download/" + apkName;
         }
         return "https://github.com/3571949306/GameMatrixApp/releases/download/" + tag + "/" + apkName;
+    }
+
+    private static String sanitizeAssetName(String value, String fallback) {
+        if (value == null || value.isEmpty()) {
+            return fallback;
+        }
+        String sanitized = value.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (sanitized.isEmpty() || sanitized.length() > 128
+                || !SAFE_ASSET_NAME.matcher(sanitized).matches()) {
+            return fallback;
+        }
+        return sanitized;
+    }
+
+    private static void validateIntegrityMetadata(UpdateInfo info) {
+        String sha256 = info.getSha256();
+        String md5 = info.getMd5();
+        if (!sha256.isEmpty()) {
+            UpdateUrlValidator.requireSha256(sha256);
+        } else if (!md5.isEmpty()) {
+            // MD5 is retained only for already-published legacy metadata. New
+            // release metadata generated by the build must carry SHA-256.
+            UpdateUrlValidator.requireMd5(md5);
+        } else {
+            throw new IllegalArgumentException("Update metadata has no integrity checksum");
+        }
+    }
+
+    private static boolean isRedirect(int responseCode) {
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM
+                || responseCode == HttpURLConnection.HTTP_MOVED_TEMP
+                || responseCode == HttpURLConnection.HTTP_SEE_OTHER
+                || responseCode == 307
+                || responseCode == 308;
     }
 
     /**
