@@ -61,6 +61,7 @@ def main() -> int:
     parser.add_argument("--apk", required=True, help="新构建的模块 APK 路径")
     parser.add_argument("--version-code", type=int, default=0, help="默认=清单当前值+1")
     parser.add_argument("--version-name", default="")
+    parser.add_argument("--new-name", default="", help="默认沿用现有 fileName（跨版本稳定，保证更新按钮判定）")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -82,10 +83,10 @@ def main() -> int:
         print(f"错误：新 versionCode({new_vc}) 必须大于当前({old_vc})", file=sys.stderr)
         return 1
 
+    # 沿用仓库既有约定：fileName 跨版本稳定（bundle 任务目标名亦不随 versionCode 变化），
+    # 仅递增 versionCode/versionName——否则"已安装/有更新"判定会因文件名漂移而失效。
     old_name = entry.get("fileName") or f"{args.id}.apk"
-    new_name = versioned_name(old_name, new_vc)
-    if new_name == old_name:
-        new_name = old_name.replace(".apk", f"_v{new_vc}.apk")
+    new_name = args.new_name or old_name
     digest = sha256_of(apk_path)
 
     cfg, password = load_creds(REPO / "local_private" / "服务器部署" / "upload_config_hk.json")
@@ -123,7 +124,7 @@ def main() -> int:
                    password=password, timeout=15, banner_timeout=15)
     sftp = client.open_sftp()
     remote_dir = cfg["remoteDir"].rstrip("/")
-    sftp.put(str(apk_path), f"{remote_dir}/modules/{new_name}")
+    sftp.put(str(apk_path), f"{remote_dir}/{new_name}")  # nginx /modules/ 剥前缀，APK 必须在 BASE_DIR 根
     sftp.put(str(MANIFESTS[0]), f"{remote_dir}/modules.json")
     sftp.put(str(MANIFESTS[1]), f"{remote_dir}/catalog.json")
     sftp.close()
