@@ -15,7 +15,9 @@ buildscript {
         classpath 'org.jetbrains.kotlin:kotlin-reflect:2.4.20-RC2'
         // Compose Compiler Plugin (Kotlin 2.0+ 内置，版本与 Kotlin 保持一致)
         classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.20-RC2'
-        classpath 'androidx.baselineprofile:androidx.baselineprofile.gradle.plugin:1.4.1'
+        // Keep the Baseline Profile plugin on the same AndroidX Benchmark
+        // train as :macrobenchmark; 1.5.0-rc02 resolves Wire 6.4.0 (GHSA fix).
+        classpath 'androidx.baselineprofile:androidx.baselineprofile.gradle.plugin:1.5.0-rc02'
         // KSP 2.x uses an independent version line; 2.3.11 is the current release.
         classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.11'
         // Hilt 2.58 is the newest plugin line compatible with AGP 8.13;
