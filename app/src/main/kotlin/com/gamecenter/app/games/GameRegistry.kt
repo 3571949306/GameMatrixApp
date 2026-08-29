@@ -277,117 +277,21 @@ object GameRegistry {
     private fun buildStaticCategories(context: Context): List<Category> {
         val categories = ArrayList<Category>()
 
-        // ===== 经典类（classics）=====
-        val classics = ArrayList<Entry>().apply {
-            // gomoku 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("gomoku", R.drawable.ic_gomoku, "五子棋", "经典五子棋人机对战",
-            //     com.gamecenter.app.games.gomoku.GomokuActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-            // chinesechess 已模块化为独立 APK，通过模块商店下载
-            // go 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("go", R.drawable.ic_go, "围棋", "经典围棋对弈",
-            //     com.gamecenter.app.games.go.GoActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-            // doudizhu 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("doudizhu", R.drawable.ic_doudizhu, "斗地主", "经典三人扑克对战",
-            //     com.gamecenter.app.games.doudizhu.DouDiZhuMenuActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-            // blackjack 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("blackjack", R.drawable.ic_blackjack, "21点", "经典21点纸牌游戏",
-            //     com.gamecenter.app.games.blackjack.BlackjackActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-            // checkers 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("checkers", R.drawable.ic_checkers, "跳棋", "经典跳棋游戏",
-            //     com.gamecenter.app.games.checkers.CheckersActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-            // dice 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("dice", R.drawable.ic_dice, "骰子", "趣味骰子游戏",
-            //     com.gamecenter.app.games.dice.DiceActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-            // rock 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("rock", R.drawable.ic_rock, "石头剪刀布", "经典石头剪刀布",
-            //     com.gamecenter.app.games.rock.RockActivity::class.java,
-            //     CATEGORY_CLASSICS, CATEGORY_CLASSICS))
-        }
+        // 2026-08-29 模块热更改造：全部游戏已模块化为独立 APK，由
+        // ModuleManager.registerInstalledGameModules 按出厂清单动态注册（DynamicGameActivity
+        // + 模块加载器运行，支持经服务器单独热更）。静态注册表仅保留 breakout——
+        // 唯一没有模块 APK 的宿主内置游戏。
+        val classics = ArrayList<Entry>()
         categories.add(Category(categoryName(context, CATEGORY_CLASSICS), classics, CATEGORY_CLASSICS))
 
-        // ===== 益智类（puzzle）=====
         val puzzle = ArrayList<Entry>().apply {
-            // game_2048 和 klotski 已模块化为独立 APK，通过模块商店下载
-            // sudoku 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("sudoku", R.drawable.ic_sudoku, "数独", "经典数独益智游戏",
-            //     com.gamecenter.app.games.sudoku.SudokuActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // sokoban 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("sokoban", R.drawable.ic_sokoban, "推箱子", "经典推箱子益智游戏",
-            //     com.gamecenter.app.games.sokoban.SokobanActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // pipeline 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("pipeline", R.drawable.ic_pipeline, "管道", "管道连接益智游戏",
-            //     com.gamecenter.app.games.pipeline.PipelineActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // minesweeper 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("minesweeper", R.drawable.ic_minesweeper, "扫雷", "经典扫雷游戏",
-            //     com.gamecenter.app.games.minesweeper.MinesweeperActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // match 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("match", R.drawable.ic_match, "消消乐", "经典三消游戏",
-            //     com.gamecenter.app.games.match.MatchActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // memory 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("memory", R.drawable.ic_memory, "记忆翻牌", "记忆力翻牌配对游戏",
-            //     com.gamecenter.app.games.memory.MemoryActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // breakout 未模块化，保留内置 Entry
             add(Entry("breakout", R.drawable.ic_breakout, "打砖块", "经典打砖块游戏",
                 com.gamecenter.app.games.breakout.BreakoutActivity::class.java,
                 CATEGORY_PUZZLE, CATEGORY_PUZZLE))
-            // tiles 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("tiles", R.drawable.ic_tiles, "拼图", "经典拼图游戏",
-            //     com.gamecenter.app.games.tiles.TilesActivity::class.java,
-            //     CATEGORY_PUZZLE, CATEGORY_PUZZLE))
         }
         categories.add(Category(categoryName(context, CATEGORY_PUZZLE), puzzle, CATEGORY_PUZZLE))
 
-        // ===== 休闲类（casual）=====
-        val casual = ArrayList<Entry>().apply {
-            // tetris 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("tetris", R.drawable.ic_tetris, "俄罗斯方块", "经典俄罗斯方块",
-            //     com.gamecenter.app.games.tetris.TetrisActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // snake 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("snake", R.drawable.ic_snake, "贪吃蛇", "经典贪吃蛇游戏",
-            //     com.gamecenter.app.games.snake.SnakeActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // flappy 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("flappy", R.drawable.ic_flappy, "Flappy Bird", "像素风飞行躲避游戏",
-            //     com.gamecenter.app.games.flappy.FlappyActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // brotato 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("brotato", R.drawable.ic_brotato, "Brotato", "趣味生存射击游戏",
-            //     com.gamecenter.app.games.brotato.BrotatoActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // plane 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("plane", R.drawable.ic_plane, "飞机大战", "经典飞机射击游戏",
-            //     com.gamecenter.app.games.plane.PlaneActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // reaction 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("reaction", R.drawable.ic_reaction, "反应测试", "反应速度测试游戏",
-            //     com.gamecenter.app.games.reaction.ReactionActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // guess 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("guess", R.drawable.ic_guess, "猜数字", "经典猜数字推理游戏",
-            //     com.gamecenter.app.games.guess.GuessActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // tic 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("tic", R.drawable.ic_tic, "井字棋", "经典井字棋游戏",
-            //     com.gamecenter.app.games.tic.TicTacToeActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-            // whack 已模块化为独立 APK，通过模块商店下载
-            // add(Entry("whack", R.drawable.ic_whack, "打地鼠", "趣味打地鼠游戏",
-            //     com.gamecenter.app.games.whack.WhackActivity::class.java,
-            //     CATEGORY_CASUAL, CATEGORY_CASUAL))
-        }
+        val casual = ArrayList<Entry>()
         categories.add(Category(categoryName(context, CATEGORY_CASUAL), casual, CATEGORY_CASUAL))
 
         return categories
