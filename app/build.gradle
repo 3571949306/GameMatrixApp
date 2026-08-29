@@ -416,6 +416,8 @@ android {
         buildConfigField "boolean", "BROWSER_SNACKBAR_FEEDBACK", "true"
         // P0-1 真·多 Tab 架构（WebView 池）
         buildConfigField "boolean", "BROWSER_REAL_MULTI_TAB", "true"
+        // 内置视频播放器：检测网页 video 并用原生控件接管（含长按倍速快进）
+        buildConfigField "boolean", "BROWSER_VIDEO_PLAYER", "true"
 
         // ===== 本轮加法：4 个 Feature Flag =====
         // 每日挑战 + 连胜统计系统

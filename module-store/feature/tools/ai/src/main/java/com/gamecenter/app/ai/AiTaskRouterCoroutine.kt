@@ -18,6 +18,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * AI 任务路由器（协程版本） — 使用 Kotlin 协程管理 AI 任务。
@@ -47,9 +48,9 @@ class AiTaskRouterCoroutine(
     private val ruleEngine = LocalRuleEngine()
 
     // 统计信息
-    private var totalTasks = 0
-    private var localTasks = 0
-    private var cloudTasks = 0
+    private val totalTasks = AtomicInteger()
+    private val localTasks = AtomicInteger()
+    private val cloudTasks = AtomicInteger()
 
     /**
      * 执行 AI 任务（返回 Flow，支持进度更新）
@@ -63,24 +64,49 @@ class AiTaskRouterCoroutine(
      * @param input 用户输入
      * @return Flow<AiResult>，可以 collect 获取结果
      */
-    fun executeTask(taskType: String, input: String): Flow<AiResult> = flow {
-        totalTasks++
-        val task = AiTask(taskType, input)
+    fun executeTask(taskType: String, input: String): Flow<AiResult> {
+        val routingMode = if (aiPrefs.isLocalFirst) {
+            AiRoutingMode.LOCAL_ONLY
+        } else {
+            AiRoutingMode.CLOUD_ONLY
+        }
+        return executeTask(taskType, input, routingMode)
+    }
 
-        // 第1步：尝试本地处理
-        val localResult = tryLocalProcessing(task)
+    /**
+     * Execute a task with an explicit, request-scoped routing boundary.
+     * LOCAL_ONLY never continues into the cloud path after a local failure.
+     */
+    fun executeTask(taskType: String, input: String, routingMode: AiRoutingMode): Flow<AiResult> = flow {
+        totalTasks.incrementAndGet()
+        val safeTaskType = taskType.trim().ifEmpty { AiTaskCatalog.CHAT }
+        val task = AiTask(safeTaskType, input)
+
+        // 第1步：只在明确的本地模式下尝试本地处理。
+        val localResult = if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+            tryLocalProcessing(task)
+        } else {
+            null
+        }
         if (localResult != null) {
             if (localResult.success) {
-                localTasks++
+                localTasks.incrementAndGet()
                 emit(localResult)
                 return@flow
+            } else if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+                emit(localOnlyUnavailable(localResult.message))
+                return@flow
             } else if (shouldFallbackToCloud(localResult)) {
-                Log.w(TAG, "Local failed, falling back to cloud: ${localResult.message}")
-                // 继续执行云端
+                Log.w(TAG, "Local failed before cloud routing: ${localResult.message}")
             } else {
                 emit(localResult)
                 return@flow
             }
+        }
+
+        if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+            emit(localOnlyUnavailable("当前任务没有可用的本地处理能力。"))
+            return@flow
         }
 
         // 第2步：检查网络
@@ -111,16 +137,16 @@ class AiTaskRouterCoroutine(
         try {
             val config = buildConfigForTask(task)
             val client = AiApiClient(config)
-            val prompt = buildPrompt(taskType, input)
+            val prompt = buildPrompt(task.taskType, task.input)
 
             val result = client.chatSync("你是一个有用的助手。", prompt)
 
             if (result.success) {
-                cloudTasks++
+                cloudTasks.incrementAndGet()
                 aiPrefs.incrementUsage()
                 emit(result)
             } else {
-                cloudTasks++
+                cloudTasks.incrementAndGet()
                 emit(result)
             }
         } catch (e: Exception) {
@@ -146,20 +172,36 @@ class AiTaskRouterCoroutine(
      */
     suspend fun executeTaskSuspend(taskType: String, input: String): AiResult {
         return withContext(AppDispatchers.IO) {
-            totalTasks++
-            val task = AiTask(taskType, input)
+            totalTasks.incrementAndGet()
+            val safeTaskType = taskType.trim().ifEmpty { AiTaskCatalog.CHAT }
+            val task = AiTask(safeTaskType, input)
 
-            // 第1步：尝试本地处理
-            val localResult = tryLocalProcessing(task)
+            // 第1步：只在明确的本地模式下尝试本地处理。
+            val routingMode = if (aiPrefs.isLocalFirst) {
+                AiRoutingMode.LOCAL_ONLY
+            } else {
+                AiRoutingMode.CLOUD_ONLY
+            }
+            val localResult = if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+                tryLocalProcessing(task)
+            } else {
+                null
+            }
             if (localResult != null) {
                 if (localResult.success) {
-                    localTasks++
+                    localTasks.incrementAndGet()
                     return@withContext localResult
+                } else if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+                    return@withContext localOnlyUnavailable(localResult.message)
                 } else if (shouldFallbackToCloud(localResult)) {
-                    Log.w(TAG, "Local failed, falling back to cloud")
+                    Log.w(TAG, "Local failed before cloud routing")
                 } else {
                     return@withContext localResult
                 }
+            }
+
+            if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+                return@withContext localOnlyUnavailable("当前任务没有可用的本地处理能力。")
             }
 
             // 第2-5步：检查并调用云端
@@ -171,8 +213,6 @@ class AiTaskRouterCoroutine(
      * 尝试本地处理（在 Computation 线程执行）
      */
     private suspend fun tryLocalProcessing(task: AiTask): AiResult? {
-        if (!aiPrefs.isLocalFirst) return null
-
         // 优先尝试本地 LLM
         val llmResult = tryLocalLlm(task)
         if (llmResult != null) return llmResult
@@ -252,18 +292,9 @@ class AiTaskRouterCoroutine(
         return when (task.taskType) {
             "ocr", "ocr_clean" -> LocalAiProcessor.processOcrResult(task.input)
             "summary" -> LocalAiProcessor.simpleSummarize(task.input, 10)
-            "translate" -> {
-                if (aiPrefs.apiKey.isNotEmpty()) null
-                else LocalAiProcessor.translateText(task.input)
-            }
-            "rewrite" -> {
-                if (aiPrefs.apiKey.isNotEmpty()) null
-                else LocalAiProcessor.polishText(task.input)
-            }
-            "qa", "qa_pairs" -> {
-                if (aiPrefs.apiKey.isNotEmpty()) null
-                else LocalAiProcessor.generateQaPairs(task.input, 5)
-            }
+            "translate" -> LocalAiProcessor.translateText(task.input)
+            "rewrite" -> LocalAiProcessor.polishText(task.input)
+            "qa", "qa_pairs" -> LocalAiProcessor.generateQaPairs(task.input, 5)
             "keywords" -> LocalAiProcessor.extractKeywords(task.input)
             "classify" -> LocalAiProcessor.classifyText(task.input)
             "template" -> AiResult.success(task.input).source("local").build()
@@ -272,9 +303,9 @@ class AiTaskRouterCoroutine(
                 if (cmd.isKnown) {
                     when (cmd.type) {
                         "summarize" -> LocalAiProcessor.simpleSummarize(task.input, 10)
-                        "translate" -> if (aiPrefs.apiKey.isNotEmpty()) null else LocalAiProcessor.translateText(task.input)
-                        "rewrite" -> if (aiPrefs.apiKey.isNotEmpty()) null else LocalAiProcessor.polishText(task.input)
-                        "qa_pairs" -> if (aiPrefs.apiKey.isNotEmpty()) null else LocalAiProcessor.generateQaPairs(task.input, 5)
+                        "translate" -> LocalAiProcessor.translateText(task.input)
+                        "rewrite" -> LocalAiProcessor.polishText(task.input)
+                        "qa_pairs" -> LocalAiProcessor.generateQaPairs(task.input, 5)
                         "keywords" -> LocalAiProcessor.extractKeywords(task.input)
                         "classify" -> LocalAiProcessor.classifyText(task.input)
                         else -> null
@@ -313,7 +344,7 @@ class AiTaskRouterCoroutine(
 
             val result = client.chatSync("你是一个有用的助手。", prompt)
 
-            cloudTasks++
+            cloudTasks.incrementAndGet()
             if (result.success) {
                 aiPrefs.incrementUsage()
             }
@@ -333,6 +364,14 @@ class AiTaskRouterCoroutine(
         if (localResult.success) return false
         return localResult.hasErrorCode(AiErrorCode.LOCAL_LLM_DEGENERATED_OUTPUT) ||
                 localResult.hasErrorCode(AiErrorCode.LOCAL_LLM_ERROR)
+    }
+
+    private fun localOnlyUnavailable(detail: String?): AiResult {
+        val suffix = detail?.trim()?.takeIf { it.isNotEmpty() }?.let { "\n$it" } ?: ""
+        return AiResult.fail("本地模式未上传数据，无法完成本次请求。请切换到云端模式并确认后重试。$suffix")
+            .source("local")
+            .errorCode(AiErrorCode.LOCAL_ONLY_UNAVAILABLE)
+            .build()
     }
 
     /**
@@ -355,7 +394,9 @@ class AiTaskRouterCoroutine(
     private fun buildConfigForTask(task: AiTask): AiProviderConfig {
         val providers = AiPreferences.getAvailableProviders(appContext)
         for (p in providers) {
-            if (p.providerName == aiPrefs.selectedProvider && p.modelName == aiPrefs.selectedModel) {
+            if (p.enabled && !p.localOnly
+                && p.providerName == aiPrefs.selectedProvider
+                && p.modelName == aiPrefs.selectedModel) {
                 return p
             }
         }
@@ -371,9 +412,9 @@ class AiTaskRouterCoroutine(
      * 构建提示词（支持 ChatML / Gemma / DeepSeek 模板自动适配）
      */
     private fun buildPrompt(taskType: String, input: String, modelId: String = ""): String {
-        val systemPrompt = "你是一个运行在手机本地的中文 AI 助手。请用简体中文直接回答。控制在800字以内，保持准确精炼。"
+        val systemPrompt = "你是一个有用的中文 AI 助手。请用简体中文直接回答。控制在800字以内，保持准确精炼。"
         val rawInput = when (taskType) {
-            "ocr" -> "请对以下OCR识别结果进行清洗和格式化，修正错别字和乱码，保持原文结构：\n\n$input"
+            "ocr", "ocr_clean" -> "请对以下OCR识别结果进行清洗和格式化，修正错别字和乱码，保持原文结构：\n\n$input"
             "summary" -> "请对以下文本进行摘要，提取要点，简洁明了：\n\n$input"
             "translate" -> "请将以下文本翻译成中文，保持原意：\n\n$input"
             "rewrite" -> "请对以下文本进行润色，使其更通顺、专业：\n\n$input"
@@ -393,7 +434,7 @@ class AiTaskRouterCoroutine(
      * 获取统计信息
      */
     fun getStats(): String {
-        return "总任务: $totalTasks | 本地: $localTasks | 云端: $cloudTasks"
+        return "总任务: ${totalTasks.get()} | 本地: ${localTasks.get()} | 云端: ${cloudTasks.get()}"
     }
 
     /**
@@ -405,4 +446,3 @@ class AiTaskRouterCoroutine(
         ruleEngine.close()
     }
 }
-

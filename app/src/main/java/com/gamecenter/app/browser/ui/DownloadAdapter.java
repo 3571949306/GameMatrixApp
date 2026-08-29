@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -64,7 +65,8 @@ public class DownloadAdapter extends RecyclerView.Adapter<DownloadAdapter.ViewHo
         h.tvName.setText(item.getFileName());
         h.tvUrl.setText(item.getUrl());
         h.tvTime.setText(fmt.format(new Date(item.getCreateTime())));
-        h.tvStatus.setText(statusToString(item.getStatus()));
+        h.tvStatus.setText(h.itemView.getContext().getString(
+                statusToStringRes(item.getStatus(), item.isDangerous())));
         h.tvSize.setText(formatSize(h.itemView.getContext(), item.getDownloadedSize())
                 + " / " + formatSize(h.itemView.getContext(), item.getTotalSize()));
         h.itemView.setOnClickListener(v -> {
@@ -77,13 +79,16 @@ public class DownloadAdapter extends RecyclerView.Adapter<DownloadAdapter.ViewHo
 
     @Override public int getItemCount() { return data.size(); }
 
-    private String statusToString(int s) {
+    @StringRes
+    private int statusToStringRes(int s, boolean dangerous) {
         switch (s) {
-            case BrowserDownloadEntity.STATUS_WAITING: return "等待中";
-            case BrowserDownloadEntity.STATUS_DOWNLOADING: return "下载中";
-            case BrowserDownloadEntity.STATUS_COMPLETED: return "已完成";
-            case BrowserDownloadEntity.STATUS_FAILED: return "失败";
-            default: return "";
+            case BrowserDownloadEntity.STATUS_WAITING: return R.string.browser_download_status_waiting;
+            case BrowserDownloadEntity.STATUS_DOWNLOADING: return R.string.browser_download_status_downloading;
+            case BrowserDownloadEntity.STATUS_COMPLETED:
+                return dangerous ? R.string.browser_download_status_completed_dangerous
+                        : R.string.browser_download_status_completed;
+            case BrowserDownloadEntity.STATUS_FAILED: return R.string.browser_download_status_failed;
+            default: return R.string.browser_download_status_unknown;
         }
     }
 

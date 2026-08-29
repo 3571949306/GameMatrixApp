@@ -2798,6 +2798,9 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
 
     <!-- AI -->
     <string name="ai_clear_history">Clear History</string>
+    <string name="ai_assistant_label_short">AI</string>
+    <string name="ai_favorite">Favorite</string>
+    <string name="ai_tts">Read aloud</string>
     <string name="ai_model_list_failed_format">Model list fetch failed: %1$s</string>
     <string name="ai_no_local_models">No local models available</string>
     <string name="ai_local_models">Local Models</string>

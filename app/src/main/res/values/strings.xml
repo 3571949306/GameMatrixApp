@@ -2563,6 +2563,7 @@
 
     <!-- AI 助手 -->
     <string name="ai_assistant_label">AI助手</string>
+    <string name="ai_assistant_label_short">AI</string>
     <string name="gemma_terms_title">Gemma 模型条款与本地 AI 说明</string>
     <string name="gemma_view_terms">查看条款</string>
     <string name="gemma_agree_download">同意并下载</string>
@@ -2956,6 +2957,8 @@
     <string name="ai_download_failed_format">模型下载失败: %1$s</string>
     <string name="ai_no_export_content">没有可导出的内容</string>
     <string name="ai_role_user">你</string>
+    <string name="ai_favorite">收藏</string>
+    <string name="ai_tts">朗读</string>
     <string name="ai_synthesizing_voice">正在合成语音…</string>
 
     <!-- VPN -->

@@ -9,8 +9,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -25,9 +24,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.ai.AiRequestGate;
 import com.gamecenter.app.ai.AiPreferences;
+import com.gamecenter.app.ai.AiRoutingMode;
+import com.gamecenter.app.ai.AiTaskCatalog;
 import com.gamecenter.app.ai.AiTaskRouter;
-import com.gamecenter.app.ai.bridge.CoreAiService;
+import com.gamecenter.app.ai.data.AiErrorCode;
 import com.gamecenter.app.ai.data.AiMessage;
 import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
@@ -46,6 +48,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -57,8 +60,8 @@ import java.util.Set;
  * AI 助手页面 — 聊天式交互界面，支持多种 AI 功能。
  *
  * <p>你可以把这个页面想象成一个"智能客服聊天窗口"：
- * 用户在底部输入框打字，选择任务类型（翻译、摘要等），点击发送，
- * AI 就会在后台处理并返回结果，显示在聊天区域中。</p>
+ * 用户在底部输入框直接提问，点击发送，AI 就会在后台处理并返回结果，
+ * 显示在聊天区域中；翻译、摘要等一次性任务通过加号菜单按需附加。</p>
  *
  * <p>本 Fragment 是应用 AI 模块的主界面，采用聊天式交互模式，用户可以选择不同的任务类型
  * （闲聊、OCR、摘要、翻译、改写、问答、关键词提取、分类）与 AI 进行交互。</p>
@@ -74,7 +77,7 @@ import java.util.Set;
  *
  * <p>设计决策：</p>
  * <ul>
- *   <li>消息列表采用"新消息在前"（index 0）的倒序排列，配合 LinearLayoutManager 实现最新消息置顶；</li>
+ *   <li>消息列表采用"新消息在前"（index 0）的倒序排列，配合反向 LinearLayoutManager 将最新消息置于底部；</li>
  *   <li>维护 messages（全量）和 visibleMessages（过滤后）两个列表，实现收藏/搜索过滤；</li>
  *   <li>所有异步回调中均检查 getActivity() 是否为 null，防止 Fragment 销毁后操作 UI 导致崩溃。</li>
  * </ul>
@@ -85,9 +88,7 @@ public class AiFragment extends Fragment {
      * 支持的 AI 任务类型标识数组，与 taskLabels 一一对应。
      * 顺序为：闲聊、OCR、摘要、翻译、改写、问答、关键词、分类。
      */
-    private static final String[] TASK_TYPES = {
-            "chat", "ocr", "summary", "translate", "rewrite", "qa", "keywords", "classify", "mini-game"
-    };
+    private static final String[] TASK_TYPES = AiTaskCatalog.getTypes().toArray(new String[0]);
 
     /** 任务类型的本地化显示标签，通过 buildTaskLabels() 从字符串资源初始化 */
     private String[] taskLabels;
@@ -125,19 +126,28 @@ public class AiFragment extends Fragment {
     /** 当前搜索关键词（小写），为空表示不过滤 */
     private String currentSearch = "";
 
+    /** 当前一次性任务上下文；默认直接聊天，不让任务选择器阻挡首条消息。 */
+    private String selectedTaskType = AiTaskCatalog.CHAT;
+
+    /** 统一的单请求与会话代次守卫，防止按钮/IME 重入及旧回调污染新会话。 */
+    private final AiRequestGate requestGate = new AiRequestGate();
+
+    /** Consent 对话框正在等待用户决定时，阻止重复弹出多个对话框。 */
+    private boolean awaitingConsent;
+
     // 以下为界面控件的引用，在 onViewCreated 中通过 findViewById 绑定
     private RecyclerView rvMessages;
     private TextInputEditText etInput;
-    private TextInputEditText etSearch;
     private MaterialButton btnSend;
-    private MaterialButton btnFavorites;
-    private MaterialButton btnExport;
-    private MaterialButton btnModelDownload;
+    private MaterialButton btnAdd;
+    private MaterialButton btnModel;
     private ProgressBar progressBar;
     private TextView tvStatus;
-    private AutoCompleteTextView actTaskType;
-    private Chip chipModelStatus;
-    private Chip chipModeSwitch;
+    private TextView tvPrivacy;
+    private ImageButton btnHistory;
+    private ImageButton btnMore;
+    private Chip chipTaskContext;
+    private View emptyState;
 
     /**
      * Fragment 关联到 Activity 时初始化核心依赖。
@@ -176,6 +186,10 @@ public class AiFragment extends Fragment {
      */
     @Override
     public void onDetach() {
+        // A detached Fragment must not accept results from requests submitted
+        // by its old view. The shared executor may still finish the work.
+        requestGate.invalidateConversation();
+        awaitingConsent = false;
         super.onDetach();
         if (router != null) {
             router.shutdown();
@@ -195,6 +209,10 @@ public class AiFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        // Invalidate before clearing view fields so a queued callback cannot
+        // repopulate a newly created view with a result from the old one.
+        requestGate.invalidateConversation();
+        awaitingConsent = false;
         super.onDestroyView();
         if (rvMessages != null) {
             rvMessages.setAdapter(null);
@@ -205,16 +223,16 @@ public class AiFragment extends Fragment {
         visibleMessages.clear();
         favoriteIds.clear();
         etInput = null;
-        etSearch = null;
         btnSend = null;
-        btnFavorites = null;
-        btnExport = null;
-        btnModelDownload = null;
+        btnAdd = null;
+        btnModel = null;
         progressBar = null;
         tvStatus = null;
-        actTaskType = null;
-        chipModelStatus = null;
-        chipModeSwitch = null;
+        tvPrivacy = null;
+        btnHistory = null;
+        btnMore = null;
+        chipTaskContext = null;
+        emptyState = null;
     }
 
     @Nullable
@@ -230,10 +248,10 @@ public class AiFragment extends Fragment {
      * <ol>
      *   <li>绑定所有视图引用</li>
      *   <li>从历史存储恢复收藏 ID 集合</li>
-     *   <li>初始化任务类型下拉选择器</li>
+     *   <li>初始化默认聊天模式和按需工具入口</li>
      *   <li>配置消息列表 RecyclerView</li>
      *   <li>注册按钮点击和文本变化监听器</li>
-     *   <li>加载历史消息或显示欢迎提示</li>
+     *   <li>加载历史消息或显示聊天空状态</li>
      * </ol>
      *
      * @param view               Fragment 的根视图
@@ -243,98 +261,240 @@ public class AiFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // 绑定界面控件
         rvMessages = view.findViewById(R.id.rv_ai_messages);
         etInput = view.findViewById(R.id.et_ai_input);
-        etSearch = view.findViewById(R.id.et_ai_search);
         btnSend = view.findViewById(R.id.btn_ai_send);
-        btnFavorites = view.findViewById(R.id.btn_ai_favorites);
-        btnExport = view.findViewById(R.id.btn_ai_export);
-        btnModelDownload = view.findViewById(R.id.btn_ai_model_download);
+        btnAdd = view.findViewById(R.id.btn_ai_add);
+        btnModel = view.findViewById(R.id.btn_ai_model);
+        btnHistory = view.findViewById(R.id.btn_ai_history);
+        btnMore = view.findViewById(R.id.btn_ai_more);
         progressBar = view.findViewById(R.id.progress_ai);
         tvStatus = view.findViewById(R.id.tv_ai_status);
-        actTaskType = view.findViewById(R.id.act_ai_task_type);
-        chipModelStatus = view.findViewById(R.id.chip_model_status);
-        chipModeSwitch = view.findViewById(R.id.chip_mode_switch);
-        // 从持久化存储恢复收藏集合
+        tvPrivacy = view.findViewById(R.id.tv_ai_privacy);
+        chipTaskContext = view.findViewById(R.id.chip_ai_task_context);
+        emptyState = view.findViewById(R.id.layout_ai_empty_state);
+
         favoriteIds.clear();
         favoriteIds.addAll(historyStore.getFavoriteIds());
-
-        // 初始化任务类型下拉框
         taskLabels = buildTaskLabels();
-        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(requireContext(),
-                android.R.layout.simple_dropdown_item_1line, taskLabels);
-        actTaskType.setAdapter(typeAdapter);
-        actTaskType.setText(taskLabels[0], false);
 
-        // 配置消息列表 RecyclerView
-        adapter = new MessageAdapter(visibleMessages, favoriteIds, this::toggleFavorite, ttsEngine);
-        rvMessages.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new MessageAdapter(requireContext(), visibleMessages, favoriteIds,
+                this::toggleFavorite, ttsEngine);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        // History storage remains newest-first; reverse layout places the newest
+        // message at the bottom without migrating the persisted order.
+        layoutManager.setReverseLayout(true);
+        layoutManager.setStackFromEnd(true);
+        rvMessages.setLayoutManager(layoutManager);
         rvMessages.setAdapter(adapter);
 
-        // 注册按钮点击事件
         btnSend.setOnClickListener(v -> sendMessage());
-        btnFavorites.setOnClickListener(v -> {
-            favoritesOnly = !favoritesOnly;
-            updateFavoriteFilterButton();
-            applyMessageFilter();
-        });
-        btnExport.setOnClickListener(v -> exportMessages());
-        if (btnModelDownload != null) {
-            btnModelDownload.setOnClickListener(v -> showLocalModelDialog());
-        }
-        if (chipModelStatus != null) {
-            chipModelStatus.setOnClickListener(v -> showCloudModelDialog());
-        }
-        if (chipModeSwitch != null) {
-            chipModeSwitch.setOnClickListener(v -> {
-                boolean useCloud = chipModeSwitch.isChecked();
-                aiPreferences.setLocalFirst(!useCloud);
-                updateModelControls();
-            });
-        }
+        btnAdd.setOnClickListener(v -> showToolsDialog());
+        btnModel.setOnClickListener(v -> showModelChooser());
+        btnHistory.setOnClickListener(v -> showHistoryDialog());
+        btnMore.setOnClickListener(v -> showMoreDialog());
+        chipTaskContext.setOnCloseIconClickListener(v -> selectTaskType(AiTaskCatalog.CHAT));
+
         setupTemplates(view);
-
-        MaterialButton btnClearHistory = view.findViewById(R.id.btn_ai_open_full);
-        if (btnClearHistory != null) {
-            btnClearHistory.setText(getString(R.string.ai_clear_history));
-            btnClearHistory.setOnClickListener(v -> clearHistory());
-        }
-
-        // 输入框变化时更新发送按钮的可用状态
         etInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(Editable s) {
-                // 输入框有内容时才能发送
-                btnSend.setEnabled(s != null && s.toString().trim().length() > 0);
+            @Override public void afterTextChanged(Editable s) {
+                updateSendEnabled();
             }
         });
-
-        // 搜索框变化时实时过滤消息列表
-        etSearch.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(Editable s) {
-                currentSearch = s == null ? "" : s.toString().trim().toLowerCase();
-                applyMessageFilter();
+        etInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                sendMessage();
+                return true;
             }
+            return false;
         });
 
-        // 加载历史消息，若无历史则显示欢迎提示
+        messages.clear();
+        visibleMessages.clear();
         List<AiMessage> savedMessages = historyStore.loadMessages();
-        if (savedMessages.isEmpty()) {
-            messages.add(new AiMessage("system", "AI 助手已就绪。请选择任务类型并输入内容开始使用。", "chat", "local"));
-        } else {
+        if (!savedMessages.isEmpty()) {
             messages.addAll(savedMessages);
         }
         applyMessageFilter();
         scrollToBottom();
 
         updateModelControls();
-        updateStatus("就绪");
+        updateSendEnabled();
+        updateStatus(getString(R.string.ai_chat_status_ready));
+    }
+
+    /**
+     * Opens the secondary tool surface. The composer stays a normal chat
+     * input; one-shot tasks are represented by a removable context chip.
+     */
+    private void showToolsDialog() {
+        if (!isAdded()) return;
+        List<String> items = new ArrayList<>();
+        List<AiTemplateManager.Template> templates = AiTemplateManager.getTemplates();
+        for (AiTemplateManager.Template template : templates) {
+            items.add(template.title);
+        }
+        int templateCount = items.size();
+        for (int i = 1; i < TASK_TYPES.length; i++) {
+            items.add(taskLabels[i]);
+        }
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ai_chat_tools)
+                .setItems(items.toArray(new String[0]), (dialog, which) -> {
+                    if (which < templateCount) {
+                        applyTemplate(templates.get(which));
+                    } else {
+                        selectTaskType(TASK_TYPES[which - templateCount + 1]);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Keeps model and privacy controls discoverable without occupying the
+     * conversation header on every screen size.
+     */
+    private void showModelChooser() {
+        if (!isAdded() || aiPreferences == null) return;
+        String[] choices = new String[]{
+                getString(R.string.ai_chat_switch_local),
+                getString(R.string.ai_chat_switch_cloud),
+                getString(R.string.ai_chat_local_models),
+                getString(R.string.ai_chat_cloud_models)
+        };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ai_chat_model)
+                .setItems(choices, (dialog, which) -> {
+                    if (which == 0) {
+                        aiPreferences.setLocalFirst(true);
+                        updateModelControls();
+                        updateStatus(getString(R.string.ai_chat_status_ready));
+                    } else if (which == 1) {
+                        aiPreferences.setLocalFirst(false);
+                        updateModelControls();
+                        showCloudModelDialog();
+                    } else if (which == 2) {
+                        showLocalModelDialog();
+                    } else {
+                        showCloudModelDialog();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * History, search, favorites and export are intentionally opened on
+     * demand. This keeps the main page focused on composing a message.
+     */
+    private void showHistoryDialog() {
+        if (!isAdded()) return;
+        LinearLayout content = new LinearLayout(requireContext());
+        content.setOrientation(LinearLayout.VERTICAL);
+        int horizontalPadding = (int) (getResources().getDisplayMetrics().density * 4);
+        content.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+
+        TextInputLayout searchLayout = new TextInputLayout(requireContext());
+        searchLayout.setHint(getString(R.string.ai_chat_search_history));
+        TextInputEditText searchInput = new TextInputEditText(searchLayout.getContext());
+        searchInput.setSingleLine(true);
+        searchInput.setText(currentSearch);
+        searchLayout.addView(searchInput, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        content.addView(searchLayout);
+
+        MaterialButton favoriteButton = new MaterialButton(requireContext(), null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        int touchTarget = (int) (48 * getResources().getDisplayMetrics().density + 0.5f);
+        favoriteButton.setMinHeight(touchTarget);
+        favoriteButton.setMinimumHeight(touchTarget);
+        favoriteButton.setText(favoritesOnly
+                ? R.string.ai_chat_show_all
+                : R.string.ai_chat_show_favorites);
+        content.addView(favoriteButton);
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ai_chat_history)
+                .setView(content)
+                .setPositiveButton(android.R.string.ok, null)
+                .setNegativeButton(android.R.string.cancel, null);
+        final androidx.appcompat.app.AlertDialog dialog = builder.create();
+
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                currentSearch = s == null ? "" : s.toString().trim().toLowerCase(java.util.Locale.ROOT);
+                applyMessageFilter();
+            }
+        });
+        favoriteButton.setOnClickListener(v -> {
+            favoritesOnly = !favoritesOnly;
+            favoriteButton.setText(favoritesOnly
+                    ? R.string.ai_chat_show_all
+                    : R.string.ai_chat_show_favorites);
+            applyMessageFilter();
+        });
+        // Keep the filter after the dialog closes so the user can inspect the
+        // filtered conversation. Clearing the text and turning off favorites
+        // restores the full list.
+        dialog.show();
+    }
+
+    private void showMoreDialog() {
+        if (!isAdded()) return;
+        String[] items = new String[]{
+                getString(R.string.ai_chat_export),
+                getString(R.string.ai_chat_clear_history)
+        };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ai_chat_more)
+                .setItems(items, (dialog, which) -> {
+                    if (which == 0) {
+                        exportMessages();
+                    } else {
+                        confirmClearHistory();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmClearHistory() {
+        if (!isAdded()) return;
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ai_chat_clear_history_title)
+                .setMessage(R.string.ai_chat_clear_history_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.ai_chat_clear_history, (dialog, which) -> clearHistory())
+                .show();
+    }
+
+    private void selectTaskType(String taskType) {
+        String normalized = AiTaskCatalog.normalize(taskType);
+        selectedTaskType = normalized;
+        if (chipTaskContext != null) {
+            if (AiTaskCatalog.CHAT.equals(normalized)) {
+                chipTaskContext.setVisibility(View.GONE);
+            } else {
+                chipTaskContext.setText(labelForTask(normalized));
+                chipTaskContext.setVisibility(View.VISIBLE);
+            }
+        }
+        if (tvStatus != null && !AiTaskCatalog.CHAT.equals(normalized)) {
+            updateStatus(getString(R.string.ai_chat_status_task_selected_format,
+                    labelForTask(normalized)));
+        }
+    }
+
+    private void updateSendEnabled() {
+        if (btnSend == null || etInput == null) return;
+        boolean hasText = etInput.getText() != null
+                && etInput.getText().toString().trim().length() > 0;
+        btnSend.setEnabled(hasText && !requestGate.isBusy() && !awaitingConsent);
     }
 
     /**
@@ -349,15 +509,17 @@ public class AiFragment extends Fragment {
         modelDownloadManager.fetchModels(new AiModelDownloadManager.Callback<List<AiModelInfo>>() {
             @Override
             public void onSuccess(List<AiModelInfo> models) {
-                // 检查 Fragment 是否还关联着 Activity，防止操作已销毁的 UI
                 if (getActivity() == null) return;
-                getActivity().runOnUiThread(() -> showModelList(models));
+                getActivity().runOnUiThread(() -> {
+                    if (isViewActive()) showModelList(models);
+                });
             }
 
             @Override
             public void onError(Exception error) {
                 if (getActivity() == null) return;
                 getActivity().runOnUiThread(() -> {
+                    if (!isViewActive()) return;
                     updateStatus("模型清单获取失败");
                     Toast.makeText(requireContext(), getString(R.string.ai_model_list_failed_format, error.getMessage()), Toast.LENGTH_LONG).show();
                 });
@@ -524,16 +686,18 @@ public class AiFragment extends Fragment {
     private void updateModelControls() {
         if (aiPreferences == null) return;
         boolean localFirst = aiPreferences.isLocalFirst();
-        if (chipModeSwitch != null) {
-            chipModeSwitch.setChecked(!localFirst);
-            chipModeSwitch.setText(localFirst ? "切换到云端" : "切换到本地");
-        }
-        if (chipModelStatus != null) {
+        if (btnModel != null) {
             AiModelInfo localModel = aiPreferences.getLocalModelInfo();
             String localLabel = localModel != null ? localModel.name : aiPreferences.getLocalModel();
-            chipModelStatus.setText(localFirst
-                    ? "本地: " + localLabel
-                    : aiPreferences.getSelectedProvider() + ": " + aiPreferences.getSelectedModel());
+            btnModel.setText(localFirst
+                    ? getString(R.string.ai_chat_local_mode_short) + " · " + localLabel
+                    : getString(R.string.ai_chat_cloud_mode_short) + " · "
+                    + aiPreferences.getSelectedModel());
+        }
+        if (tvPrivacy != null) {
+            tvPrivacy.setText(localFirst
+                    ? R.string.ai_chat_privacy_local
+                    : R.string.ai_chat_privacy_cloud);
         }
     }
 
@@ -607,6 +771,7 @@ public class AiFragment extends Fragment {
      * @param model 待下载的模型信息
      */
     private void downloadModel(AiModelInfo model) {
+        if (!isViewActive() || modelDownloadManager == null) return;
         progressBar.setVisibility(View.VISIBLE);
         updateStatus("模型下载中");
         modelDownloadManager.download(requireContext().getApplicationContext(), model,
@@ -614,14 +779,18 @@ public class AiFragment extends Fragment {
                     @Override
                     public void onProgress(long downloaded, long total) {
                         if (getActivity() == null) return;
-                        getActivity().runOnUiThread(() -> updateStatus("模型下载 " + formatBytes(downloaded)
-                                + (total > 0 ? " / " + formatBytes(total) : "")));
+                        getActivity().runOnUiThread(() -> {
+                            if (!isViewActive()) return;
+                            updateStatus("模型下载 " + formatBytes(downloaded)
+                                    + (total > 0 ? " / " + formatBytes(total) : ""));
+                        });
                     }
 
                     @Override
                     public void onComplete(File file) {
                         if (getActivity() == null) return;
                         getActivity().runOnUiThread(() -> {
+                            if (!isViewActive()) return;
                             progressBar.setVisibility(View.GONE);
                             // 下载完成后自动启用该模型
                             enableLocalModel(model);
@@ -634,6 +803,7 @@ public class AiFragment extends Fragment {
                     public void onError(Exception error) {
                         if (getActivity() == null) return;
                         getActivity().runOnUiThread(() -> {
+                            if (!isViewActive()) return;
                             progressBar.setVisibility(View.GONE);
                             updateStatus("模型下载失败");
                             Toast.makeText(requireContext(), getString(R.string.ai_download_failed_format, error.getMessage()), Toast.LENGTH_LONG).show();
@@ -670,11 +840,19 @@ public class AiFragment extends Fragment {
      * </ol>
      */
     private void sendMessage() {
-        String input = etInput.getText().toString().trim();
-        if (input.isEmpty()) return;
+        if (etInput == null || requestGate.isBusy() || awaitingConsent) return;
+        String input = etInput.getText() == null ? "" : etInput.getText().toString().trim();
+        if (input.isEmpty()) {
+            updateSendEnabled();
+            return;
+        }
+
+        AiRoutingMode routingMode = aiPreferences != null && aiPreferences.isLocalFirst()
+                ? AiRoutingMode.LOCAL_ONLY
+                : AiRoutingMode.CLOUD_ONLY;
 
         // #24.3: 云端模式下，发送前需先获取 consent
-        if (aiPreferences != null && !aiPreferences.isLocalFirst()) {
+        if (routingMode == AiRoutingMode.CLOUD_ONLY) {
             ConsentComponent consent = buildAiConsent();
             if (ConsentDialog.needsConsent(requireContext(), consent)) {
                 showCloudConsentDialog(input);
@@ -682,7 +860,7 @@ public class AiFragment extends Fragment {
             }
         }
 
-        proceedSendMessage(input);
+        proceedSendMessage(input, routingMode);
     }
 
     /** #24.3: 构建 AI 云端调用 consent 组件 */
@@ -703,26 +881,61 @@ public class AiFragment extends Fragment {
 
     /** #24.3: 弹出 AI 云端 consent 弹窗 */
     private void showCloudConsentDialog(String input) {
-        ConsentDialog.show(requireActivity(), buildAiConsent(), decision -> {
+        if (!isAdded() || awaitingConsent) return;
+        awaitingConsent = true;
+        updateSendEnabled();
+        try {
+            ConsentDialog.show(requireActivity(), buildAiConsent(), decision -> {
+            awaitingConsent = false;
+            if (!isAdded() || etInput == null) {
+                updateSendEnabled();
+                return kotlin.Unit.INSTANCE;
+            }
             if (decision == ConsentDecision.AGREE_CLOUD) {
-                proceedSendMessage(input);
+                aiPreferences.setLocalFirst(false);
+                updateModelControls();
+                proceedSendMessage(input, AiRoutingMode.CLOUD_ONLY);
             } else if (decision == ConsentDecision.USE_LOCAL) {
                 aiPreferences.setLocalFirst(true);
                 Toast.makeText(requireContext(), R.string.consent_ai_use_local_toast, Toast.LENGTH_SHORT).show();
-                proceedSendMessage(input);
+                proceedSendMessage(input, AiRoutingMode.LOCAL_ONLY);
             } else {
                 // REFUSE：取消，不做任何操作
+                updateSendEnabled();
             }
             return kotlin.Unit.INSTANCE;
-        });
+            });
+        } catch (RuntimeException error) {
+            awaitingConsent = false;
+            updateSendEnabled();
+            Toast.makeText(requireContext(), safeText(error.getMessage()), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showCloudRetryPrompt(String input) {
+        if (!isAdded() || input == null || input.trim().isEmpty()) return;
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.ai_chat_local_unavailable)
+                .setMessage(R.string.ai_chat_cloud_consent_needed)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.ai_chat_retry_cloud, (dialog, which) -> {
+                    aiPreferences.setLocalFirst(false);
+                    updateModelControls();
+                    showCloudConsentDialog(input);
+                })
+                .show();
     }
 
     /** 实际执行发送消息与任务提交 */
-    private void proceedSendMessage(String input) {
-        String taskType = resolveTaskType(actTaskType.getText().toString().trim());
+    private void proceedSendMessage(String input, AiRoutingMode routingMode) {
+        if (!isAdded() || etInput == null || btnSend == null || router == null) return;
+        AiRequestGate.RequestToken requestToken = requestGate.tryAcquire();
+        if (requestToken == null) return;
+
+        String taskType = AiTaskCatalog.normalize(selectedTaskType);
         final String ftaskType = taskType;
 
-        // 添加用户消息到列表头部（倒序排列，新消息在前）
+        // 添加用户消息到列表头部（持久化顺序仍为最新在前）。
         AiMessage userMsg = new AiMessage("user", input, taskType, "user");
         messages.add(0, userMsg);
         saveHistory();
@@ -730,56 +943,84 @@ public class AiFragment extends Fragment {
         scrollToBottom();
         etInput.setText("");
 
-        // 显示加载状态，禁用发送按钮防止重复提交
         progressBar.setVisibility(View.VISIBLE);
-        updateStatus("处理中…");
-        btnSend.setEnabled(false);
+        updateStatus(getString(R.string.ai_chat_status_processing));
+        updateSendEnabled();
 
-        if ("mini-game".equals(taskType)) {
-            // 期待 input format: "gameId;input" 或直接使用引擎内部解析
-            String[] parts = input.split(";", 2);
-            String gameId = parts.length > 0 ? parts[0].trim() : "";
-            String gameInput = parts.length > 1 ? parts[1].trim() : "";
-            // 同步评估小游戏，直接获取结果字符串
-            String result = CoreAiService.getInstance(requireContext().getApplicationContext())
-                    .evaluateMiniGameSync(gameId, gameInput);
-            progressBar.setVisibility(View.GONE);
-            btnSend.setEnabled(true);
-            if (getView() == null) return;
-            messages.add(0, new AiMessage("assistant", result, ftaskType, "local"));
-            saveHistory();
-            applyMessageFilter();
-            scrollToBottom();
-            updateStatus("完成 | local");
-        } else {
-            // 提交 AI 任务，通过回调异步获取结果
-            router.submitTask(taskType, input, new AiTaskRouter.AiCallback() {
+        // 所有任务统一走 Router；小游戏也在 Router 的后台执行器中运行，
+        // 不再让同步规则引擎阻塞 UI 线程。
+        try {
+            router.submitTask(taskType, input, routingMode, new AiTaskRouter.AiCallback() {
                 @Override
                 public void onResult(AiTask task, AiResult result) {
-                    // 检查视图是否还存在，防止 Fragment 已销毁时操作 UI
-                    if (getView() == null) return;
-                    progressBar.setVisibility(View.GONE);
-                    btnSend.setEnabled(true);
-
-                    if (result.success) {
-                        // 成功：将 AI 回复添加到消息列表
-                        messages.add(0, new AiMessage("assistant", result.content, ftaskType, result.source));
-                        saveHistory();
-                        applyMessageFilter();
-                        scrollToBottom();
-                        updateStatus("完成 | " + result.source);
-                    } else {
-                        // 失败：以 error 来源标记，内容前加错误符号
-                        messages.add(0, new AiMessage("assistant", "❌ " + result.message, ftaskType, "error"));
-                        saveHistory();
-                        applyMessageFilter();
-                        scrollToBottom();
-                        updateStatus("失败: " + result.errorCode);
-                        Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show();
+                    if (!requestGate.isActive(requestToken) || !isViewActive()) return;
+                    try {
+                        if (result == null) {
+                            result = AiResult.fail("AI 返回了空结果")
+                                    .source("unknown")
+                                    .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
+                                    .build();
+                        }
+                        progressBar.setVisibility(View.GONE);
+                        if (result.success) {
+                            messages.add(0, new AiMessage("assistant", safeText(result.content),
+                                    ftaskType, safeSource(result.source)));
+                            saveHistory();
+                            applyMessageFilter();
+                            scrollToBottom();
+                            updateStatus(getString(R.string.ai_chat_status_done_format,
+                                    safeSource(result.source)));
+                        } else {
+                            messages.add(0, new AiMessage("assistant", "❌ " + safeText(result.message),
+                                    ftaskType, "error"));
+                            saveHistory();
+                            applyMessageFilter();
+                            scrollToBottom();
+                            updateStatus(getString(R.string.ai_chat_status_failed));
+                            if (result.hasErrorCode(AiErrorCode.LOCAL_ONLY_UNAVAILABLE)) {
+                                showCloudRetryPrompt(input);
+                                Toast.makeText(requireContext(),
+                                        R.string.ai_chat_cloud_consent_needed, Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(requireContext(), safeText(result.message),
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    } finally {
+                        requestGate.finish(requestToken);
+                        updateSendEnabled();
                     }
                 }
             });
+        } catch (RuntimeException error) {
+            // Executor shutdown/rejection must not leave the composer locked.
+            if (requestGate.isActive(requestToken)) {
+                requestGate.finish(requestToken);
+            }
+            if (isViewActive()) {
+                progressBar.setVisibility(View.GONE);
+                messages.add(0, new AiMessage("assistant",
+                        "❌ " + safeText(error.getMessage()), ftaskType, "error"));
+                saveHistory();
+                applyMessageFilter();
+                updateSendEnabled();
+                updateStatus(getString(R.string.ai_chat_status_failed));
+                Toast.makeText(requireContext(), safeText(error.getMessage()),
+                        Toast.LENGTH_LONG).show();
+            }
         }
+    }
+
+    private boolean isViewActive() {
+        return isAdded() && getView() != null && rvMessages != null && etInput != null;
+    }
+
+    private String safeText(String text) {
+        return text == null ? "" : text;
+    }
+
+    private String safeSource(String source) {
+        return source == null || source.trim().isEmpty() ? "unknown" : source;
     }
 
     /**
@@ -792,25 +1033,26 @@ public class AiFragment extends Fragment {
     }
 
     /**
-     * 将用户在任务类型下拉框中选择的标签解析为内部任务类型标识。
+     * 将任务标签或内部标识解析为统一的任务类型标识。
      * <p>
      * 支持传入本地化标签（如"摘要"）或内部标识（如"summary"），
-     * 无法匹配时默认返回 "summary"。
+     * 无法匹配时默认返回聊天类型。
      *
      * @param labelOrType 用户选择的标签或内部标识
      * @return 对应的内部任务类型标识
      */
     private String resolveTaskType(String labelOrType) {
-        if (labelOrType == null || labelOrType.isEmpty()) {
-            return "summary";
+        if (labelOrType == null || labelOrType.trim().isEmpty()) {
+            return AiTaskCatalog.CHAT;
         }
         String[] labels = taskLabels != null ? taskLabels : buildTaskLabels();
-        for (int i = 0; i < labels.length; i++) {
+        int count = Math.min(labels.length, TASK_TYPES.length);
+        for (int i = 0; i < count; i++) {
             if (labels[i].equals(labelOrType) || TASK_TYPES[i].equals(labelOrType)) {
                 return TASK_TYPES[i];
             }
         }
-        return "summary";
+        return AiTaskCatalog.normalize(labelOrType);
     }
 
     /**
@@ -822,14 +1064,15 @@ public class AiFragment extends Fragment {
      */
     private String[] buildTaskLabels() {
         return new String[]{
-                getString(R.string.ai_task_chat),
-                getString(R.string.ai_task_ocr_clean),
-                getString(R.string.ai_task_summary),
-                getString(R.string.ai_task_translate),
-                getString(R.string.ai_task_rewrite),
-                getString(R.string.ai_task_qa_pairs),
-                getString(R.string.ai_task_keywords),
-                getString(R.string.ai_task_classify)
+                getString(R.string.ai_chat_task_chat),
+                getString(R.string.ai_chat_task_ocr),
+                getString(R.string.ai_chat_task_summary),
+                getString(R.string.ai_chat_task_translate),
+                getString(R.string.ai_chat_task_rewrite),
+                getString(R.string.ai_chat_task_qa),
+                getString(R.string.ai_chat_task_keywords),
+                getString(R.string.ai_chat_task_classify),
+                getString(R.string.ai_chat_task_mini_game)
         };
     }
 
@@ -843,23 +1086,24 @@ public class AiFragment extends Fragment {
     }
 
     /**
-     * 清空所有历史记录、收藏和搜索状态，并显示系统提示消息。
+     * 清空所有历史记录、收藏和搜索状态，并使当前请求失效。
      */
     private void clearHistory() {
+        requestGate.invalidateConversation();
         if (historyStore != null) {
             historyStore.clear();
+        }
+        if (progressBar != null) {
+            progressBar.setVisibility(View.GONE);
         }
         messages.clear();
         favoriteIds.clear();
         favoritesOnly = false;
         currentSearch = "";
-        if (etSearch != null) {
-            etSearch.setText("");
-        }
-        messages.add(new AiMessage("system", "历史记录已清空。", "chat", "local"));
-        updateFavoriteFilterButton();
+        selectTaskType(AiTaskCatalog.CHAT);
         applyMessageFilter();
-        updateStatus("历史已清空");
+        updateStatus(getString(R.string.ai_chat_status_history_cleared));
+        updateSendEnabled();
     }
 
     /**
@@ -876,13 +1120,18 @@ public class AiFragment extends Fragment {
         layout.removeAllViews();
         // 6dp 的水平间距，转换为像素值
         int margin = (int) (6 * getResources().getDisplayMetrics().density);
-        for (AiTemplateManager.Template template : AiTemplateManager.getTemplates()) {
+        int visibleTemplateCount = Math.min(4, AiTemplateManager.getTemplates().size());
+        for (int i = 0; i < visibleTemplateCount; i++) {
+            AiTemplateManager.Template template = AiTemplateManager.getTemplates().get(i);
             MaterialButton button = new MaterialButton(requireContext(), null,
                     com.google.android.material.R.attr.materialButtonOutlinedStyle);
             button.setText(template.title);
             button.setTextSize(12);
-            button.setMinHeight(36);
-            button.setMinimumHeight(36);
+            int touchTarget = (int) (48 * getResources().getDisplayMetrics().density + 0.5f);
+            button.setMinHeight(touchTarget);
+            button.setMinimumHeight(touchTarget);
+            // 动态创建的 MaterialButton 不依赖宿主主题的默认状态动画。
+            button.setStateListAnimator(null);
             button.setOnClickListener(v -> applyTemplate(template));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -894,16 +1143,17 @@ public class AiFragment extends Fragment {
     /**
      * 将预设模板应用到输入区域。
      * <p>
-     * 设置任务类型下拉框为模板对应的类型，并将模板提示词填入输入框，
+     * 设置一次性任务上下文并将模板提示词填入输入框，
      * 光标移到末尾方便用户继续编辑。
      *
      * @param template 要应用的预设模板
      */
     private void applyTemplate(AiTemplateManager.Template template) {
-        actTaskType.setText(labelForTask(template.taskType), false);
+        selectTaskType(template.taskType);
+        if (etInput == null) return;
         etInput.setText(template.prompt);
         etInput.setSelection(etInput.getText() != null ? etInput.getText().length() : 0);
-        updateStatus("已套用模板: " + template.title);
+        updateStatus(getString(R.string.ai_chat_status_template_applied_format, template.title));
     }
 
     /**
@@ -914,12 +1164,14 @@ public class AiFragment extends Fragment {
      */
     private String labelForTask(String taskType) {
         String[] labels = taskLabels != null ? taskLabels : buildTaskLabels();
-        for (int i = 0; i < TASK_TYPES.length; i++) {
-            if (TASK_TYPES[i].equals(taskType)) {
+        String normalized = AiTaskCatalog.normalize(taskType);
+        int count = Math.min(TASK_TYPES.length, labels.length);
+        for (int i = 0; i < count; i++) {
+            if (TASK_TYPES[i].equals(normalized)) {
                 return labels[i];
             }
         }
-        return "总结";
+        return getString(R.string.ai_chat_task_chat);
     }
 
     /**
@@ -941,7 +1193,9 @@ public class AiFragment extends Fragment {
             favoriteIds.remove(message.id);
         }
         applyMessageFilter();
-        Toast.makeText(requireContext(), favorite ? "已收藏" : "已取消收藏", Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), favorite
+                ? R.string.ai_chat_favorite
+                : R.string.ai_chat_favorite_remove, Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -951,9 +1205,7 @@ public class AiFragment extends Fragment {
      * 非收藏模式时显示"收藏"（点击可进入收藏模式）。
      */
     private void updateFavoriteFilterButton() {
-        if (btnFavorites != null) {
-            btnFavorites.setText(favoritesOnly ? "全部" : "收藏");
-        }
+        // Favorite filtering is exposed from the History dialog.
     }
 
     /**
@@ -975,14 +1227,20 @@ public class AiFragment extends Fragment {
             }
             // 搜索过滤：在角色、内容、任务类型中查找关键词
             if (!currentSearch.isEmpty()) {
-                String haystack = (message.role + " " + message.content + " " + message.taskType).toLowerCase();
+                String haystack = (message.role + " " + message.content + " " + message.taskType)
+                        .toLowerCase(java.util.Locale.ROOT);
                 if (!haystack.contains(currentSearch)) {
                     continue;
                 }
             }
             visibleMessages.add(message);
         }
-        adapter.notifyDataSetChanged();
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+        if (emptyState != null) {
+            emptyState.setVisibility(visibleMessages.isEmpty() ? View.VISIBLE : View.GONE);
+        }
         updateStatus(buildStatusText());
     }
 
@@ -996,13 +1254,14 @@ public class AiFragment extends Fragment {
      */
     private String buildStatusText() {
         if (favoritesOnly) {
-            return "收藏 " + visibleMessages.size();
+            return getString(R.string.ai_chat_status_favorites_count, visibleMessages.size());
         }
         if (!currentSearch.isEmpty()) {
-            return "搜索 " + visibleMessages.size();
+            return getString(R.string.ai_chat_status_search_count, visibleMessages.size());
         }
         // 默认模式下排除系统消息计数，只显示用户和 AI 消息数量
-        return "历史 " + Math.max(0, messages.size() - countSystemMessages());
+        return getString(R.string.ai_chat_status_history_count,
+                Math.max(0, messages.size() - countSystemMessages()));
     }
 
     /**
@@ -1033,9 +1292,9 @@ public class AiFragment extends Fragment {
         // 使用 Android 系统的分享功能，让用户选择导出方式（微信、邮件等）
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_SUBJECT, "GameMatrix AI 导出");
+        intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.ai_chat_export_subject));
         intent.putExtra(Intent.EXTRA_TEXT, exportText);
-        startActivity(Intent.createChooser(intent, "导出 AI 记录"));
+        startActivity(Intent.createChooser(intent, getString(R.string.ai_chat_export_chooser)));
     }
 
     /**
@@ -1048,7 +1307,8 @@ public class AiFragment extends Fragment {
      */
     private String buildExportText() {
         StringBuilder sb = new StringBuilder();
-        sb.append("GameMatrix AI 记录\n\n");
+        sb.append(getString(R.string.ai_chat_export_subject)).append("\n\n");
+        int exportedMessages = 0;
         // 收藏/搜索模式下导出可见消息，否则导出全量消息
         List<AiMessage> source = (favoritesOnly || !currentSearch.isEmpty()) ? visibleMessages : messages;
         // 倒序列表从末尾遍历，实现时间正序输出
@@ -1057,14 +1317,15 @@ public class AiFragment extends Fragment {
             if ("system".equals(message.role)) {
                 continue;
             }
+            exportedMessages++;
             sb.append(roleLabel(message.role))
                     .append(" [").append(message.taskType).append("]");
             if (favoriteIds.contains(message.id)) {
-                sb.append(" [收藏]");
+                sb.append(" [").append(getString(R.string.ai_chat_export_favorite_marker)).append("]");
             }
-            sb.append("\n").append(message.content).append("\n\n");
+            sb.append("\n").append(message.content == null ? "" : message.content).append("\n\n");
         }
-        return sb.toString().trim();
+        return exportedMessages == 0 ? "" : sb.toString().trim();
     }
 
     /**
@@ -1074,9 +1335,9 @@ public class AiFragment extends Fragment {
      * @return 中文角色标签
      */
     private String roleLabel(String role) {
-        if ("user".equals(role)) return "用户";
-        if ("assistant".equals(role)) return "AI";
-        return "系统";
+        if ("user".equals(role)) return getString(R.string.ai_chat_role_user);
+        if ("assistant".equals(role)) return getString(R.string.ai_chat_role_assistant);
+        return getString(R.string.ai_chat_role_system);
     }
 
     /**
@@ -1085,9 +1346,12 @@ public class AiFragment extends Fragment {
      * 使用 post 确保在布局更新后再执行滚动，避免 RecyclerView 尚未完成测量导致滚动失败。
      */
     private void scrollToBottom() {
-        rvMessages.post(() -> {
-            if (adapter.getItemCount() > 0) {
-                rvMessages.smoothScrollToPosition(0);
+        final RecyclerView recyclerView = rvMessages;
+        final MessageAdapter messageAdapter = adapter;
+        if (recyclerView == null || messageAdapter == null) return;
+        recyclerView.post(() -> {
+            if (recyclerView.getAdapter() == messageAdapter && messageAdapter.getItemCount() > 0) {
+                recyclerView.smoothScrollToPosition(0);
             }
         });
     }
@@ -1095,12 +1359,16 @@ public class AiFragment extends Fragment {
     /**
      * 消息列表适配器。
      * <p>
-     * 将 {@link AiMessage} 列表绑定到 RecyclerView，支持收藏状态显示。
+     * 将 {@link AiMessage} 列表绑定到 RecyclerView，根据消息角色使用不同的气泡布局：
+     * 用户消息居右、AI 消息居左并带头像、系统消息居中弱化显示。
      * 使用 visibleMessages 作为数据源，确保过滤后的结果正确展示。
-     * 就像翻译官，把 AiMessage 数据"翻译"成界面上的消息气泡。
      */
     private static class MessageAdapter extends RecyclerView.Adapter<MessageViewHolder> {
+        private static final int TYPE_USER = 1;
+        private static final int TYPE_ASSISTANT = 2;
+        private static final int TYPE_SYSTEM = 3;
 
+        private final LayoutInflater inflater;
         private final List<AiMessage> messages;
         private final Set<String> favoriteIds;
         private final FavoriteListener favoriteListener;
@@ -1108,31 +1376,43 @@ public class AiFragment extends Fragment {
         private final Object ttsEngine;
 
         /**
+         * @param context          用于创建 LayoutInflater 的上下文
          * @param messages         可见消息列表（过滤后）
          * @param favoriteIds      已收藏消息 ID 集合
          * @param favoriteListener 收藏切换回调
          * @param ttsEngine        TTS 朗读引擎（可为 null，mimo-tts 模块未配置时为 null）
          */
-        MessageAdapter(List<AiMessage> messages, Set<String> favoriteIds,
+        MessageAdapter(Context context, List<AiMessage> messages, Set<String> favoriteIds,
                        FavoriteListener favoriteListener, Object ttsEngine) {
+            this.inflater = LayoutInflater.from(context);
             this.messages = messages;
             this.favoriteIds = favoriteIds;
             this.favoriteListener = favoriteListener;
             this.ttsEngine = ttsEngine;
         }
 
+        @Override
+        public int getItemViewType(int position) {
+            String role = messages.get(position).role;
+            if ("user".equals(role)) return TYPE_USER;
+            if ("assistant".equals(role)) return TYPE_ASSISTANT;
+            return TYPE_SYSTEM;
+        }
+
         @NonNull
         @Override
         public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // 从布局文件创建单条消息的视图
-            View v = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_ai_message, parent, false);
-            return new MessageViewHolder(v);
+            if (viewType == TYPE_USER) {
+                return new UserMessageViewHolder(inflater.inflate(R.layout.item_ai_message_user, parent, false));
+            } else if (viewType == TYPE_ASSISTANT) {
+                return new AssistantMessageViewHolder(inflater.inflate(R.layout.item_ai_message_assistant, parent, false));
+            } else {
+                return new SystemMessageViewHolder(inflater.inflate(R.layout.item_ai_message_system, parent, false));
+            }
         }
 
         @Override
         public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-            // 将消息数据绑定到视图上
             AiMessage msg = messages.get(position);
             holder.bind(msg, favoriteIds.contains(msg.id), favoriteListener, ttsEngine);
         }
@@ -1144,105 +1424,145 @@ public class AiFragment extends Fragment {
     }
 
     /**
-     * 消息 ViewHolder。
-     * <p>
-     * 根据消息角色（user/assistant/system）设置不同的背景色和文字颜色，
-     * 并管理收藏按钮的显示与交互。
-     * 就像不同身份的人穿不同颜色的衣服：用户蓝色、AI 绿色、系统灰色。
+     * 消息 ViewHolder 抽象基类。
      */
-    private static class MessageViewHolder extends RecyclerView.ViewHolder {
-        private final TextView tvRole;
+    private abstract static class MessageViewHolder extends RecyclerView.ViewHolder {
+        MessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+        }
+
+        abstract void bind(AiMessage msg, boolean favorite, FavoriteListener listener, Object ttsEngine);
+    }
+
+    private static class UserMessageViewHolder extends MessageViewHolder {
         private final TextView tvContent;
+        private final ImageButton btnFavorite;
+
+        UserMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvContent = itemView.findViewById(R.id.tv_msg_content);
+            btnFavorite = itemView.findViewById(R.id.btn_msg_favorite);
+        }
+
+        @Override
+        void bind(AiMessage msg, boolean favorite, FavoriteListener listener, Object ttsEngine) {
+            tvContent.setText(msg.content);
+            bindFavorite(btnFavorite, msg, favorite, listener);
+        }
+    }
+
+    private static class AssistantMessageViewHolder extends MessageViewHolder {
+        private final TextView tvContent;
+        private final TextView tvMeta;
         private final ImageButton btnFavorite;
         private final ImageButton btnTts;
 
-        MessageViewHolder(@NonNull View itemView) {
+        AssistantMessageViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvRole = itemView.findViewById(R.id.tv_msg_role);
             tvContent = itemView.findViewById(R.id.tv_msg_content);
+            tvMeta = itemView.findViewById(R.id.tv_msg_meta);
             btnFavorite = itemView.findViewById(R.id.btn_msg_favorite);
             btnTts = itemView.findViewById(R.id.btn_msg_tts);
         }
 
-        /**
-         * 绑定消息数据到视图。
-         * <p>
-         * 根据消息角色设置不同的视觉样式：
-         * <ul>
-         *   <li>user — 用户消息样式</li>
-         *   <li>assistant — AI 助手消息样式</li>
-         *   <li>system — 系统提示样式（隐藏收藏按钮）</li>
-         * </ul>
-         *
-         * @param msg              消息数据
-         * @param favorite         是否已收藏
-         * @param favoriteListener 收藏切换回调
-         * @param ttsEngine        TTS 朗读引擎
-         */
-        void bind(AiMessage msg, boolean favorite, FavoriteListener favoriteListener, Object ttsEngine) {
-            if (msg.role.equals("user")) {
-                tvRole.setText(R.string.ai_role_user);
-                itemView.setBackgroundResource(R.drawable.bg_ai_message_user);
-                tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_user_role));
-                tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_user_text));
-            } else if (msg.role.equals("assistant")) {
-                tvRole.setText(R.string.ai_assistant_label);
-                itemView.setBackgroundResource(R.drawable.bg_ai_message_assistant);
-                tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_assistant_role));
-                tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_assistant_text));
-            } else {
-                tvRole.setText(R.string.system);
-                itemView.setBackgroundResource(R.drawable.bg_ai_message_system);
-                tvRole.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_system_role));
-                tvContent.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_system_text));
-            }
+        @Override
+        void bind(AiMessage msg, boolean favorite, FavoriteListener listener, Object ttsEngine) {
             tvContent.setText(msg.content);
-            btnFavorite.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_star));
-            // 系统消息不显示收藏按钮
-            if ("system".equals(msg.role)) {
-                btnFavorite.setVisibility(View.GONE);
-                btnTts.setVisibility(View.GONE);
-            } else {
-                btnFavorite.setVisibility(View.VISIBLE);
-                // 根据收藏状态显示不同的星星图标
-                btnFavorite.setImageResource(favorite
-                        ? android.R.drawable.btn_star_big_on
-                        : android.R.drawable.btn_star_big_off);
-                btnFavorite.setOnClickListener(v -> favoriteListener.onToggleFavorite(msg));
-
-                // Phase 1: AI 助手消息显示朗读按钮
-                if ("assistant".equals(msg.role) && ttsEngine != null && !msg.content.isEmpty()) {
-                    btnTts.setVisibility(View.VISIBLE);
-                    btnTts.setColorFilter(ContextCompat.getColor(itemView.getContext(), R.color.ai_message_star));
-                    btnTts.setOnClickListener(v -> {
-                        Toast.makeText(itemView.getContext(), R.string.ai_synthesizing_voice, Toast.LENGTH_SHORT).show();
-                        // 反射调用 ttsEngine.speak(String, Object, Callback)
-                        try {
-                            Class<?> callbackCls = Class.forName("com.gamecenter.capability.tts.MiMoTtsEngine$Callback");
-                            Object callback = java.lang.reflect.Proxy.newProxyInstance(
-                                    callbackCls.getClassLoader(),
-                                    new Class<?>[]{callbackCls},
-                                    (proxy, method, args1) -> {
-                                        if (method.getName().equals("onComplete") && args1[0] != null) {
-                                            android.util.Log.w("TTS", "speak failed: " + args1[0]);
-                                        }
-                                        return null;
-                                    });
-                            ttsEngine.getClass().getMethod("speak", String.class, Object.class, callbackCls)
-                                    .invoke(ttsEngine, msg.content, null, callback);
-                        } catch (Throwable t) {
-                            android.util.Log.w("TTS", "speak 反射调用失败: " + t.getMessage());
-                            Toast.makeText(itemView.getContext(),
-                                    "TTS 引擎不可用: " + t.getMessage(),
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    btnTts.setVisibility(View.GONE);
-                    btnTts.setOnClickListener(null);
-                }
-            }
+            bindSourceMeta(tvMeta, msg);
+            bindFavorite(btnFavorite, msg, favorite, listener);
+            bindTts(btnTts, msg, ttsEngine);
         }
+    }
+
+    private static class SystemMessageViewHolder extends MessageViewHolder {
+        private final TextView tvContent;
+
+        SystemMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvContent = itemView.findViewById(R.id.tv_msg_content);
+        }
+
+        @Override
+        void bind(AiMessage msg, boolean favorite, FavoriteListener listener, Object ttsEngine) {
+            tvContent.setText(msg.content);
+        }
+    }
+
+    /**
+     * 绑定收藏按钮状态与点击事件。
+     */
+    private static void bindFavorite(ImageButton btn, AiMessage msg, boolean favorite, FavoriteListener listener) {
+        if (btn == null) return;
+        btn.setImageResource(favorite
+                ? android.R.drawable.btn_star_big_on
+                : android.R.drawable.btn_star_big_off);
+        btn.setColorFilter(ContextCompat.getColor(btn.getContext(), R.color.ai_chat_action_tint));
+        btn.setContentDescription(btn.getContext().getString(favorite
+                ? R.string.ai_chat_favorite_remove
+                : R.string.ai_chat_favorite));
+        btn.setOnClickListener(v -> listener.onToggleFavorite(msg));
+    }
+
+    /**
+     * 绑定 TTS 朗读按钮；引擎不可用时隐藏。
+     */
+    private static void bindTts(ImageButton btn, AiMessage msg, Object ttsEngine) {
+        if (btn == null) return;
+        if (ttsEngine != null && msg.content != null && !msg.content.isEmpty()
+                && !"error".equals(msg.source)) {
+            btn.setVisibility(View.VISIBLE);
+            btn.setColorFilter(ContextCompat.getColor(btn.getContext(), R.color.ai_chat_action_tint));
+            btn.setContentDescription(btn.getContext().getString(R.string.ai_chat_tts));
+            btn.setOnClickListener(v -> {
+                Toast.makeText(btn.getContext(), R.string.ai_synthesizing_voice, Toast.LENGTH_SHORT).show();
+                // 反射调用 ttsEngine.speak(String, Object, Callback)
+                try {
+                    Class<?> callbackCls = Class.forName("com.gamecenter.capability.tts.MiMoTtsEngine$Callback");
+                    Object callback = java.lang.reflect.Proxy.newProxyInstance(
+                            callbackCls.getClassLoader(),
+                            new Class<?>[]{callbackCls},
+                            (proxy, method, args1) -> {
+                                if (method.getName().equals("onComplete") && args1[0] != null) {
+                                    android.util.Log.w("TTS", "speak failed: " + args1[0]);
+                                }
+                                return null;
+                            });
+                    ttsEngine.getClass().getMethod("speak", String.class, Object.class, callbackCls)
+                            .invoke(ttsEngine, msg.content, null, callback);
+                } catch (Throwable t) {
+                    android.util.Log.w("TTS", "speak 反射调用失败: " + t.getMessage());
+                    Toast.makeText(btn.getContext(),
+                            "TTS 引擎不可用: " + t.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            btn.setVisibility(View.GONE);
+            btn.setOnClickListener(null);
+        }
+    }
+
+    /** 显示每条 AI 回复的来源，但不把内部错误标识暴露给用户。 */
+    private static void bindSourceMeta(TextView view, AiMessage msg) {
+        if (view == null || msg == null) return;
+        String source = msg.source == null ? "" : msg.source.trim();
+        if (source.isEmpty() || "error".equals(source) || "user".equals(source)) {
+            view.setText("");
+            view.setVisibility(View.GONE);
+            return;
+        }
+        String label;
+        if (source.startsWith("local")) {
+            label = view.getContext().getString(R.string.ai_chat_local_mode_short);
+        } else if ("cloud".equals(source)) {
+            label = view.getContext().getString(R.string.ai_chat_cloud_mode_short);
+        } else {
+            // Keep forward compatibility for providers added later without
+            // making the binding fail when an old record has a custom source.
+            label = source;
+        }
+        view.setText(label);
+        view.setVisibility(View.VISIBLE);
     }
 
     /**

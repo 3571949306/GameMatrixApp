@@ -94,6 +94,26 @@ public class DownloadActivity extends AppCompatActivity {
             return;
         }
 
+        // Downloading a potentially executable file is an explicit user action, but
+        // handing it to an external app must be a second, separately visible choice.
+        // In particular, this prevents a completed APK from immediately launching an
+        // installer just because a user meant to inspect the download list.
+        if (item.isDangerous()) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.browser_download_dangerous_title)
+                    .setMessage(getString(R.string.browser_download_dangerous_open_message,
+                            item.getFileName()))
+                    .setPositiveButton(R.string.browser_download_dangerous_open_confirm,
+                            (d, w) -> openCompletedFile(item))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            return;
+        }
+        openCompletedFile(item);
+    }
+
+    /** Resolve a completed download to a grantable URI and hand it to a chosen viewer. */
+    private void openCompletedFile(BrowserDownloadEntity item) {
         Uri uri = null;
         android.app.DownloadManager downloadManager = (android.app.DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         if (downloadManager != null && item.getSystemDownloadId() != -1) {

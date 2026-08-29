@@ -51,9 +51,15 @@ public class BrowserTranslateHelper {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(translateUrl));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // B19：跳转前先确认有目标（与 BrowserSecurityPolicy 的既有做法一致），
+            // 避免 ActivityNotFoundException 只靠 Throwable 兜底、提示语不可读。
+            if (intent.resolveActivity(context.getPackageManager()) == null) {
+                Toast.makeText(context, R.string.browser_translate_open_failed, Toast.LENGTH_SHORT).show();
+                return;
+            }
             context.startActivity(intent);
         } catch (Throwable t) {
-            Toast.makeText(context, t.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, R.string.browser_translate_open_failed, Toast.LENGTH_SHORT).show();
         }
     }
 

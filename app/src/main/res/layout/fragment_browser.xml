@@ -186,6 +186,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:visibility="gone" />
+
+            <!-- 内置视频播放器覆盖层挂载点（与视频画面同区域，叠加在 WebView 之上） -->
+            <FrameLayout
+                android:id="@+id/player_overlay_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent" />
         </FrameLayout>
 
         <LinearLayout
@@ -292,6 +299,28 @@
                 app:tint="?attr/colorOnSurface" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- ===== 内置播放器入口：检测到网页视频时浮出（夸克式） ===== -->
+    <TextView
+        android:id="@+id/btn_video_player_entry"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginBottom="56dp"
+        android:background="@drawable/bg_browser_player_hint"
+        android:clickable="true"
+        android:contentDescription="@string/browser_player_enter"
+        android:focusable="true"
+        android:paddingStart="@dimen/gm_spacing_4"
+        android:paddingEnd="@dimen/gm_spacing_4"
+        android:paddingTop="@dimen/gm_spacing_2"
+        android:paddingBottom="@dimen/gm_spacing_2"
+        android:text="@string/browser_player_enter"
+        android:textColor="@color/white"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <!-- ===== 手势视觉反馈：左边缘箭头（默认隐藏） ===== -->
     <ImageView

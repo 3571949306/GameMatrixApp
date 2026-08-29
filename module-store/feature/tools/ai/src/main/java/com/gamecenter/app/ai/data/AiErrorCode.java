@@ -33,6 +33,12 @@ public final class AiErrorCode {
     /** 本地模型推理错误：本地 Gemma 模型在推理过程中发生了异常 */
     public static final String LOCAL_LLM_ERROR = "LOCAL_LLM_ERROR";
 
+    /**
+     * 本地模式不可用：本次请求没有走网络，调用方可提示用户切换云端并重新确认。
+     * 该错误码用于区分“本地失败”与“已获得授权但云端请求失败”。
+     */
+    public static final String LOCAL_ONLY_UNAVAILABLE = "LOCAL_ONLY_UNAVAILABLE";
+
     /** HTTP 请求错误：云端 API 返回了非 2xx 的 HTTP 状态码（如 401 未授权、429 限流等） */
     public static final String HTTP_ERROR = "HTTP_ERROR";
 

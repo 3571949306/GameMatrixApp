@@ -12,6 +12,7 @@ import android.webkit.WebView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.browser.security.AdBlocker;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -47,6 +48,13 @@ public class BrowserSettingsManager {
     /** P2-1 智能双指缩放 */
     public static final String KEY_SMART_ZOOM = "smart_zoom_enabled";
 
+    /** 内置视频播放器：检测网页视频并提供接管入口 */
+    public static final String KEY_VIDEO_PLAYER = "video_player_enabled";
+    /** 内置播放器：长按快进倍速（浮点，0.5 - 3.0） */
+    public static final String KEY_FAST_FORWARD_RATE = "fast_forward_rate";
+    /** 内置播放器：是否启用长按快进手势（H-4） */
+    public static final String KEY_LONG_PRESS_FAST_FORWARD = "long_press_fast_forward_enabled";
+
     /** P0-3 手势导航增强：双击 WebView 前进、长按 WebView 显示历史 */
     public static final String KEY_GESTURE_DOUBLE_TAP_FORWARD = "gesture_double_tap_forward";
     public static final String KEY_GESTURE_LONG_PRESS_HISTORY = "gesture_long_press_history";
@@ -80,6 +88,9 @@ public class BrowserSettingsManager {
     private static final boolean DEFAULT_SMART_ZOOM = true;
     private static final boolean DEFAULT_GESTURE_DOUBLE_TAP_FORWARD = true;
     private static final boolean DEFAULT_GESTURE_LONG_PRESS_HISTORY = true;
+    private static final boolean DEFAULT_VIDEO_PLAYER = true;
+    private static final float DEFAULT_FAST_FORWARD_RATE = 2.0f;
+    private static final boolean DEFAULT_LONG_PRESS_FAST_FORWARD = true;
 
     public static final int RELOAD_NONE = 0;
     public static final int RELOAD_REQUIRED = 1;
@@ -92,10 +103,20 @@ public class BrowserSettingsManager {
     private final SharedPreferences prefs;
     private final CopyOnWriteArrayList<OnSettingsChangeListener> listeners =
             new CopyOnWriteArrayList<>();
+    /**
+     * WebView 的资源拦截回调运行在 Chromium 线程；这些开关必须通过内存快照读取，
+     * 不能在每个子资源请求中触发 SharedPreferences 访问。
+     */
+    private volatile boolean adBlockEnabled;
+    private volatile boolean trackerProtectionEnabled;
+    private volatile boolean dataSaverEnabled;
 
     private BrowserSettingsManager(@NonNull Context context) {
         prefs = context.getApplicationContext()
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        adBlockEnabled = prefs.getBoolean(KEY_AD_BLOCK, DEFAULT_AD_BLOCK);
+        trackerProtectionEnabled = prefs.getBoolean(KEY_TRACKER_PROTECTION, DEFAULT_TRACKER_PROTECTION);
+        dataSaverEnabled = prefs.getBoolean(KEY_DATA_SAVER, DEFAULT_DATA_SAVER);
     }
 
     public static BrowserSettingsManager getInstance(@NonNull Context context) {
@@ -122,7 +143,7 @@ public class BrowserSettingsManager {
     }
 
     public boolean isAdBlockEnabled() {
-        return prefs.getBoolean(KEY_AD_BLOCK, DEFAULT_AD_BLOCK);
+        return adBlockEnabled;
     }
 
     public boolean isSafeBrowsingEnabled() {
@@ -131,7 +152,7 @@ public class BrowserSettingsManager {
 
     /** P1-2 追踪保护开关 */
     public boolean isTrackerProtectionEnabled() {
-        return prefs.getBoolean(KEY_TRACKER_PROTECTION, DEFAULT_TRACKER_PROTECTION);
+        return trackerProtectionEnabled;
     }
 
     public boolean isDomStorageEnabled() {
@@ -174,7 +195,7 @@ public class BrowserSettingsManager {
 
     /** P2-4 数据节省模式开关 */
     public boolean isDataSaverEnabled() {
-        return prefs.getBoolean(KEY_DATA_SAVER, DEFAULT_DATA_SAVER);
+        return dataSaverEnabled;
     }
 
     /** P2-2 音量键滚动开关 */
@@ -205,6 +226,7 @@ public class BrowserSettingsManager {
     }
 
     public void setAdBlockEnabled(boolean enabled) {
+        adBlockEnabled = enabled;
         prefs.edit().putBoolean(KEY_AD_BLOCK, enabled).apply();
         AdBlocker.getInstance().setEnabled(enabled);
         notifyListeners(RELOAD_NONE);
@@ -217,6 +239,7 @@ public class BrowserSettingsManager {
 
     /** P1-2 追踪保护开关 */
     public void setTrackerProtectionEnabled(boolean enabled) {
+        trackerProtectionEnabled = enabled;
         prefs.edit().putBoolean(KEY_TRACKER_PROTECTION, enabled).apply();
         com.gamecenter.app.browser.security.BrowserTrackerBlocker.getInstance().setEnabled(enabled);
         notifyListeners(RELOAD_NONE);
@@ -264,6 +287,7 @@ public class BrowserSettingsManager {
 
     /** P2-4 数据节省模式开关 */
     public void setDataSaverEnabled(boolean enabled) {
+        dataSaverEnabled = enabled;
         prefs.edit().putBoolean(KEY_DATA_SAVER, enabled).apply();
         notifyListeners(RELOAD_REQUIRED);
     }
@@ -277,6 +301,39 @@ public class BrowserSettingsManager {
     /** P2-1 智能双指缩放开关 */
     public void setSmartZoomEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_SMART_ZOOM, enabled).apply();
+        notifyListeners(RELOAD_NONE);
+    }
+
+    // ===== 内置视频播放器 =====
+
+    public boolean isVideoPlayerEnabled() {
+        return prefs.getBoolean(KEY_VIDEO_PLAYER, DEFAULT_VIDEO_PLAYER);
+    }
+
+    public void setVideoPlayerEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_VIDEO_PLAYER, enabled).apply();
+        notifyListeners(RELOAD_NONE);
+    }
+
+    /** 长按快进倍速，已钳制到 [0.5, 3.0]。 */
+    public float getFastForwardRate() {
+        float raw = prefs.getFloat(KEY_FAST_FORWARD_RATE, DEFAULT_FAST_FORWARD_RATE);
+        return com.gamecenter.app.browser.core.player.BrowserPlayerMath.clampRate(raw);
+    }
+
+    public void setFastForwardRate(float rate) {
+        prefs.edit().putFloat(KEY_FAST_FORWARD_RATE,
+                com.gamecenter.app.browser.core.player.BrowserPlayerMath.clampRate(rate)).apply();
+        notifyListeners(RELOAD_NONE);
+    }
+
+    /** H-4：是否启用播放器长按快进手势。 */
+    public boolean isLongPressFastForwardEnabled() {
+        return prefs.getBoolean(KEY_LONG_PRESS_FAST_FORWARD, DEFAULT_LONG_PRESS_FAST_FORWARD);
+    }
+
+    public void setLongPressFastForwardEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_LONG_PRESS_FAST_FORWARD, enabled).apply();
         notifyListeners(RELOAD_NONE);
     }
 
@@ -303,6 +360,12 @@ public class BrowserSettingsManager {
      * 恢复所有浏览器设置为默认值。
      */
     public void resetToDefaults() {
+        adBlockEnabled = DEFAULT_AD_BLOCK;
+        trackerProtectionEnabled = DEFAULT_TRACKER_PROTECTION;
+        dataSaverEnabled = DEFAULT_DATA_SAVER;
+        AdBlocker.getInstance().setEnabled(DEFAULT_AD_BLOCK);
+        com.gamecenter.app.browser.security.BrowserTrackerBlocker.getInstance()
+                .setEnabled(DEFAULT_TRACKER_PROTECTION);
         prefs.edit()
                 .putBoolean(KEY_JAVASCRIPT, DEFAULT_JAVASCRIPT)
                 .putBoolean(KEY_COOKIE, DEFAULT_COOKIE)
@@ -323,6 +386,9 @@ public class BrowserSettingsManager {
                 .putBoolean(KEY_SMART_ZOOM, DEFAULT_SMART_ZOOM)
                 .putBoolean(KEY_GESTURE_DOUBLE_TAP_FORWARD, DEFAULT_GESTURE_DOUBLE_TAP_FORWARD)
                 .putBoolean(KEY_GESTURE_LONG_PRESS_HISTORY, DEFAULT_GESTURE_LONG_PRESS_HISTORY)
+                .putBoolean(KEY_VIDEO_PLAYER, DEFAULT_VIDEO_PLAYER)
+                .putFloat(KEY_FAST_FORWARD_RATE, DEFAULT_FAST_FORWARD_RATE)
+                .putBoolean(KEY_LONG_PRESS_FAST_FORWARD, DEFAULT_LONG_PRESS_FAST_FORWARD)
                 .apply();
         notifyListeners(RELOAD_REQUIRED);
     }
@@ -370,6 +436,15 @@ public class BrowserSettingsManager {
         s.setDomStorageEnabled(isDomStorageEnabled());
         s.setLoadsImagesAutomatically(isLoadImagesEnabled());
         try { s.setMediaPlaybackRequiresUserGesture(!isAutoPlayMediaEnabled()); } catch (Throwable ignored) {}
+
+        // WebView debugging is process-wide, but applyToWebView is also the single
+        // path used by the settings listener for every active tab. Keeping this
+        // here makes the Debug-only switch take effect immediately instead of only
+        // after a WebView recreation.
+        if (BuildConfig.BROWSER_WEBVIEW_DEBUG) {
+            try { WebView.setWebContentsDebuggingEnabled(isWebViewDebuggingEnabled()); }
+            catch (Throwable ignored) {}
+        }
 
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(isCookieEnabled());

@@ -23,6 +23,31 @@ public class UrlUtils {
             "^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}(:\\d{1,5})?(/.*)?$");
 
     /**
+     * Returns a valid http(s) navigation target, adding https for a bare host.
+     * It deliberately does not turn search terms or custom schemes into URLs.
+     */
+    @Nullable
+    public static String normalizeWebUrl(@Nullable String input) {
+        if (input == null) return null;
+        String candidate = input.trim();
+        if (candidate.isEmpty() || containsWhitespaceOrControl(candidate)
+                || isDangerousScheme(candidate)) {
+            return null;
+        }
+
+        String lower = candidate.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            return isValidHttpUrl(candidate) ? candidate : null;
+        }
+
+        if (isBareHost(candidate)) {
+            String url = "https://" + candidate;
+            return isValidHttpUrl(url) ? url : null;
+        }
+        return null;
+    }
+
+    /**
      * 处理地址栏输入。
      * @return 处理后的 URL，若输入不安全返回 null
      */
@@ -32,27 +57,10 @@ public class UrlUtils {
         String s = input.trim();
         if (s.isEmpty()) return "https://www.baidu.com";
 
-        String lower = s.toLowerCase(Locale.ROOT);
-        // S3: 拦截扩展的危险协议
-        if (lower.startsWith("file://") || lower.startsWith("content://")
-                || lower.startsWith("javascript:") || lower.startsWith("intent://")
-                || lower.startsWith("about:") || lower.startsWith("data:")
-                || lower.startsWith("vbscript:") || lower.startsWith("jar:")
-                || lower.startsWith("blob:") || lower.startsWith("filesystem:")) {
-            return null;
-        }
+        if (isDangerousScheme(s)) return null;
 
-        // 已有 http/https 协议
-        if (lower.startsWith("http://") || lower.startsWith("https://")) {
-            return s;
-        }
-
-        // 域名/IP/localhost 判断
-        if (IP_PATTERN.matcher(s).matches()
-                || LOCALHOST_PATTERN.matcher(s).matches()
-                || DOMAIN_PATTERN.matcher(s).matches()) {
-            return "https://" + s;
-        }
+        String webUrl = normalizeWebUrl(s);
+        if (webUrl != null) return webUrl;
 
         // 默认作为搜索关键词（URI 编码）
         return SEARCH_ENGINE_URL + encodeKeyword(s);
@@ -84,6 +92,57 @@ public class UrlUtils {
                 || lower.startsWith("about:") || lower.startsWith("data:")
                 || lower.startsWith("vbscript:") || lower.startsWith("jar:")
                 || lower.startsWith("blob:") || lower.startsWith("filesystem:");
+    }
+
+    /** True only for an http(s) URL that has a host and a valid port. */
+    public static boolean isValidHttpUrl(@Nullable String url) {
+        if (url == null || containsWhitespaceOrControl(url)) return false;
+        try {
+            Uri uri = Uri.parse(url.trim());
+            String scheme = uri.getScheme();
+            if (scheme == null || (!("http".equalsIgnoreCase(scheme)
+                    || "https".equalsIgnoreCase(scheme))) || uri.getHost() == null) {
+                return false;
+            }
+            int port = uri.getPort();
+            return port >= -1 && port <= 65535;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private static boolean isBareHost(@NonNull String input) {
+        if (LOCALHOST_PATTERN.matcher(input).matches()) {
+            return isValidHttpUrl("https://" + input);
+        }
+        if (IP_PATTERN.matcher(input).matches()) {
+            String host = Uri.parse("https://" + input).getHost();
+            return host != null && isValidIpv4(host) && isValidHttpUrl("https://" + input);
+        }
+        return DOMAIN_PATTERN.matcher(input).matches() && isValidHttpUrl("https://" + input);
+    }
+
+    private static boolean isValidIpv4(@NonNull String host) {
+        String[] octets = host.split("\\.", -1);
+        if (octets.length != 4) return false;
+        for (String octet : octets) {
+            try {
+                if (octet.isEmpty() || (octet.length() > 1 && octet.startsWith("0"))) return false;
+                int value = Integer.parseInt(octet);
+                if (value < 0 || value > 255) return false;
+            } catch (NumberFormatException ignored) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean containsWhitespaceOrControl(@NonNull String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isWhitespace(c) || Character.isISOControl(c)) return true;
+        }
+        return false;
     }
 
     @NonNull

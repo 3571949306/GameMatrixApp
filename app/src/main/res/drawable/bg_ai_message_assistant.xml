@@ -2,6 +2,6 @@
 <!-- AI助手消息背景 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#F1F3F4" />
-    <corners android:radius="16dp" />
+    <solid android:color="@color/ai_message_assistant_bg" />
+    <corners android:radius="18dp" />
 </shape>

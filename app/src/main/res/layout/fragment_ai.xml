@@ -1,232 +1,248 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:orientation="vertical">
 
+    <!-- A quiet title bar keeps the conversation, rather than controls, primary. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:paddingStart="@dimen/gm_spacing_4"
-        android:paddingTop="@dimen/gm_spacing_2"
-        android:paddingEnd="@dimen/gm_spacing_4"
-        android:paddingBottom="@dimen/gm_spacing_2">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="AI 助手"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_model_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="本地模式"
-            android:textSize="12sp"
-            android:checkable="false"
-            style="@style/Widget.Material3.Chip.Assist" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="@dimen/gm_spacing_4"
-        android:paddingEnd="@dimen/gm_spacing_4"
-        android:paddingBottom="@dimen/gm_spacing_2">
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_mode_switch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="切换到云端"
-            android:textSize="12sp"
-            android:checkable="true"
-            style="@style/Widget.Material3.Chip.Filter" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_ai_model_download"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/gm_spacing_2"
-            android:text="本地模型"
-            android:textSize="12sp" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <TextView
-            android:id="@+id/tv_ai_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="就绪"
-            android:textColor="?android:attr/textColorSecondary"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fillViewport="false"
-        android:scrollbars="none">
+        android:paddingEnd="@dimen/gm_spacing_2">
 
         <LinearLayout
-            android:id="@+id/layout_ai_templates"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingStart="@dimen/gm_spacing_3"
-            android:paddingEnd="@dimen/gm_spacing_3"
-            android:paddingBottom="@dimen/gm_spacing_2" />
-    </HorizontalScrollView>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="@dimen/gm_spacing_3"
-        android:paddingEnd="@dimen/gm_spacing_3"
-        android:paddingBottom="@dimen/gm_spacing_2">
-
-        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="搜索历史"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            app:boxCornerRadiusBottomEnd="8dp"
-            app:boxCornerRadiusBottomStart="8dp"
-            app:boxCornerRadiusTopEnd="8dp"
-            app:boxCornerRadiusTopStart="8dp">
+            android:orientation="vertical">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_ai_search"
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:text="@string/ai_assistant_label"
+                android:textAppearance="?attr/textAppearanceTitleLarge"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_ai_favorites"
-            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="@dimen/gm_spacing_2"
-            app:icon="@android:drawable/btn_star_big_off"
-            app:iconSize="20dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/ai_chat_subtitle"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_ai_export"
-            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="@dimen/gm_spacing_1"
-            app:icon="@android:drawable/ic_menu_share"
-            app:iconSize="20dp" />
+        <ImageButton
+            android:id="@+id/btn_ai_history"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ai_chat_history"
+            android:padding="12dp"
+            android:src="@android:drawable/ic_menu_recent_history"
+            app:tint="?android:attr/textColorSecondary" />
 
+        <ImageButton
+            android:id="@+id/btn_ai_more"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ai_chat_more"
+            android:padding="12dp"
+            android:src="@android:drawable/ic_menu_more"
+            app:tint="?android:attr/textColorSecondary" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_ai_messages"
+    <FrameLayout
+        android:id="@+id/layout_ai_conversation"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:padding="@dimen/gm_spacing_2" />
+        android:layout_weight="1">
 
-    <ProgressBar
-        android:id="@+id/progress_ai"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_ai_messages"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="@dimen/gm_spacing_2"
+            android:paddingTop="@dimen/gm_spacing_2"
+            android:paddingEnd="@dimen/gm_spacing_2"
+            android:paddingBottom="@dimen/gm_spacing_2"
+            tools:listitem="@layout/item_ai_message_assistant" />
+
+        <!-- Empty state sits behind the list and is toggled by the Fragment. -->
+        <LinearLayout
+            android:id="@+id/layout_ai_empty_state"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/gm_spacing_4"
+            android:paddingEnd="@dimen/gm_spacing_4">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ai_chat_empty_title"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:gravity="center"
+                android:maxWidth="320dp"
+                android:text="@string/ai_chat_empty_body"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="14sp" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/gm_spacing_4"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layout_ai_templates"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progress_ai"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="@dimen/gm_spacing_3"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- A selected one-shot task is secondary context, not a permanent form control. -->
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chip_ai_task_context"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
+        android:layout_marginStart="@dimen/gm_spacing_3"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
+        android:checkable="false"
+        android:visibility="gone"
+        app:closeIconContentDescription="@string/ai_chat_task_chat"
+        app:closeIconVisible="true"
+        style="@style/Widget.Material3.Chip.Filter" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_ai_task_type"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_ai_composer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_marginEnd="@dimen/gm_spacing_3"
-        android:layout_marginBottom="@dimen/gm_spacing_1"
-        android:hint="任务类型"
-        app:boxCornerRadiusBottomEnd="8dp"
-        app:boxCornerRadiusBottomStart="8dp"
-        app:boxCornerRadiusTopEnd="8dp"
-        app:boxCornerRadiusTopStart="8dp">
+        android:layout_marginBottom="@dimen/gm_spacing_3"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+        app:cardCornerRadius="@dimen/ai_chat_composer_radius"
+        app:cardElevation="1dp"
+        app:strokeWidth="0dp">
 
-        <AutoCompleteTextView
-            android:id="@+id/act_ai_task_type"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="none"
-            android:textSize="14sp" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:orientation="vertical"
+            android:paddingStart="@dimen/gm_spacing_3"
+            android:paddingTop="@dimen/gm_spacing_2"
+            android:paddingEnd="@dimen/gm_spacing_3"
+            android:paddingBottom="@dimen/gm_spacing_1">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="@dimen/gm_spacing_3"
-        android:paddingEnd="@dimen/gm_spacing_3"
-        android:paddingBottom="@dimen/gm_spacing_2">
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="输入内容"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            app:boxCornerRadiusBottomEnd="8dp"
-            app:boxCornerRadiusBottomStart="8dp"
-            app:boxCornerRadiusTopEnd="8dp"
-            app:boxCornerRadiusTopStart="8dp">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_ai_input"
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:maxLines="4"
-                android:minLines="2"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:hint="@string/ai_chat_input_hint"
+                app:boxBackgroundMode="none"
+                app:endIconMode="clear_text">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_ai_send"
-            style="@style/Widget.Material3.Button.IconButton.Filled"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="@dimen/gm_spacing_2"
-            app:icon="@android:drawable/ic_menu_send"
-            app:iconSize="24dp" />
-    </LinearLayout>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_ai_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top|start"
+                    android:imeOptions="actionSend"
+                    android:inputType="textCapSentences|textMultiLine"
+                    android:maxLines="6"
+                    android:minLines="1"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:textSize="16sp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_ai_open_full"
-        style="@style/Widget.Material3.Button.TextButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_marginEnd="@dimen/gm_spacing_3"
-        android:layout_marginBottom="@dimen/gm_spacing_1"
-        android:text="清空历史"
-        android:textSize="12sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ai_add"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@string/ai_chat_add"
+                    android:text="+"
+                    android:textSize="22sp"
+                    app:iconPadding="0dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ai_model"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:contentDescription="@string/ai_chat_model"
+                    android:ellipsize="end"
+                    android:maxWidth="180dp"
+                    android:maxLines="1"
+                    android:text="@string/ai_chat_local_mode_short"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tv_ai_status"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/ai_chat_status_ready"
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ai_send"
+                    style="@style/Widget.Material3.Button.IconButton.Filled"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@string/ai_chat_send"
+                    android:text="➤"
+                    android:textSize="20sp"
+                    app:iconPadding="0dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_ai_privacy"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="48dp"
+                android:paddingEnd="48dp"
+                android:text="@string/ai_chat_privacy_local"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

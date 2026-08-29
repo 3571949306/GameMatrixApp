@@ -55,6 +55,8 @@ android {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
+
     compileOnly project(':core:common')
     compileOnly project(':core:network')
     compileOnly files("${project.rootDir}/app/build/libs/app-classes.jar")

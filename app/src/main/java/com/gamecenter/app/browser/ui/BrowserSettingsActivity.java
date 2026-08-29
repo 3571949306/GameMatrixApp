@@ -8,6 +8,8 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -15,6 +17,7 @@ import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import com.gamecenter.app.browser.core.BrowserCacheManager;
 import com.gamecenter.app.browser.core.BrowserSettingsManager;
+import com.gamecenter.app.browser.core.player.BrowserPlayerMath;
 import com.gamecenter.app.browser.data.BrowserDownloadManager;
 import com.gamecenter.app.browser.data.repository.BrowserBookmarkRepository;
 import com.gamecenter.app.browser.data.repository.BrowserHistoryRepository;
@@ -105,6 +108,84 @@ public class BrowserSettingsActivity extends AppCompatActivity {
 
         etHomeUrl.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) saveInputs(); });
         etSearchEngine.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) saveInputs(); });
+
+        setupVideoPlayerSection(mgr);
+    }
+
+    /**
+     * B24：内置播放器设置接线。
+     *
+     * <p>这两个设置项此前只有读写接口、没有 UI 入口，导致用户既关不掉内置播放器，
+     * 也改不了长按快进倍速 —— 属"半接线"，这里补齐。
+     */
+    private void setupVideoPlayerSection(@NonNull BrowserSettingsManager mgr) {
+        MaterialSwitch swVideoPlayer = findViewById(R.id.sw_video_player);
+        MaterialSwitch swLongPress = findViewById(R.id.sw_long_press_ff);
+        View rowRate = findViewById(R.id.row_fast_forward_rate);
+        TextView tvRateSummary = findViewById(R.id.tv_fast_forward_rate_summary);
+
+        // 编译期 Feature Flag 关闭时整个能力不存在，设置项也不该出现
+        if (!BuildConfig.BROWSER_VIDEO_PLAYER) {
+            if (swVideoPlayer != null) swVideoPlayer.setVisibility(View.GONE);
+            if (rowRate != null) rowRate.setVisibility(View.GONE);
+            if (swLongPress != null) swLongPress.setVisibility(View.GONE);
+            return;
+        }
+        if (rowRate == null) return;
+
+        if (swLongPress != null) {
+            swLongPress.setChecked(mgr.isLongPressFastForwardEnabled());
+            swLongPress.setOnCheckedChangeListener((b, checked) ->
+                    mgr.setLongPressFastForwardEnabled(checked));
+        }
+
+        if (swVideoPlayer != null) {
+            swVideoPlayer.setChecked(mgr.isVideoPlayerEnabled());
+            swVideoPlayer.setOnCheckedChangeListener((b, checked) -> {
+                mgr.setVideoPlayerEnabled(checked);
+                rowRate.setEnabled(checked);
+                rowRate.setAlpha(checked ? 1f : 0.5f);
+                if (swLongPress != null) {
+                    swLongPress.setEnabled(checked);
+                    swLongPress.setAlpha(checked ? 1f : 0.5f);
+                }
+            });
+        }
+        rowRate.setEnabled(mgr.isVideoPlayerEnabled());
+        rowRate.setAlpha(mgr.isVideoPlayerEnabled() ? 1f : 0.5f);
+        if (swLongPress != null) {
+            swLongPress.setEnabled(mgr.isVideoPlayerEnabled());
+            swLongPress.setAlpha(mgr.isVideoPlayerEnabled() ? 1f : 0.5f);
+        }
+
+        if (tvRateSummary != null) {
+            tvRateSummary.setText(BrowserPlayerMath.formatRate(mgr.getFastForwardRate()));
+        }
+        rowRate.setOnClickListener(v -> showFastForwardRateDialog(mgr, tvRateSummary));
+    }
+
+    /** 长按快进倍速选择：0.5x - 3.0x，七档。 */
+    private void showFastForwardRateDialog(@NonNull BrowserSettingsManager mgr,
+                                           @Nullable TextView tvRateSummary) {
+        float[] ladder = BrowserPlayerMath.SPEED_LADDER;
+        String[] labels = new String[ladder.length];
+        float current = mgr.getFastForwardRate();
+        int checked = 0;
+        for (int i = 0; i < ladder.length; i++) {
+            labels[i] = BrowserPlayerMath.formatRate(ladder[i]);
+            if (Math.abs(ladder[i] - current) < 0.01f) checked = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.browser_settings_fast_forward_rate)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    mgr.setFastForwardRate(ladder[which]);
+                    if (tvRateSummary != null) {
+                        tvRateSummary.setText(BrowserPlayerMath.formatRate(ladder[which]));
+                    }
+                    dialog.dismiss();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void setupClearButtons() {

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ai_chat_user_container">#FF5267D9</color>
+    <color name="ai_chat_user_content">#FFFFFFFF</color>
+    <color name="ai_chat_assistant_content">#FFE6E1E9</color>
+    <color name="ai_chat_assistant_meta">#FFC8C3CC</color>
+    <color name="ai_chat_system_container">#FF283D2C</color>
+    <color name="ai_chat_system_content">#FFA8D5B0</color>
+    <color name="ai_chat_avatar_container">#FF3E4B86</color>
+    <color name="ai_chat_avatar_content">#FFDCE2FF</color>
+    <color name="ai_chat_action_tint">#FFB8C4FF</color>
+</resources>
