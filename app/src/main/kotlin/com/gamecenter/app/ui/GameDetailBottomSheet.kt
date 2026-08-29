@@ -173,7 +173,9 @@ class GameDetailBottomSheet(
                 // 之前布局 XML 中静态引用 @string/game_rating_star_desc（="%1$d 星"），
                 // 占位符不会被替换，TalkBack 朗读"%1$d 星"，且 5 颗星描述完全相同无法区分。
                 // 现按 i+1 格式化为"1 星"~"5 星"，并附加当前是否选中的状态，便于无障碍用户识别。
-                val starNum = i + 1
+                // Keep the vararg argument explicitly numeric for Android lint's
+                // StringFormatMatches analysis under the Kotlin 2.4 compiler.
+                val starNum: Int = i + 1
                 val starDesc = ctx.getString(R.string.game_rating_star_desc, starNum)
                 starView?.contentDescription = if (i < current) {
                     "$starDesc（${ctx.getString(R.string.game_rating_my_rating_label)})"
@@ -193,7 +195,7 @@ class GameDetailBottomSheet(
 
         for (i in 0 until 5) {
             stars[i]?.setOnClickListener {
-                val newStars = i + 1
+                val newStars: Int = i + 1
                 ratingStore.setRating(entry.id, newStars)
                 refreshStars(newStars)
                 Toast.makeText(

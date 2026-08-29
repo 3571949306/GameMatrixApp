@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug-only deterministic entry point for emulator/agent acceptance tests.
-     Release keeps GoActivity non-exported as declared in src/main. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <application>
-        <activity
-            android:name=".games.go.GoActivity"
-            android:exported="true"
-            tools:replace="android:exported" />
-    </application>
-</manifest>
+<!--
+    All games, including Go, are loaded through DynamicGameActivity and the
+    external module entry point after the hot-update flip.  Keep this Debug
+    manifest available for future debug-only declarations, but do not retain a
+    stale host GoActivity reference after its source was removed.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
