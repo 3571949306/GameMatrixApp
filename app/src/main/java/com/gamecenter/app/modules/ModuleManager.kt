@@ -726,7 +726,15 @@ object ModuleManager {
                 .use { it.readText() }
             val bundledVersion = parseModuleListVersion(body)
             val bundledModules = parseModulesArray(body) ?: emptyList()
-            for (m in bundledModules) manifests[m.id] = m
+            for (m in bundledModules) {
+                val existing = manifests[m.id]
+                // 2026-08-29 热更修复：按版本号择优合并。此前无条件覆盖会以出厂清单
+                // 降盖远程清单的新版本，导致热更永远不可见。版本相同或更高时仍以
+                // 出厂清单为准（保留"防止缓存脏数据"的原有意图）。
+                if (existing == null || m.versionCode >= existing.versionCode) {
+                    manifests[m.id] = m
+                }
+            }
             val storedVersion = prefs(context).getInt(KEY_MODULES_LIST_VERSION, 0)
             if (bundledVersion > storedVersion) {
                 prefs(context).edit()
