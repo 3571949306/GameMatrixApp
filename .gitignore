@@ -234,3 +234,15 @@ wrongbook_module.zip
 /*.xml
 /中国象棋*.md
 /浏览器*.md
+
+# ============================================================
+# 2026-08-29 二次清理：内部报告/审计文档/第三方工具/本地AI配置
+# ============================================================
+/GameMatrixApp/
+/项目审计_*.md/
+/项目审计_2026-06-19/
+/.claude/
+/FINAL_SUMMARY.md
+/OPTIMIZATION_SUMMARY.md
+/implementation_guide.md
+**/README_优化说明.md
