@@ -1560,18 +1560,9 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             return
         }
 
-        if (module.type == "game" && module.activityClass.isNotEmpty() && module.builtIn) {
-            try {
-                val activityClass = Class.forName(module.activityClass)
-                val intent = Intent(this, activityClass)
-                startActivity(intent)
-                return
-            } catch (e: Exception) {
-                Toast.makeText(this, getString(R.string.module_start_failed_format, e.message), Toast.LENGTH_SHORT).show()
-                return
-            }
-        }
-
+        // 2026-08-29 模块热更改造：游戏统一走 DynamicGameActivity（模块加载器路径），
+        // 宿主 Activity 直启分支已删除；数据回退由 tryLoadModuleGame 的
+        // getHostGameActivityClassName 兜底接管。
         if (module.type == "game" && module.entryClass.isNotEmpty()) {
             val intent = Intent(this, com.gamecenter.app.DynamicGameActivity::class.java)
             intent.putExtra(com.gamecenter.app.DynamicGameActivity.EXTRA_GAME_ID, module.gameId.ifEmpty { module.id })
