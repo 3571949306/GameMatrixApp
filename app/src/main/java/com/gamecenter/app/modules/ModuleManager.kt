@@ -374,6 +374,31 @@ object ModuleManager {
         Log.d(TAG, "模块 $moduleId 已卸载")
     }
 
+    /** 出厂版本号缓存：与本宿主 APK 同批打包的 assets/modules.json 中各模块的 versionCode。 */
+    @Volatile
+    private var bundledVersionCodes: Map<String, Int>? = null
+
+    /**
+     * 读取模块的出厂版本号（assets/modules.json 中的 versionCode）。
+     *
+     * 预装 APK 与该清单由同一构建产出，版本天然一致；版本号补种必须以此为准，
+     * 而不能用可能已被远程清单刷新的 [manifests]，否则会把"有更新"判定遮蔽。
+     * 解析失败返回 0（不补种，行为退回现状）。
+     */
+    private fun bundledVersionCodeOf(context: Context, moduleId: String): Int {
+        bundledVersionCodes?.let { return it[moduleId] ?: 0 }
+        val map = try {
+            val body = context.assets.open("modules.json")
+                .bufferedReader(Charsets.UTF_8).use { it.readText() }
+            parseModulesArray(body).associate { it.id to it.versionCode }
+        } catch (e: Exception) {
+            Log.w(TAG, "读取出厂清单失败，跳过版本号补种: ${e.message}")
+            emptyMap()
+        }
+        bundledVersionCodes = map
+        return map[moduleId] ?: 0
+    }
+
     /**
      * MODULE_STORE_PERF_OPT: 确保安装状态缓存已初始化（线程安全）。
      * 首次调用时在当前线程做一次全量扫描（建议在 IO 线程或 Activity.onCreate 调用），
@@ -394,6 +419,7 @@ object ModuleManager {
             // 之前只在 !installed.contains(id) 时校验文件存在性（只能加不能减），
             // 导致历史安装过的模块被外部删除文件后，SP 仍记录为已安装，统计栏显示"6 已安装"但实际只有 3 个 APK。
             val staleIds = mutableListOf<String>()
+            val seededVersions = mutableMapOf<String, Int>()
             for ((id, manifest) in manifests) {
                 if (manifest.builtIn) {
                     installed.add(id)
@@ -417,25 +443,43 @@ object ModuleManager {
                     } else if (savedV > 0) {
                         versions[id] = savedV
                     }
-                } else {
-                    // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
-                    if (fileExists) {
-                        installed.add(id)
-                        if (savedV > 0) versions[id] = savedV
+            } else {
+                // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
+                if (fileExists) {
+                    installed.add(id)
+                    if (savedV > 0) {
+                        versions[id] = savedV
+                    } else {
+                        // 预装补种：APK 文件在但从未走过下载流程（SP 无版本记录）。
+                        // 商店"有更新"判定要求 installedVersion > 0，不补种则预装模块永远收不到更新。
+                        val bundledV = bundledVersionCodeOf(appContext, id)
+                        if (bundledV > 0) {
+                            versions[id] = bundledV
+                            seededVersions[id] = bundledV
+                        }
                     }
                 }
             }
-            // 回写清理后的 SP（仅当确有脏数据时才写入，避免无谓 IO）
+        }
+        // 回写清理后的 SP（仅当确有脏数据时才写入，避免无谓 IO）
+        if (staleIds.isNotEmpty() || seededVersions.isNotEmpty()) {
+            val editor = p.edit()
+            editor.putStringSet(KEY_INSTALLED_MODULES, installed)
+            for (id in staleIds) {
+                editor.remove(KEY_MODULE_VERSION_PREFIX + id)
+                editor.remove(KEY_LAST_GOOD_VERSION_PREFIX + id)
+            }
+            for ((seedId, seedV) in seededVersions) {
+                editor.putInt(KEY_MODULE_VERSION_PREFIX + seedId, seedV)
+            }
+            editor.apply()
             if (staleIds.isNotEmpty()) {
-                val editor = p.edit()
-                editor.putStringSet(KEY_INSTALLED_MODULES, installed)
-                for (id in staleIds) {
-                    editor.remove(KEY_MODULE_VERSION_PREFIX + id)
-                    editor.remove(KEY_LAST_GOOD_VERSION_PREFIX + id)
-                }
-                editor.apply()
                 Log.d(TAG, "已清理 ${staleIds.size} 个失效模块的安装状态缓存: $staleIds")
             }
+            if (seededVersions.isNotEmpty()) {
+                Log.i(TAG, "已为 ${seededVersions.size} 个预装模块补种安装版本号: $seededVersions")
+            }
+        }
             installedIdsCache = installed
             installedVersionCache = versions
             Log.d(TAG, "安装状态缓存已初始化: ${installed.size} 个已安装模块")
@@ -499,6 +543,15 @@ object ModuleManager {
         val manifest = manifests[moduleId] ?: return 0
         return if (manifest.builtIn) {
             if (manifest.builtInVersionCode > 0) manifest.builtInVersionCode else manifest.versionCode
+        } else if (manifest.fileName.isNotEmpty() &&
+            ModuleDownloader.getModuleFileCompat(context, manifest).exists()
+        ) {
+            // 预装补种（与 ensureInstalledCache 同源）：文件在而 SP 无版本时按出厂清单版本回退并持久化
+            val bundledV = bundledVersionCodeOf(context, moduleId)
+            if (bundledV > 0) {
+                prefs(context).edit().putInt(KEY_MODULE_VERSION_PREFIX + moduleId, bundledV).apply()
+            }
+            bundledV
         } else {
             0
         }

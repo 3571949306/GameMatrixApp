@@ -189,7 +189,9 @@ public class SplashActivity extends AppCompatActivity {
         boolean ready;
         synchronized (exitLock) {
             if (exited) return;
-            ready = CoreModulePreloader.INSTANCE.isReady();
+            // 双就绪：核心模块预加载 + 预装 APK 提取完成（避免首启大厅误判"未安装"）
+            ready = CoreModulePreloader.INSTANCE.isReady()
+                    && ((App) getApplication()).isPreinstallExtractionReady();
             if (minReached && ready) {
                 exited = true;
                 handler.post(this::playExitAnimation);
