@@ -23,16 +23,18 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: 17
           distribution: temurin
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.1'
           channel: stable
@@ -46,7 +48,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.gradle/caches
@@ -55,14 +57,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Snapshot protected release assets
+        run: python scripts/verify_protected_assets.py snapshot
+
       - name: Verify agent contract and Chinese chess rules
         run: |
           python scripts/verify_agent_contract.py
           python scripts/verify_chinese_chess.py
           python scripts/verify_go.py
-
-      - name: Snapshot protected release assets
-        run: python scripts/verify_protected_assets.py snapshot
 
       - name: Run lint (debug)
         run: ./gradlew :app:lintDebug --stacktrace
@@ -86,7 +88,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coverage-report
           path: |
@@ -96,22 +98,25 @@ jobs:
           retention-days: 14
 
   build:
-    name: Build (debug)
+    # Keep this check name stable: main branch protection requires it.
+    name: Build and Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: lint-and-test
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: 17
           distribution: temurin
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.1'
           channel: stable
@@ -125,7 +130,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.gradle/caches
@@ -142,7 +147,7 @@ jobs:
         run: ./gradlew :app:assembleRelease -PskipReleaseLint=true -PciUnsignedRelease=true -PautoBumpVersion=false --stacktrace
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
@@ -155,12 +160,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml

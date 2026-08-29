@@ -77,7 +77,7 @@ public class UpdateManager {
     }
 
     /**
-     * 设置更新服务器基础 URL，同时将该 URL 注册为 SSL 信任主机。
+     * 设置更新服务器基础 URL，并执行 HTTPS 协议检查；不会绕过系统 TLS 验证。
      *
      * @param context 上下文，用于写入 SharedPreferences
      * @param baseUrl 新的基础 URL

@@ -527,8 +527,8 @@ public class AiTaskRouter {
                     .build();
         }
         // 检查模型文件是否已下载到手机上
-        if (!modelDownloadManager.isDownloaded(appContext, model)) {
-            return AiResult.fail("本地模型尚未下载完成，请先进入“本地模型”下载并启用: " + model.name)
+        if (!modelDownloadManager.verifyDownloadedModel(appContext, model)) {
+            return AiResult.fail("本地模型尚未下载完成或完整性校验失败，请重新下载并启用: " + model.name)
                     .source("local-llm")
                     .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
                     .build();

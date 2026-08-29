@@ -9,10 +9,14 @@ import com.gamecenter.app.SettingsManager;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -96,11 +100,10 @@ public class UpdateChecker {
     private volatile boolean isCancelled = false;
 
     /**
-     * 构造函数，初始化线程池并注册 SSL 信任主机。
-     * 将香港 VPS 的域名注册为信任主机，以便自签名证书的服务器也能正常通信。
-     * （自签名证书就像自己写的介绍信，系统默认不信任，需要手动添加到"白名单"里）
+     * 构造函数，初始化线程池并记录默认更新源的协议状态。
+     * 更新连接始终使用系统默认的证书链和主机名验证；自签名证书不能通过代码绕过。
      * <p>
-     * 2026-06-19: 已移除美国 VPS SSL 信任注册（US_BASE_URL 为空字符串，无需注册）。
+     * 2026-06-19: 已移除美国 VPS 更新源（US_BASE_URL 为空字符串，无需检查）。
      * </p>
      */
     UpdateChecker() {
@@ -305,6 +308,7 @@ public class UpdateChecker {
         String customUrl = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BASE_URL, null);
         if (customUrl != null && !customUrl.trim().isEmpty() && !isPlaceholderUrl(customUrl)) {
+            customUrl = customUrl.trim();
             // 如果用户设置了自定义 URL，优先使用，并添加备用源
             urls.add(customUrl.trim());
             Log.d(TAG, "Custom update URL configured: " + customUrl);
@@ -356,7 +360,7 @@ public class UpdateChecker {
                url.contains("your-server") ||
                url.contains("example.com") ||
                url.contains("FALLBACK-DOMAIN") ||
-               (!url.startsWith("http://") && !url.startsWith("https://"));
+               !UpdateUrlValidator.isValidHttpsUrl(url.trim());
     }
 
     /**
@@ -400,43 +404,86 @@ public class UpdateChecker {
      */
     public JSONObject fetchJson(String urlStr, int connectTimeout, int readTimeout) throws Exception {
         HttpURLConnection conn = null;
+        String currentUrl = urlStr;
+        String initialUrl = urlStr;
         try {
-            URL url = new URL(urlStr);
-            conn = (HttpURLConnection) url.openConnection();
-            // 对 HTTPS 连接应用自定义 SSL 配置（信任自签名证书等）
-            if (conn instanceof HttpsURLConnection) {
-                SSLHelper.applySsl((HttpsURLConnection) conn);
+            for (int redirectCount = 0; ; redirectCount++) {
+                // Update metadata is executable trust input: never permit a
+                // clear-text request or a URL containing embedded credentials.
+                UpdateUrlValidator.requireAllowedHttpsUrl(
+                        currentUrl, initialUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                URL url = new URL(currentUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                // Handle redirects ourselves so a 30x response can never make
+                // HttpURLConnection issue a clear-text request before we see it.
+                conn.setInstanceFollowRedirects(false);
+                // 对 HTTPS 连接应用自定义 SSL 配置（信任自签名证书等）
+                if (conn instanceof HttpsURLConnection) {
+                    SSLHelper.applySsl((HttpsURLConnection) conn);
+                }
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(connectTimeout);
+                conn.setReadTimeout(readTimeout);
+                // 设置 User-Agent 让服务器知道是谁在请求，就像自我介绍
+                conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
+                // 告诉服务器我们想要 JSON 格式的数据
+                conn.setRequestProperty("Accept", "application/json");
+                Log.d(TAG, "Connecting (timeout=" + connectTimeout + "/" + readTimeout + ")...");
+                int code = conn.getResponseCode();
+                Log.d(TAG, "Response code: " + code);
+                if (isRedirect(code)) {
+                    if (redirectCount >= UpdateUrlValidator.MAX_REDIRECTS) {
+                        throw new IOException("Too many update metadata redirects");
+                    }
+                    String location = conn.getHeaderField("Location");
+                    currentUrl = UpdateUrlValidator.resolveHttpsRedirect(
+                            conn.getURL(), location, initialUrl,
+                            BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                    conn.disconnect();
+                    conn = null;
+                    continue;
+                }
+                if (code < HttpURLConnection.HTTP_OK || code >= HttpURLConnection.HTTP_MULT_CHOICE) {
+                    throw new IllegalStateException(MessageFormat.format("服务器返回错误: {0}", String.valueOf(code)));
+                }
+                UpdateUrlValidator.requireAllowedHttpsUrl(
+                        conn.getURL().toExternalForm(), initialUrl,
+                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                long contentLength = conn.getContentLengthLong();
+                if (contentLength > UpdateUrlValidator.MAX_METADATA_SIZE_BYTES) {
+                    throw new IOException("Update metadata is too large");
+                }
+                // Read by bytes with a hard cap. A remote endpoint must not be
+                // able to make the app allocate an unbounded JSON string.
+                try (BufferedInputStream input = new BufferedInputStream(conn.getInputStream());
+                     ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    long readTotal = 0;
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        readTotal += read;
+                        if (readTotal > UpdateUrlValidator.MAX_METADATA_SIZE_BYTES) {
+                            throw new IOException("Update metadata is too large");
+                        }
+                        output.write(buffer, 0, read);
+                    }
+                    return new JSONObject(new String(output.toByteArray(), StandardCharsets.UTF_8));
+                }
             }
-            conn.setRequestMethod("GET");
-            conn.setConnectTimeout(connectTimeout);
-            conn.setReadTimeout(readTimeout);
-            // 设置 User-Agent 让服务器知道是谁在请求，就像自我介绍
-            conn.setRequestProperty("User-Agent", "GameMatrixApp/" + BuildConfig.VERSION_NAME);
-            // 告诉服务器我们想要 JSON 格式的数据
-            conn.setRequestProperty("Accept", "application/json");
-            Log.d(TAG, "Connecting (timeout=" + connectTimeout + "/" + readTimeout + ")...");
-            int code = conn.getResponseCode();
-            Log.d(TAG, "Response code: " + code);
-            if (code != 200) {
-                throw new IllegalStateException(MessageFormat.format("服务器返回错误: {0}", String.valueOf(code)));
-            }
-            // 逐行读取服务器返回的文本，拼接成完整字符串
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream(), "UTF-8"));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
-            reader.close();
-            // 将文本字符串解析为 JSON 对象
-            return new JSONObject(sb.toString());
         } finally {
             // 无论成功还是失败，都要断开连接，释放资源
             if (conn != null) {
                 conn.disconnect();
             }
         }
+    }
+
+    private static boolean isRedirect(int responseCode) {
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM
+                || responseCode == HttpURLConnection.HTTP_MOVED_TEMP
+                || responseCode == HttpURLConnection.HTTP_SEE_OTHER
+                || responseCode == 307
+                || responseCode == 308;
     }
 
     /**
@@ -486,6 +533,14 @@ public class UpdateChecker {
                 // VPS 源：直接拼接基础 URL + APK 文件名
                 downloadUrl = UpdateManager.trimTrailingSlash(baseUrl) + "/" + (info.isBetaRelease() ? "app-beta.apk" : "app-release.apk");
             }
+        }
+        // The metadata source is remote input.  An explicit HTTP URL (or a
+        // malformed URL) is never passed on to the downloader; it is cleared
+        // so that the downloader can use its validated HTTPS fallbacks.
+        if (!UpdateUrlValidator.isAllowedHttpsUrl(
+                downloadUrl, versionJsonUrl, baseUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL)) {
+            Log.w(TAG, "Ignoring unsafe update download URL from metadata");
+            downloadUrl = "";
         }
         info.setDownloadUrl(downloadUrl);
     }
@@ -718,7 +773,7 @@ public class UpdateChecker {
     }
 
     /**
-     * 设置更新源基础 URL，同时将该 URL 的主机注册为 SSL 信任主机。
+     * 设置更新源基础 URL，并记录协议检查结果；不会绕过系统 TLS 验证。
      *
      * @param context 上下文
      * @param baseUrl 新的基础 URL

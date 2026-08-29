@@ -1,0 +1,78 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ main, 'feature/**', 'hotfix/**' ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+
+# CodeQL uploads SARIF and otherwise only reads the checkout.
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # CodeQL's current Java/Kotlin extractor cannot process the patched
+          # Kotlin 2.4.20-RC2 toolchain.  Source-only extraction keeps the
+          # security scan available without downgrading a dependency below its
+          # security fix; restore autobuild when CodeQL supports this compiler.
+          - language: java-kotlin
+            build-mode: none
+          - language: python
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Set up Flutter
+        if: matrix.language == 'java-kotlin'
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+
+      - name: Bootstrap Flutter Add-to-App module
+        if: matrix.language == 'java-kotlin'
+        working-directory: flutter_module
+        run: flutter pub get
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Autobuild Android sources
+        if: matrix.language == 'java-kotlin' && matrix.build-mode == 'autobuild'
+        uses: github/codeql-action/autobuild@6f5948dfacef28e207b48d0905cf90c03365536d # v3
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3
+        with:
+          category: /language:${{ matrix.language }}

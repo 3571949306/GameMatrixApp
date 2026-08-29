@@ -5,6 +5,8 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -98,15 +100,21 @@ public class UrlUtils {
     public static boolean isValidHttpUrl(@Nullable String url) {
         if (url == null || containsWhitespaceOrControl(url)) return false;
         try {
-            Uri uri = Uri.parse(url.trim());
+            URI uri = new URI(url.trim());
             String scheme = uri.getScheme();
             if (scheme == null || (!("http".equalsIgnoreCase(scheme)
                     || "https".equalsIgnoreCase(scheme))) || uri.getHost() == null) {
                 return false;
             }
+            // Credentials in an address-bar URL are both surprising and easy to
+            // mistake for a trusted host (for example, https://trusted@attacker).
+            // Keep navigation and downloads on an origin-only authority.
+            if (uri.getRawUserInfo() != null || uri.getRawAuthority() == null) {
+                return false;
+            }
             int port = uri.getPort();
             return port >= -1 && port <= 65535;
-        } catch (Throwable ignored) {
+        } catch (URISyntaxException | IllegalArgumentException ignored) {
             return false;
         }
     }
@@ -116,7 +124,7 @@ public class UrlUtils {
             return isValidHttpUrl("https://" + input);
         }
         if (IP_PATTERN.matcher(input).matches()) {
-            String host = Uri.parse("https://" + input).getHost();
+            String host = parseHost("https://" + input);
             return host != null && isValidIpv4(host) && isValidHttpUrl("https://" + input);
         }
         return DOMAIN_PATTERN.matcher(input).matches() && isValidHttpUrl("https://" + input);
@@ -148,12 +156,16 @@ public class UrlUtils {
     @NonNull
     public static String getHost(@Nullable String url) {
         if (url == null || url.isEmpty()) return "";
+        String host = parseHost(url);
+        return host != null ? host : "";
+    }
+
+    @Nullable
+    private static String parseHost(@NonNull String url) {
         try {
-            String host = Uri.parse(url).getHost();
-            return host != null ? host : "";
-        } catch (Exception e) {
-            android.util.Log.w("UrlUtils", "getHost failed for url: " + url, e);
-            return "";
+            return new URI(url.trim()).getHost();
+        } catch (URISyntaxException | IllegalArgumentException ignored) {
+            return null;
         }
     }
 
