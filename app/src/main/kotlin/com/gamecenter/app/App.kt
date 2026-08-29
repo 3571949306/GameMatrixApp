@@ -34,6 +34,14 @@ class App : Application() {
     private val applicationScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main) }
     private var hostInitializationEnabled = false
 
+    /**
+     * 预装模块提取完成信号。Splash 在 3s 兜底内等待它，避免首启瞬间
+     * 大厅/商店在提取完成前把预装模块误判为"未安装"。
+     */
+    @Volatile
+    var isPreinstallExtractionReady: Boolean = false
+        private set
+
     private var isDarkMode = false
     private var updateAutoCheckDone = false
 
@@ -239,9 +247,13 @@ class App : Application() {
         applyLanguage()
         applyTheme()
 
-        // 异步提取模块以防止阻塞主线程启动
+        // 异步提取模块以防止阻塞主线程启动；无论成败都置就绪信号（失败由 validate 兜底清理坏包）
         applicationScope.launch(Dispatchers.IO) {
-            extractPreinstalledModules()
+            try {
+                extractPreinstalledModules()
+            } finally {
+                isPreinstallExtractionReady = true
+            }
         }
 
         SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, !BuildConfig.DEBUG)

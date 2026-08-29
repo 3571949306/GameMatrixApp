@@ -347,3 +347,13 @@
 -keepclassmembers class ** {
     @androidx.compose.runtime.Composable <methods>;
 }
+
+# ============ 模块热更改造（2026-08-29）：动态模块运行时依赖的宿主类 ============
+# 模块 APK 经 compileOnly app-classes.jar 编译，运行时按父加载器解析宿主类；
+# 以下宿主类被模块源码直接引用但此前无 keep 覆盖，release R8 改名后会导致
+# 模块内 NoClassDefFoundError（仅 release 暴露）。
+# SaveManager：10 个模块引用（dice/game2048/guess/klotski/match/memory/reaction/snake/tiles/whack）
+-keep class com.gamecenter.app.SaveManager { *; }
+# AppExecutors：ai 模块反射调用（AiTaskRouter Class.forName，失败会降级但失去线程池能力）
+-keep class com.gamecenter.app.core.threading.AppExecutors { *; }
+
