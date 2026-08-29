@@ -57,14 +57,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Snapshot protected release assets
+        run: python scripts/verify_protected_assets.py snapshot
+
       - name: Verify agent contract and Chinese chess rules
         run: |
           python scripts/verify_agent_contract.py
           python scripts/verify_chinese_chess.py
           python scripts/verify_go.py
-
-      - name: Snapshot protected release assets
-        run: python scripts/verify_protected_assets.py snapshot
 
       - name: Run lint (debug)
         run: ./gradlew :app:lintDebug --stacktrace
