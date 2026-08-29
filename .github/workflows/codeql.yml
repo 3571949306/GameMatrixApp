@@ -28,10 +28,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Kotlin must be built; CodeQL's none mode does not process Kotlin
-          # bytecode and would leave the Android security surface unscanned.
+          # CodeQL's current Java/Kotlin extractor cannot process the patched
+          # Kotlin 2.4.20-RC2 toolchain.  Source-only extraction keeps the
+          # security scan available without downgrading a dependency below its
+          # security fix; restore autobuild when CodeQL supports this compiler.
           - language: java-kotlin
-            build-mode: autobuild
+            build-mode: none
           - language: python
             build-mode: none
 
@@ -67,7 +69,7 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
 
       - name: Autobuild Android sources
-        if: matrix.language == 'java-kotlin'
+        if: matrix.language == 'java-kotlin' && matrix.build-mode == 'autobuild'
         uses: github/codeql-action/autobuild@6f5948dfacef28e207b48d0905cf90c03365536d # v3
 
       - name: Analyze

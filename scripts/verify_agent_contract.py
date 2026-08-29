@@ -10,10 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CHESS = ROOT / "module-store/feature/games/games/chinesechess/src/main/java/com/gamecenter/app/chinesechess"
-APP_AI = ROOT / "app/src/main/java/com/gamecenter/app/games/chinesechess/ChineseChessAI.java"
 MODULE_AI = CHESS / "ChineseChessAI.java"
 GO_MODULE = ROOT / "module-store/feature/games/games/go/src/main/java/com/gamecenter/app/go"
-GO_APP = ROOT / "app/src/main/java/com/gamecenter/app/games/go"
+# Hot-update flip (0c52cb9) removed all host game copies: module-store is the single
+# runtime truth source, so host mirror existence/sync is no longer a contract.
 
 
 def read(path: Path) -> str:
@@ -27,30 +27,6 @@ def require(text: str, pattern: str, message: str) -> None:
         raise AssertionError(message)
 
 
-def normalize_ai(text: str) -> str:
-    """Ignore the documented sync header and the unavoidable package-name difference."""
-    package_at = text.index("package ")
-    body = text[package_at:]
-    return re.sub(
-        r"package com\.gamecenter\.app(?:\.games)?\.chinesechess;",
-        "package <CHINESE_CHESS>;",
-        body,
-        count=1,
-    ).replace("\r\n", "\n")
-
-
-def normalize_go(text: str) -> str:
-    """Ignore sync comments and the host/dynamic Go package-name difference."""
-    package_at = text.index("package ")
-    body = text[package_at:]
-    return re.sub(
-        r"package com\.gamecenter\.app(?:\.games)?\.go;",
-        "package <GO>;",
-        body,
-        count=1,
-    ).replace("\r\n", "\n")
-
-
 def main() -> int:
     try:
         read(ROOT / "AGENTS.md")
@@ -61,7 +37,6 @@ def main() -> int:
         module_fragment = read(CHESS / "ChineseChessModuleFragment.java")
         online_fragment = read(CHESS / "ChineseChessOnlineFragment.java")
         module_ai = read(MODULE_AI)
-        app_ai = read(APP_AI)
         module_view = read(CHESS / "ChineseChessView.java")
         ui_preferences = read(CHESS / "ChineseChessUiPreferences.java")
         chess_layout = read(
@@ -72,14 +47,7 @@ def main() -> int:
         go_module_view = read(GO_MODULE / "GoView.java")
         go_module_prefs = read(GO_MODULE / "GoUiPreferences.java")
         go_fragment = read(GO_MODULE / "GoModuleFragment.java")
-        go_app_game = read(GO_APP / "GoGame.java")
-        go_app_ai = read(GO_APP / "GoAI.java")
-        go_app_view = read(GO_APP / "GoView.java")
-        go_app_prefs = read(GO_APP / "GoUiPreferences.java")
-        go_activity = read(GO_APP / "GoActivity.java")
         coachmark_sequence = read(ROOT / "app/src/main/java/com/gamecenter/app/ui/onboarding/CoachmarkSequence.kt")
-        go_debug_manifest = read(ROOT / "app/src/debug/AndroidManifest.xml")
-        main_manifest = read(ROOT / "app/src/main/AndroidManifest.xml")
         read(ROOT / "scripts/verify_go.py")
         agent_rules = read(ROOT / "AGENTS.md")
 
@@ -142,20 +110,6 @@ def main() -> int:
         require(module_ai, r"computePositionHash\([a-zA-Z_]\w*,\s*-(?:aiSide|normalizedSide)\)",
                 "AI repetition hash must include the next side to move")
 
-        if normalize_ai(module_ai) != normalize_ai(app_ai):
-            raise AssertionError("module-store and app ChineseChessAI implementations are out of sync")
-
-        # Go's host and dynamic implementations are both shipping paths. Keep their rules and
-        # search engines byte-for-byte equivalent apart from the package declaration.
-        if normalize_go(go_module_game) != normalize_go(go_app_game):
-            raise AssertionError("module-store and app GoGame implementations are out of sync")
-        if normalize_go(go_module_ai) != normalize_go(go_app_ai):
-            raise AssertionError("module-store and app GoAI implementations are out of sync")
-        if normalize_go(go_module_view) != normalize_go(go_app_view):
-            raise AssertionError("module-store and app GoView implementations are out of sync")
-        if normalize_go(go_module_prefs) != normalize_go(go_app_prefs):
-            raise AssertionError("module-store and app GoUiPreferences implementations are out of sync")
-
         require(go_module_game,
                 r"tryMove\s*\(int\[\]\[\]\s+state,.*?OUT_OF_BOUNDS.*?OCCUPIED.*?SUICIDE.*?KO",
                 "GoGame.tryMove must remain the central bounds/occupied/suicide/ko legality gate")
@@ -171,8 +125,7 @@ def main() -> int:
                      flags=re.DOTALL):
             raise AssertionError("Go AI must not randomly pass while legal moves exist")
 
-        for name, controller in (("GoActivity", go_activity),
-                                 ("GoModuleFragment", go_fragment)):
+        for name, controller in (("GoModuleFragment", go_fragment),):
             require(controller, r"GO_AI_CONTRACT_VIOLATION",
                     f"{name} must log raw AI contract violations")
             require(controller, r"aiGeneration.*?GoGame\.WHITE.*?isGameOver",
@@ -192,10 +145,6 @@ def main() -> int:
                 "Go board style must persist under a versioned preference")
         require(agent_rules, r"GO_AI_CONTRACT_VIOLATION.*?verify_go\.py",
                 "agent rules must require Go contract telemetry and regression verification")
-        require(go_debug_manifest, r"GoActivity.*?android:exported=\"true\"",
-                "Debug must expose a deterministic Go emulator acceptance entry point")
-        require(main_manifest, r"GoActivity\"\s+android:exported=\"false\"",
-                "Release GoActivity must remain non-exported")
         require(coachmark_sequence, r"decor\.addView\s*\(",
                 "Compose coachmarks must attach to the Activity decor ViewTree")
         if "windowManager.addView(composeView" in coachmark_sequence:
