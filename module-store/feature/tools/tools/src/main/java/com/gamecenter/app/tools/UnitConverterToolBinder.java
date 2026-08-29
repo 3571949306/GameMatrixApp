@@ -164,10 +164,16 @@ public final class UnitConverterToolBinder implements ToolBinder {
         return value * baseFactor / targetFactor;
     }
 
-    private String formatNumber(double v) {
+    static String formatNumber(double v) {
         if (Double.isNaN(v) || Double.isInfinite(v)) return "—";
-        if (Math.abs(v - Math.round(v)) < 1e-9) {
-            return String.valueOf((long) v);
+        // Math.round saturates outside long's range.  Restrict the integer
+        // rendering path to values whose rounded result is representable;
+        // 2^63 itself must remain scientific notation rather than Long.MAX_VALUE.
+        if (v >= -0x1.0p63 && v < 0x1.0p63) {
+            long rounded = Math.round(v);
+            if (Math.abs(v - (double) rounded) < 1e-9) {
+                return Long.toString(rounded);
+            }
         }
         return String.format(Locale.US, "%.6g", v);
     }
