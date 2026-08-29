@@ -683,9 +683,8 @@ public class SettingsActivity extends AppCompatActivity {
                             toastRes = R.string.onboarding_reset_all_toast;
                             break;
                         case 2:
-                            editor.putBoolean(
-                                    com.gamecenter.app.ui.onboarding.DoudizhuOnboarding.STORAGE_KEY,
-                                    false);
+                            // 2026-08-29: DoudizhuOnboarding 类已随斗地主模块化删除，保留历史标志位的重置能力
+                            editor.putBoolean("onboarding_doudizhu_completed", false);
                             toastRes = R.string.onboarding_reset_doudizhu_toast;
                             break;
                         case 3:

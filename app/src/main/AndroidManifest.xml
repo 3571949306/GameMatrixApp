@@ -112,7 +112,6 @@
         <!-- 2026-08-29 模块热更改造：26 个游戏宿主 Activity 声明已删除，
              全部游戏统一经 DynamicGameActivity 加载外置模块 APK（支持单独热更）；
              breakout 为唯一保留的宿主内置游戏（无模块 APK，走 GameRegistry 静态 Entry） -->
-        <activity android:name=".games.breakout.BreakoutActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="portrait" />
 
         <!-- 浏览器模块 -->
         <activity android:name=".browser.ui.BrowserActivity" android:exported="false" android:theme="@style/Theme.GameMatrixApp" android:screenOrientation="unspecified" />

@@ -6,15 +6,15 @@
         </trust-anchors>
     </base-config>
 
-    <!-- ����服务器域名 — 启用证书��定（pin-set）防止中间人攻击 -->
-    <!-- ��名从 local.properties (server.url) ��生：hk-update.tcp0053.shop -->
-    <!-- 证书指��来自 SecureOkHttpFactory.MODULE_SERVER_PINS -->
+    <!-- 模块分发服务器域名 — 启用证书绑定（pin-set）防止中间人攻击 -->
+    <!-- 2026-08-29 域名迁移：hk-update.tcp0053.shop 已失效，更换为 hk-update.tcp888.uk（直连，端口 2083 由 server.url 携带） -->
+    <!-- 证书指纹来自 Let's Encrypt 新证书链（Leaf/YE1/Root YE），与 SecureOkHttpFactory.MODULE_SERVER_PINS 保持一致 -->
     <domain-config>
-        <domain includeSubdomains="true">hk-update.tcp0053.shop</domain>
+        <domain includeSubdomains="true">hk-update.tcp888.uk</domain>
         <pin-set>
-            <pin digest="SHA-256">HeIT3BL0oFGKkDHVuCa8tk99aeVwsuR9z0QxavMzL98=</pin>
-            <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
-            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
+            <pin digest="SHA-256">ijBcxbC/7DLkqL9aYpHjoLtOOzkcA7YIE/RbNCLJYRg=</pin>
+            <pin digest="SHA-256">brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=</pin>
+            <pin digest="SHA-256">sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w=</pin>
         </pin-set>
         <trust-anchors>
             <certificates src="system" />

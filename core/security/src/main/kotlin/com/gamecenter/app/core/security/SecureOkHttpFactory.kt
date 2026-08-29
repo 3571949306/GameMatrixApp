@@ -28,9 +28,10 @@ object SecureOkHttpFactory {
      * - 同时保留至少 2 个有效指纹（当前 + 备用）。
      */
     private val MODULE_SERVER_PINS = arrayOf(
-        "sha256/HeIT3BL0oFGKkDHVuCa8tk99aeVwsuR9z0QxavMzL98=", // 模块服务器 Leaf Cert
-        "sha256/kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=", // Intermediate Cert
-        "sha256/mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c="  // Root Cert
+        // 2026-08-29 域名迁移 hk-update.tcp888.uk（Let's Encrypt 链：Leaf / YE1 / Root YE）
+        "sha256/ijBcxbC/7DLkqL9aYpHjoLtOOzkcA7YIE/RbNCLJYRg=", // 模块服务器 Leaf Cert
+        "sha256/brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=", // Intermediate Cert (LE YE1)
+        "sha256/sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="  // Root Cert (ISRG Root YE)
     )
 
     /** 运行时通过 setHosts() 注入实际服务器域名 */
