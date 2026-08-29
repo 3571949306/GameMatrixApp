@@ -21,7 +21,8 @@ public class AdBlocker {
     ));
     private final Set<String> whitelistDomains = Collections.synchronizedSet(new HashSet<>());
     private final AtomicInteger blockedCount = new AtomicInteger(0);
-    private boolean enabled = true;
+    /** Read on Chromium resource threads; volatile keeps settings changes visible. */
+    private volatile boolean enabled = true;
 
     private AdBlocker() {}
 

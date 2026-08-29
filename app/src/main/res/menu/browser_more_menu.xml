@@ -13,6 +13,9 @@
         android:id="@+id/menu_reader_mode"
         android:title="@string/browser_menu_reader_mode" />
     <item
+        android:id="@+id/menu_video_player"
+        android:title="@string/browser_player_enter" />
+    <item
         android:id="@+id/menu_screenshot"
         android:title="@string/browser_menu_screenshot" />
     <item

@@ -17,6 +17,9 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.browser.util.UrlUtils;
+import com.gamecenter.app.browser.core.security.DownloadSecurityValidator;
+import com.gamecenter.app.browser.core.security.FileNameSanitizer;
 import com.gamecenter.app.browser.data.entity.BrowserDownloadEntity;
 
 import java.util.ArrayList;
@@ -87,6 +90,14 @@ public class BrowserDownloadManager {
      * S4: 危险文件检测，APK/EXE 等可执行文件走私有目录而非公共 Downloads。
      */
     public long downloadFile(String url, String fileName, String mimeType, String userAgent) {
+        if (!UrlUtils.isValidHttpUrl(url)) {
+            Log.w("BrowserDownloadMgr", "Rejecting non-http(s) download URL");
+            return -1L;
+        }
+        if (downloadManager == null) {
+            Log.e("BrowserDownloadMgr", "DownloadManager is unavailable");
+            return -1L;
+        }
         // #8：shutdown 后（配置变更）懒重注册广播接收
         ensureReceiverRegistered();
 
@@ -96,31 +107,54 @@ public class BrowserDownloadManager {
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
-        // S1/D3: 使用净化后的文件名
-        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
-        request.setTitle(safeFileName);
-        request.setDescription(context.getString(R.string.browser_download_description));
-
         String finalMimeType = (mimeType != null && !mimeType.isEmpty()) ? mimeType : getMimeType(url);
         if ("*/*".equals(finalMimeType)) {
             finalMimeType = getMimeType(safeFileName);
         }
+
+        // S4: executable/script-like files must not be placed in the shared public
+        // Downloads directory. DownloadManager supports an app-scoped external
+        // directory, which keeps the normal DownloadManager/Content URI flow while
+        // preventing an accidental download from becoming a shared install artifact.
+        boolean dangerous = DownloadSecurityValidator.policyFor(safeFileName, finalMimeType)
+                == DownloadSecurityValidator.TargetPolicy.PRIVATE_APP_DIR;
+        // B14: 同名去重必须在真实落盘目录做存在性检查，避免静默覆盖已下载文件。
+        // 注意：存在并发下载同名文件的窄竞态（检查与 enqueue 之间），属 best-effort。
+        safeFileName = dedupeFileName(safeFileName, dangerous);
+        if (dangerous) {
+            request.setDestinationInExternalFilesDir(
+                    context, Environment.DIRECTORY_DOWNLOADS, safeFileName);
+        } else {
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeFileName);
+        }
+        request.setTitle(safeFileName);
+        request.setDescription(context.getString(R.string.browser_download_description));
+
         request.setMimeType(finalMimeType);
         if (userAgent != null && !userAgent.isEmpty()) {
             request.addRequestHeader("User-Agent", userAgent);
         }
 
-        lastDownloadId = downloadManager.enqueue(request);
+        final long systemDownloadId;
+        try {
+            systemDownloadId = downloadManager.enqueue(request);
+        } catch (RuntimeException e) {
+            // Destination conflicts, storage policy failures and malformed provider
+            // state are recoverable UI failures. Do not persist a phantom download
+            // record or report that a task has started.
+            Log.e("BrowserDownloadMgr", "Failed to enqueue download", e);
+            return -1L;
+        }
+        lastDownloadId = systemDownloadId;
 
         // P0 内存泄漏修复：按需启动进度轮询（无下载任务时不轮询，避免 PSS 持续增长）
         startProgressPolling();
 
-        final long systemDownloadId = lastDownloadId;
         final String finalUrl = url;
         final String finalName = safeFileName;  // S1: 使用净化后的文件名
         final String persistedMimeType = finalMimeType;
         // D4: 危险文件标记（供 UI 确认/拦截使用）
-        final boolean isDangerous = isDangerousFile(safeFileName);
+        final boolean isDangerous = isDangerousFile(safeFileName, finalMimeType);
 
         getExecutor().execute(() -> {
             try {
@@ -136,7 +170,39 @@ public class BrowserDownloadManager {
                 BrowserDatabase.getInstance(context).downloadDao().insert(entity);
             } catch (Exception e) { Log.e("BrowserDownloadMgr", "Failed to insert download entity", e); }
         });
-        return lastDownloadId;
+        return systemDownloadId;
+    }
+
+    /**
+     * B14: 同名去重。目标目录已存在同名文件时追加 " (n)" 序号（保留扩展名）。
+     *
+     * <p>目录与最终落盘目录一致：公共 Downloads 或 app 私有 Downloads。
+     * 返回原始文件名表示无冲突。目录不可用时保守返回原名，由系统
+     * DownloadManager 的默认行为兜底。
+     */
+    @NonNull
+    private String dedupeFileName(@NonNull String fileName, boolean privateDir) {
+        try {
+            java.io.File dir = privateDir
+                    ? context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                    : Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (dir == null || !new java.io.File(dir, fileName).exists()) {
+                return fileName;
+            }
+            int dot = fileName.lastIndexOf('.');
+            String base = dot > 0 ? fileName.substring(0, dot) : fileName;
+            String ext = dot > 0 ? fileName.substring(dot) : "";
+            for (int i = 1; i < 1000; i++) {
+                String candidate = base + " (" + i + ")" + ext;
+                if (!new java.io.File(dir, candidate).exists()) {
+                    return candidate;
+                }
+            }
+            return base + " (" + System.currentTimeMillis() + ")" + ext;
+        } catch (Throwable t) {
+            Log.w("BrowserDownloadMgr", "dedupeFileName failed, keep original", t);
+            return fileName;
+        }
     }
 
     /**
@@ -147,20 +213,7 @@ public class BrowserDownloadManager {
         if (fileName == null || fileName.isEmpty()) {
             return "download";
         }
-        // 移除路径分隔符和非法字符
-        String sanitized = fileName
-            .replace("/", "_")
-            .replace("\\", "_")
-            .replace("..", "_")
-            .replace(":", "_")
-            .replace("*", "_")
-            .replace("?", "_")
-            .replace("\"", "_")
-            .replace("<", "_")
-            .replace(">", "|")
-            .replace("|", "_");
-        // 仅保留 ASCII 可打印字符和中文
-        sanitized = sanitized.replaceAll("[^\\p{IsAlphabetic}\\p{IsDigit}._\\- ]", "_");
+        String sanitized = FileNameSanitizer.sanitize(fileName);
         // 限制长度
         if (sanitized.length() > 100) {
             // 保留扩展名
@@ -171,18 +224,21 @@ public class BrowserDownloadManager {
                 sanitized = sanitized.substring(0, 100);
             }
         }
-        // 去除首尾空白和点号
-        sanitized = sanitized.trim().replaceAll("^\\.+|\\.+$", "");
+        // FileNameSanitizer 已经去除了首尾空白和点号；再做一次兜底，保持
+        // 该管理器对历史调用方的行为稳定。
+        sanitized = sanitized.trim().replaceAll("^[. ]+|[. ]+$", "");
         if (sanitized.isEmpty()) sanitized = "download";
         return sanitized;
     }
 
     public boolean isDangerousFile(String fileName) {
-        if (fileName == null) return false;
-        String lower = fileName.toLowerCase(Locale.ROOT);
-        return lower.endsWith(".apk") || lower.endsWith(".exe") || lower.endsWith(".bat")
-                || lower.endsWith(".sh") || lower.endsWith(".cmd") || lower.endsWith(".vbs")
-                || lower.endsWith(".js") || lower.endsWith(".msi");
+        return isDangerousFile(fileName, null);
+    }
+
+    public boolean isDangerousFile(String fileName, @Nullable String mimeType) {
+        return fileName != null
+                && DownloadSecurityValidator.policyFor(fileName, mimeType)
+                        == DownloadSecurityValidator.TargetPolicy.PRIVATE_APP_DIR;
     }
 
     public String getMimeType(String url) {

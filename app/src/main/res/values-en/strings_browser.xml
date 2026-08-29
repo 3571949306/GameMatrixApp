@@ -79,8 +79,8 @@
     <string name="browser_settings_multi_tab_summary">"Keep multiple pages alive simultaneously"</string>
 
     <!-- Incognito mode (Stage 9) -->
-    <string name="browser_incognito_on">"Incognito mode enabled"</string>
-    <string name="browser_incognito_off">"Incognito mode disabled"</string>
+    <string name="browser_incognito_on">"Incognito tab enabled: on-device history and searches aren’t saved; cookies and site storage may be shared with normal tabs."</string>
+    <string name="browser_incognito_off">"Incognito tab disabled"</string>
     <string name="browser_incognito_indicator">"Incognito"</string>
 
     <!-- Permissions (Stage 10) -->
@@ -122,7 +122,16 @@
     <string name="browser_download_dangerous_title">"Dangerous file"</string>
     <string name="browser_download_dangerous_message">"This file type may pose a security risk (%s). Download anyway?"</string>
     <string name="browser_download_dangerous_confirm">"Download anyway"</string>
+    <string name="browser_download_dangerous_open_message">"%1$s may contain executable code. Open it only if you trust its source."</string>
+    <string name="browser_download_dangerous_open_confirm">"Open anyway"</string>
     <string name="browser_download_started">"Downloading: %s"</string>
+    <string name="browser_download_start_failed">"Couldn’t start the download. Check the link or available storage."</string>
+    <string name="browser_download_status_waiting">"Waiting"</string>
+    <string name="browser_download_status_downloading">"Downloading"</string>
+    <string name="browser_download_status_completed">"Completed"</string>
+    <string name="browser_download_status_completed_dangerous">"Completed · confirm before opening"</string>
+    <string name="browser_download_status_failed">"Failed"</string>
+    <string name="browser_download_status_unknown">"Unknown status"</string>
     <string name="browser_download_description">"Downloading…"</string>
     <string name="browser_download_clear_title">"Clear download records"</string>
     <string name="browser_download_clear_message">"Are you sure you want to clear all download records?"</string>
@@ -314,6 +323,7 @@
     <string name="browser_translate_bing">Bing Translator</string>
     <string name="browser_translate_cancel">Cancel</string>
     <string name="browser_translate_no_url">No page to translate</string>
+    <string name="browser_translate_open_failed">Unable to open the translation page</string>
     <!-- P3-3 底部工具栏可定制 -->
     <string name="browser_bottom_bar_customize_title">Customize bottom bar</string>
     <string name="browser_menu_customize_bottom_bar">Customize bottom bar</string>
@@ -339,4 +349,45 @@
     <string name="browser_settings_double_tap_forward_summary">Double tap right half of WebView to forward</string>
     <string name="browser_settings_long_press_history">Long press for history</string>
     <string name="browser_settings_long_press_history_summary">Long press WebView to show history panel</string>
+
+    <!-- ===== Built-in video player (takes over the in-page player) ===== -->
+    <string name="browser_player_surface_desc">Gesture area: long press for fast forward, double tap to pause, swipe to seek</string>
+    <string name="browser_player_mini">Mini window</string>
+    <string name="browser_player_exit">Exit built-in player</string>
+    <string name="browser_player_restore">Restore full screen</string>
+    <string name="browser_player_play">Play</string>
+    <string name="browser_player_pause">Pause</string>
+    <string name="browser_player_rewind">Rewind 10s</string>
+    <string name="browser_player_forward">Forward 10s</string>
+    <string name="browser_player_fullscreen">Full screen</string>
+    <string name="browser_player_fullscreen_exit">Exit full screen</string>
+    <string name="browser_player_live">Live</string>
+    <string name="browser_player_volume">Volume</string>
+    <string name="browser_player_brightness">Brightness</string>
+
+    <!-- 补齐此前遗漏的英文文案（中文已有、英文缺失，会导致英文界面回落到中文） -->
+    <string name="browser_tab_close_all_title">Close all tabs</string>
+    <string name="browser_tab_close_all_message">Close all tabs?</string>
+    <string name="browser_tab_closed_all">All tabs closed</string>
+    <string name="browser_tab_incognito_prefix">[Incognito] %1$s</string>
+    <string name="browser_player_fast_forward">%1$s fast forward</string>
+    <string name="browser_player_fast_forward_hint">Release to resume %1$s</string>
+    <string name="browser_player_seek_hint">%1$s / %2$s</string>
+    <string name="browser_player_seek_delta">%1$s%2$ds</string>
+    <string name="browser_player_enter">Built-in player</string>
+    <string name="browser_player_entered">Took over the in-page player. Long press to fast forward.</string>
+    <string name="browser_player_no_video">No playable video found on this page</string>
+    <string name="browser_player_released">Exited the built-in player</string>
+    <string name="browser_player_takeover_failed">This site\'s player cannot be taken over; control was returned to the in-page player</string>
+    <string name="browser_player_download">Download video</string>
+    <string name="browser_player_download_started">Video download started</string>
+    <string name="browser_player_download_failed">Video download failed</string>
+    <string name="browser_player_resumed">Resumed from %1$s</string>
+    <string name="browser_settings_video_player">Built-in video player</string>
+    <string name="browser_settings_video_player_summary">Detect in-page videos and offer to take over with native controls</string>
+    <string name="browser_settings_video_player_section">Built-in player</string>
+    <string name="browser_settings_fast_forward_rate">Long-press fast forward speed</string>
+    <string name="browser_settings_fast_forward_rate_summary">Speed while holding the screen, 2x by default; rises to 3x after 3s</string>
+    <string name="browser_settings_long_press_ff">Long-press fast forward</string>
+    <string name="browser_settings_long_press_ff_summary">Hold the screen in the player to fast forward; turn off to disable the gesture</string>
 </resources>

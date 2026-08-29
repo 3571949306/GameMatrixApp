@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="start"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/gm_spacing_3"
+    android:paddingTop="@dimen/gm_spacing_1"
+    android:paddingEnd="@dimen/gm_spacing_3"
+    android:paddingBottom="@dimen/gm_spacing_1">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top|start"
+        android:orientation="horizontal">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="@dimen/ai_chat_avatar_size"
+            android:layout_height="@dimen/ai_chat_avatar_size"
+            android:layout_marginEnd="@dimen/gm_spacing_2"
+            app:cardBackgroundColor="@color/ai_chat_avatar_container"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            tools:ignore="MissingPrefix">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="@string/ai_assistant_label_short"
+                android:textColor="@color/ai_chat_avatar_content"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/tv_msg_content"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:lineSpacingExtra="3dp"
+            android:maxWidth="@dimen/ai_chat_assistant_max_width"
+            android:textColor="@color/ai_chat_assistant_content"
+            android:textSize="14sp"
+            tools:text="AI 回复的消息内容" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_msg_meta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/ai_chat_avatar_size"
+        android:layout_marginTop="2dp"
+        android:maxWidth="@dimen/ai_chat_assistant_max_width"
+        android:textColor="@color/ai_chat_assistant_meta"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="本地"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/layout_msg_actions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/ai_chat_avatar_size"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btn_msg_favorite"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ai_chat_favorite"
+            android:padding="14dp"
+            android:src="@android:drawable/btn_star_big_off"
+            app:tint="@color/ai_chat_action_tint" />
+
+        <ImageButton
+            android:id="@+id/btn_msg_tts"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="@dimen/gm_spacing_1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/ai_chat_tts"
+            android:padding="14dp"
+            android:src="@android:drawable/ic_btn_speak_now"
+            app:tint="@color/ai_chat_action_tint" />
+    </LinearLayout>
+
+</LinearLayout>

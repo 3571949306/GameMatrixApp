@@ -24,7 +24,6 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
-import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.Manifest;
@@ -61,6 +60,10 @@ import com.gamecenter.app.browser.core.BrowserScreenshotHelper;
 import com.gamecenter.app.browser.core.BrowserSettingsManager;
 import com.gamecenter.app.browser.core.BrowserTabManager;
 import com.gamecenter.app.browser.core.BrowserWebViewClient;
+import com.gamecenter.app.browser.core.incognito.IncognitoProfileManager;
+import com.gamecenter.app.browser.core.lifecycle.BrowserRebindContract;
+import com.gamecenter.app.browser.core.player.BrowserVideoController;
+import com.gamecenter.app.browser.core.player.BrowserVideoState;
 import com.gamecenter.app.browser.data.BrowserDatabase;
 import com.gamecenter.app.browser.data.BrowserDownloadManager;
 import com.gamecenter.app.browser.data.entity.BrowserBookmarkEntity;
@@ -74,6 +77,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * Browser Fragment - 核心浏览器页面。
@@ -82,7 +86,8 @@ public class BrowserFragment extends Fragment implements
         BrowserWebViewClient.PageLoadCallback,
         BrowserWebViewClient.ExternalUrlHandler,
         BrowserChromeClient.PageInfoCallback,
-        BrowserSettingsManager.OnSettingsChangeListener {
+        BrowserSettingsManager.OnSettingsChangeListener,
+        BrowserRebindContract {
 
     static final String TAG = "BrowserFragment";
     private static final String ARG_URL = "arg_url";
@@ -152,12 +157,65 @@ public class BrowserFragment extends Fragment implements
     private ImageView gestureLeftIndicator;
     private ImageView gestureRightIndicator;
 
+    // ===== 内置视频播放器（接管网页播放器 + 长按倍速快进） =====
+    @Nullable private BrowserVideoController videoController;
+    @Nullable private BrowserPlayerOverlay playerOverlay;
+    @Nullable private FrameLayout playerOverlayContainer;
+    @Nullable private TextView btnVideoPlayerEntry;
+
+    // H-5 播放历史与续播
+    @Nullable private com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore playHistoryStore;
+    /** 接管后待应用的续播目标（页面 URL）；时长探明后一次性消费。 */
+    @Nullable private String pendingResumeUrl;
+    private long lastPlayHistoryRecordUptimeMs = 0L;
+
+    /** 播放器与宿主的交互契约：全屏时隐去浏览器顶/底栏。 */
+    private final BrowserPlayerOverlay.Host playerHost = new BrowserPlayerOverlay.Host() {
+        @Override
+        public void onPlayerExit() {
+            exitVideoPlayer(true);
+        }
+
+        @Override
+        public void onRequestChromeHidden(boolean hidden) {
+            if (topBar != null) topBar.setVisibility(hidden ? View.GONE : View.VISIBLE);
+            if (bottomBar != null) bottomBar.setVisibility(hidden ? View.GONE : View.VISIBLE);
+        }
+
+        @Override
+        public void onMiniModeChanged(boolean mini) {
+            // 小窗态仍留在浏览器内，无需宿主额外处理
+        }
+
+        @Override
+        public void onDownloadVideo(@NonNull String videoUrl) {
+            // H-1：直链视频下载。文件名来自 URL 末段，经 FileNameSanitizer 净化后
+            // 交给 BrowserDownloadManager（危险扩展名/MIME 会自动路由到 app 私有目录）。
+            if (!isAdded() || getContext() == null) return;
+            String fileName = suggestVideoFileName(videoUrl);
+            String userAgent = null;
+            WebView active = controller != null ? controller.getWebView() : null;
+            if (active != null) {
+                try { userAgent = active.getSettings().getUserAgentString(); } catch (Throwable ignored) {}
+            }
+            long id = BrowserDownloadManager.getInstance(getContext())
+                    .downloadFile(videoUrl, fileName, "video/mp4", userAgent);
+            if (id > 0) {
+                showFeedback(R.string.browser_player_download_started);
+            } else {
+                showFeedback(R.string.browser_player_download_failed);
+            }
+        }
+    };
+
     private boolean isLoading = false;
     private boolean isDesktopMode = false;
     private boolean isIncognitoMode = false;
     private boolean hasPageError = false;
     private String currentTitle = "";
-    private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+    private final Object ioExecutorLock = new Object();
+    @Nullable private ExecutorService ioExecutor;
+    private boolean viewActive;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean pendingRefreshPrompt = false;
     private long lastBookmarkClickTime = 0;
@@ -212,6 +270,8 @@ public class BrowserFragment extends Fragment implements
                             controller.initWebView(getContext(), webViewContainer, this, this, this);
                             setupChromeClientCallbacks();
                         }
+                        // 池已重建，播放器需重新绑定（旧 WebView 全部销毁）
+                        bindVideoPlayerToActiveWebView();
                     } else if (closedId != null) {
                         controller.closeTabWebView(closedId);
                     }
@@ -246,20 +306,44 @@ public class BrowserFragment extends Fragment implements
 
     // 媒体权限（相机/麦克风）
     @Nullable private PermissionRequest pendingPermissionRequest;
+    @Nullable private WebView pendingPermissionWebView;
+    @Nullable private String pendingPermissionTabId;
+    @Nullable private AlertDialog pendingPermissionDialog;
+    private int permissionGeneration;
+    private int pendingPermissionGeneration = -1;
+    /** Android runtime permission UI may pause the host Activity while it is in flight. */
+    private boolean mediaPermissionInFlight;
+
+    // 地理位置是 WebChromeClient 的异步回调，不能把回调只捕获在临时
+    // AlertDialog 的 lambda 里：Fragment 切换/销毁后，旧对话框仍可能回写旧页面。
+    @Nullable private android.webkit.GeolocationPermissions.Callback pendingGeolocationCallback;
+    @Nullable private String pendingGeolocationOrigin;
+    @Nullable private String pendingGeolocationTabId;
+    @Nullable private AlertDialog pendingGeolocationDialog;
+    private int geolocationGeneration;
     private final ActivityResultLauncher<String[]> mediaPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestMultiplePermissions(),
             result -> {
-                if (pendingPermissionRequest == null) return;
+                mediaPermissionInFlight = false;
+                PermissionRequest request = pendingPermissionRequest;
+                WebView requestWebView = pendingPermissionWebView;
+                String requestTabId = pendingPermissionTabId;
+                int requestGeneration = pendingPermissionGeneration;
+                clearPendingPermissionRequest();
+                if (request == null) return;
+                if (!isCurrentPermissionRequest(requestWebView, requestTabId, requestGeneration)) {
+                    denyPermissionRequest(request);
+                    return;
+                }
                 boolean allGranted = true;
                 for (Boolean granted : result.values()) {
-                    if (!granted) { allGranted = false; break; }
+                    if (!Boolean.TRUE.equals(granted)) { allGranted = false; break; }
                 }
                 if (allGranted) {
-                    pendingPermissionRequest.grant(pendingPermissionRequest.getResources());
+                    request.grant(request.getResources());
                 } else {
-                    pendingPermissionRequest.deny();
+                    denyPermissionRequest(request);
                 }
-                pendingPermissionRequest = null;
             });
 
     // 全屏视频
@@ -276,6 +360,12 @@ public class BrowserFragment extends Fragment implements
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        synchronized (ioExecutorLock) {
+            viewActive = true;
+            if (ioExecutor == null || ioExecutor.isShutdown()) {
+                ioExecutor = Executors.newSingleThreadExecutor();
+            }
+        }
         controller = new BrowserController();
         if (getActivity() != null) {
             searchHistoryRepository = new SearchHistoryRepository(getActivity().getApplication());
@@ -304,15 +394,17 @@ public class BrowserFragment extends Fragment implements
             }
             if (currentTab != null && controller != null) {
                 // 切换到当前 Tab，按需创建 WebView（fallbackUrl 用 defaultHomeUrl）
-                controller.switchToTab(currentTab.getId(), controller.getDefaultHomeUrl());
+                controller.switchToTab(currentTab.getId(), controller.getDefaultHomeUrl(), currentTab);
                 // 重新绑定下载监听（新 WebView 需要）
                 controller.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) ->
                         handleDownload(url, contentDisposition, mimetype, userAgent));
+                syncIncognitoState(currentTab);
             }
         }
         initBrowserHelpers();
         initHomePage();
         setupListeners();
+        initVideoPlayer();
         setupGestureNavigation(view);
         setupBackPressHandler();
         // #8：配置变更（旋转）重建后恢复下载广播接收与进度轮询，避免 in-flight 下载卡“下载中”
@@ -331,8 +423,19 @@ public class BrowserFragment extends Fragment implements
                     showHomePage();
                     etUrl.setText("");
                 } else {
-                    controller.loadUrl(initialUrl);
-                    etUrl.setText(initialUrl);
+                    String safeInitialUrl = UrlUtils.processInput(initialUrl);
+                    if (safeInitialUrl == null) {
+                        if (BuildConfig.BROWSER_HOME_PAGE) {
+                            showHomePage();
+                            etUrl.setText("");
+                        } else {
+                            controller.loadUrl(homeUrl);
+                            etUrl.setText(homeUrl);
+                        }
+                    } else {
+                        controller.loadUrl(safeInitialUrl);
+                        etUrl.setText(safeInitialUrl);
+                    }
                 }
             } else {
                 // 默认显示起始页而非加载 baidu.com
@@ -394,6 +497,284 @@ public class BrowserFragment extends Fragment implements
             };
             readerModeHelper.bind(webView, readerModeCallback);
         }
+    }
+
+    // ===== 内置视频播放器 =====
+
+    /**
+     * 初始化内置播放器：创建控制器与覆盖层，并开始周期性探测页面视频。
+     *
+     * <p>双门控：构建期 Feature Flag {@code BROWSER_VIDEO_PLAYER} + 运行期用户设置，
+     * 任一项关闭则整个能力不启用（探测脚本一次都不会注入）。
+     */
+    private void initVideoPlayer() {
+        if (!BuildConfig.BROWSER_VIDEO_PLAYER || getContext() == null) return;
+        BrowserSettingsManager settings = BrowserSettingsManager.getInstance(getContext());
+        if (!settings.isVideoPlayerEnabled()) return;
+
+        // H-5：播放历史（SharedPreferences 后端，IO 走 submitIo 的单线程池）
+        final android.content.SharedPreferences playHistoryPrefs =
+                getContext().getSharedPreferences("browser_play_history", android.content.Context.MODE_PRIVATE);
+        playHistoryStore = new com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore(
+                new com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore.Prefs() {
+                    @Override
+                    public String read() {
+                        return playHistoryPrefs.getString("snapshot", "{}");
+                    }
+
+                    @Override
+                    public void write(@NonNull String json) {
+                        playHistoryPrefs.edit().putString("snapshot", json).apply();
+                    }
+                });
+
+        videoController = new BrowserVideoController();
+        videoController.setFastForwardRate(settings.getFastForwardRate());
+        boolean longPressEnabled = settings.isLongPressFastForwardEnabled();
+        videoController.setListener(new BrowserVideoController.VideoStateListener() {
+            @Override
+            public void onVideoDetected(@NonNull BrowserVideoState state) {
+                onVideoStateChanged(state);
+            }
+
+            @Override
+            public void onStateUpdated(@NonNull BrowserVideoState state) {
+                onVideoStateChanged(state);
+            }
+
+            @Override
+            public void onVideoGone() {
+                hideVideoEntry();
+                if (playerOverlay != null && playerOverlay.isShowing()) {
+                    exitVideoPlayer(false);
+                }
+            }
+
+            @Override
+            public void onTakeOverFailed() {
+                if (!isAdded()) return;
+                // 两种接管模式都验证不过，控制器已回滚；这里收起覆盖层，
+                // 把页面交回给网页自带播放器，并如实告知用户。
+                BrowserPlayerOverlay overlay = playerOverlay;
+                if (overlay != null && overlay.isShowing()) {
+                    overlay.hide();
+                }
+                hideVideoEntry();
+                showFeedback(R.string.browser_player_takeover_failed);
+            }
+        });
+
+        ViewGroup overlayHost = playerOverlayContainer;
+        if (overlayHost != null) {
+            playerOverlay = new BrowserPlayerOverlay(getContext(), overlayHost,
+                    webViewContainer, videoController, playerHost);
+            playerOverlay.setFastForwardRate(settings.getFastForwardRate());
+            playerOverlay.setLongPressEnabled(longPressEnabled);
+        }
+        if (btnVideoPlayerEntry != null) {
+            btnVideoPlayerEntry.setOnClickListener(v -> enterVideoPlayer());
+        }
+        bindVideoPlayerToActiveWebView();
+        videoController.startProbing();
+    }
+
+    /** 切 Tab / 重建 WebView 后重新绑定到当前 WebView。 */
+    private void bindVideoPlayerToActiveWebView() {
+        if (videoController == null) return;
+        // 接管态无法跨 WebView 保持（那是另一份 DOM），先退出再重绑
+        if (playerOverlay != null && playerOverlay.isShowing()) {
+            exitVideoPlayer(false);
+        }
+        hideVideoEntry();
+        videoController.bind(controller != null ? controller.getWebView() : null);
+    }
+
+    /** 检测状态变化：刷新覆盖层，并在未接管时浮出入入口按钮。 */
+    private void onVideoStateChanged(@NonNull BrowserVideoState state) {
+        if (!isAdded()) return;
+        boolean overlayActive = playerOverlay != null && playerOverlay.isShowing();
+        if (overlayActive && playerOverlay != null) {
+            playerOverlay.onStateUpdated(state);
+            maybeApplyPendingResume(state);
+            maybeRecordPlayProgress(state, false);
+        }
+        if (state.hasVideo() && !overlayActive) {
+            if (btnVideoPlayerEntry != null) btnVideoPlayerEntry.setVisibility(View.VISIBLE);
+        } else if (!state.hasVideo()) {
+            hideVideoEntry();
+        }
+    }
+
+    /** 内置播放器入口：接管页面 video 元素并铺上原生控件。 */
+    private void enterVideoPlayer() {
+        BrowserVideoController vc = videoController;
+        if (vc == null || getContext() == null) return;
+        BrowserVideoState state = vc.getState();
+        if (!state.hasVideo()) {
+            showFeedback(R.string.browser_player_no_video);
+            return;
+        }
+        if (!vc.takeOver(false)) {
+            showFeedback(R.string.browser_player_no_video);
+            return;
+        }
+        // H-5：接管成功后准备续播（时长探明后在状态回调里一次性应用）
+        pendingResumeUrl = controller != null ? controller.getCurrentUrl() : null;
+        lastPlayHistoryRecordUptimeMs = 0L;
+        if (playerOverlay != null) {
+            playerOverlay.show();
+            playerOverlay.onStateUpdated(state);
+        }
+        hideVideoEntry();
+        showFeedback(R.string.browser_player_entered);
+    }
+
+    /** 退出接管：还原页面 DOM 与样式，收起覆盖层。 */
+    private void exitVideoPlayer(boolean notify) {
+        BrowserPlayerOverlay overlay = playerOverlay;
+        if (overlay != null) overlay.hide();
+        BrowserVideoController vc = videoController;
+        // H-5：退出前把最终进度落盘（绕过节流）
+        if (vc != null) {
+            maybeRecordPlayProgress(vc.getState(), true);
+        }
+        pendingResumeUrl = null;
+        if (vc != null) vc.releaseTakeOver();
+        if (notify) showFeedback(R.string.browser_player_released);
+        // 视频仍在页面上时把入口还给用户
+        if (btnVideoPlayerEntry != null && vc != null && vc.getState().hasVideo() && isAdded()) {
+            btnVideoPlayerEntry.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideVideoEntry() {
+        if (btnVideoPlayerEntry != null) btnVideoPlayerEntry.setVisibility(View.GONE);
+    }
+
+    /**
+     * H-1：从直链 URL 推导下载文件名。
+     *
+     * <p>取 URL 最后一个路径段并经 {@link FileNameSanitizer} 净化（去查询串、
+     * 路径穿越与控制字符）；拿不到合法名字时回退 {@code video.mp4}。
+     */
+    @NonNull
+    private static String suggestVideoFileName(@NonNull String videoUrl) {
+        String name = "";
+        try {
+            String path = android.net.Uri.parse(videoUrl).getPath();
+            if (path != null) {
+                int slash = path.lastIndexOf('/');
+                name = slash >= 0 ? path.substring(slash + 1) : path;
+            }
+        } catch (Throwable ignored) {
+        }
+        String sanitized = com.gamecenter.app.browser.core.security.FileNameSanitizer.sanitize(name);
+        if (sanitized.isEmpty()) {
+            return "video.mp4";
+        }
+        // 无扩展名时补 .mp4，避免 DownloadManager 走 */* 的嗅探
+        int dot = sanitized.lastIndexOf('.');
+        if (dot <= 0 || dot == sanitized.length() - 1) {
+            sanitized = sanitized + ".mp4";
+        }
+        return sanitized;
+    }
+
+    /**
+     * H-5：接管后首次拿到有效时长时，应用一次续播。
+     *
+     * <p>页面 URL 是历史键（视频源多为会话级 blob:，不能当键）。
+     * 时长未知 / 已看完 / 进度太短都不恢复，避免骚扰。
+     */
+    private void maybeApplyPendingResume(@NonNull BrowserVideoState state) {
+        String pageUrl = pendingResumeUrl;
+        if (pageUrl == null || state.durationMs <= 0) return;
+        pendingResumeUrl = null; // 只消费一次
+        com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore store = playHistoryStore;
+        if (store == null) return;
+        com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore.Entry entry =
+                store.resumeOf(pageUrl);
+        if (entry == null
+                || !com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore
+                        .shouldResume(entry.positionMs, state.durationMs)) {
+            return;
+        }
+        BrowserVideoController vc = videoController;
+        if (vc == null) return;
+        vc.seekTo(entry.positionMs);
+        showFeedback(getString(R.string.browser_player_resumed,
+                com.gamecenter.app.browser.core.player.BrowserPlayerMath
+                        .formatTime(entry.positionMs)));
+    }
+
+    /**
+     * H-5：节流记录播放进度（键为页面 URL，IO 走 submitIo）。
+     *
+     * @param force true 时绕过节流（退出接管前的最终落盘）
+     */
+    private void maybeRecordPlayProgress(@NonNull BrowserVideoState state, boolean force) {
+        com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore store = playHistoryStore;
+        if (store == null || controller == null) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (!force && now - lastPlayHistoryRecordUptimeMs
+                < com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore.RECORD_INTERVAL_MS) {
+            return;
+        }
+        lastPlayHistoryRecordUptimeMs = now;
+        final String pageUrl = controller.getCurrentUrl();
+        if (pageUrl == null || pageUrl.isEmpty()) return;
+        final String title = state.title != null ? state.title : "";
+        final long positionMs = state.currentTimeMs;
+        final long durationMs = state.durationMs;
+        final long wallClockMs = System.currentTimeMillis();
+        submitIo(() -> store.record(pageUrl, title, positionMs, durationMs, wallClockMs));
+    }
+
+    /**
+     * H-5 销毁路径专用：同步落盘。
+     *
+     * <p>onDestroyView 尾部会对 ioExecutor 调 shutdownNow（丢弃排队任务），
+     * 因此销毁前的最终进度不能走 submitIo；SharedPreferences.apply() 非阻塞
+     * 且线程安全，可直接在主线程写。
+     */
+    private void recordPlayProgressSync(@NonNull BrowserVideoState state) {
+        com.gamecenter.app.browser.core.player.BrowserPlayHistoryStore store = playHistoryStore;
+        if (store == null || controller == null) return;
+        String pageUrl = controller.getCurrentUrl();
+        if (pageUrl == null || pageUrl.isEmpty()) return;
+        String title = state.title != null ? state.title : "";
+        store.record(pageUrl, title, state.currentTimeMs, state.durationMs, System.currentTimeMillis());
+    }
+
+    /**
+     * 设置变更时同步内置播放器：总开关与长按快进倍速。
+     *
+     * <p>关掉开关必须真正停掉探测脚本（而不是只藏 UI），否则"关闭"形同虚设。
+     */
+    private void applyVideoPlayerSettings() {
+        if (!BuildConfig.BROWSER_VIDEO_PLAYER || getContext() == null) return;
+        BrowserSettingsManager settings = BrowserSettingsManager.getInstance(getContext());
+
+        if (!settings.isVideoPlayerEnabled()) {
+            if (playerOverlay != null && playerOverlay.isShowing()) exitVideoPlayer(false);
+            hideVideoEntry();
+            if (videoController != null) videoController.stopProbing();
+            return;
+        }
+
+        if (videoController == null) {
+            // 用户重新开启：按需初始化（initVideoPlayer 内部有幂等的前置判断）
+            initVideoPlayer();
+            return;
+        }
+        float rate = settings.getFastForwardRate();
+        videoController.setFastForwardRate(rate);
+        boolean longPressEnabled = settings.isLongPressFastForwardEnabled();
+        if (playerOverlay != null) {
+            playerOverlay.setFastForwardRate(rate);
+            playerOverlay.setLongPressEnabled(longPressEnabled);
+        }
+        videoController.startProbing();
     }
 
     /** 初始化浏览器起始页（Feature Flag: BROWSER_HOME_PAGE） */
@@ -510,18 +891,22 @@ public class BrowserFragment extends Fragment implements
         gestureHelper.setDoubleTapForwardEnabled(settings.isDoubleTapForwardEnabled());
         gestureHelper.setLongPressHistoryEnabled(settings.isLongPressHistoryEnabled());
 
-        webView.setOnTouchListener((v, event) -> {
-            // 先让手势识别器处理；若手势未消费（return false），则交还 WebView 处理垂直滚动/点击
-            boolean consumed = gestureHelper.onTouch(event);
-            if (consumed) return true;
-            return false;
-        });
-        // 关键：Android 10+ 系统手势导航会拦截左右边缘滑动，必须声明 exclusion rect
-        // 让我们的自定义手势接管边缘区域，否则 GestureDetector 收不到边缘 swipe
-        // 同时在 WebView 和根 View 上声明，确保所有 UI 层级都生效
-        applySystemGestureExclusion(webView);
-        applySystemGestureExclusion(view);
+        bindGestureNavigation(webView, view);
         android.util.Log.d(TAG, "setupGestureNavigation: listener set on webView");
+    }
+
+    /** Bind the existing gesture recognizer to the active WebView after a tab swap. */
+    private void bindGestureNavigation(@NonNull WebView webView, @Nullable View hostView) {
+        if (gestureHelper == null) return;
+        try {
+            webView.setOnTouchListener((v, event) -> gestureHelper.onTouch(event));
+        } catch (Throwable ignored) {
+            return;
+        }
+        // Android 10+ needs the exclusion rect on every newly-created WebView,
+        // not only the WebView that happened to be active at Fragment creation.
+        applySystemGestureExclusion(webView);
+        if (hostView != null) applySystemGestureExclusion(hostView);
     }
 
     /**
@@ -572,6 +957,11 @@ public class BrowserFragment extends Fragment implements
                 if (controller == null) {
                     setEnabled(false);
                     requireActivity().onBackPressed();
+                    return;
+                }
+                // 0. 退出内置播放器（含小窗）
+                if (playerOverlay != null && playerOverlay.isShowing()) {
+                    exitVideoPlayer(true);
                     return;
                 }
                 // 1. 关闭查找栏
@@ -635,6 +1025,10 @@ public class BrowserFragment extends Fragment implements
         gestureLeftIndicator = view.findViewById(R.id.gesture_left_indicator);
         gestureRightIndicator = view.findViewById(R.id.gesture_right_indicator);
 
+        // 内置视频播放器
+        playerOverlayContainer = view.findViewById(R.id.player_overlay_container);
+        btnVideoPlayerEntry = view.findViewById(R.id.btn_video_player_entry);
+
         View btnRetry = view.findViewById(R.id.btn_retry);
         if (btnRetry != null) {
             btnRetry.setOnClickListener(v -> { if (controller != null) controller.reload(); });
@@ -656,23 +1050,28 @@ public class BrowserFragment extends Fragment implements
 
     /** 处理文件下载 */
     private void handleDownload(String downloadUrl, String contentDisposition, String mimeType, String userAgent) {
-        if (getContext() == null) return;
+        Context context = getContext();
+        if (context == null || !isAdded()) return;
         String name = android.webkit.URLUtil.guessFileName(downloadUrl, contentDisposition, mimeType);
         if (name == null || name.isEmpty()) {
             name = "download_" + System.currentTimeMillis();
         }
         final String fileName = name;
         final String url = downloadUrl;
-        BrowserDownloadManager downloadMgr = BrowserDownloadManager.getInstance(getContext());
-        boolean isDangerous = downloadMgr.isDangerousFile(fileName);
+        BrowserDownloadManager downloadMgr = BrowserDownloadManager.getInstance(context);
+        boolean isDangerous = downloadMgr.isDangerousFile(fileName, mimeType);
 
-        String message = getString(R.string.browser_download_dangerous_message, fileName);
-        new AlertDialog.Builder(requireContext())
+        String message = context.getString(R.string.browser_download_dangerous_message, fileName);
+        new AlertDialog.Builder(context)
             .setTitle(isDangerous ? R.string.browser_download_dangerous_title : R.string.browser_download_title)
             .setMessage(isDangerous ? message : fileName)
             .setPositiveButton(isDangerous ? R.string.browser_download_dangerous_confirm : android.R.string.ok, (d, w) -> {
-                downloadMgr.downloadFile(url, fileName, mimeType, userAgent);
-                safeToast(R.string.browser_download_started, fileName);
+                long downloadId = downloadMgr.downloadFile(url, fileName, mimeType, userAgent);
+                if (downloadId >= 0L) {
+                    safeToast(R.string.browser_download_started, fileName);
+                } else {
+                    safeToast(R.string.browser_download_start_failed);
+                }
             })
             .setNegativeButton(android.R.string.cancel, null)
             .show();
@@ -681,6 +1080,11 @@ public class BrowserFragment extends Fragment implements
     private void setupListeners() {
         btnBack.setOnClickListener(v -> {
             if (controller == null) return;
+            // 0. 先退出内置播放器
+            if (playerOverlay != null && playerOverlay.isShowing()) {
+                exitVideoPlayer(true);
+                return;
+            }
             // 1. 先关闭 Find In Page 栏
             if (findInPageHelper != null && findInPageBar != null
                     && findInPageBar.getVisibility() == View.VISIBLE) {
@@ -738,7 +1142,6 @@ public class BrowserFragment extends Fragment implements
             if (actionId == EditorInfo.IME_ACTION_GO ||
                     (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
                 String input = etUrl.getText().toString().trim();
-                hideUrlSuggestions();
                 // 优先使用 UrlInputHelper（含 URL/搜索词识别 + 多搜索引擎支持）
                 if (BuildConfig.BROWSER_SMART_URL_BAR && urlInputHelper != null && getContext() != null) {
                     String url = urlInputHelper.processInput(getContext(), input);
@@ -749,6 +1152,12 @@ public class BrowserFragment extends Fragment implements
                     etUrl.setText(input);
                 }
                 saveSearchHistoryIfNeeded(input);
+                // setText() above runs the URL TextWatcher while this EditText still has focus.
+                // Invalidate its delayed/asynchronous result before hiding the popup; otherwise a
+                // stale suggestion can reappear over the newly loading page after navigation.
+                suggestionSessionId++;
+                cancelPendingUrlSuggestions();
+                hideUrlSuggestions();
                 hideKeyboard();
                 hideHomePage();
                 return true;
@@ -868,7 +1277,7 @@ public class BrowserFragment extends Fragment implements
     private void clearUrlSuggestions() {
         if (getContext() == null) return;
         final Context ctx = getContext().getApplicationContext();
-        ioExecutor.execute(() -> {
+        submitIo(() -> {
             try {
                 com.gamecenter.app.browser.data.BrowserDatabase.getInstance(ctx)
                         .historyDao().deleteAll();
@@ -992,7 +1401,7 @@ public class BrowserFragment extends Fragment implements
         final String bookmarkUrl = url;
         final String bookmarkTitle = currentTitle;
         final Context ctx = getContext().getApplicationContext();
-        ioExecutor.execute(() -> {
+        submitIo(() -> {
             try {
                 BrowserBookmarkEntity existing = BrowserDatabase.getInstance(ctx)
                         .bookmarkDao().getByUrl(bookmarkUrl);
@@ -1040,7 +1449,7 @@ public class BrowserFragment extends Fragment implements
         }
         final Context ctx = getContext().getApplicationContext();
         // 先检查是否已存在
-        ioExecutor.execute(() -> {
+        submitIo(() -> {
             try {
                 int count = BrowserDatabase.getInstance(ctx).readingListDao().countByUrl(pageUrl);
                 if (count > 0) {
@@ -1101,7 +1510,7 @@ public class BrowserFragment extends Fragment implements
         entity.setHost(host != null ? host : "");
         entity.setSavedAt(System.currentTimeMillis());
         entity.setRead(0);
-        ioExecutor.execute(() -> {
+        submitIo(() -> {
             try {
                 BrowserDatabase.getInstance(ctx).readingListDao().insert(entity);
                 mainHandler.post(() -> safeToast(R.string.browser_reading_list_added));
@@ -1118,7 +1527,7 @@ public class BrowserFragment extends Fragment implements
         }
         final String checkUrl = url;
         final Context ctx = getContext().getApplicationContext();
-        ioExecutor.execute(() -> {
+        submitIo(() -> {
             try {
                 int count = BrowserDatabase.getInstance(ctx).bookmarkDao().countByUrl(checkUrl);
                 mainHandler.post(() -> {
@@ -1173,6 +1582,13 @@ public class BrowserFragment extends Fragment implements
         // P1-5 页面翻译：Feature Flag 控制菜单项可见性
         MenuItem translateItem = popup.getMenu().findItem(R.id.menu_translate);
         if (translateItem != null) translateItem.setVisible(BuildConfig.BROWSER_TRANSLATE);
+        // 内置播放器：仅在检测到视频时可见
+        MenuItem videoItem = popup.getMenu().findItem(R.id.menu_video_player);
+        if (videoItem != null) {
+            videoItem.setVisible(BuildConfig.BROWSER_VIDEO_PLAYER && videoController != null
+                    && videoController.getState().hasVideo()
+                    && !(playerOverlay != null && playerOverlay.isShowing()));
+        }
         // P3-3 底栏可定制：Feature Flag 控制菜单项可见性
         MenuItem customizeBarItem = popup.getMenu().findItem(R.id.menu_customize_bottom_bar);
         if (customizeBarItem != null) customizeBarItem.setVisible(BuildConfig.BROWSER_CUSTOM_BOTTOM_BAR);
@@ -1186,10 +1602,9 @@ public class BrowserFragment extends Fragment implements
                     BrowserTabManager.Tab newTab = tabManager.createTab(null);
                     if (newTab != null) {
                         if (BuildConfig.BROWSER_REAL_MULTI_TAB && controller != null) {
-                            // 多 Tab 模式：为新 Tab 创建独立 WebView 并切换
-                            controller.switchToTab(newTab.getId(), controller.getDefaultHomeUrl());
-                            controller.setDownloadListener((url, ua, cd, mt, cl) ->
-                                    handleDownload(url, cd, mt, ua));
+                            // 统一走切 Tab 入口：它会在首次加载前应用 Tab profile，
+                            // 并重绑手势、查找、阅读模式与播放器到新 WebView。
+                            switchToTabById(newTab.getId());
                             if (BuildConfig.BROWSER_HOME_PAGE) {
                                 showHomePage();
                                 etUrl.setText("");
@@ -1266,6 +1681,9 @@ public class BrowserFragment extends Fragment implements
             } else if (id == R.id.menu_downloads) {
                 if (getContext() != null) DownloadActivity.start(getContext());
                 return true;
+            } else if (id == R.id.menu_video_player) {
+                enterVideoPlayer();
+                return true;
             } else if (id == R.id.menu_settings) {
                 if (getContext() != null) BrowserSettingsActivity.start(getContext());
                 return true;
@@ -1316,15 +1734,15 @@ public class BrowserFragment extends Fragment implements
      * 外部协议/链接统一确认弹窗。
      */
     private void openExternalUrlWithConfirmation(@NonNull String url) {
-        if (getContext() == null) return;
+        if (!isAdded() || getContext() == null) return;
         Context ctx = getContext();
         if (!BrowserSecurityPolicy.getInstance().canExternalAppHandle(ctx, url)) {
             safeToast(R.string.browser_open_external_failed);
             return;
         }
-        new AlertDialog.Builder(requireContext())
+        new AlertDialog.Builder(ctx)
             .setTitle(R.string.browser_security_external_title)
-            .setMessage(getString(R.string.browser_security_external_message, url))
+            .setMessage(ctx.getString(R.string.browser_security_external_message, url))
             .setPositiveButton(R.string.browser_security_external_confirm, (d, w) -> {
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -1345,19 +1763,41 @@ public class BrowserFragment extends Fragment implements
 
     private void toggleIncognitoMode() {
         if (getContext() == null) return;
-        boolean wasIncognito = isIncognitoMode;
+
+        // In real multi-tab mode, incognito is a tab property. The old implementation
+        // toggled a Fragment-wide boolean and removed the process-wide CookieManager,
+        // which could log ordinary tabs out. We currently provide the honest, safe
+        // subset (no history/search persistence); true cookie isolation needs a
+        // process/profile design and must not be faked by clearing global cookies.
+        if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+            if (tabManager == null) tabManager = BrowserTabManager.getInstance(getContext());
+            BrowserTabManager.Tab incognito = tabManager.createIncognitoTab(null);
+            if (incognito == null) {
+                safeToast(R.string.browser_tab_max_reached);
+                return;
+            }
+            switchToTabById(incognito.getId());
+            syncIncognitoState(incognito);
+            safeToast(R.string.browser_incognito_on);
+            return;
+        }
+
         isIncognitoMode = !isIncognitoMode;
         if (incognitoIndicator != null) {
             incognitoIndicator.setVisibility(isIncognitoMode ? View.VISIBLE : View.GONE);
         }
-        if (controller != null) {
-            controller.clearWebViewData();
-            // 切换无痕状态时清理 Cookie，避免非无痕数据残留或无痕数据泄露
-            try {
-                CookieManager.getInstance().removeAllCookies(null);
-            } catch (Exception ignored) {}
-        }
         safeToast(isIncognitoMode ? R.string.browser_incognito_on : R.string.browser_incognito_off);
+    }
+
+    /** 同步当前 Tab 的无痕展示状态；不触碰全局 Cookie/WebStorage。 */
+    private void syncIncognitoState(@Nullable BrowserTabManager.Tab tab) {
+        isIncognitoMode = tab != null && tab.isIncognito();
+        if (isIncognitoMode && controller != null) {
+            IncognitoProfileManager.applyProfile(controller.getWebView(), tab);
+        }
+        if (incognitoIndicator != null) {
+            incognitoIndicator.setVisibility(isIncognitoMode ? View.VISIBLE : View.GONE);
+        }
     }
 
     /** P0-1 多 Tab：启动 TabManagerActivity 全屏切换器（带结果回传）。 */
@@ -1376,8 +1816,11 @@ public class BrowserFragment extends Fragment implements
         // fallbackUrl 用 tab 当前 URL（若 WebView 需重建时加载）
         String fallback = tab.getUrl();
         if (fallback == null || fallback.isEmpty()) fallback = controller.getDefaultHomeUrl();
-        WebView wv = controller.switchToTab(tabId, fallback);
+        WebView wv = controller.switchToTab(tabId, fallback, tab);
         if (wv == null) return;
+        syncIncognitoState(tab);
+        cancelPendingPermissionRequest();
+        cancelPendingGeolocationRequest();
         // 同步 URL 栏和起始页显示状态
         String currentUrl = controller.getCurrentUrl();
         if (currentUrl != null && !currentUrl.isEmpty() && !isReaderModeUrl(currentUrl)) {
@@ -1388,27 +1831,29 @@ public class BrowserFragment extends Fragment implements
             showHomePage();
             etUrl.setText("");
         }
-        // 重新绑定手势监听（新 WebView 需要）
-        if (gestureHelper != null) {
-            try {
-                wv.setOnTouchListener((v, event) -> {
-                    boolean consumed = gestureHelper.onTouch(event);
-                    return consumed || false;
-                });
-            } catch (Throwable ignored) {}
-        }
-        // A6: 切换 Tab 后重新绑定 Find-In-Page / Reader-Mode 到新 WebView
-        // 阅读模式是按 WebView 的状态，切换后先退出旧 Tab 的阅读模式再重绑
+        rebindHelpers(wv);
+    }
+
+    /**
+     * Single rebind point for helpers whose callbacks are attached to one concrete
+     * WebView. Any path that changes the active tab must call this method.
+     */
+    @Override
+    public void rebindHelpers(@NonNull WebView webView) {
+        bindGestureNavigation(webView, getView());
+        // 阅读模式是按 WebView 的状态，切换后先退出旧 Tab 的阅读模式再重绑。
         if (readerModeHelper != null && readerModeHelper.isActive()) {
             readerModeHelper.exitReaderMode();
         }
         if (findInPageHelper != null) {
-            findInPageHelper.bind(wv, etFindQuery, tvFindMatchCount,
+            findInPageHelper.bind(webView, etFindQuery, tvFindMatchCount,
                     btnFindPrev, btnFindNext, btnFindClose, findInPageHostCallback);
         }
         if (readerModeHelper != null) {
-            readerModeHelper.bind(wv, readerModeCallback);
+            readerModeHelper.bind(webView, readerModeCallback);
         }
+        // 内置播放器：接管态绑定的是旧 Tab 的 DOM，必须重绑到新 WebView
+        bindVideoPlayerToActiveWebView();
     }
 
     /** 根据 tabId 查找 Tab 对象。 */
@@ -1442,10 +1887,12 @@ public class BrowserFragment extends Fragment implements
         new AlertDialog.Builder(requireContext())
             .setTitle(R.string.browser_tab_manager_title)
             .setSingleChoiceItems(tabTitles, checkedItem, (dialog, which) -> {
-                tabManager.switchTab(tabs.get(which).getId());
                 dialog.dismiss();
                 BrowserTabManager.Tab selected = tabs.get(which);
-                if (controller != null && selected.getUrl() != null) {
+                if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                    switchToTabById(selected.getId());
+                } else if (controller != null && selected.getUrl() != null) {
+                    tabManager.switchTab(selected.getId());
                     controller.loadUrl(selected.getUrl());
                     etUrl.setText(selected.getUrl());
                 }
@@ -1453,8 +1900,12 @@ public class BrowserFragment extends Fragment implements
             .setPositiveButton(R.string.browser_tab_new, (d, w) -> {
                 BrowserTabManager.Tab newTab = tabManager.createTab(null);
                 if (newTab != null && controller != null) {
-                    controller.loadUrl(controller.getDefaultHomeUrl());
-                    etUrl.setText(controller.getDefaultHomeUrl());
+                    if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                        switchToTabById(newTab.getId());
+                    } else {
+                        controller.loadUrl(controller.getDefaultHomeUrl());
+                        etUrl.setText(controller.getDefaultHomeUrl());
+                    }
                 }
             })
             .setNeutralButton(R.string.browser_tab_close_current, (d, w) -> {
@@ -1462,8 +1913,12 @@ public class BrowserFragment extends Fragment implements
                     tabManager.closeTab(current.getId());
                     BrowserTabManager.Tab next = tabManager.getCurrentTab();
                     if (next != null && next.getUrl() != null && controller != null) {
-                        controller.loadUrl(next.getUrl());
-                        etUrl.setText(next.getUrl());
+                        if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                            switchToTabById(next.getId());
+                        } else {
+                            controller.loadUrl(next.getUrl());
+                            etUrl.setText(next.getUrl());
+                        }
                     } else if (controller != null) {
                         controller.loadUrl(controller.getDefaultHomeUrl());
                         etUrl.setText(controller.getDefaultHomeUrl());
@@ -1481,7 +1936,7 @@ public class BrowserFragment extends Fragment implements
         final String historyUrl = url;
         final String historyTitle = currentTitle;
         final Context ctx = getContext().getApplicationContext();
-        ioExecutor.execute(() -> {
+        submitIo(() -> {
             try {
                 BrowserHistoryEntity existing = BrowserDatabase.getInstance(ctx)
                         .historyDao().getByUrl(historyUrl);
@@ -1505,6 +1960,11 @@ public class BrowserFragment extends Fragment implements
     @Override
     public void onPageStarted(@Nullable String tabId, String url, Bitmap favicon) {
         if (!isCallbackForActiveTab(tabId)) return; // 后台 Tab 的加载事件不得驱动前台 UI
+        cancelPendingPermissionRequest();
+        cancelPendingGeolocationRequest();
+        // A navigation invalidates the previous page's video state and native overlay.
+        // Otherwise the next page could inherit a stale entry/control surface.
+        if (videoController != null) bindVideoPlayerToActiveWebView();
         isLoading = true;
         hasPageError = false;
         // 阅读模式时 about:blank 不更新地址栏
@@ -1563,6 +2023,9 @@ public class BrowserFragment extends Fragment implements
         }
         updateBookmarkIcon();
 
+        // 内置播放器：页面加载完成立即探测一次，省去等待下一个探测周期
+        if (videoController != null) videoController.probeOnce();
+
         // 更新当前标签页信息
         if (tabManager != null && controller != null && !isReaderModeUrl(url)) {
             BrowserTabManager.Tab currentTab = tabManager.getCurrentTab();
@@ -1574,8 +2037,10 @@ public class BrowserFragment extends Fragment implements
 
     /** 判断回调事件是否属于当前前台 Tab（单 WebView 模式 tabId 为 null，恒视为前台）。 */
     private boolean isCallbackForActiveTab(@Nullable String tabId) {
-        return tabId == null || controller == null
-                || tabId.equals(controller.getActiveTabId());
+        // controller == null 代表 View 已销毁；迟到的 Chromium 回调不能再驱动
+        // 新一轮 View 的 UI、历史或播放器状态。
+        return controller != null && (tabId == null
+                || tabId.equals(controller.getActiveTabId()));
     }
 
     /** 阅读模式触发 about:blank 加载时跳过历史/书签/JSBridge 处理 */
@@ -1611,6 +2076,110 @@ public class BrowserFragment extends Fragment implements
         Toast.makeText(getContext(), getString(resId, formatArgs), Toast.LENGTH_SHORT).show();
     }
 
+    /**
+     * Submit work tied to the current Fragment view lifecycle.
+     *
+     * <p>The view can be destroyed and later recreated on the same Fragment instance.
+     * Keeping a final executor made the second view throw RejectedExecutionException;
+     * keeping a process-lifetime executor leaked a Fragment-owned worker. The worker is
+     * now recreated per view and submissions after teardown are ignored.
+     */
+    private void submitIo(@NonNull Runnable task) {
+        synchronized (ioExecutorLock) {
+            if (!viewActive) return;
+            if (ioExecutor == null || ioExecutor.isShutdown()) {
+                ioExecutor = Executors.newSingleThreadExecutor();
+            }
+            try {
+                ioExecutor.execute(task);
+            } catch (RejectedExecutionException ignored) {
+                // A teardown can race with a final callback; the view is already gone.
+            }
+        }
+    }
+
+    /** Invalidate a pending media permission when its WebView/view lifecycle changes. */
+    private void cancelPendingPermissionRequest() {
+        mediaPermissionInFlight = false;
+        permissionGeneration++;
+        PermissionRequest request = pendingPermissionRequest;
+        clearPendingPermissionRequest();
+        if (request != null) denyPermissionRequest(request);
+    }
+
+    /** 取消并拒绝当前地理位置请求，防止旧页面/旧 Fragment 回调泄漏到新页面。 */
+    private void cancelPendingGeolocationRequest() {
+        geolocationGeneration++;
+        android.webkit.GeolocationPermissions.Callback callback = pendingGeolocationCallback;
+        String origin = pendingGeolocationOrigin;
+        clearPendingGeolocationRequest();
+        if (callback != null) {
+            try { callback.invoke(origin != null ? origin : "", false, false); }
+            catch (Throwable ignored) {}
+        }
+    }
+
+    private void clearPendingGeolocationRequest() {
+        if (pendingGeolocationDialog != null) {
+            try { pendingGeolocationDialog.dismiss(); } catch (Throwable ignored) {}
+            pendingGeolocationDialog = null;
+        }
+        pendingGeolocationCallback = null;
+        pendingGeolocationOrigin = null;
+        pendingGeolocationTabId = null;
+    }
+
+    /** 仅允许当前代次的地理位置对话框回写 WebView；过期请求一律拒绝。 */
+    private void resolveGeolocationRequest(
+            @NonNull android.webkit.GeolocationPermissions.Callback callback,
+            @NonNull String origin,
+            @Nullable String requestTabId,
+            int requestGeneration,
+            boolean allow) {
+        if (callback != pendingGeolocationCallback
+                || pendingGeolocationOrigin == null
+                || !origin.equals(pendingGeolocationOrigin)
+                || (requestTabId == null
+                    ? pendingGeolocationTabId != null
+                    : !requestTabId.equals(pendingGeolocationTabId))) {
+            return; // 已由生命周期取消并拒绝，避免二次 invoke
+        }
+        String activeTabId = controller != null ? controller.getActiveTabId() : null;
+        boolean current = requestGeneration == geolocationGeneration
+                && isAdded() && isResumed() && getView() != null && controller != null;
+        current = current && (requestTabId == null
+                ? activeTabId == null : requestTabId.equals(activeTabId));
+        clearPendingGeolocationRequest();
+        try {
+            callback.invoke(origin, current && allow, false);
+        } catch (Throwable ignored) {}
+    }
+
+    private void clearPendingPermissionRequest() {
+        if (pendingPermissionDialog != null) {
+            try { pendingPermissionDialog.dismiss(); } catch (Throwable ignored) {}
+            pendingPermissionDialog = null;
+        }
+        pendingPermissionRequest = null;
+        pendingPermissionWebView = null;
+        pendingPermissionTabId = null;
+        pendingPermissionGeneration = -1;
+    }
+
+    private boolean isCurrentPermissionRequest(@Nullable WebView requestWebView,
+                                               @Nullable String requestTabId,
+                                               int requestGeneration) {
+        if (!isAdded() || !isResumed() || getView() == null || controller == null) return false;
+        if (requestGeneration != permissionGeneration) return false;
+        if (requestWebView == null || requestWebView != controller.getWebView()) return false;
+        String currentTabId = controller.getActiveTabId();
+        return requestTabId == null ? currentTabId == null : requestTabId.equals(currentTabId);
+    }
+
+    private void denyPermissionRequest(@NonNull PermissionRequest request) {
+        try { request.deny(); } catch (Throwable ignored) {}
+    }
+
     @Override
     public void onTitleChanged(@Nullable String tabId, String title) {
         if (isCallbackForActiveTab(tabId)) currentTitle = title;
@@ -1631,20 +2200,28 @@ public class BrowserFragment extends Fragment implements
     @Override
     public void onResume() {
         super.onResume();
+        if (videoController != null) videoController.startProbing();
         if (controller != null && getContext() != null) {
             controller.onResume(getContext());
             // P1-1：onResume 时重新应用设置，确保系统夜间模式变化后
             // 自动模式（DARK_MODE_AUTO）能正确刷新 WebView 的 forceDark 状态
             controller.applySettings(getContext());
-        } else if (controller != null) {
-            controller.onResume(requireContext());
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        // Launching the Android runtime permission dialog can itself pause this
+        // Activity. Keep the WebView request alive until ActivityResult returns;
+        // real navigation/tab/view teardown still cancels it through the other
+        // lifecycle paths (and onDestroyView always cancels unconditionally).
+        if (!mediaPermissionInFlight) cancelPendingPermissionRequest();
+        cancelPendingGeolocationRequest();
         if (controller != null) controller.onPause();
+        // 内置播放器：手指可能还按在屏幕上（切模块/锁屏），必须撤销倍速；同时停止探测省电
+        if (playerOverlay != null) playerOverlay.cancelGestures();
+        if (videoController != null) videoController.stopProbing();
         // P0：切走/锁屏/切换模块时强制收起 URL Bar 建议 popup 与搜索引擎选择 popup，
         // 避免 PopupWindow 作为系统浮窗在 Fragment 不可见后仍覆盖其他模块。
         // [BUGFIX-2026-08-27] Bug2：递增会话代次，使所有在飞的异步查询回调在返回时作废。
@@ -1659,6 +2236,11 @@ public class BrowserFragment extends Fragment implements
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
         if (hidden) {
+            if (!mediaPermissionInFlight) cancelPendingPermissionRequest();
+            cancelPendingGeolocationRequest();
+            // 内置播放器：切走模块时撤销长按倍速并停止探测
+            if (playerOverlay != null) playerOverlay.cancelGestures();
+            if (videoController != null) videoController.stopProbing();
             // P0：Fragment 被 hide（底部导航切换标签）时，PopupWindow 不会随视图隐藏，必须主动关闭。
             // [BUGFIX-2026-08-27] Bug2：递增会话代次，使所有在飞的异步查询回调在返回时作废。
             suggestionSessionId++;
@@ -1711,6 +2293,17 @@ public class BrowserFragment extends Fragment implements
 
     @Override
     public void onDestroyView() {
+        cancelPendingPermissionRequest();
+        cancelPendingGeolocationRequest();
+        if (filePathCallback != null) {
+            try { filePathCallback.onReceiveValue(null); } catch (Throwable ignored) {}
+            filePathCallback = null;
+        }
+        if (customView != null) {
+            // 文件选择器/全屏回调都可能晚于 View 生命周期返回；先释放
+            // 自定义视图和 Activity 全屏状态，再销毁 WebView。
+            hideCustomView();
+        }
         if (getContext() != null) {
             BrowserSettingsManager.getInstance(getContext()).removeListener(this);
         }
@@ -1724,32 +2317,56 @@ public class BrowserFragment extends Fragment implements
         if (findInPageHelper != null) { findInPageHelper.destroy(); findInPageHelper = null; }
         if (readerModeHelper != null) { readerModeHelper.destroy(); readerModeHelper = null; }
         gestureHelper = null;
-        urlInputHelper = null;
+        if (urlInputHelper != null) {
+            urlInputHelper.destroy();
+            urlInputHelper = null;
+        }
         // P0 内存泄漏修复：清理 BrowserHomeHelper（之前完全遗漏，导致 View 树和站点图标 Bitmap 无法回收）
         if (homeHelper != null) { homeHelper.destroy(); homeHelper = null; }
+        // 内置播放器：先拆 UI（依赖 controller），再还原页面 DOM，最后销毁 controller。
+        // 顺序不能反：releaseTakeOver 需要 WebView 还在，否则被接管的 video 元素
+        // 会永久停留在 body 末尾并保持 fixed 铺满样式。
+        if (playerOverlay != null) { playerOverlay.destroy(); playerOverlay = null; }
+        if (videoController != null) {
+            // H-5：销毁前把最终播放进度同步落盘（worker 即将被 shutdownNow）
+            recordPlayProgressSync(videoController.getState());
+            videoController.releaseTakeOver();
+            videoController.destroy();
+            videoController = null;
+        }
+        playHistoryStore = null;
+        pendingResumeUrl = null;
         if (controller != null) { controller.destroy(); controller = null; }
         if (getContext() != null) {
             BrowserDownloadManager.getInstance(getContext()).shutdown();
         }
         // P0 内存泄漏修复：兜底清理所有 mainHandler 延迟任务（含 pendingRefreshPrompt 等）
         mainHandler.removeCallbacksAndMessages(null);
-        // P0 内存泄漏修复：关闭 ioExecutor，避免线程常驻并阻止 Fragment 回收
-        if (!ioExecutor.isShutdown()) {
-            ioExecutor.shutdownNow();
+        // P0 内存泄漏修复：关闭当前 View 的 IO worker；下一次 onViewCreated
+        // 会创建新的 worker，避免同一 Fragment 重建后提交到已关闭线程池。
+        synchronized (ioExecutorLock) {
+            viewActive = false;
+            ExecutorService executor = ioExecutor;
+            ioExecutor = null;
+            if (executor != null && !executor.isShutdown()) {
+                executor.shutdownNow();
+            }
         }
         super.onDestroyView();
     }
 
     @Override
     public void onSettingsChanged(int reloadRequired) {
+        applyVideoPlayerSettings();
         if (controller != null && getContext() != null) {
             controller.applySettings(getContext());
             if (reloadRequired == BrowserSettingsManager.RELOAD_REQUIRED && !pendingRefreshPrompt) {
                 pendingRefreshPrompt = true;
                 mainHandler.postDelayed(() -> {
                     pendingRefreshPrompt = false;
-                    if (controller != null && isAdded()) {
-                        new AlertDialog.Builder(requireContext())
+                    Context context = getContext();
+                    if (controller != null && isAdded() && context != null) {
+                        new AlertDialog.Builder(context)
                             .setTitle(R.string.browser_settings_changed_title)
                             .setMessage(R.string.browser_settings_changed_message)
                             .setPositiveButton(R.string.browser_settings_changed_refresh, (d, w) -> {
@@ -1808,7 +2425,7 @@ public class BrowserFragment extends Fragment implements
             } catch (Exception e) {
                 callback.onReceiveValue(null);
                 filePathCallback = null;
-                Toast.makeText(requireContext(), R.string.browser_file_chooser_error, Toast.LENGTH_SHORT).show();
+                safeToast(R.string.browser_file_chooser_error);
             }
         });
 
@@ -1839,21 +2456,54 @@ public class BrowserFragment extends Fragment implements
         // 网页权限
         chromeClient.setPermissionCallback(new BrowserChromeClient.PermissionCallback() {
             @Override
-            public void onGeolocationPermissionRequest(String origin,
+            public void onGeolocationPermissionRequest(@Nullable String requestTabId,
+                    String origin,
                     android.webkit.GeolocationPermissions.Callback callback) {
-                new AlertDialog.Builder(requireContext())
+                if (callback == null) return;
+                if (origin == null || controller == null
+                        || (requestTabId != null && !requestTabId.equals(controller.getActiveTabId()))
+                        || !isAdded() || !isResumed()
+                        || getView() == null || getContext() == null) {
+                    try { callback.invoke(origin != null ? origin : "", false, false); }
+                    catch (Throwable ignored) {}
+                    return;
+                }
+                // 只保留一个待处理请求；新请求到达时旧请求被明确拒绝，避免
+                // 两个对话框交错回写同一个 WebView 的地理权限状态。
+                cancelPendingGeolocationRequest();
+                final int requestGeneration = geolocationGeneration;
+                pendingGeolocationCallback = callback;
+                pendingGeolocationOrigin = origin;
+                pendingGeolocationTabId = requestTabId;
+                pendingGeolocationDialog = new AlertDialog.Builder(getContext())
                     .setTitle(R.string.browser_permission_location_title)
                     .setMessage(getString(R.string.browser_permission_location_message, origin))
                     .setPositiveButton(R.string.browser_permission_allow, (d, w) ->
-                        callback.invoke(origin, true, false))
+                        resolveGeolocationRequest(callback, origin, requestTabId, requestGeneration, true))
                     .setNegativeButton(R.string.browser_permission_deny, (d, w) ->
-                        callback.invoke(origin, false, false))
-                    .setOnCancelListener(d -> callback.invoke(origin, false, false))
-                    .show();
+                        resolveGeolocationRequest(callback, origin, requestTabId, requestGeneration, false))
+                    .create();
+                pendingGeolocationDialog.setOnCancelListener(d ->
+                    resolveGeolocationRequest(callback, origin, requestTabId, requestGeneration, false));
+                pendingGeolocationDialog.show();
             }
 
             @Override
-            public void onPermissionRequest(android.webkit.PermissionRequest request) {
+            public void onPermissionRequest(@Nullable String requestTabId,
+                    android.webkit.PermissionRequest request) {
+                if (request == null || !isAdded() || !isResumed()
+                        || getView() == null || controller == null
+                        || controller.getWebView() == null
+                        || (requestTabId != null && !requestTabId.equals(controller.getActiveTabId()))) {
+                    if (request != null) denyPermissionRequest(request);
+                    return;
+                }
+                // A second prompt must not replace the request currently waiting for
+                // the system permission dialog; deny it deterministically.
+                if (pendingPermissionRequest != null) {
+                    denyPermissionRequest(request);
+                    return;
+                }
                 String[] resources = request.getResources();
                 java.util.List<String> permissions = new java.util.ArrayList<>();
                 boolean needsCamera = false;
@@ -1873,7 +2523,7 @@ public class BrowserFragment extends Fragment implements
                 // 先检查是否已授予运行时权限
                 boolean allGranted = true;
                 for (String perm : permissions) {
-                    if (ContextCompat.checkSelfPermission(requireContext(), perm) != PackageManager.PERMISSION_GRANTED) {
+                    if (ContextCompat.checkSelfPermission(getContext(), perm) != PackageManager.PERMISSION_GRANTED) {
                         allGranted = false;
                         break;
                     }
@@ -1887,16 +2537,34 @@ public class BrowserFragment extends Fragment implements
                 sb.append(getString(R.string.browser_permission_media_message)).append("\n");
                 if (needsCamera) sb.append("- ").append(getString(R.string.browser_permission_camera)).append("\n");
                 if (needsAudio) sb.append("- ").append(getString(R.string.browser_permission_microphone)).append("\n");
-                new AlertDialog.Builder(requireContext())
+                final WebView requestWebView = controller.getWebView();
+                final int requestGeneration = permissionGeneration;
+                pendingPermissionRequest = request;
+                pendingPermissionWebView = requestWebView;
+                pendingPermissionTabId = requestTabId;
+                pendingPermissionGeneration = requestGeneration;
+
+                pendingPermissionDialog = new AlertDialog.Builder(getContext())
                     .setTitle(R.string.browser_permission_media_title)
                     .setMessage(sb.toString().trim())
                     .setPositiveButton(R.string.browser_permission_allow, (d, w) -> {
-                        pendingPermissionRequest = request;
-                        mediaPermissionLauncher.launch(permissions.toArray(new String[0]));
+                        if (!isCurrentPermissionRequest(requestWebView, requestTabId, requestGeneration)) {
+                            cancelPendingPermissionRequest();
+                            return;
+                        }
+                        try {
+                            mediaPermissionInFlight = true;
+                            mediaPermissionLauncher.launch(permissions.toArray(new String[0]));
+                        } catch (RuntimeException e) {
+                            mediaPermissionInFlight = false;
+                            cancelPendingPermissionRequest();
+                        }
                     })
-                    .setNegativeButton(R.string.browser_permission_deny, (d, w) -> request.deny())
-                    .setOnCancelListener(d -> request.deny())
-                    .show();
+                    .setNegativeButton(R.string.browser_permission_deny,
+                            (d, w) -> cancelPendingPermissionRequest())
+                    .create();
+                pendingPermissionDialog.setOnCancelListener(d -> cancelPendingPermissionRequest());
+                pendingPermissionDialog.show();
             }
         });
     }

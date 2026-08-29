@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="@dimen/gm_spacing_3"
+    android:paddingTop="@dimen/gm_spacing_1"
+    android:paddingEnd="@dimen/gm_spacing_3"
+    android:paddingBottom="@dimen/gm_spacing_1">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="@color/ai_chat_system_container"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
+
+        <TextView
+            android:id="@+id/tv_msg_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:lineSpacingExtra="2dp"
+            android:maxWidth="@dimen/ai_chat_assistant_max_width"
+            android:paddingStart="@dimen/gm_spacing_3"
+            android:paddingTop="@dimen/gm_spacing_2"
+            android:paddingEnd="@dimen/gm_spacing_3"
+            android:paddingBottom="@dimen/gm_spacing_2"
+            android:textColor="@color/ai_chat_system_content"
+            android:textSize="13sp"
+            tools:text="系统提示消息" />
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>

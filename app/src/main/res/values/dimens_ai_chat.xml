@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="ai_chat_user_max_width">340dp</dimen>
+    <dimen name="ai_chat_assistant_max_width">720dp</dimen>
+    <dimen name="ai_chat_avatar_size">32dp</dimen>
+    <dimen name="ai_chat_composer_radius">24dp</dimen>
+</resources>

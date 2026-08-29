@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.gamecenter.app.ai.cloud.AiApiClient;
+import com.gamecenter.app.ai.bridge.CoreAiService;
 import com.gamecenter.app.ai.data.AiErrorCode;
 import com.gamecenter.app.ai.data.AiProviderConfig;
 import com.gamecenter.app.ai.data.AiResult;
@@ -23,20 +24,20 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * AI 功能调度中心 — 决定任务走本地还是云端，管理任务生命周期。
  * <p>
  * 你可以把这个类想象成一个"快递调度站"：
- * 当你提交一个 AI 任务（比如"帮我翻译这段话"），调度站要决定是让"本地快递员"（本地规则引擎/本地模型）
- * 来处理，还是交给"远方仓库"（云端 API）来处理。优先用本地的，因为又快又免费；
- * 本地搞不定的才走云端，因为云端更强大但要花额度。
+ * 当你提交一个 AI 任务（比如"帮我翻译这段话"），调度站会按本次请求的边界选择
+ * "本地快递员"（本地规则引擎/本地模型）或"远方仓库"（云端 API）。
+ * 本地模式不会因为失败而暗中改走云端，云端模式也不会先触碰本地输入。
  * <p>
  * 核心设计决策：
  * <ul>
- *   <li>遵循「本地优先」（Local First）策略：优先尝试本地规则引擎和本地 LLM（Gemma）处理，
- *       仅在本地无法胜任时才回退到云端 API，从而减少网络依赖和 API 消耗。</li>
+ *   <li>遵循请求级路由边界：LOCAL_ONLY 只尝试本地，CLOUD_ONLY 只在已获授权后调用云端。</li>
  *   <li>使用双线程池架构：高优先级池处理轻量任务（规则引擎/云端API），低优先级池处理重量任务（本地LLM推理），
  *       避免本地LLM推理阻塞其他任务。</li>
  *   <li>结果通过 {@link Handler} 回调到主线程，保证 UI 更新安全。</li>
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   <li>支持外部注入 ExecutorService，便于统一线程模型管理。</li>
  * </ul>
  * <p>
- * 路由优先级：本地 LLM（Gemma）→ 本地规则引擎 → 云端 API
+ * 本地路径优先级：本地 LLM（Gemma）→ 本地规则引擎；云端路径单独执行。
  */
 public class AiTaskRouter {
 
@@ -59,9 +60,13 @@ public class AiTaskRouter {
     private final AiModelDownloadManager modelDownloadManager;
     private final MediaPipeLocalLlmEngine localLlmEngine;
 
-    private int totalTasks = 0;
-    private int localTasks = 0;
-    private int cloudTasks = 0;
+    private final AtomicInteger totalTasks = new AtomicInteger();
+    private final AtomicInteger localTasks = new AtomicInteger();
+    private final AtomicInteger cloudTasks = new AtomicInteger();
+    /** Number of submitted router tasks that have not reached a terminal path. */
+    private final AtomicInteger inFlightTasks = new AtomicInteger();
+    /** Set during Fragment teardown; prevents new work and defers engine close. */
+    private final AtomicBoolean shutdownRequested = new AtomicBoolean();
 
     /**
      * 构造调度器，初始化所有依赖组件（使用统一线程管理器）。
@@ -144,52 +149,113 @@ public class AiTaskRouter {
      * @return 已创建的 {@link AiTask} 对象，可用于跟踪任务状态
      */
     public AiTask submitTask(String taskType, String input, AiCallback callback) {
-        AiTask task = new AiTask(taskType, input);
-        totalTasks++;
-        executeTask(task, callback);
+        AiRoutingMode mode = aiPrefs.isLocalFirst()
+                ? AiRoutingMode.LOCAL_ONLY
+                : AiRoutingMode.CLOUD_ONLY;
+        return submitTask(taskType, input, mode, callback);
+    }
+
+    /**
+     * 提交一个带有明确路由模式的 AI 任务。
+     *
+     * <p>路由模式在提交瞬间冻结，避免用户在请求执行期间切换设置后，
+     * 同一请求从本地路径意外变成网络请求。</p>
+     *
+     * @param taskType 任务类型标识
+     * @param input 用户输入
+     * @param routingMode 本次请求允许使用的处理边界
+     * @param callback 结果回调，可为 null
+     * @return 已创建的任务
+     */
+    public AiTask submitTask(String taskType, String input,
+                             AiRoutingMode routingMode, AiCallback callback) {
+        String safeTaskType = taskType == null || taskType.trim().isEmpty()
+                ? AiTaskCatalog.CHAT
+                : taskType.trim();
+        String safeInput = input == null ? "" : input;
+        AiTask task = new AiTask(safeTaskType, safeInput);
+        totalTasks.incrementAndGet();
+        AiRoutingMode mode = routingMode == null ? AiRoutingMode.LOCAL_ONLY : routingMode;
+        executeTask(task, mode, callback);
         return task;
     }
 
     /**
-     * 执行任务路由：先尝试本地处理，本地无法处理再走云端。
-     * <p>
-     * 路由决策流程（就像看病先去社区诊所，不行再去大医院）：
-     * <ol>
-     *   <li>尝试本地处理（本地 LLM + 规则引擎）</li>
-     *   <li>检查网络可用性</li>
-     *   <li>检查每日免费额度</li>
-     *   <li>检查 API Key 是否已配置</li>
-     *   <li>调用云端 API</li>
-     * </ol>
+     * 执行任务路由。路由模式在提交时冻结，防止隐私边界在异步执行期间漂移。
+     * <p>LOCAL_ONLY 在本地能力不足时返回带错误码的失败结果；CLOUD_ONLY 跳过本地路径，
+     * 依次检查网络、额度、API Key 后再调用云端。</p>
      *
      * @param task     待执行的任务
      * @param callback 结果回调
      */
-    private void executeTask(AiTask task, AiCallback callback) {
+    private void executeTask(AiTask task, AiRoutingMode routingMode, AiCallback callback) {
+        if (shutdownRequested.get()) {
+            task.status = TaskStatus.FAILED;
+            task.output = "AI 任务路由器已关闭";
+            postResult(callback, task,
+                    AiResult.fail(task.output).source("local").build());
+            return;
+        }
+
         // 根据任务类型选择合适的线程池
         // 本地LLM推理是耗时任务，使用低优先级线程池，避免阻塞其他快速任务
-        boolean isLlmTask = aiPrefs.isLocalFirst() && isLocalLlmCandidate(task);
+        boolean isLlmTask = routingMode == AiRoutingMode.LOCAL_ONLY && isLocalLlmCandidate(task);
         ExecutorService targetExecutor = isLlmTask ? lowPriorityExecutor : highPriorityExecutor;
 
         // 把任务提交到后台线程池执行，避免阻塞主线程（主线程负责 UI，不能做耗时操作）
-        targetExecutor.execute(() -> {
-            task.status = TaskStatus.RUNNING;
+        inFlightTasks.incrementAndGet();
+        if (shutdownRequested.get()) {
+            finishInFlightTask();
+            task.status = TaskStatus.FAILED;
+            task.output = "AI 任务路由器已关闭";
+            postResult(callback, task,
+                    AiResult.fail(task.output).source("local").build());
+            return;
+        }
+        try {
+            targetExecutor.execute(() -> {
+                try {
+                    task.status = TaskStatus.RUNNING;
 
-            // 第1步：尝试本地优先处理（本地 LLM 或规则引擎）
-            AiResult localResult = tryLocalProcessing(task);
+            if ("mini-game".equals(task.taskType)) {
+                // Mini-game rules are local and synchronous internally, but
+                // this branch is already on the router executor, never the UI
+                // thread. It therefore shares the same callback lifecycle as
+                // every other assistant task.
+                AiResult miniGameResult = tryMiniGame(task);
+                if (miniGameResult.success) {
+                    task.output = miniGameResult.content;
+                    task.status = TaskStatus.COMPLETED;
+                    task.costLevel = 0;
+                    localTasks.incrementAndGet();
+                } else {
+                    task.output = miniGameResult.message;
+                    task.status = TaskStatus.FAILED;
+                }
+                postResult(callback, task, miniGameResult);
+                return;
+            }
+
+            // 第1步：只在明确的本地模式下尝试本地处理。
+            // CLOUD_ONLY 必须跳过本地路径，LOCAL_ONLY 绝不进入网络路径。
+            AiResult localResult = tryLocalProcessing(task, routingMode);
             if (localResult != null) {
                 // 本地处理有结果了
                 if (localResult.success) {
                     task.output = localResult.content;
                     task.status = TaskStatus.COMPLETED;
                     task.costLevel = 0; // 本地处理零成本（不消耗云端额度）
-                    localTasks++;
+                    localTasks.incrementAndGet();
                     postResult(callback, task, localResult);
                     return; // 本地处理成功，直接返回
+                } else if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+                    // 无论是模型未下载、内存不足还是推理异常，本地模式都
+                    // 必须返回统一的可恢复错误，不能静默升级为网络请求。
+                    postLocalOnlyUnavailable(callback, task, localResult.message);
+                    return;
                 } else if (shouldFallbackToCloud(localResult)) {
-                    // 本地处理失败但应该回退到云端（如LLM输出退化）
-                    Log.w(TAG, "Local processing failed, falling back to cloud: " + localResult.message);
-                    // 继续执行后续步骤，尝试云端
+                    // 目前 CLOUD_ONLY 不会进入本地路径；保留日志以防未来增加自动模式时遗漏边界。
+                    Log.w(TAG, "Local processing failed before cloud routing: " + localResult.message);
                 } else {
                     // 本地处理失败，不需要回退到云端
                     task.output = localResult.message;
@@ -197,6 +263,12 @@ public class AiTaskRouter {
                     postResult(callback, task, localResult);
                     return;
                 }
+            }
+
+            if (routingMode == AiRoutingMode.LOCAL_ONLY) {
+                postLocalOnlyUnavailable(callback, task,
+                        "当前任务没有可用的本地处理能力。切换到云端模式并确认后可继续。");
+                return;
             }
 
             // 第2步：本地无法处理，检查网络可用性
@@ -247,13 +319,13 @@ public class AiTaskRouter {
                 if (result.success) {
                     task.output = result.content;
                     task.status = TaskStatus.COMPLETED;
-                    cloudTasks++;
+                    cloudTasks.incrementAndGet();
                     aiPrefs.incrementUsage(); // 消耗一次免费额度
                     postResult(callback, task, result);
                 } else {
                     task.status = TaskStatus.FAILED;
                     task.output = result.message;
-                    cloudTasks++;
+                    cloudTasks.incrementAndGet();
                     postResult(callback, task, result);
                 }
             } catch (Exception e) {
@@ -263,7 +335,20 @@ public class AiTaskRouter {
                 postResult(callback, task,
                         AiResult.fail(task.output).errorCode(AiErrorCode.NETWORK_ERROR).build());
             }
-        });
+                } finally {
+                    finishInFlightTask();
+                }
+            });
+        } catch (RuntimeException error) {
+            finishInFlightTask();
+            throw error;
+        }
+    }
+
+    private void finishInFlightTask() {
+        if (inFlightTasks.decrementAndGet() == 0 && shutdownRequested.get()) {
+            localLlmEngine.close();
+        }
     }
 
     /**
@@ -278,9 +363,9 @@ public class AiTaskRouter {
     }
 
     /**
-     * 判断本地处理失败后是否应该回退到云端。
+     * 判断某类本地失败是否属于“如果未来引入自动模式，可以考虑回退”的类型。
      * <p>
-     * 以下情况应该回退到云端：
+     * 以下情况具有可回退语义，但当前 LOCAL_ONLY 仍不会自动联网：
      * <ul>
      *   <li>本地LLM输出退化（乱码、重复、无意义内容）</li>
      *   <li>本地LLM推理失败（模型加载失败等）</li>
@@ -292,7 +377,7 @@ public class AiTaskRouter {
      * </ul>
      *
      * @param localResult 本地处理结果
-     * @return 是否应该回退到云端
+     * @return 是否属于可回退失败类型
      */
     private boolean shouldFallbackToCloud(AiResult localResult) {
         if (localResult.success) {
@@ -304,25 +389,48 @@ public class AiTaskRouter {
     }
 
     /**
+     * 将本地模式下的“本地无法完成”转换成明确的、不可联网的结果。
+     */
+    private void postLocalOnlyUnavailable(AiCallback callback, AiTask task, String detail) {
+        String suffix = detail == null || detail.trim().isEmpty() ? "" : "\n" + detail.trim();
+        task.status = TaskStatus.FAILED;
+        task.output = "本地模式未上传数据，无法完成本次请求。请切换到云端模式并确认后重试。" + suffix;
+        postResult(callback, task,
+                AiResult.fail(task.output)
+                        .source("local")
+                        .errorCode(AiErrorCode.LOCAL_ONLY_UNAVAILABLE)
+                        .build());
+    }
+
+    private AiResult tryMiniGame(AiTask task) {
+        String[] parts = task.input == null ? new String[0] : task.input.split(";", 2);
+        String gameId = parts.length > 0 ? parts[0].trim() : "";
+        String gameInput = parts.length > 1 ? parts[1].trim() : "";
+        try {
+            String result = CoreAiService.getInstance(appContext)
+                    .evaluateMiniGameSync(gameId, gameInput);
+            return AiResult.success(result).source("local").build();
+        } catch (Throwable error) {
+            Log.e(TAG, "Mini-game task failed", error);
+            return AiResult.fail("小游戏处理失败: " + error.getMessage())
+                    .source("local")
+                    .errorCode(AiErrorCode.LOCAL_LLM_ERROR)
+                    .build();
+        }
+    }
+
+    /**
      * 尝试本地处理任务。
      * <p>
-     * 处理优先级（就像看病先试偏方，不行再去医院）：
-     * <ol>
-     *   <li>若用户未开启「本地优先」，直接返回 null 跳过本地处理</li>
-     *   <li>尝试本地 LLM（Gemma）推理</li>
-     *   <li>根据任务类型匹配本地规则引擎处理</li>
-     *   <li>未知类型尝试指令识别后匹配规则</li>
-     * </ol>
-     * <p>
-     * 对于 translate/rewrite/qa 等任务，仅在未配置 API Key 时才使用本地兜底，
-     * 因为这些任务的本地处理质量远低于云端。
+     * 仅在 routingMode 为 LOCAL_ONLY 时尝试本地 LLM、规则引擎和指令识别；
+     * CLOUD_ONLY 直接返回 null，由调用方进入云端检查链。
      *
      * @param task 待处理的任务
      * @return 本地处理结果；若无法本地处理则返回 null，由调用方决定是否走云端
      */
-    private AiResult tryLocalProcessing(AiTask task) {
-        // 用户关闭了"本地优先"开关，直接跳过本地处理
-        if (!aiPrefs.isLocalFirst()) return null;
+    private AiResult tryLocalProcessing(AiTask task, AiRoutingMode routingMode) {
+        // CLOUD_ONLY 明确跳过本地处理；LOCAL_ONLY 才能进入本地路径。
+        if (routingMode != AiRoutingMode.LOCAL_ONLY) return null;
 
         // 优先尝试本地 LLM（如 Gemma3-1B），可处理更复杂的语义任务
         AiResult llmResult = tryLocalLlm(task);
@@ -340,17 +448,11 @@ public class AiTaskRouter {
                 // 简单摘要：提取前几行 + 含数字的行 + 短行
                 return LocalAiProcessor.simpleSummarize(task.input, 10);
             case "translate":
-                // 翻译任务仅在无 API Key 时使用本地兜底，有 Key 时交给云端获得更好质量
-                if (!aiPrefs.getApiKey().isEmpty()) return null;
                 return LocalAiProcessor.translateText(task.input);
             case "rewrite":
-                // 润色任务同翻译，仅无 Key 时本地兜底
-                if (!aiPrefs.getApiKey().isEmpty()) return null;
                 return LocalAiProcessor.polishText(task.input);
             case "qa":
             case "qa_pairs":
-                // 问答对生成同上，仅无 Key 时本地兜底
-                if (!aiPrefs.getApiKey().isEmpty()) return null;
                 return LocalAiProcessor.generateQaPairs(task.input, 5);
             case "keywords":
                 // 关键词提取：基于规则分词和停用词过滤
@@ -370,13 +472,10 @@ public class AiTaskRouter {
                         case "summarize":
                             return LocalAiProcessor.simpleSummarize(task.input, 10);
                         case "translate":
-                            if (!aiPrefs.getApiKey().isEmpty()) return null;
                             return LocalAiProcessor.translateText(task.input);
                         case "rewrite":
-                            if (!aiPrefs.getApiKey().isEmpty()) return null;
                             return LocalAiProcessor.polishText(task.input);
                         case "qa_pairs":
-                            if (!aiPrefs.getApiKey().isEmpty()) return null;
                             return LocalAiProcessor.generateQaPairs(task.input, 5);
                         case "keywords":
                             return LocalAiProcessor.extractKeywords(task.input);
@@ -543,9 +642,12 @@ public class AiTaskRouter {
         // 从偏好设置中获取所有可用的 AI 供应商列表
         List<AiProviderConfig> providers = AiPreferences.getAvailableProviders(appContext);
         // 遍历查找用户选择的供应商和模型组合
+        String selectedProvider = aiPrefs.getSelectedProvider();
+        String selectedModel = aiPrefs.getSelectedModel();
         for (AiProviderConfig p : providers) {
-            if (p.providerName.equals(aiPrefs.getSelectedProvider())
-                    && p.modelName.equals(aiPrefs.getSelectedModel())) {
+            if (p.enabled && !p.localOnly
+                    && p.providerName.equals(selectedProvider)
+                    && p.modelName.equals(selectedModel)) {
                 return p;
             }
         }
@@ -570,6 +672,7 @@ public class AiTaskRouter {
     private int estimateCost(String taskType) {
         switch (taskType) {
             case "ocr":
+            case "ocr_clean":
             case "summary":
             case "keywords":
             case "classify":
@@ -600,6 +703,7 @@ public class AiTaskRouter {
     private String buildPrompt(String taskType, String input) {
         switch (taskType) {
             case "ocr":
+            case "ocr_clean":
                 return "请对以下OCR识别结果进行清洗和格式化，修正错别字和乱码，保持原文结构：\n\n" + input;
             case "summary":
                 return "请对以下文本进行摘要，提取要点，简洁明了：\n\n" + input;
@@ -611,8 +715,8 @@ public class AiTaskRouter {
             case "qa":
                 return "请根据以下文本，生成5个问答对（问题和答案），用于复习和测试：\n\n" + input;
             case "chat":
-                // 闲聊模式的提示词特别加了"规则"约束，防止小模型胡说八道
-                return "你是一个运行在手机本地的中文 AI 助手。请用简体中文直接回答。\n"
+                // 通用提示词不宣称执行位置，避免云端模式继续使用端侧语境。
+                return "你是一个有用的中文 AI 助手。请用简体中文直接回答。\n"
                         + "规则：\n"
                         + "1. 不要复述用户输入。\n"
                         + "2. 不要输出无意义数字、乱码、重复字符或循环片段。\n"
@@ -650,9 +754,13 @@ public class AiTaskRouter {
      * </p>
      */
     public void shutdown() {
-        // 线程池由 AppExecutors 统一管理，不在此关闭
+        if (!shutdownRequested.compareAndSet(false, true)) return;
+        // 线程池由 AppExecutors 统一管理，不在此关闭。
+        // 等已提交任务结束后再关闭本地引擎，避免与 generate() 并发释放资源。
         modelDownloadManager.shutdown();
-        localLlmEngine.close();
+        if (inFlightTasks.get() == 0) {
+            localLlmEngine.close();
+        }
     }
 
     /**
@@ -663,7 +771,8 @@ public class AiTaskRouter {
      * @return 统计信息字符串
      */
     public String getStats() {
-        return String.format("总任务: %d | 本地: %d | 云端: %d", totalTasks, localTasks, cloudTasks);
+        return String.format("总任务: %d | 本地: %d | 云端: %d",
+                totalTasks.get(), localTasks.get(), cloudTasks.get());
     }
 
     /**

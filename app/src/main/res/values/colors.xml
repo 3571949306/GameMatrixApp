@@ -150,17 +150,17 @@
     <color name="dark_gray">#5F6368</color>
     <color name="gray_light">#E8EAED</color>
 
-    <!-- ===== AI消息气泡 ===== -->
-    <color name="ai_message_user_bg">#E8F0FE</color>
-    <color name="ai_message_user_text">#1F1F1F</color>
+    <!-- ===== AI消息气泡（浅色模式） ===== -->
+    <color name="ai_message_user_bg">@color/brand_primary</color>
+    <color name="ai_message_user_text">#FFFFFF</color>
     <color name="ai_message_user_role">@color/brand_primary</color>
-    <color name="ai_message_assistant_bg">#F1F3F4</color>
-    <color name="ai_message_assistant_text">#1F1F1F</color>
-    <color name="ai_message_assistant_role">#5F6368</color>
-    <color name="ai_message_system_bg">#E6F4EA</color>
-    <color name="ai_message_system_text">#1F1F1F</color>
-    <color name="ai_message_system_role">#137333</color>
-    <color name="ai_message_star">#F9AB00</color>
+    <color name="ai_message_assistant_bg">@color/md_theme_surface_container_high</color>
+    <color name="ai_message_assistant_text">@color/md_theme_on_surface_variant</color>
+    <color name="ai_message_assistant_role">@color/md_theme_on_surface_variant</color>
+    <color name="ai_message_system_bg">@color/md_theme_secondary_container</color>
+    <color name="ai_message_system_text">@color/md_theme_on_secondary_container</color>
+    <color name="ai_message_system_role">@color/md_theme_secondary</color>
+    <color name="ai_message_star">@color/md_theme_secondary</color>
     <color name="status_update_available">#137333</color>
     <color name="status_update_available_container">#E6F4EA</color>
 

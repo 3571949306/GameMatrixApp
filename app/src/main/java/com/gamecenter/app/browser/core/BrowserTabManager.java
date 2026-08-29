@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Multi-tab manager.
@@ -32,6 +33,12 @@ public class BrowserTabManager {
     private final SharedPreferences prefs;
     // A8: 使用线程安全的 CopyOnWriteArrayList 替代 ArrayList
     private final List<Tab> tabs = new CopyOnWriteArrayList<>();
+    /**
+     * System.currentTimeMillis() alone collides when the tab switcher creates two
+     * tabs in one clock tick. Keep a monotonic in-process sequence while retaining
+     * the timestamp-shaped ids used by already-persisted normal tabs.
+     */
+    private final AtomicLong tabIdSequence = new AtomicLong();
     private String activeTabId;
     // A8: LruCache 管理 favicon 内存，最多缓存 100 个（约 10 Tab * 10 倍冗余）
     private final LruCache<String, Bitmap> faviconCache = new LruCache<>(100);
@@ -78,7 +85,7 @@ public class BrowserTabManager {
 
     public Tab createTab(@Nullable String url) {
         if (tabs.size() >= MAX_TABS) return null;
-        Tab tab = new Tab(String.valueOf(System.currentTimeMillis()),
+        Tab tab = new Tab(nextTabId(false),
             "\u65b0\u6807\u7b7e\u9875", url != null ? url : "https://www.baidu.com");
         tabs.add(tab);
         activeTabId = tab.getId();
@@ -88,7 +95,7 @@ public class BrowserTabManager {
 
     public Tab createIncognitoTab(@Nullable String url) {
         if (tabs.size() >= MAX_TABS) return null;
-        Tab tab = new Tab("inc_" + System.currentTimeMillis(),
+        Tab tab = new Tab(nextTabId(true),
             "\u65e0\u75d5\u6807\u7b7e", url != null ? url : "https://www.baidu.com");
         tab.setIncognito(true);
         tabs.add(tab);
@@ -103,7 +110,7 @@ public class BrowserTabManager {
                 removeTabFavicon(tabId);  // A8: 清理 favicon 缓存
                 if (tabs.isEmpty()) {
                     createTab("https://www.baidu.com");
-                } else if (activeTabId.equals(tabId)) {
+                } else if (activeTabId != null && activeTabId.equals(tabId)) {
                     activeTabId = tabs.get(Math.min(i, tabs.size() - 1)).getId();
                 }
                 saveTabs();
@@ -198,7 +205,7 @@ public class BrowserTabManager {
                 tabs.add(tab);
             }
         } catch (JSONException e) { /* ignore */ }
-        if (activeTabId == null && !tabs.isEmpty()) activeTabId = tabs.get(0).getId();
+        if (!hasTab(activeTabId) && !tabs.isEmpty()) activeTabId = tabs.get(0).getId();
     }
 
     private void saveTabs() {
@@ -215,6 +222,49 @@ public class BrowserTabManager {
                 array.put(obj);
             } catch (JSONException e) { /* skip */ }
         }
-        prefs.edit().putString(KEY_TABS, array.toString()).putString(KEY_ACTIVE_ID, activeTabId).apply();
+        // Incognito tabs are intentionally memory-only. Never persist an incognito id
+        // as the active normal tab, otherwise the next process start has no matching
+        // tab and can route the first page incorrectly.
+        String persistedActiveId = null;
+        if (activeTabId != null) {
+            for (Tab tab : tabs) {
+                if (!tab.isIncognito() && tab.getId().equals(activeTabId)) {
+                    persistedActiveId = activeTabId;
+                    break;
+                }
+            }
+        }
+        if (persistedActiveId == null) {
+            for (Tab tab : tabs) {
+                if (!tab.isIncognito()) {
+                    persistedActiveId = tab.getId();
+                    break;
+                }
+            }
+        }
+        SharedPreferences.Editor editor = prefs.edit().putString(KEY_TABS, array.toString());
+        if (persistedActiveId == null) editor.remove(KEY_ACTIVE_ID);
+        else editor.putString(KEY_ACTIVE_ID, persistedActiveId);
+        editor.apply();
+    }
+
+    private boolean hasTab(@Nullable String tabId) {
+        if (tabId == null) return false;
+        for (Tab tab : tabs) {
+            if (tabId.equals(tab.getId())) return true;
+        }
+        return false;
+    }
+
+    @NonNull
+    private String nextTabId(boolean incognito) {
+        final String prefix = incognito ? "inc_" : "";
+        while (true) {
+            final long now = System.currentTimeMillis();
+            final long sequence = tabIdSequence.updateAndGet(previous ->
+                    Math.max(now, previous + 1));
+            final String candidate = prefix + sequence;
+            if (!hasTab(candidate)) return candidate;
+        }
     }
 }

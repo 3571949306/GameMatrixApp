@@ -20,6 +20,8 @@ import com.gamecenter.app.browser.util.UrlUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 智能 URL Bar 助手。
@@ -69,6 +71,9 @@ public class UrlInputHelper {
     }
 
     private final BrowserHistoryDao historyDao;
+    /** One short-lived helper instance per Browser view; avoids one raw thread per query. */
+    private final ExecutorService suggestionExecutor = Executors.newSingleThreadExecutor();
+    private volatile boolean destroyed;
 
     public UrlInputHelper(@NonNull Context context) {
         this.historyDao = BrowserDatabase.getInstance(context.getApplicationContext()).historyDao();
@@ -87,23 +92,11 @@ public class UrlInputHelper {
         String s = input.trim();
         if (s.isEmpty()) return BrowserSettingsManager.getInstance(context).getHomeUrl();
 
-        String lower = s.toLowerCase();
-        // 已有协议
-        if (lower.startsWith("http://") || lower.startsWith("https://")) return s;
-        // 危险协议 → 搜索
-        if (lower.startsWith("file:") || lower.startsWith("content:")
-                || lower.startsWith("javascript:") || lower.startsWith("intent:")
-                || lower.startsWith("about:") || lower.startsWith("data:")) {
-            return buildSearchUrl(context, s);
-        }
-        // 域名/IP 判断（无空格且有点）
-        if (!s.contains(" ") && s.contains(".")) {
-            // 简单域名匹配
-            if (s.matches("^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}.*")
-                    || s.matches("^(\\d{1,3}\\.){3}\\d{1,3}.*")) {
-                return "https://" + s;
-            }
-        }
+        // UrlUtils is the single URL trust boundary. Inputs that are not an
+        // actual http(s) target—including dangerous/custom schemes—become a
+        // search query rather than reaching WebView as a malformed navigation.
+        String webUrl = UrlUtils.normalizeWebUrl(s);
+        if (webUrl != null) return webUrl;
         // 默认搜索
         return buildSearchUrl(context, s);
     }
@@ -118,23 +111,35 @@ public class UrlInputHelper {
     /** 异步查询历史建议 */
     public void querySuggestionsAsync(@NonNull String keyword,
                                       @NonNull final SuggestionCallback callback) {
-        if (TextUtils.isEmpty(keyword) || keyword.length() < 1) {
+        if (destroyed || TextUtils.isEmpty(keyword) || keyword.length() < 1) {
             callback.onResult(new ArrayList<>());
             return;
         }
-        new Thread(() -> {
-            try {
-                List<BrowserHistoryEntity> entities = historyDao.searchHistory(keyword);
-                List<SuggestionItem> items = new ArrayList<>();
-                for (BrowserHistoryEntity e : entities) {
-                    if (items.size() >= 8) break;
-                    items.add(new SuggestionItem(e.getUrl(), e.getTitle(), e.getVisitCount()));
+        try {
+            suggestionExecutor.execute(() -> {
+                try {
+                    List<BrowserHistoryEntity> entities = historyDao.searchHistory(keyword);
+                    List<SuggestionItem> items = new ArrayList<>();
+                    for (BrowserHistoryEntity e : entities) {
+                        if (items.size() >= 8) break;
+                        items.add(new SuggestionItem(e.getUrl(), e.getTitle(), e.getVisitCount()));
+                    }
+                    callback.onResult(items);
+                } catch (Throwable t) {
+                    callback.onResult(new ArrayList<>());
                 }
-                callback.onResult(items);
-            } catch (Throwable t) {
-                callback.onResult(new ArrayList<>());
-            }
-        }).start();
+            });
+        } catch (RuntimeException rejected) {
+            // View teardown can race with a final keystroke; an empty result is safer
+            // than surfacing RejectedExecutionException to the UI thread.
+            callback.onResult(new ArrayList<>());
+        }
+    }
+
+    /** Stop the query worker when the owning BrowserFragment view is destroyed. */
+    public void destroy() {
+        destroyed = true;
+        suggestionExecutor.shutdownNow();
     }
 
     /** 弹出搜索引擎选择 PopupWindow */

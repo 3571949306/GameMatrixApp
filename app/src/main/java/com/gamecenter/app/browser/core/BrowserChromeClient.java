@@ -38,8 +38,11 @@ public class BrowserChromeClient extends WebChromeClient {
 
     /** Permission request callback for geolocation, camera, microphone */
     public interface PermissionCallback {
-        void onGeolocationPermissionRequest(String origin, GeolocationPermissions.Callback callback);
-        void onPermissionRequest(PermissionRequest request);
+        /** @param tabId 产生请求的 Tab；单 WebView 模式为 null */
+        void onGeolocationPermissionRequest(@Nullable String tabId, String origin,
+                                             GeolocationPermissions.Callback callback);
+        /** @param tabId 产生请求的 Tab；单 WebView 模式为 null */
+        void onPermissionRequest(@Nullable String tabId, PermissionRequest request);
     }
 
     private final PageInfoCallback callback;
@@ -98,7 +101,7 @@ public class BrowserChromeClient extends WebChromeClient {
     @Override
     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback geoCallback) {
         if (permissionCallback != null) {
-            permissionCallback.onGeolocationPermissionRequest(origin, geoCallback);
+            permissionCallback.onGeolocationPermissionRequest(tabId, origin, geoCallback);
         } else {
             geoCallback.invoke(origin, false, false);
         }
@@ -107,7 +110,7 @@ public class BrowserChromeClient extends WebChromeClient {
     @Override
     public void onPermissionRequest(PermissionRequest request) {
         if (permissionCallback != null) {
-            permissionCallback.onPermissionRequest(request);
+            permissionCallback.onPermissionRequest(tabId, request);
         } else {
             request.deny();
         }

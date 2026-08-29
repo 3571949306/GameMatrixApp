@@ -27,6 +27,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_url_bar"
+            android:importantForAccessibility="no"
             android:padding="@dimen/gm_spacing_2"
             android:src="@drawable/ic_reading_list"
             app:tint="?attr/colorPrimary" />
@@ -49,7 +50,8 @@
                     android:layout_width="6dp"
                     android:layout_height="6dp"
                     android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_unread_dot" />
+                    android:background="@drawable/bg_unread_dot"
+                    android:importantForAccessibility="no" />
 
                 <TextView
                     android:id="@+id/tv_reading_title"

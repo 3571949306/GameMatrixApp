@@ -83,8 +83,8 @@
     <string name="browser_tab_max_reached">已达到最大标签数</string>
 
     <!-- Incognito mode (Stage 9) -->
-    <string name="browser_incognito_on">无痕模式已开启</string>
-    <string name="browser_incognito_off">无痕模式已关闭</string>
+    <string name="browser_incognito_on">无痕标签已开启：不保存本地历史和搜索；Cookie/网站存储可能与普通标签共享</string>
+    <string name="browser_incognito_off">无痕标签已关闭</string>
     <string name="browser_incognito_indicator">无痕</string>
 
     <!-- Permissions (Stage 10) -->
@@ -126,7 +126,16 @@
     <string name="browser_download_dangerous_title">危险文件</string>
     <string name="browser_download_dangerous_message">此文件类型可能存在安全风险 (%s)，确定要下载吗？</string>
     <string name="browser_download_dangerous_confirm">仍然下载</string>
+    <string name="browser_download_dangerous_open_message">“%1$s”可能包含可执行代码。仅在确认来源可信时才打开。</string>
+    <string name="browser_download_dangerous_open_confirm">仍然打开</string>
     <string name="browser_download_started">已开始下载：%s</string>
+    <string name="browser_download_start_failed">无法开始下载，请检查链接或存储空间</string>
+    <string name="browser_download_status_waiting">等待中</string>
+    <string name="browser_download_status_downloading">下载中</string>
+    <string name="browser_download_status_completed">已完成</string>
+    <string name="browser_download_status_completed_dangerous">已完成 · 打开前需确认</string>
+    <string name="browser_download_status_failed">失败</string>
+    <string name="browser_download_status_unknown">状态未知</string>
 
     <!-- Settings page -->
     <string name="browser_settings_title">浏览器设置</string>
@@ -319,6 +328,7 @@
     <string name="browser_translate_bing">必应翻译</string>
     <string name="browser_translate_cancel">取消</string>
     <string name="browser_translate_no_url">当前没有可翻译的页面</string>
+    <string name="browser_translate_open_failed">无法打开翻译页面</string>
     <!-- P3-3 底部工具栏可定制 -->
     <string name="browser_bottom_bar_customize_title">自定义底栏</string>
     <string name="browser_menu_customize_bottom_bar">自定义底栏</string>
@@ -352,5 +362,40 @@
     <string name="browser_settings_double_tap_forward_summary">双击 WebView 右半屏前进</string>
     <string name="browser_settings_long_press_history">长按显示历史</string>
     <string name="browser_settings_long_press_history_summary">长按 WebView 唤起历史记录面板</string>
+
+    <!-- ===== 内置视频播放器（接管网页播放器） ===== -->
+    <string name="browser_player_surface_desc">播放手势区：长按倍速快进，双击暂停，左右滑动调整进度</string>
+    <string name="browser_player_mini">小窗播放</string>
+    <string name="browser_player_exit">退出内置播放器</string>
+    <string name="browser_player_restore">恢复全屏</string>
+    <string name="browser_player_play">播放</string>
+    <string name="browser_player_pause">暂停</string>
+    <string name="browser_player_rewind">快退 10 秒</string>
+    <string name="browser_player_forward">快进 10 秒</string>
+    <string name="browser_player_fullscreen">全屏</string>
+    <string name="browser_player_fullscreen_exit">退出全屏</string>
+    <string name="browser_player_live">直播</string>
+    <string name="browser_player_volume">音量</string>
+    <string name="browser_player_brightness">亮度</string>
+    <string name="browser_player_fast_forward">%1$s 快进中</string>
+    <string name="browser_player_fast_forward_hint">松手恢复 %1$s</string>
+    <string name="browser_player_seek_hint">%1$s / %2$s</string>
+    <string name="browser_player_seek_delta">%1$s%2$d 秒</string>
+    <string name="browser_player_enter">内置播放器</string>
+    <string name="browser_player_entered">已接管网页播放器，长按画面可倍速快进</string>
+    <string name="browser_player_no_video">当前页面未检测到可播放的视频</string>
+    <string name="browser_player_released">已退出内置播放器</string>
+    <string name="browser_player_takeover_failed">该站点的播放器不支持接管，已交还给网页自带的播放器</string>
+    <string name="browser_player_download">下载视频</string>
+    <string name="browser_player_download_started">已开始下载视频</string>
+    <string name="browser_player_download_failed">视频下载失败</string>
+    <string name="browser_player_resumed">已从 %1$s 继续播放</string>
+    <string name="browser_settings_video_player">内置视频播放器</string>
+    <string name="browser_settings_video_player_summary">检测网页视频并提供接管入口，用原生控件替代网页播放器</string>
+    <string name="browser_settings_video_player_section">内置播放器</string>
+    <string name="browser_settings_fast_forward_rate">长按快进倍速</string>
+    <string name="browser_settings_fast_forward_rate_summary">播放时长按画面的倍速，默认 2x；按住超过 3 秒自动升到 3x</string>
+    <string name="browser_settings_long_press_ff">长按快进</string>
+    <string name="browser_settings_long_press_ff_summary">播放器内长按画面倍速快进；关闭后长按不再生效</string>
 
 </resources>

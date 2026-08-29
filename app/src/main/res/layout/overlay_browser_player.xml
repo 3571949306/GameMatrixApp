@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  浏览器内置播放器覆盖层（夸克式"接管网页播放器"）。
+
+  结构说明：
+  - 本层是透明的，真正的画面仍由下方 WebView 里的 <video> 渲染（被 JS 提到最前铺满）；
+  - player_gesture_surface 负责接收长按快进 / 双击 / 拖拽 seek / 亮度音量手势；
+  - 顶部条、中央提示、底部控制条都是原生 UI，接管后网页自带播放器被完全屏蔽。
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/player_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:visibility="gone">
+
+    <!-- 手势接收层：透明铺满，位于控件之下，保证空白处也能长按快进 -->
+    <View
+        android:id="@+id/player_gesture_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:contentDescription="@string/browser_player_surface_desc"
+        android:focusable="true" />
+
+    <!-- ===== 顶部条：标题 + 小窗 + 退出接管 ===== -->
+    <LinearLayout
+        android:id="@+id/player_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@drawable/bg_browser_player_scrim_top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/gm_spacing_2"
+        android:paddingEnd="@dimen/gm_spacing_2"
+        android:paddingTop="@dimen/gm_spacing_2"
+        android:paddingBottom="@dimen/gm_spacing_4">
+
+        <TextView
+            android:id="@+id/player_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/player_btn_mini"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/browser_player_mini"
+            android:src="@drawable/ic_browser_player_mini"
+            app:tint="@color/white" />
+
+        <ImageButton
+            android:id="@+id/player_btn_close"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/browser_player_exit"
+            android:src="@drawable/ic_close"
+            app:tint="@color/white" />
+    </LinearLayout>
+
+    <!-- ===== 中央提示：长按快进 / 拖拽 seek 反馈 ===== -->
+    <LinearLayout
+        android:id="@+id/player_hint_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_browser_player_hint"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/gm_spacing_5"
+        android:paddingEnd="@dimen/gm_spacing_5"
+        android:paddingTop="@dimen/gm_spacing_3"
+        android:paddingBottom="@dimen/gm_spacing_3"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/player_hint_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/player_hint_sub_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gm_spacing_1"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- ===== 底部控制条 ===== -->
+    <LinearLayout
+        android:id="@+id/player_bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_browser_player_scrim_bottom"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/gm_spacing_3"
+        android:paddingEnd="@dimen/gm_spacing_3"
+        android:paddingTop="@dimen/gm_spacing_5"
+        android:paddingBottom="@dimen/gm_spacing_2">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/player_position"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48dp"
+                android:text="00:00"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <SeekBar
+                android:id="@+id/player_seek"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="1000"
+                android:progressTint="@color/white"
+                android:thumbTint="@color/white" />
+
+            <TextView
+                android:id="@+id/player_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48dp"
+                android:text="00:00"
+                android:textAlignment="textEnd"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/player_btn_rewind"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_player_rewind"
+                android:src="@drawable/ic_browser_back"
+                app:tint="@color/white" />
+
+            <ImageButton
+                android:id="@+id/player_btn_play"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_player_play"
+                android:src="@drawable/ic_play_arrow"
+                app:tint="@color/white" />
+
+            <ImageButton
+                android:id="@+id/player_btn_forward"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_player_forward"
+                android:src="@drawable/ic_browser_forward"
+                app:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/player_btn_speed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/gm_spacing_2"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:minWidth="48dp"
+                android:paddingStart="@dimen/gm_spacing_1"
+                android:paddingEnd="@dimen/gm_spacing_1"
+                android:paddingTop="@dimen/gm_spacing_1"
+                android:paddingBottom="@dimen/gm_spacing_1"
+                android:text="1.0x"
+                android:textAlignment="center"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/player_btn_download"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_player_download"
+                android:src="@drawable/ic_browser_download"
+                android:visibility="gone"
+                app:tint="@color/white" />
+
+            <ImageButton
+                android:id="@+id/player_btn_fullscreen"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/browser_player_fullscreen"
+                android:src="@drawable/ic_browser_player_fullscreen"
+                app:tint="@color/white" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

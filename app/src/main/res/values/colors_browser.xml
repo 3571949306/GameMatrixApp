@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      浏览器模块专属颜色。
+      独立成文件是为了不与共享的 colors.xml 冲突（该文件正被并行改动中）。
+      播放器控件叠在视频画面上，需要带 alpha 的纯黑蒙层，故不能复用 @color/black（#202124）。
+    -->
+    <color name="browser_player_scrim_top_start">#D9000000</color>
+    <color name="browser_player_scrim_top_end">#00000000</color>
+    <color name="browser_player_scrim_bottom_start">#00000000</color>
+    <color name="browser_player_scrim_bottom_end">#E6000000</color>
+    <color name="browser_player_hint_bg">#B3000000</color>
+</resources>

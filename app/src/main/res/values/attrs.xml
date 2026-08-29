@@ -17,4 +17,12 @@
     <attr name="colorOnInfo" format="color" />
     <attr name="colorInfoContainer" format="color" />
     <attr name="colorOnInfoContainer" format="color" />
+
+    <!-- ===== 临时构建兼容垫片（不是浏览器模块的属性，勿当成浏览器资源） =====
+         成因：layout/fragment_ai.xml 在 material 1.13 的 M3 Chip 上使用了
+         app:closeIconContentDescription，该属性在当前 material 版本中已不存在，
+         导致 :app:processDebugResources 失败，连带 compileDebugJavaWithJavac 全部跑不了。
+         此处声明同名 attr 仅为让 aapt 能解析（值会被 Chip 忽略，无副作用）。
+         待该布局改用 M3 支持的写法后，请删除本段。 -->
+    <attr name="closeIconContentDescription" format="string|reference" />
 </resources>

@@ -2,6 +2,6 @@
 <!-- AI系统消息背景 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#FEF7E0" />
-    <corners android:radius="16dp" />
+    <solid android:color="@color/ai_message_system_bg" />
+    <corners android:radius="18dp" />
 </shape>

@@ -48,6 +48,12 @@ public class BrowserController {
     @Nullable private BrowserChromeClient.PageInfoCallback poolPageInfoCallback;
     @Nullable private BrowserWebViewClient.ExternalUrlHandler poolExternalHandler;
     @Nullable private String activeTabId;
+    /**
+     * Keep per-WebView callbacks at the controller boundary so a pool rebuilt after
+     * "close all" receives the same callbacks before its first navigation.
+     */
+    @Nullable private android.webkit.DownloadListener downloadListener;
+    @Nullable private java.util.function.Consumer<BrowserChromeClient> chromeClientConfigurator;
 
     @SuppressLint("SetJavaScriptEnabled")
     public void initWebView(@NonNull Context context,
@@ -71,6 +77,15 @@ public class BrowserController {
             this.poolExternalHandler = externalUrlHandler;
             this.pool = new BrowserWebViewPool(context, container, pageLoadCallback,
                     pageInfoCallback, externalUrlHandler);
+            // initWebView can be called after controller.destroy() when the user
+            // closes every tab. Preserve callbacks registered by the Fragment so a
+            // just-created WebView is fully wired before it loads its fallback URL.
+            if (downloadListener != null) {
+                this.pool.setDownloadListener(downloadListener);
+            }
+            if (chromeClientConfigurator != null) {
+                this.pool.setChromeClientConfigurator(chromeClientConfigurator);
+            }
             return;
         }
         // 单 WebView 模式：保留原行为
@@ -80,16 +95,13 @@ public class BrowserController {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
         this.webViewContainer = container;
-        container.addView(webView);
+        // Keep the WebView below static overlays (home, skeleton and native player).
+        // WebView instances are hardware-composed, so relying on elevation or on a
+        // later overlay calling addView is not reliable across devices.
+        container.addView(webView, 0);
 
         BrowserSettingsManager settingsMgr = BrowserSettingsManager.getInstance(context);
         settingsMgr.applyToWebView(webView);
-
-        if (BuildConfig.BROWSER_WEBVIEW_DEBUG && settingsMgr.isWebViewDebuggingEnabled()) {
-            try {
-                WebView.setWebContentsDebuggingEnabled(true);
-            } catch (Throwable ignored) {}
-        }
 
         // Phase 3: 使用统一的通用 WebSettings 配置（消除重复代码）
         BrowserSettingsManager.applyCommonSettings(webView);
@@ -98,7 +110,7 @@ public class BrowserController {
         mobileUserAgent = defaultUA;
         webView.getSettings().setUserAgentString(defaultUA + " GameMatrixBrowser/1.0");
 
-        webViewClient = new BrowserWebViewClient(pageLoadCallback);
+        webViewClient = new BrowserWebViewClient(context, pageLoadCallback);
         webViewClient.setExternalUrlHandler(externalUrlHandler);
         chromeClient = new BrowserChromeClient(pageInfoCallback);
         webView.setWebViewClient(webViewClient);
@@ -117,14 +129,20 @@ public class BrowserController {
      */
     @Nullable
     public WebView switchToTab(@NonNull String tabId, @Nullable String fallbackUrl) {
+        return switchToTab(tabId, fallbackUrl, null);
+    }
+
+    /**
+     * Switch to a tab with its privacy profile available before a newly-created
+     * WebView receives the fallback URL.
+     */
+    @Nullable
+    public WebView switchToTab(@NonNull String tabId, @Nullable String fallbackUrl,
+                               @Nullable BrowserTabManager.Tab tab) {
         if (!BuildConfig.BROWSER_REAL_MULTI_TAB || pool == null) return null;
-        WebView wv = pool.acquireWebView(tabId, fallbackUrl);
+        WebView wv = pool.acquireWebView(tabId, fallbackUrl, tab);
         if (wv != null) {
             activeTabId = tabId;
-            // 重新绑定下载监听（新创建的 WebView 需要）
-            if (downloadListener != null) {
-                try { wv.setDownloadListener(downloadListener); } catch (Throwable ignored) {}
-            }
         }
         return wv;
     }
@@ -151,8 +169,12 @@ public class BrowserController {
 
     /** A2: 注册 ChromeClient 配置器（多 Tab 模式转发给 pool，应用于每个新建 WebView 的 ChromeClient）。 */
     public void setChromeClientConfigurator(@Nullable java.util.function.Consumer<BrowserChromeClient> configurator) {
+        this.chromeClientConfigurator = configurator;
         if (BuildConfig.BROWSER_REAL_MULTI_TAB && pool != null) {
             pool.setChromeClientConfigurator(configurator);
+        } else if (chromeClient != null && configurator != null) {
+            // Single-WebView builds must receive the same late registration too.
+            configurator.accept(chromeClient);
         }
     }
 
@@ -202,7 +224,7 @@ public class BrowserController {
     // ===== 通用 API（两种模式共用） =====
 
     public void loadUrl(@Nullable String url) {
-        if (url == null || url.isEmpty()) return;
+        if (!isHttpUrl(url)) return;
         WebView wv = getActiveWebView();
         if (wv != null) wv.loadUrl(url);
     }
@@ -264,10 +286,12 @@ public class BrowserController {
         if (wv != null && userAgent != null) wv.getSettings().setUserAgentString(userAgent);
     }
 
-    @Nullable
-    private android.webkit.DownloadListener downloadListener;
     public void setDownloadListener(@Nullable android.webkit.DownloadListener listener) {
         this.downloadListener = listener;
+        if (BuildConfig.BROWSER_REAL_MULTI_TAB && pool != null) {
+            pool.setDownloadListener(listener);
+            return;
+        }
         WebView wv = getActiveWebView();
         if (wv != null) wv.setDownloadListener(listener);
     }
@@ -327,27 +351,23 @@ public class BrowserController {
     }
 
     /**
-     * S6: 无痕模式切换时的完整数据清理。
-     * 清除当前 WebView 的所有浏览数据，包括 Cookie、存储、历史等。
+     * Clears only data that belongs to the active WebView without mutating the
+     * process-wide Cookie/WebStorage profile shared by ordinary tabs.
+     *
+     * <p>This is deliberately <em>not</em> strong incognito isolation. Calling
+     * {@code CookieManager.removeAllCookies()} here would sign the user out of
+     * normal tabs, while clearing the shared disk cache would make a private-tab
+     * action alter normal-tab state. Strong isolation requires a separate process
+     * profile and is not simulated by destructive cleanup.</p>
      */
     public void clearAllBrowsingDataForIncognito() {
         WebView wv = getActiveWebView();
         if (wv != null) {
             wv.clearHistory();
-            wv.clearCache(true);
             wv.clearFormData();
         }
-        // 清除全局 Cookie（S6: 注意这影响所有 Tab，仅在真正退出无痕时调用）
-        try {
-            CookieManager cookieManager = CookieManager.getInstance();
-            cookieManager.removeAllCookies(null);
-            cookieManager.flush();
-        } catch (Exception ignored) {}
-        try {
-            android.webkit.WebStorage.getInstance().deleteAllData();
-        } catch (Exception ignored) {}
-        // 清除所有 Tab 的 Bridge 注入状态
-        jsBridgeInjectedTabs.clear();
+        String tabId = activeTabId != null ? activeTabId : "__single__";
+        jsBridgeInjectedTabs.remove(tabId);
     }
 
     /**
@@ -455,5 +475,10 @@ public class BrowserController {
         webViewContainer = null;
         webViewClient = null;
         chromeClient = null;
+    }
+
+    /** Central guard for every host-initiated navigation entry point. */
+    static boolean isHttpUrl(@Nullable String url) {
+        return UrlUtils.isValidHttpUrl(url);
     }
 }

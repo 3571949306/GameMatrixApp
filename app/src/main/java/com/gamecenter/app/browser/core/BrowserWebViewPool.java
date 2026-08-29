@@ -7,12 +7,14 @@ import android.util.Log;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.DownloadListener;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.gamecenter.app.BuildConfig;
+import com.gamecenter.app.browser.core.incognito.IncognitoProfileManager;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,6 +62,8 @@ public class BrowserWebViewPool {
 
     /** A2: 为每个新建 WebView 的 ChromeClient 应用宿主回调（文件上传/全屏/权限）。 */
     @Nullable private java.util.function.Consumer<BrowserChromeClient> chromeClientConfigurator;
+    /** Applied before the first fallback navigation of every lazily-created tab. */
+    @Nullable private DownloadListener downloadListener;
 
     public BrowserWebViewPool(@NonNull Context context,
                               @NonNull FrameLayout container,
@@ -78,10 +82,40 @@ public class BrowserWebViewPool {
         this.chromeClientConfigurator = configurator;
     }
 
+    /**
+     * Register downloads once for the pool, including WebViews that are created in
+     * the future. Installing this from BrowserController after acquireWebView is
+     * too late for a page that starts a download during its first navigation.
+     */
+    public void setDownloadListener(@Nullable DownloadListener listener) {
+        this.downloadListener = listener;
+        for (WebView webView : activePool.values()) {
+            try {
+                webView.setDownloadListener(listener);
+            } catch (Throwable ignored) {
+                // A failed listener assignment must not make a tab unusable.
+            }
+        }
+    }
+
     /** 获取或创建指定 Tab 的 WebView，并将其设为可见。其他 WebView 设为 GONE。 */
     @SuppressLint("SetJavaScriptEnabled")
     @Nullable
     public WebView acquireWebView(@NonNull String tabId, @Nullable String fallbackUrl) {
+        return acquireWebView(tabId, fallbackUrl, null);
+    }
+
+    /**
+     * Acquire a tab WebView and apply its profile before a fallback navigation can
+     * begin. This ordering is important for incognito tabs: configuring after
+     * {@link WebView#loadUrl(String)} leaves the first page outside the intended
+     * no-form/no-cache policy.
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    @Nullable
+    public WebView acquireWebView(@NonNull String tabId, @Nullable String fallbackUrl,
+                                  @Nullable BrowserTabManager.Tab tab) {
+        String safeFallbackUrl = BrowserController.isHttpUrl(fallbackUrl) ? fallbackUrl : null;
         poolLock.lock();
         try {
             WebView webView = activePool.get(tabId);
@@ -90,18 +124,21 @@ public class BrowserWebViewPool {
                 Bundle savedState = releasedStates.remove(tabId);
                 webView = createWebView(context);
                 configureWebView(webView, tabId);
+                IncognitoProfileManager.applyProfile(webView, tab);
                 if (savedState != null) {
                     try {
                         webView.restoreState(savedState);
                         Log.d(TAG, "acquireWebView: restored tab=" + tabId);
                     } catch (Throwable t) {
                         Log.w(TAG, "restoreState failed for tab=" + tabId, t);
-                        if (fallbackUrl != null) webView.loadUrl(fallbackUrl);
+                        if (safeFallbackUrl != null) webView.loadUrl(safeFallbackUrl);
                     }
-                } else if (fallbackUrl != null) {
-                    webView.loadUrl(fallbackUrl);
+                } else if (safeFallbackUrl != null) {
+                    webView.loadUrl(safeFallbackUrl);
                 }
-                container.addView(webView);
+                // Every WebView belongs below the static overlay layers. This remains
+                // true when a new Tab is created after the player overlay already exists.
+                container.addView(webView, 0);
                 activePool.put(tabId, webView);
             }
             // 切换可见性
@@ -310,19 +347,13 @@ public class BrowserWebViewPool {
         BrowserSettingsManager settingsMgr = BrowserSettingsManager.getInstance(context);
         settingsMgr.applyToWebView(webView);
 
-        if (BuildConfig.BROWSER_WEBVIEW_DEBUG && settingsMgr.isWebViewDebuggingEnabled()) {
-            try {
-                WebView.setWebContentsDebuggingEnabled(true);
-            } catch (Throwable ignored) {}
-        }
-
         // Phase 3: 使用统一的通用 WebSettings 配置（消除重复代码）
         BrowserSettingsManager.applyCommonSettings(webView);
 
         String defaultUA = webView.getSettings().getUserAgentString();
         webView.getSettings().setUserAgentString(defaultUA + " GameMatrixBrowser/1.0");
 
-        BrowserWebViewClient client = new BrowserWebViewClient(pageLoadCallback, tabId);
+        BrowserWebViewClient client = new BrowserWebViewClient(context, pageLoadCallback, tabId);
         client.setExternalUrlHandler(externalUrlHandler);
         BrowserChromeClient chrome = new BrowserChromeClient(pageInfoCallback, tabId);
         // A2: 新建 WebView 的 ChromeClient 应用宿主回调（文件上传/全屏/权限）
@@ -333,6 +364,13 @@ public class BrowserWebViewPool {
         }
         webView.setWebViewClient(client);
         webView.setWebChromeClient(chrome);
+        if (downloadListener != null) {
+            try {
+                webView.setDownloadListener(downloadListener);
+            } catch (Throwable ignored) {
+                // Keep page navigation available even if the platform rejects it.
+            }
+        }
     }
 
     private void touchAccess(@NonNull String tabId) {
