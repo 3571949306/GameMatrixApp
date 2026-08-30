@@ -426,8 +426,6 @@ android {
         // ===== 本轮加法：4 个 Feature Flag =====
         // 每日挑战 + 连胜统计系统
         buildConfigField "boolean", "ACHIEVEMENT_V2", "true"
-        // 游戏全面改造（2026-07-22）：成就系统修复 + 难度系统补全 + Bug 修复 + 主题本地化合规
-        buildConfigField "boolean", "GAME_REVAMP_2026", "true"
         // 设置中心增强（字号调节 + 缓存清理）
         buildConfigField "boolean", "SETTINGS_ENHANCE", "true"
         // 首页最近游玩区域
@@ -543,8 +541,6 @@ android {
         buildConfigField "boolean", "ENABLE_TRANSACTIONAL_INSTALL", "true"
 
         // ===== 混合架构 P4：Host UI 完全模块化 =====
-        // 动态底部导航开关：开启后底部导航从 ModuleRegistry 的导航贡献动态构建
-        buildConfigField "boolean", "ENABLE_P4_DYNAMIC_NAVIGATION", "true"
         // 动态游戏大厅开关：开启后游戏大厅从模块贡献动态构建
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_GAMES_HALL", "false"
         // 游戏库主页重做（docs/游戏中心主页面重做执行计划_2026-08-30.md）：
@@ -621,6 +617,9 @@ android {
             buildConfigField "boolean", "TEST_MODE", "true"
             // Debug 包允许开启 WebView 远程调试（通过设置页开关控制）
             buildConfigField "boolean", "BROWSER_WEBVIEW_DEBUG", "true"
+            // JaCoCo：AGP 内置单测覆盖率（产出 exec 到 build/outputs/unit_test_code_coverage/），
+            // 由下方 jacocoTestReport / jacocoTestCoverageVerification 消费
+            enableUnitTestCoverage true
         }
         release {
             // Allows a signed staging Release to coexist with an installed Debug build without
@@ -1282,4 +1281,68 @@ afterEvaluate {
     // 时会得到一个能启动但在模块商店中显示“未安装”的宿主 APK。
     tasks.named('assembleDebug').configure { it.dependsOn preinstalledModules }
     tasks.named('assembleRelease').configure { it.dependsOn preinstalledModules }
+}
+
+// ===== JaCoCo 覆盖率门禁（质量提升计划 §三 L149/L170：门禁真实化）=====
+// AGP enableUnitTestCoverage 产出 exec；本块消费之，硬 UI/生成代码不计入核心域口径。
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+ext.jacocoExcludes = [
+        'androidx/**', 'com/google/**',
+        '**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+        '**/*_Factory.*', '**/*_MembersInjector.*', '**/Dagger*.*',
+        '**/*_Impl*.*',
+        '**/dagger/**', '**/hilt/**', '**/room/**',
+        '**/ui/**',
+        '**/activity/**', '**/fragment/**', '**/view/**', '**/widget/**',
+        '**/*Activity.*', '**/*Activity$*.*', '**/*Fragment.*', '**/*Fragment$*.*',
+        '**/*Binding.*', '**/*BindingImpl.*',
+        '**/flutter/**',
+]
+
+def jacocoExecFiles = fileTree(dir: "${buildDir}/outputs/unit_test_code_coverage", include: '**/*.exec')
+def jacocoClassDirs = files([
+        fileTree(dir: "${buildDir}/intermediates/javac/debug/classes", excludes: jacocoExcludes),
+        fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", excludes: jacocoExcludes),
+])
+def jacocoSrcDirs = files(['src/main/java', 'src/main/kotlin'])
+
+tasks.register('jacocoTestReport', JacocoReport) {
+    group = 'Reporting'
+    description = 'Debug 单测覆盖率报告（核心域口径，硬 UI 与生成代码已排除）'
+    dependsOn 'testDebugUnitTest'
+    executionData jacocoExecFiles
+    classDirectories.setFrom(jacocoClassDirs)
+    sourceDirectories.setFrom(jacocoSrcDirs)
+    reports {
+        xml.required = true
+        html.required = true
+        xml.outputLocation = file("${buildDir}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
+    }
+}
+
+// 起步阈值 0.10：2026-08-30 实测基线 LINE 12.03%（ jacocoTestReport，排除硬 UI/生成代码后
+// 分母 8,887 行），取略低于基线值防抖红；-PcoverageMinRatio 可覆盖；终值 70% 按季度爬坡。
+def coverageMinRatio = (project.findProperty('coverageMinRatio') ?: '0.10').toString().toBigDecimal()
+
+tasks.register('jacocoTestCoverageVerification', JacocoCoverageVerification) {
+    group = 'Verification'
+    description = "覆盖率阈值门禁（LINE COVEREDRATIO >= ${coverageMinRatio}）"
+    dependsOn 'testDebugUnitTest'
+    executionData jacocoExecFiles
+    classDirectories.setFrom(jacocoClassDirs)
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = coverageMinRatio
+            }
+        }
+    }
 }
