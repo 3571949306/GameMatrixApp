@@ -20,6 +20,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.OvershootInterpolator;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.doudizhu.model.Card;
 import com.gamecenter.app.doudizhu.model.CardType;
 
