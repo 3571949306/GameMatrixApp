@@ -7,6 +7,7 @@
 """
 import hashlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -45,9 +46,25 @@ def load_creds(cfg_path: Path):
     return d, pw
 
 
+def configure_ssh_client(client: paramiko.SSHClient, cfg: dict) -> None:
+    """仅信任操作者已录入的 host key（与 publish_module.py 同策略）。"""
+    client.set_missing_host_key_policy(paramiko.RejectPolicy())
+    known_hosts = (
+        cfg.get("knownHostsFile")
+        or os.environ.get("UPLOAD_KNOWN_HOSTS_FILE")
+        or os.path.expanduser("~/.ssh/known_hosts")
+    )
+    kh = Path(known_hosts).expanduser()
+    if not kh.is_file():
+        raise RuntimeError(
+            f"known_hosts 不存在: {kh}。请先 ssh-keyscan -H {cfg.get('host', '<host>')} >> {kh}"
+        )
+    client.load_host_keys(str(kh))
+
+
 def connect(cfg: dict, password: str):
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    configure_ssh_client(client, cfg)
     kw = dict(hostname=cfg["host"], port=int(cfg.get("port", 22)), username=cfg["user"],
               timeout=25, banner_timeout=25)
     kf = cfg.get("keyFile")
