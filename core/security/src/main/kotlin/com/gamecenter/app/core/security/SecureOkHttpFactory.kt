@@ -36,21 +36,29 @@ object SecureOkHttpFactory {
 
     /** 运行时通过 setHosts() 注入实际服务器域名 */
     @Volatile private var MODULE_HOST: String = "your-server.example.com"
+    /** host → 是否包含 Leaf pin（主域 true，镜像 false）；LinkedHashMap 保持注入顺序 */
+    @Volatile private val MODULE_HOSTS = LinkedHashMap<String, Boolean>()
     
     /** 是否启用证书绑定(Release构建启用,Debug构建禁用以避免模拟器SIGSEGV) */
     @Volatile private var enableCertificatePinning: Boolean = false
 
     /**
-     * 由 app 模块在初始化时调用,注入实际服务器域名。
-     * 2026-06-19: 美国 VPS 已下线,移除 fallbackHost 参数
-     * 
-     * @param moduleHost 模块服务器域名
+     * 由 app 模块在初始化时调用,注入实际服务器域名列表。
+     * 分发架构 v2：主域(hk-update) + 三边缘(jp/hk/us.dl) 共用同一组
+     * Let's Encrypt 链 pin（中级 YE1 + 根 ISRG YE 对全部 LE 证书通用），
+     * Leaf 指纹仅对主域生效。
+     *
+     * @param moduleHost 模块服务器主域名（保持兼容）
+     * @param mirrorHosts 分发边缘主机名列表（逗号分隔，可为空）
      * @param enablePinning 是否启用证书绑定(Release构建传true,Debug构建传false)
      */
     @JvmStatic
     @JvmOverloads
-    fun setHosts(moduleHost: String, enablePinning: Boolean = true) {
-        MODULE_HOST = moduleHost
+    fun setHosts(moduleHost: String, mirrorHosts: String = "", enablePinning: Boolean = true) {
+        val hosts = linkedMapOf(moduleHost to true)
+        mirrorHosts.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { hosts[it] = false }
+        MODULE_HOSTS.clear()
+        MODULE_HOSTS.putAll(hosts)
         enableCertificatePinning = enablePinning
     }
 
@@ -66,8 +74,12 @@ object SecureOkHttpFactory {
 
         if (enableCertificatePinning) {
             val pinner = CertificatePinner.Builder().apply {
-                MODULE_SERVER_PINS.forEach { pin ->
-                    add(MODULE_HOST, pin)
+                // 主域：Leaf + LE 中级 + 根（Leaf 指纹仅在主域上匹配其自身证书）
+                MODULE_HOSTS.forEach { (host, includeLeaf) ->
+                    if (includeLeaf) add(host, MODULE_SERVER_PINS[0])
+                    // LE 中级/根对三边缘与主域全部有效（同为 Let's Encrypt 签发）
+                    add(host, MODULE_SERVER_PINS[1])
+                    add(host, MODULE_SERVER_PINS[2])
                 }
             }.build()
             builder.certificatePinner(pinner)
