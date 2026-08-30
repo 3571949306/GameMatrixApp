@@ -63,6 +63,17 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         applySystemBarInsets()
 
+        // 分发架构 v2：进 App 后台链 — 移动网络提示弹窗 + 下载源测速（延迟 8s 避让启动期）
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            showMobileNetworkNoticeIfNeeded()
+            Thread {
+                runCatching {
+                    com.gamecenter.app.modules.store.DownloadSourceSelector
+                        .runEntryProbeIfNeeded(applicationContext)
+                }
+            }.start()
+        }, 8_000L)
+
         permissionHelper = PermissionHelper(this)
 
         permissionLauncher = registerForActivityResult(
@@ -549,7 +560,38 @@ class MainActivity : AppCompatActivity() {
         return manager.openModule(moduleId)
     }
 
+    /**
+     * 分发架构 v2：移动网络提示（屏幕正中小卡片，3 秒自动消失、点击可关、每进程一次）。
+     * 仅在"自动选择下载源"主开关开启时出现——关闭了自动选源则该提示无意义。
+     */
+    private fun showMobileNetworkNoticeIfNeeded() {
+        if (mobileNoticeShown.getAndSet(true)) return
+        if (!com.gamecenter.app.SettingsManager.getInstance(this).isDlAutoSelect()) return
+        if (!com.gamecenter.app.modules.store.DownloadSourceSelector.isMobileNetwork(this)) return
+        runCatching {
+            val card = android.widget.TextView(this).apply {
+                text = "当前为移动网络"
+                textSize = 14f
+                setTextColor(android.graphics.Color.WHITE)
+                setBackgroundResource(android.R.drawable.dialog_frame)
+                setPadding(48, 32, 48, 32)
+                gravity = android.view.Gravity.CENTER
+                isClickable = true
+                setOnClickListener { (parent as? android.view.ViewGroup)?.removeView(this) }
+            }
+            val params = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = android.view.Gravity.CENTER }
+            (window.decorView as android.view.ViewGroup).addView(card, params)
+            card.postDelayed({ (card.parent as? android.view.ViewGroup)?.removeView(card) }, 3_000L)
+        }
+    }
+
     companion object {
+        /** 移动网络提示：每进程只显示一次 */
+        private val mobileNoticeShown = java.util.concurrent.atomic.AtomicBoolean(false)
+
         const val EXTRA_NAV_TAB = "extra_nav_tab"
 
         private fun formatFileSize(size: Long): String {
