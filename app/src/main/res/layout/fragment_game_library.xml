@@ -53,6 +53,34 @@
         android:maxLines="1"
         android:textSize="15sp" />
 
+    <!-- 搜索历史：仅搜索框聚焦且输入为空且有历史时展开（§4.2） -->
+    <LinearLayout
+        android:id="@+id/search_history_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:visibility="gone">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_search_history"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:chipSpacingHorizontal="8dp"
+            app:singleLine="true" />
+
+        <TextView
+            android:id="@+id/btn_search_history_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="@string/game_library_clear_history"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

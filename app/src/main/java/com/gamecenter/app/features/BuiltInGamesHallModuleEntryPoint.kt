@@ -36,24 +36,15 @@ class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
     override fun createFragment(context: Context): Fragment {
         // 入口优先级单一真源：动态大厅 > 游戏库主页 > 旧链（GamesFragment/BuiltInGamesHallFragment
         // 的历史分支保持不变，仅在 LEGACY_GAMES 内部按原开关选择）
-        return when (GamesHallDestinationFactory.resolve(
+        // G1 单一真源：入口优先级与创建全部收敛到工厂；
+        // LEGACY 分支内部按原开关选择 V2 布局链或纯代码 UI 链
+        return GamesHallDestinationFactory.createFragment(
             GamesHallDestinationFactory.Options(
                 dynamicGamesHall = BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL,
-                libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP
+                libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP,
+                legacyV2Chain = BuildConfig.HOME_REVAMP_V2 || BuildConfig.HOME_IMMERSIVE_REVAMP
             )
-        )) {
-            GamesHallDestinationFactory.Destination.DYNAMIC_GAMES_HALL -> DynamicGamesHallFragment()
-            GamesHallDestinationFactory.Destination.GAME_LIBRARY ->
-                com.gamecenter.app.home.GameLibraryFragment()
-            GamesHallDestinationFactory.Destination.LEGACY_GAMES ->
-                // HOME_REVAMP_V2: 返回 GamesFragment 以加载 V2 布局（fragment_games.xml）
-                // 之前返回 BuiltInGamesHallFragment（纯代码 UI），导致 XML 布局改动不生效
-                if (BuildConfig.HOME_REVAMP_V2 || BuildConfig.HOME_IMMERSIVE_REVAMP) {
-                    GamesFragment()
-                } else {
-                    BuiltInGamesHallFragment()
-                }
-        }
+        )
     }
 
     override fun getNavigationContributions(context: Context): List<ModuleNavigationContribution> {
