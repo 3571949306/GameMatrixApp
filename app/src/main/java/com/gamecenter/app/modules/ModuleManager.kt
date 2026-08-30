@@ -243,42 +243,61 @@ object ModuleManager {
 
             override fun onComplete(moduleId: String, file: File) {
                 Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
-                downloadCallbacks[moduleId]?.onStateChanged(moduleId, "installing")
-                rememberLastGoodVersion(context, manifest)
-
-                // P3: 事务性安装 - 将文件从 staging 移动到 current
-                val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
-                    context, manifest, file
-                )
-
-                if (!installResult.isSuccess) {
-                    val reason = (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Failure)?.reason ?: "未知原因"
-                    Log.e(TAG, "事务安装失败: $moduleId, $reason")
-                    downloadCallbacks[moduleId]?.onError(moduleId, "安装失败: $reason")
-                    downloadCallbacks.remove(moduleId)
-                    return
-                }
-
-                // 获取安装后的 current 文件
-                val installedFile = ModuleDownloader.getInstalledModuleFile(context, manifest)
-                Log.d(TAG, "事务安装成功: $moduleId -> ${installedFile.absolutePath}")
-
-                ModuleLoader.unloadModule(moduleId)
-                markModuleInstalled(context, manifest)
-                if (manifest.type == "game") {
-                    registerInstalledGameModules(context)
-                } else if (BuildConfig.PRELOAD_INSTALLED_TOOL_MODULES && manifest.category == "tool") {
-                    // 工具模块下载后立即 load 进内存，使其 TOOLS_GRID 贡献可被 DynamicToolsFragment 收集
-                    // ModuleLoader.loadModule 是幂等的（内部有 loadedModules 缓存）
+                // 2026-08-30 卡死修复：ModuleDownloader 将本回调 post 到主线程，而事务安装
+                // （SHA-256 全文件重算 + APK 签名验证 + last_good 备份拷贝）与模块卸载/注册
+                // 都是重 IO —— 曾整链跑在主线程，大模块安装时 UI 冻结数秒。移到后台执行，
+                // 仅把面向 UI 的最终回调再 post 回主线程。
+                val appCtx = context.applicationContext
+                Thread({
                     try {
-                        ModuleLoader.loadModule(context, manifest)
-                        Log.d(TAG, "工具模块已加载: ${manifest.id}")
+                        downloadCallbacks[moduleId]?.onStateChanged(moduleId, "installing")
+                        rememberLastGoodVersion(appCtx, manifest)
+
+                        // P3: 事务性安装 - 将文件从 staging 移动到 current
+                        val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
+                            appCtx, manifest, file
+                        )
+
+                        if (!installResult.isSuccess) {
+                            val reason = (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Failure)?.reason ?: "未知原因"
+                            Log.e(TAG, "事务安装失败: $moduleId, $reason")
+                            mainHandler.post {
+                                downloadCallbacks[moduleId]?.onError(moduleId, "安装失败: $reason")
+                                downloadCallbacks.remove(moduleId)
+                            }
+                            return@Thread
+                        }
+
+                        // 获取安装后的 current 文件
+                        val installedFile = ModuleDownloader.getInstalledModuleFile(appCtx, manifest)
+                        Log.d(TAG, "事务安装成功: $moduleId -> ${installedFile.absolutePath}")
+
+                        ModuleLoader.unloadModule(moduleId)
+                        markModuleInstalled(appCtx, manifest)
+                        if (manifest.type == "game") {
+                            registerInstalledGameModules(appCtx)
+                        } else if (BuildConfig.PRELOAD_INSTALLED_TOOL_MODULES && manifest.category == "tool") {
+                            // 工具模块下载后立即 load 进内存，使其 TOOLS_GRID 贡献可被 DynamicToolsFragment 收集
+                            // ModuleLoader.loadModule 是幂等的（内部有 loadedModules 缓存）
+                            try {
+                                ModuleLoader.loadModule(appCtx, manifest)
+                                Log.d(TAG, "工具模块已加载: ${manifest.id}")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "工具模块加载失败: ${manifest.id}", e)
+                            }
+                        }
+                        mainHandler.post {
+                            downloadCallbacks[moduleId]?.onComplete(moduleId, installedFile)
+                            downloadCallbacks.remove(moduleId)
+                        }
                     } catch (e: Exception) {
-                        Log.e(TAG, "工具模块加载失败: ${manifest.id}", e)
+                        Log.e(TAG, "模块 $moduleId 安装线程异常: ${e.message}", e)
+                        mainHandler.post {
+                            downloadCallbacks[moduleId]?.onError(moduleId, "安装异常: ${e.message}")
+                            downloadCallbacks.remove(moduleId)
+                        }
                     }
-                }
-                downloadCallbacks[moduleId]?.onComplete(moduleId, installedFile)
-                downloadCallbacks.remove(moduleId)
+                }, "ModuleInstall-$moduleId").start()
             }
 
             override fun onError(moduleId: String, message: String) {

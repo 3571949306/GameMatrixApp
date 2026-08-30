@@ -84,6 +84,8 @@ class ModuleAdapter(
     }
 
     private val downloadProgress = mutableMapOf<String, Int>()
+    /** 下载过程瞬时状态文案（切换源/校验中/安装中…），进度事件到来时清除 */
+    private val downloadStateText = mutableMapOf<String, String>()
     var installedVersions: Map<String, Int> = emptyMap()
 
     // MODULE_STORE_PERF_OPT: 主题颜色缓存（避免每次 bind 解析 TypedValue）
@@ -206,8 +208,15 @@ class ModuleAdapter(
                 }
                 // 修复状态文字 visibility bug：显式设为 VISIBLE
                 holder.status.visibility = View.VISIBLE
-                holder.status.text = context.getString(R.string.module_status_downloading, percent)
-                holder.status.setTextColor(successColor)
+                // 瞬时状态（切换源/校验中/安装中）优先于百分比，说明下载仍在活动
+                val stateText = downloadStateText[module.id]
+                if (stateText != null) {
+                    holder.status.text = stateText
+                    holder.status.setTextColor(infoColor)
+                } else {
+                    holder.status.text = context.getString(R.string.module_status_downloading, percent)
+                    holder.status.setTextColor(successColor)
+                }
                 holder.actionBtn.text = context.getString(R.string.module_action_cancel)
                 holder.uninstallBtn.visibility = View.GONE
                 holder.actionBtn.setOnClickListener { onActionClick(module, ACTION_DOWNLOAD) }
@@ -273,6 +282,17 @@ class ModuleAdapter(
 
     fun updateDownloadProgress(moduleId: String, percent: Int) {
         downloadProgress[moduleId] = percent
+        downloadStateText.remove(moduleId)
+        val index = currentList.indexOfFirst { it.id == moduleId }
+        if (index >= 0) {
+            notifyItemChanged(index)
+        }
+    }
+
+    /** 展示无进度事件期间的瞬时状态（切换源/校验中/安装中），避免按钮看起来卡死 */
+    fun updateDownloadStateText(moduleId: String, text: String) {
+        if (!downloadProgress.containsKey(moduleId)) return
+        downloadStateText[moduleId] = text
         val index = currentList.indexOfFirst { it.id == moduleId }
         if (index >= 0) {
             notifyItemChanged(index)
@@ -281,6 +301,7 @@ class ModuleAdapter(
 
     fun removeDownloadProgress(moduleId: String) {
         downloadProgress.remove(moduleId)
+        downloadStateText.remove(moduleId)
         val index = currentList.indexOfFirst { it.id == moduleId }
         if (index >= 0) {
             notifyItemChanged(index)

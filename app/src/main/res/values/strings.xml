@@ -414,6 +414,9 @@
     <string name="module_action_enable">启用</string>
     <string name="module_action_cancel">取消</string>
     <string name="module_status_downloading">下载中 %1$d%%</string>
+    <string name="module_state_verifying">校验中…</string>
+    <string name="module_state_source_switching">切换下载源…</string>
+    <string name="module_state_installing">安装中…</string>
     <string name="module_status_update_available">有更新 v%1$d→v%2$d</string>
     <string name="module_status_installed">已安装</string>
     <string name="module_status_not_installed">未安装</string>
