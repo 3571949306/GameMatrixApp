@@ -63,23 +63,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         applySystemBarInsets()
 
-        // 分发架构 v2：进 App 后台链 — 移动网络提示弹窗 + 下载源测速（延迟 8s 避让启动期）
+        // 分发架构 v2：移动网络提示弹窗（8s）+ 下载源测速（Step1 避让式调度：
+        // 后台等待"启动≥15s 且 6s 内无页签切换"再测，随后预取商店首屏数据）
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             try {
                 showMobileNetworkNoticeIfNeeded()
-                Log.d("DLSelector", "entry probe: mobile=" +
+                Log.d("DLSelector", "entry: mobile=" +
                     com.gamecenter.app.modules.store.DownloadSourceSelector.isMobileNetwork(this) +
                     ", popup shown once")
-                Thread {
-                    runCatching {
-                        com.gamecenter.app.modules.store.DownloadSourceSelector
-                            .runEntryProbeIfNeeded(applicationContext)
-                    }
-                }.start()
             } catch (t: Throwable) {
-                android.util.Log.e("DLSelector", "entry probe/popup failed", t)
+                android.util.Log.e("DLSelector", "mobile notice failed", t)
             }
         }, 8_000L)
+        Thread {
+            runCatching {
+                com.gamecenter.app.modules.store.DownloadSourceSelector
+                    .scheduleEntryProbeIfNeeded(applicationContext)
+            }
+        }.start()
 
         permissionHelper = PermissionHelper(this)
 

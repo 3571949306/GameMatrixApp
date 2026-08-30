@@ -30,6 +30,8 @@ object DownloadSourceSelector {
 
     private val testedThisProcess = AtomicBoolean(false)
     @Volatile private var cachedWinner: String? = null
+    /** 最近一次页签切换时间（BottomNavigationManager 刷新），用于测速避让 */
+    @Volatile private var lastNavigationMs: Long = 0L
 
     fun mirrorHosts(): List<String> = hostList
 
@@ -45,7 +47,51 @@ object DownloadSourceSelector {
     }
 
     /**
-     * 进 App 入口：满足条件时后台执行一次测速（阻塞调用，须在工作线程调用）。
+     * 进 App 入口（Step 1 测速避让）：后台线程等待"启动 ≥15s 且最近 6s 无页签切换"
+     * 才执行测速——用户的首次模块切换优先于测速带宽；随后 Step 2 预取商店首屏数据。
+     * 阻塞调用，须在工作线程调用。
+     */
+    fun scheduleEntryProbeIfNeeded(context: Context) {
+        val settings = SettingsManager.getInstance(context)
+        if (!settings.isDlAutoSelect()) return
+        if (!testedThisProcess.compareAndSet(false, true)) return
+        try {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+        } catch (_: Throwable) {
+        }
+        val start = System.currentTimeMillis()
+        // 避让循环：用户切页签会刷新 lastNavigationMs
+        while (System.currentTimeMillis() - start < 15_000 ||
+            System.currentTimeMillis() - lastNavigationMs < 6_000
+        ) {
+            if (!settings.isDlAutoSelect()) return
+            Thread.sleep(1000)
+        }
+        runEntryProbeIfNeeded(context)
+        // Step 2：商店首屏数据预取（catalog + store-ui 进既有缓存，首访秒开）
+        prefetchStoreData(context)
+    }
+
+    /** Step 2：后台预热商店两个仓库的缓存（refresh 内部已有缓存/降级逻辑）。 */
+    private fun prefetchStoreData(context: Context) {
+        runCatching {
+            com.gamecenter.app.modules.store.DefaultStoreCatalogRepository
+                .getInstance(context).refresh(null)
+        }.onFailure { android.util.Log.w("DLSelector", "catalog prefetch: ${it.message}") }
+        runCatching {
+            com.gamecenter.app.modules.store.DefaultStoreUiConfigRepository
+                .getInstance(context).refresh(null)
+        }.onFailure { android.util.Log.w("DLSelector", "store-ui prefetch: ${it.message}") }
+    }
+
+    /** 页签切换时由 BottomNavigationManager 调用：测速避让的"最近导航"时钟。 */
+    @JvmStatic
+    fun noteNavigation() {
+        lastNavigationMs = System.currentTimeMillis()
+    }
+
+    /**
+     * 同步测速入口（保留给需要立即测速的场景）：阻塞调用，须在工作线程调用。
      * 决策表：
      *   主开关关 → 不测；
      *   WiFi/非计费 → 测；
@@ -85,7 +131,7 @@ object DownloadSourceSelector {
                 mobileCount >= SettingsManager.DL_MOBILE_SAMPLE_TARGET
     }
 
-    /** 单线程顺序测三台：各下载 [PROBE_BYTES] 字节 /probe.bin，比总耗时。 */
+    /** 单线程顺序测三台：各下载 [PROBE_BYTES] 字节 /probe.bin，比总耗时；两次请求间留 250ms 避让窗。 */
     fun probeAll(context: Context, mobile: Boolean): Pair<String, SourceTestSession> {
         val results = mutableListOf<EdgeTestResult>()
         var winner = ""
@@ -97,6 +143,7 @@ object DownloadSourceSelector {
             if (ok && elapsed != null && elapsed < bestMs) {
                 bestMs = elapsed; winner = host
             }
+            Thread.sleep(250) // Step 1 避让：给首访加载让出带宽窗口
         }
         val net = if (mobile) "mobile" else "wifi"
         return winner to SourceTestSession(System.currentTimeMillis(), net, winner, results)
