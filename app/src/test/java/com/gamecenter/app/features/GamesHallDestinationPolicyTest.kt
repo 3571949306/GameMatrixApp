@@ -3,11 +3,16 @@ package com.gamecenter.app.features
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** 入口优先级纯逻辑测试：动态大厅 > 游戏库主页 > 旧 GamesFragment（计划 §9.1）。 */
+/** 入口优先级纯逻辑测试（计划 §9.1 GamesHallDestinationPolicyTest）。 */
 class GamesHallDestinationPolicyTest {
 
-    private fun resolve(dynamic: Boolean, library: Boolean) =
-        GamesHallDestinationFactory.resolve(GamesHallDestinationFactory.Options(dynamic, library))
+    private fun resolve(
+        dynamic: Boolean,
+        library: Boolean,
+        legacyV2Chain: Boolean = true
+    ) = GamesHallDestinationFactory.resolve(
+        GamesHallDestinationFactory.Options(dynamic, library, legacyV2Chain)
+    )
 
     @Test
     fun `动态大厅开关优先级最高`() {
@@ -30,10 +35,26 @@ class GamesHallDestinationPolicyTest {
     }
 
     @Test
-    fun `默认回退旧 GamesFragment`() {
+    fun `默认回退旧链`() {
         assertEquals(
             GamesHallDestinationFactory.Destination.LEGACY_GAMES,
             resolve(dynamic = false, library = false)
+        )
+    }
+
+    @Test
+    fun `LEGACY分支受legacyV2Chain控制`() {
+        assertEquals(
+            "com.gamecenter.app.GamesFragment",
+            GamesHallDestinationFactory.createFragment(
+                GamesHallDestinationFactory.Options(false, false, legacyV2Chain = true)
+            )::class.java.name
+        )
+        assertEquals(
+            "com.gamecenter.app.features.BuiltInGamesHallFragment",
+            GamesHallDestinationFactory.createFragment(
+                GamesHallDestinationFactory.Options(false, false, legacyV2Chain = false)
+            )::class.java.name
         )
     }
 
@@ -49,12 +70,6 @@ class GamesHallDestinationPolicyTest {
             "com.gamecenter.app.home.GameLibraryFragment",
             GamesHallDestinationFactory.createFragment(
                 GamesHallDestinationFactory.Options(false, true)
-            )::class.java.name
-        )
-        assertEquals(
-            "com.gamecenter.app.GamesFragment",
-            GamesHallDestinationFactory.createFragment(
-                GamesHallDestinationFactory.Options(false, false)
             )::class.java.name
         )
     }

@@ -378,6 +378,81 @@ object ModuleManager {
     @Volatile
     private var bundledVersionCodes: Map<String, Int>? = null
 
+    /** 分发架构 v2：出厂预装安装是否已在本进程执行。 */
+    @Volatile
+    private var bundledInstallDone = false
+
+    /**
+     * 初始包自带模块的首次安装/升级（“初始自带全部模块”标准，docs/游戏中心主页面重做执行计划 §1.4）。
+     *
+     * 遍历与本宿主 APK 同批打包的 assets/modules.json，凡出厂版本高于当前已安装版本
+     * （或从未安装）的非内置模块，从 assets 提取 APK 并走 [applyExternalUpdate] 正式事务
+     * （SHA/签名校验、落位、SP 标记、dex 加载、游戏注册）。
+     *
+     * IO 较重（全模块 APK 拷贝），必须在后台线程调用；每进程执行一次。
+     */
+    fun installBundledModulesIfNeeded(context: Context) {
+        if (bundledInstallDone) return
+        synchronized(this) {
+            if (bundledInstallDone) return
+            bundledInstallDone = true
+        }
+        val appCtx = context.applicationContext
+        // manifests 表是懒加载的（loadModuleList 之后才有值）；Splash 阶段可能只含
+        // registerLocalFallbackIfNeeded 的本地回退条目。这里**始终**用出厂
+        // assets/modules.json（Catalog V2 对象格式）补全缺失条目（不覆盖已有），
+        // 保证初始包自带模块全部进入安装视野。
+        runCatching {
+            appCtx.assets.open("modules.json").bufferedReader(Charsets.UTF_8).use { body ->
+                val arr = org.json.JSONObject(body.readText()).optJSONArray("modules")
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        runCatching {
+                            com.gamecenter.app.core.common.ModuleManifest
+                                .fromJson(arr.getJSONObject(i))
+                                ?.let { manifests.putIfAbsent(it.id, it) }
+                        }
+                    }
+                }
+            }
+        }
+        Log.i(TAG, "出厂预装扫描: manifests=${manifests.size}")
+        var installedCount = 0
+        for (m in manifests.values) {
+            if (m.fileName.isBlank()) continue
+            val current = try {
+                getInstalledVersionCode(appCtx, m.id)
+            } catch (e: Exception) {
+                0
+            }
+            // 版本已达标且文件已落位 → 跳过；builtIn 模块版本被 SP 自动标记为
+            // 出厂版本，但 assets 中的 APK 尚未提取到数据目录时仍需提取
+            val appliedKey = "bundled_applied_${m.versionCode}"
+            val fileReady = ModuleDownloader.getModuleFileCompat(appCtx, m).exists()
+            val alreadyApplied = current >= m.versionCode &&
+                    fileReady &&
+                    prefs(appCtx).getBoolean(appliedKey, false)
+            Log.i(TAG, "预装检查 ${m.id}: current=$current bundled=${m.versionCode} fileReady=$fileReady applied=${alreadyApplied}")
+            if (alreadyApplied) continue
+            try {
+                val tmp = java.io.File(appCtx.cacheDir, "bundled_${m.fileName}")
+                appCtx.assets.open("modules/${m.fileName}").use { input ->
+                    tmp.outputStream().use { output -> input.copyTo(output) }
+                }
+                val ok = applyExternalUpdate(appCtx, m.id, tmp, m.versionCode)
+                tmp.delete()
+                if (ok) {
+                    installedCount++
+                    prefs(appCtx).edit().putBoolean(appliedKey, true).apply()
+                }
+                Log.i(TAG, "出厂预装模块 ${m.id}: ${if (ok) "成功" else "失败"}")
+            } catch (e: Exception) {
+                Log.w(TAG, "出厂预装模块失败 ${m.id}: ${e.message}")
+            }
+        }
+        Log.i(TAG, "出厂预装完成: 新装/升级 $installedCount 个模块")
+    }
+
     /**
      * 读取模块的出厂版本号（assets/modules.json 中的 versionCode）。
      *

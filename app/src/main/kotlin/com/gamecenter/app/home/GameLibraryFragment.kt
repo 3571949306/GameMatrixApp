@@ -1,9 +1,11 @@
 package com.gamecenter.app.home
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
@@ -27,22 +29,26 @@ import com.gamecenter.app.modules.ModuleStoreActivity
 import com.gamecenter.app.settings.AppSettingsDialog
 import com.gamecenter.app.ui.GameDetailBottomSheet
 import com.gamecenter.app.ui.GameLongPressMenu
+import com.gamecenter.app.ui.SearchHistoryManager
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
 /**
  * 游戏库主页（docs/游戏中心主页面重做执行计划_2026-08-30.md）：
- * 顶栏（标题/设置/溢出）→ 搜索 → 筛选 → 单一 RecyclerView（继续/最近/全部游戏）。
+ * 顶栏（标题/设置/溢出）→ 搜索（含历史）→ 筛选 → 单一 RecyclerView（继续/最近/全部游戏）。
  * 数据经 GameHomeViewModel（真源聚合），颜色经 GameHomeThemeResolver（用户 Scheme）。
  */
 class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     private val viewModel: GameHomeViewModel by viewModels()
     private var adapter: GameHomeAdapter? = null
+    private var layoutManager: GridLayoutManager? = null
 
     private lateinit var root: View
     private lateinit var searchInput: EditText
     private lateinit var chipGroup: ChipGroup
+    private lateinit var searchHistorySection: View
+    private lateinit var searchHistoryChips: ChipGroup
     private lateinit var recyclerView: RecyclerView
 
     /** 程序化 setText 时抑制 TextWatcher 回环（filters observer ↔ setQuery） */
@@ -61,26 +67,26 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         super.onViewCreated(view, savedInstanceState)
         searchInput = view.findViewById(R.id.et_game_library_search)
         chipGroup = view.findViewById(R.id.chip_group_game_filters)
+        searchHistorySection = view.findViewById(R.id.search_history_section)
+        searchHistoryChips = view.findViewById(R.id.chip_group_search_history)
         recyclerView = view.findViewById(R.id.rv_game_library)
 
         adapter = GameHomeAdapter(
             iconLoader = ::loadIcon,
+            nameLoader = { entry ->
+                com.gamecenter.app.home.GameDisplayNames.gameName(requireContext(), entry)
+            },
             callbacks = this
         )
-        recyclerView.layoutManager = GridLayoutManager(
-            requireContext(), 4
-        ).apply {
+        layoutManager = GridLayoutManager(requireContext(), currentSpanCount()).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int {
                     val item = adapter?.currentList?.getOrNull(position) ?: return 1
-                    val spans = GameHomeLayoutPolicy.spanCount(
-                        (resources.displayMetrics.widthPixels / resources.displayMetrics.density).toInt(),
-                        resources.configuration.fontScale
-                    )
-                    return GameHomeLayoutPolicy.spanSizeFor(item, spans)
+                    return GameHomeLayoutPolicy.spanSizeFor(item, currentSpanCount())
                 }
             }
         }
+        recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
 
         view.findViewById<ImageButton>(R.id.btn_game_library_settings).setOnClickListener {
@@ -89,14 +95,33 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         view.findViewById<ImageButton>(R.id.btn_game_library_overflow).setOnClickListener { anchor ->
             showOverflowMenu(anchor)
         }
+
+        searchInput.setOnFocusChangeListener { _, hasFocus -> updateSearchHistoryVisibility(hasFocus) }
         searchInput.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
             override fun afterTextChanged(s: android.text.Editable?) {
                 if (suppressSearchWatcher) return
                 viewModel.setQuery(s?.toString() ?: "")
+                updateSearchHistoryVisibility(searchInput.hasFocus())
             }
         })
+        // IME 搜索键：关键词记入历史（与旧 GamesFragment 行为一致）
+        searchInput.setOnEditorActionListener { tv, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                val kw = tv?.text?.toString()?.trim() ?: ""
+                if (kw.isNotEmpty()) SearchHistoryManager.getInstance(requireContext()).add(kw)
+                refreshSearchHistoryChips()
+            }
+            false
+        }
+        view.findViewById<TextView>(R.id.btn_search_history_clear).setOnClickListener {
+            SearchHistoryManager.getInstance(requireContext()).clear()
+            refreshSearchHistoryChips()
+            updateSearchHistoryVisibility(searchInput.hasFocus())
+            Toast.makeText(requireContext(), R.string.search_history_cleared, Toast.LENGTH_SHORT).show()
+        }
+        refreshSearchHistoryChips()
 
         viewModel.filters.observe(viewLifecycleOwner) { filters ->
             // 仅在内容不同时回写，且抑制 watcher 回环（否则 setText→watcher→setQuery→observe 死循环 ANR）
@@ -114,9 +139,50 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        layoutManager?.spanCount = currentSpanCount()
+    }
+
+    /** 自适应列数（Gap 1）：宽度 + fontScale 由 LayoutPolicy 统一决策。 */
+    private fun currentSpanCount(): Int = GameHomeLayoutPolicy.spanCount(
+        (resources.displayMetrics.widthPixels / resources.displayMetrics.density).toInt(),
+        resources.configuration.fontScale
+    )
+
+    /** 搜索历史显隐：聚焦且输入为空且有历史时展开（§4.2）。 */
+    private fun updateSearchHistoryVisibility(searchFocused: Boolean) {
+        val history = SearchHistoryManager.getInstance(requireContext()).getHistory()
+        val show = searchFocused &&
+            searchInput.text?.toString().isNullOrEmpty() &&
+            history.isNotEmpty()
+        searchHistorySection.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun refreshSearchHistoryChips() {
+        val history = SearchHistoryManager.getInstance(requireContext()).getHistory()
+        searchHistoryChips.removeAllViews()
+        history.forEach { kw ->
+            val chip = Chip(requireContext()).apply {
+                text = kw
+                isClickable = true
+                chipStrokeWidth = 0f
+                setOnClickListener {
+                    searchInput.setText(kw)
+                    searchInput.setSelection(kw.length)
+                    updateSearchHistoryVisibility(searchInput.hasFocus())
+                }
+            }
+            searchHistoryChips.addView(chip)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        viewModel.refresh() // §4.2：模块安装返回后先注册再刷新
+        // §4.2：模块安装返回后先注册已安装模块，再刷新游戏库
+        com.gamecenter.app.modules.ModuleManager
+            .registerInstalledGameModules(requireContext())
+        viewModel.refresh() // 筛选与滚动由 ViewModel/SavedState 恢复
     }
 
     // ===== GameHomeAdapter.Callbacks =====
@@ -143,15 +209,17 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
     }
 
     override fun onEmptyAction() {
-        // 两个空状态动作分别是“浏览模块商店”与“清除搜索”，按当前状态分发
+        // 空状态动作按文案分发：浏览模块商店 / 清除搜索
         val state = viewModel.uiState.value ?: return
-        val empty = state.items.filterIsInstance<com.gamecenter.app.home.GameHomeItem.EmptyState>()
+        val empty = state.items.filterIsInstance<GameHomeItem.EmptyState>()
             .firstOrNull() ?: return
         when (empty.message) {
             getString(R.string.game_library_empty) ->
                 startActivity(android.content.Intent(requireContext(), ModuleStoreActivity::class.java))
             getString(R.string.game_library_no_search_results) -> {
+                suppressSearchWatcher = true
                 searchInput.setText("")
+                suppressSearchWatcher = false
                 viewModel.setQuery("")
             }
         }
@@ -223,8 +291,7 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
             .getColorSchemeIndex()
         val scheme = com.gamecenter.app.ColorSchemeManager.getScheme(index)
         val isDark = (resources.configuration.uiMode and
-            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
+            Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         return GameHomeThemeResolver.resolve(scheme, isDark)
     }
 

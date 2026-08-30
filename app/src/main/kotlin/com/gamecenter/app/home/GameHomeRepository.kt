@@ -48,7 +48,10 @@ class GameHomeRepository(private val context: Context) {
         return Snapshot(
             entries = entries,
             recentIds = recentIds,
-            categories = categories.map { it.categoryKey to it.name },
+            categories = categories.map {
+                com.gamecenter.app.home.GameDisplayNames.categoryName(context, it.categoryKey, it.name)
+                    .let { n -> it.categoryKey to n }
+            },
             lastPlayedTextById = lastPlayedTextById,
             favoriteIds = favoriteIds,
             resumeEntry = resume,
