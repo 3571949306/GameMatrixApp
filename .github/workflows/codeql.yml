@@ -40,8 +40,9 @@ jobs:
           # are evaluated against the current configuration.
           - language: actions
             build-mode: none
-          # Keep removed JavaScript paths from leaving stale alerts and cover
-          # any future repository-owned JavaScript without a build step.
+          # The product no longer ships runtime JavaScript. A tiny valid
+          # sentinel in tools/codeql keeps this language analysis enabled so
+          # deleted JS alerts are re-evaluated and future JS stays covered.
           - language: javascript-typescript
             build-mode: none
 
