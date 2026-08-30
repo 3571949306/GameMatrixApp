@@ -26,6 +26,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -238,6 +239,22 @@ def _sha256_public_file(url: str) -> tuple[str, int]:
     return digest.hexdigest(), total
 
 
+def _github_publish_assets(tag: str, apk_path: Path) -> None:
+    """确保 GitHub Release 存在并上传模块 APK 资产（gh CLI，需已认证）。"""
+    repo = "3571949306/GameMatrixApp"
+    run = lambda *args: subprocess.run(args, check=True, capture_output=True, text=True)
+    view = subprocess.run(["gh", "release", "view", tag, "-R", repo],
+                          capture_output=True, text=True)
+    if view.returncode != 0:
+        print(f"  GitHub: 创建 Release {tag}")
+        run("gh", "release", "create", tag, "-R", repo,
+            "--title", f"Distribution catalog {tag}", "--notes",
+            f"模块分发资产（catalog {tag}）。详见 catalog.json。",
+            "--latest=false")
+    print(f"  GitHub: 上传 {apk_path.name}")
+    run("gh", "release", "upload", tag, "-R", repo, "--clobber", str(apk_path))
+
+
 def _edge_ok(base: str, apk_name: str, digest: str, new_vc: int) -> bool:
     """单边缘一致性：清单含该模块且 versionCode 匹配，APK 字节哈希一致。"""
     try:
@@ -304,6 +321,9 @@ def main() -> int:
     parser.add_argument("--target", choices=["jp", "hk"], default="jp",
                         help="上传权威源：jp=/srv/dl(key 认证，默认)；hk=旧 HK 路径（回滚用）")
     parser.add_argument("--verify-only", action="store_true", help="不上传，仅巡检各端点一致性")
+    parser.add_argument("--github-release", action="store_true",
+                        help="同时发布到 GitHub Releases（tag=dl-v<catalogVersion>，"
+                             "APK 作为资产，githubUrl 指向该资产；需 gh CLI 已认证）")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -341,6 +361,16 @@ def main() -> int:
     old_name = entry.get("fileName") or f"{args.id}.apk"
     new_name = validate_publish_metadata_name(args.new_name or old_name)
     digest = sha256_of(apk_path)
+
+    # W7 GitHub 模块小服务器：可选将本模块 APK 随新 catalog 版本发布到
+    # GitHub Release（tag=dl-v<新catalogVersion>），并预填 githubUrl 作为
+    # 客户端最后一级兜底源。需要 gh CLI 已登录（或 GITHUB_TOKEN 环境变量）。
+    github_tag = ""
+    if args.github_release:
+        github_tag = f"dl-v{int(data.get('catalogVersion', 0)) + 1}"
+        _github_publish_assets(github_tag, apk_path)
+        entry["githubUrl"] = (f"https://github.com/3571949306/GameMatrixApp"
+                              f"/releases/download/{github_tag}/{new_name}")
 
     entry.update({
         "versionCode": new_vc,
