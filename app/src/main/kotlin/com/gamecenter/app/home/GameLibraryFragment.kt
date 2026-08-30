@@ -65,6 +65,7 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
         adapter = GameHomeAdapter(
             iconLoader = ::loadIcon,
+            nameLoader = { entry -> com.gamecenter.app.home.GameDisplayNames.gameName(requireContext(), entry) },
             callbacks = this
         )
         recyclerView.layoutManager = GridLayoutManager(
@@ -116,7 +117,10 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refresh() // §4.2：模块安装返回后先注册再刷新
+        // §4.2：模块安装返回后先注册已安装模块，再刷新游戏库
+        com.gamecenter.app.modules.ModuleManager
+            .registerInstalledGameModules(requireContext())
+        viewModel.refresh() // 筛选与滚动由 ViewModel/SavedState 恢复
     }
 
     // ===== GameHomeAdapter.Callbacks =====

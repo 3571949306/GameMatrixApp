@@ -18,6 +18,7 @@ import com.gamecenter.app.games.GameRegistry
  */
 class GameHomeAdapter(
     private val iconLoader: (GameRegistry.Entry) -> Drawable?,
+    private val nameLoader: (GameRegistry.Entry) -> String,
     private val callbacks: Callbacks,
 ) : ListAdapter<GameHomeItem, RecyclerView.ViewHolder>(DIFF) {
 
@@ -134,7 +135,7 @@ class GameHomeAdapter(
         p: GameHomeThemeResolver.GameHomePalette?
     ) {
         vh.icon.setImageDrawable(iconLoader(row.entry))
-        vh.name.text = row.entry.name
+        vh.name.text = nameLoader(row.entry)
         vh.name.setTextColor(p?.onSurface ?: vh.name.currentTextColor)
         vh.meta.text = row.lastPlayedText
         vh.meta.setTextColor(p?.onSurfaceVariant ?: vh.meta.currentTextColor)
@@ -153,7 +154,7 @@ class GameHomeAdapter(
         p: GameHomeThemeResolver.GameHomePalette?
     ) {
         vh.icon.setImageDrawable(iconLoader(item.entry))
-        vh.name.text = item.entry.name
+        vh.name.text = nameLoader(item.entry)
         vh.name.setTextColor(p?.onSurface ?: vh.name.currentTextColor)
         vh.itemView.setOnClickListener { callbacks.onTileClick(item.entry) }
         vh.itemView.setOnLongClickListener {
