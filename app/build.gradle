@@ -35,6 +35,8 @@ def configuredFeedbackUrl = ""
 def configuredMimoApiKey = ""
 def configuredMimoApiUrl = ""
 def configuredServerFallbackUrl = ""
+// 分发边缘主机列表（逗号分隔）。生产默认三边缘；local.properties 可覆盖
+def configuredDlMirrors = "jp.dl.tcp888.uk,hk.dl.tcp888.uk,us.dl.tcp888.uk"
 
 if (localPropsFile.exists()) {
     localPropsFile.withReader("UTF-8") { reader ->
@@ -52,6 +54,7 @@ if (localPropsFile.exists()) {
                 if (key == "feedback.url") configuredFeedbackUrl = val
                 if (key == "mimo.api.key") configuredMimoApiKey = val
                 if (key == "mimo.api.url") configuredMimoApiUrl = val
+                if (key == "dl.mirrors") configuredDlMirrors = val
             }
         }
     }
@@ -582,6 +585,16 @@ android {
         // Batch 21: CDN fallback 域名 — 用户在 local.properties 中配置 server.url.fallback 即可启用
         // 未配置时为空字符串，模块下载会自动跳过空 URL
         buildConfigField "String", "DOWNLOAD_FALLBACK_BASE_URL", toJavaStringLiteral(configuredServerFallbackUrl ?: "")
+        // 分发架构 v2：三边缘镜像（逗号分隔主机名）。
+        // DL_MIRROR_BASES = https://<host>:2088（模块/大文件边缘）
+        // UPDATE_MIRROR_BASES = https://<host>:2088/app（宿主自更新边缘）
+        // DL_MIRROR_HOSTS = 纯主机名列表（供证书 pin 逐 host 注入）
+        def _dlMirrorHosts = configuredDlMirrors.split(",").collect { it.trim() }.findAll { it }
+        buildConfigField "String", "DL_MIRROR_HOSTS", toJavaStringLiteral(_dlMirrorHosts.join(","))
+        buildConfigField "String", "DL_MIRROR_BASES",
+                toJavaStringLiteral(_dlMirrorHosts.collect { "https://${it}:2088" }.join(","))
+        buildConfigField "String", "UPDATE_MIRROR_BASES",
+                toJavaStringLiteral(_dlMirrorHosts.collect { "https://${it}:2088/app" }.join(","))
     }
 
     aaptOptions {
