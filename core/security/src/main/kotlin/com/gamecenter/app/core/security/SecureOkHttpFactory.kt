@@ -36,8 +36,8 @@ object SecureOkHttpFactory {
 
     /** 运行时通过 setHosts() 注入实际服务器域名 */
     @Volatile private var MODULE_HOST: String = "your-server.example.com"
-    /** host → 是否包含 Leaf pin（主域 true，镜像 false）；LinkedHashMap 保持注入顺序 */
-    @Volatile private val MODULE_HOSTS = LinkedHashMap<String, Boolean>()
+    /** host → 是否包含 Leaf pin（主域 true，镜像 false）；保持注入顺序 */
+    private val MODULE_HOSTS = java.util.LinkedHashMap<String, Boolean>()
     
     /** 是否启用证书绑定(Release构建启用,Debug构建禁用以避免模拟器SIGSEGV) */
     @Volatile private var enableCertificatePinning: Boolean = false
