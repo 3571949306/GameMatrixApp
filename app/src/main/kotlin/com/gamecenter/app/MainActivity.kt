@@ -63,16 +63,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         applySystemBarInsets()
 
-        // 分发架构 v2：进 App 后台链 — 移动网络提示弹窗 + 下载源测速（延迟 8s 避让启动期）
+        // 分发架构 v2：移动网络提示弹窗（8s）+ 下载源测速（Step1 避让式调度：
+        // 后台等待"启动≥15s 且 6s 内无页签切换"再测，随后预取商店首屏数据）
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            showMobileNetworkNoticeIfNeeded()
-            Thread {
-                runCatching {
-                    com.gamecenter.app.modules.store.DownloadSourceSelector
-                        .runEntryProbeIfNeeded(applicationContext)
-                }
-            }.start()
+            try {
+                showMobileNetworkNoticeIfNeeded()
+                Log.d("DLSelector", "entry: mobile=" +
+                    com.gamecenter.app.modules.store.DownloadSourceSelector.isMobileNetwork(this) +
+                    ", popup shown once")
+            } catch (t: Throwable) {
+                android.util.Log.e("DLSelector", "mobile notice failed", t)
+            }
         }, 8_000L)
+        Thread {
+            runCatching {
+                com.gamecenter.app.modules.store.DownloadSourceSelector
+                    .scheduleEntryProbeIfNeeded(applicationContext)
+            }
+        }.start()
 
         permissionHelper = PermissionHelper(this)
 
@@ -272,22 +280,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun applySystemBarInsets() {
         val container = findViewById<View>(R.id.container)
-        val navView = findViewById<BottomNavigationView>(R.id.nav_view)
         if (container == null) return
 
         val left = container.paddingLeft
         val top = container.paddingTop
         val right = container.paddingRight
         val bottom = container.paddingBottom
-        val navLeft = navView?.paddingLeft ?: 0
-        val navTop = navView?.paddingTop ?: 0
-        val navRight = navView?.paddingRight ?: 0
-        val navBottom = navView?.paddingBottom ?: 0
 
         ViewCompat.setOnApplyWindowInsetsListener(container) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             container.setPadding(left + bars.left, top + bars.top, right + bars.right, bottom)
-            navView?.setPadding(navLeft, navTop, navRight, navBottom + bars.bottom)
             insets
         }
         ViewCompat.requestApplyInsets(container)
