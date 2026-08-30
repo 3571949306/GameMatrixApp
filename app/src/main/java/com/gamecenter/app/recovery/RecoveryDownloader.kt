@@ -56,15 +56,22 @@ object RecoveryDownloader {
     /**
      * 恢复模式 APK 下载源列表。
      *
-     * 2026-06-19: 已移除美国 VPS 备用源，仅保留 HK VPS + GitHub 两级分发。
-     * 顺序即优先级：香港 VPS（主源）→ GitHub Releases（备用源）。
-     * 下载时若 VPS 速率过低或失败，将自动切换至 GitHub。
+     * 分发架构 v2：三边缘镜像（jp/hk/us.dl，UPDATE_MIRROR_BASES）优先，
+     * 之后 HK VPS（旧主源）→ GitHub Releases（最终兜底）。
+     * 顺序即优先级；下载失败或速率过低将自动切换下一源。
      */
     private val DOWNLOAD_SOURCES: List<String> get() {
-        return listOf(
-            BuildConfig.SERVER_URL + "/app-stable.apk",
-            BuildConfig.GITHUB_RELEASES_URL + "/latest/download/app-release.apk"
-        )
+        val sources = mutableListOf<String>()
+        if (BuildConfig.UPDATE_MIRROR_BASES.isNotEmpty()) {
+            BuildConfig.UPDATE_MIRROR_BASES.split(",").map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .forEach { sources.add("$it/app-stable.apk") }
+        }
+        if (!BuildConfig.SERVER_URL.endsWith("example.com")) {
+            sources.add(BuildConfig.SERVER_URL + "/app-stable.apk")
+        }
+        sources.add(BuildConfig.GITHUB_RELEASES_URL + "/latest/download/app-release.apk")
+        return sources
     }
 
     interface Callback {
