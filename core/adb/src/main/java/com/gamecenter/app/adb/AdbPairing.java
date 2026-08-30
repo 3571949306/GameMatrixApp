@@ -3,6 +3,8 @@ package com.gamecenter.app.adb;
 import io.github.muntashirakon.crypto.spake2.Spake2Context;
 import io.github.muntashirakon.crypto.spake2.Spake2Role;
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import javax.crypto.Cipher;
@@ -35,8 +37,9 @@ final class AdbPairing {
             byte[] info = new byte[8192], publicKey = identity.publicKey();
             if (publicKey.length >= info.length) throw new IOException("ADB 公钥过长");
             System.arraycopy(publicKey, 0, info, 1, publicKey.length);
-            send(out, 1, crypt(Cipher.ENCRYPT_MODE, key, info));
-            byte[] peer = crypt(Cipher.DECRYPT_MODE, key, receive(in, 1, 8208));
+            PairingCipher cipher = new PairingCipher(key);
+            send(out, 1, cipher.encrypt(info));
+            byte[] peer = cipher.decrypt(receive(in, 1, 8208));
             if (peer.length != 8192 || peer[0] != 0 || link.peerKey == null) throw new IOException("配对身份信息不合法");
             scope.check();
             identity.savePin(link.host, link.peerKey);
@@ -46,10 +49,45 @@ final class AdbPairing {
             if (key != null) Arrays.fill(key, (byte) 0);
         }
     }
-    private static byte[] crypt(int mode, byte[] key, byte[] data) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(mode, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, new byte[12]));
-        return cipher.doFinal(data);
+
+    /**
+     * AOSP pairing_auth maintains distinct monotonically increasing nonce sequences for
+     * encryption and decryption. Retaining those directions separately preserves the v1
+     * wire contract while ensuring that later messages do not reuse a GCM nonce.
+     */
+    static final class PairingCipher {
+        private final SecretKeySpec key;
+        private long encryptionSequence;
+        private long decryptionSequence;
+
+        PairingCipher(byte[] key) {
+            this.key = new SecretKeySpec(key, "AES");
+        }
+
+        byte[] encrypt(byte[] data) throws Exception {
+            byte[] result = crypt(Cipher.ENCRYPT_MODE, data, encryptionSequence);
+            encryptionSequence++;
+            return result;
+        }
+
+        byte[] decrypt(byte[] data) throws Exception {
+            byte[] result = crypt(Cipher.DECRYPT_MODE, data, decryptionSequence);
+            decryptionSequence++;
+            return result;
+        }
+
+        private byte[] crypt(int mode, byte[] data, long sequence) throws Exception {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(mode, key, new GCMParameterSpec(128, nonceForSequence(sequence)));
+            return cipher.doFinal(data);
+        }
+    }
+
+    /** Mirrors the AOSP uint64_t sequence layout in the 96-bit AES-GCM nonce. */
+    static byte[] nonceForSequence(long sequence) {
+        byte[] nonce = new byte[12];
+        ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN).putLong(sequence);
+        return nonce;
     }
     private static void send(DataOutputStream out, int type, byte[] data) throws IOException {
         out.writeByte(1); out.writeByte(type); out.writeInt(data.length); out.write(data); out.flush();
