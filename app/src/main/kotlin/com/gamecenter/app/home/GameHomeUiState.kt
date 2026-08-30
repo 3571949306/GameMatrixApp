@@ -15,6 +15,7 @@ data class GameHomeStrings(
     val clearSearch: String,
     val viewAll: String,
     val collapse: String,
+    val allFilter: String,
 )
 
 /** 页面筛选状态（SavedStateHandle 持久化）。 */
@@ -31,7 +32,11 @@ data class GameHomeUiState(
     val filters: GameHomeFilters,
     val isEmptyLibrary: Boolean,
     val visibleGameCount: Int,
-)
+    val categories: List<CategoryUi> = emptyList(),
+) {
+    /** 分类筛选 chip（含“全部”）。 */
+    data class CategoryUi(val key: String?, val name: String, val selected: Boolean)
+}
 
 /**
  * 纯函数状态构建器（计划 §6.5）：
@@ -54,6 +59,7 @@ object GameHomeStateBuilder {
         recentIds: List<String>,
         lastPlayedTextById: Map<String, String>,
         favoriteIds: Set<String>,
+        categories: List<Pair<String, String>>,
         filters: GameHomeFilters,
         strings: GameHomeStrings,
         healthReminderText: String? = null,
@@ -65,6 +71,9 @@ object GameHomeStateBuilder {
                 filters = filters,
                 isEmptyLibrary = true,
                 visibleGameCount = 0,
+                categories = listOf(
+                    GameHomeUiState.CategoryUi(null, strings.allFilter, true)
+                ) + categories.map { GameHomeUiState.CategoryUi(it.first, it.second, false) },
             )
         }
 
@@ -97,7 +106,13 @@ object GameHomeStateBuilder {
                 items.add(GameHomeItem.SectionHeader(strings.allGamesTitle))
                 items.addAll(matched.map { GameHomeItem.GameTile(it, favoriteIds.contains(it.id)) })
             }
-            return GameHomeUiState(items, filters, isEmptyLibrary = false, visibleGameCount = matched.size)
+            return GameHomeUiState(
+                items, filters, isEmptyLibrary = false, visibleGameCount = matched.size,
+                categories = listOf(
+                    GameHomeUiState.CategoryUi(null, strings.allFilter, filters.categoryKey == null)
+                ) + categories.map {
+                    GameHomeUiState.CategoryUi(it.first, it.second, it.first == filters.categoryKey)
+                },)
         }
 
         // 4. 非搜索态：健康提醒 → 继续 → 最近 → 全部游戏
@@ -116,30 +131,18 @@ object GameHomeStateBuilder {
                 )
             )
             val rest = validRecent.drop(1)
-            val limit = if (filters.recentExpanded) RECENT_EXPANDED_COUNT else RECENT_COLLAPSED_COUNT
-            val visibleRest = rest.take(limit)
-            if (visibleRest.isNotEmpty()) {
+            if (rest.isNotEmpty()) {
+                val limit = if (filters.recentExpanded) RECENT_EXPANDED_COUNT else RECENT_COLLAPSED_COUNT
+                val visibleRest = rest.take(limit)
                 items.add(
                     GameHomeItem.SectionHeader(
                         strings.recentTitle,
-                        expandable = rest.size > visibleRest.size,
+                        expandable = true,
                         expanded = filters.recentExpanded
                     )
                 )
                 visibleRest.forEach { e ->
                     items.add(GameHomeItem.RecentRow(e, lastPlayedTextById[e.id] ?: ""))
-                }
-                if (filters.recentExpanded && rest.size > RECENT_EXPANDED_COUNT) {
-                    // 展开时超过 8 条的尾部折叠回“查看全部”语义之外的部分不显示（MAX_RECENT=8 上游已裁）
-                }
-                if (rest.size > visibleRest.size || (filters.recentExpanded && rest.size > RECENT_COLLAPSED_COUNT)) {
-                    items.add(
-                        GameHomeItem.SectionHeader(
-                            strings.viewAll,
-                            expandable = true,
-                            expanded = filters.recentExpanded
-                        )
-                    )
                 }
             }
         }
@@ -159,6 +162,10 @@ object GameHomeStateBuilder {
             filters = filters,
             isEmptyLibrary = false,
             visibleGameCount = matched.size,
-        )
+                categories = listOf(
+                    GameHomeUiState.CategoryUi(null, strings.allFilter, filters.categoryKey == null)
+                ) + categories.map {
+                    GameHomeUiState.CategoryUi(it.first, it.second, it.first == filters.categoryKey)
+                },)
     }
 }
