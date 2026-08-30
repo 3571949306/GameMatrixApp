@@ -572,7 +572,7 @@ class MainActivity : AppCompatActivity() {
         if (!com.gamecenter.app.modules.store.DownloadSourceSelector.isMobileNetwork(this)) return
         runCatching {
             val card = android.widget.TextView(this).apply {
-                text = "当前为移动网络"
+                text = getString(com.gamecenter.app.R.string.dl_notice_mobile_network)
                 textSize = 14f
                 setTextColor(android.graphics.Color.WHITE)
                 setBackgroundResource(android.R.drawable.dialog_frame)

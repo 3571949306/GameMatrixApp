@@ -80,7 +80,9 @@ class GameHomeThemeResolverTest {
             listOf(false, true).forEach { isDark ->
                 val p = GameHomeThemeResolver.resolve(scheme, isDark)
                 assertTrue(
-                    GameHomeThemeResolver.contrastRatio(p.outline, p.surface) >= 1.05
+                    "${scheme.name} ${if (isDark) "深" else "浅"} outline/surface=" +
+                        "%.2f".format(GameHomeThemeResolver.contrastRatio(p.outline, p.surface)),
+                    GameHomeThemeResolver.contrastRatio(p.outline, p.surface) >= 3.0
                 )
                 assertTrue(
                     GameHomeThemeResolver.contrastRatio(p.onSelectedContainer, p.selectedContainer) >= 3.0
@@ -95,6 +97,32 @@ class GameHomeThemeResolverTest {
         val overlay = GameHomeThemeResolver.withAlpha(base, 0x1F)
         assertEquals(0x1F, (overlay ushr 24) and 0xFF)
         assertEquals(base and 0x00FFFFFF, overlay and 0x00FFFFFF)
+    }
+
+    @Test
+    fun `Activity重建_Resolver两次解析结果一致_无状态缓存`() {
+        schemes.forEach { scheme ->
+            listOf(false, true).forEach { isDark ->
+                val a = GameHomeThemeResolver.resolve(scheme, isDark)
+                val b = GameHomeThemeResolver.resolve(scheme, isDark)
+                assertEquals(a, b)
+            }
+        }
+    }
+
+    @Test
+    fun `按压覆盖与选中容器状态可辨识`() {
+        schemes.forEach { scheme ->
+            listOf(false, true).forEach { isDark ->
+                val p = GameHomeThemeResolver.resolve(scheme, isDark)
+                // 按压覆盖 = onSurface 半透明；选中容器与内容对比度 ≥3（状态不只靠颜色，
+                // 由选中 chip 的填充色差 + 文字对比共同表达）
+                assertTrue((p.pressedOverlay ushr 24) and 0xFF in 1..0xFE)
+                assertTrue(
+                    GameHomeThemeResolver.contrastRatio(p.onSelectedContainer, p.selectedContainer) >= 3.0
+                )
+            }
+        }
     }
 
     @Test
