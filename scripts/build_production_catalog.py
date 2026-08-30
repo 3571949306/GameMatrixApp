@@ -134,7 +134,7 @@ def main() -> int:
     parser.add_argument("--legacy", type=Path, default=Path("app/src/main/assets/modules.json"))
     parser.add_argument("--package-dir", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--public-base", default="https://hk-update.tcp0053.shop")
+    parser.add_argument("--public-base", default="https://hk-update.tcp888.uk:2083")
     parser.add_argument("--catalog-version", type=int, default=4)
     parser.add_argument("--legacy-version", type=int, default=24)
     parser.add_argument("--enable-smoke-modules", action="store_true")

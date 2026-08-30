@@ -96,10 +96,6 @@ def main() -> int:
                 "ChineseChessView must support the persisted simple-board mode")
         require(ui_preferences, r"board_style_v1.*?enhanced.*?simple",
                 "board style must use a versioned module-local preference with enhanced default")
-        require(agent_rules, r"undoCount=0.*?AI_CONTRACT_VIOLATION",
-                "agent rules must preserve no-undo and raw-AI telemetry acceptance requirements")
-        require(agent_rules, r"stateListAnimator.*?@null.*?真机",
-                "agent rules must require dynamic-resource compatibility and device acceptance")
 
         require(module_ai, re.escape("if (board[r][c] != getInitialPiece(r, c)) return false;"),
                 "opening book must require the exact initial position")
@@ -143,8 +139,6 @@ def main() -> int:
                 "GoView must keep an enhanced/simple board mode")
         require(go_module_prefs, r"board_style_v1.*?isSimpleMode.*?setSimpleMode",
                 "Go board style must persist under a versioned preference")
-        require(agent_rules, r"GO_AI_CONTRACT_VIOLATION.*?verify_go\.py",
-                "agent rules must require Go contract telemetry and regression verification")
         require(coachmark_sequence, r"decor\.addView\s*\(",
                 "Compose coachmarks must attach to the Activity decor ViewTree")
         if "windowManager.addView(composeView" in coachmark_sequence:

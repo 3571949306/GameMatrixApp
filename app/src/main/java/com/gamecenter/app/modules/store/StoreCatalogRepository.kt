@@ -83,6 +83,8 @@ class DefaultStoreCatalogRepository private constructor(
         appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    private val KEY_LAST_CATALOG_VERSION = "last_catalog_version"
+
     /** catalog.json URL — 由 MODULES_URL 推导，保持同源 */
     private val catalogUrl: String by lazy {
         val modulesUrl = BuildConfig.MODULES_URL
@@ -197,6 +199,17 @@ class DefaultStoreCatalogRepository private constructor(
                 return degradeToCacheOrFailure(RuntimeException("不支持的 schemaVersion=${catalog.schemaVersion}"))
             }
 
+            // 3.5 catalog 版本单调校验（分发 v2 §二）：相等放行（同版本内容刷新/重签），
+            // 仅更小才拒——避免打断服务端回滚能力。仅 schemaVersion≥2（v1 无该字段语义）
+            val lastVersion = prefs.getInt(KEY_LAST_CATALOG_VERSION, 0)
+            if (catalog.schemaVersion >= 2 && catalog.catalogVersion in 1 until lastVersion) {
+                Log.w(TAG, "catalog 版本回退: ${catalog.catalogVersion} < $lastVersion，删除 tmp 保留旧缓存")
+                tmpFile.delete()
+                return degradeToCacheOrFailure(
+                    RuntimeException("catalog 版本回退 ${catalog.catalogVersion} < $lastVersion")
+                )
+            }
+
             // 4. 原子替换（先删旧文件再 rename，兼容部分设备 renameTo 不能覆盖）
             if (cacheFile.exists() && !cacheFile.delete()) {
                 Log.w(TAG, "无法删除旧缓存文件，将尝试覆盖")
@@ -206,6 +219,9 @@ class DefaultStoreCatalogRepository private constructor(
                 cacheFile.writeText(body, Charsets.UTF_8)
                 tmpFile.delete()
             }
+
+            // 4.5 持久化最新 catalog 版本（单调校验基准）
+            prefs.edit().putInt(KEY_LAST_CATALOG_VERSION, catalog.catalogVersion).apply()
 
             // 5. 持久化 ETag
             if (!serverEtag.isNullOrEmpty()) {
