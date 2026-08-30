@@ -15,7 +15,9 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -278,32 +280,43 @@ public final class ErrorReporter {
      * @param payload JSON 格式的上报数据
      */
     private void sendToServer(String payload) {
-        if (feedbackUrl == null || feedbackUrl.isEmpty()) {
+        // 分发架构 v2：反馈入口跟随分发边缘（与下载源同一组主机），按序级联；
+        // 全部失败仍回退旧 FEEDBACK_URL（若配置）。
+        List<String> candidates = new ArrayList<>();
+        if (BuildConfig.DL_MIRROR_BASES != null && !BuildConfig.DL_MIRROR_BASES.isEmpty()) {
+            for (String host : BuildConfig.DL_MIRROR_BASES.split(",")) {
+                String h = host.trim();
+                if (!h.isEmpty()) candidates.add(h + "/api/feedback/error");
+            }
+        }
+        if (feedbackUrl != null && !feedbackUrl.isEmpty()) {
+            String legacy = feedbackUrl;
+            candidates.add(legacy.endsWith("/error") ? legacy : legacy.replaceAll("/+$", "") + "/error");
+        }
+        if (candidates.isEmpty()) {
             Log.d(TAG, "No feedback URL configured");
             return;
         }
-        try {
-            String url = feedbackUrl;
-            // 确保 URL 以 /error 路径结尾
-            if (!url.endsWith("/error")) {
-                url = url.replaceAll("/+$", "") + "/error";
-            }
-            OkHttpClient client = OkHttpClientProvider.getInstance(context).getHttpClient();
-            RequestBody body = RequestBody.create(payload, JSON_TYPE);
-            Request request = new Request.Builder()
-                    .url(url)
-                    .post(body)
-                    .build();
-            try (Response response = client.newCall(request).execute()) {
-                if (response.isSuccessful()) {
-                    Log.d(TAG, "Error report sent successfully");
-                } else {
-                    Log.w(TAG, "Error report failed: " + response.code());
+        OkHttpClient client = OkHttpClientProvider.getInstance(context).getHttpClient();
+        RequestBody body = RequestBody.create(payload, JSON_TYPE);
+        for (String url : candidates) {
+            try {
+                Request request = new Request.Builder()
+                        .url(url)
+                        .post(body)
+                        .build();
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        Log.d(TAG, "Error report sent successfully to " + url);
+                        return;
+                    }
+                    Log.w(TAG, "Error report failed on " + url + ": " + response.code());
                 }
+            } catch (Exception e) {
+                Log.w(TAG, "Feedback endpoint unreachable: " + url + " (" + e.getMessage() + ")");
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to send error report", e);
         }
+        Log.e(TAG, "All feedback endpoints failed");
     }
 
     /**

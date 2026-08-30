@@ -8,6 +8,7 @@ import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.core.security.SecureOkHttpFactory
 import com.gamecenter.app.core.security.ModuleSignatureVerifier
 import com.gamecenter.app.modules.catalog.CatalogPackageTrustRegistry
+import com.gamecenter.app.modules.store.DownloadSourceSelector
 import java.io.File
 import java.io.FileOutputStream
 import okhttp3.Request
@@ -120,6 +121,24 @@ object ModuleDownloader {
         }
 
         val urls = manifest.getAllDownloadUrls().toMutableList()
+
+        // 分发架构 v2：三边缘镜像插队（默认 JP→HK→US，选择器会把测速胜者置首）。
+        // 仅当主 URL 命中 DOWNLOAD_BASE_URL 时改写主机名；去重；追加在原有源之前。
+        run {
+            val mirrorBases = DownloadSourceSelector.preferredMirrorBases(appContext)
+            val inserted = mutableListOf<String>()
+            for (mirrorBase in mirrorBases.asReversed()) { // asReversed 后逐个 add(0) => 顺序保持
+                if (!manifest.downloadUrl.startsWith(BuildConfig.DOWNLOAD_BASE_URL)) break
+                val mirrorUrl = manifest.downloadUrl.replace(BuildConfig.DOWNLOAD_BASE_URL, "$mirrorBase/modules/")
+                if (mirrorUrl != manifest.downloadUrl && urls.none { it == mirrorUrl } && inserted.none { it == mirrorUrl }) {
+                    inserted.add(mirrorUrl)
+                }
+            }
+            inserted.reversed().forEach { urls.add(0, it) }
+            if (inserted.isNotEmpty()) {
+                Log.d(TAG, "模块 $moduleId 镜像插队 ${inserted.size} 个: $inserted")
+            }
+        }
 
         // Batch 21 改进：CDN fallback 域名自动接线
         // 若 BuildConfig.DOWNLOAD_FALLBACK_BASE_URL 非空，且主 URL 以 DOWNLOAD_BASE_URL 开头，
@@ -292,6 +311,15 @@ object ModuleDownloader {
                 } catch (e: Exception) {
                     Log.w(TAG, "模块 $moduleId 源 ${index + 1} attempt=$attempt 失败: ${e.message}", e)
                     lastError = e
+                    // 分发 v2：边缘源(:2088)连接级失败（不通/超时/DNS）立即级联下一源，
+                    // 不空耗重试——符合"链接超时则选择其他服务器"的要求
+                    val isConnectLevel = e is java.net.ConnectException ||
+                        e is java.net.SocketTimeoutException ||
+                        e is java.net.UnknownHostException
+                    if (url.contains(":2088") && isConnectLevel && attempt == 0) {
+                        Log.w(TAG, "模块 $moduleId 边缘源连接失败，快速级联下一源: $url")
+                        break
+                    }
                     // 仅在网络/IO 异常时重试；其他异常直接切换 URL
                     val isRetryable = e is java.io.IOException ||
                         e is java.net.SocketTimeoutException ||

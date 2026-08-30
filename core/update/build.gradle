@@ -14,6 +14,8 @@ def configuredBetaNoticeVersionGap = 3
 def localPropsFile = file("${rootDir}/local.properties")
 def configuredServerUrl = ""
 def configuredServerFallbackUrl = ""
+// 分发架构 v2：三边缘自更新镜像（默认生产值，local.properties dl.mirrors 可覆盖）
+def configuredDlMirrors = "jp.dl.tcp888.uk,hk.dl.tcp888.uk,us.dl.tcp888.uk"
 
 if (versionPropsFile.exists()) {
     versionPropsFile.withReader("UTF-8") { reader ->
@@ -45,6 +47,7 @@ if (localPropsFile.exists()) {
                 def val = line.substring(eq + 1).trim()
                 if (key == "server.url") configuredServerUrl = val
                 if (key == "server.url.fallback") configuredServerFallbackUrl = val
+                if (key == "dl.mirrors") configuredDlMirrors = val
             }
         }
     }
@@ -85,6 +88,10 @@ android {
         buildConfigField "String", "VERSION_CHANNEL", toJavaStringLiteral(currentVersionChannel)
         buildConfigField "String", "SERVER_URL", toJavaStringLiteral(configuredServerUrl ?: "https://your-server.example.com")
         buildConfigField "String", "DOWNLOAD_FALLBACK_BASE_URL", toJavaStringLiteral(configuredServerFallbackUrl ?: "")
+        // 分发架构 v2：宿主自更新镜像（base 以 /app 结尾，直拼 version-*.json 与 APK 文件名）
+        buildConfigField "String", "UPDATE_MIRROR_BASES",
+                toJavaStringLiteral(configuredDlMirrors.split(",").collect { it.trim() }.findAll { it }
+                        .collect { "https://${it}:2088/app" }.join(","))
         buildConfigField "int", "LAST_STABLE_VERSION_CODE", "${configuredLastStableVersionCode}"
         buildConfigField "String", "LAST_STABLE_VERSION_NAME", toJavaStringLiteral(configuredLastStableVersionName)
         buildConfigField "int", "BETA_NOTICE_VERSION_GAP", "${configuredBetaNoticeVersionGap}"

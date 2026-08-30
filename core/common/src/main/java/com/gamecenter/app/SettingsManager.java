@@ -53,6 +53,14 @@ public class SettingsManager {
     private static final String KEY_PROMPT_INSTALL_AFTER_AUTO_DOWNLOAD = "prompt_install_after_auto_download";
     /** 更新来源键名 */
     private static final String KEY_UPDATE_SOURCE = "update_source";
+    /** 分发架构 v2：自动选择下载源主开关 */
+    public static final String KEY_DL_AUTO_SELECT = "dl_auto_select";
+    /** 分发架构 v2：移动网络下也自动选择（测速） */
+    public static final String KEY_DL_MOBILE_AUTO_SELECT = "dl_mobile_auto_select";
+    /** 分发架构 v2：移动测速满 N 次后自动关闭 */
+    public static final String KEY_DL_MOBILE_AUTO_DISABLE = "dl_mobile_auto_disable";
+    /** 分发架构 v2：移动测速自动关闭的样本数阈值 */
+    public static final int DL_MOBILE_SAMPLE_TARGET = 3;
     /** 音效开关键名（游戏音效总开关） */
     private static final String KEY_SOUND_ENABLED = "sound_enabled";
     /** 音效总开关键名（控制所有音频，包括BGM和游戏音效） */
@@ -238,6 +246,35 @@ public class SettingsManager {
      */
     public boolean isAcceptBetaUpdate() {
         return prefs.getBoolean(KEY_ACCEPT_BETA_UPDATE, false);
+    }
+
+    // ===== 分发架构 v2：下载源自动选择设置 =====
+
+    /** 主开关：自动选择下载源。默认开启。 */
+    public boolean isDlAutoSelect() {
+        return prefs.getBoolean(KEY_DL_AUTO_SELECT, true);
+    }
+
+    public void setDlAutoSelect(boolean enabled) {
+        prefs.edit().putBoolean(KEY_DL_AUTO_SELECT, enabled).apply();
+    }
+
+    /** 移动网络下也自动选择（测速）。默认关闭——移动数据用户流量自担。 */
+    public boolean isDlMobileAutoSelect() {
+        return prefs.getBoolean(KEY_DL_MOBILE_AUTO_SELECT, false);
+    }
+
+    public void setDlMobileAutoSelect(boolean enabled) {
+        prefs.edit().putBoolean(KEY_DL_MOBILE_AUTO_SELECT, enabled).apply();
+    }
+
+    /** 移动测速满 N 次样本后自动关闭移动测速。默认开启。 */
+    public boolean isDlMobileAutoDisable() {
+        return prefs.getBoolean(KEY_DL_MOBILE_AUTO_DISABLE, true);
+    }
+
+    public void setDlMobileAutoDisable(boolean enabled) {
+        prefs.edit().putBoolean(KEY_DL_MOBILE_AUTO_DISABLE, enabled).apply();
     }
 
     /**

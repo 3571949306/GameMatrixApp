@@ -574,6 +574,46 @@ public class AppSettingsDialog {
             switchAcceptBeta.setChecked(settings.isAcceptBetaUpdate());
         }
 
+        // 分发架构 v2：下载源自动选择三开关（主开关/移动子选项/自动关闭子开关）
+        MaterialSwitch switchDlAutoSelect = dialogView.findViewById(R.id.switch_dl_auto_select);
+        MaterialSwitch switchDlMobileSelect = dialogView.findViewById(R.id.switch_dl_mobile_select);
+        MaterialSwitch switchDlMobileAutoDisable = dialogView.findViewById(
+                R.id.switch_dl_mobile_auto_disable);
+        if (switchDlAutoSelect != null) {
+            switchDlAutoSelect.setChecked(settings.isDlAutoSelect());
+        }
+        if (switchDlMobileSelect != null) {
+            switchDlMobileSelect.setChecked(settings.isDlMobileAutoSelect());
+        }
+        if (switchDlMobileAutoDisable != null) {
+            switchDlMobileAutoDisable.setChecked(settings.isDlMobileAutoDisable());
+        }
+        Runnable updateDlDependents = () -> {
+            boolean mainOn = switchDlAutoSelect == null || switchDlAutoSelect.isChecked();
+            boolean mobileOn = settings.isDlMobileAutoSelect();
+            if (switchDlMobileSelect != null) switchDlMobileSelect.setEnabled(mainOn);
+            if (switchDlMobileAutoDisable != null) {
+                switchDlMobileAutoDisable.setEnabled(mainOn && mobileOn);
+            }
+        };
+        updateDlDependents.run();
+        if (switchDlAutoSelect != null) {
+            switchDlAutoSelect.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                settings.setDlAutoSelect(isChecked);
+                updateDlDependents.run();
+            });
+        }
+        if (switchDlMobileSelect != null) {
+            switchDlMobileSelect.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                settings.setDlMobileAutoSelect(isChecked);
+                updateDlDependents.run();
+            });
+        }
+        if (switchDlMobileAutoDisable != null) {
+            switchDlMobileAutoDisable.setOnCheckedChangeListener((buttonView, isChecked) ->
+                    settings.setDlMobileAutoDisable(isChecked));
+        }
+
         MaterialSwitch switchAutoDownload = dialogView.findViewById(R.id.switch_auto_download_update);
         MaterialSwitch switchPromptInstall = dialogView.findViewById(
                 R.id.switch_prompt_install_after_download);
