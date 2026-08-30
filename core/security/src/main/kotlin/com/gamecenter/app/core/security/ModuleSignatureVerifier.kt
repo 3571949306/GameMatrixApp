@@ -10,22 +10,22 @@ import java.security.cert.X509Certificate
 /**
  * 模块 APK 签名者强校验器（S1: P0-5）。
  *
- * 现状背景：
- *   - [com.gamecenter.app.moduleloader.ModuleVerifier] 仅用 PackageManager.GET_SIGNATURES
- *     校验 v1 JAR 签名 + 签名公钥 SHA-256 指纹白名单（含占位）。
- *   - 攻击者可绕过 v1 仅伪造 v2/v3 签名块替换模块。
+ * 背景：早期校验只依赖 PackageManager.GET_SIGNATURES 的 v1 JAR 签名 + 指纹
+ * 白名单（该旧实现 core/moduleloader/ModuleVerifier.java 已删除）；攻击者可
+ * 在保持 v1 不变的情况下伪造 v2/v3 签名块替换模块。
  *
  * 本校验器：
  *   1. 使用 apksig 库的 [ApkVerifier] 验证 APK 的 v2/v3 签名块（比 PackageManager 更严格）。
  *   2. 取 [ApkVerifier.Result.getSignerCertificates] 与内置发布证书（X.509 DER,
  *      res/raw/release_signer.cer）逐字节比对编码。
- *   3. 与既有 SHA-256 完整性校验并行（SHA-256 由 ModuleVerifier 保留，本类不重复）。
+ *   3. 与既有 SHA-256 完整性校验并行（SHA-256 由
+ *      com.gamecenter.app.modules.ModuleVerifier 负责，本类不重复）。
  *
  * 安全策略：发布证书缺失、APK 签名无效或签名者不匹配时一律硬失败。
  *
  * 不在本类职责：
- *   - SHA-256 完整性校验（仍由 ModuleVerifier.verifyIntegrity 负责，SPEC S1-3 保留）。
- *   - 文件存在性 / 大小预校验（仍由 ModuleVerifier 负责）。
+ *   - SHA-256 完整性校验（由 app 层 ModuleVerifier.verifySha256 负责，SPEC S1-3 保留）。
+ *   - 文件存在性 / 大小预校验。
  */
 object ModuleSignatureVerifier {
 
@@ -51,8 +51,8 @@ object ModuleSignatureVerifier {
     /**
      * 校验 APK 签名者证书。
      *
-     * 调用时机：在 [com.gamecenter.app.moduleloader.ModuleVerifier.verify] 通过后
-     * （即 SHA-256 完整性已通过）并行调用本方法。
+     * 调用时机：与 SHA-256 完整性校验（com.gamecenter.app.modules.ModuleVerifier
+     * .verifySha256）并行调用，两者都通过才可安装。
      *
      * @param apkFile 已下载的模块 APK 文件
      * @param context Android Context（用于读取 res/raw/release_signer.cer）

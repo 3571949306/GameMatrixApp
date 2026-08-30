@@ -53,15 +53,15 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        // P0 流畅度优化：在启动屏窗口内后台预加载核心模块，避免冷启动主线程被 Dex 加载阻塞。
         startTime = System.currentTimeMillis();
-        CoreModulePreloader.INSTANCE.preload(getApplicationContext());
 
-        // 分发架构 v2：初始包自带模块的首启安装（后台，走正式安装事务；
-        // 每进程一次，非内置模块按出厂版本补装/升级）
-        java.util.concurrent.Executors.newSingleThreadExecutor()
-                .execute(() -> com.gamecenter.app.modules.ModuleManager.INSTANCE
-                        .installBundledModulesIfNeeded(getApplicationContext()));
+        // 预装安装与核心预加载共用模块目录，必须串行：先完成首启安装事务
+        // （每进程一次；已达标时为快速空转），再预加载核心模块，消除同目录并发竞态。
+        java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
+            com.gamecenter.app.modules.ModuleManager.INSTANCE
+                    .installBundledModulesIfNeeded(getApplicationContext());
+            CoreModulePreloader.INSTANCE.preload(getApplicationContext());
+        });
 
         handler.postDelayed(this::forceExit, MAX_SPLASH_MS);
 

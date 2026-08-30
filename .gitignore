@@ -241,7 +241,7 @@ wrongbook_module.zip
 /GameMatrixApp/
 /项目审计_*.md/
 /项目审计_2026-06-19/
-/.claude/
+/.claude/settings.local.json
 /FINAL_SUMMARY.md
 /OPTIMIZATION_SUMMARY.md
 /implementation_guide.md
