@@ -256,7 +256,8 @@ class App : Application() {
             }
         }
 
-        SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, !BuildConfig.DEBUG)
+        // 分发架构 v2：主域 + 三边缘镜像统一注入 pin（LE 中级/根通用）
+        SecureOkHttpFactory.setHosts(BuildConfig.MODULE_HOST, BuildConfig.DL_MIRROR_HOSTS, !BuildConfig.DEBUG)
 
         if (BuildConfig.ENABLE_FLUTTER_MODULE_STORE) {
             runCatching {

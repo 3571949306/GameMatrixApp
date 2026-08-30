@@ -304,6 +304,17 @@ public class UpdateChecker {
     public List<String> buildUpdateUrls(Context context) {
         List<String> urls = new ArrayList<>();
 
+        // 0. 分发架构 v2：三边缘自更新镜像最优先（jp/hk/us.dl，/app 结尾，
+        //    由 buildVersionJsonUrl 直拼 version-release.json；边缘不可用时自然级联旧源）
+        if (!isPlaceholderUrl(BuildConfig.UPDATE_MIRROR_BASES)) {
+            for (String mirror : BuildConfig.UPDATE_MIRROR_BASES.split(",")) {
+                String m = mirror.trim();
+                if (!m.isEmpty() && !isPlaceholderUrl(m) && !urls.contains(m)) {
+                    urls.add(m);
+                }
+            }
+        }
+
         // 1. 首先检查是否有自定义 URL（用户设置的自定义更新源）
         String customUrl = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BASE_URL, null);
@@ -329,16 +340,24 @@ public class UpdateChecker {
                     if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
                     break;
                 case SettingsManager.UPDATE_SOURCE_GITHUB:
-                    if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
+                    if (!urls.contains(GITHUB_RELEASES_BASE_URL)
+                            && !isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
                     if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
                     break;
                 default:
-                    // 默认：香港 VPS → GitHub（自动模式）
+                    // 默认：三边缘镜像 → 香港 VPS → GitHub（自动模式）
                     if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
                     if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
                     break;
             }
         }
+
+        // 去重保序（镜像可能与后置源重复）
+        List<String> deduped = new ArrayList<>();
+        for (String u : urls) {
+            if (!deduped.contains(u)) deduped.add(u);
+        }
+        urls = deduped;
 
         // 如果所有URL都是占位符，记录警告
         if (urls.isEmpty()) {
