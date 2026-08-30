@@ -40,6 +40,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = emptyList(), recentIds = emptyList(),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
         )
         assertTrue(state.isEmptyLibrary)
@@ -56,6 +57,7 @@ class GameHomeStateTest {
             allEntries = entries,
             recentIds = listOf("a", "b", "c", "d", "e"),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
         )
         val kinds = state.items.map { it::class.simpleName }
@@ -77,6 +79,7 @@ class GameHomeStateTest {
             allEntries = entries,
             recentIds = listOf("dead", "live1", "live2"),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
         )
         // 失效 ID 不出现；最近第一条按契约成为继续行，live2 进最近行
@@ -97,6 +100,7 @@ class GameHomeStateTest {
             allEntries = entries,
             recentIds = ids,
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(recentExpanded = true), strings = strings,
         )
         // 继续 1 条 + 最近最多 8 条（RecentGamesManager.MAX_RECENT=8 上游已裁）
@@ -109,6 +113,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = entries, recentIds = listOf("g1", "g2"),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(query = "砖"), strings = strings,
         )
         assertTrue(state.items.none { it is GameHomeItem.ContinueRow || it is GameHomeItem.RecentRow })
@@ -121,6 +126,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = listOf(entry("g1")), recentIds = emptyList(),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(query = "不存在"), strings = strings,
         )
         val empty = state.items.filterIsInstance<GameHomeItem.EmptyState>().single()
@@ -137,6 +143,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = entries, recentIds = listOf("p1"),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(categoryKey = GameRegistry.CATEGORY_CLASSICS), strings = strings,
         )
         val tiles = state.items.filterIsInstance<GameHomeItem.GameTile>()
@@ -150,6 +157,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = listOf(entry("g1")), recentIds = emptyList(),
             lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(favoritesOnly = true), strings = strings,
         )
         val empty = state.items.filterIsInstance<GameHomeItem.EmptyState>().single()
@@ -162,6 +170,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = listOf(entry("g1"), entry("g2")), recentIds = emptyList(),
             lastPlayedTextById = emptyMap(), favoriteIds = setOf("g2"),
+            categories = emptyList(),
             filters = GameHomeFilters(favoritesOnly = true), strings = strings,
         )
         val tiles = state.items.filterIsInstance<GameHomeItem.GameTile>()
@@ -179,6 +188,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = entries, recentIds = emptyList(),
             lastPlayedTextById = emptyMap(), favoriteIds = setOf("hit"),
+            categories = emptyList(),
             filters = GameHomeFilters(
                 query = "方块", categoryKey = GameRegistry.CATEGORY_PUZZLE, favoritesOnly = true
             ), strings = strings,
@@ -192,6 +202,7 @@ class GameHomeStateTest {
         val state = GameHomeStateBuilder.build(
             allEntries = listOf(entry("a")), recentIds = listOf("a"),
             lastPlayedTextById = mapOf("a" to "5 分钟前"), favoriteIds = emptySet(),
+            categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
             healthReminderText = "已连续游玩 60 分钟，注意休息",
         )
