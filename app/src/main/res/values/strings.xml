@@ -3213,5 +3213,14 @@
     <string name="game_library_empty_browse">浏览模块商店</string>
     <string name="game_library_continue">继续玩</string>
     <string name="game_library_recent">最近玩过</string>
+    <string name="game_library_no_search_results">未找到相关游戏</string>
+    <string name="game_library_clear_search">清除搜索</string>
+    <string name="game_library_view_all">查看全部</string>
+    <string name="game_library_collapse">收起</string>
+    <string name="game_library_settings">设置</string>
+    <string name="game_library_overflow">更多选项</string>
+    <string name="game_library_icon_of_game">游戏图标</string>
+    <string name="game_library_favorites_filter">收藏</string>
+    <string name="game_library_all_filter">全部</string>
 
 </resources>

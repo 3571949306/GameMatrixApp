@@ -17,6 +17,7 @@ class GameHomeRepository(private val context: Context) {
     data class Snapshot(
         val entries: List<GameRegistry.Entry>,
         val recentIds: List<String>,
+        val categories: List<Pair<String, String>>,
         val lastPlayedTextById: Map<String, String>,
         val favoriteIds: Set<String>,
         val resumeEntry: GameRegistry.Entry?,
@@ -47,6 +48,7 @@ class GameHomeRepository(private val context: Context) {
         return Snapshot(
             entries = entries,
             recentIds = recentIds,
+            categories = categories.map { it.categoryKey to it.name },
             lastPlayedTextById = lastPlayedTextById,
             favoriteIds = favoriteIds,
             resumeEntry = resume,

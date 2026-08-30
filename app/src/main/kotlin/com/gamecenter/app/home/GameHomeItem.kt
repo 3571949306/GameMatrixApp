@@ -8,7 +8,10 @@ sealed class GameHomeItem {
     data class HealthReminder(val text: String) : GameHomeItem()
 
     /** 继续玩：仅一个、仅在可恢复时出现。 */
-    data class ContinueRow(val entry: GameRegistry.Entry, val lastPlayedText: String) : GameHomeItem()
+    data class ContinueRow(
+        override val entry: GameRegistry.Entry,
+        override val lastPlayedText: String
+    ) : GameHomeItem(), EntryRow
 
     /** 区块标题（最近玩过可展开）。 */
     data class SectionHeader(
@@ -18,7 +21,16 @@ sealed class GameHomeItem {
     ) : GameHomeItem()
 
     /** 最近玩过单行。 */
-    data class RecentRow(val entry: GameRegistry.Entry, val lastPlayedText: String) : GameHomeItem()
+    data class RecentRow(
+        override val entry: GameRegistry.Entry,
+        override val lastPlayedText: String
+    ) : GameHomeItem(), EntryRow
+
+    /** 继续行与最近行的公共访问器（Adapter 共用绑定）。 */
+    interface EntryRow {
+        val entry: GameRegistry.Entry
+        val lastPlayedText: String
+    }
 
     /** 空状态（附可选操作文案；action 为空表示无操作）。 */
     data class EmptyState(val message: String, val action: String? = null) : GameHomeItem()

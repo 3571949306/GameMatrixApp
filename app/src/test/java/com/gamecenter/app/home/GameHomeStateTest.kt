@@ -21,6 +21,7 @@ class GameHomeStateTest {
         clearSearch = "清除搜索",
         viewAll = "查看全部",
         collapse = "收起",
+        allFilter = "全部",
     )
 
     private fun entry(

@@ -90,6 +90,7 @@ class GameHomeViewModel(
                 _uiState.value = GameHomeStateBuilder.build(
                     allEntries = snapshot.entries,
                     recentIds = snapshot.recentIds,
+                    categories = snapshot.categories,
                     lastPlayedTextById = snapshot.lastPlayedTextById,
                     favoriteIds = snapshot.favoriteIds,
                     filters = filtersNow,
@@ -118,6 +119,7 @@ class GameHomeViewModel(
             clearSearch = res.getString(com.gamecenter.app.R.string.game_library_clear_search),
             viewAll = res.getString(com.gamecenter.app.R.string.game_library_view_all),
             collapse = res.getString(com.gamecenter.app.R.string.game_library_collapse),
+            allFilter = res.getString(com.gamecenter.app.R.string.game_library_all_filter),
         )
     }
 
