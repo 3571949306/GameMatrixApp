@@ -279,22 +279,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun applySystemBarInsets() {
         val container = findViewById<View>(R.id.container)
-        val navView = findViewById<BottomNavigationView>(R.id.nav_view)
         if (container == null) return
 
         val left = container.paddingLeft
         val top = container.paddingTop
         val right = container.paddingRight
         val bottom = container.paddingBottom
-        val navLeft = navView?.paddingLeft ?: 0
-        val navTop = navView?.paddingTop ?: 0
-        val navRight = navView?.paddingRight ?: 0
-        val navBottom = navView?.paddingBottom ?: 0
 
         ViewCompat.setOnApplyWindowInsetsListener(container) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             container.setPadding(left + bars.left, top + bars.top, right + bars.right, bottom)
-            navView?.setPadding(navLeft, navTop, navRight, navBottom + bars.bottom)
             insets
         }
         ViewCompat.requestApplyInsets(container)
