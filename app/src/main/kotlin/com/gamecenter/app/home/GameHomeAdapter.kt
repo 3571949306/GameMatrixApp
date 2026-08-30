@@ -180,7 +180,7 @@ class GameHomeAdapter(
         val name: TextView = v.findViewById(R.id.tv_tile_name)
     }
 
-    private object DIFF : DiffUtil.ItemCallback<GameHomeItem>() {
+    internal object DIFF : DiffUtil.ItemCallback<GameHomeItem>() {
         override fun areItemsTheSame(old: GameHomeItem, new: GameHomeItem): Boolean =
             stableId(old) == stableId(new)
 

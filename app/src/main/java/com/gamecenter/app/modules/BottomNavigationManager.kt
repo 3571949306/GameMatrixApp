@@ -198,22 +198,15 @@ class BottomNavigationManager(
                         }
                     }
                 }
-                BottomNavigationCatalog.DestinationKind.GAMES_HALL -> {
-                    // 分发 v2/主页重做：入口优先级单一真源（动态大厅 > 游戏库主页 > 旧 GamesFragment）
-                    when (GamesHallDestinationFactory.resolve(
+                BottomNavigationCatalog.DestinationKind.GAMES_HALL ->
+                    // G1 单一真源：入口优先级与创建全部收敛到工厂
+                    GamesHallDestinationFactory.createFragment(
                         GamesHallDestinationFactory.Options(
                             dynamicGamesHall = BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL,
-                            libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP
+                            libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP,
+                            legacyV2Chain = true
                         )
-                    )) {
-                        GamesHallDestinationFactory.Destination.DYNAMIC_GAMES_HALL ->
-                            com.gamecenter.app.features.DynamicGamesHallFragment()
-                        GamesHallDestinationFactory.Destination.GAME_LIBRARY ->
-                            com.gamecenter.app.home.GameLibraryFragment()
-                        GamesHallDestinationFactory.Destination.LEGACY_GAMES ->
-                            com.gamecenter.app.GamesFragment()
-                    }
-                }
+                    )
                 BottomNavigationCatalog.DestinationKind.TOOLS -> com.gamecenter.app.features.DynamicToolsFragment()
                 BottomNavigationCatalog.DestinationKind.PROFILE -> com.gamecenter.app.ProfileFragment()
             }

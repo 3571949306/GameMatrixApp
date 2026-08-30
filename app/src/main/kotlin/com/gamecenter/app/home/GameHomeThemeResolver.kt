@@ -44,7 +44,9 @@ object GameHomeThemeResolver {
                 onPrimary = scheme.onPrimary,
                 primaryContainer = scheme.primaryContainer,
                 onPrimaryContainer = scheme.onPrimaryContainer,
-                outline = scheme.cardBorder,
+                outline = pickByContrast(
+                    scheme.surface, candidates = listOf(scheme.cardBorder, scheme.onSurfaceVariant)
+                ),
                 pressedOverlay = withAlpha(scheme.onSurface, 0x1F),
                 selectedContainer = scheme.primaryContainer,
                 onSelectedContainer = scheme.onPrimaryContainer,
@@ -64,7 +66,9 @@ object GameHomeThemeResolver {
             onPrimary = darkOnPrimary,
             primaryContainer = scheme.darkSurfaceVariant,
             onPrimaryContainer = scheme.darkOnSurfaceVariant,
-            outline = scheme.darkCardBorder,
+            outline = pickByContrast(
+                scheme.darkSurface, candidates = listOf(scheme.darkCardBorder, scheme.darkOnSurfaceVariant)
+            ),
             pressedOverlay = withAlpha(scheme.darkOnSurface, 0x1F),
             selectedContainer = scheme.darkSurfaceVariant,
             onSelectedContainer = scheme.darkOnSurfaceVariant,

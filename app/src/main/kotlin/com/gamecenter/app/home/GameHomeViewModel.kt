@@ -86,7 +86,7 @@ class GameHomeViewModel(
             viewModelScope.launch(kotlinx.coroutines.Dispatchers.Main) {
                 if (gen != generation) return@launch // 代次失效
                 val strings = homeStrings()
-                val health = healthReminderText(snapshot.todayPlayTimeMs)
+                val health = healthReminderText((snapshot.todayPlayTimeMs / 60_000L).toInt())
                 _uiState.value = GameHomeStateBuilder.build(
                     allEntries = snapshot.entries,
                     recentIds = snapshot.recentIds,
@@ -123,5 +123,17 @@ class GameHomeViewModel(
         )
     }
 
-    private fun healthReminderText(todayPlayTimeMs: Long): String? = null // Phase 5：阈值命中时接入
+    /** 健康提醒（Batch 11-3 语义）：今日时长达 MILD/SEVERE 档位时给出低强调提示。 */
+    private fun healthReminderText(todayMinutes: Int): String? {
+        val level = com.gamecenter.app.ui.PlaytimeReminderHelper.Level.entries
+            .firstOrNull { it.minutesThreshold in 1..todayMinutes && todayMinutes >= it.minutesThreshold }
+            ?: return null
+        val res = getApplication<Application>().resources
+        val title = res.getString(com.gamecenter.app.R.string.playtime_reminder_title)
+        val today = res.getString(
+            com.gamecenter.app.R.string.playtime_reminder_today_format,
+            "$todayMinutes"
+        )
+        return "$title · $today"
+    }
 }
