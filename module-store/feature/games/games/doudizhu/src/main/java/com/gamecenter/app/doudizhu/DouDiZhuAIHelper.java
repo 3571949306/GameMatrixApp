@@ -44,7 +44,13 @@ public class DouDiZhuAIHelper {
     /** 当前待执行的 AI 思考任务，用于取消操作 */
     private Runnable aiThinkingRunnable;
 
-    /** AI 操作回调接口，由 Activity 实现 */
+    /**
+     * 难度因子（&lt;1.0 弱、=1.0 普通、&gt;1.0 强），由对局控制器按用户选择的难度注入。
+     * 影响规则见 {@link AIBot#decidePlay(List, List, AIBot.GameContext, float)}。
+     */
+    private volatile float difficultyFactor = 1.0f;
+
+    /** AI 操作回调接口，由对局控制器实现 */
     private final AICallback callback;
 
     /**
@@ -90,6 +96,15 @@ public class DouDiZhuAIHelper {
     }
 
     /**
+     * 注入难度因子（简单 0.6 / 普通 1.0 / 困难 1.05）。
+     *
+     * @param factor 难度因子
+     */
+    public void setDifficultyFactor(float factor) {
+        this.difficultyFactor = factor;
+    }
+
+    /**
      * 判断当前是否轮到 AI 出牌。
      *
      * @return true 表示当前座位是 AI 类型且轮到该座位操作
@@ -98,7 +113,7 @@ public class DouDiZhuAIHelper {
         int currentTurn = callback.getCurrentTurn();
         int[] seatTypes = callback.getSeatTypes();
         return currentTurn >= 0 && currentTurn < seatTypes.length
-                && seatTypes[currentTurn] == DouDiZhuSeatManager.SEAT_TYPE_AI;
+                && seatTypes[currentTurn] == Seats.TYPE_AI;
     }
 
     /**
@@ -139,9 +154,9 @@ public class DouDiZhuAIHelper {
         List<Card> aiHand = callback.getSeatHandCards(seatIndex);
         List<Card> previousCards = callback.getLastPlayedCards();
 
-        // 委托 AIBot 进行出牌决策
+        // 委托 AIBot 进行出牌决策（带难度因子）
         AIBot.GameContext context = buildGameContext(seatIndex);
-        List<Card> playedCards = AIBot.decidePlay(aiHand, previousCards, context);
+        List<Card> playedCards = AIBot.decidePlay(aiHand, previousCards, context, difficultyFactor);
 
         if (playedCards != null && !playedCards.isEmpty()) {
             callback.onAIPlay(seatIndex, playedCards);
