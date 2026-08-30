@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.core.common.ModuleRegistry
+import com.gamecenter.app.features.GamesHallDestinationFactory
 import com.gamecenter.app.modules.store.DownloadSourceSelector
 import com.gamecenter.app.navigation.BottomNavigationCatalog
 import com.gamecenter.app.navigation.BottomNavigationPreferences
@@ -197,10 +198,19 @@ class BottomNavigationManager(
                     }
                 }
                 BottomNavigationCatalog.DestinationKind.GAMES_HALL -> {
-                    if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
-                        com.gamecenter.app.features.DynamicGamesHallFragment()
-                    } else {
-                        com.gamecenter.app.GamesFragment()
+                    // 分发 v2/主页重做：入口优先级单一真源（动态大厅 > 游戏库主页 > 旧 GamesFragment）
+                    when (GamesHallDestinationFactory.resolve(
+                        GamesHallDestinationFactory.Options(
+                            dynamicGamesHall = BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL,
+                            libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP
+                        )
+                    )) {
+                        GamesHallDestinationFactory.Destination.DYNAMIC_GAMES_HALL ->
+                            com.gamecenter.app.features.DynamicGamesHallFragment()
+                        GamesHallDestinationFactory.Destination.GAME_LIBRARY ->
+                            com.gamecenter.app.home.GameLibraryFragment()
+                        GamesHallDestinationFactory.Destination.LEGACY_GAMES ->
+                            com.gamecenter.app.GamesFragment()
                     }
                 }
                 BottomNavigationCatalog.DestinationKind.TOOLS -> com.gamecenter.app.features.DynamicToolsFragment()

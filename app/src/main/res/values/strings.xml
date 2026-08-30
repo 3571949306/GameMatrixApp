@@ -3205,4 +3205,13 @@
 
     <!-- Achievement and game strings kept in sync with the English catalog -->
 
+    <!-- 游戏库主页（docs/游戏中心主页面重做执行计划_2026-08-30.md） -->
+    <string name="game_library_title">游戏</string>
+    <string name="game_library_search_hint">搜索游戏</string>
+    <string name="game_library_all_games">全部游戏</string>
+    <string name="game_library_empty">还没有可用游戏</string>
+    <string name="game_library_empty_browse">浏览模块商店</string>
+    <string name="game_library_continue">继续玩</string>
+    <string name="game_library_recent">最近玩过</string>
+
 </resources>

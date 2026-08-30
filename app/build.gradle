@@ -82,6 +82,7 @@ if (versionPropsFile.exists()) {
 def currentVersionCode = versionFileVersionCode
 def currentVersionName = versionFileVersionName
 def requestedVersionChannel = (project.findProperty("updateChannel") ?: "beta").toString().trim().toLowerCase()
+def homeLibraryRevampEnabled = (project.findProperty("enableHomeLibraryRevamp") ?: "false").toString().toBoolean()
 def normalizeVersionChannel = { String raw, String versionName ->
     if (["stable", "release", "formal", "prod", "production"].contains(raw)) return "stable"
     if (["beta", "test", "debug", "internal"].contains(raw)) return "beta"
@@ -546,6 +547,9 @@ android {
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_NAVIGATION", "true"
         // 动态游戏大厅开关：开启后游戏大厅从模块贡献动态构建
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_GAMES_HALL", "false"
+        // 游戏库主页重做（docs/游戏中心主页面重做执行计划_2026-08-30.md）：
+        // 默认关闭，QA 通过 Gradle 属性 -PenableHomeLibraryRevamp=true 开启；优先级低于动态大厅
+        buildConfigField "boolean", "HOME_LIBRARY_REVAMP", homeLibraryRevampEnabled.toString()
         // 动态工具区开关：开启后工具区从模块贡献动态构建
         buildConfigField "boolean", "ENABLE_P4_DYNAMIC_TOOLS", "true"
         // 工具模块预加载开关：开启后下载完成与工具箱 onResume 时自动 load 已安装工具模块
