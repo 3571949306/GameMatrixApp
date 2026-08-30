@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-"""单模块发布工具：构建产物 → 本地清单双写 → 上传 HK 服务器 → 公网校验。
+"""单模块发布工具：构建产物 → 本地清单双写 → 上传权威源(JP) → 边缘扩散等待 → 多端点校验。
 
-模块热更改造 Phase 4（docs/模块热更改造计划_2026-08-29.md）。
+分发架构 v2（分发服务器部署计划_v2_现有三机Docker共存_2026-08-30.md）。
 
 用法（以 tetris v101 为例）：
     python scripts/publish_module.py --id tetris \
         --apk module-store/feature/games/games/tetris/build/outputs/apk/release/tetris-release.apk \
-        [--version-code 101] [--version-name 1.0.1]
+        [--version-code 101] [--version-name 1.0.1] [--target jp|hk] [--verify-only]
 
 行为：
 1. 读取 assets/modules.json 中该模块条目，确定新 versionCode（--version-code 或自动+1）；
 2. 目标远端文件名沿用现有命名规则（game_tetris_v101.apk / feature_ai_v100.apk）；
 3. 更新条目 versionCode/versionName/fileName/fileSize/sha256/downloadUrl，
    顶层 version+1、catalogVersion+1、generatedAt 刷新，modules.json/catalog.json 双写并校验一致；
-4. 经 paramiko 上传 APK 与两份清单到 upload_config_hk.json 指定的远端目录；
-5. 公网回读（publicBaseUrl）校验 sha256 与清单一致。
+4. 经 paramiko 上传 APK 与两份清单到 --target 权威源（默认 jp=/srv/dl，ed25519 key 认证；
+   hk 为旧路径，保留一个版本周期作回滚）；
+5. 等待 rsync 扩散到三个边缘（jp/hk/us.dl:2088，2 分钟定时器推送），逐边缘校验
+   清单 versionCode 与 APK sha256；downloadUrl 写权威源域名。
+--verify-only：不上传，仅对比本地清单与三边缘 + 旧 hk-update 端点的一致性（巡检）。
 """
 
 import argparse
@@ -24,6 +27,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse
@@ -39,6 +43,14 @@ MAX_PUBLIC_METADATA_BYTES = 4 * 1024 * 1024
 MAX_PUBLIC_APK_BYTES = 1024 * 1024 * 1024
 MAX_PUBLIC_REDIRECTS = 5
 REDIRECT_CODES = {301, 302, 303, 307, 308}
+
+# 三边缘（JP 权威源自身也是边缘）+ 旧 hk-update 兜底端点
+EDGE_BASES = [
+    "https://jp.dl.tcp888.uk:2088",
+    "https://hk.dl.tcp888.uk:2088",
+    "https://us.dl.tcp888.uk:2088",
+]
+LEGACY_BASE = "https://hk-update.tcp888.uk:2083"
 
 
 def sha256_of(path: Path) -> str:
@@ -56,6 +68,10 @@ def versioned_name(old: str, vc: int) -> str:
 def load_creds(cfg: Path):
     d = json.loads(cfg.read_text(encoding="utf-8-sig"))
     pw = ""
+    if d.get("authMethod") == "key":
+        if not d.get("keyFile"):
+            raise ValueError(f"key 认证配置缺少 keyFile: {cfg}")
+        return d, pw
     hk = REPO.parent / "ssh-keys"
     cred_txt = Path(__file__).resolve().parent.parent / "local_private" / "服务器部署" / "HKvps.txt"
     m = re.search(r"password\s*:\s*(\S+)", cred_txt.read_text(encoding="utf-8-sig", errors="replace"))
@@ -222,15 +238,85 @@ def _sha256_public_file(url: str) -> tuple[str, int]:
     return digest.hexdigest(), total
 
 
+def _edge_ok(base: str, apk_name: str, digest: str, new_vc: int) -> bool:
+    """单边缘一致性：清单含该模块且 versionCode 匹配，APK 字节哈希一致。"""
+    try:
+        remote = json.loads(_read_public_bytes(f"{base}/modules.json", MAX_PUBLIC_METADATA_BYTES).decode("utf-8"))
+    except Exception:
+        return False
+    re_ = next((m for m in remote.get("modules", []) if m.get("fileName") == apk_name), None)
+    if not re_ or int(re_.get("versionCode", -1)) != new_vc:
+        return False
+    try:
+        sha, _size = _sha256_public_file(f"{base}/modules/{apk_name}")
+    except Exception:
+        return False
+    return sha.lower() == digest.lower()
+
+
+def wait_edge_propagation(target_base: str, apk_name: str, digest: str, new_vc: int,
+                          timeout_s: int = 420) -> dict:
+    """等待 rsync 定时器把发布内容扩散到全部边缘；返回 {base: 是否就绪}。"""
+    pending = [b for b in dict.fromkeys([target_base] + EDGE_BASES) if b != target_base]
+    results = {target_base: _edge_ok(target_base, apk_name, digest, new_vc)}
+    deadline = time.monotonic() + timeout_s
+    while pending and time.monotonic() < deadline:
+        still = []
+        for base in pending:
+            if _edge_ok(base, apk_name, digest, new_vc):
+                results[base] = True
+            else:
+                still.append(base)
+        pending = still
+        if pending:
+            print(f"  等待边缘扩散: 未就绪 {pending}（15s 后重试）", flush=True)
+            time.sleep(15)
+    for b in pending:
+        results[b] = False
+    return results
+
+
+def verify_consistency(target_base: str) -> tuple[bool, dict]:
+    """巡检：本地清单 vs 三边缘 + 旧 hk-update 的 catalogVersion 与模块摘要一致性。"""
+    local = json.loads(MANIFESTS[0].read_text(encoding="utf-8"))
+    local_fp = {m["id"]: (m.get("versionCode"), (m.get("sha256") or "")[-16:]) for m in local.get("modules", [])}
+    results, ok = {}, True
+    for base in dict.fromkeys([target_base] + EDGE_BASES + [LEGACY_BASE]):
+        try:
+            remote = json.loads(_read_public_bytes(f"{base}/modules.json", MAX_PUBLIC_METADATA_BYTES).decode("utf-8"))
+            remote_fp = {m["id"]: (m.get("versionCode"), (m.get("sha256") or "")[-16:]) for m in remote.get("modules", [])}
+            same = (remote.get("catalogVersion") == local.get("catalogVersion") and remote_fp == local_fp)
+            results[base] = f"{'一致' if same else '不一致'} (catalogVersion={remote.get('catalogVersion')}, modules={len(remote.get('modules', []))})"
+            ok = ok and same
+        except Exception as exc:
+            results[base] = f"读取失败: {exc}"
+            ok = False
+    return ok, results
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--id", required=True)
-    parser.add_argument("--apk", required=True, help="新构建的模块 APK 路径")
+    parser.add_argument("--id", default="", help="模块 id（--verify-only 时可省略）")
+    parser.add_argument("--apk", default="", help="新构建的模块 APK 路径（--verify-only 时可省略）")
     parser.add_argument("--version-code", type=int, default=0, help="默认=清单当前值+1")
     parser.add_argument("--version-name", default="")
     parser.add_argument("--new-name", default="", help="默认沿用现有 fileName（跨版本稳定，保证更新按钮判定）")
+    parser.add_argument("--target", choices=["jp", "hk"], default="jp",
+                        help="上传权威源：jp=/srv/dl(key 认证，默认)；hk=旧 HK 路径（回滚用）")
+    parser.add_argument("--verify-only", action="store_true", help="不上传，仅巡检各端点一致性")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+
+    cfg_path = REPO / "local_private" / "服务器部署" / f"upload_config_{args.target}.json"
+    cfg, password = load_creds(cfg_path)
+    base = validate_public_base_url(cfg["publicBaseUrl"])
+
+    if args.verify_only:
+        ok, results = verify_consistency(base)
+        for endpoint, verdict in results.items():
+            print(f"  {endpoint}: {verdict}")
+        print("巡检:", "PASS" if ok else "FAIL")
+        return 0 if ok else 1
 
     apk_path = (REPO / args.apk).resolve() if not Path(args.apk).is_absolute() else Path(args.apk)
     if not apk_path.exists():
@@ -256,8 +342,6 @@ def main() -> int:
     new_name = validate_publish_metadata_name(args.new_name or old_name)
     digest = sha256_of(apk_path)
 
-    cfg, password = load_creds(REPO / "local_private" / "服务器部署" / "upload_config_hk.json")
-    base = validate_public_base_url(cfg["publicBaseUrl"])
     entry.update({
         "versionCode": new_vc,
         "versionName": new_vn,
@@ -284,41 +368,42 @@ def main() -> int:
         print("错误：双写不一致！", file=sys.stderr)
         return 1
 
-    # 上传（APK + 双清单）
+    # 上传（APK + 双清单）；jp 走 key 认证，hk 走密码（旧路径）
     client = paramiko.SSHClient()
     configure_ssh_client(client, cfg)
-    client.connect(cfg["host"], port=int(cfg.get("port", 22)), username=cfg["user"],
-                   password=password, timeout=15, banner_timeout=15)
+    connect_kwargs = dict(
+        hostname=cfg["host"], port=int(cfg.get("port", 22)), username=cfg["user"],
+        timeout=15, banner_timeout=15,
+    )
+    key_file = cfg.get("keyFile")
+    if cfg.get("authMethod") == "key" and key_file:
+        connect_kwargs["key_filename"] = str(Path(key_file).expanduser())
+        connect_kwargs["allow_agent"] = False
+        connect_kwargs["look_for_keys"] = False
+    else:
+        connect_kwargs["password"] = password
+    client.connect(**connect_kwargs)
     sftp = client.open_sftp()
     remote_dir = cfg["remoteDir"].rstrip("/")
-    sftp.put(str(apk_path), f"{remote_dir}/{new_name}")  # nginx /modules/ 剥前缀，APK 必须在 BASE_DIR 根
+    sftp.put(str(apk_path), f"{remote_dir}/{new_name}")  # 边缘 nginx /modules/ 剥前缀，APK 必须在源站根
     sftp.put(str(MANIFESTS[0]), f"{remote_dir}/modules.json")
     sftp.put(str(MANIFESTS[1]), f"{remote_dir}/catalog.json")
     sftp.close()
     client.close()
     print(f"已上传: modules/{new_name} + modules.json + catalog.json -> {cfg['host']}:{remote_dir}")
 
-    # 公网回读校验：清单和实际 APK 都必须从同一 HTTPS origin 返回，
-    # 并且 APK 字节哈希/大小必须与刚发布的本地产物一致。仅回读清单
-    # 无法发现对象存储/CDN 的旧缓存、部分上传或远端文件被替换。
-    manifest_url = f"{base}/modules.json"
-    remote = json.loads(_read_public_bytes(manifest_url, MAX_PUBLIC_METADATA_BYTES).decode("utf-8"))
-    re_ = next((m for m in remote["modules"] if m["id"] == args.id), None)
-    remote_name = re_.get("fileName") if re_ else None
-    remote_apk_sha = ""
-    remote_apk_size = -1
-    if re_ and remote_name == new_name:
-        remote_apk_sha, remote_apk_size = _sha256_public_file(
-            f"{base}/modules/{new_name}"
-        )
-    ok = (re_ and remote_name == new_name
-          and re_.get("sha256", "").lower() == digest.lower()
-          and int(re_.get("versionCode", -1)) == new_vc
-          and remote_apk_sha.lower() == digest.lower()
-          and remote_apk_size == apk_path.stat().st_size)
-    print("公网校验:", "PASS" if ok else "FAIL",
-          f"(remote version={remote.get('version')}, apk_size={remote_apk_size}, "
-          f"apk_sha256={remote_apk_sha[:16]}...)")
+    # 等待 rsync 定时器把内容扩散到其余边缘，然后逐边缘校验
+    # （清单和实际 APK 都必须从同一 HTTPS origin 返回，且字节哈希/大小与本地产物一致；
+    #   仅回读清单无法发现旧缓存、部分上传或远端文件被替换。）
+    results = wait_edge_propagation(base, new_name, digest, new_vc)
+    ok = True
+    for endpoint in dict.fromkeys([base] + EDGE_BASES):
+        ready = results.get(endpoint, False)
+        print(f"  边缘校验 {endpoint}: {'PASS' if ready else 'FAIL'}")
+        ok = ok and ready
+    if not ok:
+        print("巡检提示: 未就绪的边缘会在 2 分钟定时器内追平，可稍后运行 "
+              "--verify-only 复核", file=sys.stderr)
     return 0 if ok else 1
 
 
