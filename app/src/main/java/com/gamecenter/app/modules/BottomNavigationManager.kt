@@ -60,7 +60,8 @@ class BottomNavigationManager(
             val menuId = nextMenuId++
             menuIdToItem[menuId] = entry
             contributionIdToMenuId[entry.id] = menuId
-            navView.menu.add(Menu.NONE, menuId, Menu.NONE, entry.title).setIcon(entry.iconResId)
+            val title = com.gamecenter.app.home.GameDisplayNames.navTitle(context, entry.id, entry.title)
+            navView.menu.add(Menu.NONE, menuId, Menu.NONE, title).setIcon(entry.iconResId)
         }
 
         navView.setOnItemSelectedListener { item ->

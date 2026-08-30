@@ -3221,6 +3221,7 @@
     <string name="game_library_overflow">更多选项</string>
     <string name="game_library_icon_of_game">游戏图标</string>
     <string name="game_library_favorites_filter">收藏</string>
+    <string name="dl_notice_mobile_network">当前为移动网络</string>
     <string name="game_library_all_filter">全部</string>
 
 </resources>

@@ -3184,6 +3184,7 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="game_library_overflow">More options</string>
     <string name="game_library_icon_of_game">Game icon</string>
     <string name="game_library_favorites_filter">Favorites</string>
+    <string name="dl_notice_mobile_network">On mobile network</string>
     <string name="game_library_all_filter">All</string>
 
 </resources>
