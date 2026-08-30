@@ -57,10 +57,19 @@ object DownloadSourceSelector {
         if (!settings.isDlAutoSelect()) return
         if (!testedThisProcess.compareAndSet(false, true)) return
         val mobile = isMobileNetwork(context)
-        val shouldTest = if (!mobile) {
-            true
-        } else {
-            settings.isDlMobileAutoSelect() && !reachedMobileSampleTarget(context)
+        var shouldTest = false
+        if (!mobile) {
+            shouldTest = true
+        } else if (settings.isDlMobileAutoSelect()) {
+            val gateReached = settings.isDlMobileAutoDisable() &&
+                    reachedMobileSampleTarget(context)
+            if (gateReached) {
+                // 用户要求：采集满 N 次样本后自动关闭移动网络测速（设置项可见地翻转）
+                settings.setDlMobileAutoSelect(false)
+                android.util.Log.i("DLSelector", "移动测速样本已满，自动关闭移动网络自动选择")
+            } else {
+                shouldTest = true
+            }
         }
         if (!shouldTest) return
         runCatching {
