@@ -13,7 +13,7 @@
 
 - 动态游戏的运行时真源位于 `module-store/feature/games/games/<game>/src/main/`。
 - 中国象棋运行时真源为 `module-store/feature/games/games/chinesechess/src/main/`。
-- `app/src/main/java/com/gamecenter/app/games/chinesechess/ChineseChessAI.java` 是宿主兼容镜像。修改中国象棋 AI 时必须同步真源与该镜像；除同步头和包名外，两份实现必须一致。
+- `module-store/feature/games/games/chinesechess/` 模块内置 AI（v300 已收编宿主侧实现）。修改中国象棋 AI 时必须同步真源与该镜像；除同步头和包名外，两份实现必须一致。
 - 不得通过复制粘贴新增第三份棋类规则实现。规则应优先收敛到逻辑层，再由 UI、AI、联机层调用。
 
 ## 3. 中国象棋不可破坏的不变量

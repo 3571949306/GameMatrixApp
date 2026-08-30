@@ -67,9 +67,16 @@ object SourceTestStore {
     @Synchronized
     fun append(context: Context, session: SourceTestSession) {
         val kept = prune(load(context) + session)
-        file(context).writeText(JSONObject().put("sessions", JSONArray().apply {
+        // 原子写：tmp + rename，避免测速中途进程被杀留下截断 JSON
+        val tmp = File(context.filesDir, "$FILE_NAME.tmp")
+        tmp.writeText(JSONObject().put("sessions", JSONArray().apply {
             kept.forEach { put(it.toJson()) }
         }).toString())
+        if (!tmp.renameTo(file(context))) {
+            // 极端设备 rename 失败兜底：直接覆盖（保持旧行为）
+            file(context).writeText(tmp.readText())
+            tmp.delete()
+        }
     }
 
     /**
