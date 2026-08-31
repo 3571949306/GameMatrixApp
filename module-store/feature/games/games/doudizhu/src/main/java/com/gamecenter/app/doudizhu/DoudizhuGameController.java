@@ -56,6 +56,8 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         void onInvalidPlay(boolean illegalCombo, boolean cannotBeat);
         /** 对局结束（含人类胜负结论由 UI 依 winnerIndex/landlordIndex 推导） */
         void onGameFinished(int winnerIndex);
+        /** 新一局开始（UI 可播发牌动画） */
+        void onDealStart();
     }
 
     private final Handler handler;
@@ -120,6 +122,9 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         aiContractViolations = 0;
         stateManager.resetGameState();
         stateManager.startGame();
+        if (ui != null) {
+            ui.onDealStart();
+        }
     }
 
     /** 是否有一局正在进行（含叫地主/出牌/结束未退出）。 */
@@ -426,31 +431,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
             }
         }
         view.setAllLandlordStatus(status);
-        view.setPlayerLabels(buildRoleLabels(landlordKnown));
         view.setCurrentTurn(stateManager.getCurrentTurn());
         view.setCardCounterCounts(remainingCounter());
-    }
-
-    private String[] buildRoleLabels(boolean landlordKnown) {
-        String[] labels = new String[Seats.TOTAL_SEATS];
-        labels[Seats.SEAT_PLAYER] = "你";
-        labels[Seats.SEAT_LEFT_AI] = "左家";
-        labels[Seats.SEAT_RIGHT_AI] = "右家";
-        if (landlordKnown) {
-            int landlord = stateManager.getLandlordIndex();
-            for (int i = 0; i < Seats.TOTAL_SEATS; i++) {
-                String base;
-                if (i == Seats.SEAT_PLAYER) {
-                    base = "你";
-                } else if (i == Seats.SEAT_LEFT_AI) {
-                    base = "左家";
-                } else {
-                    base = "右家";
-                }
-                labels[i] = base + (i == landlord ? "·地主" : "·农民");
-            }
-        }
-        return labels;
+        view.setGamePhase(stateManager.getGameState());
+        // 中央放大展示当前一手；自由出牌（桌面已清）时不展示
+        view.setLastPlayedCards(stateManager.getLastPlayedCards());
     }
 
     /**

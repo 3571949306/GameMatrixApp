@@ -89,6 +89,12 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
 
         btnBidPass = makeBarButton(context, R.string.game_doudizhu_bid_pass, false);
         btnBidCall = makeBarButton(context, R.string.game_doudizhu_bid, true);
+        // 叫地主文案较长，按钮加宽
+        for (Button b : new Button[]{btnBidPass, btnBidCall}) {
+            LinearLayout.LayoutParams blp = (LinearLayout.LayoutParams) b.getLayoutParams();
+            blp.width = dp(150);
+            b.setLayoutParams(blp);
+        }
 
         bidBar = new LinearLayout(context);
         bidBar.setOrientation(LinearLayout.HORIZONTAL);
@@ -105,6 +111,7 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
 
         Button btnExit = new Button(context);
         btnExit.setText("✕");
+        btnExit.setContentDescription(getContext().getString(R.string.game_doudizhu_exit));
         btnExit.setTextSize(16);
         btnExit.setTextColor(Color.WHITE);
         btnExit.setAllCaps(false);
@@ -160,6 +167,32 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     @Override
     public void onTableSyncRequired() {
         controller.pushTableState(tableView);
+        tableView.setPlayerLabels(buildRoleLabels());
+    }
+
+    /** 角色标签（本地化）：地主确定后显示"左AI（地主）"等。 */
+    private String[] buildRoleLabels() {
+        DouDiZhuGameStateManager st = controller.state();
+        int landlord = st.getLandlordIndex();
+        String[] labels = new String[Seats.TOTAL_SEATS];
+        if (landlord < 0) {
+            labels[0] = getContext().getString(R.string.game_doudizhu_player_you);
+            labels[1] = getContext().getString(R.string.game_doudizhu_player_left_ai);
+            labels[2] = getContext().getString(R.string.game_doudizhu_player_right_ai);
+        } else {
+            labels[0] = getContext().getString(landlord == 0
+                    ? R.string.game_doudizhu_role_you_landlord : R.string.game_doudizhu_role_you_farmer);
+            labels[1] = getContext().getString(landlord == 1
+                    ? R.string.game_doudizhu_role_left_ai_landlord : R.string.game_doudizhu_role_left_ai_farmer);
+            labels[2] = getContext().getString(landlord == 2
+                    ? R.string.game_doudizhu_role_right_ai_landlord : R.string.game_doudizhu_role_right_ai_farmer);
+        }
+        return labels;
+    }
+
+    @Override
+    public void onDealStart() {
+        tableView.dealCardsAnim(17, null);
     }
 
     @Override
@@ -185,28 +218,24 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     @Override
     public void onGameFinished(int winnerIndex) {
         boolean playerWon = winnerIndex == Seats.SEAT_PLAYER;
-        new android.app.AlertDialog.Builder(getContext())
-                .setTitle(R.string.game_doudizhu_game_over)
-                .setMessage(playerWon ? R.string.game_doudizhu_you_win : R.string.game_doudizhu_you_lose)
-                .setCancelable(false)
-                .setPositiveButton(R.string.game_doudizhu_play_again, (d, w) ->
-                        controller.startNewGame(controller.getDifficulty()))
-                .setNegativeButton(R.string.game_doudizhu_exit, (d, w) -> {
-                    if (exitListener != null) exitListener.onExitRequested();
-                })
-                .show();
+        GameDialog.show(getContext(),
+                getContext().getString(R.string.game_doudizhu_game_over),
+                getContext().getString(playerWon ? R.string.game_doudizhu_you_win : R.string.game_doudizhu_you_lose),
+                getContext().getString(R.string.game_doudizhu_play_again),
+                getContext().getString(R.string.game_doudizhu_exit),
+                () -> controller.startNewGame(controller.getDifficulty()),
+                () -> { if (exitListener != null) exitListener.onExitRequested(); });
     }
 
     // ============ 内部 ============
 
     private void confirmExit() {
-        new android.app.AlertDialog.Builder(getContext())
-                .setMessage(R.string.game_doudizhu_exit_confirm)
-                .setPositiveButton(R.string.game_doudizhu_exit, (d, w) -> {
-                    if (exitListener != null) exitListener.onExitRequested();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        GameDialog.show(getContext(), null,
+                getContext().getString(R.string.game_doudizhu_exit_confirm),
+                getContext().getString(R.string.game_doudizhu_exit),
+                getContext().getString(android.R.string.cancel),
+                () -> { if (exitListener != null) exitListener.onExitRequested(); },
+                null);
     }
 
     private Button makeBarButton(Context context, int textRes, boolean primary) {
@@ -215,7 +244,7 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         btn.setTextSize(16);
         btn.setAllCaps(false);
         btn.setTextColor(Color.WHITE);
-        btn.setBackground(pillBackground(primary ? 0xFF6200EE : 0xFF37474F));
+        btn.setBackground(statefulPill(primary));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 dp(88), dp(44));
         lp.setMargins(dp(8), 0, dp(8), 0);
@@ -230,6 +259,18 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         return gd;
     }
 
+    /** 主/次按钮的按压态与禁用态背景。 */
+    private android.graphics.drawable.StateListDrawable statefulPill(boolean primary) {
+        int base = primary ? 0xFF6200EE : 0xFF37474F;
+        int pressed = primary ? 0xFF9E7CFF : 0xFF546E7A;
+        android.graphics.drawable.StateListDrawable sld =
+                new android.graphics.drawable.StateListDrawable();
+        sld.addState(new int[]{-android.R.attr.state_enabled}, pillBackground(0x66555555));
+        sld.addState(new int[]{android.R.attr.state_pressed}, pillBackground(pressed));
+        sld.addState(new int[]{}, pillBackground(base));
+        return sld;
+    }
+
     private void toast(int resId) {
         Toast.makeText(getContext(), resId, Toast.LENGTH_SHORT).show();
     }
@@ -239,8 +280,33 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        applyImmersive(true);
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
+        applyImmersive(false);
         controller.detachUi();
         super.onDetachedFromWindow();
+    }
+
+    /** 牌桌沉浸式：隐藏状态栏/导航栏，退出时还原。 */
+    private void applyImmersive(boolean on) {
+        if (!(getContext() instanceof android.app.Activity)) return;
+        android.view.View decor =
+                ((android.app.Activity) getContext()).getWindow().getDecorView();
+        if (on) {
+            decor.setSystemUiVisibility(
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        } else {
+            decor.setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_VISIBLE);
+        }
     }
 }
