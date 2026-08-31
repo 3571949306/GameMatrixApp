@@ -1,9 +1,11 @@
 {
-  "_comment": "只降不增基线（verify_ratchet.py 消费）。数值由脚本确定性统计得出，允许减少（改进），禁止增加（回归）。刻意改进后用 `python scripts/verify_ratchet.py --update` 重定基线，需在 PR 说明。",
+  "_comment": "只降不增基线（verify_ratchet.py 消费）。允许减少，禁止增加。",
   "as_of": "2026-08-30",
   "metrics": {
     "empty_catch_count": 98,
     "buildconfig_boolean_flag_count": 84,
-    "isolation_soft_count": 7
+    "isolation_soft_count": 7,
+    "silent_return_in_catch_count": 38,
+    "bug_ledger_guardless_count": 5
   }
 }
