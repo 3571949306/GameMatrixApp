@@ -52,3 +52,9 @@
 - 类别: 配置
 - 根因: 死域清理只做了 catalog 产物，local.properties 的 feedback.url 与后端 9011 监听是独立链路，未随清
 - 守卫: PENDING(§六 真人反馈回路修复)
+
+## BL-007 镜像插队三重反转：测速胜者沉底下载源列表
+- 日期: 2026-08-30
+- 类别: 窄修复回归 + 静默失败
+- 根因: 分发架构 v2 插队实现 `asReversed()` 收集 + `inserted.reversed()` + 逐个 `add(0)`——前两次反转抵消，`add(0)` 自带第三次，净效果 = 镜像顺序反转，胜者沉底。代码注释"顺序保持"是错的，v4 审查被该注释误导关闭了"修插队顺序"项。用户不崩溃、只是永远从慢节点下载——只有真人能感知
+- 守卫: ModuleDownloadUrlListContractTest（胜者首顺序 + 双重去重 + fallback 尾追加 + 外来主 URL 直通；buildDownloadUrlList 已提取为纯函数接缝）
