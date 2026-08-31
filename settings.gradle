@@ -44,10 +44,6 @@ include ':core:module-host'
 include ':core:moduleloader'
 // Phase 2: 模块商店（下载 + 安装 + 版本检查）
 include ':core:modulestore'
-// [DEAD-ONLINE] 联机功能已通过 OnlinePlayGate 统一下线。core:online 全仓库零外部调用，
-// 可整体删除。清理时连同 modules/online-core 一起移除。
-// Phase 3: 联机公共模块（WebSocket Relay + 房间管理 + 消息协议）
-include ':core:online'
 
 // Phase 1: MiMo TTS 能力 SDK（注入 AI 助手）
 // 路径从 gradle.properties 或 -P 命令行读取: mimo.tts.dir=/path/to/mimo-tts

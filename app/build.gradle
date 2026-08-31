@@ -724,8 +724,6 @@ dependencies {
     implementation project(':core:module-host')
     implementation project(':core:moduleloader')
     implementation project(':core:modulestore')
-    // [DEAD-ONLINE] 联机核心库 OnlinePlayGate.ENABLED=false 时全仓库零调用，可整体删除
-    implementation project(':core:online')
     // Flutter is required for Android builds, but metadata-only Gradle tasks
     // must be able to inspect the project before Flutter bootstrap exists.
     if (rootProject.findProject(':flutter') != null) {
