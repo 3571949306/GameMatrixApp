@@ -40,6 +40,26 @@ public class DoudizhuModuleFragment extends Fragment {
         setRetainInstance(true);
     }
 
+    @Override
+    public void onCreate(@Nullable android.os.Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // 斗地主牌桌为横屏体验：模块自行请求方向，退出时还原为宿主的竖屏默认，
+        // 不影响其他动态模块游戏（不改宿主清单）
+        requireActivity().setRequestedOrientation(
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+    }
+
+    @Override
+    public void onDestroy() {
+        requireActivity().setRequestedOrientation(
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (controller != null) {
+            controller.shutdown();
+            controller = null;
+        }
+        super.onDestroy();
+    }
+
     private boolean isNightMode(@Nullable Context context) {
         if (context == null) return false;
         int nightMode = context.getResources().getConfiguration().uiMode
@@ -59,15 +79,6 @@ public class DoudizhuModuleFragment extends Fragment {
             showMenu();
         }
         return contentRoot;
-    }
-
-    @Override
-    public void onDestroy() {
-        if (controller != null) {
-            controller.shutdown();
-            controller = null;
-        }
-        super.onDestroy();
     }
 
     // ============ 菜单页 ============
