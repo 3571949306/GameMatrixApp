@@ -25,6 +25,10 @@ object ModuleDownloader {
     private const val MAX_RETRIES_PER_URL = 2
     /** Batch 21: 重试线性退避基准（毫秒） */
     private const val RETRY_BASE_DELAY_MS = 1000L
+    /** 边缘镜像(:2088)专用连接超时——连接级失败快速级联下一源，避免 15s 默认超时连乘造成"点了没反应" */
+    private const val MIRROR_CONNECT_TIMEOUT_MS = 6_000L
+    /** 边缘镜像 URL 的端口特征（分发架构 v2 三边缘） */
+    private const val MIRROR_PORT_SUFFIX = ":2088"
 
     private val activeDownloads = mutableMapOf<String, Boolean>()
     private val activeCallbacks = mutableMapOf<String, Callback>()
@@ -176,6 +180,13 @@ object ModuleDownloader {
             return
         }
 
+        // 2026-08-30 卡死修复：SHA-256 失败不再中途上报终态错误。
+        // 此前行为：第一个源校验失败就立即 notifyError（ModuleManager 收到后移除回调、UI 复位按钮），
+        // 但下载循环仍继续跑完剩余源的 超时×重试×退避（最坏数分钟），期间
+        // activeDownloads 未清理 —— 用户复点下载被"该模块正在下载中"拒绝，表现为按钮卡死。
+        // 现改为：记录失败 → 切下一源（发非终态 state 供 UI 展示）→ 全部源耗尽后一次性上报终态并 cleanup。
+        var checksumFailed = false
+
         for ((index, url) in urls.withIndex()) {
             if (url.isEmpty()) {
                 Log.w(TAG, "模块 $moduleId 源 ${index + 1} URL为空，跳过")
@@ -244,8 +255,10 @@ object ModuleDownloader {
                         if (!actualSha256.equals(manifest.sha256, ignoreCase = true)) {
                             Log.w(TAG, "模块 $moduleId SHA-256 校验失败: expected=${manifest.sha256}, actual=$actualSha256")
                             file.delete()
-                            notifyError(moduleId, ErrorCodes.ERROR_CHECKSUM_FAILED, "SHA-256 校验失败，尝试下一个源")
-                            // SHA 不匹配说明文件有问题，重试无意义，直接切换 URL
+                            checksumFailed = true
+                            // SHA 不匹配说明文件有问题，重试本源无意义，切换下一源；
+                            // 终态错误在所有源耗尽后统一上报（见循环外 tail）
+                            notifyStateChanged(moduleId, "source_switching")
                             break
                         }
                         val packageTrustFailure = when {
@@ -359,7 +372,22 @@ object ModuleDownloader {
         }
 
         if (activeCallbacks.containsKey(moduleId)) {
-            notifyError(moduleId, ErrorCodes.ERROR_NETWORK, "所有下载源均失败")
+            if (checksumFailed) {
+                // 所有源返回的文件都无法通过校验：服务端资产与清单脱节（或边缘未同步完），
+                // 属于必须换数据的终态错误，快速失败并立即清理，让用户可以马上重试
+                DownloadMetricsCollector.record(DownloadMetric(
+                    moduleId = moduleId,
+                    success = false,
+                    durationMs = System.currentTimeMillis() - downloadStartTime,
+                    errorCode = ErrorCodes.ERROR_CHECKSUM_FAILED,
+                    urlIndex = urls.size - 1,
+                    attemptCount = 1,
+                    timestamp = System.currentTimeMillis()
+                ))
+                notifyError(moduleId, ErrorCodes.ERROR_CHECKSUM_FAILED, "SHA-256 校验失败（所有下载源），模块数据异常，请稍后重试")
+            } else {
+                notifyError(moduleId, ErrorCodes.ERROR_NETWORK, "所有下载源均失败")
+            }
         }
         cleanup(moduleId)
     }
@@ -420,7 +448,14 @@ object ModuleDownloader {
         moduleId: String
     ): File? {
         Log.d(TAG, "downloadFromUrl: $urlStr")
-        val client = SecureOkHttpFactory.buildModuleClient()
+        val baseClient = SecureOkHttpFactory.buildModuleClient()
+        // 分发架构 v2：边缘源(:2088)连接失败要快速级联到下一源；
+        // 共享 client 的 15s 连接超时会让 3 个被墙/不可达边缘连乘成 ~45s 的"点了没反应"
+        val client = if (urlStr.contains(MIRROR_PORT_SUFFIX)) {
+            baseClient.newBuilder()
+                .connectTimeout(MIRROR_CONNECT_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .build()
+        } else baseClient
 
         val existingBytes = if (tempFile.exists()) tempFile.length() else 0L
 

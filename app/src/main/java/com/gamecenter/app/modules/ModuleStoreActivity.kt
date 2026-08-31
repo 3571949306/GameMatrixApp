@@ -1508,6 +1508,21 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
                 }
             }
 
+            override fun onStateChanged(moduleId: String, state: String) {
+                // 无进度事件期间的瞬时反馈：切换源/校验中/安装中，避免下载看起来卡死
+                val text = when (state) {
+                    "verifying" -> getString(R.string.module_state_verifying)
+                    "source_switching" -> getString(R.string.module_state_source_switching)
+                    "installing" -> getString(R.string.module_state_installing)
+                    else -> return
+                }
+                runOnUiThread {
+                    if (adapter.isDownloading(moduleId)) {
+                        adapter.updateDownloadStateText(moduleId, text)
+                    }
+                }
+            }
+
             override fun onSourceSwitch(moduleId: String, sourceIndex: Int, url: String) {
                 Log.d("ModuleStore", "onSourceSwitch: $moduleId sourceIndex=$sourceIndex")
             }

@@ -29,16 +29,21 @@
         app:navigationIconTint="?attr/colorOnSurface"
         app:menu="@menu/module_store_menu" />
 
-    <!-- ===== 固定头部区域（不随列表滚动，类似 Google Play Store 设计） ===== -->
+    <!-- ===== 2026-08-30 布局重规划：头部由 5 层压缩为 2 行 =====
+         旧行序 Hero轮播(120dp) + 三张统计大卡(~76dp) + 一键更新按钮 + 统计文本 + 搜索框 + 主分类 + 子分类
+         在常规手机上占掉 ~300dp，列表可视区仅剩一小条，滚动体验差。
+         新行序：统计摘要单行(含内联一键更新) → 瘦身搜索框 → 主分类 tab → 子分类(条件显示)。
+         Hero 轮播保留但仅由远程 Banner 配置驱动，默认 GONE 不占位。
+         所有 view id 保持不变，Activity 零改动兼容。 -->
 
-    <!-- Hero Banner 精选推荐轮播（Batch 21: ViewPager2 + 指示器） -->
+    <!-- Hero Banner 精选推荐轮播（P1.3: 仅远程 catalog.heroBanners 配置时显示） -->
     <FrameLayout
         android:id="@+id/heroBannerContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/gm_spacing_3"
         android:layout_marginEnd="@dimen/gm_spacing_3"
-        android:layout_marginTop="@dimen/gm_spacing_3"
+        android:layout_marginTop="@dimen/gm_spacing_2"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/moduleToolbar"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,158 +65,128 @@
             android:gravity="center" />
     </FrameLayout>
 
-    <!-- ===== 三栏统计卡片 ===== -->
+    <!-- 统计摘要单行：N 全部 · N 已装 · N 可更新（趋势子文本内联），一键更新按钮内联右侧 -->
     <LinearLayout
         android:id="@+id/statsBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/gm_spacing_3"
-        android:paddingVertical="@dimen/gm_spacing_2"
+        android:gravity="center_vertical"
+        android:baselineAligned="false"
+        android:paddingStart="@dimen/gm_spacing_3"
+        android:paddingEnd="@dimen/gm_spacing_2"
+        android:paddingTop="@dimen/gm_spacing_2"
+        android:paddingBottom="@dimen/gm_spacing_1"
         app:layout_constraintTop_toBottomOf="@id/heroBannerContainer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <!-- 总模块数 -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="@dimen/gm_spacing_1"
-            android:background="@drawable/module_stat_card_total_bg"
-            android:orientation="vertical"
-            android:padding="@dimen/gm_spacing_3">
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/statTotalCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:includeFontPadding="false"
                 android:textColor="?attr/colorOnSurface"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:text="0" />
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/module_stat_total"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="10sp" />
-
-            <!-- Batch 21: 趋势子文本 -->
-            <TextView
                 android:id="@+id/statTotalTrend"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/module_stat_total_accent"
-                android:textSize="9sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="↑ 全部" />
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="@string/module_stat_total"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="9sp" />
         </LinearLayout>
 
         <!-- 已安装 -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="@dimen/gm_spacing_1"
-            android:background="@drawable/module_stat_card_installed_bg"
-            android:orientation="vertical"
-            android:padding="@dimen/gm_spacing_3">
+            android:layout_marginStart="@dimen/gm_spacing_4"
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/statInstalledCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:includeFontPadding="false"
                 android:textColor="@color/success"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:text="0" />
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/module_stat_installed"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="10sp" />
-
-            <!-- Batch 21: 百分比子文本 -->
-            <TextView
                 android:id="@+id/statInstalledTrend"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/module_stat_installed_accent"
-                android:textSize="9sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="88% 已装" />
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="@string/module_stat_installed"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="9sp" />
         </LinearLayout>
 
-        <!-- 有更新 -->
+        <!-- 有更新（statUpdateCard 保留 id 供未来跳转） -->
         <LinearLayout
             android:id="@+id/statUpdateCard"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/module_stat_card_update_bg"
-            android:orientation="vertical"
-            android:padding="@dimen/gm_spacing_3">
+            android:layout_marginStart="@dimen/gm_spacing_4"
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/statUpdateCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:includeFontPadding="false"
                 android:textColor="@color/warning"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:text="0" />
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/module_stat_update"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="10sp" />
-
-            <!-- Batch 21: 待更新提示子文本 -->
-            <TextView
                 android:id="@+id/statUpdateTrend"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/module_stat_update_accent"
-                android:textSize="9sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:text="→ 待更新" />
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="@string/module_stat_update"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="9sp" />
         </LinearLayout>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- 一键更新（内联右侧，仅有更新时显示） -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUpdateAll"
+            style="@style/Widget.GameMatrix.Button.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="36dp"
+            android:paddingHorizontal="@dimen/gm_spacing_2"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/module_update_all"
+            android:textSize="11sp"
+            android:visibility="gone" />
     </LinearLayout>
 
-    <!-- 一键更新按钮 -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnUpdateAll"
-        style="@style/Widget.GameMatrix.Button.Tonal"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/gm_spacing_3"
-        android:layout_marginEnd="@dimen/gm_spacing_3"
-        android:layout_marginBottom="@dimen/gm_spacing_1"
-        android:minHeight="@dimen/gm_touch_target"
-        android:paddingHorizontal="@dimen/gm_spacing_3"
-        android:text="@string/module_update_all"
-        android:textSize="12sp"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/statsBar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- ===== 统计文本（无障碍 live region） ===== -->
+    <!-- ===== 统计文本（无障碍 live region，视觉隐藏） ===== -->
     <TextView
         android:id="@+id/tvModuleStats"
         android:layout_width="0dp"
@@ -222,20 +197,20 @@
         android:textSize="11sp"
         android:accessibilityLiveRegion="polite"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/btnUpdateAll"
+        app:layout_constraintTop_toBottomOf="@id/statsBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 搜索框 -->
+    <!-- 搜索框（瘦身：44dp 单行，弱化外框） -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/moduleSearchLayout"
         style="@style/Widget.GameMatrix.Search"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/gm_spacing_3"
-        android:layout_marginTop="@dimen/gm_spacing_2"
+        android:layout_marginTop="@dimen/gm_spacing_1"
         android:layout_marginEnd="@dimen/gm_spacing_3"
-        android:layout_marginBottom="@dimen/gm_spacing_2"
+        android:layout_marginBottom="@dimen/gm_spacing_1"
         android:hint="@string/module_search_hint"
         app:endIconMode="clear_text"
         app:startIconDrawable="@android:drawable/ic_menu_search"
