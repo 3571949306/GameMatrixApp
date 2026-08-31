@@ -37,7 +37,7 @@ mockito-kotlin = "5.4.0"
 test-runner = "1.6.2"
 test-core = "1.6.1"
 test-ext-junit = "1.2.1"
-espresso = "3.6.1"
+espresso = "3.7.0"
 test-rules = "1.6.1"
 uiautomator = "2.3.0"
 
