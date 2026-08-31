@@ -105,6 +105,41 @@ object ModuleDownloader {
         }, "ModuleDL-$moduleId").start()
     }
 
+    /**
+     * 下载源列表构造接缝（自 doDownload 提取，§六 契约测试对象）。
+     * - 镜像插队：mirrorBases 语义为"胜者首"（见 DownloadSourceSelector.preferredMirrorBases KDoc）；
+     *   反序遍历收集后 addAll(0, reversed) 使最终镜像顺序 = mirrorBases 原顺序置于列表头部；
+     *   仅当主 URL 命中 downloadBase 时改写；对既有源与已插源双重去重。
+     *   （BL-007 教训：曾用 inserted.reversed().forEach { add(0) }——add(0) 逐次插入自带反转，
+     *   与前置双重反转叠加后净效果变成镜像顺序反转，胜者沉底。）
+     * - CDN fallback：fallbackBase 非空且主 URL 命中 downloadBase 时，替换构造备用源追加末尾（去重）。
+     */
+    internal fun buildDownloadUrlList(
+        primaryUrl: String,
+        baseUrls: List<String>,
+        mirrorBases: List<String>,
+        downloadBase: String,
+        fallbackBase: String,
+    ): MutableList<String> {
+        val urls = baseUrls.toMutableList()
+        val inserted = mutableListOf<String>()
+        for (mirrorBase in mirrorBases.asReversed()) {
+            if (!primaryUrl.startsWith(downloadBase)) break
+            val mirrorUrl = primaryUrl.replace(downloadBase, "$mirrorBase/modules/")
+            if (mirrorUrl != primaryUrl && urls.none { it == mirrorUrl } && inserted.none { it == mirrorUrl }) {
+                inserted.add(mirrorUrl)
+            }
+        }
+        urls.addAll(0, inserted.reversed())
+        if (fallbackBase.isNotEmpty() && primaryUrl.startsWith(downloadBase)) {
+            val autoFallbackUrl = primaryUrl.replace(downloadBase, fallbackBase)
+            if (autoFallbackUrl != primaryUrl && urls.none { it == autoFallbackUrl }) {
+                urls.add(autoFallbackUrl)
+            }
+        }
+        return urls
+    }
+
     private fun doDownload(appContext: Context, manifest: ModuleManifest, moduleId: String) {
         notifyStateChanged(moduleId, "downloading")
         val downloadStartTime = System.currentTimeMillis()
@@ -120,40 +155,16 @@ object ModuleDownloader {
             Log.d(TAG, "删除残留临时文件: ${tempFile.name}")
         }
 
-        val urls = manifest.getAllDownloadUrls().toMutableList()
-
-        // 分发架构 v2：三边缘镜像插队（默认 JP→HK→US，选择器会把测速胜者置首）。
-        // 仅当主 URL 命中 DOWNLOAD_BASE_URL 时改写主机名；去重；追加在原有源之前。
-        run {
-            val mirrorBases = DownloadSourceSelector.preferredMirrorBases(appContext)
-            val inserted = mutableListOf<String>()
-            for (mirrorBase in mirrorBases.asReversed()) { // asReversed 后逐个 add(0) => 顺序保持
-                if (!manifest.downloadUrl.startsWith(BuildConfig.DOWNLOAD_BASE_URL)) break
-                val mirrorUrl = manifest.downloadUrl.replace(BuildConfig.DOWNLOAD_BASE_URL, "$mirrorBase/modules/")
-                if (mirrorUrl != manifest.downloadUrl && urls.none { it == mirrorUrl } && inserted.none { it == mirrorUrl }) {
-                    inserted.add(mirrorUrl)
-                }
-            }
-            inserted.reversed().forEach { urls.add(0, it) }
-            if (inserted.isNotEmpty()) {
-                Log.d(TAG, "模块 $moduleId 镜像插队 ${inserted.size} 个: $inserted")
-            }
-        }
-
-        // Batch 21 改进：CDN fallback 域名自动接线
-        // 若 BuildConfig.DOWNLOAD_FALLBACK_BASE_URL 非空，且主 URL 以 DOWNLOAD_BASE_URL 开头，
-        // 则自动用 fallback 域名替换主域名构造一个备用 URL，追加到列表末尾（去重）。
-        val fallbackBase = BuildConfig.DOWNLOAD_FALLBACK_BASE_URL
-        if (fallbackBase.isNotEmpty() && manifest.downloadUrl.startsWith(BuildConfig.DOWNLOAD_BASE_URL)) {
-            val autoFallbackUrl = manifest.downloadUrl.replace(
-                BuildConfig.DOWNLOAD_BASE_URL,
-                fallbackBase
-            )
-            if (autoFallbackUrl != manifest.downloadUrl &&
-                urls.none { it == autoFallbackUrl }) {
-                urls.add(autoFallbackUrl)
-                Log.d(TAG, "模块 $moduleId 自动追加 CDN fallback URL: $autoFallbackUrl")
-            }
+        val baseUrls = manifest.getAllDownloadUrls()
+        val urls = buildDownloadUrlList(
+            primaryUrl = manifest.downloadUrl,
+            baseUrls = baseUrls,
+            mirrorBases = DownloadSourceSelector.preferredMirrorBases(appContext),
+            downloadBase = BuildConfig.DOWNLOAD_BASE_URL,
+            fallbackBase = BuildConfig.DOWNLOAD_FALLBACK_BASE_URL,
+        )
+        if (urls.size > baseUrls.size) {
+            Log.d(TAG, "模块 $moduleId 源扩展至 ${urls.size} 个: $urls")
         }
 
         Log.d(TAG, "模块 $moduleId 开始下载, ${urls.size} 个源, 目标: ${targetFile.absolutePath}")

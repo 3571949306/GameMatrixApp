@@ -12,6 +12,10 @@ verify_ratchet.py — "只降不增"计数器门禁（质量提升计划 §二/�
                                   （同时是 §四 L188 "禁止新增 boolean flag" 的机器检查）
   isolation_soft_count          verify_isolation.py 中声明为 SOFT 的过渡项数量
                                   （SOFT 逐步 HARD 化，只减不增）
+  silent_return_in_catch_count  catch 吞异常后直接 return null/false（无日志）——
+                                  "bug 不炸只烂"、只有真人能发现的第一机制（§六）
+  bug_ledger_guardless_count    BUG_LEDGER.md 中守卫为 PENDING/空的条目数
+                                  （真人发现的 bug 必须变成守卫；补守卫则计数下降）
 
 用法：
     python scripts/verify_ratchet.py             # 校验（CI 用）
@@ -29,8 +33,10 @@ BASELINE = Path(__file__).resolve().parent / "quality_baseline.json"
 SRC_SUFFIXES = {".java", ".kt"}
 SRC_ROOTS = ["app/src/main", "app/src/main/kotlin", "core", "module-store"]
 EMPTY_CATCH = re.compile(r"catch\s*\([^)]*\)\s*\{\s*\}")
+SILENT_RETURN = re.compile(r"catch\s*\([^)]*\)\s*\{\s*return\s+(?:null|false)\s*;?\s*\}")
 BOOLEAN_FLAG = re.compile(r'buildConfigField\s+"boolean"')
 SOFT_MARKER = re.compile(r"#\s*-+\s*SOFT")
+LEDGER_GUARD = re.compile(r"^\s*-\s*守卫:\s*(.*)$")
 
 
 def count_empty_catch() -> int:
@@ -46,6 +52,43 @@ def count_empty_catch() -> int:
                 n += len(EMPTY_CATCH.findall(f.read_text(encoding="utf-8", errors="ignore")))
             except OSError:
                 pass
+    return n
+
+
+def count_silent_return_in_catch() -> int:
+    n = 0
+    for root in SRC_ROOTS:
+        base = REPO / root
+        if not base.exists():
+            continue
+        for f in base.rglob("*"):
+            if f.suffix not in SRC_SUFFIXES or "build" in f.parts:
+                continue
+            try:
+                n += len(SILENT_RETURN.findall(f.read_text(encoding="utf-8", errors="ignore")))
+            except OSError:
+                pass
+    return n
+
+
+def count_ledger_guardless() -> int:
+    """统计 BUG_LEDGER.md 实际条目中守卫为 PENDING/空的数量；跳过代码围栏内的格式示例。"""
+    p = REPO / "BUG_LEDGER.md"
+    if not p.exists():
+        return 0
+    n = 0
+    in_fence = False
+    for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = LEDGER_GUARD.match(line)
+        if m:
+            val = m.group(1).strip()
+            if not val or "PENDING" in val:
+                n += 1
     return n
 
 
@@ -71,6 +114,8 @@ def current_metrics() -> dict:
         "empty_catch_count": count_empty_catch(),
         "buildconfig_boolean_flag_count": count_boolean_flags(),
         "isolation_soft_count": count_isolation_soft(),
+        "silent_return_in_catch_count": count_silent_return_in_catch(),
+        "bug_ledger_guardless_count": count_ledger_guardless(),
     }
 
 
