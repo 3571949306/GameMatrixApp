@@ -1110,36 +1110,38 @@ public class DouDiZhuTableView extends View {
         drawSeatPanel(canvas, 2, false);
     }
 
-    /** 统一座位面板：头像→角色标签→牌堆→计数徽章，纵向不重叠。 */
+    /** 紧凑座位面板：头像+角色标签+张数徽章，悬浮于角落，不占大面积。 */
     private void drawSeatPanel(Canvas canvas, int seat, boolean leftSide) {
         float density = getResources().getDisplayMetrics().density;
         int viewWidth = getWidth();
-        float areaWidth = Math.max(viewWidth * AI_INFO_WIDTH_RATIO,
-                140f * density);
-        float centerX = leftSide ? areaWidth / 2f + 6f * density
-                : viewWidth - areaWidth / 2f - 6f * density;
-        float top = Math.max(getHeight() * 0.04f, 30f * density);
+        float avatarR = Math.max(viewWidth * 0.036f, 24f * density);
+        float margin = 12f * density;
+        float cx = leftSide ? margin + avatarR : viewWidth - margin - avatarR;
+        float top = Math.max(getHeight() * 0.035f, 22f * density);
 
         boolean landlord = landlordStatus[seat] == 2;
-        float avatarR = areaWidth * 0.22f;
-        float crownSpace = landlord ? avatarR * 0.9f : 0f;
-        float avatarCy = top + crownSpace + avatarR + 6f * density;
-        float labelY = avatarCy + avatarR + 18f * density;
-        float stackTop = labelY + 8f * density;
-        float stackW = areaWidth * 0.5f;
-        float stackH = stackW / CARD_WIDTH_TO_HEIGHT_RATIO;
-        float badgeY = stackTop + stackH + 14f * density;
-        float panelBottom = badgeY + stackW * 0.22f;
+        boolean myTurn = currentTurn == seat;
+        float crownSpace = landlord ? avatarR * 0.85f : 0f;
+        float avatarCy = top + crownSpace + avatarR;
+        float labelY = avatarCy + avatarR + 17f * density;
 
-        drawPlayerInfoPanel(canvas, centerX, top, panelBottom, areaWidth);
-        if (currentTurn == seat) {
-            drawTurnRing(canvas, centerX, top, panelBottom, areaWidth);
+        // 回合高亮：头像外圈呼吸环
+        if (myTurn) {
+            long time = System.currentTimeMillis() % 1600;
+            float pulse = (float) Math.sin(time * Math.PI / 800.0) * 0.5f + 0.5f;
+            Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+            ring.setColor(Color.parseColor("#FFD700"));
+            ring.setStyle(Paint.Style.STROKE);
+            ring.setStrokeWidth(2f + pulse * 2f);
+            ring.setAlpha((int) (150 + pulse * 105));
+            canvas.drawCircle(cx, avatarCy, avatarR + 5f * density, ring);
         }
         if (landlord) {
-            drawLandlordCrown(canvas, centerX, top + crownSpace * 0.55f, avatarR * 0.85f);
+            drawLandlordCrown(canvas, cx, top + crownSpace * 0.5f, avatarR * 0.8f);
         }
-        drawAvatarFrame(canvas, centerX, avatarCy, avatarR);
+        drawAvatarFrame(canvas, cx, avatarCy, avatarR);
 
+        // 角色标签
         String role = playerLabels != null && playerLabels[seat] != null
                 ? playerLabels[seat]
                 : getContext().getString(landlord
@@ -1148,25 +1150,25 @@ public class DouDiZhuTableView extends View {
                         : (leftSide ? R.string.game_doudizhu_role_left_ai_farmer
                                 : R.string.game_doudizhu_role_right_ai_farmer));
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        rolePaint.setColor(landlord ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5"));
-        rolePaint.setTextSize(13f * density);
+        rolePaint.setColor(landlord ? Color.parseColor("#FFD700") : Color.parseColor("#CFD8DC"));
+        rolePaint.setTextSize(12.5f * density);
         rolePaint.setTextAlign(Paint.Align.CENTER);
         rolePaint.setFakeBoldText(true);
-        fitText(rolePaint, role, areaWidth - 10f * density);
-        canvas.drawText(role, centerX, labelY, rolePaint);
+        rolePaint.setShadowLayer(3f, 0, 1f, 0x99000000);
+        canvas.drawText(role, cx, labelY, rolePaint);
+        rolePaint.setShadowLayer(0, 0, 0, 0);
 
-        drawStackedCards(canvas, centerX - stackW / 2f, stackTop,
-                leftSide ? leftAICardCount : rightAICardCount);
-        drawRedCardCountBadge(canvas, centerX, badgeY,
-                leftSide ? leftAICardCount : rightAICardCount);
+        // 张数徽章（头像右下角）
+        int count = leftSide ? leftAICardCount : rightAICardCount;
+        drawRedCardCountBadge(canvas, cx + avatarR * 0.85f, avatarCy + avatarR * 0.85f, count);
 
-        // 动作区（朝桌心一侧）：不出标签；出牌由中央放大区展示
+        // "不出"标签（朝桌心一侧）
         boolean passed = leftSide ? leftAIPassed : rightAIPassed;
         if (passed) {
-            float actionX = leftSide ? centerX + areaWidth / 2f + stackW
-                    : centerX - areaWidth / 2f - stackW;
+            float actionX = leftSide ? cx + avatarR + 34f * density
+                    : cx - avatarR - 34f * density;
             drawPassLabel(canvas, getContext().getString(R.string.game_doudizhu_pass_label),
-                    actionX, stackTop + stackH * 0.5f);
+                    actionX, avatarCy);
         }
     }
 
