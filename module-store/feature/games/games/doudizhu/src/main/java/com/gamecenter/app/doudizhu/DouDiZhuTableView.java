@@ -411,6 +411,12 @@ public class DouDiZhuTableView extends View {
         calculatedCardHeight = calculatedCardWidth / CARD_WIDTH_TO_HEIGHT_RATIO;
 
         cardSpacing = calculatedCardWidth * (1.0f - overlap);
+        // 手牌总宽必须适配屏宽：超宽时加大重叠（牌保持可读尺寸，而非裁切两端）
+        float handTotal = calculatedCardWidth + (cardCount - 1) * cardSpacing;
+        float handMax = viewWidth * 0.98f;
+        if (handTotal > handMax && cardCount > 1) {
+            cardSpacing = (handMax - calculatedCardWidth) / (cardCount - 1);
+        }
 
         float tableDenominator = 1.0f + (17 - 1) * (1.0f - DEFAULT_OVERLAP_17);
         tableCardWidth = (viewWidth * HAND_MAX_WIDTH_RATIO) / tableDenominator;
@@ -757,48 +763,151 @@ public class DouDiZhuTableView extends View {
      */
     private void drawScaledCard(Canvas canvas, Card card, float x, float y,
                                  float targetWidth, float targetHeight) {
+        drawCardFace(canvas, card, x, y, targetWidth, targetHeight);
+    }
+
+    // ============ 统一牌面绘制（手牌/桌面出牌共用，2026-08-31 UI 重设计） ============
+
+    /** 牌面白色渐变底（按高度缓存，避免每帧重建 Shader）。 */
+    private LinearGradient cardBodyShader;
+    private float cardBodyShaderH = -1f;
+
+    /**
+     * 绘制一张牌的正面（渐变白底 + 圆角 + 角标 + 中心花色/徽章）。
+     * 手牌与桌面出牌共用本方法，保证观感一致。
+     */
+    private void drawCardFace(Canvas canvas, Card card, float x, float y, float w, float h) {
         if (card == null) return;
+        float r = w * 0.10f;
+        RectF rect = new RectF(x, y, x + w, y + h);
 
-        // 绘制缩小的简易卡牌
-        RectF cardRect = new RectF(x, y, x + targetWidth, y + targetHeight);
-        float smallRadius = targetWidth * 0.08f;
+        // 1. 柔和投影
+        Paint shadow = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shadow.setColor(0x50000000);
+        shadow.setStyle(Paint.Style.FILL);
+        canvas.drawRoundRect(new RectF(x + w * 0.03f, y + h * 0.035f,
+                x + w + w * 0.03f, y + h + h * 0.035f), r, r, shadow);
 
-        cardPaint.setColor(Color.WHITE);
-        cardPaint.setStyle(Paint.Style.FILL);
-        canvas.drawRoundRect(cardRect, smallRadius, smallRadius, cardPaint);
-        canvas.drawRoundRect(cardRect, smallRadius, smallRadius, cardBorderPaint);
+        // 2. 白→浅灰渐变底
+        if (cardBodyShader == null || cardBodyShaderH != h) {
+            cardBodyShader = new LinearGradient(0, y, 0, y + h,
+                    new int[]{Color.WHITE, 0xFFEDEDED}, null, Shader.TileMode.CLAMP);
+            cardBodyShaderH = h;
+        }
+        Paint body = new Paint(Paint.ANTI_ALIAS_FLAG);
+        body.setStyle(Paint.Style.FILL);
+        body.setShader(cardBodyShader);
+        canvas.drawRoundRect(rect, r, r, body);
+        body.setShader(null);
 
-        boolean isJoker = card.getRank().isJoker();
-        int cardColor;
+        // 3. 细边框
+        Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
+        border.setColor(0xFFBDBDBD);
+        border.setStyle(Paint.Style.STROKE);
+        border.setStrokeWidth(Math.max(1f, w * 0.015f));
+        canvas.drawRoundRect(rect, r, r, border);
+
+        int color = cardColor(card);
+        if (card.getRank().isJoker()) {
+            drawJokerFace(canvas, card, x, y, w, h, color);
+        } else {
+            drawNormalFace(canvas, card, x, y, w, h, color);
+        }
+    }
+
+    private int cardColor(Card card) {
         if (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.SMALL_JOKER) {
-            cardColor = Color.parseColor("#9C27B0");
-        } else if (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.BIG_JOKER) {
-            cardColor = Color.parseColor("#D32F2F");
+            return Color.parseColor("#7B1FA2");
+        }
+        if (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.BIG_JOKER) {
+            return Color.parseColor("#C62828");
+        }
+        boolean isRed = card.getSuit() == com.gamecenter.app.doudizhu.model.Suit.HEART
+                || card.getSuit() == com.gamecenter.app.doudizhu.model.Suit.DIAMOND;
+        return isRed ? Color.parseColor("#C62828") : Color.parseColor("#212121");
+    }
+
+    private void drawNormalFace(Canvas canvas, Card card, float x, float y, float w, float h,
+                                int color) {
+        String rankSymbol = card.getRank().getSymbol();
+        String suitSymbol = getSuitSymbol(card.getSuit());
+
+        // 左上角标：牌值 + 花色
+        Paint rankPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        rankPaint.setColor(color);
+        rankPaint.setFakeBoldText(true);
+        rankPaint.setTextSize(w * 0.30f);
+        canvas.drawText(rankSymbol, x + w * 0.10f, y + h * 0.24f, rankPaint);
+        Paint suitPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        suitPaint.setColor(color);
+        suitPaint.setTextSize(w * 0.24f);
+        canvas.drawText(suitSymbol, x + w * 0.12f, y + h * 0.42f, suitPaint);
+
+        // 中心：大花色；J/Q/K 额外画徽章底
+        boolean face = "JQK".contains(rankSymbol);
+        if (face) {
+            Paint medallion = new Paint(Paint.ANTI_ALIAS_FLAG);
+            medallion.setColor(color);
+            medallion.setAlpha(28);
+            medallion.setStyle(Paint.Style.FILL);
+            float mw = w * 0.62f;
+            canvas.drawRoundRect(new RectF(x + (w - mw) / 2f, y + h * 0.42f,
+                    x + (w + mw) / 2f, y + h * 0.42f + mw * 1.15f),
+                    mw * 0.15f, mw * 0.15f, medallion);
+            Paint letter = new Paint(Paint.ANTI_ALIAS_FLAG);
+            letter.setColor(color);
+            letter.setFakeBoldText(true);
+            letter.setTextAlign(Paint.Align.CENTER);
+            letter.setTextSize(w * 0.46f);
+            canvas.drawText(rankSymbol, x + w / 2f, y + h * 0.42f + mw * 0.82f, letter);
         } else {
-            boolean isRed = card.getSuit() == com.gamecenter.app.doudizhu.model.Suit.HEART
-                         || card.getSuit() == com.gamecenter.app.doudizhu.model.Suit.DIAMOND;
-            cardColor = isRed ? Color.parseColor("#D32F2F") : Color.BLACK;
+            Paint center = new Paint(Paint.ANTI_ALIAS_FLAG);
+            center.setColor(color);
+            center.setAlpha(235);
+            center.setTextAlign(Paint.Align.CENTER);
+            center.setTextSize(w * 0.55f);
+            canvas.drawText(suitSymbol, x + w / 2f, y + h * 0.66f, center);
         }
 
-        Paint smallPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        smallPaint.setColor(cardColor);
-        smallPaint.setTextSize(targetWidth * 0.35f);
-        smallPaint.setFakeBoldText(true);
+        // 右下角标（旋转 180° 镜像）
+        canvas.save();
+        canvas.rotate(180, x + w * 0.88f, y + h * 0.76f);
+        rankPaint.setTextAlign(Paint.Align.LEFT);
+        canvas.drawText(rankSymbol, x + w * 0.70f, y + h * 0.70f, rankPaint);
+        canvas.drawText(suitSymbol, x + w * 0.72f, y + h * 0.88f, suitPaint);
+        canvas.restore();
+    }
 
-        String rankSymbol = isJoker ? (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.SMALL_JOKER ? getContext().getString(R.string.game_doudizhu_joker_small) : getContext().getString(R.string.game_doudizhu_joker_big))
-                                    : card.getRank().getSymbol();
-        float textX = x + targetWidth * 0.15f;
-        float textY = y + targetHeight * 0.35f;
-        canvas.drawText(rankSymbol, textX, textY, smallPaint);
+    private void drawJokerFace(Canvas canvas, Card card, float x, float y, float w, float h,
+                               int color) {
+        // 左侧竖排 JOKER
+        Paint vertical = new Paint(Paint.ANTI_ALIAS_FLAG);
+        vertical.setColor(color);
+        vertical.setFakeBoldText(true);
+        vertical.setTextSize(w * 0.16f);
+        vertical.setTextAlign(Paint.Align.CENTER);
+        canvas.save();
+        canvas.rotate(-90, x + w * 0.16f, y + h * 0.5f);
+        canvas.drawText("JOKER", x + w * 0.16f, y + h * 0.5f, vertical);
+        canvas.restore();
 
-        if (!isJoker) {
-            smallPaint.setTextSize(targetWidth * 0.25f);
-            String suitSymbol = getSuitSymbol(card.getSuit());
-            canvas.drawText(suitSymbol, textX, textY + targetHeight * 0.25f, smallPaint);
-        } else {
-            smallPaint.setTextSize(targetWidth * 0.2f);
-            canvas.drawText("王", textX, textY + targetHeight * 0.25f, smallPaint);
-        }
+        // 中心星形 + 小王/大王
+        Paint star = new Paint(Paint.ANTI_ALIAS_FLAG);
+        star.setColor(color);
+        star.setTextAlign(Paint.Align.CENTER);
+        star.setTextSize(w * 0.30f);
+        canvas.drawText("★", x + w * 0.62f, y + h * 0.40f, star);
+
+        String label = (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.SMALL_JOKER
+                ? getContext().getString(R.string.game_doudizhu_joker_small)
+                : getContext().getString(R.string.game_doudizhu_joker_big))
+                + getContext().getString(R.string.game_doudizhu_joker_king);
+        Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        labelPaint.setColor(color);
+        labelPaint.setFakeBoldText(true);
+        labelPaint.setTextAlign(Paint.Align.CENTER);
+        labelPaint.setTextSize(w * 0.30f);
+        canvas.drawText(label, x + w * 0.62f, y + h * 0.68f, labelPaint);
     }
 
     /**
@@ -1348,7 +1457,7 @@ public class DouDiZhuTableView extends View {
 
     /**
      * 绘制玩家手牌（底部区域，扇形展开）
-     * 选中状态：金色发光外框 + 卡牌上移10px
+     * 选中状态：金色发光外框 + 卡牌上移 15% 卡高
      */
     private void drawPlayerHand(Canvas canvas) {
         if (playerHandCards == null || playerHandCards.isEmpty()) {
@@ -1373,8 +1482,8 @@ public class DouDiZhuTableView extends View {
 
             // 检查是否选中
             boolean isSelected = selectedIndices.contains(i);
-            // 选中状态卡牌上移10px
-            float cardY = isSelected ? baseY - 10f : baseY;
+            // 选中状态卡牌明显上移（15% 卡高），未选中贴底
+            float cardY = isSelected ? baseY - cardLiftHeight : baseY;
 
             // 绘制选中状态金色发光外框
             if (isSelected) {
@@ -1554,131 +1663,7 @@ public class DouDiZhuTableView extends View {
      * 白色圆角矩形底色 + 金色细边框 + 底部投影 + 红/黑花色和点数
      */
     private void drawSimpleCard(Canvas canvas, Card card, float x, float y) {
-        if (card == null) return;
-
-        float radius = 8f;
-        RectF cardRect = new RectF(x, y, x + calculatedCardWidth, y + calculatedCardHeight);
-
-        // 1. 底部投影（深灰色，偏移2px，模糊4px）
-        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        shadowPaint.setColor(Color.parseColor("#60000000"));
-        shadowPaint.setStyle(Paint.Style.FILL);
-        canvas.drawRoundRect(new RectF(x + 2, y + 2, x + calculatedCardWidth + 2, y + calculatedCardHeight + 4),
-                radius, radius, shadowPaint);
-
-        // 2. 白色圆角矩形底色
-        cardPaint.setColor(Color.WHITE);
-        cardPaint.setStyle(Paint.Style.FILL);
-        canvas.drawRoundRect(cardRect, radius, radius, cardPaint);
-
-        // 3. 金色细边框（#FFD700，1.5px）
-        Paint goldBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        goldBorderPaint.setColor(Color.parseColor("#FFD700"));
-        goldBorderPaint.setStyle(Paint.Style.STROKE);
-        goldBorderPaint.setStrokeWidth(1.5f);
-        canvas.drawRoundRect(cardRect, radius, radius, goldBorderPaint);
-
-        boolean isJoker = card.getRank().isJoker();
-        String rankSymbol = card.getRank().getSymbol();
-
-        // 确定卡牌颜色
-        int cardColor;
-        String jokerText;
-        if (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.SMALL_JOKER) {
-            cardColor = Color.parseColor("#9C27B0");
-            jokerText = "小";
-        } else if (card.getRank() == com.gamecenter.app.doudizhu.model.Rank.BIG_JOKER) {
-            cardColor = Color.parseColor("#D32F2F");
-            jokerText = "大";
-        } else {
-            boolean isRed = card.getSuit() == com.gamecenter.app.doudizhu.model.Suit.HEART
-                    || card.getSuit() == com.gamecenter.app.doudizhu.model.Suit.DIAMOND;
-            cardColor = isRed ? Color.parseColor("#D32F2F") : Color.parseColor("#212121");
-            jokerText = null;
-        }
-
-        if (isJoker) {
-            drawJokerCard(canvas, card, x, y, cardColor, jokerText);
-        } else {
-            drawNormalCard(canvas, card, x, y, cardColor, rankSymbol);
-        }
-    }
-
-    /**
-     * 绘制普通牌（非王牌）
-     */
-    private void drawNormalCard(Canvas canvas, Card card, float x, float y, int cardColor, String rankSymbol) {
-        String suitSymbol = getSuitSymbol(card.getSuit());
-
-        // 左上角牌值和花色
-        Paint rankPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        rankPaint.setColor(cardColor);
-        rankPaint.setTextSize(calculatedCardWidth * 0.22f);
-        rankPaint.setFakeBoldText(true);
-
-        Paint suitPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        suitPaint.setColor(cardColor);
-        suitPaint.setTextSize(calculatedCardWidth * 0.18f);
-
-        float textX = x + calculatedCardWidth * 0.15f;
-        float textY = y + calculatedCardHeight * 0.22f;
-        canvas.drawText(rankSymbol, textX, textY, rankPaint);
-        canvas.drawText(suitSymbol, textX, textY + calculatedCardHeight * 0.14f, suitPaint);
-
-        // 右上角（镜像）
-        canvas.save();
-        canvas.rotate(180, x + calculatedCardWidth * 0.85f, y + calculatedCardHeight * 0.78f);
-        canvas.drawText(rankSymbol, x + calculatedCardWidth * 0.85f,
-                y + calculatedCardHeight * 0.78f, rankPaint);
-        canvas.drawText(suitSymbol, x + calculatedCardWidth * 0.85f,
-                y + calculatedCardHeight * 0.64f, suitPaint);
-        canvas.restore();
-
-        // 中间大花色符号
-        Paint centerSuitPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        centerSuitPaint.setColor(cardColor);
-        centerSuitPaint.setTextSize(calculatedCardWidth * 0.35f);
-        centerSuitPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(suitSymbol, x + calculatedCardWidth / 2f,
-                y + calculatedCardHeight / 2f + calculatedCardWidth * 0.1f, centerSuitPaint);
-    }
-
-    /**
-     * 绘制王牌（小王/大王）
-     */
-    private void drawJokerCard(Canvas canvas, Card card, float x, float y, int cardColor, String jokerText) {
-        float cx = x + calculatedCardWidth / 2f;
-        float cy = y + calculatedCardHeight / 2f;
-
-        // 左上角 "JOKER" 标记
-        Paint smallPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        smallPaint.setColor(cardColor);
-        smallPaint.setTextSize(calculatedCardWidth * 0.14f);
-        smallPaint.setFakeBoldText(true);
-        canvas.drawText("JOKER", x + calculatedCardWidth * 0.15f,
-                y + calculatedCardHeight * 0.16f, smallPaint);
-
-        // 右上角（镜像）
-        canvas.save();
-        canvas.rotate(180, x + calculatedCardWidth * 0.85f, y + calculatedCardHeight * 0.84f);
-        canvas.drawText("JOKER", x + calculatedCardWidth * 0.85f,
-                y + calculatedCardHeight * 0.84f, smallPaint);
-        canvas.restore();
-
-        // 中间大号中文文字
-        Paint jokerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        jokerPaint.setColor(cardColor);
-        jokerPaint.setTextSize(calculatedCardWidth * 0.32f);
-        jokerPaint.setTextAlign(Paint.Align.CENTER);
-        jokerPaint.setFakeBoldText(true);
-        canvas.drawText(jokerText + "王", cx, cy + calculatedCardWidth * 0.1f, jokerPaint);
-
-        // 中间星形装饰
-        Paint symbolPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        symbolPaint.setColor(cardColor);
-        symbolPaint.setTextSize(calculatedCardWidth * 0.22f);
-        symbolPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("★", cx, cy - calculatedCardHeight * 0.12f, symbolPaint);
+        drawCardFace(canvas, card, x, y, calculatedCardWidth, calculatedCardHeight);
     }
 
     /**
