@@ -135,13 +135,15 @@ class App : Application() {
             if (!assetName.endsWith(".apk")) continue
             val targetFile = File(modulesDir, assetName)
             val tempFile = File(modulesDir, "$assetName.tmp")
+            // 跳过判定用结构校验而非流大小：available() 对压缩 asset 返回压缩后长度，
+            // 与解压产物对不上，会让预装 APK 每次冷启全部重复提取。
+            // ZIP 可读且含 AndroidManifest.xml 即视为已就位，与下方重提判定同一标准。
+            if (targetFile.exists() && targetFile.length() > 0 && validatePreinstalledApk(targetFile)) {
+                Log.d("App", "[preinstall] 已存在且校验通过: $assetName，跳过提取")
+                continue
+            }
             try {
                 assets.open("modules/$assetName").use { input ->
-                    val assetSize = input.available()
-                    if (targetFile.exists() && targetFile.length() == assetSize.toLong()) {
-                        Log.d("App", "[preinstall] 已存在且大小一致: $assetName，跳过提取")
-                        return@use
-                    }
                     if (targetFile.exists()) {
                         if (!targetFile.canWrite()) {
                             targetFile.setWritable(true, true)
