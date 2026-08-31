@@ -407,6 +407,12 @@ public class DouDiZhuTableView extends View {
         if (calculatedCardWidth < minCardWidth) {
             calculatedCardWidth = minCardWidth;
         }
+        // 横屏高度有限：牌高不超过视图高度的 32%（含选中抬升空间）
+        float maxWByHeight = viewHeight * 0.32f * CARD_WIDTH_TO_HEIGHT_RATIO;
+        if (calculatedCardWidth > maxWByHeight) {
+            calculatedCardWidth = maxWByHeight;
+            calculatedCardHeight = calculatedCardWidth / CARD_WIDTH_TO_HEIGHT_RATIO;
+        }
 
         calculatedCardHeight = calculatedCardWidth / CARD_WIDTH_TO_HEIGHT_RATIO;
 
@@ -421,6 +427,7 @@ public class DouDiZhuTableView extends View {
         float tableDenominator = 1.0f + (17 - 1) * (1.0f - DEFAULT_OVERLAP_17);
         tableCardWidth = (viewWidth * HAND_MAX_WIDTH_RATIO) / tableDenominator;
         tableCardWidth = Math.min(tableCardWidth, viewWidth * CARD_MAX_WIDTH_RATIO);
+        tableCardWidth = Math.min(tableCardWidth, viewHeight * 0.26f * CARD_WIDTH_TO_HEIGHT_RATIO);
         if (tableCardWidth < minCardWidth) {
             tableCardWidth = minCardWidth;
         }
@@ -731,9 +738,10 @@ public class DouDiZhuTableView extends View {
         float smallCardWidth = tableCardWidth * 0.5f;
         float smallCardHeight = tableCardHeight * 0.5f;
 
-        // 左上角，左边距6%，顶部距4%（下移避免被金色边框遮挡）
+        // 左上角，左边距6%；顶部至少让出状态栏高度（横屏时 4% 不够）
         float startX = viewWidth * 0.06f;
-        float startY = getHeight() * 0.04f;
+        float startY = Math.max(getHeight() * 0.04f,
+                30f * getResources().getDisplayMetrics().density);
 
         // 每张牌露出80%，重叠20%（原30%重叠改为20%）
         float spacing = smallCardWidth * 0.80f;
