@@ -2445,10 +2445,15 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="game_title_doudizhu">Dou Dizhu</string>
     <string name="game_title_doudizhu_subtitle">Classic 3-player poker</string>
     <string name="game_doudizhu_single">Single Player</string>
-    <string name="game_doudizhu_single_wip">Single player coming soon</string>
     <string name="game_doudizhu_rules_title">Dou Dizhu Rules</string>
     <string name="game_doudizhu_rules_msg">Dou Dizhu is a 3-player card game. 54 cards, players split into Landlord (1) and Farmers (2).</string>
     <string name="game_doudizhu_got_it">Got it</string>
+    <string name="game_doudizhu_choose_difficulty">Choose difficulty</string>
+    <string name="game_doudizhu_bid">Bid landlord</string>
+    <string name="game_doudizhu_bid_pass">Pass</string>
+    <string name="game_doudizhu_exit">Exit</string>
+    <string name="game_doudizhu_exit_confirm">Quit the game? Current progress will be lost.</string>
+    <string name="game_doudizhu_play_again">Play again</string>
     <string name="game_sudoku_complete">Sudoku complete!</string>
 
     <!-- Chinese Chess Online -->

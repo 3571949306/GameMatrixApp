@@ -40,8 +40,59 @@
     <string name="game_sudoku_diff_easy">简单</string>
     <string name="game_sudoku_diff_medium">中等</string>
     <string name="game_sudoku_diff_hard">困难</string>
+    <string name="game_sudoku_diff_expert">专家</string>
     <string name="game_sudoku_diff_easy_desc">挖30个格子</string>
     <string name="game_sudoku_diff_medium_desc">挖40个格子</string>
     <string name="game_sudoku_diff_hard_desc">挖50个格子</string>
     <string name="game_sudoku_diff_expert_desc">挖60个格子</string>
+
+    <!-- Sudoku 2.0 游戏流程与反馈 -->
+    <string name="game_sudoku_menu_subtitle">每天一局，专注思考，随时继续</string>
+    <string name="game_sudoku_resume_game">继续上次对局</string>
+    <string name="game_sudoku_resume_detail">%1$s · 还剩 %2$d 格</string>
+    <string name="game_sudoku_new_game">选择难度开始</string>
+    <string name="game_sudoku_rules_button">玩法说明</string>
+    <string name="game_sudoku_back">返回</string>
+    <string name="game_sudoku_more">更多</string>
+    <string name="game_sudoku_restart">重新开始</string>
+    <string name="game_sudoku_saved">进度已自动保存</string>
+    <string name="game_sudoku_auto_saved">离开页面后会自动保存当前进度</string>
+    <string name="game_sudoku_stats_filled">进度 %1$d/%2$d</string>
+    <string name="game_sudoku_stats_mistakes">错误 %d</string>
+    <string name="game_sudoku_stats_hints">提示 %d</string>
+    <string name="game_sudoku_stats_time">用时 %s</string>
+    <string name="game_sudoku_undo">撤销</string>
+    <string name="game_sudoku_redo">重做</string>
+    <string name="game_sudoku_clear">清除</string>
+    <string name="game_sudoku_note_added">草稿已更新</string>
+    <string name="game_sudoku_select_cell">先选择一个空格</string>
+    <string name="game_sudoku_conflict">这个数字与同行、同列或同宫格冲突</string>
+    <string name="game_sudoku_incorrect">这个数字暂时不对，可以修改</string>
+    <string name="game_sudoku_correct">填得很好</string>
+    <string name="game_sudoku_hint_used">已填入一个提示格</string>
+    <string name="game_sudoku_no_hint_available">当前没有可提示的空格</string>
+    <string name="game_sudoku_hint_confirm_title">使用提示？</string>
+    <string name="game_sudoku_hint_confirm_message">提示会填入正确答案并锁定这个格子，同时计入提示次数。</string>
+    <string name="game_sudoku_hint_confirm">使用提示</string>
+    <string name="game_sudoku_cancel">取消</string>
+    <string name="game_sudoku_menu_confirm_title">保存并离开？</string>
+    <string name="game_sudoku_menu_confirm_message">当前进度会自动保存，下次可以从这里继续。</string>
+    <string name="game_sudoku_menu_confirm">保存并返回</string>
+    <string name="game_sudoku_restart_message">当前对局进度会被新的题目替换。</string>
+    <string name="game_sudoku_restart_confirm">重新开始</string>
+    <string name="game_sudoku_result_title">完成得漂亮！</string>
+    <string name="game_sudoku_result_time">用时 %s</string>
+    <string name="game_sudoku_result_mistakes">错误 %d 次</string>
+    <string name="game_sudoku_result_hints">使用提示 %d 次</string>
+    <string name="game_sudoku_result_replay">再来一局</string>
+    <string name="game_sudoku_result_choose_difficulty">选择其他难度</string>
+
+    <!-- 无障碍播报 -->
+    <string name="game_sudoku_board_description">数独 9×9 棋盘</string>
+    <string name="game_sudoku_a11y_cell">第%1$d行第%2$d列，%3$s，%4$s%5$s</string>
+    <string name="game_sudoku_a11y_empty">空白</string>
+    <string name="game_sudoku_a11y_given">题面数字</string>
+    <string name="game_sudoku_a11y_hint">提示数字</string>
+    <string name="game_sudoku_a11y_editable">可编辑</string>
+    <string name="game_sudoku_a11y_locked">，不可编辑</string>
 </resources>

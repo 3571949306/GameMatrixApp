@@ -2657,10 +2657,15 @@
     <string name="game_title_doudizhu">斗地主</string>
     <string name="game_title_doudizhu_subtitle">经典三人扑克对战</string>
     <string name="game_doudizhu_single">单机模式</string>
-    <string name="game_doudizhu_single_wip">单机模式开发中，敬请期待</string>
     <string name="game_doudizhu_rules_title">斗地主规则</string>
     <string name="game_doudizhu_rules_msg">斗地主是一种三人扑克牌游戏。一副牌54张，玩家分为地主（1人）和农民（2人）。</string>
     <string name="game_doudizhu_got_it">知道了</string>
+    <string name="game_doudizhu_choose_difficulty">选择难度</string>
+    <string name="game_doudizhu_bid">叫地主</string>
+    <string name="game_doudizhu_bid_pass">不叫</string>
+    <string name="game_doudizhu_exit">退出</string>
+    <string name="game_doudizhu_exit_confirm">对局进行中，退出将丢失本局进度，确定退出？</string>
+    <string name="game_doudizhu_play_again">再来一局</string>
     <string name="game_sudoku_complete">数独完成！</string>
 
     <!-- 中国象棋联机 -->
