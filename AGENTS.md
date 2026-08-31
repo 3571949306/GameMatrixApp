@@ -35,3 +35,33 @@
 | 浏览器 / scrcpy | `verify_browser.py`、`verify_scrcpy.py` |
 
 以上脚本已接入 `.github/workflows/ci.yml`；改到对应域时本地先行运行。
+
+## Agent 专属规则
+
+通用规则（上方铁律）对所有 agent 生效；本节按工具分类，**各工具只执行自己名下的小节**，其他小节跳过。新工具（Codex/Claude 等）有专属约定时在下方追加 `###` 小节，不要写入通用部分。
+
+### 多实例并行避让（所有 agent 生效）
+
+用户宣告另一 agent 软件正在同一工作树施工时（以用户宣告为准，未宣告不适用）：
+
+1. 后到侧**冻结仓库**：不写仓库内任何文件（含 BUG_LEDGER.md）、不跑 gradle 构建、不做任何 git 写操作（commit/stash/checkout/branch）。
+2. 只允许只读操作（grep/读文件/`git log`）；产出写仓库外（如 `D:\Developmment\<主题>.md`）。
+3. 用户宣告完成/解除后，先 `git fetch` + 对齐 `origin/main`，再恢复写操作。
+
+### ZCode 专用（其他工具跳过本节）
+
+GitHub 操作（本机实测要点）：
+
+- `gh` 未登录，token 内联提取：`export GH_TOKEN=$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')`；shell 状态不跨调用保留，每条命令都要重新 export。
+- push/fetch 直连不稳：`git -c http.proxy=socks5h://127.0.0.1:10808 <cmd>`（v2rayN SOCKS，偶发 TLS 超时重试即可）；`gh` 的 GraphQL 同理。
+- main 保护分支流程：feature 分支 → PR → CI 绿 → merge。**必需检查必须落在最新 head 上**：串行合并多个 PR 时，后合的会 BEHIND，先 `gh pr update-branch N` 重跑 CI，`--admin` 绕不过（"3 of 3 required status checks are expected"）。
+- `Instrumented Tests (emulator)` 腿在 main 长期红（存量问题），非必需检查，`UNSTABLE` 状态可合并。
+- 修复纪律门禁：生产 `.kt/.java` diff 必须伴随测试/守卫变更（`*/src/test/**`、`scripts/verify_*`、`config/**`、`BUG_LEDGER.md` 任一），或打 label `no-test-justified` 并在 PR 描述写修复报告单。BUG_LEDGER 新条目写 `PENDING` 守卫会抬 guardless 计数、违反 ratchet 只降不增基线——不可测修复走 label 逃生门。
+
+构建副作用还原（配合铁律 3）：
+
+- 本地 `assembleDebug` 会自动 bump `version.properties` 并重打包 `assets/modules/*` + 重写 `catalog.json`/`modules.json`；验证类构建完成后执行 `git checkout -- version.properties app/src/main/assets/` 还原，发布类构建除外。
+
+仓库外产出约定：
+
+- 跨会话文档、问题台账、预备补丁写仓库外（`D:\Developmment\<主题>.md`、`D:\Developmment\fix_prep\`），不混入仓库工作树；等窗口期一次性入账（BUG_LEDGER/PR）。
