@@ -214,6 +214,17 @@ jobs:
           java-version: 17
           distribution: temurin
 
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+          cache: true
+
+      - name: Bootstrap Flutter module
+        working-directory: flutter_module
+        run: flutter pub get
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
