@@ -21,7 +21,7 @@
 - 日期: 2026-08-30
 - 类别: 静默失败 + 窄修复回归
 - 根因: 为兼容一种清单格式加解析分支时，未测另一种格式；`JSONArray(jsonStr)` 抛异常被吞→返回 null，调用方（`bundledVersionCodeOf`/`loadModuleList`/SP 缓存）全部静默降级，不崩溃不报错，真人升级模块时才暴露
-- 守卫: PENDING(§六 接缝契约测试——catalog 双格式 golden fixtures)
+- 守卫: ModuleListParsingContractTest（双格式等价 + 真实清单全量解析 + 坏输入响亮失败；parseModulesArray 已开 internal 供测试）
 
 ## BL-002 Splash 预装安装与核心预加载并发竞态
 - 日期: 2026-08-30
