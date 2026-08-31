@@ -8,6 +8,9 @@ import android.util.Log
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -75,12 +78,12 @@ class MainActivity : AppCompatActivity() {
                 android.util.Log.e("DLSelector", "mobile notice failed", t)
             }
         }, 8_000L)
-        Thread {
+        lifecycleScope.launch(Dispatchers.Default) {
             runCatching {
                 com.gamecenter.app.modules.store.DownloadSourceSelector
                     .scheduleEntryProbeIfNeeded(applicationContext)
             }
-        }.start()
+        }
 
         permissionHelper = PermissionHelper(this)
 

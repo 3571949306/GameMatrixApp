@@ -21,7 +21,7 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- AI API ��名 — ��制 HTTPS，禁止明文流量 -->
+    <!-- AI API 域名 — 强制 HTTPS，禁止明文流量 -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">api.openai.com</domain>
         <domain includeSubdomains="true">api.deepseek.com</domain>
@@ -35,7 +35,7 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- ����服务器备用域名 (CDN fallback) - 仅在配置时生效 -->
+    <!-- 下载加速服务器备用域名 (CDN fallback) - 仅在配置时生效 -->
     <!-- 通过 buildConfigField 注入 DOWNLOAD_FALLBACK_BASE_URL 时启用 -->
     <!-- <domain-config>
         <domain includeSubdomains="true">fallback-cdn.example.com</domain>
@@ -48,7 +48,7 @@
         </trust-anchors>
     </domain-config> -->
 
-    <!-- ��域网明文流量 — 仅限本地网��使用，切��用于公网通信 -->
+    <!-- 局域网明文流量 — 仅限本地网络使用，切勿用于公网通信 -->
     <!-- 注意：Android network security config 不支持 CIDR 表示法，需用字面量 IP -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>

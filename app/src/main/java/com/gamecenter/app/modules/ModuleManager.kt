@@ -518,23 +518,23 @@ object ModuleManager {
                     } else if (savedV > 0) {
                         versions[id] = savedV
                     }
-            } else {
-                // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
-                if (fileExists) {
-                    installed.add(id)
-                    if (savedV > 0) {
-                        versions[id] = savedV
-                    } else {
-                        // 预装补种：APK 文件在但从未走过下载流程（SP 无版本记录）。
-                        // 商店"有更新"判定要求 installedVersion > 0，不补种则预装模块永远收不到更新。
-                        val bundledV = bundledVersionCodeOf(appContext, id)
-                        if (bundledV > 0) {
-                            versions[id] = bundledV
-                            seededVersions[id] = bundledV
+                } else {
+                    // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
+                    if (fileExists) {
+                        installed.add(id)
+                        if (savedV > 0) {
+                            versions[id] = savedV
+                        } else {
+                            // 预装补种：APK 文件在但从未走过下载流程（SP 无版本记录）。
+                            // 商店"有更新"判定要求 installedVersion > 0，不补种则预装模块永远收不到更新。
+                            val bundledV = bundledVersionCodeOf(appContext, id)
+                            if (bundledV > 0) {
+                                versions[id] = bundledV
+                                seededVersions[id] = bundledV
+                            }
                         }
                     }
                 }
-            }
         }
         // 回写清理后的 SP（仅当确有脏数据时才写入，避免无谓 IO）
         if (staleIds.isNotEmpty() || seededVersions.isNotEmpty()) {
