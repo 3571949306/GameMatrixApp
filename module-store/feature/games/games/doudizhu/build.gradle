@@ -46,6 +46,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -58,6 +62,8 @@ dependencies {
     compileOnly 'com.google.android.material:material:1.9.0'
     compileOnly 'androidx.fragment:fragment:1.5.0'
     compileOnly 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    testImplementation 'junit:junit:4.13.2'
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {
