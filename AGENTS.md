@@ -50,6 +50,12 @@
 
 ### ZCode 专用（其他工具跳过本节）
 
+上传策略（最高优先级）：
+
+- **完成任务默认不上传 GitHub**：不 push、不建 PR、不合并、不发评论、不 update-branch；默认停在本地 commit。
+- 只有用户明确说了（"上传"、"建 PR"、"合并"等）才执行 GitHub 写操作；含糊表述不算授权。
+- 下述 GitHub 操作手册仅在用户已授权上传时套用。
+
 GitHub 操作（本机实测要点）：
 
 - `gh` 未登录，token 内联提取：`export GH_TOKEN=$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')`；shell 状态不跨调用保留，每条命令都要重新 export。
