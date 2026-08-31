@@ -203,22 +203,6 @@ class App : Application() {
         }
     }
 
-    /**
-     * 轻量 APK 完整性校验：文件存在、非空、且为可读 zip 含 AndroidManifest.xml。
-     * 仅用于预装阶段快速发现损坏包；深层签名/SHA-256 校验由运行时 ModuleLoader 负责。
-     */
-    private fun validatePreinstalledApk(file: File): Boolean {
-        if (!file.exists() || file.length() == 0L) return false
-        return try {
-            java.util.zip.ZipFile(file).use { zf ->
-                zf.getEntry("AndroidManifest.xml") != null
-            }
-        } catch (e: Exception) {
-            Log.w("App", "[preinstall] APK 校验异常: ${file.name} - ${e.message}")
-            false
-        }
-    }
-
     override fun onCreate() {
         val processRole = AppProcessPolicy.classify(packageName, AppProcessIdentity.currentName(this))
         hostInitializationEnabled = AppProcessPolicy.shouldInitializeHost(processRole)
@@ -407,5 +391,22 @@ class App : Application() {
                 ColorSchemeManager.applyScheme(activity, scheme, app.isDarkMode)
             }
         }
+    }
+}
+
+/**
+ * 轻量 APK 完整性校验：文件存在、非空、且为可读 zip 含 AndroidManifest.xml。
+ * 仅用于预装阶段快速发现损坏包；深层签名/SHA-256 校验由运行时 ModuleLoader 负责。
+ * 顶层 internal 以便单测直接覆盖预装提取的跳过/重提判定标准（PreinstallApkValidationTest）。
+ */
+internal fun validatePreinstalledApk(file: File): Boolean {
+    if (!file.exists() || file.length() == 0L) return false
+    return try {
+        java.util.zip.ZipFile(file).use { zf ->
+            zf.getEntry("AndroidManifest.xml") != null
+        }
+    } catch (e: Exception) {
+        Log.w("App", "[preinstall] APK 校验异常: ${file.name} - ${e.message}")
+        false
     }
 }
