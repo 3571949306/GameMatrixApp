@@ -1,0 +1,11 @@
+{
+  "_comment": "只降不增基线（verify_ratchet.py 消费）。允许减少，禁止增加。",
+  "as_of": "2026-08-30",
+  "metrics": {
+    "empty_catch_count": 98,
+    "buildconfig_boolean_flag_count": 84,
+    "isolation_soft_count": 7,
+    "silent_return_in_catch_count": 38,
+    "bug_ledger_guardless_count": 5
+  }
+}

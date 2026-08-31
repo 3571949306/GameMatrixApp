@@ -49,7 +49,6 @@ def main() -> int:
         go_fragment = read(GO_MODULE / "GoModuleFragment.java")
         coachmark_sequence = read(ROOT / "app/src/main/java/com/gamecenter/app/ui/onboarding/CoachmarkSequence.kt")
         read(ROOT / "scripts/verify_go.py")
-        agent_rules = read(ROOT / "AGENTS.md")
 
         require(game, r"private\s+MoveRecord\s+makeMoveSafe\s*\(",
                 "makeMoveSafe must remain private and simulation-only")

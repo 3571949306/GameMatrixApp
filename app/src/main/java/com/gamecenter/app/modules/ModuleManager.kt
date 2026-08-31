@@ -183,8 +183,8 @@ object ModuleManager {
         }
     }
 
-    /** 兼容新旧 JSON 格式的解析 */
-    private fun parseModulesArray(jsonStr: String): List<ModuleManifest> {
+    /** 兼容新旧 JSON 格式的解析。internal 开放给 §六 接缝契约测试（BUG_LEDGER BL-001 守卫） */
+    internal fun parseModulesArray(jsonStr: String): List<ModuleManifest> {
         return try {
             // 新格式 { version: N, modules: [...] }
             val json = JSONObject(jsonStr)
