@@ -2,7 +2,9 @@ package com.gamecenter.app.doudizhu;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -20,14 +22,15 @@ import java.util.List;
 /**
  * 斗地主单机牌桌视图。
  *
- * <p>FrameLayout 三层结构：底层 {@link DouDiZhuTableView}（自绘牌桌），
- * 中层真实按钮（出牌/不出/提示、叫地主/不叫、退出——替代被禁用的 Canvas 绘制按钮，
- * 可获焦点、可访问），顶层 {@link DouDiZhuEffectsView}（炸弹/火箭/飞机特效）。</p>
+ * <p>纵向两段布局：上方是牌桌区（{@link DouDiZhuTableView} 自绘 +
+ * {@link DouDiZhuEffectsView} 特效覆盖层，weight=1 占满剩余高度），
+ * 下方是固定高度的操作条（出牌/不出/提示 或 叫地主/不叫）。
+ * 操作条不再悬浮覆盖手牌，手牌完整可见。</p>
  *
  * <p>本视图不持有游戏逻辑：全部操作委托 {@link DoudizhuGameController}，
  * 并通过其 UiCallback 接收回推（按钮显隐/全量同步/结束弹窗）。</p>
  */
-public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameController.UiCallback {
+public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameController.UiCallback {
 
     /** 退出牌桌（返回菜单）回调，由宿主 Fragment 实现 */
     public interface ExitListener {
@@ -54,13 +57,28 @@ public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameContr
         this.controller = controller;
         this.exitListener = exitListener;
 
+        setOrientation(VERTICAL);
+        setBackgroundColor(0xFF0A3D12);
+
+        // ===== 牌桌区：TableView + 特效覆盖 + 退出按钮 =====
+        FrameLayout tableArea = new FrameLayout(context);
+        addView(tableArea, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
         tableView = new DouDiZhuTableView(context);
-        addView(tableView, new FrameLayout.LayoutParams(
+        tableArea.addView(tableView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        btnHint = makeBarButton(context, R.string.game_doudizhu_btn_hint);
-        btnPass = makeBarButton(context, R.string.game_doudizhu_btn_pass);
-        btnPlay = makeBarButton(context, R.string.game_doudizhu_btn_play);
+        effectsView = new DouDiZhuEffectsView(context);
+        tableArea.addView(effectsView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // ===== 操作条（固定高度，不覆盖手牌；退出按钮常驻右端） =====
+        int barHeight = dp(64);
+
+        btnHint = makeBarButton(context, R.string.game_doudizhu_btn_hint, false);
+        btnPass = makeBarButton(context, R.string.game_doudizhu_btn_pass, false);
+        btnPlay = makeBarButton(context, R.string.game_doudizhu_btn_play, true);
 
         playBar = new LinearLayout(context);
         playBar.setOrientation(LinearLayout.HORIZONTAL);
@@ -68,12 +86,9 @@ public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameContr
         playBar.addView(btnHint);
         playBar.addView(btnPass);
         playBar.addView(btnPlay);
-        addView(playBar, bottomBarParams());
 
-        btnBidPass = makeBarButton(context, R.string.game_doudizhu_bid_pass);
-        btnBidCall = makeBarButton(context, R.string.game_doudizhu_bid);
-        btnBidCall.setTextColor(Color.WHITE);
-        btnBidCall.setBackgroundColor(0xFF6200EE);
+        btnBidPass = makeBarButton(context, R.string.game_doudizhu_bid_pass, false);
+        btnBidCall = makeBarButton(context, R.string.game_doudizhu_bid, true);
 
         bidBar = new LinearLayout(context);
         bidBar.setOrientation(LinearLayout.HORIZONTAL);
@@ -81,21 +96,27 @@ public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameContr
         bidBar.addView(btnBidPass);
         bidBar.addView(btnBidCall);
         bidBar.setVisibility(GONE);
-        addView(bidBar, bottomBarParams());
+
+        FrameLayout barArea = new FrameLayout(context);
+        barArea.addView(playBar, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        barArea.addView(bidBar, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         Button btnExit = new Button(context);
-        btnExit.setText(R.string.game_doudizhu_exit);
-        btnExit.setTextSize(12);
+        btnExit.setText("✕");
+        btnExit.setTextSize(16);
+        btnExit.setTextColor(Color.WHITE);
+        btnExit.setAllCaps(false);
+        btnExit.setPadding(0, 0, 0, 0);
+        btnExit.setBackground(pillBackground(0xFF455A64));
         FrameLayout.LayoutParams exitLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP | Gravity.END);
-        int m8 = dp(8);
-        exitLp.setMargins(m8, m8, m8, m8);
-        addView(btnExit, exitLp);
+                dp(48), dp(48), Gravity.CENTER_VERTICAL | Gravity.END);
+        exitLp.setMargins(0, 0, dp(10), 0);
+        barArea.addView(btnExit, exitLp);
 
-        effectsView = new DouDiZhuEffectsView(context);
-        addView(effectsView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        addView(barArea, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, barHeight));
 
         btnPlay.setOnClickListener(v -> {
             List<Card> selected = tableView.getSelectedCards();
@@ -145,13 +166,13 @@ public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameContr
     public void onCardsPlayed(List<Card> cards, CardType type) {
         if (type == CardType.BOMB) {
             effectsView.showEffect(DouDiZhuEffectsView.EffectType.BOMB,
-                    getWidth() / 2f, getHeight() * 0.42f);
+                    getWidth() / 2f, getHeight() * 0.35f);
         } else if (type == CardType.JOKER_BOMB) {
             effectsView.showEffect(DouDiZhuEffectsView.EffectType.ROCKET,
-                    getWidth() / 2f, getHeight() * 0.42f);
+                    getWidth() / 2f, getHeight() * 0.35f);
         } else if (type == CardType.AIRPLANE || type == CardType.AIRPLANE_WITH_WINGS) {
             effectsView.showEffect(DouDiZhuEffectsView.EffectType.PLANE,
-                    getWidth() / 2f, getHeight() * 0.42f);
+                    getWidth() / 2f, getHeight() * 0.35f);
         }
     }
 
@@ -168,9 +189,8 @@ public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameContr
                 .setTitle(R.string.game_doudizhu_game_over)
                 .setMessage(playerWon ? R.string.game_doudizhu_you_win : R.string.game_doudizhu_you_lose)
                 .setCancelable(false)
-                .setPositiveButton(R.string.game_doudizhu_play_again, (d, w) -> {
-                    controller.startNewGame(controller.getDifficulty());
-                })
+                .setPositiveButton(R.string.game_doudizhu_play_again, (d, w) ->
+                        controller.startNewGame(controller.getDifficulty()))
                 .setNegativeButton(R.string.game_doudizhu_exit, (d, w) -> {
                     if (exitListener != null) exitListener.onExitRequested();
                 })
@@ -189,25 +209,25 @@ public class DoudizhuGameScreen extends FrameLayout implements DoudizhuGameContr
                 .show();
     }
 
-    private FrameLayout.LayoutParams bottomBarParams() {
-        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        flp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        flp.bottomMargin = dp(16);
-        return flp;
-    }
-
-    private Button makeBarButton(Context context, int textRes) {
+    private Button makeBarButton(Context context, int textRes, boolean primary) {
         Button btn = new Button(context);
         btn.setText(textRes);
-        btn.setTextSize(15);
+        btn.setTextSize(16);
+        btn.setAllCaps(false);
         btn.setTextColor(Color.WHITE);
-        btn.setBackgroundColor(0xFF37474F);
+        btn.setBackground(pillBackground(primary ? 0xFF6200EE : 0xFF37474F));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                dp(96), ViewGroup.LayoutParams.WRAP_CONTENT);
+                dp(88), dp(44));
         lp.setMargins(dp(8), 0, dp(8), 0);
         btn.setLayoutParams(lp);
         return btn;
+    }
+
+    private GradientDrawable pillBackground(int color) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(color);
+        gd.setCornerRadius(dp(22));
+        return gd;
     }
 
     private void toast(int resId) {
