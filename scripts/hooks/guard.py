@@ -47,6 +47,10 @@ ROUTE = [
 ]
 
 
+# 生产源集提醒（§六 修复纪律）：编辑 main 源集 .kt/.java 时提示补测试/守卫，不阻断
+PROD_HINT_SUFFIXES = (".kt", ".java")
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -72,7 +76,13 @@ def main() -> int:
                   file=sys.stderr)
             return 2
 
-    # 2. 域路由 verify
+    # 2. 生产代码编辑 → 修复纪律提醒（非阻断；CI 的 verify_fix_discipline 才是门禁）
+    if norm_rel.endswith(PROD_HINT_SUFFIXES) and "/src/main/" in norm_rel:
+        print(f"[guard·提醒] 正在改生产代码 {norm_rel} —— 同一 PR 需伴随测试/守卫变更"
+              f"（复现测试或 BUG_LEDGER.md 登记），否则 CI 红。"
+              f"爆炸半径可跑 scripts/blast_radius.py 查询。", file=sys.stderr)
+
+    # 3. 域路由 verify
     scripts = []
     for prefix, ss in ROUTE:
         if norm_rel.startswith(prefix):

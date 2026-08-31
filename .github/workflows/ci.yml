@@ -25,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up JDK 17
@@ -80,6 +81,11 @@ jobs:
           python scripts/verify_scrcpy.py
           python scripts/verify_security_clauses.py
           python scripts/verify_ratchet.py
+
+      - name: Verify fix discipline (production diff requires test/guard change)
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python scripts/verify_fix_discipline.py --base "$PR_BASE_SHA"
 
       - name: Run lint (debug)
         run: ./gradlew :app:lintDebug --stacktrace
