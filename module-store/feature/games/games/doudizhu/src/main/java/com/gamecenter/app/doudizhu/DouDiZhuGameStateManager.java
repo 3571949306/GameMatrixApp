@@ -362,6 +362,11 @@ public class DouDiZhuGameStateManager {
         playerPassed = new boolean[]{false, false, false};
         lastPlayerWhoPlayed = seatIndex;
         setSeatPlayedCards(seatIndex, new ArrayList<>(cards));
+        // 清空其他座位的上一手出牌：牌面只显示"当前这一手"，
+        // 否则上一位玩家的旧牌会跨轮残留显示
+        if (seatIndex != 0) playerPlayedCards = new ArrayList<>();
+        if (seatIndex != 1) seat1PlayedCards = new ArrayList<>();
+        if (seatIndex != 2) seat2PlayedCards = new ArrayList<>();
 
         // 手牌出完，该玩家获胜
         if (hand.isEmpty()) {
