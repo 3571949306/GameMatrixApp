@@ -58,3 +58,9 @@
 - 类别: 窄修复回归 + 静默失败
 - 根因: 分发架构 v2 插队实现 `asReversed()` 收集 + `inserted.reversed()` + 逐个 `add(0)`——前两次反转抵消，`add(0)` 自带第三次，净效果 = 镜像顺序反转，胜者沉底。代码注释"顺序保持"是错的，v4 审查被该注释误导关闭了"修插队顺序"项。用户不崩溃、只是永远从慢节点下载——只有真人能感知
 - 守卫: ModuleDownloadUrlListContractTest（胜者首顺序 + 双重去重 + fallback 尾追加 + 外来主 URL 直通；buildDownloadUrlList 已提取为纯函数接缝）
+
+## BL-008 androidtest CI job 从未跑过测试（死门禁）
+- 日期: 2026-08-31
+- 类别: 配置（门禁自身缺陷）
+- 根因: androidtest job 缺 "Set up Flutter + flutter pub get" 步骤，settings.gradle:130 硬检查直接 BUILD FAILED in 6s——每次"失败"都发生在配置阶段，16 个测试类一次都没执行过；continue-on-error 软门禁把"从未运行"伪装成"运行了但失败"，两周观察期将观察不到任何真实信号
+- 守卫: ci.yml androidtest job 已补 Flutter bootstrap 步骤（PR #47）；两周观察期以真实测试执行为准
