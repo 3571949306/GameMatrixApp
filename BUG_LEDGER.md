@@ -62,5 +62,11 @@
 ## BL-008 androidtest CI job 从未跑过测试（死门禁）
 - 日期: 2026-08-31
 - 类别: 配置（门禁自身缺陷）
-- 根因: androidtest job 缺 "Set up Flutter + flutter pub get" 步骤，settings.gradle:130 硬检查直接 BUILD FAILED in 6s——每次"失败"都发生在配置阶段，16 个测试类一次都没执行过；continue-on-error 软门禁把"从未运行"伪装成"运行了但失败"，两周观察期将观察不到任何真实信号
+- 根因: androidtest job 缺 "Set up Flutter + flutter pub get" 步骤，settings.gradle:130 硬检查直接 BUILD FAILED in 6s——每次"失败"都发生在配置阶段，16 个测试类一次都没执行过；continue-on-error 把"从未运行"伪装成"运行了但失败"，两周观察期将观察不到任何真实信号
 - 守卫: ci.yml androidtest job 已补 Flutter bootstrap 步骤（PR #47）；两周观察期以真实测试执行为准
+
+## BL-009 导航动态化+i18n 改造断裂 AiIntegrationTest（死测试）
+- 日期: 2026-08-31
+- 类别: 窄修复回归（测试侧）
+- 根因: 底部导航从静态 R.id.navigation_ai 改为运行时分配 menuId（BottomNavigationManager.refreshNavigation 按目录顺序 1..n），改造未同步 androidTest；因 BL-008 死门禁，androidTest 从未在 CI 编译，断裂无人发现——#47 复活门禁后第一个真实信号就是它
+- 守卫: AiIntegrationTest 重写为按标题匹配选中（与真实点同走 onItemSelected→navigateTo 路径）；androidtest job 每次 push 编译执行
