@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.gamecenter.app.doudizhu.ai.AiBrain;
 import com.gamecenter.app.doudizhu.model.Card;
+import com.gamecenter.app.doudizhu.score.BidPolicy;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +24,10 @@ import java.util.Random;
  * <ul>
  *   <li>AI 操作通过 Handler 延迟执行（1.5 秒），模拟思考时间，提升用户体验</li>
  *   <li>采用回调模式而非直接持有控制器引用，降低耦合度</li>
- *   <li>叫地主决策委托给 {@link AiBrain#decideBid}（难度阈值），
- *       出牌决策委托给 {@link AiBrain#decidePlay}
+ *   <li>叫分决策（P3 叫分制）：手牌评估为 0-3 分意向档位
+ *       （{@link AiBrain#evaluateBidScore}），经 {@link BidPolicy#decideAiBid}
+ *       与当前最高叫分比较后输出 1/2/3 分或不叫；简单档保守叫分</li>
+ *   <li>出牌决策委托给 {@link AiBrain#decidePlay}
  *       （经纪人只负责调度，具体策略交给"军师"）</li>
  *   <li>支持取消待执行的 AI 操作，防止控制器销毁后仍触发回调</li>
  * </ul>
@@ -89,8 +92,12 @@ public class DouDiZhuAIHelper {
         void onAIPlay(int seatIndex, List<Card> cards);
         /** AI 决定不出时回调 */
         void onAIPass(int seatIndex);
-        /** AI 叫地主决策回调，call=true 表示叫地主 */
-        void onAIBid(boolean call);
+        /**
+         * AI 叫分决策回调（P3 叫分制）：score 为 1/2/3 三档叫分，0 表示不叫。
+         */
+        void onAIBid(int score);
+        /** 获取当前最高叫分（无人叫时为 0），AI 加叫决策用 */
+        default int getCurrentHighestBid() { return 0; }
     }
 
     /**
@@ -235,9 +242,11 @@ public class DouDiZhuAIHelper {
     }
 
     /**
-     * 执行 AI 叫地主决策。
+     * 执行 AI 叫分决策（P3 叫分制）。
      *
-     * <p>基于手牌评估（{@link AiBrain#decideBid}），简单档阈值更高更保守。</p>
+     * <p>基于手牌评估 {@link AiBrain#evaluateBidScore} 得到 0-3 分意向档位，
+     * 再经 {@link BidPolicy#decideAiBid} 与当前最高叫分比较：意向不高于当前
+     * 最高分则不叫（流过）；简单档阈值再抬一档（保守叫分，对齐 P2 难度差异约定）。</p>
      */
     private void executeAIBid() {
         // 双重校验：游戏状态必须是叫地主阶段，且当前轮到 AI
@@ -246,8 +255,10 @@ public class DouDiZhuAIHelper {
 
         int seatIndex = callback.getCurrentTurn();
         List<Card> aiHand = callback.getSeatHandCards(seatIndex);
-        boolean shouldBid = AiBrain.decideBid(aiHand, difficulty);
-        callback.onAIBid(shouldBid);
+        int intent = AiBrain.evaluateBidScore(aiHand);
+        int bid = BidPolicy.decideAiBid(intent, callback.getCurrentHighestBid(),
+                difficulty == AiBrain.DIFFICULTY_EASY);
+        callback.onAIBid(bid);
     }
 
     /**
@@ -264,13 +275,12 @@ public class DouDiZhuAIHelper {
     }
 
     /**
-     * 判断是否应该叫地主的静态便捷方法。
+     * 评估手牌叫分意向档位（0-3）的静态便捷方法（P3 叫分制）。
      *
      * @param handCards 手牌列表
-     * @param difficulty 难度档位
-     * @return true 表示建议叫地主
+     * @return 意向档位 0~3（0 表示不建议叫地主）
      */
-    public static boolean shouldCallLandlord(List<Card> handCards, int difficulty) {
-        return AiBrain.decideBid(handCards, difficulty);
+    public static int evaluateBidIntent(List<Card> handCards) {
+        return AiBrain.evaluateBidScore(handCards);
     }
 }
