@@ -2666,6 +2666,28 @@
     <string name="game_doudizhu_exit">退出</string>
     <string name="game_doudizhu_exit_confirm">对局进行中，退出将丢失本局进度，确定退出？</string>
     <string name="game_doudizhu_play_again">再来一局</string>
+    <!-- 斗地主 P3：叫分/倍数/春天/结算/存档（P6 待翻译英文） -->
+    <string name="game_ddz_bid_score_1">1 分</string>
+    <string name="game_ddz_bid_score_2">2 分</string>
+    <string name="game_ddz_bid_score_3">3 分</string>
+    <string name="game_ddz_hud_multiplier">倍数 ×%1$d</string>
+    <string name="game_ddz_hud_highest_bid">叫分 %1$d</string>
+    <string name="game_ddz_redeal_notice">无人叫地主，重新发牌（第 %1$d 次）</string>
+    <string name="game_ddz_forced_landlord">多次无人叫地主，保底 1 分开局</string>
+    <string name="game_ddz_resume_game">继续对局</string>
+    <string name="game_ddz_save_broken">存档损坏，无法恢复对局</string>
+    <string name="game_ddz_exit_confirm">对局进行中，退出前将保存进度，确定退出？</string>
+    <string name="game_ddz_settle_landlord_win">地主胜</string>
+    <string name="game_ddz_settle_farmer_win">农民胜</string>
+    <string name="game_ddz_settle_landlord">地主：%1$s</string>
+    <string name="game_ddz_settle_bid">叫分：%1$d</string>
+    <string name="game_ddz_settle_bombs">炸弹：%1$d 次</string>
+    <string name="game_ddz_settle_spring">春天！倍数再 ×2</string>
+    <string name="game_ddz_settle_anti_spring">反春天！倍数再 ×2</string>
+    <string name="game_ddz_settle_multiplier">总倍数：×%1$d</string>
+    <string name="game_ddz_settle_score">得分：%1$s</string>
+    <string name="game_ddz_settle_duration">耗时：%1$s</string>
+    <string name="game_ddz_rules_extra">\n\n叫分：1/2/3 分三档，叫分最高者当地主，叫分计入倍数。\n倍数：叫分 × 炸弹（每次 ×2） × 春天（×2）。\n春天：地主获胜且农民一张未出；反春天：农民获胜且地主只出过首手。</string>
     <string name="game_sudoku_complete">数独完成！</string>
 
     <!-- 中国象棋联机 -->

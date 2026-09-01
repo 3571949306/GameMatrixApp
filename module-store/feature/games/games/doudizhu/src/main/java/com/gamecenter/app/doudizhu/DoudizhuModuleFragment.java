@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +19,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.SaveManager;
+import com.gamecenter.app.doudizhu.score.ScoreBoard;
+import com.gamecenter.app.games.GameUsageStore;
 
 /**
  * 斗地主模块主 Fragment。
@@ -28,8 +32,14 @@ import com.gamecenter.app.R;
  *
  * <p>对局控制器 {@link DoudizhuGameController} 持有于本 Fragment（retained），
  * 旋转屏幕后重建视图并通过 attachUi 重放对局状态。</p>
+ *
+ * <p>P3 存档：onPause 时把进行中的对局序列化落到 {@link SaveManager}（auto 槽）；
+ * 菜单页检测到有效存档时显示"继续对局"，恢复失败/对局结束后清档。
+ * 对局结束经 {@code GameUsageStore} 上报胜负与得分（对齐 game2048 先例）。</p>
  */
 public class DoudizhuModuleFragment extends Fragment {
+
+    private static final String TAG = "DoudizhuFragment";
 
     /**
      * 宿主透传的难度参数 key（GameLauncherHelper.EXTRA_DIFFICULTY_INDEX）。
@@ -37,11 +47,18 @@ public class DoudizhuModuleFragment extends Fragment {
      */
     static final String ARG_DIFFICULTY_INDEX = "game_difficulty_index";
 
+    /** 存档 GAME_ID 与槽位（对齐 game2048 先例） */
+    private static final String GAME_ID = "doudizhu";
+    private static final String SLOT_AUTO = "auto";
+
     /** 对局控制器：跨配置变更保留（setRetainInstance），无 View 引用 */
     private DoudizhuGameController controller;
 
     /** 宿主推荐的难度档位，-1 表示未传入 */
     private int prefilledDifficulty = -1;
+
+    private SaveManager saveManager;
+    private GameUsageStore usageStore;
 
     private FrameLayout contentRoot;
 
@@ -61,6 +78,9 @@ public class DoudizhuModuleFragment extends Fragment {
         if (args != null && args.containsKey(ARG_DIFFICULTY_INDEX)) {
             prefilledDifficulty = args.getInt(ARG_DIFFICULTY_INDEX, -1);
         }
+        Context ctx = requireContext().getApplicationContext();
+        saveManager = SaveManager.getInstance(ctx);
+        usageStore = new GameUsageStore(ctx);
     }
 
     @Override
@@ -72,6 +92,28 @@ public class DoudizhuModuleFragment extends Fragment {
             controller = null;
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        persistSaveIfPlaying();
+    }
+
+    /**
+     * 对局进行中则落存档（供进程被杀/重进恢复）；
+     * 对局已结束则清档；菜单态不动存档（保留"继续对局"入口）。
+     */
+    private void persistSaveIfPlaying() {
+        if (saveManager == null || controller == null) return;
+        if (controller.isInGame() && !controller.isGameOver()) {
+            String json = controller.captureSaveJson();
+            if (json != null) {
+                saveManager.save(GAME_ID, SLOT_AUTO, json);
+            }
+        } else if (controller.isGameOver()) {
+            saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+        }
     }
 
     private boolean isNightMode(@Nullable Context context) {
@@ -134,13 +176,27 @@ public class DoudizhuModuleFragment extends Fragment {
         tvSubtitle.setLayoutParams(subLp);
         menu.addView(tvSubtitle);
 
+        String saved = loadValidSaveJson();
+        if (saved != null) {
+            Button btnResume = new Button(ctx);
+            btnResume.setText(getString(R.string.game_ddz_resume_game));
+            btnResume.setTextColor(Color.WHITE);
+            btnResume.setBackgroundColor(0xFF2E7D32);
+            LinearLayout.LayoutParams resumeLp = new LinearLayout.LayoutParams(
+                    (int) (240 * dp), LinearLayout.LayoutParams.WRAP_CONTENT);
+            resumeLp.topMargin = (int) (24 * dp);
+            btnResume.setLayoutParams(resumeLp);
+            btnResume.setOnClickListener(v -> resumeGame(saved));
+            menu.addView(btnResume);
+        }
+
         Button btnSingle = new Button(ctx);
         btnSingle.setText(getString(R.string.game_doudizhu_single));
         btnSingle.setTextColor(Color.WHITE);
         btnSingle.setBackgroundColor(accentColor);
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                 (int) (240 * dp), LinearLayout.LayoutParams.WRAP_CONTENT);
-        btnLp.topMargin = (int) (48 * dp);
+        btnLp.topMargin = (int) (24 * dp);
         btnSingle.setLayoutParams(btnLp);
         btnSingle.setOnClickListener(v -> {
             // 宿主已透传难度推荐：直接以该档位开局；否则弹三档选择
@@ -166,6 +222,18 @@ public class DoudizhuModuleFragment extends Fragment {
         swapContent(menu);
     }
 
+    /** 读取有效存档（不存在或损坏时顺带清档并返回 null）。 */
+    @Nullable
+    private String loadValidSaveJson() {
+        if (saveManager == null || !saveManager.hasSave(GAME_ID, SLOT_AUTO)) return null;
+        String saved = saveManager.load(GAME_ID, SLOT_AUTO);
+        if (saved == null || !DoudizhuGameController.canRestore(saved)) {
+            saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+            return null;
+        }
+        return saved;
+    }
+
     private void showDifficultyDialog(Context ctx) {
         new android.app.AlertDialog.Builder(ctx)
                 .setTitle(R.string.game_doudizhu_choose_difficulty)
@@ -174,7 +242,10 @@ public class DoudizhuModuleFragment extends Fragment {
                                 getString(R.string.doudizhu_diff_easy),
                                 getString(R.string.doudizhu_diff_normal),
                                 getString(R.string.doudizhu_diff_hard)},
-                        (d, which) -> startGame(which))
+                        (d, which) -> {
+                            saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+                            startGame(which);
+                        })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
@@ -183,9 +254,7 @@ public class DoudizhuModuleFragment extends Fragment {
         new android.app.AlertDialog.Builder(ctx)
                 .setTitle(getString(R.string.game_doudizhu_rules_title))
                 .setMessage(getString(R.string.game_doudizhu_rules_msg)
-                        + "地主先出牌，按逆时针顺序轮流出牌，谁先出完牌谁就获胜。\n\n"
-                        + "牌型：单张、对子、三张、三带一、三带二、顺子、连对、飞机、炸弹、火箭等。\n"
-                        + "大小：火箭 > 炸弹 > 其他牌型，同牌型比大小。")
+                        + getString(R.string.game_ddz_rules_extra))
                 .setPositiveButton(R.string.game_doudizhu_got_it, null)
                 .show();
     }
@@ -193,25 +262,66 @@ public class DoudizhuModuleFragment extends Fragment {
     // ============ 牌桌页 ============
 
     private void startGame(int difficulty) {
-        if (controller == null) {
-            controller = new DoudizhuGameController();
-        }
+        ensureController();
         controller.startNewGame(difficulty);
         if (contentRoot != null) {
             showGameScreen();
         }
     }
 
+    /** 从存档恢复对局并进入牌桌。 */
+    private void resumeGame(String saveJson) {
+        ensureController();
+        if (controller.restoreFromSave(saveJson)) {
+            if (contentRoot != null) {
+                showGameScreen();
+            }
+        } else {
+            saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+            android.widget.Toast.makeText(requireContext(),
+                    R.string.game_ddz_save_broken, android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void ensureController() {
+        if (controller == null) {
+            controller = new DoudizhuGameController();
+        }
+    }
+
     private void showGameScreen() {
         Context ctx = requireContext();
-        DoudizhuGameScreen screen = new DoudizhuGameScreen(ctx, controller, this::exitToMenu);
+        DoudizhuGameScreen screen = new DoudizhuGameScreen(ctx, controller,
+                this::exitToMenu, this::onSettled);
         swapContent(screen);
+    }
+
+    /** 结算上报：胜负与得分写入宿主统计（对齐 game2048 recordScore 先例）。 */
+    private void onSettled(ScoreBoard.Settlement settlement) {
+        try {
+            if (settlement.humanWon()) {
+                usageStore.recordWin(GAME_ID);
+            } else {
+                usageStore.recordLoss(GAME_ID);
+            }
+            if (settlement.humanScoreDelta > 0) {
+                usageStore.recordScore(GAME_ID, settlement.humanScoreDelta);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "成绩上报失败", e);
+        }
+        // 一局结束清档（文档 P3：一局结束清档）
+        saveManager.deleteSave(GAME_ID, SLOT_AUTO);
     }
 
     private void exitToMenu() {
         if (controller != null) {
+            boolean keepSave = controller.isInGame() && !controller.isGameOver();
             controller.shutdown();
             controller = null;
+            if (!keepSave) {
+                saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+            }
         }
         if (contentRoot != null) {
             showMenu();
