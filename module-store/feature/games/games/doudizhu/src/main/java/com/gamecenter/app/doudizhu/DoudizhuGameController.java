@@ -22,8 +22,9 @@ import java.util.List;
  * （在对应座位产生 bid/play/pass 事件），本控制器与规则层、UI 层无需改动。</p>
  *
  * <p>AI 契约：AI 产出的着法一律经 {@link DouDiZhuRuleEngine#validatePlay} 复核，
- * 非法则计入 {@code aiContractViolations} 并记录 {@code DDZ_AI_CONTRACT_VIOLATION} 日志，
- * 按不出处理（对齐 AGENTS.md 象棋/围棋 AI 契约风格）。</p>
+ * 非法则计入 {@code aiContractViolations} 并记录 {@code DDZ_AI_CONTRACT_VIOLATION} 日志：
+ * 跟牌回合按不出处理；自由出牌回合强制兜底为最小合法单牌（自由回合不能不出，
+ * 否则对局卡死）。对齐 AGENTS.md 象棋/围棋 AI 契约风格。</p>
  */
 public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStateListener,
         DouDiZhuAIHelper.AICallback {
@@ -67,7 +68,7 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     private int difficulty = DIFFICULTY_NORMAL;
     private UiCallback ui;
 
-    /** 全部已出的牌（含被桌面清理的轮次），用于记牌器计算 */
+    /** 全部已出的牌（含被桌面清理的轮次），用于记牌器计算；仅主线程 Handler 链路访问 */
     private final List<Card> playedHistory = new ArrayList<>();
     /** 当前回合的提示候选（懒生成），随回合重置 */
     private List<List<Card>> currentHints;
@@ -373,10 +374,30 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
             Log.w(TAG, "DDZ_AI_CONTRACT_VIOLATION seat=" + seatIndex);
             if (last != null) {
                 passSeat(seatIndex);
+            } else {
+                // 自由出牌回合不能"不出"（桌面永远清不了，对局会卡死）：
+                // 强制兜底为最小合法单牌，与 AiBrain 出口自校验语义一致
+                List<Card> fallback = smallestLegalSingle(seatIndex);
+                if (fallback != null && DouDiZhuRuleEngine.validatePlay(fallback, last)) {
+                    commitPlay(seatIndex, fallback);
+                }
             }
             return;
         }
         commitPlay(seatIndex, cards);
+    }
+
+    /** 指定座位手牌中最小单张（自由出牌回合 AI 非法着法的强制兜底）。 */
+    private List<Card> smallestLegalSingle(int seatIndex) {
+        List<Card> hand = getSeatHandCards(seatIndex);
+        if (hand == null || hand.isEmpty()) return null;
+        Card min = hand.get(0);
+        for (Card c : hand) {
+            if (c.getWeight() < min.getWeight()) min = c;
+        }
+        List<Card> out = new ArrayList<>();
+        out.add(min);
+        return out;
     }
 
     @Override
