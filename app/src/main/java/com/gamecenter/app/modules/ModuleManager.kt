@@ -52,12 +52,24 @@ object ModuleManager {
     @Volatile
     private var bundledInstallCompleted = false
 
+    /**
+     * 完成事件的整表派发消息是否已在主线程执行。与补偿回调互斥的判据：
+     * 派发执行时先置位再遍历。监听器注册若发生在派发之前（消息还在队列中），
+     * 整表派发必然会遍历到它，补偿必须跳过，否则同一监听器会被回调两次
+     * （M1 整表派发一次 + M2 补偿一次的竞争时序）。
+     */
+    @Volatile
+    private var bundledInstallDispatchDone = false
+
     /** 注册预装安装完成监听器（主线程回调）。若预装已完成则立即回调一次。 */
     fun addBundledInstallListener(listener: Runnable) {
         bundledInstallListeners.add(listener)
-        if (bundledInstallCompleted) {
-            // 补偿回调定向派发给新注册者（避免整表重派导致老监听器重复回调），
-            // 执行前复查其仍在列表中：注册后、执行前注销的监听器不会收到回调。
+        if (bundledInstallCompleted && bundledInstallDispatchDone) {
+            // 仅当整表派发已经跑过才需要补偿：新注册者错过了派发窗口。
+            // 若派发消息尚在主线程队列中（dispatchDone==false），它会遍历到本
+            // 监听器，此处再补偿就会双回调。补偿回调定向派发给新注册者（避免
+            // 整表重派导致老监听器重复回调），执行前复查其仍在列表中：注册后、
+            // 执行前注销的监听器不会收到回调。
             mainHandler.post {
                 if (listener in bundledInstallListeners) {
                     try {
@@ -90,6 +102,10 @@ object ModuleManager {
 
     /** 主线程统一派发：遍历监听器快照逐个回调，单个异常不阻断其他监听器。 */
     private fun dispatchBundledInstallCompleted() {
+        // 先置位再遍历：此后注册的监听器由 addBundledInstallListener 据
+        // dispatchDone 补偿一次，本派发覆盖此刻已在列表中的所有监听器，
+        // 两条路径对任一监听器互斥，合计恰好一次。
+        bundledInstallDispatchDone = true
         for (listener in bundledInstallListeners) {
             try {
                 listener.run()
@@ -421,7 +437,10 @@ object ModuleManager {
             // 下载路径注册，首启预装晚于 GamesFragment 首次加载时大厅不显示卡片。
             // 仅在装载成功后注册：装载失败时 onVerifyFailure 已清理安装状态，
             // 不应残留无法启动的幻影卡片。
-            if (loaded != null && manifest.type == "game") {
+            // 注册判据与 registerInstalledGameModules 统一为 isLaunchableGameManifest：
+            // type=="game" 且入口可用（entryClass 非空，或 builtIn+activityClass），
+            // 防止无入口类的 game 清单注册出无法启动的幻影卡片。
+            if (loaded != null && isLaunchableGameManifest(manifest)) {
                 registerGameFromManifest(appCtx, manifest)
             }
             loaded != null
@@ -488,6 +507,10 @@ object ModuleManager {
         }
         Log.i(TAG, "出厂预装扫描: manifests=${manifests.size}")
         var installedCount = 0
+        // 本次实际尝试过安装/提取的模块数（未被 alreadyApplied 跳过）。
+        // 为 0 说明全部已达标（非首启快路径），本进程未发生任何安装状态变化，
+        // 结尾无需广播完成事件（省一次大厅无谓 loadGames）。
+        var attemptedCount = 0
         for (m in manifests.values) {
             if (m.fileName.isBlank()) continue
             val current = try {
@@ -504,6 +527,7 @@ object ModuleManager {
                     prefs(appCtx).getBoolean(appliedKey, false)
             Log.i(TAG, "预装检查 ${m.id}: current=$current bundled=${m.versionCode} fileReady=$fileReady applied=${alreadyApplied}")
             if (alreadyApplied) continue
+            attemptedCount++
             try {
                 val tmp = java.io.File(appCtx.cacheDir, "bundled_${m.fileName}")
                 appCtx.assets.open("modules/${m.fileName}").use { input ->
@@ -523,8 +547,15 @@ object ModuleManager {
         Log.i(TAG, "出厂预装完成: 新装/升级 $installedCount 个模块")
         // 冒烟缺陷修复：无论本次是否有新装（幂等场景也要通知，首启竞态下
         // GamesFragment 可能在预装进行中就已加载过空列表），统一广播完成事件，
-        // 让已打开的游戏大厅等 UI 自动重载。
-        notifyBundledInstallCompleted()
+        // 让已打开的游戏大厅等 UI 自动重载。例外：本次一个模块都没尝试过
+        // （attemptedCount==0，非首启全部 alreadyApplied 跳过）说明本进程没有
+        // 任何安装状态变化，跳过广播，省去大厅一次无谓 loadGames；只要尝试过
+        // （即使失败）仍广播，保证大厅重扫。
+        if (attemptedCount > 0) {
+            notifyBundledInstallCompleted()
+        } else {
+            Log.i(TAG, "预装无待处理模块，跳过完成广播")
+        }
     }
 
     /**
