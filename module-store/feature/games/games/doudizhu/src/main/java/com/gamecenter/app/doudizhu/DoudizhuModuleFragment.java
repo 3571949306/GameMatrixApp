@@ -20,6 +20,7 @@ import androidx.fragment.app.Fragment;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.SaveManager;
+import com.gamecenter.app.doudizhu.save.DoudizhuSaveSink;
 import com.gamecenter.app.doudizhu.score.ScoreBoard;
 import com.gamecenter.app.games.GameUsageStore;
 
@@ -316,12 +317,21 @@ public class DoudizhuModuleFragment extends Fragment {
 
     private void exitToMenu() {
         if (controller != null) {
-            boolean keepSave = controller.isInGame() && !controller.isGameOver();
+            // 退出确认弹窗承诺"退出前将保存进度"（P3 复查修复 A）：
+            // 对局进行中在 shutdown()（清空对局状态）之前落存档，已结束/大厅态清档
+            controller.persistOnExit(new DoudizhuSaveSink() {
+                @Override
+                public void save(String json) {
+                    saveManager.save(GAME_ID, SLOT_AUTO, json);
+                }
+
+                @Override
+                public void clear() {
+                    saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+                }
+            });
             controller.shutdown();
             controller = null;
-            if (!keepSave) {
-                saveManager.deleteSave(GAME_ID, SLOT_AUTO);
-            }
         }
         if (contentRoot != null) {
             showMenu();
