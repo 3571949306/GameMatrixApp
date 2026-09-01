@@ -25,8 +25,8 @@ import java.util.Random;
  *       "累赘牌优先"）；接牌只出"最小能压的非炸弹"，15% 概率放弃明显可压的最优解，
  *       绝不主动用炸弹；叫分保守（需强牌才叫）。</li>
  *   <li><b>普通</b>：首发按最少手数分解路线出主权重最小的非炸手；接牌出最小能压的
- *       非炸弹；地主只剩 1 张时顶最大单牌（单牌报警）；地主剩 1-2 张时紧急炸弹；
- *       农民对队友一律放行。</li>
+ *       非炸弹；地主只剩 1 张时顶最大单牌（单牌报警，队友也剩 1 张时改送小牌让
+ *       队友先走）；地主剩 1-2 张时紧急炸弹；农民对队友一律放行。</li>
  *   <li><b>困难</b>：在普通档之上叠加记牌器——剩两手时优先出"外部压不住"的稳收手；
  *       接牌逐一评估"打出后剩余手数"选拆解代价最小者；敌方剩 1-2 张时顶最大同型牌
  *       压死；农民对队友从"永远放行"升级为"队友小牌且我有余力时接管"。</li>
@@ -145,7 +145,8 @@ public final class AiBrain {
      *
      * <p>构成：大牌计数（大王 3 / 小王 2 / 王炸 +3 / 每个 2 +2 / 每个 A +1）
      * + 炸弹每个 +3 + 手数奖励（≤5 手 +6，≤7 手 +3，≤9 手 +1）。
-     * 总分 ≥16 → 3 分，≥12 → 2 分，≥8 → 1 分，否则 0 分。</p>
+     * 总分 ≥15 → 3 分，≥11 → 2 分，≥7 → 1 分，否则 0 分（阈值以代码为准，
+     * 已由单测锁定）。</p>
      */
     public static int evaluateBidScore(List<Card> hand) {
         if (hand == null || hand.isEmpty()) return 0;
@@ -188,9 +189,15 @@ public final class AiBrain {
             if (c.size() == hand.size()) return c.getCards();
         }
 
-        // 2. 单牌报警防守：地主只剩 1 张，农民顶最大单牌（普通/困难）
+        // 2. 单牌报警防守：地主只剩 1 张，农民顶最大单牌（普通/困难）；
+        //    但队友也只剩 1 张时改为送最小单牌——先让队友走赢，顶大牌反而可能
+        //    被地主抢先出完（快赢 > 防守）
         if (difficulty != DIFFICULTY_EASY && ctx.myRole == ROLE_FARMER
                 && ctx.landlordRemainCards == 1) {
+            if (ctx.teammateRemainCards == 1) {
+                List<Card> small = smallestSingle(hand);
+                if (small != null) return small;
+            }
             List<Card> top = biggestSingle(hand);
             if (top != null) return top;
         }
