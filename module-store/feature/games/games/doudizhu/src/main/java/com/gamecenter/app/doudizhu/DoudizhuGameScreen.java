@@ -10,7 +10,6 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -63,9 +62,14 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     private final Button btnBid2;
     private final Button btnBid3;
     private final TextView hudText;
+    /** 操作条上方行内提示（P4：非法出牌/叫分等反馈不再用 Toast 打断） */
+    private final TextView inlineMessage;
 
     private final ExitListener exitListener;
     private final SettlementListener settlementListener;
+
+    /** 行内提示展示时长（毫秒） */
+    private static final long INLINE_MESSAGE_DURATION_MS = 2500L;
 
     public DoudizhuGameScreen(@NonNull Context context, @NonNull DoudizhuGameController controller,
                               ExitListener exitListener, SettlementListener settlementListener) {
@@ -75,7 +79,9 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         this.settlementListener = settlementListener;
 
         setOrientation(VERTICAL);
-        setBackgroundColor(0xFF0A3D12);
+        // P4 暗色适配：亮色传统毛毡绿，暗色更低亮度背景（对齐 TableView 背景）
+        boolean night = isNightMode(context);
+        setBackgroundColor(night ? 0xFF081B07 : 0xFF0A3D12);
 
         // ===== 牌桌区：TableView + 特效覆盖 + 退出按钮 =====
         FrameLayout tableArea = new FrameLayout(context);
@@ -89,6 +95,24 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         effectsView = new DouDiZhuEffectsView(context);
         tableArea.addView(effectsView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // 退出按钮：放回牌桌区右上角（P4 布局修正：操作条空间紧张，
+        // 顶角按钮保证不与状态栏/导航栏重叠；横屏时状态栏在系统栏 inset 内）
+        Button btnExitTop = new Button(context);
+        btnExitTop.setText("✕");
+        btnExitTop.setTextSize(16);
+        btnExitTop.setTextColor(Color.WHITE);
+        btnExitTop.setAllCaps(false);
+        btnExitTop.setPadding(0, 0, 0, 0);
+        btnExitTop.setBackground(pillBackground(night ? 0xFF37474F : 0xFF455A64));
+        btnExitTop.setContentDescription(context.getString(R.string.game_doudizhu_exit));
+        int exitMarginTop = dp(40); // 让出顶部底牌/记牌器区域
+        int exitMarginEnd = dp(10);
+        FrameLayout.LayoutParams exitLp = new FrameLayout.LayoutParams(
+                dp(40), dp(40), Gravity.TOP | Gravity.END);
+        exitLp.setMargins(0, exitMarginTop, exitMarginEnd, 0);
+        tableArea.addView(btnExitTop, exitLp);
+        btnExitTop.setOnClickListener(v -> confirmExit());
 
         // ===== 操作条（固定高度，不覆盖手牌；左端 HUD、右端退出按钮） =====
         int barHeight = dp(64);
@@ -136,25 +160,28 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         hudLp.setMargins(dp(12), 0, 0, 0);
         barArea.addView(hudText, hudLp);
 
-        Button btnExit = new Button(context);
-        btnExit.setText("✕");
-        btnExit.setTextSize(16);
-        btnExit.setTextColor(Color.WHITE);
-        btnExit.setAllCaps(false);
-        btnExit.setPadding(0, 0, 0, 0);
-        btnExit.setBackground(pillBackground(0xFF455A64));
-        FrameLayout.LayoutParams exitLp = new FrameLayout.LayoutParams(
-                dp(48), dp(48), Gravity.CENTER_VERTICAL | Gravity.END);
-        exitLp.setMargins(0, 0, dp(10), 0);
-        barArea.addView(btnExit, exitLp);
+        // ===== 行内提示行（固定高度，位于操作条上方；P4 替代 Toast） =====
+        inlineMessage = new TextView(context);
+        inlineMessage.setTextSize(13);
+        inlineMessage.setTextColor(Color.WHITE);
+        inlineMessage.setGravity(Gravity.CENTER);
+        inlineMessage.setSingleLine(true);
+        inlineMessage.setShadowLayer(2f, 1f, 1f, 0xFF000000);
+        LinearLayout msgRow = new LinearLayout(context);
+        msgRow.setOrientation(LinearLayout.HORIZONTAL);
+        msgRow.setGravity(Gravity.CENTER);
+        msgRow.addView(inlineMessage, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        addView(msgRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(22)));
         addView(barArea, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, barHeight));
 
         btnPlay.setOnClickListener(v -> {
             List<Card> selected = tableView.getSelectedCards();
             if (selected == null || selected.isEmpty()) {
-                toast(R.string.game_doudizhu_select_cards);
+                showInline(R.string.game_doudizhu_select_cards);
                 return;
             }
             controller.onHumanPlay(selected);
@@ -164,17 +191,38 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
             List<Card> hint = controller.nextHint();
             if (hint != null && !hint.isEmpty()) {
                 tableView.selectCards(hint);
+                showInline(R.string.game_ddz_hint_selected);
             } else {
-                toast(R.string.game_doudizhu_cannot_beat);
+                showInline(R.string.game_doudizhu_cannot_beat);
             }
         });
         btnBidPass.setOnClickListener(v -> controller.onHumanBid(0));
         btnBid1.setOnClickListener(v -> controller.onHumanBid(1));
         btnBid2.setOnClickListener(v -> controller.onHumanBid(2));
         btnBid3.setOnClickListener(v -> controller.onHumanBid(3));
-        btnExit.setOnClickListener(v -> confirmExit());
 
         controller.attachUi(this);
+    }
+
+    // ============ 行内提示 ============
+
+    /** 行内提示自动清除任务（在 inlineMessage 初始化后创建，View.postDelayed 调度）。 */
+    private Runnable inlineClearTask;
+
+    /** 在操作条上方显示行内提示，2.5 秒后自动清除；再次显示时重置计时。 */
+    private void showInline(int textRes) {
+        showInlineText(getContext().getString(textRes));
+    }
+
+    /** 显示已格式化的行内提示文本，2.5 秒后自动清除。 */
+    private void showInlineText(CharSequence text) {
+        if (inlineClearTask == null) {
+            inlineClearTask = () -> inlineMessage.setVisibility(GONE);
+        }
+        removeCallbacks(inlineClearTask);
+        inlineMessage.setText(text);
+        inlineMessage.setVisibility(VISIBLE);
+        postDelayed(inlineClearTask, INLINE_MESSAGE_DURATION_MS);
     }
 
     // ============ UiCallback（控制器回推） ============
@@ -229,25 +277,23 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
 
     @Override
     public void onInvalidPlay(boolean illegalCombo, boolean cannotBeat) {
-        toast(illegalCombo ? R.string.game_doudizhu_invalid_card_type
+        showInline(illegalCombo ? R.string.game_doudizhu_invalid_card_type
                 : R.string.game_doudizhu_cannot_beat);
     }
 
     @Override
     public void onInvalidBid() {
-        toast(R.string.game_doudizhu_must_bid_higher);
+        showInline(R.string.game_doudizhu_must_bid_higher);
     }
 
     @Override
     public void onRedeal(int redealCount) {
-        Toast.makeText(getContext(),
-                getContext().getString(R.string.game_ddz_redeal_notice, redealCount),
-                Toast.LENGTH_SHORT).show();
+        showInlineText(getContext().getString(R.string.game_ddz_redeal_notice, redealCount));
     }
 
     @Override
     public void onForcedLandlord() {
-        toast(R.string.game_ddz_forced_landlord);
+        showInline(R.string.game_ddz_forced_landlord);
     }
 
     @Override
@@ -309,6 +355,13 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
 
     // ============ 内部 ============
 
+    /** 当前是否暗色模式（P4 暗色主题适配，对齐 ModuleFragment 菜单页口径）。 */
+    private static boolean isNightMode(Context context) {
+        int nightMode = context.getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
     private void confirmExit() {
         new android.app.AlertDialog.Builder(getContext())
                 .setMessage(R.string.game_ddz_exit_confirm)
@@ -344,16 +397,13 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         return gd;
     }
 
-    private void toast(int resId) {
-        Toast.makeText(getContext(), resId, Toast.LENGTH_SHORT).show();
-    }
-
     private int dp(float v) {
         return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        removeCallbacks(inlineClearTask);
         controller.detachUi();
         super.onDetachedFromWindow();
     }

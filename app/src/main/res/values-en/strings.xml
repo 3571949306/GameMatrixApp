@@ -2479,6 +2479,7 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <!-- Doudizhu P4: on-table draw text resources and inline messages -->
     <string name="game_ddz_your_bid_turn">Your turn to bid</string>
     <string name="game_ddz_ai_thinking">Thinking…</string>
+    <string name="game_ddz_hint_selected">Hint selected, tap Play to confirm</string>
     <string name="game_sudoku_complete">Sudoku complete!</string>
 
     <!-- Chinese Chess Online -->

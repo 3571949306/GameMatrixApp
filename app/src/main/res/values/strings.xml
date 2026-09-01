@@ -2691,6 +2691,7 @@
     <!-- 斗地主 P4：桌面绘制文案资源化（中英混排修正）与行内提示 -->
     <string name="game_ddz_your_bid_turn">轮到你叫分</string>
     <string name="game_ddz_ai_thinking">思考中…</string>
+    <string name="game_ddz_hint_selected">已按提示选中，点“出牌”确认</string>
     <string name="game_sudoku_complete">数独完成！</string>
 
     <!-- 中国象棋联机 -->
