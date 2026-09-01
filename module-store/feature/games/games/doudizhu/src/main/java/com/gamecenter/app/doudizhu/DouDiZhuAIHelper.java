@@ -275,6 +275,14 @@ public class DouDiZhuAIHelper {
     }
 
     /**
+     * 当前挂起的 AI 任务（仅供 JVM 单测：单测中 Handler 为桩、postDelayed 不执行，
+     * 测试取到任务后手动运行即可走真实 AI 决策链路）。
+     */
+    Runnable peekPendingForTest() {
+        return aiThinkingRunnable;
+    }
+
+    /**
      * 评估手牌叫分意向档位（0-3）的静态便捷方法（P3 叫分制）。
      *
      * @param handCards 手牌列表

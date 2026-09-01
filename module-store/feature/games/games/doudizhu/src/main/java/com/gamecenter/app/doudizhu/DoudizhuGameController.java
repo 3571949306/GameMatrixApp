@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.gamecenter.app.doudizhu.model.Card;
 import com.gamecenter.app.doudizhu.model.CardType;
+import com.gamecenter.app.doudizhu.save.DoudizhuSaveSink;
 import com.gamecenter.app.doudizhu.save.DoudizhuSnapshot;
 import com.gamecenter.app.doudizhu.score.BidPolicy;
 import com.gamecenter.app.doudizhu.score.ScoreBoard;
@@ -298,16 +299,34 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         if (ui != null) {
             ui.onTableSyncRequired();
         }
+        scheduleAiIfDue();
+    }
+
+    /**
+     * 当前回合属于 AI 时调度 AI 行动（叫分阶段→叫分，出牌阶段→出牌）。
+     *
+     * <p>正常流转经 {@link #onTurnChanged} 触发；恢复对局
+     * （{@code DouDiZhuGameStateManager.restoreFrom} 末尾同样回调 onTurnChanged）
+     * 后恰逢 AI 回合也必须恢复调度，否则对局静默卡死（P3 复查项 D，测试锁定）。</p>
+     */
+    void scheduleAiIfDue() {
         int state = stateManager.getGameState();
         if (state == DouDiZhuGameStateManager.STATE_BIDDING) {
-            if (seatTypes[newTurn] == Seats.TYPE_AI) {
+            if (seatTypes[stateManager.getCurrentTurn()] == Seats.TYPE_AI) {
                 aiHelper.scheduleAIBid();
             }
         } else if (state == DouDiZhuGameStateManager.STATE_PLAYING) {
-            if (seatTypes[newTurn] == Seats.TYPE_AI) {
+            if (seatTypes[stateManager.getCurrentTurn()] == Seats.TYPE_AI) {
                 aiHelper.scheduleAITurn();
             }
         }
+    }
+
+    /**
+     * 当前挂起的 AI 任务（仅供 JVM 单测：恢复于 AI 回合场景验证调度已挂起）。
+     */
+    Runnable pendingAiTaskForTest() {
+        return aiHelper.peekPendingForTest();
     }
 
     @Override
@@ -560,6 +579,26 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         } catch (DoudizhuSnapshot.SerializeException e) {
             Log.w(TAG, "存档序列化失败", e);
             return null;
+        }
+    }
+
+    /**
+     * 退出牌桌（✕）时的存档处置（P3 复查修复 A）。
+     *
+     * <p>退出确认弹窗文案承诺"退出前将保存进度"：对局进行中（未结束）经
+     * {@link #captureSaveJson()} 取存档并经 sink 落盘；已结束/大厅态则清档。
+     * ✕ 退出是同一 Activity 内切视图、不触发宿主 onPause，必须在此显式处置，
+     * 否则文案与实际行为不符（且 {@link #shutdown()} 会清空对局状态，
+     * 落档必须发生在其之前）。</p>
+     *
+     * @param sink 存档写入/清档出口（宿主实现，包装 SaveManager）
+     */
+    public void persistOnExit(DoudizhuSaveSink sink) {
+        String json = captureSaveJson();
+        if (json != null) {
+            sink.save(json);
+        } else {
+            sink.clear();
         }
     }
 
