@@ -2688,6 +2688,9 @@
     <string name="game_ddz_settle_score">得分：%1$s</string>
     <string name="game_ddz_settle_duration">耗时：%1$s</string>
     <string name="game_ddz_rules_extra">\n\n叫分：1/2/3 分三档，叫分最高者当地主，叫分计入倍数。\n倍数：叫分 × 炸弹（每次 ×2） × 春天（×2）。\n春天：地主获胜且农民一张未出；反春天：农民获胜且地主只出过首手。</string>
+    <!-- 斗地主 P4：桌面绘制文案资源化（中英混排修正）与行内提示 -->
+    <string name="game_ddz_your_bid_turn">轮到你叫分</string>
+    <string name="game_ddz_ai_thinking">思考中…</string>
     <string name="game_sudoku_complete">数独完成！</string>
 
     <!-- 中国象棋联机 -->

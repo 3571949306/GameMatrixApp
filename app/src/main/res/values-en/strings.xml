@@ -2476,6 +2476,9 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="game_ddz_settle_score">Score: %1$s</string>
     <string name="game_ddz_settle_duration">Duration: %1$s</string>
     <string name="game_ddz_rules_extra">\n\nBidding: 1/2/3 points, highest bidder becomes landlord. Multiplier = bid × bombs (×2 each) × spring (×2). Spring: landlord wins without farmers playing any card; anti-spring: farmers win with landlord only leading once.</string>
+    <!-- Doudizhu P4: on-table draw text resources and inline messages -->
+    <string name="game_ddz_your_bid_turn">Your turn to bid</string>
+    <string name="game_ddz_ai_thinking">Thinking…</string>
     <string name="game_sudoku_complete">Sudoku complete!</string>
 
     <!-- Chinese Chess Online -->

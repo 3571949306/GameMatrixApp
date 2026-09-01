@@ -688,6 +688,8 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
 
         boolean[] passed = stateManager.getPlayerPassed();
         view.setPassStates(passed[Seats.SEAT_LEFT_AI], passed[Seats.SEAT_RIGHT_AI]);
+        // P4：玩家"不出"在台面中央回显
+        view.setPlayerPassed(passed[Seats.SEAT_PLAYER]);
 
         int[] status = new int[Seats.TOTAL_SEATS];
         if (landlordKnown) {
@@ -696,8 +698,12 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
                 status[i] = (i == landlord) ? 2 : 1;
             }
         }
+        // P4 中英混排修正：身份标签改由视图层按 landlordStatus + 资源组装，
+        // 控制器不再下发硬编码中文文本（原 setPlayerLabels 入口已废弃）
         view.setAllLandlordStatus(status);
-        view.setPlayerLabels(buildRoleLabels(landlordKnown));
+        view.setGamePhase(stateManager.getGameState(),
+                stateManager.getGameState() == DouDiZhuGameStateManager.STATE_LOBBY
+                        ? -1 : stateManager.getCurrentTurn());
         view.setCurrentTurn(stateManager.getCurrentTurn());
         view.setCardCounterCounts(remainingCounter());
     }
@@ -705,28 +711,6 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     /** 当前最高叫分（0=无人叫），供桌面 HUD 显示叫分阶段信息。 */
     public int getHighestBid() {
         return stateManager.getHighestBid();
-    }
-
-    private String[] buildRoleLabels(boolean landlordKnown) {
-        String[] labels = new String[Seats.TOTAL_SEATS];
-        labels[Seats.SEAT_PLAYER] = "你";
-        labels[Seats.SEAT_LEFT_AI] = "左家";
-        labels[Seats.SEAT_RIGHT_AI] = "右家";
-        if (landlordKnown) {
-            int landlord = stateManager.getLandlordIndex();
-            for (int i = 0; i < Seats.TOTAL_SEATS; i++) {
-                String base;
-                if (i == Seats.SEAT_PLAYER) {
-                    base = "你";
-                } else if (i == Seats.SEAT_LEFT_AI) {
-                    base = "左家";
-                } else {
-                    base = "右家";
-                }
-                labels[i] = base + (i == landlord ? "·地主" : "·农民");
-            }
-        }
-        return labels;
     }
 
     /**

@@ -174,11 +174,16 @@ public class DouDiZhuTableView extends View {
 
     // 当前轮到哪个玩家（0=玩家, 1=左AI, 2=右AI, 3=等待）
     private int currentTurn;
+    // 对局阶段（DouDiZhuGameStateManager.STATE_*，用于区分叫分/出牌提示）
+    private int gamePhase;
+    // 当前行动座位（-1=无；AI 行动时在出牌位显示"思考中"徽章，P4）
+    private int activeTurnSeat = -1;
+    // 玩家是否"不出"（台面中央回显"不出"标签，P4）
+    private boolean playerPassedFlag = false;
     // 地主身份标记（0=农民, 1=地主）
     private int playerLandlordStatus; // 0: 未确定, 1: 农民, 2: 地主
     // 三个玩家的地主状态
     private int[] landlordStatus = {0, 0, 0}; // 0=未确定, 1=农民, 2=地主
-    private String[] playerLabels;
 
     // 动画相关
     private ValueAnimator playCardAnimator;
@@ -326,11 +331,6 @@ public class DouDiZhuTableView extends View {
         buttonDisabledPaint.setStyle(Paint.Style.FILL);
 
         // 初始化数据
-        playerLabels = new String[]{
-                "P1（待定）",
-                "人机（待定）",
-                "人机（待定）"
-        };
         playerHandCards = new ArrayList<>();
         selectedCards = new ArrayList<>();
         selectedIndices = new ArrayList<>();
@@ -590,7 +590,7 @@ public class DouDiZhuTableView extends View {
             return;
         }
 
-        // 1. 绘制桌面背景
+        // 1. 绘制桌面背景（P4：暗色模式降饱和、降亮度）
         drawTableBackground(canvas, viewWidth, viewHeight);
 
         // 2. 绘制各个区域
@@ -599,22 +599,31 @@ public class DouDiZhuTableView extends View {
         drawRightAIInfo(canvas);       // 右侧AI信息
         drawCenterPlayedCards(canvas); // 中心出牌区域
         drawPlayerHand(canvas);        // 底部玩家手牌
-        // 按钮由XML布局中的蓝色按钮提供，不在Canvas上绘制
-        // drawButtons(canvas);
+        // 按钮已迁至 Canvas 之外的真实 View（D4 分层），不在 Canvas 上绘制
+
+        // 3. 动画驱动：仅"思考中"徽章是时间驱动画素（透明度脉冲），需要连续重绘；
+        // 出牌回显/"不出"标签均为静态，不请求额外帧（出牌飞行动画由 ValueAnimator 自驱）
+        if (activeTurnSeat == Seats.SEAT_LEFT_AI || activeTurnSeat == Seats.SEAT_RIGHT_AI) {
+            postInvalidateOnAnimation();
+        }
     }
 
     /**
      * 绘制桌面背景 - 欢乐斗地主风格
      * 深绿色毛毡质感 + 金色边框装饰线 + 四角金色花纹装饰
+     * P4：暗色模式下整体降饱和、降亮度（亮色 #1B5E20 系 / 暗色 #14330F 系）。
      */
     private void drawTableBackground(Canvas canvas, int viewWidth, int viewHeight) {
-        // 1. 深绿色径向渐变背景（#1B5E20 到 #0D3310）
+        // 1. 深绿色径向渐变背景（亮色 #1B5E20→#0D3310；暗色更暗一档）
+        boolean night = isNightMode();
         float centerX = viewWidth / 2f;
         float centerY = viewHeight / 2f;
         float radius = (float) Math.sqrt(centerX * centerX + centerY * centerY);
         RadialGradient gradient = new RadialGradient(
                 centerX, centerY, radius,
-                new int[]{Color.parseColor("#1B5E20"), Color.parseColor("#145A16"), Color.parseColor("#0D3310")},
+                night
+                        ? new int[]{Color.parseColor("#14330F"), Color.parseColor("#0E2A0C"), Color.parseColor("#081B07")}
+                        : new int[]{Color.parseColor("#1B5E20"), Color.parseColor("#145A16"), Color.parseColor("#0D3310")},
                 new float[]{0f, 0.6f, 1f},
                 Shader.TileMode.CLAMP);
         tableBackgroundPaint.setShader(gradient);
@@ -624,10 +633,10 @@ public class DouDiZhuTableView extends View {
         // 2. 绘制毛毡质感纹理（细点状噪声模拟）
         drawFeltTexture(canvas, viewWidth, viewHeight);
 
-        // 3. 金色外边框装饰线（缩小内边距，避免遮挡顶部内容）
+        // 3. 金色外边框装饰线（暗色下降饱和为暗金，缩小内边距，避免遮挡顶部内容）
         float borderInset = Math.max(4f, viewWidth * 0.006f);
         Paint outerBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        outerBorderPaint.setColor(Color.parseColor("#FFD700"));
+        outerBorderPaint.setColor(Color.parseColor(night ? "#B8860B" : "#FFD700"));
         outerBorderPaint.setStyle(Paint.Style.STROKE);
         outerBorderPaint.setStrokeWidth(Math.max(2f, viewWidth * 0.003f));
         RectF outerBorderRect = new RectF(borderInset, borderInset,
@@ -637,7 +646,7 @@ public class DouDiZhuTableView extends View {
         // 4. 金色内边框装饰线
         float innerInset = borderInset + Math.max(3f, viewWidth * 0.004f);
         Paint innerBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        innerBorderPaint.setColor(Color.parseColor("#D4AF37"));
+        innerBorderPaint.setColor(Color.parseColor(night ? "#8B6914" : "#D4AF37"));
         innerBorderPaint.setStyle(Paint.Style.STROKE);
         innerBorderPaint.setStrokeWidth(Math.max(1f, viewWidth * 0.0015f));
         RectF innerBorderRect = new RectF(innerInset, innerInset,
@@ -646,6 +655,13 @@ public class DouDiZhuTableView extends View {
 
         // 5. 四角金色花纹装饰
         drawCornerDecorations(canvas, viewWidth, viewHeight, borderInset);
+    }
+
+    /** 当前系统是否处于暗色模式（P4 暗色主题适配，对齐 Fragment 菜单页口径）。 */
+    private boolean isNightMode() {
+        int mask = getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        return mask == android.content.res.Configuration.UI_MODE_NIGHT_YES;
     }
 
     /**
@@ -757,13 +773,44 @@ public class DouDiZhuTableView extends View {
         float textX = lastCardRight + letterWidth * 3f;
         float textY = startY + smallCardHeight * 0.6f;
 
-        String myRole = playerLabels[0] != null ? playerLabels[0] : ((landlordStatus[0] == 2) ? "P1（地主）" : "P1（农民）");
+        String myRole = roleLabel(Seats.SEAT_PLAYER);
         int myRoleColor = (landlordStatus[0] == 2) ? Color.parseColor("#FF6B35") : Color.parseColor("#4FC3F7");
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rolePaint.setColor(myRoleColor);
         rolePaint.setTextSize(smallCardWidth * 0.28f);
         rolePaint.setFakeBoldText(true);
         canvas.drawText(myRole, textX, textY, rolePaint);
+    }
+
+    /**
+     * 座位身份标签（P4 中英混排修正：资源化，替换硬编码 "P1（地主）" 等）。
+     *
+     * <p>由 {@link #landlordStatus} 推导身份，文案全部走宿主资源
+     * （你/左家/右家 × 地主/农民/待定），英文 locale 自动取 values-en。</p>
+     */
+    private String roleLabel(int seat) {
+        int idx;
+        if (seat == Seats.SEAT_LEFT_AI) {
+            idx = 1;
+        } else if (seat == Seats.SEAT_RIGHT_AI) {
+            idx = 2;
+        } else {
+            idx = 0;
+        }
+        int status = landlordStatus[idx];
+        if (idx == 0) {
+            if (status == 2) return getContext().getString(R.string.game_doudizhu_role_you_landlord);
+            if (status == 1) return getContext().getString(R.string.game_doudizhu_role_you_farmer);
+            return getContext().getString(R.string.game_doudizhu_player_you);
+        }
+        if (idx == 1) {
+            if (status == 2) return getContext().getString(R.string.game_doudizhu_role_left_ai_landlord);
+            if (status == 1) return getContext().getString(R.string.game_doudizhu_role_left_ai_farmer);
+            return getContext().getString(R.string.game_doudizhu_player_left_ai);
+        }
+        if (status == 2) return getContext().getString(R.string.game_doudizhu_role_right_ai_landlord);
+        if (status == 1) return getContext().getString(R.string.game_doudizhu_role_right_ai_farmer);
+        return getContext().getString(R.string.game_doudizhu_player_right_ai);
     }
 
     /**
@@ -776,12 +823,17 @@ public class DouDiZhuTableView extends View {
 
     // ============ 统一牌面绘制（手牌/桌面出牌共用，2026-08-31 UI 重设计） ============
 
-    /** 牌面白色渐变底（按高度缓存，避免每帧重建 Shader）。 */
+    /** 牌面白色渐变底（按 y+h 尺寸缓存，避免每帧重建 Shader）。 */
     private LinearGradient cardBodyShader;
+    private float cardBodyShaderY = -1f;
     private float cardBodyShaderH = -1f;
+    /** 牌面顶部光泽渐变（P4 牌面 v2，按 y+h 尺寸缓存）。 */
+    private LinearGradient cardGlossShader;
+    private float cardGlossY = -1f;
+    private float cardGlossH = -1f;
 
     /**
-     * 绘制一张牌的正面（渐变白底 + 圆角 + 角标 + 中心花色/徽章）。
+     * 绘制一张牌的正面（渐变白底 + 顶部光泽 + 圆角 + 角标 + 中心花色/徽章）。
      * 手牌与桌面出牌共用本方法，保证观感一致。
      */
     private void drawCardFace(Canvas canvas, Card card, float x, float y, float w, float h) {
@@ -797,9 +849,10 @@ public class DouDiZhuTableView extends View {
                 x + w + w * 0.03f, y + h + h * 0.035f), r, r, shadow);
 
         // 2. 白→浅灰渐变底
-        if (cardBodyShader == null || cardBodyShaderH != h) {
+        if (cardBodyShader == null || cardBodyShaderH != h || cardBodyShaderY != y) {
             cardBodyShader = new LinearGradient(0, y, 0, y + h,
                     new int[]{Color.WHITE, 0xFFEDEDED}, null, Shader.TileMode.CLAMP);
+            cardBodyShaderY = y;
             cardBodyShaderH = h;
         }
         Paint body = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -807,6 +860,19 @@ public class DouDiZhuTableView extends View {
         body.setShader(cardBodyShader);
         canvas.drawRoundRect(rect, r, r, body);
         body.setShader(null);
+
+        // 2.5 顶部光泽高光（P4 牌面 v2：左上→右下的亚克力质感）
+        if (cardGlossShader == null || cardGlossH != h || cardGlossY != y) {
+            cardGlossShader = new LinearGradient(0, y, 0, y + h * 0.55f,
+                    new int[]{0x59FFFFFF, 0x00FFFFFF}, null, Shader.TileMode.CLAMP);
+            cardGlossY = y;
+            cardGlossH = h;
+        }
+        Paint gloss = new Paint(Paint.ANTI_ALIAS_FLAG);
+        gloss.setStyle(Paint.Style.FILL);
+        gloss.setShader(cardGlossShader);
+        canvas.drawRoundRect(new RectF(x, y, x + w, y + h * 0.55f), r, r, gloss);
+        gloss.setShader(null);
 
         // 3. 细边框
         Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -869,12 +935,21 @@ public class DouDiZhuTableView extends View {
             letter.setTextSize(w * 0.46f);
             canvas.drawText(rankSymbol, x + w / 2f, y + h * 0.42f + mw * 0.82f, letter);
         } else {
+            // P4 牌面 v2：中央大字牌值（红黑分明）+ 下方小花色，替换原纯花色中心
+            Paint bigRank = new Paint(Paint.ANTI_ALIAS_FLAG);
+            bigRank.setColor(color);
+            bigRank.setAlpha(235);
+            bigRank.setFakeBoldText(true);
+            bigRank.setTextAlign(Paint.Align.CENTER);
+            bigRank.setTextSize(w * 0.52f);
+            canvas.drawText(rankSymbol, x + w / 2f, y + h * 0.62f, bigRank);
+
             Paint center = new Paint(Paint.ANTI_ALIAS_FLAG);
             center.setColor(color);
-            center.setAlpha(235);
+            center.setAlpha(200);
             center.setTextAlign(Paint.Align.CENTER);
-            center.setTextSize(w * 0.55f);
-            canvas.drawText(suitSymbol, x + w / 2f, y + h * 0.66f, center);
+            center.setTextSize(w * 0.28f);
+            canvas.drawText(suitSymbol, x + w / 2f, y + h * 0.84f, center);
         }
 
         // 右下角标（旋转 180° 镜像）
@@ -982,7 +1057,8 @@ public class DouDiZhuTableView extends View {
         title.setFakeBoldText(true);
         title.setTextAlign(Paint.Align.CENTER);
         title.setTextSize(cellH * 0.58f);
-        canvas.drawText("记牌", x + labelW * 0.48f, y + panelH * 0.58f, title);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_card_counter),
+                x + labelW * 0.48f, y + panelH * 0.58f, title);
 
         String[] labels = {"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2", "小", "大"};
         Paint rankPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -1019,7 +1095,7 @@ public class DouDiZhuTableView extends View {
      * @param count   剩余手牌数
      */
     private void drawCardCountBadge(Canvas canvas, float centerX, float y, int count) {
-        String text = "剩 " + Math.max(0, count);
+        String text = getContext().getString(R.string.game_doudizhu_cards_remaining, Math.max(0, count));
         Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(tableCardWidth * 0.18f);
@@ -1100,7 +1176,7 @@ public class DouDiZhuTableView extends View {
         drawRedCardCountBadge(canvas, centerX,
                 blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, leftAICardCount);
 
-        String role = playerLabels[1] != null ? playerLabels[1] : ((landlordStatus[1] == 2) ? "P2（地主）" : "P2（农民）");
+        String role = roleLabel(Seats.SEAT_LEFT_AI);
         int roleColor = (landlordStatus[1] == 2) ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5");
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rolePaint.setColor(roleColor);
@@ -1117,10 +1193,14 @@ public class DouDiZhuTableView extends View {
         float playedX = centerX + tableCardWidth * 0.5f + tableCardWidth * 0.3f;
         float playedY = stackCenterY - tableCardHeight * 0.2f;
         if (leftAIPassed) {
-            drawPassLabel(canvas, "不出", playedX + tableCardWidth * 0.2f,
+            drawPassLabel(canvas, getContext().getString(R.string.game_doudizhu_pass_label),
+                    playedX + tableCardWidth * 0.2f,
                     playedY + tableCardHeight * 0.5f);
         } else if (leftAIPlayedCards != null && !leftAIPlayedCards.isEmpty()) {
             drawPlayedCardsRow(canvas, leftAIPlayedCards, playedX, playedY);
+        } else if (isSeatThinking(Seats.SEAT_LEFT_AI)) {
+            drawThinkingBadge(canvas, playedX + tableCardWidth * 0.2f,
+                    playedY + tableCardHeight * 0.5f);
         }
     }
 
@@ -1146,7 +1226,7 @@ public class DouDiZhuTableView extends View {
         drawRedCardCountBadge(canvas, centerX,
                 blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, rightAICardCount);
 
-        String role = playerLabels[2] != null ? playerLabels[2] : ((landlordStatus[2] == 2) ? "P3（地主）" : "P3（农民）");
+        String role = roleLabel(Seats.SEAT_RIGHT_AI);
         int roleColor = (landlordStatus[2] == 2) ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5");
         Paint rolePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rolePaint.setColor(roleColor);
@@ -1166,10 +1246,63 @@ public class DouDiZhuTableView extends View {
         }
         float playedY = stackCenterY - tableCardHeight * 0.2f;
         if (rightAIPassed) {
-            drawPassLabel(canvas, "不出", playedX, playedY + tableCardHeight * 0.5f);
+            drawPassLabel(canvas, getContext().getString(R.string.game_doudizhu_pass_label),
+                    playedX, playedY + tableCardHeight * 0.5f);
         } else if (rightAIPlayedCards != null && !rightAIPlayedCards.isEmpty()) {
             drawPlayedCardsRow(canvas, rightAIPlayedCards, playedX, playedY);
+        } else if (isSeatThinking(Seats.SEAT_RIGHT_AI)) {
+            drawThinkingBadge(canvas, playedX + tableCardWidth * 0.2f,
+                    playedY + tableCardHeight * 0.5f);
         }
+    }
+
+    /** 指定 AI 座位是否正在思考（当前行动座位为该 AI 时返回 true）。 */
+    private boolean isSeatThinking(int seat) {
+        return activeTurnSeat == seat;
+    }
+
+    /**
+     * 绘制 AI "思考中…" 徽章（P4：AI 轮无提示修复）。
+     *
+     * <p>在 AI 出牌位显示带透明度脉冲的胶囊徽章；透明度由当前时间驱动，
+     * onDraw 中的 postInvalidateOnAnimation 保证动画连续。</p>
+     *
+     * @param canvas 画布
+     * @param cx     徽章中心 X
+     * @param cy     徽章中心 Y
+     */
+    private void drawThinkingBadge(Canvas canvas, float cx, float cy) {
+        String text = getContext().getString(R.string.game_ddz_ai_thinking);
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(tableCardWidth * 0.16f);
+        textPaint.setFakeBoldText(true);
+        float padX = tableCardWidth * 0.14f;
+        float padY = tableCardWidth * 0.08f;
+        float textW = textPaint.measureText(text);
+        float textH = textPaint.getTextSize();
+        RectF badge = new RectF(cx - textW / 2f - padX, cy - textH / 2f - padY - textH * 0.2f,
+                cx + textW / 2f + padX, cy + textH / 2f + padY);
+
+        long time = System.currentTimeMillis() % 1600L;
+        double wave = Math.sin(time * Math.PI / 800.0) * 0.5 + 0.5;
+        int alpha = (int) (140 + wave * 100);
+
+        Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bg.setColor(Color.parseColor("#B30D47A1"));
+        bg.setAlpha(alpha);
+        bg.setStyle(Paint.Style.FILL);
+        canvas.drawRoundRect(badge, badge.height() / 2f, badge.height() / 2f, bg);
+
+        Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+        stroke.setColor(Color.parseColor("#88E3F2FD"));
+        stroke.setAlpha(alpha);
+        stroke.setStyle(Paint.Style.STROKE);
+        stroke.setStrokeWidth(Math.max(1f, tableCardWidth * 0.015f));
+        canvas.drawRoundRect(badge, badge.height() / 2f, badge.height() / 2f, stroke);
+
+        textPaint.setColor(Color.WHITE);
+        canvas.drawText(text, cx, cy + textH * 0.35f, textPaint);
     }
 
     /**
@@ -1347,6 +1480,11 @@ public class DouDiZhuTableView extends View {
             float playerStartX = (viewWidth - playerAreaWidth) / 2f;
             float playerY = areaTop + areaHeight * 0.3f;
             drawPlayedCardsRow(canvas, playerPlayedCards, playerStartX, playerY);
+        } else if (playerPassedFlag) {
+            // P4：玩家"不出"在台面中央回显（此前只有 AI 侧有"不出"标签）
+            float panelCenterY = areaTop + areaHeight / 2f + panelPadY / 2f;
+            drawPassLabel(canvas, getContext().getString(R.string.game_doudizhu_pass_label),
+                    viewWidth / 2f, panelCenterY + tableCardHeight * 0.1f);
         }
     }
 
@@ -1506,11 +1644,14 @@ public class DouDiZhuTableView extends View {
             }
         }
 
-        // "请选择要出的牌" 提示
+        // 轮到你时的行内提示（P4 中英混排修正：资源化，区分叫分/出牌两阶段）
         if (currentTurn == 0 && (playerPlayedCards == null || playerPlayedCards.isEmpty())) {
             float promptY = areaTop - calculatedCardHeight * 0.15f;
             hintPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("请选择要出的牌", viewWidth / 2f, promptY, hintPaint);
+            int promptRes = (gamePhase == DouDiZhuGameStateManager.STATE_BIDDING)
+                    ? R.string.game_ddz_your_bid_turn
+                    : R.string.game_doudizhu_select_prompt;
+            canvas.drawText(getContext().getString(promptRes), viewWidth / 2f, promptY, hintPaint);
         }
 
         // 如果自己是地主，在手牌上方绘制金色皇冠标记
@@ -2051,6 +2192,8 @@ public class DouDiZhuTableView extends View {
      */
     public void setPlayerPlayedCards(List<Card> cards) {
         this.playerPlayedCards = cards != null ? new ArrayList<>(cards) : new ArrayList<>();
+        // 玩家出牌后重置"不出"回显（与状态机 playerPassed 重置同步）
+        this.playerPassedFlag = false;
         invalidate();
     }
 
@@ -2095,6 +2238,7 @@ public class DouDiZhuTableView extends View {
         this.rightAIPlayedCards.clear();
         this.leftAIPassed = false;
         this.rightAIPassed = false;
+        this.playerPassedFlag = false;
         invalidate();
     }
 
@@ -2141,14 +2285,41 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 设置三个玩家的身份标签。
+     * 兼容保留：P4 起身份标签由 {@link #landlordStatus} + 资源在视图层组装，
+     * 不再接受外部拼接文本（原控制器硬编码中文标签入口，P4 中英混排修正）。
      *
-     * @param labels 标签数组 [玩家, 左AI, 右AI]，如 ["你(地主)", "左AI(农民)", "右AI(农民)"]
+     * @param labels 忽略
+     * @deprecated 使用 {@link #setAllLandlordStatus(int[])} 推导身份即可
      */
+    @Deprecated
     public void setPlayerLabels(String[] labels) {
-        if (labels != null && labels.length >= 3) {
-            this.playerLabels = new String[]{labels[0], labels[1], labels[2]};
-        }
+        invalidate();
+    }
+
+    /**
+     * 设置对局阶段与当前行动座位（P4：AI 轮"思考中"徽章 + 叫分阶段提示）。
+     *
+     * <p>仅叫分/出牌阶段保留行动座位（驱动"思考中"徽章）；大厅/结算阶段
+     * 强制清空，避免对局结束后徽章残留脉冲。</p>
+     *
+     * @param phase           对局阶段（{@code DouDiZhuGameStateManager.STATE_*}）
+     * @param activeTurnSeat  当前行动座位（-1=无）
+     */
+    public void setGamePhase(int phase, int activeTurnSeat) {
+        this.gamePhase = phase;
+        boolean inPlay = phase == DouDiZhuGameStateManager.STATE_BIDDING
+                || phase == DouDiZhuGameStateManager.STATE_PLAYING;
+        this.activeTurnSeat = inPlay ? activeTurnSeat : -1;
+        invalidate();
+    }
+
+    /**
+     * 设置玩家是否"不出"（P4：台面中央回显"不出"标签）。
+     *
+     * @param passed 玩家是否不出
+     */
+    public void setPlayerPassed(boolean passed) {
+        this.playerPassedFlag = passed;
         invalidate();
     }
 
