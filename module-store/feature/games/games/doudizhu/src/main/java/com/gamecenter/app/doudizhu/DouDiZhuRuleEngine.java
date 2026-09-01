@@ -2,7 +2,6 @@ package com.gamecenter.app.doudizhu;
 
 import com.gamecenter.app.doudizhu.model.Card;
 import com.gamecenter.app.doudizhu.model.CardType;
-import com.gamecenter.app.doudizhu.model.Rank;
 import com.gamecenter.app.doudizhu.utils.GameRuleUtil;
 
 import java.util.List;
@@ -10,19 +9,20 @@ import java.util.List;
 /**
  * 斗地主规则引擎。
  *
- * <p>提供斗地主核心规则的静态判断方法，包括出牌合法性校验、叫地主决策评估、
- * 桌面清理判定和手牌评分。所有方法均为无状态的静态方法，不持有任何游戏状态，
- * 可被 AI、网络校验、本地逻辑等多处安全地并发调用。</p>
+ * <p>提供斗地主核心规则的静态判断方法，包括出牌合法性校验和桌面清理判定。
+ * 所有方法均为无状态的静态方法，不持有任何游戏状态，
+ * 可被 AI、本地逻辑等多处安全地并发调用。</p>
  *
  * <p>你可以把这个类想象成"裁判手册"——它只负责回答"这样出牌合不合法？"
- * "这手牌值不值得叫地主？"等规则问题，但不记录任何游戏进度。</p>
+ * 等规则问题，但不记录任何游戏进度。</p>
  *
  * <p>关键设计决策：
  * <ul>
  *   <li>采用纯静态工具类设计，避免状态耦合，便于单元测试
  *       （就像查字典，不需要先创建一个"字典对象"才能查）</li>
- *   <li>叫地主评分阈值设为 7，经过经验调优平衡了激进与保守策略</li>
- *   <li>炸弹检测基于 rankCounts 数组统计，权重偏移 -3 将 3 映射到索引 0</li>
+ *   <li>牌型判定与压牌比较委托给 P1 内核 {@code logic.Combo}（唯一真源）</li>
+ *   <li>叫地主评估已升级为 {@code ai.AiBrain#evaluateBidScore}（0-3 分，
+ *       手数分解估算 + 大牌计数 + 炸弹），本类不再保留旧阈值布尔版</li>
  * </ul>
  */
 public final class DouDiZhuRuleEngine {
@@ -50,45 +50,6 @@ public final class DouDiZhuRuleEngine {
     }
 
     /**
-     * 评估手牌强度，决定是否应该叫地主。
-     *
-     * <p>评分规则：
-     * <ul>
-     *   <li>大王 +8 分</li>
-     *   <li>小王 +8 分</li>
-     *   <li>每个 2 +2 分</li>
-     *   <li>每个 A +1 分</li>
-     *   <li>每个炸弹（四张同点数）+6 分</li>
-     * </ul>
-     * 总分 ≥ 7 时建议叫地主。</p>
-     *
-     * @param hand 手牌列表
-     * @return true 表示建议叫地主，false 表示不建议
-     */
-    public static boolean shouldCallLandlord(List<Card> hand) {
-        if (hand == null || hand.isEmpty()) return false;
-        int score = 0;
-        for (Card card : hand) {
-            if (card.getRank() == Rank.BIG_JOKER) score += 8;
-            else if (card.getRank() == Rank.SMALL_JOKER) score += 8;
-            else if (card.getRank() == Rank.TWO) score += 2;
-            else if (card.getRank() == Rank.ACE) score += 1;
-        }
-        // 检查炸弹（四张同点数），rankCounts 数组索引通过权重偏移计算
-        int[] rankCounts = new int[15];
-        for (Card card : hand) {
-            // 权重 -3 的偏移：3 的权重为 3，映射到索引 0；A 的权重为 14，映射到索引 11
-            int idx = card.getRank().getWeight() - 3;
-            if (idx >= 0 && idx < 15) rankCounts[idx]++;
-        }
-        for (int count : rankCounts) {
-            if (count == 4) score += 6;
-        }
-        // 阈值 7：经验值，平衡了激进与保守策略
-        return score >= 7;
-    }
-
-    /**
      * 判断桌面是否应该清理（其他所有玩家都已不出）。
      *
      * <p>当除最后出牌者外的所有玩家都选择了"不出"时，桌面清空，
@@ -109,34 +70,5 @@ public final class DouDiZhuRuleEngine {
         }
         // 当其他所有玩家都"不出"时，清理桌面
         return passCount >= totalSeats - 1;
-    }
-
-    /**
-     * 计算手牌评分（用于 AI 评估）。
-     *
-     * <p>评分规则与 {@link #shouldCallLandlord} 相同，但返回原始分数而非布尔值，
-     * 便于 AI 进行更细粒度的决策。</p>
-     *
-     * @param hand 手牌列表
-     * @return 手牌评分，0 表示空手牌或无效输入
-     */
-    public static int evaluateHandScore(List<Card> hand) {
-        if (hand == null || hand.isEmpty()) return 0;
-        int score = 0;
-        for (Card card : hand) {
-            if (card.getRank() == Rank.BIG_JOKER) score += 8;
-            else if (card.getRank() == Rank.SMALL_JOKER) score += 8;
-            else if (card.getRank() == Rank.TWO) score += 2;
-            else if (card.getRank() == Rank.ACE) score += 1;
-        }
-        int[] rankCounts = new int[15];
-        for (Card card : hand) {
-            int idx = card.getRank().getWeight() - 3;
-            if (idx >= 0 && idx < 15) rankCounts[idx]++;
-        }
-        for (int count : rankCounts) {
-            if (count == 4) score += 6;
-        }
-        return score;
     }
 }

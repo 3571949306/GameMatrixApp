@@ -37,10 +37,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     public static final int DIFFICULTY_HARD = 2;
 
     /**
-     * 难度因子映射（供 AIBot 决策随机性/激进度使用）：
-     * 简单 = 0.6（低难度失误率），普通 = 1.0，困难 = 1.05（永不随机放弃）。
+     * 难度档位直接映射为 {@code AiBrain} 打法档（0=简单 1=普通 2=困难），
+     * 三档打法差异见 {@code ai/AiBrain} 类注释。
      */
-    private static final float[] DIFFICULTY_FACTORS = {0.6f, 1.0f, 1.05f};
+    private static final int MIN_DIFFICULTY = DIFFICULTY_EASY;
+    private static final int MAX_DIFFICULTY = DIFFICULTY_HARD;
 
     /** 桌面 UI 回调，由牌桌视图（DoudizhuGameScreen）实现 */
     public interface UiCallback {
@@ -111,8 +112,8 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
      */
     public void startNewGame(int difficulty) {
         aiHelper.cancelPending();
-        this.difficulty = Math.max(DIFFICULTY_EASY, Math.min(DIFFICULTY_HARD, difficulty));
-        aiHelper.setDifficultyFactor(DIFFICULTY_FACTORS[this.difficulty]);
+        this.difficulty = Math.max(MIN_DIFFICULTY, Math.min(MAX_DIFFICULTY, difficulty));
+        aiHelper.setDifficulty(this.difficulty);
         playedHistory.clear();
         currentHints = null;
         hintIndex = 0;
@@ -356,6 +357,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     }
 
     @Override
+    public List<Card> getPlayedHistory() {
+        return new ArrayList<>(playedHistory);
+    }
+
+    @Override
     public void onAIPlay(int seatIndex, List<Card> cards) {
         if (stateManager.getGameState() != DouDiZhuGameStateManager.STATE_PLAYING
                 || stateManager.getCurrentTurn() != seatIndex) {
@@ -380,7 +386,7 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
             return;
         }
         if (stateManager.getLastPlayedCards() == null) {
-            // 自由出牌回合 AI 不可 pass（AIBot 首发恒有牌可出，此处仅防御）
+            // 自由出牌回合 AI 不可 pass（AiBrain 首发恒有牌可出，此处仅防御）
             Log.w(TAG, "AI pass on free turn, seat=" + seatIndex);
             return;
         }
