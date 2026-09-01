@@ -31,8 +31,17 @@ import com.gamecenter.app.R;
  */
 public class DoudizhuModuleFragment extends Fragment {
 
+    /**
+     * 宿主透传的难度参数 key（GameLauncherHelper.EXTRA_DIFFICULTY_INDEX）。
+     * 值为 0=简单 / 1=普通 / 2=困难；缺省时视为普通档（点"单机模式"自选难度不受影响）。
+     */
+    static final String ARG_DIFFICULTY_INDEX = "game_difficulty_index";
+
     /** 对局控制器：跨配置变更保留（setRetainInstance），无 View 引用 */
     private DoudizhuGameController controller;
+
+    /** 宿主推荐的难度档位，-1 表示未传入 */
+    private int prefilledDifficulty = -1;
 
     private FrameLayout contentRoot;
 
@@ -47,6 +56,11 @@ public class DoudizhuModuleFragment extends Fragment {
         // 不影响其他动态模块游戏（不改宿主清单）
         requireActivity().setRequestedOrientation(
                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        // 读取宿主透传的难度推荐（DynamicGameActivity 写入 arguments）
+        android.os.Bundle args = getArguments();
+        if (args != null && args.containsKey(ARG_DIFFICULTY_INDEX)) {
+            prefilledDifficulty = args.getInt(ARG_DIFFICULTY_INDEX, -1);
+        }
     }
 
     @Override
@@ -128,7 +142,14 @@ public class DoudizhuModuleFragment extends Fragment {
                 (int) (240 * dp), LinearLayout.LayoutParams.WRAP_CONTENT);
         btnLp.topMargin = (int) (48 * dp);
         btnSingle.setLayoutParams(btnLp);
-        btnSingle.setOnClickListener(v -> showDifficultyDialog(ctx));
+        btnSingle.setOnClickListener(v -> {
+            // 宿主已透传难度推荐：直接以该档位开局；否则弹三档选择
+            if (prefilledDifficulty >= 0) {
+                startGame(prefilledDifficulty);
+            } else {
+                showDifficultyDialog(ctx);
+            }
+        });
         menu.addView(btnSingle);
 
         Button btnRules = new Button(ctx);

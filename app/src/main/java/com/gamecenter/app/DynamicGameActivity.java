@@ -162,6 +162,15 @@ public class DynamicGameActivity extends AppCompatActivity {
         if (moduleInstance instanceof FeatureModule) {
             try {
                 Fragment gameFragment = ((FeatureModule) moduleInstance).createFragment(this);
+                // 把难度索引透传给模块 Fragment（仅对声明读取该参数的模块生效，
+                // 其余模块忽略 arguments，无行为变化）
+                int difficultyIndex = getIntent().getIntExtra(
+                        GameLauncherHelper.EXTRA_DIFFICULTY_INDEX, -1);
+                if (difficultyIndex >= 0 && gameFragment.getArguments() == null) {
+                    Bundle args = new Bundle();
+                    args.putInt(GameLauncherHelper.EXTRA_DIFFICULTY_INDEX, difficultyIndex);
+                    gameFragment.setArguments(args);
+                }
                 Log.d(TAG, "Fragment 创建成功: " + gameFragment.getClass().getName());
                 getSupportFragmentManager().beginTransaction()
                         .replace(R.id.fragment_container, gameFragment)
