@@ -15,7 +15,9 @@ import java.util.Map;
  * <p>回答一个问题："这手牌最少几次出完？"并给出一条达到该手数的分解路线。
  * 采用 DFS + 记忆化：每次固定从"剩余牌中最小权重"处展开（保证同一 counts 状态
  * 只被求解一次），候选组合覆盖全部 13 种牌型（单/对/三/三带一/三带二/炸弹/王炸/
- * 顺子/连对/飞机/飞机带翅膀/四带二单/四带二对）。17 张牌规模毫秒级。</p>
+ * 顺子/连对/飞机/飞机带翅膀/四带二单/四带二对），并额外枚举"主体起点高于最小牌、
+ * 最小牌充当翅膀/挂件"的高起点组合（如 444555+3+6），保证最小牌无法成主体时
+ * 仍能找到一手带走的路径。17 张牌规模毫秒级。</p>
  *
  * <p>纯 JVM 实现：不 import 任何 Android 类，供 {@code ai.AiBrain} 做首发规划、
  * 接牌拆解代价评估与叫分手牌评估，也可 JUnit 单测。</p>
@@ -30,6 +32,8 @@ public final class HandDecomposer {
 
     /** 可入顺的最大权重（A=14）对应的索引 */
     private static final int MAX_SEQ_IDX = Rank.ACE.getWeight() - 3;
+    /** 权重 2（15）对应的索引：三张/炸弹主体可达的最高档 */
+    private static final int IDX_TWO = Rank.TWO.getWeight() - 3;
     private static final int IDX_SMALL_JOKER = Rank.SMALL_JOKER.getWeight() - 3;
     private static final int IDX_BIG_JOKER = Rank.BIG_JOKER.getWeight() - 3;
 
@@ -156,8 +160,8 @@ public final class HandDecomposer {
     }
 
     /**
-     * 枚举"以 idx 为最小权重"的全部出完方式。
-     * 顺序：顺子 → 连对 → 飞机 → 飞机带翅膀 → 三带 → 炸弹/四带 → 对 → 单 → 王炸。
+     * 枚举"覆盖 idx 处最小牌"的全部出完方式。
+     * 顺序：顺子 → 连对 → 飞机 → 飞机带翅膀 → 高起点带翅膀组合 → 三带 → 炸弹/四带 → 对 → 单 → 王炸。
      */
     private static List<Option> options(int[] counts, int idx) {
         List<Option> out = new ArrayList<>();
@@ -183,13 +187,15 @@ public final class HandDecomposer {
             subtractRun(rest, idx, len, 3);
             int[] wingsS = smallestSingles(rest, len);
             if (wingsS.length == len) {
-            out.add(wingsOption(idx, len, Combo.WINGS_SINGLES, rest, wingsS));
-                }
+                out.add(wingsOption(idx, len, Combo.WINGS_SINGLES, rest, wingsS));
+            }
             int[] wingsP = smallestPairs(rest, len);
             if (wingsP.length == len) {
                 out.add(wingsOption(idx, len, Combo.WINGS_PAIRS, rest, wingsP));
             }
         }
+        // 高起点带翅膀组合（主体起点 j > idx，最小牌充当翅膀/挂件）
+        appendHighStartWingedOptions(counts, idx, out);
         // 三张 / 三带一 / 三带二
         if (c >= 3) {
             int[] rest = counts.clone();
@@ -256,6 +262,83 @@ public final class HandDecomposer {
                     delta, new int[]{IDX_BIG_JOKER}));
         }
         return out;
+    }
+
+    /**
+     * 高起点带翅膀组合：主体（三张/炸弹/连续三张段）起点 j &gt; idx，idx 处的最小牌
+     * 充当翅膀/挂件。补全"最小牌数量不足以当主体、却能并入高起点组合的翅膀"的路径，
+     * 如 {3,444,555,6} 的 444555+3+6、{3,4,5555} 的 5555+3+4。
+     *
+     * <p>完备性论证：任一分解中覆盖最小牌 idx 的那一手只有两种形态——主体包含 idx
+     * （顺/连对/飞机起点必为 idx，主体三张/炸弹起点必为 idx，均由原有枚举覆盖），
+     * 或主体起点 j &gt; idx 而 idx 处的牌只能沦为翅膀/挂件（本方法枚举）。翅膀仍取
+     * "剩余最小"代表元即可不另设强制约束：idx 是当前最小非空档且主体不触碰 idx，
+     * 最小翅膀必然先取到 idx 处的牌（含 idx 有多张时逐张取尽）；固定主体后各翅膀
+     * 在整手内可互换而不改变牌型，取最小 k 张把最难并入其它长连型的零散小牌优先
+     * 随主体消化，是翅膀子集中有代表性且偏向"先清累赘"的选择——主体起点的枚举
+     * 完备性不受翅膀子集取舍影响，故整体 minHands 相对旧枚举单调不增（只会更优）。</p>
+     */
+    private static void appendHighStartWingedOptions(int[] counts, int idx, List<Option> out) {
+        // 三带一 / 三带二：主体起点 j > idx（挂件必然取到 idx 处最小牌）
+        for (int j = idx + 1; j <= IDX_TWO; j++) {
+            if (counts[j] < 3) continue;
+            int[] rest = counts.clone();
+            rest[j] -= 3;
+            int kickS = smallestSingleIdx(rest, j);
+            if (kickS >= 0) {
+                int[] delta = new int[COUNT_SIZE];
+                delta[j] = 3;
+                delta[kickS] = 1;
+                out.add(new Option(CardType.TRIO_SINGLE, j, 4, Combo.WINGS_NONE,
+                        delta, new int[]{kickS}));
+            }
+            int kickP = smallestPairIdx(rest, j);
+            if (kickP >= 0) {
+                int[] delta = new int[COUNT_SIZE];
+                delta[j] = 3;
+                delta[kickP] = 2;
+                out.add(new Option(CardType.TRIO_PAIR, j, 5, Combo.WINGS_NONE,
+                        delta, new int[]{kickP}));
+            }
+        }
+        // 四带两单 / 四带两对：主体起点 j > idx（翅膀必然先取到 idx 处最小牌）
+        for (int j = idx + 1; j <= IDX_TWO; j++) {
+            if (counts[j] != 4) continue;
+            int[] rest = counts.clone();
+            rest[j] = 0;
+            int[] singles2 = smallestSingles(rest, 2);
+            if (singles2.length == 2) {
+                int[] delta = new int[COUNT_SIZE];
+                delta[j] = 4;
+                for (int wi : singles2) delta[wi] += 1;
+                out.add(new Option(CardType.QUAD_SINGLE, j, 6, Combo.WINGS_NONE,
+                        delta, singles2));
+            }
+            int[] pairs2 = smallestPairs(rest, 2);
+            if (pairs2.length == 2) {
+                int[] delta = new int[COUNT_SIZE];
+                delta[j] = 4;
+                for (int wi : pairs2) delta[wi] += 2;
+                out.add(new Option(CardType.QUAD_PAIR, j, 8, Combo.WINGS_NONE,
+                        delta, pairs2));
+            }
+        }
+        // 飞机带翅膀：三张段起点 j > idx（翅膀必然先取到 idx 处最小牌）
+        for (int len = 2; len <= 6; len++) {
+            for (int j = idx + 1; j + len - 1 <= MAX_SEQ_IDX; j++) {
+                if (!hasRun(counts, j, len, 3)) continue;
+                int[] rest = counts.clone();
+                subtractRun(rest, j, len, 3);
+                int[] wingsS = smallestSingles(rest, len);
+                if (wingsS.length == len) {
+                    out.add(wingsOption(j, len, Combo.WINGS_SINGLES, rest, wingsS));
+                }
+                int[] wingsP = smallestPairs(rest, len);
+                if (wingsP.length == len) {
+                    out.add(wingsOption(j, len, Combo.WINGS_PAIRS, rest, wingsP));
+                }
+            }
+        }
     }
 
     private static Option runOption(CardType type, int idx, int len, int perRank, int wingsKind) {
