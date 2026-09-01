@@ -380,6 +380,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
                 List<Card> fallback = smallestLegalSingle(seatIndex);
                 if (fallback != null && DouDiZhuRuleEngine.validatePlay(fallback, last)) {
                     commitPlay(seatIndex, fallback);
+                } else {
+                    // 不可达防御分支：手牌非空时最小单张在自由出牌回合恒合法，
+                    // fallback == null 只可能是手牌状态已异常，记日志便于排查
+                    Log.w(TAG, "DDZ_AI_FALLBACK_UNREACHABLE seat=" + seatIndex
+                            + " fallbackNull=" + (fallback == null));
                 }
             }
             return;

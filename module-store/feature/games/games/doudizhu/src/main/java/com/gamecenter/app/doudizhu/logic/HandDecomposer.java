@@ -5,6 +5,7 @@ import com.gamecenter.app.doudizhu.model.CardType;
 import com.gamecenter.app.doudizhu.model.Rank;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,17 @@ import java.util.Map;
  * 只被求解一次），候选组合覆盖全部 13 种牌型（单/对/三/三带一/三带二/炸弹/王炸/
  * 顺子/连对/飞机/飞机带翅膀/四带二单/四带二对），并额外枚举"主体起点高于最小牌、
  * 最小牌充当翅膀/挂件"的高起点组合（如 444555+3+6），保证最小牌无法成主体时
- * 仍能找到一手带走的路径。17 张牌规模毫秒级。</p>
+ * 仍能找到一手带走的路径。</p>
+ *
+ * <p><b>翅膀多代表元策略（P2 第二轮复查修正）</b>：翅膀在牌型合法性上可互换，
+ * 但在残局手数上不可互换——把能组成顺子/连对的小牌当翅膀消耗、把 2/王等死牌
+ * 留在残局会多花手数。故每个带翅膀/挂件组合不再只取"剩余最小"一组翅膀，而是
+ * 枚举三组代表元（剩余最小 / 死牌优先：王、2、孤立牌先上 / 剩余最大）全部交给
+ * DFS 取 minHands 最小。记忆化按 counts 状态键控，加候选只增加边数不增加状态数，
+ * minHands 相对旧枚举单调不增。<b>诚实边界</b>：该策略集不构成全局最优的正确性
+ * 证明，仅承诺"在回归测试语料上与精确枚举器对拍一致"——见
+ * {@code HandDecomposerExactnessTest}（≤12 张穷举全部翅膀子集的精确解对拍，
+ * 含四个最小手数反例与随机手牌）。</p>
  *
  * <p>纯 JVM 实现：不 import 任何 Android 类，供 {@code ai.AiBrain} 做首发规划、
  * 接牌拆解代价评估与叫分手牌评估，也可 JUnit 单测。</p>
@@ -185,60 +196,49 @@ public final class HandDecomposer {
             out.add(runOption(CardType.AIRPLANE, idx, len, 3, Combo.WINGS_NONE));
             int[] rest = counts.clone();
             subtractRun(rest, idx, len, 3);
-            int[] wingsS = smallestSingles(rest, len);
-            if (wingsS.length == len) {
-                out.add(wingsOption(idx, len, Combo.WINGS_SINGLES, rest, wingsS));
-            }
-            int[] wingsP = smallestPairs(rest, len);
-            if (wingsP.length == len) {
-                out.add(wingsOption(idx, len, Combo.WINGS_PAIRS, rest, wingsP));
-            }
+            appendAirplaneWingOptions(out, idx, len, rest);
         }
         // 高起点带翅膀组合（主体起点 j > idx，最小牌充当翅膀/挂件）
         appendHighStartWingedOptions(counts, idx, out);
-        // 三张 / 三带一 / 三带二
+        // 三张 / 三带一 / 三带二（挂件按多代表元策略取）
         if (c >= 3) {
             int[] rest = counts.clone();
             rest[idx] = c - 3;
-            int kickS = smallestSingleIdx(rest, idx);
-            if (kickS >= 0) {
+            for (int[] kicker : wingCandidates(rest, 1, false)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[idx] = 3;
-                delta[kickS] = 1;
+                delta[kicker[0]] += 1;
                 out.add(new Option(CardType.TRIO_SINGLE, idx, 4, Combo.WINGS_NONE,
-                        delta, new int[]{kickS}));
+                        delta, kicker));
             }
-            int kickP = smallestPairIdx(rest, idx);
-            if (kickP >= 0) {
+            for (int[] kicker : wingCandidates(rest, 1, true)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[idx] = 3;
-                delta[kickP] = 2;
+                delta[kicker[0]] += 2;
                 out.add(new Option(CardType.TRIO_PAIR, idx, 5, Combo.WINGS_NONE,
-                        delta, new int[]{kickP}));
+                        delta, kicker));
             }
             int[] deltaTrio = new int[COUNT_SIZE];
             deltaTrio[idx] = 3;
             out.add(new Option(CardType.TRIO, idx, 3, Combo.WINGS_NONE, deltaTrio, new int[0]));
         }
-        // 炸弹 / 四带两单 / 四带两对
+        // 炸弹 / 四带两单 / 四带两对（翅膀按多代表元策略取）
         if (c == 4) {
             int[] rest = counts.clone();
             rest[idx] = 0;
-            int[] singles2 = smallestSingles(rest, 2);
-            if (singles2.length == 2) {
+            for (int[] wings : wingCandidates(rest, 2, false)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[idx] = 4;
-                for (int wi : singles2) delta[wi] += 1;
+                for (int wi : wings) delta[wi] += 1;
                 out.add(new Option(CardType.QUAD_SINGLE, idx, 6, Combo.WINGS_NONE,
-                        delta, singles2));
+                        delta, wings));
             }
-            int[] pairs2 = smallestPairs(rest, 2);
-            if (pairs2.length == 2) {
+            for (int[] wings : wingCandidates(rest, 2, true)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[idx] = 4;
-                for (int wi : pairs2) delta[wi] += 2;
+                for (int wi : wings) delta[wi] += 2;
                 out.add(new Option(CardType.QUAD_PAIR, idx, 8, Combo.WINGS_NONE,
-                        delta, pairs2));
+                        delta, wings));
             }
             int[] deltaBomb = new int[COUNT_SIZE];
             deltaBomb[idx] = 4;
@@ -269,75 +269,80 @@ public final class HandDecomposer {
      * 充当翅膀/挂件。补全"最小牌数量不足以当主体、却能并入高起点组合的翅膀"的路径，
      * 如 {3,444,555,6} 的 444555+3+6、{3,4,5555} 的 5555+3+4。
      *
-     * <p>完备性论证：任一分解中覆盖最小牌 idx 的那一手只有两种形态——主体包含 idx
-     * （顺/连对/飞机起点必为 idx，主体三张/炸弹起点必为 idx，均由原有枚举覆盖），
-     * 或主体起点 j &gt; idx 而 idx 处的牌只能沦为翅膀/挂件（本方法枚举）。翅膀仍取
-     * "剩余最小"代表元即可不另设强制约束：idx 是当前最小非空档且主体不触碰 idx，
-     * 最小翅膀必然先取到 idx 处的牌（含 idx 有多张时逐张取尽）；固定主体后各翅膀
-     * 在整手内可互换而不改变牌型，取最小 k 张把最难并入其它长连型的零散小牌优先
-     * 随主体消化，是翅膀子集中有代表性且偏向"先清累赘"的选择——主体起点的枚举
-     * 完备性不受翅膀子集取舍影响，故整体 minHands 相对旧枚举单调不增（只会更优）。</p>
+     * <p>主体完备性：任一分解中覆盖最小牌 idx 的那一手只有两种形态——主体包含 idx
+     * （顺/连对/飞机起点必为 idx，主体三张/炸弹/炸弹起点必为 idx，均由原有枚举覆盖），
+     * 或主体起点 j &gt; idx 而 idx 处的牌沦为翅膀/挂件（本方法枚举，"剩余最小"代表元的
+     * 翅膀必然先取到 idx 处的牌）。</p>
+     *
+     * <p>翅膀多代表元（P2 第二轮复查修正）：e1dae47 时期"固定主体后各翅膀可互换、
+     * 取剩余最小即可代表"的论证只对"翅膀恰为 idx 处最小牌"的第一张成立；k ≥ 2 时
+     * 第二张翅膀（对挂件/炸弹翅膀/飞机翅膀）是自由选择，把能组成顺子/连对的小牌当
+     * 翅膀消耗、把 2/王等死牌留在残局会多花手数。故翅膀改按 {@link #wingCandidates}
+     * 的三代表元（剩余最小/死牌优先/剩余最大）枚举，交 DFS 择优——记忆化按 counts
+     * 状态键控，只增边数不增状态数，minHands 相对旧枚举单调不增（只会更优）。该策略
+     * 集不构成全局最优的正确性证明，仅承诺回归语料上与精确枚举器对拍一致（见
+     * HandDecomposerExactnessTest）。</p>
      */
     private static void appendHighStartWingedOptions(int[] counts, int idx, List<Option> out) {
-        // 三带一 / 三带二：主体起点 j > idx（挂件必然取到 idx 处最小牌）
+        // 三带一 / 三带二：主体起点 j > idx（"剩余最小"挂件必然取到 idx 处最小牌）
         for (int j = idx + 1; j <= IDX_TWO; j++) {
             if (counts[j] < 3) continue;
             int[] rest = counts.clone();
             rest[j] -= 3;
-            int kickS = smallestSingleIdx(rest, j);
-            if (kickS >= 0) {
+            for (int[] kicker : wingCandidates(rest, 1, false)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[j] = 3;
-                delta[kickS] = 1;
+                delta[kicker[0]] += 1;
                 out.add(new Option(CardType.TRIO_SINGLE, j, 4, Combo.WINGS_NONE,
-                        delta, new int[]{kickS}));
+                        delta, kicker));
             }
-            int kickP = smallestPairIdx(rest, j);
-            if (kickP >= 0) {
+            for (int[] kicker : wingCandidates(rest, 1, true)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[j] = 3;
-                delta[kickP] = 2;
+                delta[kicker[0]] += 2;
                 out.add(new Option(CardType.TRIO_PAIR, j, 5, Combo.WINGS_NONE,
-                        delta, new int[]{kickP}));
+                        delta, kicker));
             }
         }
-        // 四带两单 / 四带两对：主体起点 j > idx（翅膀必然先取到 idx 处最小牌）
+        // 四带两单 / 四带两对：主体起点 j > idx（"剩余最小"翅膀先取 idx 处最小牌）
         for (int j = idx + 1; j <= IDX_TWO; j++) {
             if (counts[j] != 4) continue;
             int[] rest = counts.clone();
             rest[j] = 0;
-            int[] singles2 = smallestSingles(rest, 2);
-            if (singles2.length == 2) {
+            for (int[] wings : wingCandidates(rest, 2, false)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[j] = 4;
-                for (int wi : singles2) delta[wi] += 1;
+                for (int wi : wings) delta[wi] += 1;
                 out.add(new Option(CardType.QUAD_SINGLE, j, 6, Combo.WINGS_NONE,
-                        delta, singles2));
+                        delta, wings));
             }
-            int[] pairs2 = smallestPairs(rest, 2);
-            if (pairs2.length == 2) {
+            for (int[] wings : wingCandidates(rest, 2, true)) {
                 int[] delta = new int[COUNT_SIZE];
                 delta[j] = 4;
-                for (int wi : pairs2) delta[wi] += 2;
+                for (int wi : wings) delta[wi] += 2;
                 out.add(new Option(CardType.QUAD_PAIR, j, 8, Combo.WINGS_NONE,
-                        delta, pairs2));
+                        delta, wings));
             }
         }
-        // 飞机带翅膀：三张段起点 j > idx（翅膀必然先取到 idx 处最小牌）
+        // 飞机带翅膀：三张段起点 j > idx（"剩余最小"翅膀先取 idx 处最小牌）
         for (int len = 2; len <= 6; len++) {
             for (int j = idx + 1; j + len - 1 <= MAX_SEQ_IDX; j++) {
                 if (!hasRun(counts, j, len, 3)) continue;
                 int[] rest = counts.clone();
                 subtractRun(rest, j, len, 3);
-                int[] wingsS = smallestSingles(rest, len);
-                if (wingsS.length == len) {
-                    out.add(wingsOption(j, len, Combo.WINGS_SINGLES, rest, wingsS));
-                }
-                int[] wingsP = smallestPairs(rest, len);
-                if (wingsP.length == len) {
-                    out.add(wingsOption(j, len, Combo.WINGS_PAIRS, rest, wingsP));
-                }
+                appendAirplaneWingOptions(out, j, len, rest);
             }
+        }
+    }
+
+    /** 飞机带翅膀：对三张段扣除后的 rest 分布，按多代表元策略生成单/对翅膀选项。 */
+    private static void appendAirplaneWingOptions(List<Option> out, int startIdx, int len,
+                                                  int[] rest) {
+        for (int[] wings : wingCandidates(rest, len, false)) {
+            out.add(wingsOption(startIdx, len, Combo.WINGS_SINGLES, rest, wings));
+        }
+        for (int[] wings : wingCandidates(rest, len, true)) {
+            out.add(wingsOption(startIdx, len, Combo.WINGS_PAIRS, rest, wings));
         }
     }
 
@@ -362,60 +367,108 @@ public final class HandDecomposer {
         return new Option(CardType.AIRPLANE_WITH_WINGS, idx, len, wingsKind, delta, wingIdx);
     }
 
-    // ============ 翅膀选择（从剩余分布取最小的单张/对子） ============
+    // ============ 翅膀代表元选择（多策略，性能有界） ============
 
-    /** 取 k 张最小单张的权重索引（可重复取同一权重的多张）。 */
-    private static int[] smallestSingles(int[] counts, int k) {
+    /**
+     * 多代表元翅膀候选：从剩余分布取 k 份单张（pairs=false）或 k 份对子
+     * （pairs=true），至多返回 3 组互不相同的代表元翅膀（每组升序规范化）：
+     * <ol>
+     *   <li>剩余最小——旧策略，优先随主体消化零散小牌；</li>
+     *   <li>死牌优先——王/2 → 孤立单档 → 冗余档（取走后该档仍有剩余，不破坏
+     *       连型潜力）→ 降序兜底；</li>
+     *   <li>剩余最大——对子挂件（如 777+AA）常在此命中。</li>
+     * </ol>
+     * 翅膀在牌型合法性上可互换，但在残局手数上不可互换：把能组成顺子/连对的
+     * 小牌当翅膀消耗、把 2/王等死牌留在残局会多花手数。多代表元全部交给 DFS
+     * 择优；记忆化按 counts 状态键控，只增边数不增状态数，minHands 相对单一
+     * "剩余最小"策略单调不增。每个带翅膀组合至多 3 组候选，性能有界。
+     */
+    private static int[][] wingCandidates(int[] counts, int k, boolean pairs) {
+        List<int[]> out = new ArrayList<>(3);
+        appendWingCandidate(out, extremeWings(counts, k, pairs, true), k);
+        appendWingCandidate(out, deadWingsFirst(counts, k, pairs), k);
+        appendWingCandidate(out, extremeWings(counts, k, pairs, false), k);
+        return out.toArray(new int[0][]);
+    }
+
+    /** 去重追加一组翅膀候选（长度不足 k 或与已有候选重复时忽略）。 */
+    private static void appendWingCandidate(List<int[]> out, int[] wings, int k) {
+        if (wings.length != k) return;
+        for (int[] existing : out) {
+            if (Arrays.equals(existing, wings)) return;
+        }
+        out.add(wings);
+    }
+
+    /** 单一代表元取 k 份翅膀：逐份取剩余最小（ascending）或剩余最大，失败返回空。 */
+    private static int[] extremeWings(int[] counts, int k, boolean pairs, boolean ascending) {
+        int need = pairs ? 2 : 1;
         int[] out = new int[k];
         int[] rest = counts.clone();
-        for (int n = 0; n < k; n++) {
-            int pick = -1;
-            for (int i = 0; i < COUNT_SIZE; i++) {
-                if (rest[i] > 0) {
-                    pick = i;
-                    break;
-                }
+        int n = 0;
+        int i = ascending ? 0 : COUNT_SIZE - 1;
+        int end = ascending ? COUNT_SIZE : -1;
+        while (n < k && i != end) {
+            if (rest[i] >= need) {
+                out[n++] = i;
+                rest[i] -= need;
+            } else {
+                i += ascending ? 1 : -1;
             }
-            if (pick < 0) return new int[0];
-            out[n] = pick;
-            rest[pick]--;
         }
+        if (n != k) return new int[0];
+        Arrays.sort(out);
         return out;
     }
 
-    /** 取 k 个最小对子的权重索引。 */
-    private static int[] smallestPairs(int[] counts, int k) {
+    /**
+     * 死牌优先代表元：按"王/2 → 孤立单档 → 冗余档 → 降序兜底"的优先序逐份取
+     * 翅膀（取走即扣减，孤立/冗余判定随剩余分布动态更新），凑不满 k 返回空。
+     */
+    private static int[] deadWingsFirst(int[] counts, int k, boolean pairs) {
+        int need = pairs ? 2 : 1;
         int[] out = new int[k];
         int[] rest = counts.clone();
-        for (int n = 0; n < k; n++) {
-            int pick = -1;
-            for (int i = 0; i < COUNT_SIZE; i++) {
-                if (rest[i] >= 2) {
-                    pick = i;
-                    break;
-                }
+        int n = 0;
+        // 王 / 2：无法入任何顺子/连对，最先消耗（权重降序）
+        for (int i = IDX_BIG_JOKER; i >= IDX_TWO && n < k; i--) {
+            while (rest[i] >= need && n < k) {
+                out[n++] = i;
+                rest[i] -= need;
             }
-            if (pick < 0) return new int[0];
-            out[n] = pick;
-            rest[pick] -= 2;
         }
+        // 孤立单档：左右相邻档均无牌，并不进任何连型（降序）
+        for (int i = MAX_SEQ_IDX; i >= 0 && n < k; i--) {
+            if (rest[i] < need || !isIsolatedRank(rest, i)) continue;
+            while (rest[i] >= need && n < k) {
+                out[n++] = i;
+                rest[i] -= need;
+            }
+        }
+        // 冗余档：取走一份后该档仍有剩余，不破坏既有连型潜力（降序）
+        for (int i = MAX_SEQ_IDX; i >= 0 && n < k; i--) {
+            while (rest[i] >= need + 1 && n < k) {
+                out[n++] = i;
+                rest[i] -= need;
+            }
+        }
+        // 兜底：其余任意（降序），保证凑满 k
+        for (int i = MAX_SEQ_IDX; i >= 0 && n < k; i--) {
+            while (rest[i] >= need && n < k) {
+                out[n++] = i;
+                rest[i] -= need;
+            }
+        }
+        if (n != k) return new int[0];
+        Arrays.sort(out);
         return out;
     }
 
-    /** 最小的异权重单张索引（排除 exclude）。 */
-    private static int smallestSingleIdx(int[] counts, int exclude) {
-        for (int i = 0; i < COUNT_SIZE; i++) {
-            if (i != exclude && counts[i] > 0) return i;
-        }
-        return -1;
-    }
-
-    /** 最小的异权重对子索引（排除 exclude）。 */
-    private static int smallestPairIdx(int[] counts, int exclude) {
-        for (int i = 0; i < COUNT_SIZE; i++) {
-            if (i != exclude && counts[i] >= 2) return i;
-        }
-        return -1;
+    /** 档位 i 是否孤立：左右相邻档均无牌（2/王不参与连型，另由前置分支处理）。 */
+    private static boolean isIsolatedRank(int[] counts, int i) {
+        boolean leftDead = i == 0 || counts[i - 1] == 0;
+        boolean rightDead = i >= MAX_SEQ_IDX || counts[i + 1] == 0;
+        return leftDead && rightDead;
     }
 
     // ============ 分布工具 ============

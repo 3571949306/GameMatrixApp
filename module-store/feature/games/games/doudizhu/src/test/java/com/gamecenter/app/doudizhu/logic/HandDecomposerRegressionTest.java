@@ -19,13 +19,14 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * P2 复查回归测试：HandDecomposer 高起点翅膀枚举修复。
+ * P2 复查回归测试：HandDecomposer 高起点翅膀枚举修复 + 翅膀多代表元策略。
  *
- * <p>修复前 options() 只枚举"主体起点 = 最小牌索引"的组合，当最小牌数量不足
- * （不能当主体）但可做高起点组合的翅膀时，最优解永远枚举不到。本类锁定三个
- * 已验证反例、路线合法性/乱序一致性、200 局随机手牌"新算法 ≤ 旧算法"自检
- * （旧算法为本文件内的移植版 {@link LegacyDecomposer}），以及 20 张混合牌型
- * 的计时哨兵。</p>
+ * <p>第一轮修复锁定三个"高起点翅膀"反例；第二轮复查实证"翅膀一律取剩余最小"
+ * 在残局手数上不保证最优（翅膀把能组成顺子/连对的小牌当挂件消耗、把 2/王等
+ * 死牌留在残局会多花手数），新增四个最小手数反例（须严格优于旧枚举）与
+ * 200 局随机手牌"存在严格更优局"哨兵。精确解对拍见
+ * {@link HandDecomposerExactnessTest}，路线合法性/乱序一致性、20 张混合牌型
+ * 的计时哨兵也保留在本类。</p>
  */
 public class HandDecomposerRegressionTest {
 
@@ -45,6 +46,67 @@ public class HandDecomposerRegressionTest {
     @Test
     public void airplaneWithWingsLeavesSingle() {
         assertEquals(2, HandDecomposer.minHands(of(3, 1, 4, 1, 5, 1, 6, 3, 7, 3)));
+    }
+
+    // ===== P2 第二轮复查反例：翅膀"一律取剩余最小"不保证残局手数最优 =====
+
+    /**
+     * 复查反例 1：5555 66 77 888 9 T J Q 22——"剩余最小"翅膀把 66/77 随 5555
+     * 消化、死牌 22 留在残局，旧枚举 4+ 手；真最优 3 手（5555+22 / 667788 / 89TJQ），
+     * 由"死牌优先"代表元命中 5555+22。新算法须严格优于旧枚举（防 no-op 回归）。
+     */
+    @Test
+    public void counterexampleQuadWingsPreferDeadTwos() {
+        int[] counts = HandDecomposer.countsOf(
+                of(5, 4, 6, 2, 7, 2, 8, 3, 9, 1, 10, 1, 11, 1, 12, 1, 15, 2));
+        assertEquals("真最优 3 手：5555+22 / 667788 / 89TJQ", 3,
+                HandDecomposer.minHands(counts.clone()));
+        assertTrue("新算法应严格优于旧枚举",
+                HandDecomposer.minHands(counts.clone()) < LegacyDecomposer.minHands(counts.clone()));
+    }
+
+    /**
+     * 复查反例 2：333 4 777 8 999 TTT Q AA——"剩余最小"让 777 带上最小对 99、
+     * 拆散 999TTT 飞机所需结构，旧枚举 4 手；真最优 3 手（333+4 / 777+AA /
+     * 999TTT+8+Q），AA 由"死牌优先（孤立档）"/"剩余最大"挂件代表元命中。
+     */
+    @Test
+    public void counterexampleTrioPairKickerPrefersIsolatedPair() {
+        int[] counts = HandDecomposer.countsOf(
+                of(3, 3, 4, 1, 7, 3, 8, 1, 9, 3, 10, 3, 12, 1, 14, 2));
+        assertEquals("真最优 3 手：333+4 / 777+AA / 999TTT+8+Q", 3,
+                HandDecomposer.minHands(counts.clone()));
+        assertTrue("新算法应严格优于旧枚举",
+                HandDecomposer.minHands(counts.clone()) < LegacyDecomposer.minHands(counts.clone()));
+    }
+
+    /**
+     * 复查反例 3：333 4 55 6 7 8 JJJ Q KK 2 小王——"剩余最小"挂件 333+4 拆散
+     * 45678 顺子潜力，得 7 手；真最优 6 手（如 333+5 / 45678 / JJJ+Q / KK / 2 /
+     * 小王，或等价的 333+2 / 333+小王 变体），由"死牌优先"/"剩余最大"挂件命中。
+     */
+    @Test
+    public void counterexampleTrioKickerKeepsStraightPotential() {
+        int[] counts = HandDecomposer.countsOf(
+                of(3, 3, 4, 1, 5, 2, 6, 1, 7, 1, 8, 1, 11, 3, 12, 1, 13, 2, 15, 1, 16, 1));
+        assertEquals("真最优 6 手", 6, HandDecomposer.minHands(counts.clone()));
+        assertTrue("新算法应严格优于旧枚举",
+                HandDecomposer.minHands(counts.clone()) < LegacyDecomposer.minHands(counts.clone()));
+    }
+
+    /**
+     * 复查反例 4：3 444 555 6 77 8 9 T J——"剩余最小"翅膀取 444555+3+6，把 7
+     * 留成单张，得 3 手；真最优 2 手（444555+3+7 / 6789TJ 顺子）。7 既非死牌也非
+     * 最大牌，由"死牌优先"的冗余档命中（7 有两张，取走一张不破坏连型潜力）。
+     */
+    @Test
+    public void counterexampleAirplaneWingsPreferRedundantRank() {
+        int[] counts = HandDecomposer.countsOf(
+                of(3, 1, 4, 3, 5, 3, 6, 1, 7, 2, 8, 1, 9, 1, 10, 1, 11, 1));
+        assertEquals("真最优 2 手：444555+3+7 / 6789TJ", 2,
+                HandDecomposer.minHands(counts.clone()));
+        assertTrue("新算法应严格优于旧枚举",
+                HandDecomposer.minHands(counts.clone()) < LegacyDecomposer.minHands(counts.clone()));
     }
 
     /** 三个反例的路线必须合法、恰好覆盖、手数等于 minHands，且与传入顺序无关。 */
@@ -72,23 +134,42 @@ public class HandDecomposerRegressionTest {
 
     /**
      * 200 局随机 17 张手牌自检：新算法 minHands ≤ 修复前算法。
-     * 枚举是旧枚举的严格超集（新增高起点翅膀路径，原路径不变），
+     * 枚举是旧枚举的严格超集（高起点翅膀路径 + 翅膀多代表元，原路径不变），
      * 理论上单调不增，此处用固定种子防实现回归。
+     *
+     * <p>语料额外并入四个翅膀反例：它们对旧枚举必然严格更优，使"存在严格更优局"
+     * 哨兵确定性地守护翅膀多代表元策略不退化为 no-op（纯随机语料不能保证命中
+     * 反例形态）。</p>
      */
     @Test
     public void newMinHandsNeverWorseThanLegacyOn200RandomHands() {
+        List<int[]> corpus = new ArrayList<>();
+        // 已知翅膀反例（对新枚举必严格更优，防 no-op 哨兵的确定性锚点）
+        corpus.add(HandDecomposer.countsOf(of(5, 4, 6, 2, 7, 2, 8, 3, 9, 1, 10, 1, 11, 1, 12, 1, 15, 2)));
+        corpus.add(HandDecomposer.countsOf(of(3, 3, 4, 1, 7, 3, 8, 1, 9, 3, 10, 3, 12, 1, 14, 2)));
+        corpus.add(HandDecomposer.countsOf(of(3, 3, 4, 1, 5, 2, 6, 1, 7, 1, 8, 1, 11, 3, 12, 1, 13, 2, 15, 1, 16, 1)));
+        corpus.add(HandDecomposer.countsOf(of(3, 1, 4, 3, 5, 3, 6, 1, 7, 2, 8, 1, 9, 1, 10, 1, 11, 1)));
+        // 200 局随机 17 张
         Random random = new Random(2026L);
         for (int round = 0; round < 200; round++) {
             List<Card> deck = new ArrayList<>(Arrays.asList(Card.createFullDeck()));
             Collections.shuffle(deck, random);
-            List<Card> hand = new ArrayList<>(deck.subList(0, 17));
-            int[] counts = HandDecomposer.countsOf(hand);
-            int modern = HandDecomposer.minHands(counts);
+            corpus.add(HandDecomposer.countsOf(new ArrayList<>(deck.subList(0, 17))));
+        }
+
+        int strictWins = 0;
+        for (int round = 0; round < corpus.size(); round++) {
+            int[] counts = corpus.get(round);
+            int modern = HandDecomposer.minHands(counts.clone());
             int legacy = LegacyDecomposer.minHands(counts.clone());
             assertTrue("第 " + round + " 局新算法(" + modern
                             + ")不得劣于旧算法(" + legacy + ")",
                     modern <= legacy);
+            if (modern < legacy) strictWins++;
         }
+        assertTrue("对比语料中应存在新算法严格更优的局（防 no-op 回归），实际 "
+                        + strictWins + " 局",
+                strictWins >= 1);
     }
 
     /**

@@ -50,6 +50,27 @@ public class AiBrainRegressionTest {
     }
 
     /**
+     * P2 第二轮复查退回项：地主报警且队友也报警，但下家是地主（队友在对面座位）时，
+     * 送小单牌等于直接喂地主获胜（地主任意更大的单牌压过即赢）——必须维持顶最大
+     * 单牌防守，普通/困难两档一致。正向场景（队友在下家 → 送小）由
+     * {@link #farmerSendsSmallWhenTeammateAlsoAlerting} 锁定。
+     */
+    @Test
+    public void farmerTopsBigWhenLandlordIsNextSeat() {
+        List<Card> hand = of(3, 1, 13, 1);   // 最小单 3 + 最大单 K
+
+        int[] alerting = {AiBrain.DIFFICULTY_NORMAL, AiBrain.DIFFICULTY_HARD};
+        for (int difficulty : alerting) {
+            List<Card> move = AiBrain.decidePlay(hand, null, landlordNextAlertContext(),
+                    difficulty, null, null);
+            assertNotNull("报警局面必须出牌: diff=" + difficulty, move);
+            assertEquals(1, move.size());
+            assertEquals("下家是地主时不得送小牌，应顶最大单牌 K: diff=" + difficulty,
+                    13, move.get(0).getWeight());
+        }
+    }
+
+    /**
      * 普通档混合牌型首发确定性：33 + 99 + 789TJQK + 2（双对子 + 7 张顺子 + 散单），
      * 分解路线为 33 / 99 / 顺子 / 单 2，首发必须是主权重最小的对子 33，重复决策一致。
      */
@@ -80,5 +101,15 @@ public class AiBrainRegressionTest {
         int[] roles = {AiBrain.ROLE_LANDLORD, AiBrain.ROLE_FARMER, AiBrain.ROLE_FARMER};
         return new AiBrain.GameContext(AiBrain.ROLE_FARMER, 1, roles, 0, 1,
                 -1, 2, teammateRemain, teammateRemain, 1);
+    }
+
+    /**
+     * 反向报警局面：农民（座位 0）自由出牌，下家（座位 1）是地主且剩 1 张，
+     * 队友（座位 2，上家）也剩 1 张。
+     */
+    private static AiBrain.GameContext landlordNextAlertContext() {
+        int[] roles = {AiBrain.ROLE_FARMER, AiBrain.ROLE_LANDLORD, AiBrain.ROLE_FARMER};
+        return new AiBrain.GameContext(AiBrain.ROLE_FARMER, 0, roles, 1, 1,
+                -1, 2, 1, 1, 1);
     }
 }
