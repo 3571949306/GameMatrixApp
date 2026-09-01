@@ -13,7 +13,7 @@ import java.util.List;
  * <p>承载恢复一局所需的全部状态：阶段、回合、地主、叫分、倍数因子、
  * 三座位手牌、底牌、桌面当前一手牌、各座位出牌手数与"不出"标记。</p>
  *
- * <p>序列化格式：{@code |} 分隔的 18 个字段（首字段为格式版本号）；
+ * <p>序列化格式：{@code |} 分隔的 19 个字段（首字段为格式版本号）；
  * 牌用 {@code 花色代号_牌值符号}（如 {@code s_3}、{@code x_joker_small}），
  * 同一手牌内以 {@code ,} 分隔。手写紧凑格式而非 org.json：模块单测运行在
  * JVM（org.json 为 stub，见 build.gradle 的 returnDefaultValues），手写解析
@@ -23,6 +23,9 @@ public class DoudizhuSnapshot {
 
     /** 当前序列化格式版本（字段布局变更时递增） */
     public static final int FORMAT_VERSION = 2;
+
+    /** 炸弹/王炸次数上限（真实对局至多约 10 次炸弹；超限视为坏档，防 1<<bombCount 溢出） */
+    public static final int MAX_BOMB_COUNT = 20;
 
     /** 序列化字段总数（含版本号与末尾桌面牌字段） */
     private static final int FIELD_COUNT = 19;
@@ -134,11 +137,60 @@ public class DoudizhuSnapshot {
             String lastRaw = f[17];
             s.lastPlayed = lastRaw.isEmpty() ? null : parseCards(lastRaw);
             s.lastPlayerSeat = Integer.parseInt(f[18]);
+            validateRanges(s);
             return s;
         } catch (SerializeException e) {
             throw e;
         } catch (Exception e) {
             throw new SerializeException("解析失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 标量字段范围校验（P3 复查修复 B/C）：构造性坏档（如 currentTurn=5、
+     * bombCount=9999999）不得流入恢复路径——currentTurn/landlordSeat 越界会致
+     * 恢复后 AIOOBE，bombCount 超上限会致 {@code 1<<bombCount} 溢出与
+     * registerBomb 循环上千万次。任一非法即抛 {@link SerializeException}，
+     * 调用方（canRestore/restoreFromSave）按既有约定走清档路径。
+     */
+    private static void validateRanges(DoudizhuSnapshot s) throws SerializeException {
+        if (s.phase < 1 || s.phase > 3) {
+            throw new SerializeException("非法阶段: " + s.phase);
+        }
+        if (s.currentTurn < 0 || s.currentTurn >= 3) {
+            throw new SerializeException("非法回合座位: " + s.currentTurn);
+        }
+        if (s.landlordSeat < -1 || s.landlordSeat >= 3) {
+            throw new SerializeException("非法地主座位: " + s.landlordSeat);
+        }
+        if (s.highestBid < 0 || s.highestBid > 3) {
+            throw new SerializeException("非法最高叫分: " + s.highestBid);
+        }
+        if (s.bidPlacedCount < 0 || s.bidPlacedCount > 3) {
+            throw new SerializeException("非法叫分人数: " + s.bidPlacedCount);
+        }
+        if (s.redealCount < 0) {
+            throw new SerializeException("非法重发次数: " + s.redealCount);
+        }
+        if (s.bidScore < 0 || s.bidScore > 3) {
+            throw new SerializeException("非法叫分倍数: " + s.bidScore);
+        }
+        if (s.bombCount < 0 || s.bombCount > MAX_BOMB_COUNT) {
+            throw new SerializeException("非法炸弹次数: " + s.bombCount);
+        }
+        if (s.difficulty < 0 || s.difficulty > 2) {
+            throw new SerializeException("非法难度: " + s.difficulty);
+        }
+        if (s.lastPlayerSeat < -1 || s.lastPlayerSeat >= 3) {
+            throw new SerializeException("非法桌面出牌者座位: " + s.lastPlayerSeat);
+        }
+        if (s.playCounts != null) {
+            for (int i = 0; i < s.playCounts.length; i++) {
+                if (s.playCounts[i] < 0) {
+                    throw new SerializeException("非法出牌手数: seat=" + i
+                            + " count=" + s.playCounts[i]);
+                }
+            }
         }
     }
 

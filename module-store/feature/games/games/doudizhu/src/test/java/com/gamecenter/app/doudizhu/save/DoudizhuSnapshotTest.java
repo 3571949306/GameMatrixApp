@@ -170,6 +170,58 @@ public class DoudizhuSnapshotTest {
         }
     }
 
+    // ============ 标量字段范围校验（P3 复查修复 B/C） ============
+
+    /** 把指定下标的标量字段替换为 value 后返回新存档串。 */
+    private static String withField(String json, int index, String value) {
+        String[] parts = json.split("\\|", -1);
+        parts[index] = value;
+        return String.join("|", parts);
+    }
+
+    private static void assertRejected(String json, String reason) {
+        try {
+            DoudizhuSnapshot.deserialize(json);
+            fail(reason + " 必须抛异常");
+        } catch (DoudizhuSnapshot.SerializeException expected) {
+            // ok
+        }
+    }
+
+    /** 构造性坏档：currentTurn/landlordSeat/phase 等越界 → 拒绝（防恢复后 AIOOBE）。 */
+    @Test
+    public void rejectsOutOfRangeScalars() {
+        String json = sample().serialize();
+        assertRejected(withField(json, 2, "5"), "currentTurn 越上界");
+        assertRejected(withField(json, 2, "-1"), "currentTurn 越下界");
+        assertRejected(withField(json, 3, "99"), "landlordSeat 越上界");
+        assertRejected(withField(json, 3, "-2"), "landlordSeat 越下界（-1 合法）");
+        assertRejected(withField(json, 1, "-1"), "phase 越下界");
+        assertRejected(withField(json, 1, "4"), "phase 越上界");
+        assertRejected(withField(json, 5, "7"), "bidPlacedCount 越上界");
+        assertRejected(withField(json, 5, "-1"), "bidPlacedCount 越下界");
+        assertRejected(withField(json, 6, "-1"), "redealCount 非负");
+        assertRejected(withField(json, 7, "4"), "bidScore 越上界");
+        assertRejected(withField(json, 4, "9"), "highestBid 越上界");
+        assertRejected(withField(json, 9, "5"), "difficulty 越上界");
+        assertRejected(withField(json, 9, "-1"), "difficulty 越下界");
+        assertRejected(withField(json, 18, "3"), "lastPlayerSeat 越上界（-1 合法）");
+        assertRejected(withField(json, 11, "-1,0,0"), "出牌手数非负");
+        assertRejected(withField(json, 11, "0,-3,0"), "出牌手数非负（座位 1）");
+    }
+
+    /** bombCount 上限 20：21 / 9999999 拒绝（防 1<<bombCount 溢出与循环上千万次）。 */
+    @Test
+    public void rejectsExcessiveBombCount() {
+        String json = sample().serialize();
+        assertRejected(withField(json, 8, "9999999"), "bombCount 千万级必须拒绝");
+        assertRejected(withField(json, 8, "21"), "bombCount 超上限必须拒绝");
+        // 边界：上限 20 本身合法且往返一致
+        DoudizhuSnapshot back = DoudizhuSnapshot.deserialize(withField(json, 8, "20"));
+        assertEquals(DoudizhuSnapshot.MAX_BOMB_COUNT, back.bombCount);
+        assertRejected(withField(json, 8, "-1"), "bombCount 非负");
+    }
+
     @Test
     public void cardIdentityEqualsBySuitAndRank() {
         // 存档恢复后的牌与原牌 equals（花色+牌值），控制器手牌移除逻辑依赖此语义
