@@ -90,14 +90,20 @@ public class DoudizhuGameControllerTest {
      * 并把左家手牌固化为 3/5/9 三张散牌。
      */
     private static DoudizhuGameController newControllerWithLeftAiLandlord() {
-        DoudizhuGameController controller = new DoudizhuGameController();
-        controller.startNewGame(DoudizhuGameController.DIFFICULTY_NORMAL);
-
+        DoudizhuGameController controller = newControllerInBidding();
         controller.state().setLandlord(Seats.SEAT_LEFT_AI);
         List<Card> hand = controller.state().getSeat1Cards();
         hand.clear();
         hand.addAll(of(3, 1, 5, 1, 9, 1));
         controller.state().startPlayingPhase();
+        return controller;
+    }
+
+    /** 构造处于叫分阶段（尚未有人叫分）的控制器（不绑定 UI，AI 回调直接驱动）。 */
+    static DoudizhuGameController newControllerInBidding() {
+        DoudizhuGameController controller = new DoudizhuGameController();
+        controller.state().resetGameState();
+        controller.state().startGame();
         return controller;
     }
 }
