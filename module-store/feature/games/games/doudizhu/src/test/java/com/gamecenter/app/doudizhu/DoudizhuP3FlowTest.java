@@ -145,6 +145,25 @@ public class DoudizhuP3FlowTest {
         assertEquals("地主 20 张（17+3 底牌）", 20, st.getHandCounts()[Seats.SEAT_RIGHT_AI]);
     }
 
+    /**
+     * 顶格叫 3 分立即定地主（P3 复查项 E）：后手无需再表态，倍数按 3 计。
+     */
+    @Test
+    public void topBidThreeFinalizesLandlordImmediately() {
+        RecordingScreen ui = new RecordingScreen();
+        DoudizhuGameController c = newControllerInBidding(ui);
+        DouDiZhuGameStateManager st = c.state();
+        st.restoreBidTurnForTest(Seats.SEAT_PLAYER);
+
+        c.onHumanBid(3);
+        assertEquals("顶格叫分必须立即定地主", Seats.SEAT_PLAYER, st.getLandlordIndex());
+        assertEquals("直接进入出牌阶段", DouDiZhuGameStateManager.STATE_PLAYING,
+                st.getGameState());
+        assertEquals("叫分倍数 = 3", 3, c.getMultiplier());
+        assertEquals("地主 20 张（17+3 底牌）", 20, st.getHandCounts()[Seats.SEAT_PLAYER]);
+        assertEquals("仅 1 人表态", 1, st.getBidPlacedCount());
+    }
+
     /** 人类叫分不高于当前最高分：回调 onInvalidBid 且叫分状态不变。 */
     @Test
     public void invalidHumanBidRejected() {

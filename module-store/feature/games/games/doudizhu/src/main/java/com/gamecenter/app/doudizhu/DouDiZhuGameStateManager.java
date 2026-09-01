@@ -347,8 +347,9 @@ public class DouDiZhuGameStateManager {
     /**
      * 记录一次叫分（P3 叫分制）。
      *
-     * <p>有效叫分（高于当前最高分）时更新最高分与最高分座位；
-     * 叫分人数达到 3 人时立即定地主（最高分者）并进入出牌阶段。
+     * <p>有效叫分（高于当前最高分）时更新最高分与最高分座位；叫 3 分（顶格）时
+     * 立即定地主（标准规则：顶格叫分后后手无需再表态），否则在叫分人数达到 3 人时
+     * 定地主（最高分者）并进入出牌阶段。
      * 由控制器先行校验 {@code BidPolicy.isValidBid} 后调用。</p>
      *
      * @param seatIndex 叫分座位
@@ -358,6 +359,11 @@ public class DouDiZhuGameStateManager {
         highestBid = bid;
         highestBidSeat = seatIndex;
         bidPlacedCount++;
+        if (bid >= 3) {
+            // 顶格叫分：立即定地主，不再轮转（P3 复查项 E）
+            finalizeLandlord(seatIndex);
+            return;
+        }
         if (bidPlacedCount >= 3) {
             finalizeLandlord(highestBidSeat);
         } else {
