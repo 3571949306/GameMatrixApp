@@ -16,6 +16,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 object ModuleManager {
 
@@ -36,6 +37,67 @@ object ModuleManager {
     private val manifests = ConcurrentHashMap<String, ModuleManifest>()
     private val downloadCallbacks = ConcurrentHashMap<String, ModuleDownloader.Callback>()
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * 冒烟缺陷修复（Games 大厅 Classics 首次为空）：出厂预装安装完成监听器。
+     *
+     * 背景：首启预装（installBundledModulesIfNeeded）是重 IO，可能晚于 GamesFragment
+     * 的首次 onResume；底部导航 add/hide/show 切换不触发 onResume，导致大厅一直
+     * 显示 "No games available"，需手动进一次商店才刷新。预装完成后在此通知
+     * 已注册的监听者（主线程回调），UI 侧据此重载游戏列表。
+     */
+    private val bundledInstallListeners = CopyOnWriteArrayList<Runnable>()
+
+    /** 出厂预装安装是否已在本进程跑完（区别于标记"已启动"的 [bundledInstallDone]）。 */
+    @Volatile
+    private var bundledInstallCompleted = false
+
+    /** 注册预装安装完成监听器（主线程回调）。若预装已完成则立即回调一次。 */
+    fun addBundledInstallListener(listener: Runnable) {
+        bundledInstallListeners.add(listener)
+        if (bundledInstallCompleted) {
+            // 补偿回调定向派发给新注册者（避免整表重派导致老监听器重复回调），
+            // 执行前复查其仍在列表中：注册后、执行前注销的监听器不会收到回调。
+            mainHandler.post {
+                if (listener in bundledInstallListeners) {
+                    try {
+                        listener.run()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "预装完成监听器回调失败: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    /** 注销监听器。 */
+    fun removeBundledInstallListener(listener: Runnable) {
+        bundledInstallListeners.remove(listener)
+    }
+
+    /**
+     * 标记出厂预装安装完成并派发监听器（主线程）。
+     *
+     * internal 开放给单元测试（BundledInstallListenerTest）：真实安装链路含 31 个
+     * APK 的 SHA/签名校验与 dex 装载，无法在 Robolectric 下运行，测试经本接缝
+     * 直接驱动完成事件。幂等：重复调用只派发一次。
+     */
+    internal fun notifyBundledInstallCompleted() {
+        if (bundledInstallCompleted) return
+        bundledInstallCompleted = true
+        mainHandler.post { dispatchBundledInstallCompleted() }
+    }
+
+    /** 主线程统一派发：遍历监听器快照逐个回调，单个异常不阻断其他监听器。 */
+    private fun dispatchBundledInstallCompleted() {
+        for (listener in bundledInstallListeners) {
+            try {
+                listener.run()
+            } catch (e: Exception) {
+                Log.w(TAG, "预装完成监听器回调失败: ${e.message}")
+            }
+        }
+    }
 
     // MODULE_STORE_PERF_OPT: 内存级缓存，消除主线程 N+1 文件 IO
     @Volatile private var installedIdsCache: MutableSet<String>? = null
@@ -354,6 +416,14 @@ object ModuleManager {
             installedIdsCache?.add(moduleId)
             installedVersionCache?.put(moduleId, versionCode)
             val loaded = ModuleLoader.loadModule(appCtx, manifest)
+            // 冒烟缺陷修复：与下载路径（downloadModule.onComplete）对齐，
+            // 预装/热更安装游戏模块且装载成功后立即注册到 GameRegistry。此前仅
+            // 下载路径注册，首启预装晚于 GamesFragment 首次加载时大厅不显示卡片。
+            // 仅在装载成功后注册：装载失败时 onVerifyFailure 已清理安装状态，
+            // 不应残留无法启动的幻影卡片。
+            if (loaded != null && manifest.type == "game") {
+                registerGameFromManifest(appCtx, manifest)
+            }
             loaded != null
         } catch (e: Exception) {
             Log.e(TAG, "applyExternalUpdate 失败: $moduleId", e)
@@ -451,6 +521,10 @@ object ModuleManager {
             }
         }
         Log.i(TAG, "出厂预装完成: 新装/升级 $installedCount 个模块")
+        // 冒烟缺陷修复：无论本次是否有新装（幂等场景也要通知，首启竞态下
+        // GamesFragment 可能在预装进行中就已加载过空列表），统一广播完成事件，
+        // 让已打开的游戏大厅等 UI 自动重载。
+        notifyBundledInstallCompleted()
     }
 
     /**
