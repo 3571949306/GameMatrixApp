@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    斗地主游戏字符串资源（英文补充，values/strings_game_doudizhu_new.xml 的镜像）。
+    P4（2026-09-01）先补齐牌桌 Canvas 绘制与身份标签用到的 13 条，
+    修正英文 locale 下"中文回退"造成的中英混排；成就/联机等其余条目留给 P6 全量翻译。
+-->
+<resources>
+    <!-- 玩家身份标签 -->
+    <string name="game_doudizhu_role_you_landlord">You (Landlord)</string>
+    <string name="game_doudizhu_role_you_farmer">You (Farmer)</string>
+    <string name="game_doudizhu_role_left_ai_landlord">Left AI (Landlord)</string>
+    <string name="game_doudizhu_role_left_ai_farmer">Left AI (Farmer)</string>
+    <string name="game_doudizhu_role_right_ai_landlord">Right AI (Landlord)</string>
+    <string name="game_doudizhu_role_right_ai_farmer">Right AI (Farmer)</string>
+
+    <!-- 座位名 -->
+    <string name="game_doudizhu_player_you">You</string>
+    <string name="game_doudizhu_player_left_ai">Left AI</string>
+    <string name="game_doudizhu_player_right_ai">Right AI</string>
+
+    <!-- TableView — 桌面绘制文字 -->
+    <string name="game_doudizhu_pass_label">Pass</string>
+    <string name="game_doudizhu_card_counter">Counter</string>
+    <string name="game_doudizhu_cards_remaining">%1$d left</string>
+    <string name="game_doudizhu_select_prompt">Select cards to play</string>
+</resources>
