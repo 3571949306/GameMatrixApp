@@ -23,6 +23,27 @@
     <color name="game_sudoku_color_btn_notes_text">#FF2D2D2D</color>
     <color name="game_sudoku_color_btn_notes_on">#FF5B8A72</color>
     <color name="game_sudoku_color_btn_notes_on_text">#FFFFFFFF</color>
+    <color name="game_sudoku_color_surface">#FFFFFFFF</color>
+    <color name="game_sudoku_color_board">#FFFFFFFF</color>
+    <color name="game_sudoku_color_grid">#FFD6D9D7</color>
+    <color name="game_sudoku_color_grid_strong">#FF39745A</color>
+    <color name="game_sudoku_color_selected">#FFD9F2E6</color>
+    <color name="game_sudoku_color_related">#FFEEF8F2</color>
+    <color name="game_sudoku_color_error">#FFFFE9E7</color>
+    <color name="game_sudoku_color_given">#FF202522</color>
+    <color name="game_sudoku_color_user">#FF287A57</color>
+    <color name="game_sudoku_color_error_text">#FFB42318</color>
+    <color name="game_sudoku_color_note">#FF6D7771</color>
+    <color name="game_sudoku_color_success">#FF287A57</color>
+    <color name="game_sudoku_color_text_secondary">#FF64706A</color>
+    <color name="game_sudoku_color_button">#FF287A57</color>
+    <color name="game_sudoku_color_button_text">#FFFFFFFF</color>
+    <color name="game_sudoku_color_button_muted">#FFF0F4F1</color>
+    <color name="game_sudoku_color_button_muted_text">#FF2E3933</color>
+    <color name="game_sudoku_color_button_danger">#FFFFE9E7</color>
+    <color name="game_sudoku_color_button_danger_text">#FFB42318</color>
+    <color name="game_sudoku_color_button_selected">#FF287A57</color>
+    <color name="game_sudoku_color_button_selected_text">#FFFFFFFF</color>
 
     <!-- ========== Sokoban 推箱子 ========== -->
     <color name="game_sokoban_color_bg">#FFF5F0E8</color>

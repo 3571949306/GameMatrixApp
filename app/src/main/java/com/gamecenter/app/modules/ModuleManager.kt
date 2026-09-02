@@ -16,6 +16,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 object ModuleManager {
 
@@ -36,6 +37,83 @@ object ModuleManager {
     private val manifests = ConcurrentHashMap<String, ModuleManifest>()
     private val downloadCallbacks = ConcurrentHashMap<String, ModuleDownloader.Callback>()
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * 冒烟缺陷修复（Games 大厅 Classics 首次为空）：出厂预装安装完成监听器。
+     *
+     * 背景：首启预装（installBundledModulesIfNeeded）是重 IO，可能晚于 GamesFragment
+     * 的首次 onResume；底部导航 add/hide/show 切换不触发 onResume，导致大厅一直
+     * 显示 "No games available"，需手动进一次商店才刷新。预装完成后在此通知
+     * 已注册的监听者（主线程回调），UI 侧据此重载游戏列表。
+     */
+    private val bundledInstallListeners = CopyOnWriteArrayList<Runnable>()
+
+    /** 出厂预装安装是否已在本进程跑完（区别于标记"已启动"的 [bundledInstallDone]）。 */
+    @Volatile
+    private var bundledInstallCompleted = false
+
+    /**
+     * 完成事件的整表派发消息是否已在主线程执行。与补偿回调互斥的判据：
+     * 派发执行时先置位再遍历。监听器注册若发生在派发之前（消息还在队列中），
+     * 整表派发必然会遍历到它，补偿必须跳过，否则同一监听器会被回调两次
+     * （M1 整表派发一次 + M2 补偿一次的竞争时序）。
+     */
+    @Volatile
+    private var bundledInstallDispatchDone = false
+
+    /** 注册预装安装完成监听器（主线程回调）。若预装已完成则立即回调一次。 */
+    fun addBundledInstallListener(listener: Runnable) {
+        bundledInstallListeners.add(listener)
+        if (bundledInstallCompleted && bundledInstallDispatchDone) {
+            // 仅当整表派发已经跑过才需要补偿：新注册者错过了派发窗口。
+            // 若派发消息尚在主线程队列中（dispatchDone==false），它会遍历到本
+            // 监听器，此处再补偿就会双回调。补偿回调定向派发给新注册者（避免
+            // 整表重派导致老监听器重复回调），执行前复查其仍在列表中：注册后、
+            // 执行前注销的监听器不会收到回调。
+            mainHandler.post {
+                if (listener in bundledInstallListeners) {
+                    try {
+                        listener.run()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "预装完成监听器回调失败: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    /** 注销监听器。 */
+    fun removeBundledInstallListener(listener: Runnable) {
+        bundledInstallListeners.remove(listener)
+    }
+
+    /**
+     * 标记出厂预装安装完成并派发监听器（主线程）。
+     *
+     * internal 开放给单元测试（BundledInstallListenerTest）：真实安装链路含 31 个
+     * APK 的 SHA/签名校验与 dex 装载，无法在 Robolectric 下运行，测试经本接缝
+     * 直接驱动完成事件。幂等：重复调用只派发一次。
+     */
+    internal fun notifyBundledInstallCompleted() {
+        if (bundledInstallCompleted) return
+        bundledInstallCompleted = true
+        mainHandler.post { dispatchBundledInstallCompleted() }
+    }
+
+    /** 主线程统一派发：遍历监听器快照逐个回调，单个异常不阻断其他监听器。 */
+    private fun dispatchBundledInstallCompleted() {
+        // 先置位再遍历：此后注册的监听器由 addBundledInstallListener 据
+        // dispatchDone 补偿一次，本派发覆盖此刻已在列表中的所有监听器，
+        // 两条路径对任一监听器互斥，合计恰好一次。
+        bundledInstallDispatchDone = true
+        for (listener in bundledInstallListeners) {
+            try {
+                listener.run()
+            } catch (e: Exception) {
+                Log.w(TAG, "预装完成监听器回调失败: ${e.message}")
+            }
+        }
+    }
 
     // MODULE_STORE_PERF_OPT: 内存级缓存，消除主线程 N+1 文件 IO
     @Volatile private var installedIdsCache: MutableSet<String>? = null
@@ -354,6 +432,17 @@ object ModuleManager {
             installedIdsCache?.add(moduleId)
             installedVersionCache?.put(moduleId, versionCode)
             val loaded = ModuleLoader.loadModule(appCtx, manifest)
+            // 冒烟缺陷修复：与下载路径（downloadModule.onComplete）对齐，
+            // 预装/热更安装游戏模块且装载成功后立即注册到 GameRegistry。此前仅
+            // 下载路径注册，首启预装晚于 GamesFragment 首次加载时大厅不显示卡片。
+            // 仅在装载成功后注册：装载失败时 onVerifyFailure 已清理安装状态，
+            // 不应残留无法启动的幻影卡片。
+            // 注册判据与 registerInstalledGameModules 统一为 isLaunchableGameManifest：
+            // type=="game" 且入口可用（entryClass 非空，或 builtIn+activityClass），
+            // 防止无入口类的 game 清单注册出无法启动的幻影卡片。
+            if (loaded != null && isLaunchableGameManifest(manifest)) {
+                registerGameFromManifest(appCtx, manifest)
+            }
             loaded != null
         } catch (e: Exception) {
             Log.e(TAG, "applyExternalUpdate 失败: $moduleId", e)
@@ -418,6 +507,10 @@ object ModuleManager {
         }
         Log.i(TAG, "出厂预装扫描: manifests=${manifests.size}")
         var installedCount = 0
+        // 本次实际尝试过安装/提取的模块数（未被 alreadyApplied 跳过）。
+        // 为 0 说明全部已达标（非首启快路径），本进程未发生任何安装状态变化，
+        // 结尾无需广播完成事件（省一次大厅无谓 loadGames）。
+        var attemptedCount = 0
         for (m in manifests.values) {
             if (m.fileName.isBlank()) continue
             val current = try {
@@ -434,6 +527,7 @@ object ModuleManager {
                     prefs(appCtx).getBoolean(appliedKey, false)
             Log.i(TAG, "预装检查 ${m.id}: current=$current bundled=${m.versionCode} fileReady=$fileReady applied=${alreadyApplied}")
             if (alreadyApplied) continue
+            attemptedCount++
             try {
                 val tmp = java.io.File(appCtx.cacheDir, "bundled_${m.fileName}")
                 appCtx.assets.open("modules/${m.fileName}").use { input ->
@@ -451,6 +545,17 @@ object ModuleManager {
             }
         }
         Log.i(TAG, "出厂预装完成: 新装/升级 $installedCount 个模块")
+        // 冒烟缺陷修复：无论本次是否有新装（幂等场景也要通知，首启竞态下
+        // GamesFragment 可能在预装进行中就已加载过空列表），统一广播完成事件，
+        // 让已打开的游戏大厅等 UI 自动重载。例外：本次一个模块都没尝试过
+        // （attemptedCount==0，非首启全部 alreadyApplied 跳过）说明本进程没有
+        // 任何安装状态变化，跳过广播，省去大厅一次无谓 loadGames；只要尝试过
+        // （即使失败）仍广播，保证大厅重扫。
+        if (attemptedCount > 0) {
+            notifyBundledInstallCompleted()
+        } else {
+            Log.i(TAG, "预装无待处理模块，跳过完成广播")
+        }
     }
 
     /**
@@ -518,23 +623,23 @@ object ModuleManager {
                     } else if (savedV > 0) {
                         versions[id] = savedV
                     }
-            } else {
-                // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
-                if (fileExists) {
-                    installed.add(id)
-                    if (savedV > 0) {
-                        versions[id] = savedV
-                    } else {
-                        // 预装补种：APK 文件在但从未走过下载流程（SP 无版本记录）。
-                        // 商店"有更新"判定要求 installedVersion > 0，不补种则预装模块永远收不到更新。
-                        val bundledV = bundledVersionCodeOf(appContext, id)
-                        if (bundledV > 0) {
-                            versions[id] = bundledV
-                            seededVersions[id] = bundledV
+                } else {
+                    // SP 未标记：检查文件是否存在以补全缓存（原逻辑）
+                    if (fileExists) {
+                        installed.add(id)
+                        if (savedV > 0) {
+                            versions[id] = savedV
+                        } else {
+                            // 预装补种：APK 文件在但从未走过下载流程（SP 无版本记录）。
+                            // 商店"有更新"判定要求 installedVersion > 0，不补种则预装模块永远收不到更新。
+                            val bundledV = bundledVersionCodeOf(appContext, id)
+                            if (bundledV > 0) {
+                                versions[id] = bundledV
+                                seededVersions[id] = bundledV
+                            }
                         }
                     }
                 }
-            }
         }
         // 回写清理后的 SP（仅当确有脏数据时才写入，避免无谓 IO）
         if (staleIds.isNotEmpty() || seededVersions.isNotEmpty()) {

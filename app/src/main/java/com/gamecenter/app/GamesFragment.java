@@ -164,6 +164,24 @@ public class GamesFragment extends Fragment {
             registerForActivityResult(new ActivityResultContracts.OpenDocument(),
                     uri -> handleImportResult(uri));
 
+    /**
+     * 冒烟缺陷修复（Classics 首次进入 "No games available"）：出厂预装安装完成监听器。
+     *
+     * <p>首启预装提取/安装是重 IO，可能晚于本 Fragment 的首次 onResume；且底部导航
+     * add/hide/show 切换不触发 onResume。预装完成后 ModuleManager 会通知本监听器
+     * （主线程），此时重扫已安装模块并重载游戏列表，斗地主/21点等预装游戏卡片即可
+     * 自动出现，无需再手动进一次模块商店。</p>
+     */
+    private final Runnable onBundledInstallCompleted = new Runnable() {
+        @Override
+        public void run() {
+            if (!isAdded() || getContext() == null || rootView == null) return;
+            ModuleManager.INSTANCE.registerInstalledGameModules(requireContext());
+            loadGames();
+        }
+    };
+    private boolean bundledInstallListenerRegistered = false;
+
     public GamesFragment() {
         super(R.layout.fragment_games);
     }
@@ -177,6 +195,12 @@ public class GamesFragment extends Fragment {
             ratingStore = new GameRatingStore(requireContext());
         }
         initViews(view);
+        // 冒烟缺陷修复：监听出厂预装安装完成事件，完成后自动重载游戏列表。
+        // 用字段持有实例保证注册/注销传入同一引用（方法引用每次求值会新建 lambda）。
+        if (!bundledInstallListenerRegistered) {
+            ModuleManager.INSTANCE.addBundledInstallListener(onBundledInstallCompleted);
+            bundledInstallListenerRegistered = true;
+        }
         // 包 D-1 (DAILY_CHECKIN): 每日首次进入游戏大厅自动记录登录天数（2026-07-22 起由手动签到改为自动记录）
         recordLoginDay();
     }
@@ -242,6 +266,11 @@ public class GamesFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // 冒烟缺陷修复：视图销毁时注销预装完成监听器，避免持有已销毁视图的引用
+        if (bundledInstallListenerRegistered) {
+            ModuleManager.INSTANCE.removeBundledInstallListener(onBundledInstallCompleted);
+            bundledInstallListenerRegistered = false;
+        }
         // Batch 7-2 (ANIM_SHIMMER_LOADING): 清理动画避免泄漏
         if (shimmerAlphaAnim != null) {
             shimmerAlphaAnim.cancel();

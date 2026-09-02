@@ -120,7 +120,7 @@ object CatalogSignatureVerifierManager {
      * 
      * @param catalog 目录JSON内容
      * @param signature Base64编码的签名
-     * @param forceVerify 是否强制验证（由BuildConfig.ENABLE_CATALOG_SIGNATURE控制）
+     * @param forceVerify 是否强制验证（生产由 BuildConfig.CATALOG_SIGNATURE_TRUSTED 控制；外层总开关为 ENABLE_CATALOG_SIGNATURE）
      * @return 验证结果
      */
     fun verify(catalog: String, signature: String?, forceVerify: Boolean): VerifyResult {

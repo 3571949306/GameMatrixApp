@@ -135,13 +135,15 @@ class App : Application() {
             if (!assetName.endsWith(".apk")) continue
             val targetFile = File(modulesDir, assetName)
             val tempFile = File(modulesDir, "$assetName.tmp")
+            // 跳过判定用结构校验而非流大小：available() 对压缩 asset 返回压缩后长度，
+            // 与解压产物对不上，会让预装 APK 每次冷启全部重复提取。
+            // ZIP 可读且含 AndroidManifest.xml 即视为已就位，与下方重提判定同一标准。
+            if (targetFile.exists() && targetFile.length() > 0 && validatePreinstalledApk(targetFile)) {
+                Log.d("App", "[preinstall] 已存在且校验通过: $assetName，跳过提取")
+                continue
+            }
             try {
                 assets.open("modules/$assetName").use { input ->
-                    val assetSize = input.available()
-                    if (targetFile.exists() && targetFile.length() == assetSize.toLong()) {
-                        Log.d("App", "[preinstall] 已存在且大小一致: $assetName，跳过提取")
-                        return@use
-                    }
                     if (targetFile.exists()) {
                         if (!targetFile.canWrite()) {
                             targetFile.setWritable(true, true)
@@ -198,22 +200,6 @@ class App : Application() {
             val prefs = getSharedPreferences("module_manager_prefs", MODE_PRIVATE)
             prefs.edit().putLong("preinstall_last_extract_time", System.currentTimeMillis()).apply()
             Log.i("App", "[preinstall] 共提取 $extractedCount 个模块 APK")
-        }
-    }
-
-    /**
-     * 轻量 APK 完整性校验：文件存在、非空、且为可读 zip 含 AndroidManifest.xml。
-     * 仅用于预装阶段快速发现损坏包；深层签名/SHA-256 校验由运行时 ModuleLoader 负责。
-     */
-    private fun validatePreinstalledApk(file: File): Boolean {
-        if (!file.exists() || file.length() == 0L) return false
-        return try {
-            java.util.zip.ZipFile(file).use { zf ->
-                zf.getEntry("AndroidManifest.xml") != null
-            }
-        } catch (e: Exception) {
-            Log.w("App", "[preinstall] APK 校验异常: ${file.name} - ${e.message}")
-            false
         }
     }
 
@@ -405,5 +391,22 @@ class App : Application() {
                 ColorSchemeManager.applyScheme(activity, scheme, app.isDarkMode)
             }
         }
+    }
+}
+
+/**
+ * 轻量 APK 完整性校验：文件存在、非空、且为可读 zip 含 AndroidManifest.xml。
+ * 仅用于预装阶段快速发现损坏包；深层签名/SHA-256 校验由运行时 ModuleLoader 负责。
+ * 顶层 internal 以便单测直接覆盖预装提取的跳过/重提判定标准（PreinstallApkValidationTest）。
+ */
+internal fun validatePreinstalledApk(file: File): Boolean {
+    if (!file.exists() || file.length() == 0L) return false
+    return try {
+        java.util.zip.ZipFile(file).use { zf ->
+            zf.getEntry("AndroidManifest.xml") != null
+        }
+    } catch (e: Exception) {
+        Log.w("App", "[preinstall] APK 校验异常: ${file.name} - ${e.message}")
+        false
     }
 }

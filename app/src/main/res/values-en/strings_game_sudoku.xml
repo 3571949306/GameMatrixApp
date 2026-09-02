@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Sudoku basics and existing achievements -->
+    <string name="game_sudoku_name">Sudoku</string>
+    <string name="game_sudoku_desc">Classic 9×9 Sudoku puzzle game</string>
+    <string name="game_sudoku_select_difficulty">Choose a difficulty to start</string>
+    <string name="game_sudoku_playing">Fill the numbers to solve Sudoku</string>
+    <string name="game_sudoku_congratulations">Congratulations! Completed in %d seconds</string>
+    <string name="game_sudoku_expert">Expert</string>
+    <string name="game_sudoku_hint">Hint</string>
+
+    <!-- Sudoku rules -->
+    <string name="game_sudoku_rules_title">Sudoku rules</string>
+    <string name="game_sudoku_rules_content">
+        1. Fill a 9×9 grid with numbers 1-9\n
+        2. Each row must contain 1-9 without repeats\n
+        3. Each column must contain 1-9 without repeats\n
+        4. Each 3×3 box must contain 1-9 without repeats\n
+        5. Select an empty cell, then choose a number below\n
+        6. Use hints to reveal a correct answer
+    </string>
+
+    <!-- Achievement names -->
+    <string name="game_sudoku_ach_first_solve">First steps</string>
+    <string name="game_sudoku_ach_first_solve_desc">Complete Sudoku for the first time</string>
+    <string name="game_sudoku_ach_medium">Rising solver</string>
+    <string name="game_sudoku_ach_medium_desc">Complete a medium Sudoku</string>
+    <string name="game_sudoku_ach_hard">Sudoku master</string>
+    <string name="game_sudoku_ach_hard_desc">Complete a hard Sudoku</string>
+    <string name="game_sudoku_ach_no_hint">Independent thinker</string>
+    <string name="game_sudoku_ach_no_hint_desc">Complete Sudoku without using hints</string>
+    <string name="game_sudoku_ach_10min">Speed solver</string>
+    <string name="game_sudoku_ach_10min_desc">Complete any difficulty Sudoku within 10 minutes</string>
+
+    <!-- Sudoku 2.0 flow and feedback -->
+    <string name="game_sudoku_menu_subtitle">One puzzle a day. Focus, think, and continue anytime.</string>
+    <string name="game_sudoku_resume_game">Continue last game</string>
+    <string name="game_sudoku_resume_detail">%1$s · %2$d cells left</string>
+    <string name="game_sudoku_new_game">Choose a difficulty</string>
+    <string name="game_sudoku_rules_button">How to play</string>
+    <string name="game_sudoku_back">Back</string>
+    <string name="game_sudoku_more">More</string>
+    <string name="game_sudoku_restart">Restart</string>
+    <string name="game_sudoku_saved">Progress saved automatically</string>
+    <string name="game_sudoku_auto_saved">Your progress is saved when you leave this page.</string>
+    <string name="game_sudoku_stats_filled">Progress %1$d/%2$d</string>
+    <string name="game_sudoku_stats_mistakes">Mistakes %d</string>
+    <string name="game_sudoku_stats_hints">Hints %d</string>
+    <string name="game_sudoku_stats_time">Time %s</string>
+    <string name="game_sudoku_undo">Undo</string>
+    <string name="game_sudoku_redo">Redo</string>
+    <string name="game_sudoku_clear">Clear</string>
+    <string name="game_sudoku_note_added">Notes updated</string>
+    <string name="game_sudoku_select_cell">Select an empty cell first</string>
+    <string name="game_sudoku_conflict">That number conflicts with its row, column, or box.</string>
+    <string name="game_sudoku_incorrect">That number is not correct yet. You can change it.</string>
+    <string name="game_sudoku_correct">Good move</string>
+    <string name="game_sudoku_hint_used">One hint cell was filled.</string>
+    <string name="game_sudoku_no_hint_available">There are no empty cells available for a hint.</string>
+    <string name="game_sudoku_hint_confirm_title">Use a hint?</string>
+    <string name="game_sudoku_hint_confirm_message">A hint fills the correct answer and locks this cell. It counts toward your hint total.</string>
+    <string name="game_sudoku_hint_confirm">Use hint</string>
+    <string name="game_sudoku_cancel">Cancel</string>
+    <string name="game_sudoku_menu_confirm_title">Save and leave?</string>
+    <string name="game_sudoku_menu_confirm_message">Your current progress will be saved so you can continue next time.</string>
+    <string name="game_sudoku_menu_confirm">Save and return</string>
+    <string name="game_sudoku_restart_message">Your current progress will be replaced by a new puzzle.</string>
+    <string name="game_sudoku_restart_confirm">Restart</string>
+    <string name="game_sudoku_result_title">Beautifully solved!</string>
+    <string name="game_sudoku_result_time">Time %s</string>
+    <string name="game_sudoku_result_mistakes">Mistakes %d</string>
+    <string name="game_sudoku_result_hints">Hints used %d</string>
+    <string name="game_sudoku_result_replay">Play again</string>
+    <string name="game_sudoku_result_choose_difficulty">Choose another difficulty</string>
+    <string name="game_sudoku_diff_easy">Easy</string>
+    <string name="game_sudoku_diff_medium">Medium</string>
+    <string name="game_sudoku_diff_hard">Hard</string>
+    <string name="game_sudoku_diff_expert">Expert</string>
+    <string name="game_sudoku_diff_easy_desc">30 empty cells</string>
+    <string name="game_sudoku_diff_medium_desc">40 empty cells</string>
+    <string name="game_sudoku_diff_hard_desc">50 empty cells</string>
+    <string name="game_sudoku_diff_expert_desc">60 empty cells</string>
+
+    <!-- Accessibility announcements -->
+    <string name="game_sudoku_board_description">Sudoku 9 by 9 board</string>
+    <string name="game_sudoku_a11y_cell">Row %1$d, column %2$d, %3$s, %4$s%5$s</string>
+    <string name="game_sudoku_a11y_empty">empty</string>
+    <string name="game_sudoku_a11y_given">given number</string>
+    <string name="game_sudoku_a11y_hint">hint number</string>
+    <string name="game_sudoku_a11y_editable">editable</string>
+    <string name="game_sudoku_a11y_locked">, not editable</string>
+
+</resources>

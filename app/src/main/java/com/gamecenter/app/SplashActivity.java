@@ -39,6 +39,9 @@ public class SplashActivity extends AppCompatActivity {
     private final Object exitLock = new Object();
     private boolean minReached = false;
     private boolean exited = false;
+    // 首启预装安装/预加载专用：单线程池提为字段，onDestroy shutdown 释放驻留线程
+    private final java.util.concurrent.ExecutorService splashExecutor =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,7 +60,7 @@ public class SplashActivity extends AppCompatActivity {
 
         // 预装安装与核心预加载共用模块目录，必须串行：先完成首启安装事务
         // （每进程一次；已达标时为快速空转），再预加载核心模块，消除同目录并发竞态。
-        java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
+        splashExecutor.execute(() -> {
             com.gamecenter.app.modules.ModuleManager.INSTANCE
                     .installBundledModulesIfNeeded(getApplicationContext());
             CoreModulePreloader.INSTANCE.preload(getApplicationContext());
@@ -261,6 +264,8 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        // shutdown 不中断在跑任务，首启安装事务可完整收尾
+        splashExecutor.shutdown();
         super.onDestroy();
     }
 }
