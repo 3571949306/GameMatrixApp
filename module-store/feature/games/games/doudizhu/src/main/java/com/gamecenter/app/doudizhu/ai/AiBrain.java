@@ -48,6 +48,51 @@ public final class AiBrain {
     /** 简单档接牌放弃最优解的概率（固定注入 Random，可测） */
     static final double EASY_GIVE_UP_RATE = 0.15;
 
+    // ============ AI 思考延迟差异化（P5） ============
+
+    /** 各档思考延迟区间下界（毫秒，闭）：三档区间严格不重叠（简单更快、困难略慢） */
+    public static final long THINK_DELAY_EASY_MIN_MS = 400L;
+    public static final long THINK_DELAY_NORMAL_MIN_MS = 900L;
+    public static final long THINK_DELAY_HARD_MIN_MS = 1400L;
+
+    /** 各档思考延迟区间上界（毫秒，开）：区间宽 500ms，保留随机拟人感 */
+    public static final long THINK_DELAY_EASY_MAX_MS = 900L;
+    public static final long THINK_DELAY_NORMAL_MAX_MS = 1400L;
+    public static final long THINK_DELAY_HARD_MAX_MS = 1900L;
+
+    /**
+     * 按难度档位生成一次随机 AI 思考延迟（P5：简单档更快、困难档略慢）。
+     *
+     * <p>收敛旧 {@code AIBot.getRandomThinkingDelay} 的"区间随机"思路，但把延迟
+     * 差异与难度档绑定：简单 [400,900)、普通 [900,1400)、困难 [1400,1900) 毫秒，
+     * 三档区间严格不重叠。随机性经注入 {@link Random} 保证可测（固定种子输出确定）。</p>
+     *
+     * @param difficulty 难度档位（非法值按普通档处理）
+     * @param random     随机源；null 时退化为区间中位值（确定性，便于调度方在无
+     *                   随机源场景下仍可用）
+     * @return 思考延迟毫秒数，恒在对应档位区间内
+     */
+    public static long thinkingDelayMs(int difficulty, Random random) {
+        long min;
+        long max;
+        switch (difficulty) {
+            case DIFFICULTY_EASY:
+                min = THINK_DELAY_EASY_MIN_MS;
+                max = THINK_DELAY_EASY_MAX_MS;
+                break;
+            case DIFFICULTY_HARD:
+                min = THINK_DELAY_HARD_MIN_MS;
+                max = THINK_DELAY_HARD_MAX_MS;
+                break;
+            default:
+                min = THINK_DELAY_NORMAL_MIN_MS;
+                max = THINK_DELAY_NORMAL_MAX_MS;
+                break;
+        }
+        if (random == null) return min + (max - min) / 2;
+        return min + (long) (random.nextDouble() * (max - min));
+    }
+
     // ============ 角色 ============
 
     public static final int ROLE_FARMER = 0;

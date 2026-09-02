@@ -22,7 +22,8 @@ import java.util.Random;
  *
  * <p>关键设计决策：
  * <ul>
- *   <li>AI 操作通过 Handler 延迟执行（1.5 秒），模拟思考时间，提升用户体验</li>
+ *   <li>AI 操作通过 Handler 延迟执行（按难度差异化随机延迟，简单档更快、
+ *       困难档略慢，见 {@link AiBrain#thinkingDelayMs}），模拟思考时间，提升体验</li>
  *   <li>采用回调模式而非直接持有控制器引用，降低耦合度</li>
  *   <li>叫分决策（P3 叫分制）：手牌评估为 0-3 分意向档位
  *       （{@link AiBrain#evaluateBidScore}），经 {@link BidPolicy#decideAiBid}
@@ -36,7 +37,10 @@ public class DouDiZhuAIHelper {
 
     private static final String TAG = "DouDiZhuAI";
 
-    /** AI 模拟思考的延迟时间（毫秒） */
+    /**
+     * AI 思考延迟的兜底值（P5 前的固定值，仅保留作兼容常量；
+     * 实际调度延迟经 {@link AiBrain#thinkingDelayMs} 按难度差异化）。
+     */
     public static final long AI_THINKING_DELAY = 1500L;
 
     private static final int STATE_BIDDING = 1;
@@ -143,24 +147,30 @@ public class DouDiZhuAIHelper {
     /**
      * 调度 AI 出牌操作。
      *
-     * <p>先取消之前待执行的 AI 任务，再延迟 {@link #AI_THINKING_DELAY} 毫秒后执行，
+     * <p>先取消之前待执行的 AI 任务，再按当前难度取一次随机思考延迟
+     * （{@link AiBrain#thinkingDelayMs}，P5：简单档更快、困难档略慢）后执行，
      * 模拟 AI 思考过程。</p>
      */
     public void scheduleAITurn() {
         cancelPending();
         aiThinkingRunnable = this::executeAITurn;
-        handler.postDelayed(aiThinkingRunnable, AI_THINKING_DELAY);
+        handler.postDelayed(aiThinkingRunnable, nextThinkingDelay());
     }
 
     /**
      * 调度 AI 叫地主操作。
      *
-     * <p>与 {@link #scheduleAITurn()} 类似，延迟执行 AI 叫地主决策。</p>
+     * <p>与 {@link #scheduleAITurn()} 类似，按难度差异延迟执行 AI 叫地主决策。</p>
      */
     public void scheduleAIBid() {
         cancelPending();
         aiThinkingRunnable = this::executeAIBid;
-        handler.postDelayed(aiThinkingRunnable, AI_THINKING_DELAY);
+        handler.postDelayed(aiThinkingRunnable, nextThinkingDelay());
+    }
+
+    /** 本次 AI 行动的思考延迟（按难度档位随机，见 {@link AiBrain#thinkingDelayMs}） */
+    private long nextThinkingDelay() {
+        return AiBrain.thinkingDelayMs(difficulty, random);
     }
 
     /**
