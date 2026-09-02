@@ -46,6 +46,14 @@ import java.util.Random;
  *       按特效档位单点负责（避免动画与震动双路径）</li>
  *   <li>所有绘制在 onDraw 中完成，保持高性能</li>
  * </ul>
+ *
+ * <p><b>时序防护（P5 审查修复）：</b>旧动画被 {@link #clearEffect()} cancel 时
+ * 仍会触发 {@code onAnimationEnd}，若在结束回调里排延迟清除，陈旧回调会在
+ * 新特效播放中执行造成级联抹除。为此引入 {@link EffectGeneration} 代际计数：
+ * 每次入场/清除产生新代际，结束回调与延迟清除回调携带所属代际，执行前校验
+ * 归属，过时回调直接失效。延迟清除统一走具名 {@link #effectClearTask}
+ * （showEffect 前先 removeCallbacks），并在 {@link #onDetachedFromWindow}
+ * 中移除回调 + cancel 动画，防窗口泄漏。</p>
  */
 public class DouDiZhuEffectsView extends View {
 
@@ -67,6 +75,9 @@ public class DouDiZhuEffectsView extends View {
     private ValueAnimator animator;
     private float animationProgress = 0f;
     private Random random = new Random();
+
+    /** 特效代际计数：动画结束回调/延迟清除回调执行前校验归属，防陈旧回调级联。 */
+    private final EffectGeneration effectGeneration = new EffectGeneration();
 
     // 炸弹特效数据
     private List<Spark> sparks = new ArrayList<>();
@@ -158,11 +169,21 @@ public class DouDiZhuEffectsView extends View {
     }
 
     /**
-     * 清除当前特效
+     * 清除当前特效。
+     *
+     * <p>先 {@code begin()} 使旧动画的结束回调失效，再 cancel——cancel 会同步
+     * 触发 {@code onAnimationEnd}，旧回调此时校验代际已不匹配，不会再排延迟
+     * 清除，"陈旧回调抹掉新特效"的级联就此截断。</p>
      */
     public void clearEffect() {
-        if (animator != null && animator.isRunning()) {
+        // begin() 使旧动画的结束回调与在途延迟清除任务一并失效，
+        // 再移除任务本体——cancel 触发的 onAnimationEnd 校验代际已不匹配，
+        // 不会再排新任务，"陈旧回调抹掉新特效"的级联就此截断
+        effectGeneration.begin();
+        removeCallbacks(effectClearTask);
+        if (animator != null) {
             animator.cancel();
+            animator = null;
         }
         currentEffect = null;
         sparks.clear();
@@ -170,6 +191,59 @@ public class DouDiZhuEffectsView extends View {
         petals.clear();
         setVisibility(GONE);
         invalidate();
+    }
+
+    /** 当前动画所属代际（init 时登记）；结束回调据此判断自己是否已过时。 */
+    private int animatorGeneration;
+
+    /** 延迟清除任务被排出时所属的代际；执行时校验，防止抹掉新特效。 */
+    private int pendingClearGeneration;
+
+    /**
+     * 延迟清除任务（具名，便于 showEffect 前 removeCallbacks、detach 时移除）。
+     */
+    private final Runnable effectClearTask = this::clearEffectIfCurrent;
+
+    /** 延迟清除任务执行体：代际仍归属当前特效才真正清除，否则静默丢弃。 */
+    private void clearEffectIfCurrent() {
+        if (effectGeneration.isCurrent(pendingClearGeneration)) {
+            clearEffect();
+        }
+    }
+
+    /** 当前动画是否仍是最新归属（自然结束 vs 被 cancel/取代 的分界）。 */
+    private boolean animatorIsCurrent() {
+        return effectGeneration.isCurrent(animatorGeneration);
+    }
+
+    /**
+     * 动画自然结束后的统一收尾：排一次携带代际的延迟清除。炸弹 500ms 与
+     * 顺子/连对/春天的 800ms 统一走本方法。
+     *
+     * @param delayMs 结束后再停留的毫秒数
+     */
+    private void scheduleClearAfterEnd(long delayMs) {
+        pendingClearGeneration = animatorGeneration;
+        postDelayed(effectClearTask, delayMs);
+    }
+
+    /** 登记新动画的代际归属并启动（各 initXxxEffect 统一收口）。 */
+    private void startEffectAnimator(ValueAnimator anim) {
+        animator = anim;
+        animatorGeneration = effectGeneration.begin();
+        anim.start();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        // 防泄漏：移除待执行的延迟清除；先失效再 cancel，防止结束回调又排新任务
+        removeCallbacks(effectClearTask);
+        if (animator != null) {
+            effectGeneration.begin();
+            animator.cancel();
+            animator = null;
+        }
+        super.onDetachedFromWindow();
     }
 
     // ==================== 炸弹/火箭特效 ====================
@@ -218,10 +292,14 @@ public class DouDiZhuEffectsView extends View {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                postDelayed(() -> clearEffect(), 500);
+                // 只有自然结束（未被 cancel/取代）才排延迟清除；
+                // clearEffect/detach 路径 cancel 时代际已失效，直接跳过
+                if (animatorIsCurrent()) {
+                    scheduleClearAfterEnd(500);
+                }
             }
         });
-        animator.start();
+        startEffectAnimator(animator);
     }
 
     private void drawBomb(Canvas canvas) {
@@ -306,10 +384,12 @@ public class DouDiZhuEffectsView extends View {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                clearEffect();
+                if (animatorIsCurrent()) {
+                    clearEffect();
+                }
             }
         });
-        animator.start();
+        startEffectAnimator(animator);
     }
 
     private void drawPlane(Canvas canvas) {
@@ -439,10 +519,12 @@ public class DouDiZhuEffectsView extends View {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                clearEffect();
+                if (animatorIsCurrent()) {
+                    clearEffect();
+                }
             }
         });
-        animator.start();
+        startEffectAnimator(animator);
     }
 
     private void drawSpring(Canvas canvas) {
@@ -506,10 +588,14 @@ public class DouDiZhuEffectsView extends View {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                postDelayed(() -> clearEffect(), 800);
+                // 只有自然结束（未被 cancel/取代）才排延迟清除；
+                // clearEffect/detach 路径 cancel 时代际已失效，直接跳过
+                if (animatorIsCurrent()) {
+                    scheduleClearAfterEnd(800);
+                }
             }
         });
-        animator.start();
+        startEffectAnimator(animator);
     }
 
     private void drawShunzi(Canvas canvas) {
@@ -580,10 +666,14 @@ public class DouDiZhuEffectsView extends View {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                postDelayed(() -> clearEffect(), 800);
+                // 只有自然结束（未被 cancel/取代）才排延迟清除；
+                // clearEffect/detach 路径 cancel 时代际已失效，直接跳过
+                if (animatorIsCurrent()) {
+                    scheduleClearAfterEnd(800);
+                }
             }
         });
-        animator.start();
+        startEffectAnimator(animator);
     }
 
     private void drawDoubleLine(Canvas canvas) {
