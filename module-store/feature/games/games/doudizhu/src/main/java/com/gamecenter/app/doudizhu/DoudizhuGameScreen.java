@@ -106,8 +106,8 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         tableArea.addView(effectsView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         // P5：音效/震动统一经 DoudizhuFeedback（读宿主设置开关，失败降级无反馈）。
-        // 震动不走 EffectsView 的 OnShakeListener（仅炸弹/王炸回调），在
-        // playFeedbackFor 内按特效档位单点触发，避免双震动路径。
+        // EffectsView 只负责动画，震动在 playFeedbackFor 内按特效档位
+        // 单点触发，避免双震动路径。
         feedback = new DoudizhuFeedback(context);
 
         // 退出按钮：放回牌桌区右上角（P4 布局修正：操作条空间紧张，
@@ -280,7 +280,7 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
      *
      * <p>牌型到反馈种类的映射全部委托 {@link DoudizhuEffectMapper}（纯 JVM 可测）：
      * 炸弹/王炸/飞机/连对触发对应特效与专属音效；其余牌型只播普通出牌音。
-     * 震动按特效档位在此单点触发（不走 EffectsView.OnShakeListener，避免双路径）。</p>
+     * 震动按特效档位在此单点触发（EffectsView 仅负责动画，避免双路径）。</p>
      */
     @Override
     public void onCardsPlayed(List<Card> cards, CardType type) {

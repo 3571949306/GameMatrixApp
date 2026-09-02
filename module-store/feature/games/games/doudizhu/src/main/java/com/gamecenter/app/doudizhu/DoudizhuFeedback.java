@@ -24,11 +24,12 @@ import com.gamecenter.app.utils.SoundManager;
  * 的 {@code shouldPlayGameSound()} / {@code shouldVibrate()}（设置页"音效总开关/
  * 游戏音效/震动"三开关，游戏中途切换立即生效）。</p>
  *
- * <p><b>降级保证（不崩）</b>：构造与每个播放入口均 try-catch 包裹；任何一步失败
- * （SoundPool 初始化异常、资源缺失 {@code Resources.NotFoundException}、Vibrator
- * 不可用等）只记 log 并置 {@code soundBroken}，后续调用直接短路——无资产/异常时
- * 退化为无音效，对局流程不受影响。模块独立运行（类加载不到宿主类时）由动态模块
- * 宿主环境保证宿主类恒在；JVM 单测不触达本类。</p>
+ * <p><b>降级保证（不崩）</b>：构造与每个播放入口均 try-catch 包裹。仅当构造阶段
+ * 失败（SoundPool 初始化异常等）才置 {@code soundBroken} 并永久短路音效（保留
+ * 震动）；单个播放/震动调用失败（资源缺失 {@code Resources.NotFoundException}、
+ * Vibrator 不可用等）只记 log 不置位——一次失败不禁音，下次调用重试，对局流程
+ * 不受影响。模块独立运行（类加载不到宿主类时）由动态模块宿主环境保证宿主类
+ * 恒在；JVM 单测不触达本类。</p>
  *
  * <p>用法：在牌桌视图创建时构造一次，{@link #release()} 在
  * {@code onDetachedFromWindow} 调用。全部入口须在主线程调用。</p>
@@ -46,7 +47,10 @@ public class DoudizhuFeedback {
     private final SoundManager soundManager;
     private final SettingsManager settings;
     private final Vibrator vibrator;
-    /** 音效链路是否已损坏（初始化/播放异常后禁音，只保留震动） */
+    /**
+     * 音效链路是否已损坏：仅构造阶段失败（SoundPool 初始化异常）时置位并
+     * 永久禁音（保留震动）；播放阶段失败只记 log 不置位，后续调用继续重试。
+     */
     private boolean soundBroken = false;
 
     public DoudizhuFeedback(Context context) {

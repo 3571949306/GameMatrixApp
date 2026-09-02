@@ -42,7 +42,8 @@ import java.util.Random;
  * <p><b>设计思路：</b></p>
  * <ul>
  *   <li>使用 ValueAnimator 驱动所有动画，动画结束后自动清除</li>
- *   <li>通过回调接口通知 Activity 屏幕震动（如炸弹效果）</li>
+ *   <li>震动不在此视图内触发：统一由 DoudizhuFeedback.playFeedbackFor
+ *       按特效档位单点负责（避免动画与震动双路径）</li>
  *   <li>所有绘制在 onDraw 中完成，保持高性能</li>
  * </ul>
  */
@@ -58,13 +59,6 @@ public class DouDiZhuEffectsView extends View {
         SPRING,    // 春天
         SHUNZI,    // 顺子
         DOUBLE_LINE // 连对
-    }
-
-    /**
-     * 屏幕震动回调接口
-     */
-    public interface OnShakeListener {
-        void onShake();
     }
 
     private EffectType currentEffect;
@@ -98,7 +92,6 @@ public class DouDiZhuEffectsView extends View {
     private float doubleLineProgress = 0f;
     private float doubleLineTextAlpha = 0f;
 
-    private OnShakeListener shakeListener;
     private Paint paint;
     private Paint textPaint;
 
@@ -124,13 +117,6 @@ public class DouDiZhuEffectsView extends View {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         setVisibility(GONE);
-    }
-
-    /**
-     * 设置屏幕震动监听器
-     */
-    public void setOnShakeListener(OnShakeListener listener) {
-        this.shakeListener = listener;
     }
 
     /**
@@ -230,13 +216,6 @@ public class DouDiZhuEffectsView extends View {
             invalidate();
         });
         animator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationStart(Animator animation) {
-                if (shakeListener != null) {
-                    shakeListener.onShake();
-                }
-            }
-
             @Override
             public void onAnimationEnd(Animator animation) {
                 postDelayed(() -> clearEffect(), 500);
