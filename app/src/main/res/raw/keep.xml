@@ -1,3 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  资源收缩保护清单（shrinkResources=true 时生效）。
+
+  @raw/release_signer：core/security ModuleSignatureVerifier 通过
+  Resources.getIdentifier("release_signer", "raw", ...) 动态解析该证书，
+  收缩器无法从静态 R 引用推断依赖；一旦被收缩即静默移除内置发布证书，
+  运行时对下载模块的验签钉扎退化为硬失败。
+
+  @raw/card_bomb_sound / card_rocket_sound / card_plane_sound /
+  card_doubleline_m / sound_sendpk：斗地主 P5 音效桥 DoudizhuFeedback
+  经 compileOnly 宿主 R.jar 引用的宿主 res/raw 资产，仅被动态模块
+  doudizhu 代码引用、宿主自身代码无静态 R 引用，AGP 资源收缩器分析
+  不到模块依赖；一旦被收缩，SoundPool.load 静默返回 soundId=0（不抛
+  异常、降级路径捕获不到），release 包炸弹/王炸/飞机/连对/普通出牌
+  音效全部无声（debug 不收缩故正常）。
+
+  此规则必须放在宿主 app 模块：库模块 res 中的同名 keep.xml 会在
+  资源合并时被宿主覆盖（实测 app:mergeReleaseResources，合并产物
+  raw/keep.xml 仅含宿主版本，core/adb 的同名规则被丢弃），因此不能
+  新建 core/security 或 doudizhu 模块内的 keep.xml。
+  注意：收缩后资源物理路径会被缩短（res/raw/xxx → res/短名），断言
+  保护效果须按 tools:keep 规则或资源内容核对，不能按物理路径。
+-->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@string/diag_*,@string/tool_*" />
+    tools:keep="@string/diag_*,@string/tool_*,@raw/release_signer,@raw/card_bomb_sound,@raw/card_rocket_sound,@raw/card_plane_sound,@raw/card_doubleline_m,@raw/sound_sendpk" />
