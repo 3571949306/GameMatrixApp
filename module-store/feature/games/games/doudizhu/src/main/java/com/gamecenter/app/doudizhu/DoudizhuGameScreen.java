@@ -1,6 +1,8 @@
 package com.gamecenter.app.doudizhu;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -335,7 +337,9 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
      *
      * <p>结算明细回调顺序不变（settlementListener 先于弹窗）；春天/反春时先播
      * SPRING 特效与中震动，弹窗延迟 {@link #SPRING_SETTLE_DELAY_MS} 让花瓣飘一段
-     * 再覆盖。延迟任务在 detach 时移除，且执行前校验 attach 状态防窗口泄漏。</p>
+     * 再覆盖。延迟任务在 detach 时移除；执行前校验 attach 状态与宿主 Activity
+     * 的 finishing/destroyed 状态，均不满足时跳过弹窗（防 BadTokenException，
+     * 音效与特效不受影响）。</p>
      */
     @Override
     public void onGameFinished(ScoreBoard.Settlement settlement) {
@@ -365,7 +369,10 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         }
         settleDialogTask = () -> {
             if (!isAttachedToWindow()) return; // 已离屏（如旋转重建），放弃弹窗
-            new android.app.AlertDialog.Builder(getContext())
+            // Activity 已在退出/销毁时不弹（特效照常）：防 BadTokenException
+            Activity activity = resolveHostingActivity();
+            if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+            new android.app.AlertDialog.Builder(activity)
                     .setTitle(R.string.game_doudizhu_game_over)
                     .setMessage(buildSettlementMessage(settlement))
                     .setCancelable(false)
@@ -381,6 +388,21 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         } else {
             settleDialogTask.run();
         }
+    }
+
+    /**
+     * 沿 ContextWrapper 链向上解析承载本视图的 Activity；解析不到（如
+     * 非活动 Context 包裹）返回 null，调用方按"无法安全弹窗"处理。
+     */
+    private Activity resolveHostingActivity() {
+        Context ctx = getContext();
+        while (ctx instanceof ContextWrapper) {
+            if (ctx instanceof Activity) {
+                return (Activity) ctx;
+            }
+            ctx = ((ContextWrapper) ctx).getBaseContext();
+        }
+        return null;
     }
 
     /** 结算明细：胜负结论 + 地主/叫分/炸弹/春天/倍数/得分/耗时逐行展示。 */
