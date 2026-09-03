@@ -104,7 +104,7 @@ public enum Suit {
     }
 
     /**
-     * 获取花色的完整英文名称。
+     * 获取花色的完整英文名称（资源标识用，小写）。
      * <p>
      * 主要用于日志输出和资源路径标识。
      *
@@ -112,6 +112,26 @@ public enum Suit {
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * 获取花色的英文展示名。
+     * <p>
+     * 数据层统一使用英文中性数据（P6：数据层英文化），UI 若需中文展示请走宿主
+     * 本地化资源，不要在 model 层内联中文。
+     *
+     * @return 花色英文展示名，如 "Spade"、"Heart"、"Club"、"Diamond"；王牌返回空字符串
+     */
+    public String getDisplayName() {
+        switch (this) {
+            case SPADE: return "Spade";
+            case HEART: return "Heart";
+            case CLUB: return "Club";
+            case DIAMOND: return "Diamond";
+            case JOKER_small: return "";
+            case JOKER_big: return "";
+            default: return "";
+        }
     }
 
     /**
