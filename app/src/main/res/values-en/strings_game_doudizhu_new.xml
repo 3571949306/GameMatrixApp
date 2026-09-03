@@ -115,4 +115,7 @@
     <string name="game_doudizhu_effect_spring">Spring</string>
     <string name="game_doudizhu_effect_straight">Straight</string>
     <string name="game_doudizhu_effect_consecutive_pairs">Consecutive Pairs</string>
+
+    <!-- P6（2026-09-04）：模块入口点展示文案（硬编码中文迁移） -->
+    <string name="game_ddz_module_title">Dou Dizhu</string>
 </resources>

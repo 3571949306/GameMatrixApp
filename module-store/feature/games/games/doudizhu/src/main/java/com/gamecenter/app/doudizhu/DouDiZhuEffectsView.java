@@ -19,6 +19,8 @@ import android.view.animation.BounceInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 
+import com.gamecenter.app.R;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -324,7 +326,8 @@ public class DouDiZhuEffectsView extends View {
         }
 
         // 绘制文字
-        String text = currentEffect == EffectType.ROCKET ? "王炸" : "炸弹";
+        String text = getContext().getString(currentEffect == EffectType.ROCKET
+                ? R.string.game_doudizhu_effect_rocket : R.string.game_doudizhu_effect_bomb);
         textPaint.setColor(Color.parseColor("#FFD700"));
         textPaint.setTextSize(48 * getResources().getDisplayMetrics().scaledDensity * bombTextScale);
         textPaint.setTextAlign(Paint.Align.CENTER);
@@ -413,7 +416,7 @@ public class DouDiZhuEffectsView extends View {
 
         float textX = planeX;
         float textY = planeY - 60;
-        canvas.drawText("飞机", textX, textY, textPaint);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_effect_plane), textX, textY, textPaint);
         textPaint.setAlpha(255);
         textPaint.setShadowLayer(0, 0, 0, 0);
     }
@@ -546,7 +549,7 @@ public class DouDiZhuEffectsView extends View {
         textPaint.setShadowLayer(4, 2, 2, Color.parseColor("#C71585"));
 
         float textY = centerY + textPaint.getTextSize() / 3;
-        canvas.drawText("春天", centerX, textY, textPaint);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_effect_spring), centerX, textY, textPaint);
         textPaint.setShadowLayer(0, 0, 0, 0);
     }
 
@@ -640,7 +643,7 @@ public class DouDiZhuEffectsView extends View {
         textPaint.setShadowLayer(4, 2, 2, Color.parseColor("#B8860B"));
 
         float textY = centerY - ringRadius - 30;
-        canvas.drawText("顺子", centerX, textY, textPaint);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_effect_straight), centerX, textY, textPaint);
         textPaint.setAlpha(255);
         textPaint.setShadowLayer(0, 0, 0, 0);
     }
@@ -711,7 +714,7 @@ public class DouDiZhuEffectsView extends View {
         textPaint.setShadowLayer(4, 2, 2, Color.parseColor("#B8860B"));
 
         float textY = centerY - lineSpacing - 30;
-        canvas.drawText("连对", centerX, textY, textPaint);
+        canvas.drawText(getContext().getString(R.string.game_doudizhu_effect_consecutive_pairs), centerX, textY, textPaint);
         textPaint.setAlpha(255);
         textPaint.setShadowLayer(0, 0, 0, 0);
     }

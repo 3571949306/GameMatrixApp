@@ -1060,7 +1060,9 @@ public class DouDiZhuTableView extends View {
         canvas.drawText(getContext().getString(R.string.game_doudizhu_card_counter),
                 x + labelW * 0.48f, y + panelH * 0.58f, title);
 
-        String[] labels = {"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2", "小", "大"};
+        String[] labels = {"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2",
+                getContext().getString(R.string.game_doudizhu_joker_small),
+                getContext().getString(R.string.game_doudizhu_joker_big)};
         Paint rankPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rankPaint.setTextAlign(Paint.Align.CENTER);
         rankPaint.setFakeBoldText(true);
@@ -1537,17 +1539,17 @@ public class DouDiZhuTableView extends View {
         // 绘制"出牌"按钮（金色渐变）
         float chupaiX = viewWidth / 2f - buttonWidth - buttonSpacing / 2f;
         drawGradientButton(canvas, chupaiX, buttonAreaY, buttonWidth, buttonHeight,
-                "出牌", true);
+                getContext().getString(R.string.game_doudizhu_btn_play), true);
 
         // 绘制"不出"按钮（金色渐变）
         float buchuX = viewWidth / 2f + buttonSpacing / 2f;
         drawGradientButton(canvas, buchuX, buttonAreaY, buttonWidth, buttonHeight,
-                "不出", true);
+                getContext().getString(R.string.game_doudizhu_btn_pass), true);
 
         // 绘制"提示"按钮（较小，在左侧）
         float tishiX = chupaiX - buttonWidth * 0.8f - buttonSpacing;
         drawGradientButton(canvas, tishiX, buttonAreaY, buttonWidth * 0.8f, buttonHeight,
-                "提示", true);
+                getContext().getString(R.string.game_doudizhu_btn_hint), true);
     }
 
     /**

@@ -2,6 +2,7 @@ package com.gamecenter.app.doudizhu;
 
 import android.content.Context;
 import androidx.fragment.app.Fragment;
+import com.gamecenter.app.R;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.core.common.ModuleNavigationContribution;
@@ -97,7 +98,9 @@ public class DoudizhuModuleEntryPoint implements ModuleInterface, FeatureModule 
         public String getContributionId() { return "doudizhu"; }
 
         @Override
-        public String getTitle(Context context) { return "斗地主"; }
+        public String getTitle(Context context) {
+            return context.getString(R.string.game_ddz_module_title);
+        }
 
         @Override
         public int getIconResId() { return 0; }
