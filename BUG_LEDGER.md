@@ -39,7 +39,7 @@
 - 日期: 2026-08-30
 - 类别: 静默失败
 - 根因: 测速中断可留截断 JSON，下次读取解析失败静默丢数据
-- 守卫: tmp+rename 实现（含 rename 失败兜底）；PENDING(§六 契约测试——截断注入用例)
+- 守卫: `SourceTestStoreTest.append interrupted after temp write leaves old target readable`（Robolectric 接缝在 tmp 写完、rename 前确定性抛出中断，并断言截断 tmp 不改变旧目标；随后验证真实 append 清理 tmp；不覆盖 renameTo 失败后的 direct-write 兜底中断窗口）
 
 ## BL-005 verify_security_clauses 因 release_signer.cer 不入库而 CI 假红
 - 日期: 2026-08-30
