@@ -70,3 +70,10 @@
 - 类别: 窄修复回归（测试侧）
 - 根因: 底部导航从静态 R.id.navigation_ai 改为运行时分配 menuId（BottomNavigationManager.refreshNavigation 按目录顺序 1..n），改造未同步 androidTest；因 BL-008 死门禁，androidTest 从未在 CI 编译，断裂无人发现——#47 复活门禁后第一个真实信号就是它
 - 守卫: AiIntegrationTest 重写为按标题匹配选中（与真实点同走 onItemSelected→navigateTo 路径）；androidtest job 每次 push 编译执行
+
+## BL-010 导航恢复将 VPN 清单改回失效元数据和已废弃下载源
+- 日期: 2026-09-05
+- 类别: 配置 + 静默失败（P1）
+- 根因: BottomNavigationCatalog 从已验签 Catalog 缓存恢复清单后，后台可直接调用 `registerLocalFallbackIfNeeded(null)`；旧兜底无条件覆盖可信 vpn，fileSize/sha256 仍为 640752/fe9c62...，而真实 assets 为 1134486/390bf509...，下载后大小/SHA 校验必失败。旧无 Context 兜底的 downloadUrl 还指向 tcp0053.shop；有 Context 时则应保留 `modules.json` 自身的下载地址。
+- 修复边界: 无 Context fallback 使用配置的 `BuildConfig.DOWNLOAD_BASE_URL + fileName` 策略；有 Context 的 assets 清单保留其自身 URL。两者配置不一致仍属于构建/发布配置风险，不能表述为已完全解决死域问题。
+- 守卫: `ModuleManagerTest.testVpnFallbackMatchesShippedMetadataAndConfiguredUrl`、`testTrustedVpnManifestIsNotOverwrittenByFallback`、`testNullFallbackRegistersVpnWhenManifestTableIsEmpty`

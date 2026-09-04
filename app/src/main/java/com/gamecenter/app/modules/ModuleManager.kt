@@ -9,6 +9,7 @@ import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.DynamicGameActivity
 import com.gamecenter.app.R
 import com.gamecenter.app.core.common.FeatureModule
+import com.gamecenter.app.core.common.ModuleDetail
 import com.gamecenter.app.core.common.VpnDelegate
 import com.gamecenter.app.core.security.SecureOkHttpFactory
 import com.gamecenter.app.games.GameRegistry
@@ -766,7 +767,11 @@ object ModuleManager {
         for (manifest in available) {
             manifests[manifest.id] = manifest
         }
-        registerLocalFallbackIfNeeded()
+        // Catalog V2 已提供可信清单时，只补齐缺失的本地 VPN 兜底；不能再用
+        // 旧兜底覆盖其版本、哈希和下载地址。
+        if (!manifests.containsKey("vpn")) {
+            registerLocalFallbackIfNeeded()
+        }
     }
 
     fun getAvailableModules(): List<ModuleManifest> = manifests.values.toList()
@@ -867,18 +872,23 @@ object ModuleManager {
         }
     }
 
-    /** 本地内置模块兜底 — 无条件覆盖（不检查 containsKey），确保非内置模块的关键字段（sha256 等）不被缓存脏数据覆盖 */
+    /**
+     * 本地 VPN 兜底。Catalog V2 恢复路径和直接 null 调用都不能覆盖已有清单。
+     */
     fun registerLocalFallbackIfNeeded(context: Context? = null) {
         if (context != null && registerBundledModuleList(context.applicationContext)) {
             return
         }
+        // null 入口也可能由后台导航恢复调用；已有清单（尤其是可信 Catalog
+        // 清单）优先，避免 fallback 的旧元数据覆盖版本、哈希和下载地址。
+        if (manifests.containsKey("vpn")) return
 
-        // Batch 21 修复：vpn 硬编码与 assets/modules.json 保持完全一致
-        // （sha256/fileName/fallbackUrl/githubUrl 完全对齐）
+        // Batch 21 修复：vpn 兜底的文件元数据与 assets/modules.json 保持一致
+        // （sha256/fileName/fallbackUrl/githubUrl 完全对齐）；下载地址跟随当前
+        // BuildConfig，避免导航恢复路径把已更新的分发域名改回历史死域。
         // 避免 assets 读取失败时，使用与 modules.json 不一致的 sha256 导致下载后校验失败
-        // 注意：registerAvailableManifests 会不传 context 调用本方法，
-        // 因此硬编码兜底会无条件覆盖 modules.json 已加载的 vpn 条目，
-        // 必须保持此处的字段与 assets/modules.json 中的 vpn 条目完全一致。
+        // 注意：无 Context 调用无法读取 assets，必须保持此处的文件元数据与
+        // assets/modules.json 中的 vpn 条目完全一致。
         val localModules = listOf(
             ModuleManifest(
                 id = "vpn",
@@ -887,12 +897,22 @@ object ModuleManager {
                 versionName = "1.0.0", versionCode = 100,
                 entryClass = "com.gamecenter.app.vpn.VpnModuleEntryPoint",
                 fileName = "vpn-release.apk",
-                fileSize = 640752,
-                sha256 = "fe9c62efe569a4c5824d0bf7d900e7d60588a57ebfe3b695acf9d44552fef306",
-                downloadUrl = "https://hk-update.tcp0053.shop/modules/vpn-release.apk",
+                fileSize = 1134486,
+                sha256 = "390bf5096b0a5321884f50d8f2a92d64f83bac1cf23ac96d8ee596ca8ea9d72c",
+                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "vpn-release.apk",
                 fallbackUrl = "",
                 githubUrl = "",
-                type = "nav", storeCategory = "device_network",
+                type = "nav", storeCategory = "device_network", category = "tool",
+                minAppVersionCode = 492,
+                details = ModuleDetail(
+                    valueDescription = "提供远程代理连接能力，支持配置管理与连接状态控制。",
+                    audience = "需要通过代理访问网络或保护网络隐私的用户。",
+                    offlineCapability = "需联网建立 VPN 隧道；配置管理界面离线可用。",
+                    updateImpact = "更新保留已保存的 VPN 配置。",
+                    uninstallImpact = "卸载将清除所有 VPN 配置与连接凭证。",
+                    highlights = listOf("代理配置管理", "连接状态监控", "多配置切换", "启动即连接"),
+                    limitations = listOf("仅支持远程配置的代理协议", "连接质量依赖服务器与网络环境")
+                ),
                 builtIn = false, isBaseFramework = false, iconUrl = ""
             )
         )
