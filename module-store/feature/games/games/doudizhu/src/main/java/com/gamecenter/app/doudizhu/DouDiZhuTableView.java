@@ -171,6 +171,13 @@ public class DouDiZhuTableView extends View {
     private boolean leftAIPassed = false;
     private boolean rightAIPassed = false;
     private int[] cardCounterCounts;
+    // 记牌器文案缓存（P6 复查项）：记牌器面板挂在 onDraw 每帧路径上，
+    // getString 与标签数组分配原为每帧热路径分配，现缓存为字段。
+    // locale 失效说明：缓存主要在构造 init() 建立，setCardCounterCounts 同步刷新；
+    // 切换语言会触发 Activity/View 重建并重新走 init()，极端场景（不重建仅切 locale）
+    // 下旧文案最多保留到下次 setCardCounterCounts，可接受。
+    private String[] cardCounterLabels;
+    private String cardCounterTitle;
 
     // 当前轮到哪个玩家（0=玩家, 1=左AI, 2=右AI, 3=等待）
     private int currentTurn;
@@ -339,6 +346,10 @@ public class DouDiZhuTableView extends View {
         leftAIPlayedCards = new ArrayList<>();
         rightAIPlayedCards = new ArrayList<>();
         cardCounterCounts = createFullDeckCounter();
+        cardCounterTitle = getContext().getString(R.string.game_doudizhu_card_counter);
+        cardCounterLabels = buildCardCounterLabels(
+                getContext().getString(R.string.game_doudizhu_joker_small),
+                getContext().getString(R.string.game_doudizhu_joker_big));
         leftAICardCount = 17;
         rightAICardCount = 17;
         currentTurn = 0;
@@ -1030,7 +1041,11 @@ public class DouDiZhuTableView extends View {
      * @param canvas 画布
      */
     private void drawCardCounter(Canvas canvas) {
-        if (cardCounterCounts == null || cardCounterCounts.length < 15) return;
+        String[] labels = cardCounterLabels;
+        if (cardCounterCounts == null || cardCounterCounts.length < 15
+                || labels == null || labels.length < 15 || cardCounterTitle == null) {
+            return;
+        }
         int viewWidth = getWidth();
         float cellW = Math.min(tableCardWidth * 0.46f, viewWidth * 0.55f / 15f);
         float cellH = Math.max(tableCardWidth * 0.28f, 16f);
@@ -1057,12 +1072,9 @@ public class DouDiZhuTableView extends View {
         title.setFakeBoldText(true);
         title.setTextAlign(Paint.Align.CENTER);
         title.setTextSize(cellH * 0.58f);
-        canvas.drawText(getContext().getString(R.string.game_doudizhu_card_counter),
+        canvas.drawText(cardCounterTitle,
                 x + labelW * 0.48f, y + panelH * 0.58f, title);
 
-        String[] labels = {"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2",
-                getContext().getString(R.string.game_doudizhu_joker_small),
-                getContext().getString(R.string.game_doudizhu_joker_big)};
         Paint rankPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rankPaint.setTextAlign(Paint.Align.CENTER);
         rankPaint.setFakeBoldText(true);
@@ -1073,7 +1085,9 @@ public class DouDiZhuTableView extends View {
         countPaint.setFakeBoldText(true);
 
         float startX = x + labelW;
-        for (int i = 0; i < labels.length; i++) {
+        // 上界取两者较小值：labels 与 cardCounterCounts 长度不一致时不得越界（P6 复查采纳项）
+        int columnCount = Math.min(labels.length, cardCounterCounts.length);
+        for (int i = 0; i < columnCount; i++) {
             float cx = startX + cellW * i + cellW * 0.5f;
             int count = Math.max(0, cardCounterCounts[i]);
             if (count == 0) {
@@ -2349,7 +2363,22 @@ public class DouDiZhuTableView extends View {
             this.cardCounterCounts = new int[15];
             System.arraycopy(counts, 0, this.cardCounterCounts, 0, 15);
         }
+        // 文案缓存随计数一起刷新（P6：避免每帧 getString；见 cardCounterLabels 注释）
+        this.cardCounterTitle = getContext().getString(R.string.game_doudizhu_card_counter);
+        this.cardCounterLabels = buildCardCounterLabels(
+                getContext().getString(R.string.game_doudizhu_joker_small),
+                getContext().getString(R.string.game_doudizhu_joker_big));
         invalidate();
+    }
+
+    /**
+     * 构建记牌器 15 列标签（索引 0-12 对应 3~K、A、2，13=小王，14=大王）。
+     *
+     * <p>纯静态、无 Android 依赖，便于单测锁定列序（与 cardCounterCounts 索引对齐）。</p>
+     */
+    static String[] buildCardCounterLabels(String jokerSmall, String jokerBig) {
+        return new String[]{"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2",
+                jokerSmall, jokerBig};
     }
 
     /**

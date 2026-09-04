@@ -2,7 +2,9 @@ package com.gamecenter.app.doudizhu.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
@@ -19,9 +21,28 @@ public class ModelEnglishDataTest {
 
     private static final Pattern CJK = Pattern.compile("[\\u4e00-\\u9fff]");
 
+    /**
+     * P6 复查修复：null 一律视为违规（英文中性数据不得为空，此前 null 被放过）。
+     * 含中文同样违规；两个分支由 {@link #assertNoCjkRejectsChineseAndNull()} 回归锁定。
+     */
     private static void assertNoCjk(String what, String value) {
+        if (value == null) {
+            fail(what + " 不得为 null（英文中性数据必须非空）");
+        }
         assertFalse(what + " 不得包含中文，实际为: " + value,
-                value != null && CJK.matcher(value).find());
+                CJK.matcher(value).find());
+    }
+
+    @Test
+    public void assertNoCjkRejectsChineseAndNull() {
+        // 传入含中文 → 必须抛 AssertionError
+        assertThrows(AssertionError.class,
+                () -> assertNoCjk("sample.chinese", "红桃"));
+        // 传入 null → 同样必须抛 AssertionError
+        // （修复前旧实现 null 被放过、不抛异常 → 本行 assertThrows 自身失败，用例变红，
+        //   从而真正锁死"修复前失败、修复后通过"，try/catch+fail 结构会被自身 fail 吞掉而空跑）
+        assertThrows(AssertionError.class,
+                () -> assertNoCjk("sample.null", null));
     }
 
     @Test
