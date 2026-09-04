@@ -163,6 +163,11 @@ public class DouDiZhuTableView extends View {
     private int leftAICardCount;
     // 右方AI（电脑2）手牌数量
     private int rightAICardCount;
+    // AI 手牌徽章文案缓存：数量值与格式化文案成对维护，避免 onDraw 每帧格式化。
+    // locale 失效边界与记牌器文案相同：切语言会重建 Activity/View 并重走 init()；
+    // 若极端情况下只切 locale 而不重建 View，旧文案最多保留到下次数量变化，可接受。
+    private String leftAICardCountBadgeText;
+    private String rightAICardCountBadgeText;
     // 左方AI上一轮出牌
     private List<Card> leftAIPlayedCards;
     // 右方AI上一轮出牌
@@ -352,6 +357,10 @@ public class DouDiZhuTableView extends View {
                 getContext().getString(R.string.game_doudizhu_joker_big));
         leftAICardCount = 17;
         rightAICardCount = 17;
+        leftAICardCountBadgeText = buildCardCountBadgeText(
+                getContext().getString(R.string.game_doudizhu_cards_remaining), leftAICardCount);
+        rightAICardCountBadgeText = buildCardCountBadgeText(
+                getContext().getString(R.string.game_doudizhu_cards_remaining), rightAICardCount);
         currentTurn = 0;
         playerLandlordStatus = 0;
     }
@@ -1103,38 +1112,6 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 绘制 AI 手牌剩余数量徽章（蓝色圆角矩形 + "剩 N" 文字）。
-     *
-     * @param canvas  画布
-     * @param centerX 徽章中心 X 坐标
-     * @param y       徽章参考 Y 坐标
-     * @param count   剩余手牌数
-     */
-    private void drawCardCountBadge(Canvas canvas, float centerX, float y, int count) {
-        String text = getContext().getString(R.string.game_doudizhu_cards_remaining, Math.max(0, count));
-        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        textPaint.setTextAlign(Paint.Align.CENTER);
-        textPaint.setTextSize(tableCardWidth * 0.18f);
-        textPaint.setFakeBoldText(true);
-        float padX = tableCardWidth * 0.18f;
-        float padY = tableCardWidth * 0.10f;
-        float textW = textPaint.measureText(text);
-        RectF badge = new RectF(centerX - textW / 2f - padX, y - tableCardWidth * 0.22f,
-                centerX + textW / 2f + padX, y + tableCardWidth * 0.18f + padY);
-        Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
-        bg.setColor(Color.parseColor("#BB0D47A1"));
-        bg.setStyle(Paint.Style.FILL);
-        canvas.drawRoundRect(badge, tableCardWidth * 0.13f, tableCardWidth * 0.13f, bg);
-        Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        stroke.setColor(Color.parseColor("#88E3F2FD"));
-        stroke.setStyle(Paint.Style.STROKE);
-        stroke.setStrokeWidth(Math.max(1f, tableCardWidth * 0.018f));
-        canvas.drawRoundRect(badge, tableCardWidth * 0.13f, tableCardWidth * 0.13f, stroke);
-        textPaint.setColor(Color.WHITE);
-        canvas.drawText(text, centerX, y + tableCardWidth * 0.08f, textPaint);
-    }
-
-    /**
      * 绘制"不出"标签（带描边和阴影的金色文字）。
      *
      * @param canvas 画布
@@ -1190,7 +1167,7 @@ public class DouDiZhuTableView extends View {
                 blueStackTopY, leftAICardCount);
 
         drawRedCardCountBadge(canvas, centerX,
-                blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, leftAICardCount);
+                blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, leftAICardCountBadgeText);
 
         String role = roleLabel(Seats.SEAT_LEFT_AI);
         int roleColor = (landlordStatus[1] == 2) ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5");
@@ -1240,7 +1217,7 @@ public class DouDiZhuTableView extends View {
                 blueStackTopY, rightAICardCount);
 
         drawRedCardCountBadge(canvas, centerX,
-                blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, rightAICardCount);
+                blueStackTopY + tableCardHeight + tableCardWidth * 0.32f, rightAICardCountBadgeText);
 
         String role = roleLabel(Seats.SEAT_RIGHT_AI);
         int roleColor = (landlordStatus[2] == 2) ? Color.parseColor("#FFD700") : Color.parseColor("#B0BEC5");
@@ -1428,10 +1405,11 @@ public class DouDiZhuTableView extends View {
     }
 
     /**
-     * 绘制红色圆形徽章显示剩余牌数
+     * 绘制红色圆形徽章显示剩余牌数。
+     *
+     * @param text 已缓存的本地化剩余牌数文案
      */
-    private void drawRedCardCountBadge(Canvas canvas, float centerX, float y, int count) {
-        String text = String.valueOf(Math.max(0, count));
+    private void drawRedCardCountBadge(Canvas canvas, float centerX, float y, String text) {
         float badgeRadius = tableCardWidth * 0.18f;
 
         Paint redPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -2264,8 +2242,18 @@ public class DouDiZhuTableView extends View {
      * @param rightCount 右边AI剩余牌数
      */
     public void setAICardCounts(int leftCount, int rightCount) {
-        this.leftAICardCount = leftCount;
-        this.rightAICardCount = rightCount;
+        if (this.leftAICardCount != leftCount) {
+            this.leftAICardCountBadgeText = updateCardCountBadgeText(
+                    this.leftAICardCountBadgeText, this.leftAICardCount, leftCount,
+                    getContext().getString(R.string.game_doudizhu_cards_remaining));
+            this.leftAICardCount = leftCount;
+        }
+        if (this.rightAICardCount != rightCount) {
+            this.rightAICardCountBadgeText = updateCardCountBadgeText(
+                    this.rightAICardCountBadgeText, this.rightAICardCount, rightCount,
+                    getContext().getString(R.string.game_doudizhu_cards_remaining));
+            this.rightAICardCount = rightCount;
+        }
         invalidate();
     }
 
@@ -2379,6 +2367,30 @@ public class DouDiZhuTableView extends View {
     static String[] buildCardCounterLabels(String jokerSmall, String jokerBig) {
         return new String[]{"3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2",
                 jokerSmall, jokerBig};
+    }
+
+    /**
+     * 格式化 AI 手牌剩余数量徽章文案。
+     *
+     * <p>format 由本地化资源提供，保留资源中的占位符顺序；负数与绘制路径一致，显示为 0。
+     * 纯 Java 实现便于 JVM 单测覆盖占位符及空值边界。</p>
+     */
+    static String buildCardCountBadgeText(String format, int count) {
+        if (format == null || format.isEmpty()) {
+            return "";
+        }
+        return String.format(format, Math.max(0, count));
+    }
+
+    /**
+     * 仅在徽章数量变化时生成新文案；该方法由 setAICardCounts 调用，结果供红色徽章绘制路径读取。
+     */
+    static String updateCardCountBadgeText(String currentText, int currentCount, int newCount,
+            String format) {
+        if (currentCount == newCount) {
+            return currentText;
+        }
+        return buildCardCountBadgeText(format, newCount);
     }
 
     /**

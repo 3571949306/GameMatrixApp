@@ -7,10 +7,7 @@ import org.junit.Test;
 /**
  * P6 复查守卫：记牌器标签构建的列序与来源。
  *
- * <p>drawCardCounter 原先每帧 getString + 新建标签数组（热路径分配），
- * P6 已改为字段缓存（cardCounterLabels）并由 {@link DouDiZhuTableView#buildCardCounterLabels}
- * 构建。本测试锁定列序与 cardCounterCounts 索引一一对应
- * （0-12 = 3~K、A、2，13 = 小王，14 = 大王），防止缓存重构时错位。</p>
+ * <p>锁定记牌器列序及 AI 徽章文案缓存，防止缓存重构时错位或重新回到绘制帧格式化。</p>
  */
 public class DouDiZhuTableViewCounterLabelsTest {
 
@@ -34,5 +31,30 @@ public class DouDiZhuTableViewCounterLabelsTest {
         String[] labels = DouDiZhuTableView.buildCardCounterLabels("X", "Y");
         assertEquals("X", labels[13]);
         assertEquals("Y", labels[14]);
+    }
+
+    @Test
+    public void badgeTextUsesLocalizedPlaceholderAndClampsNegativeCount() {
+        assertEquals("剩 3", DouDiZhuTableView.buildCardCountBadgeText("剩 %1$d", 3));
+        assertEquals("剩 0", DouDiZhuTableView.buildCardCountBadgeText("剩 %1$d", -1));
+    }
+
+    @Test
+    public void badgeTextHandlesEmptyFormat() {
+        assertEquals("", DouDiZhuTableView.buildCardCountBadgeText(null, 3));
+        assertEquals("", DouDiZhuTableView.buildCardCountBadgeText("", 3));
+    }
+
+    @Test
+    public void changedCountUpdatesTextUsedByRedBadgePath() {
+        String format = "剩 %1$d";
+        String firstText = DouDiZhuTableView.buildCardCountBadgeText(format, 7);
+
+        // setAICardCounts 通过此文案来源函数更新字段，drawRedCardCountBadge 随后读取该字段。
+        String updatedText = DouDiZhuTableView.updateCardCountBadgeText(
+                firstText, 7, 3, format);
+        assertEquals("剩 3", updatedText);
+        assertEquals("剩 3", DouDiZhuTableView.updateCardCountBadgeText(
+                updatedText, 3, 3, "left %1$d"));
     }
 }
