@@ -97,7 +97,9 @@ jobs:
         run: ./gradlew ktlintCheck --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest :core:adb:testDebugUnitTest :core:common:testDebugUnitTest :core:network:testDebugUnitTest :core:update:testDebugUnitTest --stacktrace
+        # §三 欠账补齐：doudizhu（72 单测）/td/ai/tools 模块 src/test 全部进 CI，
+        # 杜绝"测试存在但无人跑"的死测试（BL-008 教训）
+        run: ./gradlew :app:testDebugUnitTest :core:adb:testDebugUnitTest :core:common:testDebugUnitTest :core:network:testDebugUnitTest :core:update:testDebugUnitTest :module-store:feature:games:games:doudizhu:testDebugUnitTest :module-store:feature:games:games:td:testDebugUnitTest :module-store:feature:tools:ai:testDebugUnitTest :module-store:feature:tools:tools:testDebugUnitTest --stacktrace
 
       - name: Verify tests did not rewrite release assets
         if: always()

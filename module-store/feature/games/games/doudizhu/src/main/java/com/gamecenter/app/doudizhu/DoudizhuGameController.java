@@ -6,6 +6,11 @@ import android.util.Log;
 
 import com.gamecenter.app.doudizhu.model.Card;
 import com.gamecenter.app.doudizhu.model.CardType;
+import com.gamecenter.app.doudizhu.save.DoudizhuSaveSink;
+import com.gamecenter.app.doudizhu.save.DoudizhuSnapshot;
+import com.gamecenter.app.doudizhu.score.BidPolicy;
+import com.gamecenter.app.doudizhu.score.ScoreBoard;
+import com.gamecenter.app.doudizhu.score.SpringDetector;
 import com.gamecenter.app.doudizhu.utils.GameRuleUtil;
 
 import java.util.ArrayList;
@@ -22,8 +27,14 @@ import java.util.List;
  * （在对应座位产生 bid/play/pass 事件），本控制器与规则层、UI 层无需改动。</p>
  *
  * <p>AI 契约：AI 产出的着法一律经 {@link DouDiZhuRuleEngine#validatePlay} 复核，
- * 非法则计入 {@code aiContractViolations} 并记录 {@code DDZ_AI_CONTRACT_VIOLATION} 日志，
- * 按不出处理（对齐 AGENTS.md 象棋/围棋 AI 契约风格）。</p>
+ * 非法则计入 {@code aiContractViolations} 并记录 {@code DDZ_AI_CONTRACT_VIOLATION} 日志：
+ * 跟牌回合按不出处理；自由出牌回合强制兜底为最小合法单牌（自由回合不能不出，
+ * 否则对局卡死）。对齐 AGENTS.md 象棋/围棋 AI 契约风格。</p>
+ *
+ * <p>P3 对局流程：叫分制 1/2/3 三档（{@code onHumanBid(int)}），倍数
+ * = 叫分 × 2^炸弹 ×（春天/反春 ×2），对局结束生成 {@link ScoreBoard.Settlement}
+ * 结算明细回调 UI；对局状态可经 {@link #captureSaveJson()}/{@link #restoreFromSave}
+ * 持久化与恢复（由宿主 Fragment 落到 SaveManager）。</p>
  */
 public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStateListener,
         DouDiZhuAIHelper.AICallback {
@@ -37,10 +48,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     public static final int DIFFICULTY_HARD = 2;
 
     /**
-     * 难度因子映射（供 AIBot 决策随机性/激进度使用）：
-     * 简单 = 0.6（低难度失误率），普通 = 1.0，困难 = 1.05（永不随机放弃）。
+     * 难度档位直接映射为 {@code AiBrain} 打法档（0=简单 1=普通 2=困难），
+     * 三档打法差异见 {@code ai/AiBrain} 类注释。
      */
-    private static final float[] DIFFICULTY_FACTORS = {0.6f, 1.0f, 1.05f};
+    private static final int MIN_DIFFICULTY = DIFFICULTY_EASY;
+    private static final int MAX_DIFFICULTY = DIFFICULTY_HARD;
 
     /** 桌面 UI 回调，由牌桌视图（DoudizhuGameScreen）实现 */
     public interface UiCallback {
@@ -54,10 +66,14 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         void onCardsPlayed(List<Card> cards, CardType type);
         /** 人类出牌非法：illegalCombo=牌型不合法；cannotBeat=管不上上家 */
         void onInvalidPlay(boolean illegalCombo, boolean cannotBeat);
-        /** 对局结束（含人类胜负结论由 UI 依 winnerIndex/landlordIndex 推导） */
-        void onGameFinished(int winnerIndex);
-        /** 新一局开始（UI 可播发牌动画） */
-        void onDealStart();
+        /** 人类叫分无效（不高于当前最高叫分），UI 提示后可重新叫分 */
+        void onInvalidBid();
+        /** 无人叫分重新发牌（redealCount 为已重发次数，含本次） */
+        void onRedeal(int redealCount);
+        /** 重发达上限后保底强制开局（按 1 分计倍） */
+        void onForcedLandlord();
+        /** 对局结束，携带结算明细（胜负/叫分/炸弹/春天/倍数/得分/耗时） */
+        void onGameFinished(ScoreBoard.Settlement settlement);
     }
 
     private final Handler handler;
@@ -68,13 +84,18 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     private int difficulty = DIFFICULTY_NORMAL;
     private UiCallback ui;
 
-    /** 全部已出的牌（含被桌面清理的轮次），用于记牌器计算 */
+    /** 全部已出的牌（含被桌面清理的轮次），用于记牌器计算；仅主线程 Handler 链路访问 */
     private final List<Card> playedHistory = new ArrayList<>();
     /** 当前回合的提示候选（懒生成），随回合重置 */
     private List<List<Card>> currentHints;
     private int hintIndex;
     private boolean gameOverHandled;
     private int aiContractViolations;
+
+    /** 倍数记分板（叫分/炸弹/春天） */
+    private ScoreBoard scoreBoard = new ScoreBoard();
+    /** 本局开始时间戳（毫秒），存档恢复时还原，用于耗时统计 */
+    private long startedAtMs;
 
     public DoudizhuGameController() {
         handler = new Handler(Looper.getMainLooper());
@@ -113,18 +134,17 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
      */
     public void startNewGame(int difficulty) {
         aiHelper.cancelPending();
-        this.difficulty = Math.max(DIFFICULTY_EASY, Math.min(DIFFICULTY_HARD, difficulty));
-        aiHelper.setDifficultyFactor(DIFFICULTY_FACTORS[this.difficulty]);
+        this.difficulty = Math.max(MIN_DIFFICULTY, Math.min(MAX_DIFFICULTY, difficulty));
+        aiHelper.setDifficulty(this.difficulty);
         playedHistory.clear();
         currentHints = null;
         hintIndex = 0;
         gameOverHandled = false;
         aiContractViolations = 0;
+        scoreBoard = new ScoreBoard();
+        startedAtMs = System.currentTimeMillis();
         stateManager.resetGameState();
         stateManager.startGame();
-        if (ui != null) {
-            ui.onDealStart();
-        }
     }
 
     /** 是否有一局正在进行（含叫地主/出牌/结束未退出）。 */
@@ -141,17 +161,35 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         return aiContractViolations;
     }
 
+    /** 当前总倍数（叫分 × 2^炸弹 × 春天加成；春天在对局结束才判定）。 */
+    public int getMultiplier() {
+        return scoreBoard.totalMultiplier();
+    }
+
+    /** 本局是否已结束（用于存档时机判断）。 */
+    public boolean isGameOver() {
+        return stateManager.getGameState() == DouDiZhuGameStateManager.STATE_GAME_OVER;
+    }
+
     public DouDiZhuGameStateManager state() {
         return stateManager;
     }
 
     // ============ 人类操作入口（由牌桌视图调用） ============
 
-    /** 人类叫地主 / 不叫。 */
-    public void onHumanBid(boolean call) {
+    /**
+     * 人类叫分（P3 叫分制）。
+     *
+     * @param bid 叫分 1/2/3；0 表示不叫
+     */
+    public void onHumanBid(int bid) {
         if (stateManager.getGameState() != DouDiZhuGameStateManager.STATE_BIDDING) return;
         if (seatTypes[stateManager.getCurrentTurn()] != Seats.TYPE_HUMAN) return;
-        handleBid(stateManager.getCurrentTurn(), call);
+        if (bid > 0 && !BidPolicy.isValidBid(bid, stateManager.getHighestBid())) {
+            if (ui != null) ui.onInvalidBid();
+            return;
+        }
+        handleBid(Seats.SEAT_PLAYER, bid);
     }
 
     /**
@@ -206,21 +244,30 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
                 && seatTypes[stateManager.getCurrentTurn()] == Seats.TYPE_HUMAN;
     }
 
-    // ============ 叫地主 / 出牌核心流转 ============
+    // ============ 叫分 / 出牌核心流转 ============
 
-    private void handleBid(int seat, boolean call) {
-        if (call) {
-            stateManager.setLandlord(seat);
-            stateManager.startPlayingPhase();
+    /**
+     * 处理一次叫分（人类/AI 共用）。
+     *
+     * @param seat 叫分座位
+     * @param bid  叫分 1/2/3，0 表示不叫
+     */
+    private void handleBid(int seat, int bid) {
+        if (bid > 0) {
+            stateManager.recordBid(seat, bid);
         } else {
-            // 三轮无人叫时 stateManager 内部会随机指定地主并进入出牌阶段
-            stateManager.advanceBidTurn();
+            stateManager.passBid();
         }
+        // recordBid 可能已定地主并进入出牌阶段（onLandlordSet/onStateChanged 已回推）
     }
 
     private void commitPlay(int seat, List<Card> cards) {
         CardType type = GameRuleUtil.getCardType(cards);
         playedHistory.addAll(cards);
+        // 炸弹/王炸倍数 ×2（P3 倍数体系）
+        if (type == CardType.BOMB || type == CardType.JOKER_BOMB) {
+            scoreBoard.registerBomb();
+        }
         // executePlay 内部会推进回合并触发 onTurnChanged/onGameOver
         stateManager.executePlay(seat, cards);
         if (ui != null) {
@@ -252,22 +299,63 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         if (ui != null) {
             ui.onTableSyncRequired();
         }
+        scheduleAiIfDue();
+    }
+
+    /**
+     * 当前回合属于 AI 时调度 AI 行动（叫分阶段→叫分，出牌阶段→出牌）。
+     *
+     * <p>正常流转经 {@link #onTurnChanged} 触发；恢复对局
+     * （{@code DouDiZhuGameStateManager.restoreFrom} 末尾同样回调 onTurnChanged）
+     * 后恰逢 AI 回合也必须恢复调度，否则对局静默卡死（P3 复查项 D，测试锁定）。</p>
+     */
+    void scheduleAiIfDue() {
         int state = stateManager.getGameState();
         if (state == DouDiZhuGameStateManager.STATE_BIDDING) {
-            if (seatTypes[newTurn] == Seats.TYPE_AI) {
+            if (seatTypes[stateManager.getCurrentTurn()] == Seats.TYPE_AI) {
                 aiHelper.scheduleAIBid();
             }
         } else if (state == DouDiZhuGameStateManager.STATE_PLAYING) {
-            if (seatTypes[newTurn] == Seats.TYPE_AI) {
+            if (seatTypes[stateManager.getCurrentTurn()] == Seats.TYPE_AI) {
                 aiHelper.scheduleAITurn();
             }
         }
     }
 
+    /**
+     * 当前挂起的 AI 任务（仅供 JVM 单测：恢复于 AI 回合场景验证调度已挂起）。
+     */
+    Runnable pendingAiTaskForTest() {
+        return aiHelper.peekPendingForTest();
+    }
+
     @Override
     public void onLandlordSet(int landlordIndex) {
+        // 叫分写入倍数记分板（P3：倍数 = 叫分 × …）
+        scoreBoard.setBidScore(stateManager.getBidScore());
         if (ui != null) {
             ui.onTableSyncRequired();
+        }
+    }
+
+    /**
+     * 本轮叫分全部流过：按 {@code BidPolicy.shouldRedeal} 决定重新发牌或保底开局
+     * （文档 D3：重发上限 3 次，超限后强制 1 分开局，防死循环）。
+     */
+    @Override
+    public void onBidRoundPassed() {
+        if (BidPolicy.shouldRedeal(stateManager.getBidPlacedCount(),
+                stateManager.getRedealCount())) {
+            stateManager.redeal();
+            if (ui != null) {
+                ui.onRedeal(stateManager.getRedealCount());
+            }
+        } else {
+            // 保底：从当前起始座位强制 1 分开局
+            stateManager.forceStartWithBid(stateManager.getBidTurn());
+            if (ui != null) {
+                ui.onForcedLandlord();
+            }
         }
     }
 
@@ -276,10 +364,24 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
         if (gameOverHandled) return;
         gameOverHandled = true;
         aiHelper.cancelPending();
+
+        // 春天/反春判定与结算（P3）
+        int landlord = stateManager.getLandlordIndex();
+        boolean spring = SpringDetector.isSpring(winnerIndex, landlord,
+                stateManager.getPlayCounts());
+        boolean antiSpring = SpringDetector.isAntiSpring(winnerIndex, landlord,
+                stateManager.getPlayCounts());
+        scoreBoard.applySpring(spring, antiSpring);
+
+        boolean humanIsLandlord = landlord == Seats.SEAT_PLAYER;
+        boolean landlordWon = winnerIndex == landlord;
+        ScoreBoard.Settlement settlement = scoreBoard.settle(landlord, humanIsLandlord,
+                landlordWon, System.currentTimeMillis() - startedAtMs);
+
         pushPhaseToUi();
         if (ui != null) {
             ui.onTableSyncRequired();
-            ui.onGameFinished(winnerIndex);
+            ui.onGameFinished(settlement);
         }
     }
 
@@ -343,6 +445,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     }
 
     @Override
+    public int getCurrentHighestBid() {
+        return stateManager.getHighestBid();
+    }
+
+    @Override
     public int getLastPlayerWhoPlayed() {
         return stateManager.getLastPlayerWhoPlayed();
     }
@@ -361,6 +468,11 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     }
 
     @Override
+    public List<Card> getPlayedHistory() {
+        return new ArrayList<>(playedHistory);
+    }
+
+    @Override
     public void onAIPlay(int seatIndex, List<Card> cards) {
         if (stateManager.getGameState() != DouDiZhuGameStateManager.STATE_PLAYING
                 || stateManager.getCurrentTurn() != seatIndex) {
@@ -372,10 +484,35 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
             Log.w(TAG, "DDZ_AI_CONTRACT_VIOLATION seat=" + seatIndex);
             if (last != null) {
                 passSeat(seatIndex);
+            } else {
+                // 自由出牌回合不能"不出"（桌面永远清不了，对局会卡死）：
+                // 强制兜底为最小合法单牌，与 AiBrain 出口自校验语义一致
+                List<Card> fallback = smallestLegalSingle(seatIndex);
+                if (fallback != null && DouDiZhuRuleEngine.validatePlay(fallback, last)) {
+                    commitPlay(seatIndex, fallback);
+                } else {
+                    // 不可达防御分支：手牌非空时最小单张在自由出牌回合恒合法，
+                    // fallback == null 只可能是手牌状态已异常，记日志便于排查
+                    Log.w(TAG, "DDZ_AI_FALLBACK_UNREACHABLE seat=" + seatIndex
+                            + " fallbackNull=" + (fallback == null));
+                }
             }
             return;
         }
         commitPlay(seatIndex, cards);
+    }
+
+    /** 指定座位手牌中最小单张（自由出牌回合 AI 非法着法的强制兜底）。 */
+    private List<Card> smallestLegalSingle(int seatIndex) {
+        List<Card> hand = getSeatHandCards(seatIndex);
+        if (hand == null || hand.isEmpty()) return null;
+        Card min = hand.get(0);
+        for (Card c : hand) {
+            if (c.getWeight() < min.getWeight()) min = c;
+        }
+        List<Card> out = new ArrayList<>();
+        out.add(min);
+        return out;
     }
 
     @Override
@@ -385,7 +522,7 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
             return;
         }
         if (stateManager.getLastPlayedCards() == null) {
-            // 自由出牌回合 AI 不可 pass（AIBot 首发恒有牌可出，此处仅防御）
+            // 自由出牌回合 AI 不可 pass（AiBrain 首发恒有牌可出，此处仅防御）
             Log.w(TAG, "AI pass on free turn, seat=" + seatIndex);
             return;
         }
@@ -393,11 +530,140 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
     }
 
     @Override
-    public void onAIBid(boolean call) {
+    public void onAIBid(int bid) {
         if (stateManager.getGameState() != DouDiZhuGameStateManager.STATE_BIDDING) return;
         int seat = stateManager.getCurrentTurn();
         if (seatTypes[seat] != Seats.TYPE_AI) return;
-        handleBid(seat, call);
+        if (bid > 0 && !BidPolicy.isValidBid(bid, stateManager.getHighestBid())) {
+            // AI 契约：叫分不高于当前最高分视为不叫（流过）
+            Log.w(TAG, "DDZ_AI_BID_INVALID seat=" + seat + " bid=" + bid);
+            bid = 0;
+        }
+        handleBid(seat, bid);
+    }
+
+    /**
+     * 校验存档字符串是否可恢复（菜单页"继续对局"按钮显隐用），不改变任何状态。
+     *
+     * @param saveJson 存档字符串
+     * @return true 表示可经 {@link #restoreFromSave} 恢复
+     */
+    public static boolean canRestore(String saveJson) {
+        try {
+            DoudizhuSnapshot.deserialize(saveJson);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ============ 存档（P3） ============
+
+    /**
+     * 捕获当前对局并序列化为存档 JSON 字符串。
+     *
+     * <p>由宿主 Fragment 在 onPause 时落到 {@code SaveManager}（auto 槽）；
+     * 大厅态/已结束返回 null（调用方应清档）。</p>
+     *
+     * @return 存档字符串，无可保存的对局时为 null
+     */
+    public String captureSaveJson() {
+        if (!isInGame() || isGameOver()) return null;
+        DoudizhuSnapshot snapshot = stateManager.captureSnapshot();
+        if (snapshot == null) return null;
+        snapshot.bombCount = scoreBoard.getBombCount();
+        snapshot.difficulty = difficulty;
+        snapshot.startedAtMs = startedAtMs;
+        try {
+            return snapshot.serialize();
+        } catch (DoudizhuSnapshot.SerializeException e) {
+            Log.w(TAG, "存档序列化失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 退出牌桌（✕）时的存档处置（P3 复查修复 A）。
+     *
+     * <p>退出确认弹窗文案承诺"退出前将保存进度"：对局进行中（未结束）经
+     * {@link #captureSaveJson()} 取存档并经 sink 落盘；已结束/大厅态则清档。
+     * ✕ 退出是同一 Activity 内切视图、不触发宿主 onPause，必须在此显式处置，
+     * 否则文案与实际行为不符（且 {@link #shutdown()} 会清空对局状态，
+     * 落档必须发生在其之前）。</p>
+     *
+     * @param sink 存档写入/清档出口（宿主实现，包装 SaveManager）
+     */
+    public void persistOnExit(DoudizhuSaveSink sink) {
+        String json = captureSaveJson();
+        if (json != null) {
+            sink.save(json);
+        } else {
+            sink.clear();
+        }
+    }
+
+    /**
+     * 从存档字符串恢复对局（进程被杀后重进）。
+     *
+     * <p>恢复失败（格式损坏）返回 false，调用方应清档并回到菜单。</p>
+     *
+     * @param saveJson 存档字符串（{@link #captureSaveJson()} 产出）
+     * @return true 表示恢复成功
+     */
+    public boolean restoreFromSave(String saveJson) {
+        DoudizhuSnapshot snapshot;
+        try {
+            snapshot = DoudizhuSnapshot.deserialize(saveJson);
+        } catch (DoudizhuSnapshot.SerializeException e) {
+            Log.w(TAG, "存档损坏，放弃恢复", e);
+            return false;
+        }
+        aiHelper.cancelPending();
+        aiHelper.setDifficulty(Math.max(MIN_DIFFICULTY,
+                Math.min(MAX_DIFFICULTY, snapshot.difficulty)));
+        difficulty = aiHelper.getDifficulty();
+        playedHistory.clear();
+        currentHints = null;
+        hintIndex = 0;
+        gameOverHandled = false;
+        aiContractViolations = 0;
+        scoreBoard = new ScoreBoard();
+        scoreBoard.setBidScore(snapshot.bidScore > 0 ? snapshot.bidScore : 1);
+        for (int i = 0; i < snapshot.bombCount; i++) {
+            scoreBoard.registerBomb();
+        }
+        startedAtMs = snapshot.startedAtMs > 0 ? snapshot.startedAtMs
+                : System.currentTimeMillis();
+        // 重放已出的牌（记牌器口径）：整副牌 − 三家手牌 − 底牌 = 已出/桌面牌
+        playedHistory.addAll(rebuildPlayedHistory(snapshot));
+
+        stateManager.resetGameState();
+        stateManager.restoreFrom(snapshot);
+        return true;
+    }
+
+    /**
+     * 整副牌减去快照手牌，重建"已出过的牌"列表（记牌器恢复用）。
+     *
+     * <p>地主已定时底牌已在地主手牌内（不可重复扣减）；叫分阶段手牌 51 张、
+     * 底牌独立，需一并扣减。桌面当前一手已不在任何手牌中，自然计入结果。</p>
+     */
+    private List<Card> rebuildPlayedHistory(DoudizhuSnapshot snapshot) {
+        List<Card> remaining = new ArrayList<>();
+        for (List<Card> hand : snapshot.hands) {
+            remaining.addAll(hand);
+        }
+        if (snapshot.landlordSeat < 0) {
+            remaining.addAll(snapshot.bottomCards);
+        }
+        List<Card> played = new ArrayList<>();
+        for (Card card : Card.createFullDeck()) {
+            // createFullDeck 每张都是新实例，equals 按花色+牌值比较，remove 即逻辑删牌
+            if (!remaining.remove(card)) {
+                played.add(card);
+            }
+        }
+        return played;
     }
 
     // ============ 桌面状态回放 ============
@@ -422,6 +688,8 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
 
         boolean[] passed = stateManager.getPlayerPassed();
         view.setPassStates(passed[Seats.SEAT_LEFT_AI], passed[Seats.SEAT_RIGHT_AI]);
+        // P4：玩家"不出"在台面中央回显
+        view.setPlayerPassed(passed[Seats.SEAT_PLAYER]);
 
         int[] status = new int[Seats.TOTAL_SEATS];
         if (landlordKnown) {
@@ -430,12 +698,19 @@ public class DoudizhuGameController implements DouDiZhuGameStateManager.GameStat
                 status[i] = (i == landlord) ? 2 : 1;
             }
         }
+        // P4 中英混排修正：身份标签改由视图层按 landlordStatus + 资源组装，
+        // 控制器不再下发硬编码中文文本（原 setPlayerLabels 入口已废弃）
         view.setAllLandlordStatus(status);
+        view.setGamePhase(stateManager.getGameState(),
+                stateManager.getGameState() == DouDiZhuGameStateManager.STATE_LOBBY
+                        ? -1 : stateManager.getCurrentTurn());
         view.setCurrentTurn(stateManager.getCurrentTurn());
         view.setCardCounterCounts(remainingCounter());
-        view.setGamePhase(stateManager.getGameState());
-        // 中央放大展示当前一手；自由出牌（桌面已清）时不展示
-        view.setLastPlayedCards(stateManager.getLastPlayedCards());
+    }
+
+    /** 当前最高叫分（0=无人叫），供桌面 HUD 显示叫分阶段信息。 */
+    public int getHighestBid() {
+        return stateManager.getHighestBid();
     }
 
     /**
