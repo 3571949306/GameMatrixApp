@@ -3,6 +3,8 @@ package com.gamecenter.app.td;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.gamecenter.app.td.engine.TdGame;
+
 import com.gamecenter.app.core.common.ModuleScopedPreferences;
 
 /**
@@ -25,6 +27,8 @@ public class TdSaveManager {
     private static final String KEY_EASY_DONE = "td_easy_done";
     private static final String KEY_HARD_DONE = "td_hard_done";
     private static final String KEY_ID_MIGRATED = "td_level_id_migrated_v1";
+    /** 按难度隔离的最佳无尽波数键前缀（后缀为难度小写名：easy/normal/hard） */
+    private static final String KEY_ENDLESS_BEST_PREFIX = "td_endless_best_";
 
     private final SharedPreferences prefs;
 
@@ -167,6 +171,39 @@ public class TdSaveManager {
     /** 困难难度是否通关过 */
     public boolean isHardCleared() { return prefs.getBoolean(KEY_HARD_DONE, false); }
     public void setHardCleared(boolean v) { prefs.edit().putBoolean(KEY_HARD_DONE, v).apply(); }
+
+    // ===== 无尽模式最佳波数（阶段 1：引擎与存档） =====
+
+    /**
+     * 按难度隔离的无尽最佳波数存档键（纯函数，JVM 可测）。
+     * 键与既有 td_ 前缀风格一致：td_endless_best_easy|normal|hard；
+     * null 难度返回 null，调用方防御性忽略。
+     */
+    static String bestEndlessKey(TdGame.Difficulty difficulty) {
+        if (difficulty == null) return null;
+        return KEY_ENDLESS_BEST_PREFIX + difficulty.name().toLowerCase(java.util.Locale.US);
+    }
+
+    /** 只增不减合并规则（纯函数，JVM 可测）；waves ≤ 0 一律视为无效输入并忽略。 */
+    static int mergedBestEndlessWaves(int current, int waves) {
+        if (waves <= 0) return current;
+        return Math.max(current, waves);
+    }
+
+    /** 按难度读取最佳无尽波数（0 = 未记录；null 难度防御性返回 0）。 */
+    public int getBestEndlessWaves(TdGame.Difficulty difficulty) {
+        String key = bestEndlessKey(difficulty);
+        return key == null ? 0 : prefs.getInt(key, 0);
+    }
+
+    /** 记录按难度的最佳无尽波数（只增不减；waves ≤ 0 或 null 难度一律忽略）。 */
+    public void recordEndlessWaves(TdGame.Difficulty difficulty, int waves) {
+        String key = bestEndlessKey(difficulty);
+        if (key == null) return;
+        int current = prefs.getInt(key, 0);
+        int merged = mergedBestEndlessWaves(current, waves);
+        if (merged != current) prefs.edit().putInt(key, merged).apply();
+    }
 
     public void clearAll() {
         prefs.edit().clear().apply();

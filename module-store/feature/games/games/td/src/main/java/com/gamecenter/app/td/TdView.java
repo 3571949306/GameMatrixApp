@@ -209,6 +209,13 @@ public class TdView extends View {
         invalidate();
     }
 
+    /** 无尽模式横幅：总波数随合成波递增、无固定上限，只显示当前到达的波次。 */
+    public void showWaveBannerEndless(int waveNo) {
+        waveBannerText = getContext().getString(R.string.game_td_banner_wave_endless, waveNo);
+        waveBannerTicks = 90; // 1.5 秒
+        invalidate();
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);

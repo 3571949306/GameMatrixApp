@@ -70,6 +70,7 @@
     <string name="game_td_btn_target_economy">经济塔</string>
     <string name="game_td_btn_target_mode">目标·%1$s</string>
     <string name="game_td_btn_play">▶ 玩</string>
+    <string name="game_td_btn_endless">无尽模式</string>
     <string name="game_td_btn_back_hall">返回大厅</string>
     <string name="game_td_btn_next_level">下一关 ▶</string>
     <string name="game_td_btn_retry">↺ 重玩本关</string>
@@ -85,6 +86,8 @@
     <string name="game_td_hud_final_line">守住最后防线</string>
     <string name="game_td_wave_mixed">混编：%1$s</string>
     <string name="game_td_banner_wave">第 %1$d 波 ⚔ 共 %2$d 波</string>
+    <string name="game_td_banner_wave_endless">第 %1$d 波 ⚔ 无尽</string>
+    <string name="game_td_hud_endless_wave">第 %1$d 波</string>
 
     <!-- 消息条 / 提示 -->
     <string name="game_td_msg_campaign_unavailable">关卡内容加载失败\n请重新安装“保卫蛋蛋”模块后再试</string>
@@ -157,6 +160,8 @@
     <string name="game_td_result_stats">击杀 %1$d · 用时 %2$ds</string>
     <string name="game_td_result_new_towers">\n新塔解锁：%1$s</string>
     <string name="game_td_result_lose_stats">坚持到第 %1$d 波  ·  击杀 %2$d</string>
+    <string name="game_td_result_endless">坚持到第 %1$d 波</string>
+    <string name="game_td_result_endless_best">新纪录！</string>
     <string name="game_td_overlay_win">守住了！蛋蛋安全了</string>
     <string name="game_td_overlay_lose">蛋蛋被吃掉了…</string>
 

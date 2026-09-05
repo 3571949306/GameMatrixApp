@@ -1,6 +1,7 @@
 package com.gamecenter.app.td;
 
 import com.gamecenter.app.td.engine.MonsterType;
+import com.gamecenter.app.td.engine.TdEndlessWaveFactory;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TdLevelJsonParser;
 import com.gamecenter.app.td.engine.TdLevels;
@@ -1123,6 +1124,153 @@ public class TdGameTest {
         int beforeIdle = g.getCoinsEarned();
         for (int i = 0; i < 600; i++) g.tick();
         assertEquals("波间空闲期太阳花不应继续产币", beforeIdle, g.getCoinsEarned());
+    }
+
+    // ===== 无尽模式（阶段 1：仅引擎与存档） =====
+
+    /** 构造最小对局：definedWaves 条单怪定义波 + 8 格直路线；mode 为 null 时保持默认战役。 */
+    private static TdGame minimalGame(int definedWaves, int mascotHp, TdGame.Mode mode) {
+        int[][] path = new int[8][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        for (int i = 0; i < definedWaves; i++) {
+            waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        }
+        return new TdGame(8, 2, path, 0, 7, 1000, mascotHp, waves).setMode(mode);
+    }
+
+    /** 按真实节奏推进：本波生成完毕且场上清空即返回（与 UI「下一波」按钮的调用时机一致）。 */
+    private static void driveCurrentWaveUntilCleared(TdGame g) {
+        for (int i = 0; i < MAX_TICKS && !g.isEnded(); i++) {
+            g.tick();
+            if (!g.isWaveSpawning() && g.getMonsters().isEmpty()) return;
+        }
+        throw new AssertionError("波次应在有限时间内清场");
+    }
+
+    @Test
+    public void endlessMode_synthesizesWavesBeyondDefinition_andIncrementsReached() {
+        TdGame g = minimalGame(2, 1000, TdGame.Mode.ENDLESS);
+        assertEquals(TdGame.Mode.ENDLESS, g.getMode());
+        assertEquals("开战前未进入任何波次", 0, g.getEndlessWaveReached());
+        assertTrue(g.startNextWaveEarly());
+        assertEquals(1, g.getEndlessWaveReached());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly());
+        assertEquals(2, g.getEndlessWaveReached());
+        // 定义波即将耗尽：HUD 预览必须零副作用地展示工厂将要合成的第 3 波
+        assertEquals("无尽预览与推进时的合成必须同参同结果",
+                TdEndlessWaveFactory.createWave(3, TdGame.Difficulty.NORMAL, 1).count,
+                g.nextWaveCount());
+        assertFalse("合成波预览不得为空", g.nextWaveComposition().isEmpty());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue("无尽模式波次耗尽后必须合成下一波继续", g.startNextWaveEarly());
+        assertEquals(3, g.getEndlessWaveReached());
+        assertEquals("合成波计入总波数", 3, g.getTotalWaves());
+        assertEquals(3, g.getWaveIndex());
+        assertEquals(TdGame.State.RUNNING, g.getState());
+        assertFalse("无尽模式打完定义波次后不得胜利", g.getState() == TdGame.State.WON);
+        assertFalse(g.isEnded());
+        // 合成波刷出的怪必须携带正确的绝对波次序号
+        for (int i = 0; i < 120 && g.getMonsters().isEmpty(); i++) g.tick();
+        assertFalse("合成波应开始刷怪", g.getMonsters().isEmpty());
+        assertEquals("合成波怪的 waveNo 必须是绝对序号", 3, g.getMonsters().get(0).waveNo);
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly());
+        assertEquals("波次序号持续递增", 4, g.getEndlessWaveReached());
+        assertEquals(4, g.getTotalWaves());
+        assertEquals("下一波预告继续指向合成波",
+                TdEndlessWaveFactory.createWave(5, TdGame.Difficulty.NORMAL, 1).count,
+                g.nextWaveCount());
+    }
+
+    @Test
+    public void endlessMode_eggDeathIsTheOnlyEnd_neverVictory() {
+        TdGame g = minimalGame(1, 2, TdGame.Mode.ENDLESS);
+        assertTrue(g.startNextWaveEarly());
+        driveCurrentWaveUntilCleared(g);
+        assertEquals("定义波漏一只后剩 1 点蛋血", 1, g.getMascotHp());
+        assertEquals("定义波打完不得触发胜利", TdGame.State.RUNNING, g.getState());
+        assertTrue("无尽必须合成下一波", g.startNextWaveEarly());
+        assertEquals(2, g.getTotalWaves());
+        for (int i = 0; i < MAX_TICKS && !g.isEnded(); i++) g.tick();
+        assertEquals("唯一结束方式是蛋死亡", TdGame.State.LOST, g.getState());
+        assertEquals("蛋蛋 HP 归零", 0, g.getMascotHp());
+        assertEquals(2, g.getMascotHpLost());
+        assertFalse("绝不能进入胜利分支", g.getState() == TdGame.State.WON);
+        assertEquals("结束波次仍计为已进入", 2, g.getEndlessWaveReached());
+        g.tick();
+        assertEquals("结束后 tick 不应改变状态", TdGame.State.LOST, g.getState());
+    }
+
+    @Test
+    public void campaignMode_lastWaveReachedPathAndVictoryRemainUnchanged() {
+        TdGame g = minimalGame(2, 1000, null);
+        assertEquals("默认必须是战役模式", TdGame.Mode.CAMPAIGN, g.getMode());
+        assertTrue(g.startNextWaveEarly());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly());
+        // 等最后一波生成完毕但怪仍在场上（未触发胜利判定）
+        for (int i = 0; i < MAX_TICKS && (g.isWaveSpawning() || g.getMonsters().isEmpty()); i++) {
+            g.tick();
+        }
+        // 最后一只怪刷出的那一帧 waveStarted 尚未复位，补一帧让它走完“本波生成完毕”复位路径
+        g.tick();
+        assertFalse(g.isWaveSpawning());
+        assertFalse(g.getMonsters().isEmpty());
+        assertFalse("战役最后一波进行中不得再推进", g.startNextWaveEarly());
+        assertEquals("战役必须保留 LAST_WAVE_REACHED 原语义",
+                TdGame.ActionMsg.LAST_WAVE_REACHED, g.getLastActionMsg());
+        assertEquals(TdGame.State.RUNNING, g.getState());
+        driveCurrentWaveUntilCleared(g);
+        assertEquals("战役场上清空后照常胜利（行为不变）", TdGame.State.WON, g.getState());
+        assertEquals("CAMPAIGN 下 getEndlessWaveReached 语义=当前波",
+                g.getWaveIndex(), g.getEndlessWaveReached());
+        assertFalse("已胜利后不得再推进", g.startNextWaveEarly());
+    }
+
+    @Test
+    public void buildLevelEndless_overloadReusesLevelResources_andNullKeepsCampaign() {
+        TdGame campaign = TdLevels.buildLevel("level_01");
+        TdGame endless = TdLevels.buildLevel("level_01", TdGame.Mode.ENDLESS);
+        assertEquals(TdGame.Mode.ENDLESS, endless.getMode());
+        assertEquals("无尽复用同一张地图", campaign.getCols(), endless.getCols());
+        assertEquals(campaign.getRows(), endless.getRows());
+        assertEquals("无尽复用路线数量", campaign.getPaths().length, endless.getPaths().length);
+        assertEquals("无尽复用路线拓扑", campaign.getRouteLength(0), endless.getRouteLength(0));
+        assertEquals("无尽保留初始金币", campaign.getCoin(), endless.getCoin());
+        assertEquals("无尽保留蛋蛋生命", campaign.getMaxMascotHp(), endless.getMaxMascotHp());
+        assertEquals("战役波次定义原样保留", campaign.getWaves().size(), endless.getWaves().size());
+        assertEquals("null 模式必须安全回退战役", TdGame.Mode.CAMPAIGN,
+                TdLevels.buildLevel("level_01", null).getMode());
+    }
+
+    @Test
+    public void endlessSynthesizedMonsters_composeHpWithDifficultyViaEngine() {
+        TdGame g = minimalGame(1, 1000, TdGame.Mode.ENDLESS);
+        g.applyDifficulty(TdGame.Difficulty.HARD);
+        assertTrue(g.startNextWaveEarly());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly()); // 合成第 2 波
+        for (int i = 0; i < 120 && g.getMonsters().isEmpty(); i++) g.tick();
+        assertFalse("合成波应开始刷怪", g.getMonsters().isEmpty());
+        TdGame.Monster monster = g.getMonsters().get(0);
+        assertEquals(MonsterType.NORMAL, monster.type);
+        float expected = MonsterType.NORMAL.hp
+                * TdEndlessWaveFactory.createWave(2, TdGame.Difficulty.HARD, 1).hpMul
+                * TdGame.Difficulty.HARD.hpMul;
+        assertEquals("难度只在引擎侧合成一次，工厂不重复叠加", expected, monster.maxHp, 0.01f);
+    }
+
+    @Test
+    public void setMode_ignoredOnceStartedOrNull() {
+        TdGame g = minimalGame(1, 100, null);
+        assertTrue(g.startNextWaveEarly());
+        g.setMode(TdGame.Mode.ENDLESS);
+        assertEquals("开战后切换模式必须被忽略", TdGame.Mode.CAMPAIGN, g.getMode());
+        TdGame fresh = minimalGame(1, 100, null);
+        fresh.setMode(null);
+        assertEquals("null 模式必须被忽略", TdGame.Mode.CAMPAIGN, fresh.getMode());
     }
 
     private static void assertIllegalArgument(Runnable action) {

@@ -72,6 +72,8 @@ public class TdModuleFragment extends Fragment {
     /** 合成源塔；非空时下一次点选塔会作为合成目标。 */
     private TdGame.Tower mergeSource;
     private int selectedLevelIdx = 0;
+    /** 本局对局模式（战役/无尽）：restartLevel 与结算据此保持模式一致。 */
+    private TdGame.Mode selectedMode = TdGame.Mode.CAMPAIGN;
     private int gameSession = 0;
     private boolean paused = false;
     private boolean gameEnded = false;
@@ -544,7 +546,12 @@ public class TdModuleFragment extends Fragment {
             int waveBefore = game.getWaveIndex();
             boolean ok = game.startNextWaveEarly();
             if (game.getState() == TdGame.State.RUNNING && game.getWaveIndex() != waveBefore) {
-                tdView.showWaveBanner(game.getWaveIndex(), game.getTotalWaves());
+                if (game.getMode() == TdGame.Mode.ENDLESS) {
+                    // 无尽模式 totalWaves 随合成波递增，"共 N 波"语义不成立。
+                    tdView.showWaveBannerEndless(game.getEndlessWaveReached());
+                } else {
+                    tdView.showWaveBanner(game.getWaveIndex(), game.getTotalWaves());
+                }
             }
             showEngineMsg();
             updateHud();
@@ -726,6 +733,21 @@ public class TdModuleFragment extends Fragment {
                 play.setTextColor(0xFFFFFFFF);
                 play.setOnClickListener(v -> showDifficultySelect(idx));
                 card.addView(play, new LinearLayout.LayoutParams(dp(56), dp(36)));
+                // 无尽模式入口：复用同一张关卡地图/路线/蛋位，难度与塔组流程与战役一致
+                Button endless = new Button(requireContext());
+                endless.setText(getString(R.string.game_td_btn_endless));
+                endless.setTextSize(11);
+                endless.setAllCaps(false);
+                endless.setStateListAnimator(null);
+                GradientDrawable eb = new GradientDrawable();
+                eb.setColor(0xFF1E88E5);
+                eb.setCornerRadius(dp(8));
+                endless.setBackground(eb);
+                endless.setTextColor(0xFFFFFFFF);
+                endless.setOnClickListener(v -> showDifficultySelect(idx, true));
+                LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(dp(64), dp(36));
+                elp.leftMargin = dp(6);
+                card.addView(endless, elp);
             }
             panel.addView(card, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -756,6 +778,11 @@ public class TdModuleFragment extends Fragment {
     }
 
     private void showDifficultySelect(final int levelIdx) {
+        showDifficultySelect(levelIdx, false);
+    }
+
+    /** endless=true 时沿用战役的难度/塔组流程，仅开局模式切换为 ENDLESS。 */
+    private void showDifficultySelect(final int levelIdx, final boolean endless) {
         clearOverlay();
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -781,7 +808,7 @@ public class TdModuleFragment extends Fragment {
             b.setBackground(gb);
             b.setTextSize(15);
             b.setOnClickListener(v -> {
-                showDeckSelect(levelIdx, d);
+                showDeckSelect(levelIdx, d, endless);
             });
             panel.addView(b, new LinearLayout.LayoutParams(dp(180), dp(46)));
             ((LinearLayout.LayoutParams) b.getLayoutParams()).topMargin = dp(12);
@@ -800,8 +827,13 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
-    /** 开局选塔：最多 5 张牌，底部只显示本次选中的塔。 */
     private void showDeckSelect(final int levelIdx, final TdGame.Difficulty difficulty) {
+        showDeckSelect(levelIdx, difficulty, false);
+    }
+
+    /** 开局选塔：最多 5 张牌，底部只显示本次选中的塔。endless=true 时以无尽模式开局。 */
+    private void showDeckSelect(final int levelIdx, final TdGame.Difficulty difficulty,
+                                final boolean endless) {
         clearOverlay();
         final List<TowerType> availableTowers = TdTowerProgression
                 .availableForUnlockedLevelCount(save.getUnlockedLevelCount());
@@ -913,7 +945,8 @@ public class TdModuleFragment extends Fragment {
             activeDeck.clear();
             activeDeck.addAll(draft);
             save.recordPlay();
-            startLevel(levelIdx, difficulty);
+            startLevel(levelIdx, difficulty,
+                    endless ? TdGame.Mode.ENDLESS : TdGame.Mode.CAMPAIGN);
             clearOverlay();
         });
         panel.addView(start, new LinearLayout.LayoutParams(dp(220), dp(44)));
@@ -963,13 +996,22 @@ public class TdModuleFragment extends Fragment {
     // ===== 对局管理 =====
 
     private void startLevel(int idx, TdGame.Difficulty diff) {
+        startLevel(idx, diff, TdGame.Mode.CAMPAIGN);
+    }
+
+    /**
+     * mode=ENDLESS 时复用所选关卡的地图/路线/蛋位与初始金币、蛋生命（难度同源规则，
+     * 与战役共用 applyDifficulty 的金币倍率链），仅波次耗尽后由工厂无限合成。
+     */
+    private void startLevel(int idx, TdGame.Difficulty diff, TdGame.Mode mode) {
         gameSession++;
         paused = false;
         gameEnded = false;
         selectedLevelIdx = idx;
+        selectedMode = mode != null ? mode : TdGame.Mode.CAMPAIGN;
         btnSpeed.setText("⏸");
         btnNextWave.setText(getString(R.string.game_td_btn_fight));
-        game = TdLevels.buildLevel(TdLevels.levelIds().get(idx));
+        game = TdLevels.buildLevel(TdLevels.levelIds().get(idx), selectedMode);
         game.applyDifficulty(diff);
         tdView.bind(game);
         tdView.setSelectedType(null);
@@ -987,7 +1029,8 @@ public class TdModuleFragment extends Fragment {
 
     private void restartLevel(int idx) {
         mainHandler.removeCallbacks(tickLoop);
-        startLevel(idx, game != null ? game.getDifficulty() : TdGame.Difficulty.NORMAL);
+        startLevel(idx, game != null ? game.getDifficulty() : TdGame.Difficulty.NORMAL,
+                selectedMode);
     }
 
     private void tickOnce() {
@@ -1036,6 +1079,17 @@ public class TdModuleFragment extends Fragment {
             showResult(getString(R.string.game_td_result_win),
                     getString(R.string.game_td_result_stars, starsText(stars)),
                     resultStats, 0xFF66BB6A);
+        } else if (game.getMode() == TdGame.Mode.ENDLESS) {
+            // 无尽结算：唯一结束方式是蛋死亡；记录按难度的最佳波数（只增不减），不显示战役星级
+            int waves = game.getEndlessWaveReached();
+            boolean newRecord = waves > save.getBestEndlessWaves(game.getDifficulty());
+            save.recordEndlessWaves(game.getDifficulty(), waves);
+            String endlessStats = getString(R.string.game_td_result_endless, waves)
+                    + "  ·  " + getString(R.string.game_td_result_stats,
+                            game.getMonstersKilled(), (int) game.getElapsedSeconds());
+            showResult(getString(R.string.game_td_result_lose),
+                    newRecord ? getString(R.string.game_td_result_endless_best) : "",
+                    endlessStats, 0xFFE57373);
         } else {
             showResult(getString(R.string.game_td_result_lose), "",
                     getString(R.string.game_td_result_lose_stats,
@@ -1254,9 +1308,17 @@ public class TdModuleFragment extends Fragment {
     private void updateHud() {
         if (game == null) return;
         tvCoin.setText("₿ " + game.getCoin());
-        tvWave.setText(getString(R.string.game_td_hud_wave, game.getWaveIndex(), game.getTotalWaves())
-                + (game.getState() == TdGame.State.PREPARING
-                        ? " " + getString(R.string.game_td_hud_wave_preparing) : ""));
+        if (game.getMode() == TdGame.Mode.ENDLESS) {
+            // 无尽模式没有总波数概念：只显示已推进到的绝对波次；准备期钳制为第 1 波，避免「第 0 波」
+            tvWave.setText(getString(R.string.game_td_hud_endless_wave,
+                    Math.max(1, game.getEndlessWaveReached()))
+                    + (game.getState() == TdGame.State.PREPARING
+                            ? " " + getString(R.string.game_td_hud_wave_preparing) : ""));
+        } else {
+            tvWave.setText(getString(R.string.game_td_hud_wave, game.getWaveIndex(), game.getTotalWaves())
+                    + (game.getState() == TdGame.State.PREPARING
+                            ? " " + getString(R.string.game_td_hud_wave_preparing) : ""));
+        }
         tvHp.setText("🥚 " + game.getMascotHp() + "/" + game.getMaxMascotHp());
         // 下一波预告
         String next = nextWavePreview();

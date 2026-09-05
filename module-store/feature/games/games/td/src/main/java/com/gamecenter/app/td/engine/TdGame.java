@@ -53,6 +53,13 @@ public class TdGame {
     }
 
     /**
+     * 对局模式。CAMPAIGN 为默认值：波次推进、胜利判定等所有行为与历史版本保持一致；
+     * ENDLESS 在定义波次耗尽后由 {@link TdEndlessWaveFactory} 确定性合成后续波，
+     * 永不进入胜利分支，唯一结束方式是蛋蛋死亡。
+     */
+    public enum Mode { CAMPAIGN, ENDLESS }
+
+    /**
      * 仅供渲染层读取的关卡视觉主题。它不参与判定、随机数或存档，因此更换地图画风
      * 不会改变同一局游戏的逻辑结果。
      */
@@ -377,6 +384,7 @@ public class TdGame {
     private int monstersSpawnedTotal = 0;
     private long elapsedTicks = 0;
     private Difficulty difficulty = Difficulty.NORMAL;
+    private Mode mode = Mode.CAMPAIGN;
     private VisualTheme visualTheme = VisualTheme.GARDEN;
 
     public TdGame(int cols, int rows, int[][] path, int eggRow, int eggCol,
@@ -479,6 +487,18 @@ public class TdGame {
             coin = Math.round(startCoin * difficulty.coinMul);
         }
     }
+    public Mode getMode() { return mode; }
+
+    /**
+     * 设置对局模式（默认 CAMPAIGN）。null 或非 PREPARING 状态一律忽略：
+     * 模式在开战后不可变，避免对局中途切换改变胜负语义。链式返回便于关卡工厂装配。
+     */
+    public TdGame setMode(Mode value) {
+        if (value != null && state == State.PREPARING) {
+            mode = value;
+        }
+        return this;
+    }
     public int getCols() { return cols; }
     public int getRows() { return rows; }
     public int getCoin() { return coin; }
@@ -486,6 +506,16 @@ public class TdGame {
     public int getMaxMascotHp() { return maxMascotHp; }
     public int getWaveIndex() { return Math.min(waveIndex + 1, totalWaves); }
     public int getTotalWaves() { return totalWaves; }
+
+    /**
+     * 已进入的波次序号（含工厂合成的无尽波）。ENDLESS 下 PREPARING 返回 0、开战后为
+     * 最近进入的波次绝对序号；CAMPAIGN 下语义与 {@link #getWaveIndex()} 一致（当前波），
+     * 不破坏既有调用方。
+     */
+    public int getEndlessWaveReached() {
+        if (mode != Mode.ENDLESS) return getWaveIndex();
+        return state == State.PREPARING ? 0 : Math.min(waveIndex + 1, totalWaves);
+    }
     /** 波次定义的只读快照，供关卡预览和规则测试检查教学投放。 */
     public List<Wave> getWaves() { return new ArrayList<>(waves); }
     public long getTicks() { return gameTicks; }
@@ -553,7 +583,12 @@ public class TdGame {
 
     private Wave upcomingWave() {
         int nextIdx = state == State.PREPARING ? 0 : waveIndex + 1;
-        return nextIdx >= 0 && nextIdx < totalWaves ? waves.get(nextIdx) : null;
+        if (nextIdx >= 0 && nextIdx < totalWaves) return waves.get(nextIdx);
+        // 无尽模式：定义波次耗尽后按同一工厂规则零副作用地预览下一波（与推进时的合成同参同结果）
+        if (mode == Mode.ENDLESS && nextIdx >= 0) {
+            return TdEndlessWaveFactory.createWave(nextIdx + 1, difficulty, paths.length);
+        }
+        return null;
     }
 
     /** 当前波是否仍在向场上刷怪（生成中）——供 UI/测试判断是否可推进下一波 */
@@ -771,11 +806,18 @@ public class TdGame {
             waveStarted = false;
             return true;
         }
-        // 本波已生成完 → 进入下一波（无下一波时提示）
+        // 本波已生成完 → 进入下一波（无下一波时提示；无尽模式则确定性合成下一波继续）
         if (waveIndex + 1 >= totalWaves) {
-            lastActionTone = "info";
-            succeed(ActionMsg.LAST_WAVE_REACHED);
-            return false;
+            if (mode != Mode.ENDLESS) {
+                lastActionTone = "info";
+                succeed(ActionMsg.LAST_WAVE_REACHED);
+                return false;
+            }
+            // 无尽推进 hook：定义波次耗尽后由工厂合成下一波并追加到波次列表副本。
+            // waves 本就是构造期深拷贝出的私有 ArrayList，Wave 自身不可变，追加不破坏深拷贝语义；
+            // 合成序号取 totalWaves + 1（绝对序号），与 upcomingWave() 的预览公式严格一致。
+            waves.add(TdEndlessWaveFactory.createWave(totalWaves + 1, difficulty, paths.length));
+            totalWaves++;
         }
         waveIndex++;
         waveStarted = true;
@@ -1264,6 +1306,8 @@ public class TdGame {
 
     private void checkEnd() {
         if (state == State.LOST) return;
+        // 无尽模式没有胜利分支：波次由工厂无限合成，唯一结束是蛋死亡（reachEgg → LOST）
+        if (mode == Mode.ENDLESS) return;
         // 最后一波已开始且生成完毕、场上无怪 → 胜利
         boolean lastWaveDone = waveIndex + 1 >= totalWaves && !waveStarted;
         if (lastWaveDone && monsters.isEmpty()) {

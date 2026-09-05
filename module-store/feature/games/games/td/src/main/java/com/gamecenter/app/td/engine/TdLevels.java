@@ -87,6 +87,18 @@ public final class TdLevels {
         return definition.newGame();
     }
 
+    /**
+     * Builds an isolated game session with an explicit mode. ENDLESS keeps the level's map,
+     * routes, starting coin and egg HP, but the session never ends in victory once the defined
+     * waves run out — {@link TdEndlessWaveFactory} synthesizes follow-up waves instead.
+     * A null mode safely keeps the default CAMPAIGN behaviour.
+     */
+    public static TdGame buildLevel(String id, TdGame.Mode mode) {
+        TdGame game = buildLevel(id);
+        game.setMode(mode);
+        return game;
+    }
+
     private static void install(List<TdLevelDefinition> definitions, int contentVersion) {
         if (definitions == null || definitions.isEmpty()) {
             throw new IllegalArgumentException("TD campaign has no levels");
