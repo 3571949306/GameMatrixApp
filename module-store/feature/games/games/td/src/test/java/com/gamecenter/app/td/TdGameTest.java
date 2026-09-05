@@ -33,13 +33,18 @@ public class TdGameTest {
 
     private static final int MAX_TICKS = 60 * 240; // 最多模拟 4 分钟（真实时间）
 
+    /** manifest 各章 levelCount 之和，随战役扩展动态增长，不得写死。 */
+    private static int campaignLevelCount;
+
     @BeforeClass
     public static void loadProductionCampaignData() throws IOException {
         Path assetRoot = findAssetsRoot();
         TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(readAsset(
                 assetRoot.resolve("td/manifest.json")));
         List<com.gamecenter.app.td.engine.TdLevelDefinition> definitions = new ArrayList<>();
+        campaignLevelCount = 0;
         for (TdLevelJsonParser.ChapterRef chapter : manifest.chapters) {
+            campaignLevelCount += chapter.levelCount;
             definitions.addAll(TdLevelJsonParser.parseChapter(readAsset(
                     assetRoot.resolve("td").resolve(chapter.file))).levels);
         }
@@ -63,9 +68,10 @@ public class TdGameTest {
 
     @Test
     public void campaignUsesStableIdsWhileSupportingLegacyDeepLinks() {
-        assertEquals(25, TdLevels.levelIds().size());
+        assertEquals("全战役关卡数应等于 manifest 各章 levelCount 之和", campaignLevelCount,
+                TdLevels.levelIds().size());
         assertEquals("main_001", TdLevels.levelIds().get(0));
-        assertEquals("main_025", TdLevels.levelIds().get(24));
+        assertEquals("main_035", TdLevels.levelIds().get(34));
         assertTrue(TdLevels.isKnownLevelId("main_001"));
         assertTrue(TdLevels.isKnownLevelId("level_01"));
         assertEquals(TdLevels.buildLevel("main_001").getRouteLength(0),
@@ -88,7 +94,7 @@ public class TdGameTest {
                 assertTrue(id + " 的每条入口路线都必须足够长", game.getRouteLength(route) >= 30);
             }
         }
-        assertTrue("25 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
+        assertTrue("35 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
                 routeTopologies.size() >= 8);
     }
 

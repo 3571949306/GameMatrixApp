@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * 若有人把中文写回 engine 层，本测试失败。
  *
  * <p>关卡资产层：章节 JSON 的 name/subtitle 是中文权威源，name_en/subtitle_en 是英文展示字段，
- * 由 {@link TdLevels} 按 locale 解析。守卫锁定全部 25 关英文字段非空且不含中文
+ * 由 {@link TdLevels} 按 locale 解析。守卫锁定全部 35 关英文字段非空且不含中文
  * （漏填会被解析器静默回退成中文，在此处被拦截）。
  */
 public class TdModelEnglishDataTest {
@@ -194,7 +194,8 @@ public class TdModelEnglishDataTest {
     @Test
     public void campaignLevelsCarryEnglishDisplayFields() throws Exception {
         List<TdLevelDefinition> levels = loadProductionCampaign();
-        assertEquals("manifest 章节关卡总数应为 25", 25, levels.size());
+        assertEquals("manifest 章节关卡总数应为各章 levelCount 之和",
+                manifestLevelCountTotal, levels.size());
         for (TdLevelDefinition level : levels) {
             assertTrue("关卡 id 须为 main_###，实际: " + level.id,
                     level.id.matches("main_\\d{3}"));
@@ -229,6 +230,9 @@ public class TdModelEnglishDataTest {
         }
     }
 
+    /** manifest 各章 levelCount 之和,由 {@link #loadProductionCampaign()} 加总,随战役扩展动态增长。 */
+    private static int manifestLevelCountTotal;
+
     /** 从模块 assets 读取全部章节并解析（镜像 TdGameTest 的资产定位方式）。 */
     private static List<TdLevelDefinition> loadProductionCampaign() throws IOException {
         Path assetsRoot = findAssetsRoot();
@@ -236,12 +240,14 @@ public class TdModelEnglishDataTest {
                 new String(Files.readAllBytes(assetsRoot.resolve("td/manifest.json")),
                         StandardCharsets.UTF_8));
         List<TdLevelDefinition> levels = new ArrayList<>();
+        manifestLevelCountTotal = 0;
         for (TdLevelJsonParser.ChapterRef chapter : manifest.chapters) {
             TdLevelJsonParser.Chapter parsed = TdLevelJsonParser.parseChapter(new String(
                     Files.readAllBytes(assetsRoot.resolve("td").resolve(chapter.file)),
                     StandardCharsets.UTF_8));
             assertEquals("chapter " + chapter.file + " levelCount 与 manifest 不一致",
                     chapter.levelCount, parsed.levels.size());
+            manifestLevelCountTotal += chapter.levelCount;
             levels.addAll(parsed.levels);
         }
         return levels;
