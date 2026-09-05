@@ -144,6 +144,73 @@ public class TdUiRegressionTest {
         harness.resources.assertLastLookup(R.string.game_td_banner_wave_endless, 7);
     }
 
+    // ===== 绘制热路径文案缓存：构造/setter 期解析一次，结果与直接 getString 逐字符一致 =====
+
+    @Test
+    public void drawTextCachesMatchDirectLookupsAfterConstruction() throws Exception {
+        BannerHarness harness = newTdView();
+
+        // 关键字符串抽查：木牌 / 建塔模式提示 / 拖拽合成字符 / 结算胜负文案，
+        // 均为 onDraw 每帧路径原 getString 直查点，缓存化后必须逐字符一致
+        assertEquals("入口木牌文案缓存必须等于直接 getString 结果",
+                RecordingResources.stub(R.string.game_td_sign_entrance),
+                privateStringField(harness.view, "signEntranceText"));
+        assertEquals("建塔模式提示缓存必须等于直接 getString 结果",
+                RecordingResources.stub(R.string.game_td_hint_build_mode),
+                privateStringField(harness.view, "hintBuildModeText"));
+        assertEquals("拖拽合成字符缓存必须等于直接 getString 结果",
+                RecordingResources.stub(R.string.game_td_drag_merge_char),
+                privateStringField(harness.view, "dragMergeText"));
+        assertEquals("胜利结算文案缓存必须等于直接 getString 结果",
+                RecordingResources.stub(R.string.game_td_overlay_win),
+                privateStringField(harness.view, "overlayWinText"));
+        assertEquals("失败结算文案缓存必须等于直接 getString 结果",
+                RecordingResources.stub(R.string.game_td_overlay_lose),
+                privateStringField(harness.view, "overlayLoseText"));
+    }
+
+    @Test
+    public void towerNameCacheCoversAllTypesWithDirectLookupValues() throws Exception {
+        BannerHarness harness = newTdView();
+
+        Field cacheField = TdView.class.getDeclaredField("towerNameCache");
+        cacheField.setAccessible(true);
+        String[] cache = (String[]) cacheField.get(harness.view);
+
+        TowerType[] types = TowerType.values();
+        assertEquals("塔名缓存必须覆盖每个 TowerType（按 ordinal 对齐）", types.length, cache.length);
+        // 抽查首尾两档：缓存值必须等于各自资源键的直接 getString 结果
+        assertEquals("BOTTLE 塔名缓存必须来自 game_td_tower_bottle",
+                RecordingResources.stub(R.string.game_td_tower_bottle),
+                cache[TowerType.BOTTLE.ordinal()]);
+        assertEquals("AMPLIFIER 塔名缓存必须来自 game_td_tower_amplifier",
+                RecordingResources.stub(R.string.game_td_tower_amplifier),
+                cache[TowerType.AMPLIFIER.ordinal()]);
+    }
+
+    @Test
+    public void selectionHintCacheRefreshedOnSetSelectedType() throws Exception {
+        BannerHarness harness = newTdView();
+
+        harness.view.setSelectedType(TowerType.BOTTLE);
+
+        String bottleName = RecordingResources.stub(R.string.game_td_tower_bottle);
+        assertEquals("可建造提示必须在 setSelectedType 变异点解析并代入塔名",
+                RecordingResources.stub(R.string.game_td_hint_place, bottleName),
+                privateStringField(harness.view, "hintPlaceText"));
+        assertEquals("金币不足提示必须在 setSelectedType 变异点解析并代入塔名与造价",
+                RecordingResources.stub(R.string.game_td_hint_not_enough, bottleName,
+                        TowerType.BOTTLE.baseCost),
+                privateStringField(harness.view, "hintNotEnoughText"));
+
+        harness.view.setSelectedType(null);
+
+        assertEquals("取消选塔后选塔提示缓存必须清空（绘制回落到建塔模式文案）",
+                "", privateStringField(harness.view, "hintPlaceText"));
+        assertEquals("取消选塔后金币不足提示缓存必须同步清空",
+                "", privateStringField(harness.view, "hintNotEnoughText"));
+    }
+
     // ===== 战绩面板（TdModuleFragment）：覆盖层冒烟 + 数据接线 =====
 
     @Test
@@ -357,6 +424,13 @@ public class TdUiRegressionTest {
 
     private static String bannerText(TdView view) throws Exception {
         Field field = TdView.class.getDeclaredField("waveBannerText");
+        field.setAccessible(true);
+        return (String) field.get(view);
+    }
+
+    /** 按包内约定反射读取 TdView 私有 String 字段（不改生产可见性，与 bannerText 同款）。 */
+    private static String privateStringField(TdView view, String name) throws Exception {
+        Field field = TdView.class.getDeclaredField(name);
         field.setAccessible(true);
         return (String) field.get(view);
     }
