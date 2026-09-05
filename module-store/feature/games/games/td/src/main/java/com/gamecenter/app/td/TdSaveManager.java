@@ -34,6 +34,8 @@ public class TdSaveManager {
     private static final String KEY_EASY_DONE = "td_easy_done";
     private static final String KEY_HARD_DONE = "td_hard_done";
     private static final String KEY_ID_MIGRATED = "td_level_id_migrated_v1";
+    /** 一次性脏值清洗旗标：recordWin 硬上限上线前，存量存档可能持有 td_unlocked_levels > 总关数 */
+    private static final String KEY_UNLOCKED_CLEANED = "td_unlocked_cleaned_v1";
     /**
      * 与 core/common ModuleScopedPreferences.MIGRATE_FLAG 保持一致，改动需同步。
      * 该常量在 core/common 中为 private 不可引用，故按同一字面量 "__migrated__" 在此复刻。
@@ -53,6 +55,7 @@ public class TdSaveManager {
         ModuleScopedPreferences.migrateFrom(appContext, MODULE_ID, PREFS);
         this.prefs = ModuleScopedPreferences.get(appContext, MODULE_ID, PREFS);
         migrateLegacyLevelIndexes();
+        cleanLegacyUnlockedOverflow();
     }
 
     /** JVM 测试接缝：直接注入 SharedPreferences，绕过 Android Context 与一次性迁移逻辑。 */
@@ -96,6 +99,33 @@ public class TdSaveManager {
         if (!prefs.contains(target) && prefs.contains(legacy)) {
             e.putInt(target, prefs.getInt(legacy, fallback));
         }
+    }
+
+    /**
+     * 一次性清洗历史解锁进度脏值（公开构造器在 migrateLegacyLevelIndexes 之后调用）：
+     * recordWin 硬上限上线前解锁值无上限，存量存档可能已有 td_unlocked_levels &gt; 战役
+     * 总关数（如通关最后一关写入 26/25），显示层虽已自行钳制但脏值仍在。此处把超界值
+     * 回写为战役总关数；未超界的正常进度不动。
+     *
+     * <p>幂等：由独立旗标 td_unlocked_cleaned_v1 保证只清洗一次——旗标置位后即使键再被
+     * 外部改写也不再回写（recordWin 的钳制已杜绝新脏值产生）。catalog 未初始化时
+     * （TdLevels.levelIds() 抛 IllegalStateException，同 clampNextUnlockedToCampaignSize
+     * 的兜底模式）跳过且不落旗标，留待下次构造重试，数据读取失败绝不拦截玩家解锁进度。
+     * 包内可见供纯 JVM 测试直接驱动（JVM 接缝构造器按约定不跑迁移/清洗逻辑）。
+     */
+    void cleanLegacyUnlockedOverflow() {
+        if (prefs.getBoolean(KEY_UNLOCKED_CLEANED, false)) return;
+        int campaignSize;
+        try {
+            campaignSize = TdLevels.levelIds().size();
+        } catch (IllegalStateException catalogMissing) {
+            return;
+        }
+        SharedPreferences.Editor e = prefs.edit();
+        if (prefs.getInt(KEY_UNLOCKED, 1) > campaignSize) {
+            e.putInt(KEY_UNLOCKED, campaignSize);
+        }
+        e.putBoolean(KEY_UNLOCKED_CLEANED, true).apply();
     }
 
     /** 解锁关卡数量（index 从 0 开始，level 1 恒解锁） */
@@ -353,10 +383,12 @@ public class TdSaveManager {
         // clearAll 不得解除迁移守卫：ModuleScopedPreferences.migrateFrom 从不删除旧扁平
         // td_save，且每次 onCreateView 构造 TdSaveManager 时重跑；若 __migrated__ 被 clear
         // 掉，旧扁平存档会在下次进入模块时被无条件回灌，升级用户清空战绩即整体复活。
-        // 同理保留 td_level_id_migrated_v1，避免 migrateLegacyLevelIndexes 重跑。
+        // 同理保留 td_level_id_migrated_v1 与 td_unlocked_cleaned_v1，避免迁移/清洗
+        // 钩子重跑（clearAll 后 unlocked 已归零，重跑只会徒增写入）。
         prefs.edit().clear()
                 .putBoolean(MIGRATE_FLAG_KEY, true)
                 .putBoolean(KEY_ID_MIGRATED, true)
+                .putBoolean(KEY_UNLOCKED_CLEANED, true)
                 .apply();
         // 成就布尔键（td_achv_*）随上方 clear 一并清除；本实例待提示名单同步作废，
         // 避免清空战绩后仍弹出清空前积压的解锁提示。

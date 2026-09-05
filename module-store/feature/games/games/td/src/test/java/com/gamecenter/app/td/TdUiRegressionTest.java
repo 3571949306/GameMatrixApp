@@ -312,6 +312,168 @@ public class TdUiRegressionTest {
                         RecordingResources.stub(R.string.game_td_achv_name_first_win)));
     }
 
+    // ===== 结算写入点：击杀计入所有结局（回归：修复前仅 WON 分支 addKills，败局/无尽击杀全部丢失） =====
+
+    @Test
+    public void onGameEndedCampaignLossStillCountsKillsTowardTotalAndAchievements() throws Exception {
+        // 确定性败局：第 1 波 8 只普通怪被塔群部分击杀（kills ≥ 1），蛋 1 点血——首只漏怪即判负；
+        // 第 2 波 hpMul=1000 兜底（塔群不可能清掉），保证战役败局而非胜利
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 8, 0.5f, 0.1f, 1f, 1f));
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1000f, 1f));
+        TdGame game = minimalEndableGame(waves, 1, TdGame.Mode.CAMPAIGN);
+        placeKillzoneDefenses(game);
+        driveToEnd(game);
+        assertEquals(TdGame.State.LOST, game.getState());
+        assertTrue("败局必须携带击杀（修复前该击杀被整体丢弃）", game.getMonstersKilled() >= 1);
+
+        // 预置 99 击杀：败局击杀 ≥1 即跨越 KILLS_100 阈值，写入点必须即时解锁并随面板提示
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_kills_total", 99);
+        TdSaveManager save = new TdSaveManager(prefs);
+        FrameLayout overlayRoot = wireAndEndGame(game, save, null);
+
+        assertEquals("败局击杀必须计入总击杀（修复前丢失）",
+                99 + game.getMonstersKilled(), save.getTotalKills());
+        assertTrue("败局击杀跨阈值必须即时解锁 KILLS_100（addKills 内部写入点判定）",
+                save.isAchievementUnlocked(TdAchievement.KILLS_100));
+        assertNotNull("败局结算面板必须带出成就解锁行（game_td_achv_unlocked）",
+                findViewByStubText(overlayRoot, R.string.game_td_achv_unlocked,
+                        RecordingResources.stub(R.string.game_td_achv_name_kills_100)));
+    }
+
+    @Test
+    public void onGameEndedEndlessLossStillCountsKillsTowardTotal() throws Exception {
+        // 无尽败局：唯一出口是蛋死亡（绝无 WON）；定义波 8 只怪被塔群部分击杀后首漏即终，
+        // 若定义波被全清则由工厂合成后续波继续（驱动循环自动开波），结局仍必为败局
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 8, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 1, TdGame.Mode.ENDLESS);
+        placeKillzoneDefenses(game);
+        // 驱动预算（局部 final；同文件其余结算用例仍走 driveToEnd 默认 60*240，不受影响）。
+        // 推演依据（终态 = 首只漏怪，蛋 1 血；同引擎 60Hz 确定性仿真 + 工厂曲线上界）：
+        //  - 下界：定义波 8×NORMAL（34 血）必被清空——塔群中 (1,4) 单塔即覆盖整条路径
+        //    （射程 5.5，路径距塔心仅 dy=1），全程 ~4.7s 可倾泻 ~15 发 ×26 ≈ 390 伤害 ≫ 34 血，
+        //    故首漏必发生在工厂合成的无尽波（getEndlessWaveReached() ≥ 2）；
+        //  - 实测：第 16 波首漏，13736 tick ≈ 228.9 游戏秒；
+        //  - 上界：当前数值下 BOSS 波 20（600×1.1^19 ≈ 3669 血）全程最多承受
+        //    3×26/0.32×8.75s ≈ 2100 伤害必漏 → 终态最迟 ~第 20 波 ≈ 350 游戏秒
+        //    （塔伤加倍探针仿真：第 20 波首漏、321 游戏秒，仍在本预算内）。
+        // 旧预算 60*240 = 240 游戏秒对实测值仅 ~5% 余量，任何平衡微调都会以「未达终态」误红；
+        // 放宽到 60*900 = 900 游戏秒（对推演上界仍 ~2.5× 余量）不改变判别力：终态判定仍是
+        // isEnded()，修复前「败局不计击杀」照样必红；预算耗尽未终态时 driveToEnd 守卫式
+        // 失败并输出已达波次，直接给出诊断。
+        final int endlessDriveBudgetTicks = 60 * 900;
+        driveToEnd(game, endlessDriveBudgetTicks);
+        assertEquals("无尽唯一结束方式是蛋死亡", TdGame.State.LOST, game.getState());
+        // 隐含前提显式化：败局必须发生在工厂合成的无尽波（下界推演见上），证明驱动循环
+        // 真实走过了 TdEndlessWaveFactory 的合成路径，而非在定义波内结束。
+        assertTrue("无尽败局必须发生在工厂合成的无尽波（下界 ≥2；当前平衡实测第 16 波，上界第 20 波）",
+                game.getEndlessWaveReached() >= 2);
+        assertTrue(game.getMonstersKilled() >= 1);
+
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        assertEquals(0, save.getTotalKills());
+        FrameLayout overlayRoot = wireAndEndGame(game, save, null);
+
+        assertEquals("无尽局击杀必须计入总击杀（修复前丢失）",
+                game.getMonstersKilled(), save.getTotalKills());
+        assertTrue("无尽结算面板必须渲染（game_td_result_lose 无尽分支）",
+                overlayRoot.getChildCount() > 0);
+        assertNotNull(findViewByStubText(overlayRoot, R.string.game_td_result_lose));
+    }
+
+    @Test
+    public void onGameEndedWinCountsKillsExactlyOnceViaGameEndedGate() throws Exception {
+        // 确定性胜局：两波各 1 只必被击杀的普通怪，蛋 5 点血 → WON 且 kills=2；
+        // addKills 已提升至三分支共通处，须验证胜局仍恰好计一次（gameEnded 闸幂等）
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 5, TdGame.Mode.CAMPAIGN);
+        placeKillzoneDefenses(game);
+        driveToEnd(game);
+        assertEquals(TdGame.State.WON, game.getState());
+        assertEquals(2, game.getMonstersKilled());
+
+        // 手动接线（不经 wireAndEndGame）：需要对本局二次触发 onGameEnded 验证闸幂等
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "ended-host").commitNow();
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", game);
+        setPrivateField(fragment, "selectedLevelIdx", 0); // WON 分支读 TdLevels.levelIds().get(idx)
+
+        invokePrivateMethod(fragment, "onGameEnded");
+        assertEquals("胜局击杀必须计入总击杀", 2, save.getTotalKills());
+
+        invokePrivateMethod(fragment, "onGameEnded"); // gameEnded 闸：重复结算不得重复累加
+        assertEquals("每局击杀只计一次（gameEnded 闸幂等）", 2, save.getTotalKills());
+    }
+
+    // ===== 结算接线与确定性对局构造辅助 =====
+
+    /**
+     * 结算接线壳：注入 overlayRoot/save/game 后反射触发 onGameEnded（与战绩面板同接缝，
+     * 屏蔽 onCreateView 的宿主依赖）。selectedLevelIdx 供 WON 分支取关 id，其余分支传 null。
+     */
+    private static FrameLayout wireAndEndGame(TdGame game, TdSaveManager save,
+            Integer selectedLevelIdx) throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "ended-host").commitNow();
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", game);
+        if (selectedLevelIdx != null) setPrivateField(fragment, "selectedLevelIdx", selectedLevelIdx);
+        invokePrivateMethod(fragment, "onGameEnded");
+        return overlayRoot;
+    }
+
+    /** 确定性小对局（与 TdGameTest.minimalGame 同构）：8×2 地图、单行路径、蛋在 (0,7)、金币 1000。 */
+    private static TdGame minimalEndableGame(List<TdGame.Wave> waves, int mascotHp,
+            TdGame.Mode mode) {
+        int[][] path = new int[8][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        return new TdGame(8, 2, path, 0, 7, 1000, mascotHp, waves).setMode(mode);
+    }
+
+    /** 三座瓶子塔（射程 5.5 覆盖整条 8 格路径，普通怪 34 血必被击杀）：保证败局携带击杀。 */
+    private static void placeKillzoneDefenses(TdGame game) {
+        assertNotNull("布防失败（金币不足或占位非法）", game.placeTower(TowerType.BOTTLE, 1, 2));
+        assertNotNull(game.placeTower(TowerType.BOTTLE, 1, 4));
+        assertNotNull(game.placeTower(TowerType.BOTTLE, 1, 6));
+    }
+
+    /** 推进对局至终态：波次清空即开下一波（镜像 TdGameTest.playThrough 的驱动方式）。 */
+    private static void driveToEnd(TdGame game) {
+        driveToEnd(game, 60 * 240);
+    }
+
+    /**
+     * 带显式预算的守卫式驱动：预算耗尽仍未终态则失败，并在断言消息中输出已达波次/击杀，
+     * 让「平衡调整把终态推到预算外」的回归直接可诊断。预算只影响驱动时长，不影响判别力——
+     * 终态判定仍是 isEnded()。
+     */
+    private static void driveToEnd(TdGame game, int maxTicks) {
+        for (int i = 0; i < maxTicks && !game.isEnded(); i++) {
+            game.tick();
+            if (!game.isEnded() && !game.isWaveSpawning() && game.getMonsters().isEmpty()) {
+                game.startNextWaveEarly();
+            }
+        }
+        assertTrue("对局必须到达终态（预算 " + maxTicks + " tick 内未达：state=" + game.getState()
+                        + "，已达波次=" + game.getEndlessWaveReached()
+                        + "，击杀=" + game.getMonstersKilled() + "）",
+                game.isEnded());
+    }
+
     // ===== achvName 漏 case 拦截：default 兜底回落 saveKey，缺专属 case 在此显式失败 =====
 
     @Test

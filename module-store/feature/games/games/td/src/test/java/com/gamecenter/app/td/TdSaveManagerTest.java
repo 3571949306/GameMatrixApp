@@ -101,6 +101,69 @@ public class TdSaveManagerTest {
         }
     }
 
+    // ===== 历史脏值清洗（td_unlocked_cleaned_v1）：超界 unlocked 一次性回写总关数 =====
+
+    /**
+     * 回归：recordWin 硬上限上线前解锁值无上限，存量存档可能持有 td_unlocked_levels &gt;
+     * 总关数（如通关最后一关写入 26）。构造期清洗钩子必须把超界值回写为战役总关数。
+     */
+    @Test public void unlockOverflowDirtyValueIsCleanedToCampaignSizeOnce() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_unlocked_levels", 26); // 存量脏值：历史无钳制写入的超界解锁数
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        save.cleanLegacyUnlockedOverflow();
+
+        assertEquals("超界脏值必须回写为战役总关数", 5, save.getUnlockedLevelCount());
+        assertTrue("清洗必须落一次性旗标 td_unlocked_cleaned_v1",
+                prefs.getBoolean("td_unlocked_cleaned_v1", false));
+
+        // 幂等（重进模块二次构造语义）：同一份 SP 上再构造再清洗，旗标置位后不得再改写
+        TdSaveManager reopened = new TdSaveManager(prefs);
+        prefs.data.put("td_unlocked_levels", 26); // 旗标已在：即便键再被外部改写也不回写
+        reopened.cleanLegacyUnlockedOverflow();
+        assertEquals("一次性清洗：旗标置位后不得再改写", 26, reopened.getUnlockedLevelCount());
+    }
+
+    /** 未超界的正常解锁进度不得被清洗误伤（旗标仍要落，保证钩子只跑一次）。 */
+    @Test public void unlockValueWithinCampaignSizeIsLeftUntouched() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_unlocked_levels", 3);
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        save.cleanLegacyUnlockedOverflow();
+
+        assertEquals(3, save.getUnlockedLevelCount());
+        assertTrue("未超界也必须落旗标（一次性语义）",
+                prefs.getBoolean("td_unlocked_cleaned_v1", false));
+    }
+
+    /**
+     * catalog 未初始化时（TdLevels.levelIds() 抛 IllegalStateException）跳过清洗且不落旗标：
+     * 与 recordWin 钳制兜底同模式，数据读取失败绝不拦截玩家解锁进度，并留待下次构造重试。
+     */
+    @Test public void unlockCleanupSkipsWithoutCatalogAndRetriesLater() throws Exception {
+        Field catalogField = TdLevels.class.getDeclaredField("catalog");
+        catalogField.setAccessible(true);
+        Object previous = catalogField.get(null);
+        catalogField.set(null, null);
+        try {
+            MemoryPrefs prefs = new MemoryPrefs();
+            prefs.data.put("td_unlocked_levels", 26);
+            TdSaveManager save = new TdSaveManager(prefs);
+
+            save.cleanLegacyUnlockedOverflow();
+
+            assertEquals("catalog 缺失时不得回写脏值", 26, save.getUnlockedLevelCount());
+            assertFalse("catalog 缺失时不得落旗标（下次构造重试）",
+                    prefs.getBoolean("td_unlocked_cleaned_v1", false));
+        } finally {
+            catalogField.set(null, previous);
+        }
+    }
+
     // ===== 无尽模式最佳波数（阶段 1：引擎与存档） =====
 
     @Test public void endlessBestKeysArePerDifficultyAndNullDefensive() {
@@ -218,8 +281,10 @@ public class TdSaveManagerTest {
      */
     @Test public void clearAllKeepsMigrationGuardFlagsSoOldFlatSaveCannotResurrect() {
         MemoryPrefs prefs = new MemoryPrefs();
-        // 模拟真实时序：migrateFrom 已在构造前把 __migrated__ 写为 true（测试接缝不跑迁移）。
+        // 模拟真实时序：migrateFrom 已在构造前把 __migrated__ 写为 true（测试接缝不跑迁移），
+        // 一次性清洗旗标同理（清洗已发生过）。
         prefs.data.put("__migrated__", Boolean.TRUE);
+        prefs.data.put("td_unlocked_cleaned_v1", Boolean.TRUE);
         TdSaveManager save = new TdSaveManager(prefs);
         save.recordWin(4);
         save.setBestStars("main_001", 3);
@@ -236,6 +301,8 @@ public class TdSaveManagerTest {
                 prefs.getBoolean("__migrated__", false));
         assertTrue("td_level_id_migrated_v1 守卫必须在 clearAll 后存活",
                 prefs.getBoolean("td_level_id_migrated_v1", false));
+        assertTrue("td_unlocked_cleaned_v1 清洗旗标必须在 clearAll 后存活（避免钩子重跑）",
+                prefs.getBoolean("td_unlocked_cleaned_v1", false));
     }
 
     // ===== 成就系统：定义数据 / 写入点判定 / 边界 / 幂等 / 补漏 / 清空 =====

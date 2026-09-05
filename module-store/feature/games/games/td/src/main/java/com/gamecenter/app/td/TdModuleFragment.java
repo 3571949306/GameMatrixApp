@@ -1623,6 +1623,12 @@ public class TdModuleFragment extends Fragment {
     private void onGameEnded() {
         if (gameEnded) return;
         gameEnded = true;
+        // 击杀与输赢无关：胜/无尽/败任一结局在此统一计一次（修复前仅 WON 分支计入，
+        // 败局与无尽局的击杀全部丢失，KILLS 型成就也永远算不到败局击杀）。gameEnded 闸
+        // 保证每局至多进入一次本方法，重开对局由 startLevel 复位，不会重复累加；KILLS 型
+        // 成就由 addKills 内部写入点判定，败局/无尽击杀跨阈值同样即时解锁，并经各分支
+        // 既有的 drainAchievementLine 随本局结算面板提示。
+        save.addKills(game.getMonstersKilled());
         if (game.getState() == TdGame.State.WON) {
             int stars = game.starsEarned();
             int unlockedBefore = save.getUnlockedLevelCount();
@@ -1631,7 +1637,6 @@ public class TdModuleFragment extends Fragment {
             List<TowerType> newlyUnlocked = TdTowerProgression.newlyUnlockedBetween(
                     unlockedBefore, save.getUnlockedLevelCount());
             save.setBestStars(levelId, stars);
-            save.addKills(game.getMonstersKilled());
             save.setBestTimeSec(levelId, (int) game.getElapsedSeconds());
             if (game.getDifficulty() == TdGame.Difficulty.EASY) save.setEasyCleared(true);
             if (game.getDifficulty() == TdGame.Difficulty.HARD) save.setHardCleared(true);
