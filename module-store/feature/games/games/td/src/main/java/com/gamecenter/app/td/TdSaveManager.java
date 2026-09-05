@@ -27,6 +27,11 @@ public class TdSaveManager {
     private static final String KEY_EASY_DONE = "td_easy_done";
     private static final String KEY_HARD_DONE = "td_hard_done";
     private static final String KEY_ID_MIGRATED = "td_level_id_migrated_v1";
+    /**
+     * 与 core/common ModuleScopedPreferences.MIGRATE_FLAG 保持一致，改动需同步。
+     * 该常量在 core/common 中为 private 不可引用，故按同一字面量 "__migrated__" 在此复刻。
+     */
+    private static final String MIGRATE_FLAG_KEY = "__migrated__";
     /** 按难度隔离的最佳无尽波数键前缀（后缀为难度小写名：easy/normal/hard） */
     private static final String KEY_ENDLESS_BEST_PREFIX = "td_endless_best_";
 
@@ -39,6 +44,11 @@ public class TdSaveManager {
         ModuleScopedPreferences.migrateFrom(appContext, MODULE_ID, PREFS);
         this.prefs = ModuleScopedPreferences.get(appContext, MODULE_ID, PREFS);
         migrateLegacyLevelIndexes();
+    }
+
+    /** JVM 测试接缝：直接注入 SharedPreferences，绕过 Android Context 与一次性迁移逻辑。 */
+    TdSaveManager(SharedPreferences prefs) {
+        this.prefs = prefs;
     }
 
     /** Returns the stable campaign id for a legacy zero-based index, or null for invalid input. */
@@ -135,6 +145,20 @@ public class TdSaveManager {
         return prefs.getInt(KEY_KILLS_PREFIX + "total", 0);
     }
 
+    // ===== 战绩/成就面板聚合（纯函数，JVM 可测） =====
+
+    /**
+     * 全战役星级求和（纯函数，JVM 可测）：输入各关最高星级数组，返回累计星数。
+     * null/空数组一律为 0；负值（脏数据）按 0 计，绝不产生负总和。
+     * 各关逐项读取由调用方（UI 层经 TdLevels.levelIds()）完成，本方法只负责聚合语义。
+     */
+    static int sumBestStars(int[] perLevelStars) {
+        if (perLevelStars == null) return 0;
+        int total = 0;
+        for (int stars : perLevelStars) total += Math.max(0, stars);
+        return total;
+    }
+
     public void addKills(int n) {
         prefs.edit().putInt(KEY_KILLS_PREFIX + "total", getTotalKills() + n).apply();
     }
@@ -206,6 +230,14 @@ public class TdSaveManager {
     }
 
     public void clearAll() {
-        prefs.edit().clear().apply();
+        // 单个 editor 内先 clear 再写旗标（SP 语义：clear 先于本批次 put 生效，原子提交）。
+        // clearAll 不得解除迁移守卫：ModuleScopedPreferences.migrateFrom 从不删除旧扁平
+        // td_save，且每次 onCreateView 构造 TdSaveManager 时重跑；若 __migrated__ 被 clear
+        // 掉，旧扁平存档会在下次进入模块时被无条件回灌，升级用户清空战绩即整体复活。
+        // 同理保留 td_level_id_migrated_v1，避免 migrateLegacyLevelIndexes 重跑。
+        prefs.edit().clear()
+                .putBoolean(MIGRATE_FLAG_KEY, true)
+                .putBoolean(KEY_ID_MIGRATED, true)
+                .apply();
     }
 }

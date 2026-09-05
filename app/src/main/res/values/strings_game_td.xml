@@ -151,6 +151,32 @@
     <string name="game_td_cd_unselected">%1$s，未选择</string>
     <string name="game_td_cd_locked">%1$s，%2$s</string>
 
+    <!-- 战绩/成就面板（数据全部实时读取自存档，不新增持久化） -->
+    <string name="game_td_btn_stats">📊 战绩</string>
+    <string name="game_td_stats_title">战绩与成就</string>
+    <string name="game_td_stats_section_record">战绩总览</string>
+    <string name="game_td_stats_label_kills">总击杀</string>
+    <string name="game_td_stats_label_play_count">总局数</string>
+    <string name="game_td_stats_section_campaign">战役进度</string>
+    <string name="game_td_stats_label_unlocked">已解锁关卡</string>
+    <string name="game_td_stats_label_stars">累计星级</string>
+    <string name="game_td_stats_value_fraction">%1$d/%2$d</string>
+    <string name="game_td_stats_section_endless">无尽最佳</string>
+    <string name="game_td_stats_value_waves">%1$d 波</string>
+    <string name="game_td_stats_value_none">未挑战</string>
+    <string name="game_td_stats_section_achievements">难度成就</string>
+    <string name="game_td_stats_label_cleared_easy">通关简单难度</string>
+    <string name="game_td_stats_label_cleared_hard">通关困难难度</string>
+    <string name="game_td_stats_value_achieved">✓ 已达成</string>
+    <string name="game_td_stats_value_not_achieved">未达成</string>
+    <string name="game_td_stats_btn_reset">清空战绩数据</string>
+    <string name="game_td_stats_reset_confirm_title">清空战绩数据？</string>
+    <string name="game_td_stats_reset_confirm_body">将永久删除全部战绩：击杀、局数、星级、解锁进度与无尽最佳纪录。\n此操作不可恢复，确定继续吗？</string>
+    <string name="game_td_stats_reset_confirm_yes">确认清空</string>
+    <string name="game_td_stats_reset_confirm_no">取消</string>
+    <string name="game_td_stats_reset_done">战绩数据已清空</string>
+    <string name="game_td_stats_btn_back">返回选关</string>
+
     <!-- 结算 -->
     <string name="game_td_list_separator">、</string>
 

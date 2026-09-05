@@ -154,6 +154,32 @@
     <string name="game_td_cd_unselected">%1$s, not selected</string>
     <string name="game_td_cd_locked">%1$s, %2$s</string>
 
+    <!-- Stats / achievements panel (all values read live from the save, no new persistence) -->
+    <string name="game_td_btn_stats">📊 Stats</string>
+    <string name="game_td_stats_title">Stats &amp; Achievements</string>
+    <string name="game_td_stats_section_record">Overview</string>
+    <string name="game_td_stats_label_kills">Total kills</string>
+    <string name="game_td_stats_label_play_count">Games played</string>
+    <string name="game_td_stats_section_campaign">Campaign Progress</string>
+    <string name="game_td_stats_label_unlocked">Levels unlocked</string>
+    <string name="game_td_stats_label_stars">Stars earned</string>
+    <string name="game_td_stats_value_fraction">%1$d/%2$d</string>
+    <string name="game_td_stats_section_endless">Endless Best</string>
+    <string name="game_td_stats_value_waves">%1$d waves</string>
+    <string name="game_td_stats_value_none">Not attempted</string>
+    <string name="game_td_stats_section_achievements">Difficulty Achievements</string>
+    <string name="game_td_stats_label_cleared_easy">Clear on Easy</string>
+    <string name="game_td_stats_label_cleared_hard">Clear on Hard</string>
+    <string name="game_td_stats_value_achieved">✓ Achieved</string>
+    <string name="game_td_stats_value_not_achieved">Not yet</string>
+    <string name="game_td_stats_btn_reset">Clear All Stats</string>
+    <string name="game_td_stats_reset_confirm_title">Clear all stats?</string>
+    <string name="game_td_stats_reset_confirm_body">This permanently deletes all stats: kills, games played, stars, unlock progress and endless records.\nThis cannot be undone. Continue?</string>
+    <string name="game_td_stats_reset_confirm_yes">Clear Everything</string>
+    <string name="game_td_stats_reset_confirm_no">Cancel</string>
+    <string name="game_td_stats_reset_done">Stats data cleared</string>
+    <string name="game_td_stats_btn_back">Back to Levels</string>
+
     <!-- Result -->
     <string name="game_td_list_separator">,</string>
 

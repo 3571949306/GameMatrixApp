@@ -49,7 +49,7 @@ import java.util.Set;
  * 塔防「保卫蛋蛋」主 Fragment — 成品版。
  *
  * 结构：HUD（金币/波次/生命 + 下一波预告）→ 棋盘 → 消息条 → 塔栏 → 控制栏。
- * 覆盖层：选关面板（星级/解锁/难度选择）、结算面板（胜负统计、下一关/重玩）。
+ * 覆盖层：选关面板（星级/解锁/难度选择/战绩入口）、战绩/成就面板、结算面板（胜负统计、下一关/重玩）。
  *
  * 生命周期纪律：对局主循环挂 mainHandler，onDestroyView/onHiddenChanged 必须取消；
  * 程序化 Button 必须 setStateListAnimator(null)（避免宿主主题资源 ID 冲突）。
@@ -80,6 +80,8 @@ public class TdModuleFragment extends Fragment {
 
     /** PVZ 式开局塔组：每局只带 5 张牌，避免小屏横向挤压。 */
     private static final int DECK_SIZE = 5;
+    /** 每关最高星数（引擎 starsEarned 满分），战绩面板累计星级的分母 = 关卡数 × 此值。 */
+    private static final int MAX_STARS_PER_LEVEL = 3;
     private final List<TowerType> activeDeck = new ArrayList<>(Arrays.asList(
             TowerType.BOTTLE, TowerType.SUN, TowerType.SNOW));
     private final Map<TowerType, View> towerItemByType = new HashMap<>();
@@ -763,9 +765,26 @@ public class TdModuleFragment extends Fragment {
         stats.setPadding(dp(8), dp(14), dp(8), dp(4));
         panel.addView(stats, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38)));
 
+        // 战绩/成就面板入口：风格与「无尽模式」按钮一致（程序化 Button + 蓝底圆角）
+        Button statsEntry = new Button(requireContext());
+        statsEntry.setText(getString(R.string.game_td_btn_stats));
+        statsEntry.setTextSize(12);
+        statsEntry.setAllCaps(false);
+        statsEntry.setStateListAnimator(null);
+        GradientDrawable sb = new GradientDrawable();
+        sb.setColor(0xFF1E88E5);
+        sb.setCornerRadius(dp(8));
+        statsEntry.setBackground(sb);
+        statsEntry.setTextColor(0xFFFFFFFF);
+        statsEntry.setOnClickListener(v -> showStatsPanel());
+        panel.addView(statsEntry, new LinearLayout.LayoutParams(dp(120), dp(40)));
+        ((LinearLayout.LayoutParams) statsEntry.getLayoutParams()).topMargin = dp(10);
+        ((LinearLayout.LayoutParams) statsEntry.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
         Button back = ctrlButton(requireContext(), getString(R.string.game_td_btn_back_hall));
         back.setOnClickListener(v -> exitToHall());
         panel.addView(back, new LinearLayout.LayoutParams(dp(120), dp(40)));
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).topMargin = dp(8);
         ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
 
         ScrollView scroll = new ScrollView(requireContext());
@@ -979,6 +998,212 @@ public class TdModuleFragment extends Fragment {
             if (save.getBestStars(levelId) > 0) c++;
         }
         return c;
+    }
+
+    // ===== 战绩 / 成就面板（数据全部实时读取自存档，不新增持久化） =====
+
+    /** 主入口：战绩/成就浮层。打开时对局处于覆盖层暂停态，无并发写存档问题。 */
+    private void showStatsPanel() {
+        clearOverlay();
+        Context ctx = requireContext();
+        LinearLayout panel = new LinearLayout(ctx);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(16), dp(24), dp(16), dp(16));
+
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.game_td_stats_title));
+        title.setTextSize(22);
+        title.setTextColor(0xFFFFD54F);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
+
+        int levelCount = TdLevels.levelIds().size();
+        int[] campaignStars = new int[levelCount];
+        for (int i = 0; i < levelCount; i++) {
+            campaignStars[i] = save.getBestStars(TdLevels.levelIds().get(i));
+        }
+
+        // 战绩总览：总击杀 / 总局数
+        addStatsSection(panel, getString(R.string.game_td_stats_section_record));
+        addStatsRow(panel, getString(R.string.game_td_stats_label_kills),
+                String.valueOf(save.getTotalKills()), 0xFFFFF8E1);
+        addStatsRow(panel, getString(R.string.game_td_stats_label_play_count),
+                String.valueOf(save.getPlayCount()), 0xFFFFF8E1);
+
+        // 战役进度：已解锁关数/25、累计星级/75
+        addStatsSection(panel, getString(R.string.game_td_stats_section_campaign));
+        // 分子钳制到 levelCount：recordWin 的 nextUnlocked=levelIndex+2 无上限，
+        // 通关 main_025 后 unlocked=26，不钳制会显示 26/25。
+        addStatsRow(panel, getString(R.string.game_td_stats_label_unlocked),
+                getString(R.string.game_td_stats_value_fraction,
+                        Math.min(save.getUnlockedLevelCount(), levelCount), levelCount), 0xFFFFD54F);
+        addStatsRow(panel, getString(R.string.game_td_stats_label_stars),
+                getString(R.string.game_td_stats_value_fraction,
+                        TdSaveManager.sumBestStars(campaignStars), levelCount * MAX_STARS_PER_LEVEL),
+                0xFFFFD54F);
+
+        // 无尽最佳：各难度一行，0 = 未挑战
+        addStatsSection(panel, getString(R.string.game_td_stats_section_endless));
+        for (TdGame.Difficulty d : TdGame.Difficulty.values()) {
+            int waves = save.getBestEndlessWaves(d);
+            addStatsRow(panel, difficultyName(d),
+                    waves > 0 ? getString(R.string.game_td_stats_value_waves, waves)
+                            : getString(R.string.game_td_stats_value_none),
+                    waves > 0 ? 0xFF9CFFB0 : 0xFF78909C);
+        }
+
+        // 难度成就：简单/困难全清标记
+        addStatsSection(panel, getString(R.string.game_td_stats_section_achievements));
+        addStatsRow(panel, getString(R.string.game_td_stats_label_cleared_easy),
+                getString(save.isEasyCleared() ? R.string.game_td_stats_value_achieved
+                        : R.string.game_td_stats_value_not_achieved),
+                save.isEasyCleared() ? 0xFF9CFFB0 : 0xFF78909C);
+        addStatsRow(panel, getString(R.string.game_td_stats_label_cleared_hard),
+                getString(save.isHardCleared() ? R.string.game_td_stats_value_achieved
+                        : R.string.game_td_stats_value_not_achieved),
+                save.isHardCleared() ? 0xFF9CFFB0 : 0xFF78909C);
+
+        // 危险操作：清空全部战绩（必须二次确认）
+        Button reset = ctrlButton(ctx, getString(R.string.game_td_stats_btn_reset));
+        GradientDrawable rb = new GradientDrawable();
+        rb.setColor(0xFFB3261E);
+        rb.setCornerRadius(dp(8));
+        reset.setBackground(rb);
+        reset.setTextColor(0xFFFFFFFF);
+        reset.setOnClickListener(v -> showStatsResetConfirm());
+        panel.addView(reset, new LinearLayout.LayoutParams(dp(180), dp(40)));
+        ((LinearLayout.LayoutParams) reset.getLayoutParams()).topMargin = dp(18);
+        ((LinearLayout.LayoutParams) reset.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        Button back = ctrlButton(ctx, getString(R.string.game_td_stats_btn_back));
+        back.setOnClickListener(v -> showLevelSelect());
+        panel.addView(back, new LinearLayout.LayoutParams(dp(180), dp(40)));
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).topMargin = dp(8);
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        ScrollView scroll = new ScrollView(ctx);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(0xF01E2A1F);
+        scroll.addView(panel, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        overlayRoot.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /** 面板分组标题（战绩总览/战役进度/无尽最佳/难度成就）。 */
+    private void addStatsSection(LinearLayout panel, String label) {
+        TextView header = new TextView(requireContext());
+        header.setText(label);
+        header.setTextSize(14);
+        header.setTextColor(0xFFCCFFE0);
+        header.setTypeface(Typeface.DEFAULT_BOLD);
+        header.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(30));
+        lp.topMargin = dp(12);
+        panel.addView(header, lp);
+    }
+
+    /** 面板数据行：左标签右取值，样式与选关卡片同色系（深底圆角）。 */
+    private void addStatsRow(LinearLayout panel, String label, String value, int valueColor) {
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), 0, dp(12), 0);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF35302A);
+        bg.setCornerRadius(dp(8));
+        row.setBackground(bg);
+
+        TextView labelView = new TextView(requireContext());
+        labelView.setText(label);
+        labelView.setTextSize(13);
+        labelView.setTextColor(0xFFB0BEC5);
+        labelView.setSingleLine(true);
+        row.addView(labelView, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView valueView = new TextView(requireContext());
+        valueView.setText(value);
+        valueView.setTextSize(13);
+        valueView.setTextColor(valueColor);
+        valueView.setTypeface(Typeface.DEFAULT_BOLD);
+        row.addView(valueView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(32));
+        lp.topMargin = dp(4);
+        panel.addView(row, lp);
+    }
+
+    /** 清空战绩的二次确认对话框（危险操作）：确认后 clearAll 并刷新面板为全零。 */
+    private void showStatsResetConfirm() {
+        Context ctx = requireContext();
+        FrameLayout dim = new FrameLayout(ctx);
+        dim.setBackgroundColor(0x99000000);
+        // 吃掉背景点击，防止穿透到下层的战绩面板
+        dim.setOnClickListener(v -> { });
+
+        LinearLayout panel = new LinearLayout(ctx);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setPadding(dp(20), dp(20), dp(20), dp(16));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF1E2A1F);
+        bg.setStroke(dp(1), 0xFFFFD54F);
+        bg.setCornerRadius(dp(12));
+        panel.setBackground(bg);
+
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.game_td_stats_reset_confirm_title));
+        title.setTextSize(18);
+        title.setTextColor(0xFFFF8A80);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        TextView body = new TextView(ctx);
+        body.setText(getString(R.string.game_td_stats_reset_confirm_body));
+        body.setTextSize(13);
+        body.setTextColor(0xFFFFF8E1);
+        body.setLineSpacing(dp(2), 1f);
+        body.setGravity(Gravity.CENTER);
+        panel.addView(body, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ((LinearLayout.LayoutParams) body.getLayoutParams()).topMargin = dp(12);
+
+        Button confirm = ctrlButton(ctx, getString(R.string.game_td_stats_reset_confirm_yes));
+        GradientDrawable cb = new GradientDrawable();
+        cb.setColor(0xFFB3261E);
+        cb.setCornerRadius(dp(8));
+        confirm.setBackground(cb);
+        confirm.setTextColor(0xFFFFFFFF);
+        confirm.setOnClickListener(v -> {
+            save.clearAll();
+            showStatsPanel(); // clearOverlay 后按当前（已清空的）存档重建，面板自动变全零
+            showMsg(getString(R.string.game_td_stats_reset_done), "ok");
+        });
+        panel.addView(confirm, new LinearLayout.LayoutParams(dp(200), dp(42)));
+        ((LinearLayout.LayoutParams) confirm.getLayoutParams()).topMargin = dp(16);
+        ((LinearLayout.LayoutParams) confirm.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        Button cancel = ctrlButton(ctx, getString(R.string.game_td_stats_reset_confirm_no));
+        cancel.setOnClickListener(v -> overlayRoot.removeView(dim));
+        panel.addView(cancel, new LinearLayout.LayoutParams(dp(200), dp(42)));
+        ((LinearLayout.LayoutParams) cancel.getLayoutParams()).topMargin = dp(8);
+        ((LinearLayout.LayoutParams) cancel.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        FrameLayout.LayoutParams panelLp = new FrameLayout.LayoutParams(dp(300),
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        panelLp.gravity = Gravity.CENTER;
+        dim.addView(panel, panelLp);
+        overlayRoot.addView(dim, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     private void clearOverlay() {
