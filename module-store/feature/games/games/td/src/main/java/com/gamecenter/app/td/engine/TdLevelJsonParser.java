@@ -1,5 +1,7 @@
 package com.gamecenter.app.td.engine;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -80,12 +82,18 @@ public final class TdLevelJsonParser {
     }
 
     private static TdLevelDefinition level(Map<String, Object> value) {
-        exact(value, "id", "order", "name", "subtitle", "theme", "rows", "cols", "egg",
-                "startCoin", "mascotHp", "routes", "waves");
+        exactOptional(value,
+                new String[]{"id", "order", "name", "subtitle", "theme", "rows", "cols", "egg",
+                        "startCoin", "mascotHp", "routes", "waves"},
+                "name_en", "subtitle_en");
         String levelId = id(value, "id");
         int order = requiredInt(value, "order", 1, 9999);
         String name = requiredString(value, "name", 1, 64);
         String subtitle = requiredString(value, "subtitle", 0, 120);
+        // Localized display fields: the Chinese source text stays authoritative; the English
+        // fields are optional so a chapter without them still loads (with a logged warning).
+        String nameEn = optionalDisplayString(value, levelId, "name_en", name, 1, 64);
+        String subtitleEn = optionalDisplayString(value, levelId, "subtitle_en", subtitle, 0, 120);
         TdLevelDefinition.Theme theme;
         try {
             theme = TdLevelDefinition.Theme.valueOf(requiredString(value, "theme", 3, 16)
@@ -101,7 +109,8 @@ public final class TdLevelJsonParser {
         List<int[][]> routes = routes(requiredArray(value, "routes", 1, 8), rows, cols, eggRow, eggCol);
         requireBuildableArea(routes, rows, cols);
         List<TdLevelDefinition.Wave> waves = waves(requiredArray(value, "waves", 1, 100), routes.size());
-        return new TdLevelDefinition(levelId, order, name, subtitle, theme, rows, cols, eggRow, eggCol,
+        return new TdLevelDefinition(levelId, order, name, subtitle, nameEn, subtitleEn, theme,
+                rows, cols, eggRow, eggCol,
                 requiredInt(value, "startCoin", 0, 100000),
                 requiredInt(value, "mascotHp", 1, 100), routes, waves);
     }
@@ -181,6 +190,33 @@ public final class TdLevelJsonParser {
     private static void exact(Map<String, Object> object, String... fields) {
         Set<String> expected = new HashSet<>(Arrays.asList(fields));
         if (!object.keySet().equals(expected)) throw bad("unknown or missing field");
+    }
+
+    /** Like {@link #exact} but tolerates explicitly whitelisted optional fields. */
+    private static void exactOptional(Map<String, Object> object, String[] required,
+                                      String... optional) {
+        Set<String> keys = object.keySet();
+        Set<String> requiredSet = new HashSet<>(Arrays.asList(required));
+        if (!keys.containsAll(requiredSet)) throw bad("unknown or missing field");
+        Set<String> allowed = new HashSet<>(requiredSet);
+        Collections.addAll(allowed, optional);
+        if (!allowed.containsAll(keys)) throw bad("unknown or missing field");
+    }
+
+    /**
+     * Reads an optional localized display field. A missing field must not fail the load: the
+     * Chinese source text remains the fallback, and the gap is logged for content QA instead.
+     * An explicitly present value still fails closed: null, wrong-type, empty or overlong text
+     * throws instead of falling back.
+     */
+    private static String optionalDisplayString(Map<String, Object> value, String levelId,
+                                                String key, String fallback, int min, int max) {
+        if (!value.containsKey(key)) {
+            Log.w("TdLevelJsonParser", "TD level " + levelId + " is missing " + key
+                    + "; falling back to the source display text");
+            return fallback;
+        }
+        return string(value.get(key), key, min, max);
     }
 
     private static String id(Map<String, Object> object, String key) {

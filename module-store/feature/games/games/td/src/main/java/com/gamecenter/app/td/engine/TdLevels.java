@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,16 +69,32 @@ public final class TdLevels {
         return requireCatalog().contentVersion;
     }
 
-    /** Kept source-compatible with the existing select UI; index is only a display fallback (English neutral). */
+    /**
+     * Kept source-compatible with the existing select UI; index is only a display fallback
+     * (English neutral). Locale resolution mirrors host resources: only English locales read
+     * the English fields, every other locale falls back to the Chinese source data.
+     */
     public static String levelDisplayName(int index, String id) {
         TdLevelDefinition definition = requireCatalog().byId.get(canonicalId(id));
-        return definition != null ? definition.name
-                : String.format(java.util.Locale.US, "Level %d", index + 1);
+        if (definition == null) {
+            return String.format(java.util.Locale.US, "Level %d", index + 1);
+        }
+        return preferSourceText() ? definition.name : definition.nameEn;
     }
 
     public static String levelSub(int index, String id) {
         TdLevelDefinition definition = requireCatalog().byId.get(canonicalId(id));
-        return definition != null ? definition.subtitle : "";
+        if (definition == null) return "";
+        return preferSourceText() ? definition.subtitle : definition.subtitleEn;
+    }
+
+    /**
+     * Chinese is the authoritative source text. Only explicit English locales read the
+     * translated fields, so a third language (ja, ...) falls back to the source text exactly
+     * like host resources fall back to the default values/ strings.
+     */
+    private static boolean preferSourceText() {
+        return !"en".equals(Locale.getDefault().getLanguage());
     }
 
     /** Builds an isolated game session from immutable validated content. */

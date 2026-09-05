@@ -26,19 +26,27 @@ public final class TdLevelDefinition {
         }
     }
 
+    /**
+     * name/subtitle are the authoritative Chinese source texts; nameEn/subtitleEn carry the
+     * English display text (or a logged fallback copy of the source when a chapter omits them).
+     */
     public final String id, name, subtitle;
+    public final String nameEn, subtitleEn;
     public final int order, rows, cols, eggRow, eggCol, startCoin, mascotHp;
     public final Theme theme;
     public final List<Wave> waves;
     private final List<int[][]> routes;
 
-    TdLevelDefinition(String id, int order, String name, String subtitle, Theme theme,
+    TdLevelDefinition(String id, int order, String name, String subtitle,
+                      String nameEn, String subtitleEn, Theme theme,
                       int rows, int cols, int eggRow, int eggCol, int startCoin, int mascotHp,
                       List<int[][]> routes, List<Wave> waves) {
         this.id = id;
         this.order = order;
         this.name = name;
         this.subtitle = subtitle;
+        this.nameEn = nameEn;
+        this.subtitleEn = subtitleEn;
         this.theme = theme;
         this.rows = rows;
         this.cols = cols;

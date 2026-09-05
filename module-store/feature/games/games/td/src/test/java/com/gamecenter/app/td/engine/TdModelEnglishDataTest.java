@@ -10,8 +10,14 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -21,6 +27,10 @@ import java.util.regex.Pattern;
  * HUD 波次预告输出与操作结果参数必须是英文中性数据，不得内联中文；
  * UI 侧需要中文时一律走宿主本地化资源（com.gamecenter.app.R.string.game_td_*）。
  * 若有人把中文写回 engine 层，本测试失败。
+ *
+ * <p>关卡资产层：章节 JSON 的 name/subtitle 是中文权威源，name_en/subtitle_en 是英文展示字段，
+ * 由 {@link TdLevels} 按 locale 解析。守卫锁定全部 25 关英文字段非空且不含中文
+ * （漏填会被解析器静默回退成中文，在此处被拦截）。
  */
 public class TdModelEnglishDataTest {
 
@@ -177,6 +187,75 @@ public class TdModelEnglishDataTest {
         assertEquals(TdGame.ActionMsg.EGG_HIT, game.getLastActionMsg());
         assertEquals("err", game.getLastActionTone());
         assertArgsNeutral("EGG_HIT args", game.getLastActionArgs());
+    }
+
+    // ===== 关卡资产层守卫（章节 JSON 的中英双字段）=====
+
+    @Test
+    public void campaignLevelsCarryEnglishDisplayFields() throws Exception {
+        List<TdLevelDefinition> levels = loadProductionCampaign();
+        assertEquals("manifest 章节关卡总数应为 25", 25, levels.size());
+        for (TdLevelDefinition level : levels) {
+            assertTrue("关卡 id 须为 main_###，实际: " + level.id,
+                    level.id.matches("main_\\d{3}"));
+            // 中文权威源：必须非空（允许中文）
+            assertTrue("level " + level.id + " name 不得为空", !level.name.isEmpty());
+            assertTrue("level " + level.id + " subtitle 不得为空", !level.subtitle.isEmpty());
+            // 英文字段：必须填写且不含中文；漏填时解析器会回退中文源文本，在此被拦截
+            assertNoCjk("level " + level.id + " nameEn", level.nameEn);
+            assertTrue("level " + level.id + " nameEn 不得为空", !level.nameEn.isEmpty());
+            assertNoCjk("level " + level.id + " subtitleEn", level.subtitleEn);
+            assertTrue("level " + level.id + " subtitleEn 不得为空", !level.subtitleEn.isEmpty());
+        }
+    }
+
+    @Test
+    public void levelDisplayFieldsResolveByLocale() throws Exception {
+        List<TdLevelDefinition> levels = loadProductionCampaign();
+        TdLevels.installForTesting(levels);
+        TdLevelDefinition first = levels.get(0);
+        assertEquals("main_001", first.id);
+        Locale original = Locale.getDefault();
+        try {
+            // zh 开头 → 中文权威源；其余 → 英文字段（与宿主资源行为一致）
+            Locale.setDefault(Locale.CHINA);
+            assertEquals(first.name, TdLevels.levelDisplayName(0, "main_001"));
+            assertEquals(first.subtitle, TdLevels.levelSub(0, "main_001"));
+            Locale.setDefault(Locale.US);
+            assertEquals(first.nameEn, TdLevels.levelDisplayName(0, "main_001"));
+            assertEquals(first.subtitleEn, TdLevels.levelSub(0, "main_001"));
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    /** 从模块 assets 读取全部章节并解析（镜像 TdGameTest 的资产定位方式）。 */
+    private static List<TdLevelDefinition> loadProductionCampaign() throws IOException {
+        Path assetsRoot = findAssetsRoot();
+        TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(
+                new String(Files.readAllBytes(assetsRoot.resolve("td/manifest.json")),
+                        StandardCharsets.UTF_8));
+        List<TdLevelDefinition> levels = new ArrayList<>();
+        for (TdLevelJsonParser.ChapterRef chapter : manifest.chapters) {
+            TdLevelJsonParser.Chapter parsed = TdLevelJsonParser.parseChapter(new String(
+                    Files.readAllBytes(assetsRoot.resolve("td").resolve(chapter.file)),
+                    StandardCharsets.UTF_8));
+            assertEquals("chapter " + chapter.file + " levelCount 与 manifest 不一致",
+                    chapter.levelCount, parsed.levels.size());
+            levels.addAll(parsed.levels);
+        }
+        return levels;
+    }
+
+    private static Path findAssetsRoot() {
+        Path[] candidates = new Path[] {
+                Paths.get("src/main/assets"),
+                Paths.get("module-store/feature/games/games/td/src/main/assets")
+        };
+        for (Path candidate : candidates) {
+            if (Files.isRegularFile(candidate.resolve("td/manifest.json"))) return candidate;
+        }
+        throw new IllegalStateException("production TD campaign asset was not found for JVM test");
     }
 
     // ===== 测试用最小对局 =====
