@@ -689,72 +689,22 @@ public class TdModuleFragment extends Fragment {
         sub.setGravity(Gravity.CENTER);
         panel.addView(sub, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(24)));
 
-        for (int i = 0; i < ids.size(); i++) {
-            final int idx = i;
-            String id = ids.get(i);
-            boolean locked = idx >= unlocked;
-            int stars = save.getBestStars(id);
-
-            LinearLayout card = new LinearLayout(requireContext());
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setPadding(dp(14), dp(12), dp(14), dp(12));
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(locked ? 0xFF3A3A3A : 0xFF4A4238);
-            bg.setStroke(dp(1), locked ? 0xFF555555 : 0xFFFFD54F);
-            bg.setCornerRadius(dp(12));
-            card.setBackground(bg);
-
-            TextView name = new TextView(requireContext());
-            name.setText((idx + 1) + ". " + TdLevels.levelDisplayName(idx, id));
-            name.setTextSize(16);
-            name.setTextColor(locked ? 0xFF777777 : 0xFFFFFFFF);
-            name.setTypeface(Typeface.DEFAULT_BOLD);
-
-            TextView meta = new TextView(requireContext());
-            meta.setText(locked ? getString(R.string.game_td_label_locked)
-                    : TdLevels.levelSub(idx, id) + "  ·  " + starsText(stars));
-            meta.setTextSize(11);
-            meta.setTextColor(0xFFB0BEC5);
-
-            LinearLayout inner = new LinearLayout(requireContext());
-            inner.setOrientation(LinearLayout.VERTICAL);
-            inner.addView(name);
-            inner.addView(meta);
-
-            card.addView(inner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            if (!locked) {
-                Button play = new Button(requireContext());
-                play.setText(getString(R.string.game_td_btn_play));
-                play.setTextSize(12);
-                play.setAllCaps(false);
-                play.setStateListAnimator(null);
-                GradientDrawable pb = new GradientDrawable();
-                pb.setColor(0xFF2E9E4F);
-                pb.setCornerRadius(dp(8));
-                ((Button) play).setBackground(pb);
-                play.setTextColor(0xFFFFFFFF);
-                play.setOnClickListener(v -> showDifficultySelect(idx));
-                card.addView(play, new LinearLayout.LayoutParams(dp(56), dp(36)));
-                // 无尽模式入口：复用同一张关卡地图/路线/蛋位，难度与塔组流程与战役一致
-                Button endless = new Button(requireContext());
-                endless.setText(getString(R.string.game_td_btn_endless));
-                endless.setTextSize(11);
-                endless.setAllCaps(false);
-                endless.setStateListAnimator(null);
-                GradientDrawable eb = new GradientDrawable();
-                eb.setColor(0xFF1E88E5);
-                eb.setCornerRadius(dp(8));
-                endless.setBackground(eb);
-                endless.setTextColor(0xFFFFFFFF);
-                endless.setOnClickListener(v -> showDifficultySelect(idx, true));
-                LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(dp(64), dp(36));
-                elp.leftMargin = dp(6);
-                card.addView(endless, elp);
+        // 章节分组：滚动顺序 = 章节顺序，每章一个章头（章节名 + 已通进度）+ 该章关卡卡片。
+        // 兼容：catalog 未携带章节元数据（历史 installForTesting 纯关卡装填）时维持平铺渲染。
+        List<TdLevels.ChapterGroup> chapters = TdLevels.chapterGroups();
+        if (chapters.isEmpty()) {
+            for (int i = 0; i < ids.size(); i++) {
+                addLevelCard(panel, i, ids.get(i), unlocked);
             }
-            panel.addView(card, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            ((LinearLayout.LayoutParams) card.getLayoutParams()).topMargin = dp(10);
+        } else {
+            int firstIdx = 0;
+            for (TdLevels.ChapterGroup group : chapters) {
+                panel.addView(chapterSection(group, firstIdx, unlocked),
+                        new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT));
+                firstIdx += group.levelIds().size();
+            }
         }
 
         TextView stats = new TextView(requireContext());
@@ -811,6 +761,124 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         overlayRoot.addView(scroll, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /**
+     * 一个章节分组段：章头（章节名 + 已通进度）在上，该章关卡卡片按全局顺序排列在其下，
+     * 整体滚动顺序与章节顺序一致。tag 前缀（td_chapter:* / td_level_card:*）供 UI 回归测试定位。
+     */
+    private LinearLayout chapterSection(TdLevels.ChapterGroup group, int firstIdx, int unlocked) {
+        LinearLayout section = new LinearLayout(requireContext());
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setTag("td_chapter:" + group.id);
+        section.addView(chapterHeader(group));
+        List<String> groupIds = group.levelIds();
+        for (int i = 0; i < groupIds.size(); i++) {
+            addLevelCard(section, firstIdx + i, groupIds.get(i), unlocked);
+        }
+        return section;
+    }
+
+    /** 章头：章节名（TdLevels 按 locale 解析）+ 该章通关进度，延续浮层既有的金色标题风格。 */
+    private LinearLayout chapterHeader(TdLevels.ChapterGroup group) {
+        LinearLayout header = new LinearLayout(requireContext());
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(4), dp(12), dp(4), 0);
+
+        TextView name = new TextView(requireContext());
+        name.setText(group.displayName());
+        name.setTextSize(15);
+        name.setTextColor(0xFFFFD54F);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setTag("td_chapter_name:" + group.id);
+        header.addView(name, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        // 进度口径：该章内 getBestStars>0 的关卡数记为「已通」，与战绩面板 countCleared 一致
+        // （星数非零即通关；锁定关与未获星关均不计入）。总数为该章 levelCount。
+        int cleared = 0;
+        for (String id : group.levelIds()) {
+            if (save.getBestStars(id) > 0) cleared++;
+        }
+        TextView progress = new TextView(requireContext());
+        progress.setText(getString(R.string.game_td_chapter_progress, cleared, group.levelIds().size()));
+        progress.setTextSize(11);
+        progress.setTextColor(0xFFB0BEC5);
+        progress.setTag("td_chapter_progress:" + group.id);
+        header.addView(progress, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return header;
+    }
+
+    /** 单张关卡卡片（平铺时代的结构原样保留：序号+名称/副题+星级 + 开始/无尽入口），按全局序号判定锁定。 */
+    private void addLevelCard(LinearLayout parent, int idx, String id, int unlocked) {
+        final int levelIdx = idx;
+        String levelId = id;
+        boolean locked = levelIdx >= unlocked;
+        int stars = save.getBestStars(levelId);
+
+        LinearLayout card = new LinearLayout(requireContext());
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(locked ? 0xFF3A3A3A : 0xFF4A4238);
+        bg.setStroke(dp(1), locked ? 0xFF555555 : 0xFFFFD54F);
+        bg.setCornerRadius(dp(12));
+        card.setBackground(bg);
+        card.setTag("td_level_card:" + levelId);
+
+        TextView name = new TextView(requireContext());
+        name.setText((levelIdx + 1) + ". " + TdLevels.levelDisplayName(levelIdx, levelId));
+        name.setTextSize(16);
+        name.setTextColor(locked ? 0xFF777777 : 0xFFFFFFFF);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+
+        TextView meta = new TextView(requireContext());
+        meta.setText(locked ? getString(R.string.game_td_label_locked)
+                : TdLevels.levelSub(levelIdx, levelId) + "  ·  " + starsText(stars));
+        meta.setTextSize(11);
+        meta.setTextColor(0xFFB0BEC5);
+
+        LinearLayout inner = new LinearLayout(requireContext());
+        inner.setOrientation(LinearLayout.VERTICAL);
+        inner.addView(name);
+        inner.addView(meta);
+
+        card.addView(inner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (!locked) {
+            Button play = new Button(requireContext());
+            play.setText(getString(R.string.game_td_btn_play));
+            play.setTextSize(12);
+            play.setAllCaps(false);
+            play.setStateListAnimator(null);
+            GradientDrawable pb = new GradientDrawable();
+            pb.setColor(0xFF2E9E4F);
+            pb.setCornerRadius(dp(8));
+            ((Button) play).setBackground(pb);
+            play.setTextColor(0xFFFFFFFF);
+            play.setOnClickListener(v -> showDifficultySelect(levelIdx));
+            card.addView(play, new LinearLayout.LayoutParams(dp(56), dp(36)));
+            // 无尽模式入口：复用同一张关卡地图/路线/蛋位，难度与塔组流程与战役一致
+            Button endless = new Button(requireContext());
+            endless.setText(getString(R.string.game_td_btn_endless));
+            endless.setTextSize(11);
+            endless.setAllCaps(false);
+            endless.setStateListAnimator(null);
+            GradientDrawable eb = new GradientDrawable();
+            eb.setColor(0xFF1E88E5);
+            eb.setCornerRadius(dp(8));
+            endless.setBackground(eb);
+            endless.setTextColor(0xFFFFFFFF);
+            endless.setOnClickListener(v -> showDifficultySelect(levelIdx, true));
+            LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(dp(64), dp(36));
+            elp.leftMargin = dp(6);
+            card.addView(endless, elp);
+        }
+        parent.addView(card, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ((LinearLayout.LayoutParams) card.getLayoutParams()).topMargin = dp(10);
     }
 
     private void showDifficultySelect(final int levelIdx) {

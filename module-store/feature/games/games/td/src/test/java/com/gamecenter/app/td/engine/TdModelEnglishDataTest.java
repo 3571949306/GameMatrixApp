@@ -16,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -31,6 +33,10 @@ import java.util.regex.Pattern;
  * <p>关卡资产层：章节 JSON 的 name/subtitle 是中文权威源，name_en/subtitle_en 是英文展示字段，
  * 由 {@link TdLevels} 按 locale 解析。守卫锁定全部 35 关英文字段非空且不含中文
  * （漏填会被解析器静默回退成中文，在此处被拦截）。
+ *
+ * <p>另守卫章节分组两条 fail-closed 不变量：章节名回退链（manifest 省略 name/name_en 时
+ * 回退章节文件中文名，nameEn 再回退中文名）；跨章 order 单调性（后一章最小 order 必须
+ * 大于前一章最大 order，交错即拒绝装载——分组渲染的点击位置映射依赖该前提）。
  */
 public class TdModelEnglishDataTest {
 
@@ -291,15 +297,182 @@ public class TdModelEnglishDataTest {
         }
     }
 
+    // ===== 章节资产层守卫（选关分组章头的 display 字段）=====
+
+    /**
+     * 与关卡名守卫同构：manifest 章节的 name 是中文权威源（非空即可,允许中文）,
+     * name_en 是英文展示字段——漏填时解析器会静默回退成中文名,章头英文化在此被拦截。
+     */
+    @Test
+    public void campaignChaptersCarryEnglishDisplayFields() throws Exception {
+        TdLevelJsonParser.Manifest manifest = readProductionManifest();
+        assertTrue("manifest 至少注册一个章节", !manifest.chapters.isEmpty());
+        for (TdLevelJsonParser.ChapterRef ref : manifest.chapters) {
+            assertTrue("chapter " + ref.id + " name 不得为空",
+                    ref.name != null && !ref.name.isEmpty());
+            assertNoCjk("chapter " + ref.id + " nameEn", ref.nameEn);
+            assertTrue("chapter " + ref.id + " nameEn 不得为空", !ref.nameEn.isEmpty());
+        }
+    }
+
+    @Test
+    public void chapterGroupsResolveByLocaleAndFollowCampaignOrder() throws Exception {
+        TdLevelJsonParser.Manifest manifest = readProductionManifest();
+        TdLevels.installForTesting(manifest, loadProductionCampaign());
+        List<TdLevels.ChapterGroup> groups = TdLevels.chapterGroups();
+        assertEquals("章节分组数必须与 manifest 章节数一致", manifest.chapters.size(), groups.size());
+        Locale original = Locale.getDefault();
+        try {
+            // zh 开头 → 中文权威源；en → 英文字段（与关卡名 locale 逻辑一致）
+            Locale.setDefault(Locale.CHINA);
+            int cursor = 0;
+            for (int i = 0; i < groups.size(); i++) {
+                TdLevelJsonParser.ChapterRef ref = manifest.chapters.get(i);
+                TdLevels.ChapterGroup group = groups.get(i);
+                assertEquals("章节分组顺序必须与 manifest 一致", ref.id, group.id);
+                assertEquals("zh locale 必须读中文权威源章节名", ref.name, group.displayName());
+                assertEquals("章内关卡 id 必须与全局战役顺序一致",
+                        TdLevels.levelIds().subList(cursor, cursor + ref.levelCount),
+                        group.levelIds());
+                cursor += ref.levelCount;
+            }
+            assertEquals("全部章节分组必须覆盖全部关卡", TdLevels.levelIds().size(), cursor);
+            Locale.setDefault(Locale.US);
+            for (int i = 0; i < groups.size(); i++) {
+                assertEquals("en locale 必须读英文章节名",
+                        manifest.chapters.get(i).nameEn, groups.get(i).displayName());
+                assertNoCjk("chapter " + groups.get(i).id + " displayName(en)",
+                        groups.get(i).displayName());
+            }
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    // ===== 章节名回退链 + 跨章 order 单调性守卫（手造数据走 TdLevels 装填路径）=====
+
+    /**
+     * manifest 章节条目省略 name/name_en 时，章头名必须回退到章节文件自身的中文源名，
+     * 且 nameEn 一并回退到该中文名（en locale 的 displayName 也返回中文源文本）——与关卡
+     * name_en 回退链同构。经 {@link TdLevels#installChaptersForTesting} 镜像生产
+     * initialize 的完整解析链路（JVM 测试无法直接调 AssetManager 版 initialize）。
+     */
+    @Test
+    public void chapterNamesWithoutManifestEntriesFallBackToChapterFileSourceText() {
+        TdLevelJsonParser.ChapterRef ref = new TdLevelJsonParser.ChapterRef(
+                "chapter_fake_01", "chapters/chapter_fake_01.json", 2, null, null);
+        TdLevelJsonParser.Chapter chapter = new TdLevelJsonParser.Chapter("chapter_fake_01",
+                "甲编章节", new ArrayList<>(Arrays.asList(
+                        fakeLevel("main_101", 1), fakeLevel("main_102", 2))));
+        TdLevelJsonParser.Manifest manifest = new TdLevelJsonParser.Manifest(1,
+                Collections.singletonList(ref));
+        TdLevels.installChaptersForTesting(manifest, Collections.singletonList(chapter));
+
+        TdLevels.ChapterGroup group = TdLevels.chapterGroups().get(0);
+        assertEquals("chapter_fake_01", group.id);
+        assertEquals("manifest name 缺失必须回退章节文件中文名", "甲编章节", group.name);
+        assertEquals("nameEn 必须一并回退到中文名", group.name, group.nameEn);
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.CHINA);
+            assertEquals("zh locale 读中文权威源", "甲编章节", group.displayName());
+            Locale.setDefault(Locale.US);
+            assertEquals("en locale 在 name_en 缺失时回退中文源文本", "甲编章节", group.displayName());
+            Locale.setDefault(Locale.JAPAN);
+            assertEquals("非英语 locale 与宿主资源一致，回退中文权威源",
+                    "甲编章节", group.displayName());
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    /**
+     * manifest 有中文 name 但缺 name_en：ChapterGroup 构造层把 nameEn 对齐到中文源名
+     * （历史 installForTesting(Manifest, definitions) 路径的最后一层兜底）。
+     */
+    @Test
+    public void chapterNameEnMissingFallsBackToSourceName() {
+        TdLevelJsonParser.ChapterRef ref = new TdLevelJsonParser.ChapterRef(
+                "chapter_fake_01", "chapters/chapter_fake_01.json", 2, "乙编章节", null);
+        TdLevelJsonParser.Manifest manifest = new TdLevelJsonParser.Manifest(1,
+                Collections.singletonList(ref));
+        TdLevels.installForTesting(manifest, new ArrayList<>(Arrays.asList(
+                fakeLevel("main_101", 1), fakeLevel("main_102", 2))));
+
+        TdLevels.ChapterGroup group = TdLevels.chapterGroups().get(0);
+        assertEquals("manifest 中文 name 优先于章节文件名", "乙编章节", group.name);
+        assertEquals("name_en 缺失时 nameEn 必须等于中文源名", group.name, group.nameEn);
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.US);
+            assertEquals("en locale 读回退后的中文名", "乙编章节", group.displayName());
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    /**
+     * 跨章 order 单调性 fail-closed：后一章最小 order 未大于前一章最大 order（此处 order=2
+     * 跨章重叠）会让分组渲染的「章前缀和 + 章内下标」点击映射错位，装载必须抛 IAE 且报错
+     * 说明交错后果。修复前该数据只会触发通用查重报错（无「交错」字样），本测试据此 gate。
+     */
+    @Test
+    public void crossChapterInterleavedOrdersFailClosed() {
+        TdLevelJsonParser.Manifest manifest = new TdLevelJsonParser.Manifest(1, Arrays.asList(
+                new TdLevelJsonParser.ChapterRef("chapter_fake_01",
+                        "chapters/chapter_fake_01.json", 2, "甲编", null),
+                new TdLevelJsonParser.ChapterRef("chapter_fake_02",
+                        "chapters/chapter_fake_02.json", 2, "乙编", null)));
+        List<TdLevelDefinition> definitions = Arrays.asList(
+                fakeLevel("main_101", 1), fakeLevel("main_102", 2),
+                fakeLevel("main_103", 2), fakeLevel("main_104", 3));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> TdLevels.installForTesting(manifest, definitions));
+        assertTrue("报错必须说明跨章 order 交错导致点击错位，实际: " + exception.getMessage(),
+                exception.getMessage().contains("交错"));
+    }
+
+    /**
+     * 生产风险形态：章节文件各自携带交错的 order 编号（甲：1,3 / 乙：2,4），组内有序但跨章
+     * 交错，分组拼接不再是全局战役顺序——经 installChaptersForTesting（镜像 initialize）
+     * 同样必须 fail-closed（无重复 order，修复前可正常装载，本测试据此 gate）。
+     */
+    @Test
+    public void crossChapterInterleavedOrdersAcrossChapterFilesFailClosed() {
+        TdLevelJsonParser.Manifest manifest = new TdLevelJsonParser.Manifest(1, Arrays.asList(
+                new TdLevelJsonParser.ChapterRef("chapter_fake_01",
+                        "chapters/chapter_fake_01.json", 2, "甲编", null),
+                new TdLevelJsonParser.ChapterRef("chapter_fake_02",
+                        "chapters/chapter_fake_02.json", 2, "乙编", null)));
+        List<TdLevelJsonParser.Chapter> chapters = Arrays.asList(
+                new TdLevelJsonParser.Chapter("chapter_fake_01", "甲编章节",
+                        new ArrayList<>(Arrays.asList(
+                                fakeLevel("main_101", 1), fakeLevel("main_103", 3)))),
+                new TdLevelJsonParser.Chapter("chapter_fake_02", "乙编章节",
+                        new ArrayList<>(Arrays.asList(
+                                fakeLevel("main_102", 2), fakeLevel("main_104", 4)))));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> TdLevels.installChaptersForTesting(manifest, chapters));
+        assertTrue("报错必须说明跨章 order 交错导致点击错位，实际: " + exception.getMessage(),
+                exception.getMessage().contains("交错"));
+    }
+
     /** manifest 各章 levelCount 之和,由 {@link #loadProductionCampaign()} 加总,随战役扩展动态增长。 */
     private static int manifestLevelCountTotal;
+
+    /** 从模块 assets 读取并解析 manifest（章节分组/display 字段的守卫也经此读取）。 */
+    private static TdLevelJsonParser.Manifest readProductionManifest() throws IOException {
+        return TdLevelJsonParser.parseManifest(new String(
+                Files.readAllBytes(findAssetsRoot().resolve("td/manifest.json")),
+                StandardCharsets.UTF_8));
+    }
 
     /** 从模块 assets 读取全部章节并解析（镜像 TdGameTest 的资产定位方式）。 */
     private static List<TdLevelDefinition> loadProductionCampaign() throws IOException {
         Path assetsRoot = findAssetsRoot();
-        TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(
-                new String(Files.readAllBytes(assetsRoot.resolve("td/manifest.json")),
-                        StandardCharsets.UTF_8));
+        TdLevelJsonParser.Manifest manifest = readProductionManifest();
         List<TdLevelDefinition> levels = new ArrayList<>();
         manifestLevelCountTotal = 0;
         for (TdLevelJsonParser.ChapterRef chapter : manifest.chapters) {
@@ -325,7 +498,22 @@ public class TdModelEnglishDataTest {
         throw new IllegalStateException("production TD campaign asset was not found for JVM test");
     }
 
-    // ===== 测试用最小对局 =====
+    // ===== 测试用最小关卡与对局 =====
+
+    /**
+     * 手造最小关卡定义（包内可见构造器，不经解析器），仅供本章守卫装填假战役：
+     * order 是被测字段，其余字段取与 {@link #guardGame()} 同型的最小合法值。
+     */
+    private static TdLevelDefinition fakeLevel(String id, int order) {
+        List<int[][]> routes = new ArrayList<>();
+        routes.add(new int[][] {{0, 0}, {0, 4}});
+        List<TdLevelDefinition.Wave> waves = new ArrayList<>();
+        waves.add(new TdLevelDefinition.Wave(0,
+                Collections.singletonList(MonsterType.NORMAL), 1, 1f, 0f, 1f, 1f));
+        return new TdLevelDefinition(id, order, "关卡" + order, "横亘前路", "Level " + order,
+                "Level " + order, TdLevelDefinition.Theme.GARDEN, 3, 5, 0, 4, 100, 10,
+                routes, waves);
+    }
 
     private static TdGame guardGame() {
         int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}};

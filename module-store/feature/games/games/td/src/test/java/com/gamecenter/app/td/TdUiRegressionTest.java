@@ -21,6 +21,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.gamecenter.app.R;
 import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
+import com.gamecenter.app.td.engine.TdLevelDefinition;
 import com.gamecenter.app.td.engine.TdLevelJsonParser;
 import com.gamecenter.app.td.engine.TdLevels;
 import com.gamecenter.app.td.engine.TowerType;
@@ -74,6 +75,11 @@ import static org.junit.Assert.assertTrue;
  *   <li>图鉴面板：与战绩面板同接缝（反射调 showCodexPanel / showLevelSelect + 注入
  *       overlayRoot/save），断言覆盖层结构特征——段落 tag 计数（每种塔/怪恰一段）、标题键、
  *       返回按钮键、特性行非空——以及引擎枚举字段到 UI 的数值接线（造价/生命实时格式化）。</li>
+ *   <li>选关面板（章节分组）：同接缝（反射调 showLevelSelect + 注入 overlayRoot/save，
+ *       BeforeClass 经 installForTesting(manifest, definitions) 装填全战役 + 章节元数据）。
+ *       断言章头 section tag 顺序 = manifest 章节顺序、章头文本 = TdLevels 按 locale 解析的
+ *       章节名（zh 权威源 / en 读 name_en）、每章卡片数 = levelCount、卡片文档序 = 全局
+ *       levelIds、进度行按「星数非零即已通」口径接线（game_td_chapter_progress stub）。</li>
  * </ul>
  */
 @RunWith(RobolectricTestRunner.class)
@@ -85,9 +91,16 @@ public class TdUiRegressionTest {
         // 生产内容经严格解析器从模块真实资产装载（与 TdGameTest 同一模式）：application
         // 模块的 unit test fixture 不合并 assets（AGP 仅对 library 模块做 unitTest 资产合并），
         // Robolectric AssetManager 读不到 td/manifest.json，故走文件系统 + installForTesting。
-        TdLevels.installForTesting(
-                TdLevelJsonParser.parseChapter(readAsset(findAssetsRoot()
-                        .resolve("td/chapters/chapter_main_01.json"))).levels);
+        // 选关面板按章节分组后，这里同步装填 manifest 章节元数据，保证章头分组可断言。
+        Path assetsRoot = findAssetsRoot();
+        TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(
+                readAsset(assetsRoot.resolve("td/manifest.json")));
+        List<TdLevelDefinition> definitions = new ArrayList<>();
+        for (TdLevelJsonParser.ChapterRef ref : manifest.chapters) {
+            definitions.addAll(TdLevelJsonParser.parseChapter(
+                    readAsset(assetsRoot.resolve("td").resolve(ref.file))).levels);
+        }
+        TdLevels.installForTesting(manifest, definitions);
     }
 
     private static Path findAssetsRoot() {
@@ -210,6 +223,78 @@ public class TdUiRegressionTest {
                 hasTextViewWithText((ViewGroup) bottleSections.get(0), "₿" + TowerType.BOTTLE.baseCost));
         assertTrue("怪生命行必须实时格式化自 MonsterType.hp",
                 hasTextViewWithText(overlayRoot, formatCodexNumber(MonsterType.NORMAL.hp)));
+    }
+
+    // ===== 选关面板（按章节分组）：章头顺序 / 本地化章节名 / 每章卡片数与滚动顺序 =====
+
+    @Test
+    public void levelSelectGroupsLevelsByChapterInOrder() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "level-select-host").commitNow();
+
+        // 进度口径见证：main_001（第 1 章）与 main_015（第 2 章）有星 → 前两章各「已通 1」，
+        // 第 3/4 章「已通 0」；星数非零即已通，与战绩面板 countCleared 同口径
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.setBestStars("main_001", 3);
+        save.setBestStars("main_015", 2);
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+
+        TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(
+                readAsset(findAssetsRoot().resolve("td/manifest.json")));
+        assertEquals("前置：manifest 必须注册 4 个章节（战役扩展时同步更新本用例）",
+                4, manifest.chapters.size());
+
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.CHINA);
+            invokePrivateMethod(fragment, "showLevelSelect");
+
+            List<View> sections = collectViewsByTagPrefix(overlayRoot, "td_chapter:");
+            assertEquals("选关面板必须按章节分 4 段（每章一个 section）", 4, sections.size());
+            for (int i = 0; i < manifest.chapters.size(); i++) {
+                TdLevelJsonParser.ChapterRef ref = manifest.chapters.get(i);
+                ViewGroup section = (ViewGroup) sections.get(i);
+                assertEquals("章节分组顺序必须与 manifest 一致",
+                        "td_chapter:" + ref.id, section.getTag());
+                TextView name = (TextView) findTagged(overlayRoot, "td_chapter_name:" + ref.id);
+                assertNotNull("章头必须存在（td_chapter_name:" + ref.id + "）", name);
+                assertEquals("章头文本必须是本地化章节名（zh 读权威源）",
+                        ref.name, name.getText().toString());
+                assertEquals("每章下关卡卡片数必须等于该章 levelCount", ref.levelCount,
+                        collectViewsByTagPrefix(section, "td_level_card:").size());
+                TextView progress = (TextView) findTagged(overlayRoot,
+                        "td_chapter_progress:" + ref.id);
+                assertNotNull("章头进度行必须存在（td_chapter_progress:" + ref.id + "）", progress);
+                assertEquals("章头进度必须按「星数非零即已通」口径接线（game_td_chapter_progress）",
+                        RecordingResources.stub(R.string.game_td_chapter_progress,
+                                i <= 1 ? 1 : 0, ref.levelCount),
+                        progress.getText().toString());
+            }
+            // 滚动顺序 = 章节顺序：跨章收集卡片 tag 的文档序必须与全局 levelIds 一致
+            List<String> cardOrder = new ArrayList<>();
+            for (View sectionView : sections) {
+                for (View card : collectViewsByTagPrefix((ViewGroup) sectionView, "td_level_card:")) {
+                    cardOrder.add(((String) card.getTag()).substring("td_level_card:".length()));
+                }
+            }
+            assertEquals("关卡卡片滚动顺序必须与全局关卡顺序一致", TdLevels.levelIds(), cardOrder);
+
+            // en locale：章头切换为 manifest 的 name_en 英文字段
+            Locale.setDefault(Locale.US);
+            invokePrivateMethod(fragment, "showLevelSelect");
+            for (TdLevelJsonParser.ChapterRef ref : manifest.chapters) {
+                TextView name = (TextView) findTagged(overlayRoot, "td_chapter_name:" + ref.id);
+                assertNotNull("en 章头必须存在（td_chapter_name:" + ref.id + "）", name);
+                assertEquals("en locale 章头必须读英文章节名", ref.nameEn, name.getText().toString());
+            }
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 
     @Test
@@ -382,6 +467,21 @@ public class TdUiRegressionTest {
             if (view instanceof TextView && expected.equals(((TextView) view).getText().toString())) {
                 return (TextView) view;
             }
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) queue.add(group.getChildAt(i));
+            }
+        }
+        return null;
+    }
+
+    /** 广度优先查找 tag 精确匹配的 View（选关章头/进度行按 tag 定位）。 */
+    private static View findTagged(ViewGroup root, String tag) {
+        Deque<View> queue = new ArrayDeque<>();
+        for (int i = 0; i < root.getChildCount(); i++) queue.add(root.getChildAt(i));
+        while (!queue.isEmpty()) {
+            View view = queue.poll();
+            if (tag.equals(view.getTag())) return view;
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) queue.add(group.getChildAt(i));

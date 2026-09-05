@@ -3,6 +3,7 @@ package com.gamecenter.app.td.engine;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class TdLevelJsonParserTest {
@@ -76,6 +77,47 @@ public class TdLevelJsonParserTest {
         assertEquals(7, manifest.contentVersion);
         assertEquals("chapters/chapter_demo.json", manifest.chapters.get(0).file);
     }
+
+    @Test public void parsesManifestChapterDisplayNames() {
+        TdLevelJsonParser.ChapterRef ref = TdLevelJsonParser.parseManifest(MANIFEST_CHAPTER
+                + ",\"name\":\"第一章\",\"name_en\":\"Chapter One\"}]}").chapters.get(0);
+        assertEquals("第一章", ref.name);
+        assertEquals("Chapter One", ref.nameEn);
+    }
+
+    @Test public void manifestWithoutEnglishNameFallsBackToSourceName() {
+        // 缺省 name_en 不 fail：回退中文源名（与关卡 name_en 的 optionalDisplayString 先例一致）
+        TdLevelJsonParser.ChapterRef ref = TdLevelJsonParser.parseManifest(
+                MANIFEST_CHAPTER + ",\"name\":\"第一章\"}]}").chapters.get(0);
+        assertEquals("第一章", ref.name);
+        assertEquals("第一章", ref.nameEn);
+    }
+
+    @Test public void manifestWithoutDisplayNamesYieldsNullRefs() {
+        // 历史 manifest 两个 display 字段都可缺省：parser 层留空（记 Log.w），
+        // 由 TdLevels 装载时回退章节文件自身的中文名，不拦截加载
+        TdLevelJsonParser.ChapterRef ref = TdLevelJsonParser.parseManifest(
+                MANIFEST_CHAPTER + "}]}").chapters.get(0);
+        assertNull(ref.name);
+        assertNull(ref.nameEn);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsOverlongManifestChapterName() {
+        StringBuilder longName = new StringBuilder();
+        for (int i = 0; i < 65; i++) longName.append('x');
+        TdLevelJsonParser.parseManifest(
+                MANIFEST_CHAPTER + ",\"name\":\"" + longName + "\"}]}");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsNonStringManifestChapterName() {
+        TdLevelJsonParser.parseManifest(MANIFEST_CHAPTER + ",\"name_en\":1}]}");
+    }
+
+    private static final String MANIFEST_CHAPTER =
+            "{\"schema\":1,\"contentVersion\":7,\"gameId\":\"td\",\"chapters\":["
+                    + "{\"id\":\"chapter_demo\",\"file\":\"chapters/chapter_demo.json\",\"levelCount\":1";
 
     @Test(expected = IllegalArgumentException.class)
     public void rejectsUnknownField() {

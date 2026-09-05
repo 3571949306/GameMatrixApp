@@ -138,6 +138,7 @@
     <!-- 选关 / 难度 / 塔组面板 -->
     <string name="game_td_title_level_select">选择关卡</string>
     <string name="game_td_subtitle_protect_egg">保护蛋蛋，击退怪物</string>
+    <string name="game_td_chapter_progress">已通 %1$d/%2$d</string>
     <string name="game_td_label_locked">🔒 未解锁</string>
     <string name="game_td_stats_summary">已通关 %1$d · 总击杀 %2$d · 游玩 %3$d 次</string>
     <string name="game_td_title_difficulty">难度 · %1$s</string>

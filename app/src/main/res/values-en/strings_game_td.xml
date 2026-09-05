@@ -141,6 +141,7 @@
     <!-- Level select / difficulty / deck panels -->
     <string name="game_td_title_level_select">Select Level</string>
     <string name="game_td_subtitle_protect_egg">Protect the egg, repel the monsters</string>
+    <string name="game_td_chapter_progress">Cleared %1$d/%2$d</string>
     <string name="game_td_label_locked">🔒 Locked</string>
     <string name="game_td_stats_summary">Cleared %1$d · Total kills %2$d · Played %3$d times</string>
     <string name="game_td_title_difficulty">Difficulty · %1$s</string>
