@@ -17,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TowerType;
@@ -201,9 +202,9 @@ public class TdView extends View {
         invalidate();
     }
 
-    /** 由 Fragment 在波次开始时调用，触发横幅动画 */
+    /** 由 Fragment 在波次开始时调用，触发横幅动画（文案经宿主资源本地化） */
     public void showWaveBanner(int waveNo, int total) {
-        waveBannerText = "第 " + waveNo + " 波 ⚔ 共 " + total + " 波";
+        waveBannerText = getContext().getString(R.string.game_td_banner_wave, waveNo, total);
         waveBannerTicks = 90; // 1.5 秒
         invalidate();
     }
@@ -672,7 +673,8 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.26f);
         textPaint.setColor(0xFF6D4C41);
         textPaint.setFakeBoldText(true);
-        canvas.drawText("入", ex, ey + cellSize * 0.03f, textPaint);
+        canvas.drawText(getContext().getString(R.string.game_td_sign_entrance),
+                ex, ey + cellSize * 0.03f, textPaint);
         textPaint.setFakeBoldText(false);
         textPaint.setColor(C_TEXT);
     }
@@ -729,9 +731,10 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.32f);
         textPaint.setColor(0xFFFFFFFF);
         textPaint.setFakeBoldText(true);
-        String hint = !selected ? "空格可建塔 · 先从下方选择防御塔"
-                : affordable ? "点击发光格放置：" + selectedType.displayName
-                : "金币不足：" + selectedType.displayName + " 需要 ₿" + selectedType.baseCost;
+        String hint = !selected ? getContext().getString(R.string.game_td_hint_build_mode)
+                : affordable ? getContext().getString(R.string.game_td_hint_place, towerName(selectedType))
+                : getContext().getString(R.string.game_td_hint_not_enough,
+                        towerName(selectedType), selectedType.baseCost);
         canvas.drawText(hint,
                 originX + cellSize * game.getCols() / 2f, originY - cellSize * 0.24f, textPaint);
         textPaint.setFakeBoldText(false);
@@ -763,7 +766,8 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.32f);
         textPaint.setColor(0xFFFFFFFF);
         textPaint.setFakeBoldText(true);
-        canvas.drawText((draggingTower ? dragTargetValid : paletteDragValid) ? "合" : "×",
+        canvas.drawText((draggingTower ? dragTargetValid : paletteDragValid)
+                        ? getContext().getString(R.string.game_td_drag_merge_char) : "×",
                 x + cellSize * 0.5f, y + cellSize * 0.62f, textPaint);
         textPaint.setFakeBoldText(false);
         textPaint.setColor(C_TEXT);
@@ -2131,9 +2135,13 @@ public class TdView extends View {
     // =====================================================================
     private void drawOverlay(Canvas canvas) {
         if (game.getState() == TdGame.State.WON) {
-            drawResultOverlay(canvas, "守住了！蛋蛋安全了", 0xFF66BB6A, game.starsEarned(), true);
+            drawResultOverlay(canvas,
+                    getContext().getString(R.string.game_td_overlay_win),
+                    0xFF66BB6A, game.starsEarned(), true);
         } else if (game.getState() == TdGame.State.LOST) {
-            drawResultOverlay(canvas, "蛋蛋被吃掉了…", 0xFFE57373, 0, false);
+            drawResultOverlay(canvas,
+                    getContext().getString(R.string.game_td_overlay_lose),
+                    0xFFE57373, 0, false);
         }
     }
 
@@ -2214,6 +2222,25 @@ public class TdView extends View {
     }
 
     // =====================================================================
+    // 本地化辅助：引擎 displayName 为英文中性数据，展示名一律经宿主资源解析
+    /** 塔的本地化名（与 TowerType 一一对应，宿主资源 game_td_tower_*）。 */
+    private String towerName(TowerType t) {
+        if (t == null) return "";
+        switch (t) {
+            case BOTTLE: return getContext().getString(R.string.game_td_tower_bottle);
+            case SUN: return getContext().getString(R.string.game_td_tower_sun);
+            case SNOW: return getContext().getString(R.string.game_td_tower_snow);
+            case FAN: return getContext().getString(R.string.game_td_tower_fan);
+            case POISON: return getContext().getString(R.string.game_td_tower_poison);
+            case ROCKET: return getContext().getString(R.string.game_td_tower_rocket);
+            case LIGHTNING: return getContext().getString(R.string.game_td_tower_lightning);
+            case SNIPER: return getContext().getString(R.string.game_td_tower_sniper);
+            case MINE: return getContext().getString(R.string.game_td_tower_mine);
+            case AMPLIFIER: return getContext().getString(R.string.game_td_tower_amplifier);
+            default: return t.displayName; // 引擎英文名兜底
+        }
+    }
+
     // 颜色工具
     // =====================================================================
     private static int towerColor(TowerType t) {

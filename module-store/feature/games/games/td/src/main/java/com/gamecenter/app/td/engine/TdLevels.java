@@ -68,10 +68,11 @@ public final class TdLevels {
         return requireCatalog().contentVersion;
     }
 
-    /** Kept source-compatible with the existing select UI; index is only a display fallback. */
+    /** Kept source-compatible with the existing select UI; index is only a display fallback (English neutral). */
     public static String levelDisplayName(int index, String id) {
         TdLevelDefinition definition = requireCatalog().byId.get(canonicalId(id));
-        return definition != null ? definition.name : "第 " + (index + 1) + " 关";
+        return definition != null ? definition.name
+                : String.format(java.util.Locale.US, "Level %d", index + 1);
     }
 
     public static String levelSub(int index, String id) {

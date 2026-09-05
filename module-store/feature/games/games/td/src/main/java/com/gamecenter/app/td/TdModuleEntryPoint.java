@@ -2,6 +2,7 @@ package com.gamecenter.app.td;
 
 import android.content.Context;
 import androidx.fragment.app.Fragment;
+import com.gamecenter.app.R;
 import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.core.common.ModuleNavigationContribution;
@@ -39,12 +40,21 @@ public class TdModuleEntryPoint implements ModuleInterface, FeatureModule {
     @Override
     public String getId() { return "td"; }
 
+    /**
+     * 沿用斗地主 P6 结论：全仓库无任何 UI 消费方调用 ModuleInterface#getName()
+     * （UI 可见标题走 {@link TdNavContribution#getTitle} -> R.string.game_td_module_name，
+     * zh/en 双语），故保留中文字面量、不为改而改。
+     */
     @Override
     public String getName() { return "保卫蛋蛋"; }
 
     @Override
     public String getVersion() { return "1.0.0"; }
 
+    /**
+     * 沿用斗地主 P6 结论：ModuleInterface#getDescription() 无运行时调用点，
+     * 保留中文字面量、不为改而改。
+     */
     @Override
     public String getDescription() { return "塔防：固定路径建塔，守住蛋蛋别被怪物吃掉！"; }
 
@@ -81,7 +91,9 @@ public class TdModuleEntryPoint implements ModuleInterface, FeatureModule {
         public String getContributionId() { return "td"; }
 
         @Override
-        public String getTitle(Context context) { return "保卫蛋蛋"; }
+        public String getTitle(Context context) {
+            return context.getString(R.string.game_td_module_name);
+        }
 
         @Override
         public int getIconResId() { return 0; }

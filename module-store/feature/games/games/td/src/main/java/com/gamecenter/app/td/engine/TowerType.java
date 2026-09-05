@@ -2,22 +2,25 @@ package com.gamecenter.app.td.engine;
 
 /**
  * 塔防「保卫蛋蛋」塔类型定义。
+ *
+ * <p>i18n 契约：displayName 是英文中性数据（守卫测试 TdModelEnglishDataTest 锁定），
+ * 本地化名由 UI 层经宿主资源 com.gamecenter.app.R.string.game_td_tower_* 解析。
  */
 public enum TowerType {
-    BOTTLE("瓶子炮", 60, 1.6f, 5.5f, 26f, 0.32f, true, 0f),
-    SUN("太阳花", 90, 0f, 0f, 0f, 0f, false, 9f),
-    SNOW("雪花", 70, 1.45f, 5.0f, 8f, 0.90f, false, 0f),
-    FAN("风扇", 110, 1.6f, 4.2f, 12f, 1.15f, true, 0f),
-    POISON("毒泡泡", 100, 1.5f, 5.5f, 8f, 1.0f, true, 0f),
-    ROCKET("火箭", 150, 1.8f, 6.5f, 48f, 2.0f, true, 0f),
+    BOTTLE("Bottle", 60, 1.6f, 5.5f, 26f, 0.32f, true, 0f),
+    SUN("Sunflower", 90, 0f, 0f, 0f, 0f, false, 9f),
+    SNOW("Snow", 70, 1.45f, 5.0f, 8f, 0.90f, false, 0f),
+    FAN("Fan", 110, 1.6f, 4.2f, 12f, 1.15f, true, 0f),
+    POISON("Poison", 100, 1.5f, 5.5f, 8f, 1.0f, true, 0f),
+    ROCKET("Rocket", 150, 1.8f, 6.5f, 48f, 2.0f, true, 0f),
     /** 低单体伤害，依靠有限次数的近距弹射清理密集队列。 */
-    LIGHTNING("雷电塔", 125, 1.35f, 4.8f, 19f, 1.05f, true, 0f),
+    LIGHTNING("Lightning", 125, 1.35f, 4.8f, 19f, 1.05f, true, 0f),
     /** 超远程重击塔，不具备对空能力，不能替代所有基础塔。 */
-    SNIPER("狙击塔", 175, 1.35f, 8.4f, 105f, 2.45f, false, 0f),
+    SNIPER("Sniper", 175, 1.35f, 8.4f, 105f, 2.45f, false, 0f),
     /** 可重复触发的近路径陷阱，不是一次性消耗品。 */
-    MINE("地雷塔", 90, 1.35f, 1.05f, 58f, 2.6f, false, 0f),
+    MINE("Mine", 90, 1.35f, 1.05f, 58f, 2.6f, false, 0f),
     /** 不直接造成伤害，只为范围内其他防御塔提供最高一份强化。 */
-    AMPLIFIER("增幅塔", 130, 1f, 2.35f, 0f, 0f, false, 0f);
+    AMPLIFIER("Amplifier", 130, 1f, 2.35f, 0f, 0f, false, 0f);
 
     public final String displayName;
     /** 基础造价 */
