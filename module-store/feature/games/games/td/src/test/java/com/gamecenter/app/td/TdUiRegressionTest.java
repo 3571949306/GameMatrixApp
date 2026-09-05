@@ -592,7 +592,9 @@ public class TdUiRegressionTest {
                         RecordingResources.stub(R.string.game_td_codex_label_direct_damage)));
 
         // POISON 毒 DOT 行：每秒毒伤与持续时间取 TowerType.POISON_DPS/POISON_SEC
-        // （与 TdGame 毒伤同源），插在有效直伤行后、仅毒泡泡展示
+        // （与 TdGame 毒伤同源），插在有效直伤行后、仅毒泡泡展示。
+        // 实战毒 DOT 按塔等级缩放（TdGame.fire(): POISON_DPS * (0.7f + 0.3f * level)），
+        // 成长注记（「随等级成长」/ "scales with level"）由宿主键值尾承载，stub 只钉键与参数
         ViewGroup poisonSection = (ViewGroup) findTagged(overlayRoot, "td_codex_tower:POISON");
         assertNotNull("图鉴必须存在毒泡泡段", poisonSection);
         assertTrue("毒泡泡必须展示毒伤行（game_td_codex_value_poison_dot）",
@@ -612,7 +614,7 @@ public class TdUiRegressionTest {
                         RecordingResources.stub(R.string.game_td_codex_trait_tower_poison)));
     }
 
-    // ===== 塔升级预览（showTowerOps）：下一级数值 / 满级 / 增幅加成注记 =====
+    // ===== 塔升级预览（showTowerOps）：下一级数值 / 满级 / 增幅加成注记 / 经济与光环塔专属口径 =====
 
     @Test
     public void towerOpsUpgradePreviewPinsNextLevelValuesAndMaxLevel() throws Exception {
@@ -685,6 +687,61 @@ public class TdUiRegressionTest {
                         formatCodexNumber(TowerType.BOTTLE.rangeAt(2)),
                         formatCodexNumber(TowerType.BOTTLE.fireIntervalAt(2)))
                         + RecordingResources.stub(R.string.game_td_upgrade_preview_amplified_note),
+                preview.getText().toString());
+    }
+
+    @Test
+    public void towerOpsUpgradePreviewPinsSunIncomeAndAmplifierAuraRows() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "preview-economy-host").commitNow();
+
+        ViewGroup opsBar = (ViewGroup) invokePrivateMethod(fragment, "buildTowerOps",
+                new Class<?>[] {Context.class}, activity);
+
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 5, TdGame.Mode.CAMPAIGN);
+        assertNotNull(game.placeTower(TowerType.SUN, 1, 2));
+        // 增幅塔贴身摆放仍不得改变下述断言：引擎对 SUN/AMPLIFIER 恒不提供光环
+        // （strongestAmplifierFor 直接排除这两类目标），攻击塔分支的 amplified 注记不适用
+        assertNotNull(game.placeTower(TowerType.AMPLIFIER, 1, 3));
+        setPrivateField(fragment, "game", game);
+
+        // 太阳花：预览改示下一级单次产币金额 incomeAt(n+1)（取整口径与图鉴收益行一致），
+        // 不再展示恒为 0 的伤害/攻速；整行等值断言同时钉住攻击塔口径不误入经济塔预览
+        TdGame.Tower sun = game.getTowers().get(0);
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class}, sun);
+        TextView preview = (TextView) findTagged(opsBar, "td_upgrade_preview");
+        assertNotNull("塔操作条必须包含升级预览行（tag=td_upgrade_preview）", preview);
+        assertEquals("太阳花升级预览必须钉住 game_td_upgrade_preview_sun 与 incomeAt(2)",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_sun, 2,
+                        Math.round(TowerType.SUN.incomeAt(2))),
+                preview.getText().toString());
+        sun.level = 2;
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class}, sun);
+        assertEquals("太阳花 Lv2→Lv3 预览必须按 incomeAt(3) 成长",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_sun, 3,
+                        Math.round(TowerType.SUN.incomeAt(3))),
+                preview.getText().toString());
+
+        // 增幅塔：预览改示下一级光环攻速/射程加成（×100 取整为百分数）
+        TdGame.Tower amplifier = game.getTowers().get(1);
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class},
+                amplifier);
+        assertEquals("增幅塔升级预览必须钉住 game_td_upgrade_preview_amplifier 与光环加成百分数",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_amplifier, 2,
+                        Math.round(TowerType.AMPLIFIER.amplifierAttackSpeedBonusAt(2) * 100),
+                        Math.round(TowerType.AMPLIFIER.amplifierRangeBonusAt(2) * 100)),
+                preview.getText().toString());
+
+        // 满级回落「已满级」：经济/光环塔与攻击塔同口径
+        amplifier.level = 3;
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class},
+                amplifier);
+        assertEquals("满级增幅塔预览行必须提示已满级",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_max),
                 preview.getText().toString());
     }
 

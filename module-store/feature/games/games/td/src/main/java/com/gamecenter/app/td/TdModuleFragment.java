@@ -660,12 +660,19 @@ public class TdModuleFragment extends Fragment {
     }
 
     /**
-     * 升级预览行：展示合成升到下一级后的基础数值（damageAt/rangeAt/fireIntervalAt(n+1)，
-     * 数值口径复用图鉴 codexNum），满级提示「已满级」。不标金币数——两条真实升级路径的
-     * 消耗口径不同（拖拽合成扣被拖塔 baseCost，点选合成不扣金只消耗一座塔），
-     * upgradeCost(n+1) 在生产路径零调用，标出会误导玩家。
-     * 增幅塔加成（AMPLIFIER 攻速/射程）不在本面板展示——当其确在射程内时，
-     * 预览行追加注记说明数值为加成前基础值，避免玩家把面板值误读为实战值。
+     * 升级预览行：按塔型分口径展示合成升到下一级后的成长，满级提示「已满级」。
+     * 不标金币数——两条真实升级路径的消耗口径不同（拖拽合成扣被拖塔 baseCost，
+     * 点选合成不扣金只消耗一座塔），upgradeCost(n+1) 在生产路径零调用，标出会误导玩家。
+     * <ul>
+     *   <li>攻击塔：伤害/射程/攻速（damageAt/rangeAt/fireIntervalAt(n+1)，数值口径复用
+     *       图鉴 codexNum）。增幅塔加成（AMPLIFIER 攻速/射程）不在本面板展示——当其确在
+     *       射程内时，预览行追加注记说明数值为加成前基础值，避免玩家把面板值误读为实战值。</li>
+     *   <li>太阳花（SUN）：伤害/攻速恒为 0 无信息量，改示下一级单次产币金额
+     *       incomeAt(n+1)，取整口径与图鉴收益行（Math.round）一致。</li>
+     *   <li>增幅塔（AMPLIFIER）：改示下一级光环成长 amplifierAttackSpeedBonusAt(n+1) /
+     *       amplifierRangeBonusAt(n+1)，按百分数取整展示（引擎光环互不叠加、
+     *       增幅塔与太阳花不受光环加成，故无 amplified 注记分支）。</li>
+     * </ul>
      */
     private void refreshUpgradePreview(TdGame.Tower t) {
         if (tvUpgradePreview == null) return;
@@ -674,12 +681,24 @@ public class TdModuleFragment extends Fragment {
             return;
         }
         int next = t.level + 1;
-        String preview = getString(R.string.game_td_upgrade_preview_next, next,
-                codexNum(t.type.damageAt(next)), codexNum(t.type.rangeAt(next)),
-                codexNum(t.type.fireIntervalAt(next)));
-        if (game != null
-                && (game.getAttackSpeedBonus(t) > 0f || game.getRangeBonus(t) > 0f)) {
-            preview += getString(R.string.game_td_upgrade_preview_amplified_note);
+        String preview;
+        if (t.type == TowerType.SUN) {
+            // 经济塔预览：改示下一级单次产币金额（incomeAt 与图鉴收益行同源）
+            preview = getString(R.string.game_td_upgrade_preview_sun, next,
+                    Math.round(t.type.incomeAt(next)));
+        } else if (t.type == TowerType.AMPLIFIER) {
+            // 增幅塔预览：改示下一级光环攻速/射程加成（×100 取整为百分数）
+            preview = getString(R.string.game_td_upgrade_preview_amplifier, next,
+                    Math.round(t.type.amplifierAttackSpeedBonusAt(next) * 100),
+                    Math.round(t.type.amplifierRangeBonusAt(next) * 100));
+        } else {
+            preview = getString(R.string.game_td_upgrade_preview_next, next,
+                    codexNum(t.type.damageAt(next)), codexNum(t.type.rangeAt(next)),
+                    codexNum(t.type.fireIntervalAt(next)));
+            if (game != null
+                    && (game.getAttackSpeedBonus(t) > 0f || game.getRangeBonus(t) > 0f)) {
+                preview += getString(R.string.game_td_upgrade_preview_amplified_note);
+            }
         }
         tvUpgradePreview.setText(preview);
     }

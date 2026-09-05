@@ -72,6 +72,8 @@
     <string name="game_td_upgrade_preview_next">升级 → Lv%1$d:伤害 %2$s 射程 %3$s 攻速 %4$s（拖入同类塔合成）</string>
     <string name="game_td_upgrade_preview_max">已满级</string>
     <string name="game_td_upgrade_preview_amplified_note">（基础值，未含增幅塔加成）</string>
+    <string name="game_td_upgrade_preview_sun">收益 → Lv%1$d:₿+%2$d</string>
+    <string name="game_td_upgrade_preview_amplifier">光环 → Lv%1$d:攻速 +%2$d%% 射程 +%3$d%%</string>
     <string name="game_td_btn_play">▶ 玩</string>
     <string name="game_td_btn_endless">无尽模式</string>
     <string name="game_td_btn_back_hall">返回大厅</string>
@@ -218,7 +220,7 @@
     <string name="game_td_codex_value_armor">-%1$d/次</string>
     <string name="game_td_codex_value_direct_damage">%1$s×%2$s=%3$s</string>
     <string name="game_td_codex_value_income">每 %1$s 秒 ₿+%2$d</string>
-    <string name="game_td_codex_value_poison_dot">毒伤 %1$s/秒 ×%2$s 秒</string>
+    <string name="game_td_codex_value_poison_dot">毒伤 %1$s/秒 ×%2$s 秒（随等级成长）</string>
     <string name="game_td_codex_trait_tower_bottle">单体速射，射程与伤害均衡的全能基础塔</string>
     <string name="game_td_codex_trait_tower_sun">不会攻击，周期性产出金币的经济塔</string>
     <string name="game_td_codex_trait_tower_snow">命中后短暂减速目标，为防线争取输出时间</string>
