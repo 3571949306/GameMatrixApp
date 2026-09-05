@@ -54,8 +54,15 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    // P-质量加固：单元测试配置
+    // - returnDefaultValues=true: 纯 JVM 测试对未 mock 的 Android 调用返回默认值（既有行为）
+    // - includeAndroidResources=true: Robolectric 测试（TdUiRegressionTest）可加载模块
+    //   manifest 与合并资源/资产，与 app 模块配置保持一致
     testOptions {
-        unitTests.returnDefaultValues = true
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
+        }
     }
 }
 
@@ -69,6 +76,19 @@ dependencies {
     compileOnly 'androidx.fragment:fragment:1.5.0'
 
     testImplementation 'junit:junit:4.13.2'
+    // Robolectric UI 回归测试（版本对齐根 catalog，与 app 模块同一 4.16.1/android-all 缓存）
+    testImplementation libs.robolectric
+    testImplementation libs.androidx.test.core
+    // 战绩面板冒烟测试需要真实 Fragment 生命周期（FragmentActivity）；与上方 compileOnly 同版本
+    testImplementation 'androidx.fragment:fragment:1.5.0'
+    // UI 回归测试引用宿主 R（TdView/TdModuleFragment 使用 com.gamecenter.app.R）。
+    // AGP 8 nonFinalResIds 下 R 字段非 final、javac 不内联，编译与运行期都需要 R.jar；
+    // 且 compileOnly 的 file 依赖不会进 testRuntimeClasspath，Robolectric 运行期反射需显式补 R.jar 与 app-classes.jar。
+    testImplementation files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
+    // 反射读取 TdModuleFragment 私有字段时 JVM 会急切解析全部字段类型，
+    // moduleResources 字段类型 ModuleResourceLoader$ModuleResources 在宿主 app-classes.jar
+    // 中，而该 compileOnly file 依赖不在 unit test 运行期 classpath，须显式补齐。
+    testImplementation files("${project.rootDir}/app/build/libs/app-classes.jar")
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {

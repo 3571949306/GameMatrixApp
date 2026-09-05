@@ -3,6 +3,8 @@ package com.gamecenter.app.td;
 import android.content.SharedPreferences;
 
 import com.gamecenter.app.td.engine.TdGame;
+import com.gamecenter.app.td.engine.TdLevelJsonParser;
+import com.gamecenter.app.td.engine.TdLevels;
 
 import org.junit.Test;
 
@@ -11,6 +13,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +37,67 @@ public class TdSaveManagerTest {
         assertFalse(TdSaveManager.isValidLevelId("main_1000"));
         assertFalse(TdSaveManager.isValidLevelId("other_001"));
         assertFalse(TdSaveManager.isValidLevelId(null));
+    }
+
+    // ===== recordWin 硬上限（数据卫生）：unlocked 永不越过战役总关数 =====
+
+    /** 5 个假关的最小合法战役章节（严格解析器 schema 可接受），供 installForTesting 使用。 */
+    private static String fakeChapterJson() {
+        StringBuilder json = new StringBuilder(
+                "{\"schema\":1,\"id\":\"chapter_test\",\"name\":\"测试章节\",\"levels\":[");
+        for (int i = 1; i <= 5; i++) {
+            if (i > 1) json.append(',');
+            json.append(String.format(java.util.Locale.US,
+                    "{\"id\":\"main_%03d\",\"order\":%d,\"name\":\"测试关%d\",\"subtitle\":\"测试\","
+                            + "\"theme\":\"GARDEN\",\"rows\":5,\"cols\":5,\"egg\":[4,0],"
+                            + "\"startCoin\":100,\"mascotHp\":5,"
+                            + "\"routes\":[[[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[1,3],[1,2],[1,1],"
+                            + "[1,0],[2,0],[3,0],[4,0]]],"
+                            + "\"waves\":[{\"types\":[\"NORMAL\"],\"route\":0,\"count\":1,"
+                            + "\"interval\":0.5,\"delay\":0.1,\"hpMul\":1.0,\"speedMul\":1.0}]}",
+                    i, i, i));
+        }
+        return json.append("]}").toString();
+    }
+
+    /** 回归：修复前 recordWin("main_005") 后 unlocked=6 > 总关数 5，形成越界脏数据。 */
+    @Test public void recordWinClampsUnlockedToCampaignLevelCount() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        save.recordWin("main_005"); // 最后一关：levelIndex+2=6，必须钳到总关数 5
+        assertEquals("通关最后一关后 unlocked 必须钳制到战役总关数", 5, save.getUnlockedLevelCount());
+        save.recordWin(4); // 旧索引签名与 String 签名共用同一条钳制路径
+        assertEquals(5, save.getUnlockedLevelCount());
+
+        // 上限内的正常推进不受钳制影响（旧行为保持）
+        TdSaveManager other = new TdSaveManager(new MemoryPrefs());
+        other.recordWin("main_002");
+        assertEquals(3, other.getUnlockedLevelCount());
+    }
+
+    /**
+     * catalog 未初始化时（TdLevels.levelIds() 抛 IllegalStateException）不钳制、保持旧行为：
+     * Fragment 运行时 catalog 必已初始化，该分支只为纯 JVM 测试/极端时序兜底，
+     * 数据读取失败绝不拦截玩家解锁进度。
+     * 注意：catalog 是 TdLevels 的共享静态状态，用反射置空并在 finally 中还原，
+     * 保证同 JVM 内其他用例（各自在 @BeforeClass/用例内 install）不受污染。
+     */
+    @Test public void recordWinKeepsLegacyUnboundedBehaviourWithoutCatalog() throws Exception {
+        Field catalogField = TdLevels.class.getDeclaredField("catalog");
+        catalogField.setAccessible(true);
+        Object previous = catalogField.get(null);
+        catalogField.set(null, null);
+        try {
+            TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+            save.recordWin(4);
+            assertEquals("catalog 缺失时旧索引签名不钳制（修复前行为）", 6, save.getUnlockedLevelCount());
+            save.recordWin("main_005"); // String 签名同样走无钳制回退
+            assertEquals(6, save.getUnlockedLevelCount());
+        } finally {
+            catalogField.set(null, previous);
+        }
     }
 
     // ===== 无尽模式最佳波数（阶段 1：引擎与存档） =====

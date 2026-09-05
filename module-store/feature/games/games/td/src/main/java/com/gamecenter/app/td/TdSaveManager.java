@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.gamecenter.app.td.engine.TdGame;
+import com.gamecenter.app.td.engine.TdLevels;
 
 import com.gamecenter.app.core.common.ModuleScopedPreferences;
 
@@ -94,12 +95,30 @@ public class TdSaveManager {
         return Math.max(1, prefs.getInt(KEY_UNLOCKED, 1));
     }
 
-    /** 记录通关，解锁下一关 */
+    /** 记录通关，解锁下一关（解锁值硬上限 = 战役总关数，防脏数据超界） */
     public void recordWin(int levelIndex) {
         int unlocked = getUnlockedLevelCount();
-        int nextUnlocked = levelIndex + 2;
+        int nextUnlocked = clampNextUnlockedToCampaignSize(levelIndex + 2);
         if (nextUnlocked > unlocked) {
             prefs.edit().putInt(KEY_UNLOCKED, nextUnlocked).apply();
+        }
+    }
+
+    /**
+     * 解锁值硬上限：钳制到 TdLevels catalog 的战役总关数。修复前 nextUnlocked =
+     * levelIndex + 2 无上限，通关最后一关后 unlocked 会超过总关数，形成 26/25 这类
+     * 脏数据（战绩面板此前只能自行 Math.min 兜底显示）。
+     *
+     * <p>catalog 未初始化时不钳制、保持旧行为：TdLevels.levelIds() 在无 catalog 时抛
+     * IllegalStateException，Fragment 运行时 catalog 必已初始化（onCreateView 加载模块
+     * 资产后才构建 UI），这里只为纯 JVM 测试/极端时序兜底——数据读取失败绝不拦截
+     * 玩家解锁进度。
+     */
+    private static int clampNextUnlockedToCampaignSize(int nextUnlocked) {
+        try {
+            return Math.min(nextUnlocked, TdLevels.levelIds().size());
+        } catch (IllegalStateException catalogMissing) {
+            return nextUnlocked;
         }
     }
 

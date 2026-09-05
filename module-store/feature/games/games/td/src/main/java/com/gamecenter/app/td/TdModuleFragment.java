@@ -1035,8 +1035,8 @@ public class TdModuleFragment extends Fragment {
 
         // 战役进度：已解锁关数/25、累计星级/75
         addStatsSection(panel, getString(R.string.game_td_stats_section_campaign));
-        // 分子钳制到 levelCount：recordWin 的 nextUnlocked=levelIndex+2 无上限，
-        // 通关 main_025 后 unlocked=26，不钳制会显示 26/25。
+        // 分子钳制到 levelCount：历史存档可能残留越界 unlocked（recordWin 已在
+        // TdSaveManager 端硬上限钳制，此处为防御旧脏数据的纵深兜底）。
         addStatsRow(panel, getString(R.string.game_td_stats_label_unlocked),
                 getString(R.string.game_td_stats_value_fraction,
                         Math.min(save.getUnlockedLevelCount(), levelCount), levelCount), 0xFFFFD54F);
