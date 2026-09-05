@@ -19,9 +19,11 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TdLevelJsonParser;
 import com.gamecenter.app.td.engine.TdLevels;
+import com.gamecenter.app.td.engine.TowerType;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,10 +40,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -64,6 +71,9 @@ import static org.junit.Assert.assertTrue;
  *       单测无法复现——故用 {@link StatsHostFragment} 屏蔽 onCreateView，仅注入面板真正
  *       消费的三个状态（overlayRoot/save/TdLevels catalog）后反射调用，做覆盖层冒烟：
  *       子 View 数量、标题键、返回按钮键、存档数据到 UI 行的接线。</li>
+ *   <li>图鉴面板：与战绩面板同接缝（反射调 showCodexPanel / showLevelSelect + 注入
+ *       overlayRoot/save），断言覆盖层结构特征——段落 tag 计数（每种塔/怪恰一段）、标题键、
+ *       返回按钮键、特性行非空——以及引擎枚举字段到 UI 的数值接线（造价/生命实时格式化）。</li>
  * </ul>
  */
 @RunWith(RobolectricTestRunner.class)
@@ -147,6 +157,98 @@ public class TdUiRegressionTest {
         assertTrue("返回入口必须是 Button", back instanceof Button);
         assertNotNull("无尽最佳行必须由存档数据接线（game_td_stats_value_waves + 11）",
                 findViewByStubText(overlayRoot, R.string.game_td_stats_value_waves, 11));
+    }
+
+    // ===== 图鉴面板（TdModuleFragment）：覆盖层冒烟 + 枚举字段到 UI 的数值接线 =====
+
+    @Test
+    public void codexPanelBuildsSectionsForEveryTowerAndMonster() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "codex-host").commitNow();
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", new TdSaveManager(new MemoryPrefs()));
+
+        invokePrivateMethod(fragment, "showCodexPanel");
+
+        assertTrue("图鉴面板必须向 overlayRoot 至少添加一个覆盖层子 View",
+                overlayRoot.getChildCount() > 0);
+        assertNotNull("图鉴面板必须包含标题（game_td_codex_title）",
+                findViewByStubText(overlayRoot, R.string.game_td_codex_title));
+        assertNotNull("图鉴必须包含「防御塔」分组标题",
+                findViewByStubText(overlayRoot, R.string.game_td_codex_section_towers));
+        assertNotNull("图鉴必须包含「怪物」分组标题",
+                findViewByStubText(overlayRoot, R.string.game_td_codex_section_monsters));
+        TextView back = findViewByStubText(overlayRoot, R.string.game_td_stats_btn_back);
+        assertNotNull("图鉴必须包含返回选关按钮（复用 game_td_stats_btn_back）", back);
+        assertTrue("返回入口必须是 Button", back instanceof Button);
+
+        // 每种塔/怪恰一段（tag 前缀计数），且每段挂一条非空特性行——
+        // 特性 switch 漏 case 会落空串，在此被拦截
+        List<View> towerSections = collectViewsByTagPrefix(overlayRoot, "td_codex_tower:");
+        List<View> monsterSections = collectViewsByTagPrefix(overlayRoot, "td_codex_monster:");
+        assertEquals("图鉴必须为每种塔各建一个段落",
+                TowerType.values().length, towerSections.size());
+        assertEquals("图鉴必须为每种怪各建一个段落",
+                MonsterType.values().length, monsterSections.size());
+        for (View section : towerSections) {
+            assertTraitLineWired((ViewGroup) section);
+        }
+        for (View section : monsterSections) {
+            assertTraitLineWired((ViewGroup) section);
+        }
+
+        // 数值单一来源接线：造价/生命必须实时格式化自引擎枚举字段，而非复制进文案。
+        // 造价断言限定在 tag=td_codex_tower:BOTTLE 段内：全面板查找 "₿60" 会与 BOSS 赏金行
+        // （BOSS.value=60）碰撞，造价行接线断掉时赏金行仍会误放行。
+        List<View> bottleSections = collectViewsByTagPrefix(overlayRoot, "td_codex_tower:BOTTLE");
+        assertEquals("图鉴必须为 BOTTLE 恰建一个段落（精确 tag 匹配）", 1, bottleSections.size());
+        assertTrue("塔造价行必须实时格式化自 TowerType.baseCost（tag=td_codex_tower:BOTTLE 段内）",
+                hasTextViewWithText((ViewGroup) bottleSections.get(0), "₿" + TowerType.BOTTLE.baseCost));
+        assertTrue("怪生命行必须实时格式化自 MonsterType.hp",
+                hasTextViewWithText(overlayRoot, formatCodexNumber(MonsterType.NORMAL.hp)));
+    }
+
+    @Test
+    public void levelSelectCodexEntryOpensCodexPanel() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "codex-entry-host").commitNow();
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", new TdSaveManager(new MemoryPrefs()));
+
+        invokePrivateMethod(fragment, "showLevelSelect");
+
+        TextView codexEntryView = findViewByStubText(overlayRoot, R.string.game_td_btn_codex);
+        assertNotNull("选关面板必须包含图鉴入口按钮（game_td_btn_codex）", codexEntryView);
+        assertTrue("图鉴入口必须是 Button", codexEntryView instanceof Button);
+
+        codexEntryView.performClick();
+
+        assertNotNull("点击图鉴入口后必须打开图鉴面板（game_td_codex_title）",
+                findViewByStubText(overlayRoot, R.string.game_td_codex_title));
+        assertEquals("打开图鉴后必须为每种塔各建一个段落",
+                TowerType.values().length,
+                collectViewsByTagPrefix(overlayRoot, "td_codex_tower:").size());
+    }
+
+    @Test
+    public void codexNumPinsRoundingAndTrailingZeroSpec() throws Exception {
+        // 直接反射调用真方法钉住展示规格（private static），而非走镜像副本——
+        // 镜像会随实现一起漂移，规格回归必须落在 codexNum 本体上。
+        Method codexNum = TdModuleFragment.class.getDeclaredMethod("codexNum", float.class);
+        codexNum.setAccessible(true);
+
+        // 舍入见证：2.35f 的二进制表示略小于 2.35，按 %.2f 舍入必须给 "2.35"；截断实现会给出 "2.34"
+        assertEquals("codexNum 必须按 %.2f 舍入而非截断", "2.35", codexNum.invoke(null, 2.35f));
+        // 去尾零见证："0.90" 必须去尾零给 "0.9"；只剥 ".00" 后缀的实现会漏掉单尾零档
+        assertEquals("codexNum 必须去掉单尾零", "0.9", codexNum.invoke(null, 0.9f));
     }
 
     // ===== 测试基建：资源拦截 / 视图注入 / 反射辅助 =====
@@ -286,6 +388,66 @@ public class TdUiRegressionTest {
             }
         }
         return null;
+    }
+
+    /** 广度优先收集 tag 为字符串且以 tagPrefix 开头的 View（图鉴段落计数）。 */
+    private static List<View> collectViewsByTagPrefix(ViewGroup root, String tagPrefix) {
+        List<View> out = new ArrayList<>();
+        Deque<View> queue = new ArrayDeque<>();
+        for (int i = 0; i < root.getChildCount(); i++) queue.add(root.getChildAt(i));
+        while (!queue.isEmpty()) {
+            View view = queue.poll();
+            Object tag = view.getTag();
+            if (tag instanceof String && ((String) tag).startsWith(tagPrefix)) {
+                out.add(view);
+            }
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) queue.add(group.getChildAt(i));
+            }
+        }
+        return out;
+    }
+
+    /** 广度优先判断是否存在文本精确等于 expected 的 TextView（图鉴数值接线断言）。 */
+    private static boolean hasTextViewWithText(ViewGroup root, String expected) {
+        Deque<View> queue = new ArrayDeque<>();
+        for (int i = 0; i < root.getChildCount(); i++) queue.add(root.getChildAt(i));
+        while (!queue.isEmpty()) {
+            View view = queue.poll();
+            if (view instanceof TextView && expected.equals(((TextView) view).getText().toString())) {
+                return true;
+            }
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) queue.add(group.getChildAt(i));
+            }
+        }
+        return false;
+    }
+
+    /** 图鉴段落必须挂 tag=td_codex_trait 的非空特性行（特性 switch 漏 case 会落空串）。 */
+    private static void assertTraitLineWired(ViewGroup section) {
+        for (int i = 0; i < section.getChildCount(); i++) {
+            View child = section.getChildAt(i);
+            if ("td_codex_trait".equals(child.getTag())
+                    && child instanceof TextView) {
+                TextView trait = (TextView) child;
+                assertNotNull("段落 " + section.getTag() + " 特性行文案不得为 null", trait.getText());
+                assertFalse("段落 " + section.getTag() + " 特性行不得为空（特性 switch 漏 case）",
+                        trait.getText().toString().isEmpty());
+                return;
+            }
+        }
+        fail("段落 " + section.getTag() + " 缺少特性行（tag=td_codex_trait）");
+    }
+
+    /** 镜像 TdModuleFragment.codexNum 的展示口径，供数值接线断言计算期望文本。 */
+    private static String formatCodexNumber(float value) {
+        String s = String.format(Locale.US, "%.2f", value);
+        if (s.endsWith(".00")) return s.substring(0, s.length() - 3);
+        if (s.endsWith("0")) return s.substring(0, s.length() - 1);
+        return s;
     }
 
     /**

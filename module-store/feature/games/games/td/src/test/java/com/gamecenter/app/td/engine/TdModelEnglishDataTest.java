@@ -130,6 +130,67 @@ public class TdModelEnglishDataTest {
         }
     }
 
+    // ===== 图鉴数据守卫（Codex 浮层依赖的枚举字段必须可安全格式化）=====
+
+    /**
+     * 图鉴塔属性行的取值合法性：全部浮点字段有限（无 null 概念、禁 NaN/Infinity），
+     * 攻击塔 damage/range/fireInterval 必须为正；非攻击塔按枚举语义单独断言——
+     * 太阳花 damage=0 合法但收益必须为正（收益行依赖），增幅塔 damage=0 合法但
+     * 光环射程必须为正（射程行依赖）。别把「非攻击塔 damage=0」误判为脏数据。
+     */
+    @Test
+    public void codexTowerStatsAreFiniteAndSemanticallyValid() {
+        for (TowerType tower : TowerType.values()) {
+            String what = "TowerType." + tower.name();
+            assertTrue(what + ".baseCost 必须为正（造价行依赖）", tower.baseCost > 0);
+            assertTrue(what + ".dmgMul 必须有限", Float.isFinite(tower.dmgMul));
+            assertTrue(what + ".range 必须有限", Float.isFinite(tower.range));
+            assertTrue(what + ".damage 必须有限", Float.isFinite(tower.damage));
+            assertTrue(what + ".fireInterval 必须有限", Float.isFinite(tower.fireInterval));
+            assertTrue(what + ".income 必须有限", Float.isFinite(tower.income));
+            assertTrue(what + ".range 不得为负", tower.range >= 0f);
+            assertTrue(what + ".damage 不得为负", tower.damage >= 0f);
+            assertTrue(what + ".fireInterval 不得为负", tower.fireInterval >= 0f);
+            if (tower.damage > 0f) {
+                assertTrue(what + " 攻击塔射程必须大于 0", tower.range > 0f);
+                assertTrue(what + " 攻击塔开火间隔必须大于 0", tower.fireInterval > 0f);
+            } else if (tower == TowerType.SUN) {
+                // 非攻击塔合法形态：太阳花零伤害零射程，但必须产出金币
+                assertEquals(what + " 太阳花射程应为 0", 0f, tower.range, 0f);
+                assertTrue(what + " 太阳花收益必须大于 0", tower.income > 0f);
+            } else if (tower == TowerType.AMPLIFIER) {
+                // 非攻击塔合法形态：增幅塔零伤害，但光环射程必须大于 0
+                assertTrue(what + " 增幅塔光环射程必须大于 0", tower.range > 0f);
+            } else {
+                fail(what + " 出现未知形态的非攻击塔（damage=0），图鉴属性行分支需同步覆盖");
+            }
+        }
+    }
+
+    /**
+     * 图鉴怪属性行的取值合法性：生命/速度/护甲/赏金/漏蛋伤害全部可安全格式化；
+     * 飞行标记仅 FLY 为真（「飞行：仅可对空塔能攻击」特性行只挂在 FLY 上）；
+     * 护盾兵初始护盾必须为正（「自带护盾」特性行与引擎 shieldHp 契约）。
+     */
+    @Test
+    public void codexMonsterStatsAreFiniteAndSemanticallyValid() {
+        for (MonsterType monster : MonsterType.values()) {
+            String what = "MonsterType." + monster.name();
+            assertTrue(what + ".hp 必须为正且有限",
+                    monster.hp > 0f && Float.isFinite(monster.hp));
+            assertTrue(what + ".speed 必须为正且有限",
+                    monster.speed > 0f && Float.isFinite(monster.speed));
+            assertTrue(what + ".value 必须为正（赏金行依赖）", monster.value > 0);
+            assertTrue(what + ".armor 不得为负", monster.armor >= 0);
+            assertTrue(what + ".leakDamage 必须为正（漏蛋伤害行依赖）", monster.leakDamage > 0);
+            assertEquals(what + " 仅 FLY 可飞行", monster == MonsterType.FLY, monster.fly);
+        }
+        assertEquals("护盾兵初始护盾必须为正", 50,
+                MonsterType.SHIELD.shieldHp(MonsterType.SHIELD));
+        assertEquals("非护盾兵不得自带护盾", 0,
+                MonsterType.NORMAL.shieldHp(MonsterType.NORMAL));
+    }
+
     @Test
     public void wavePreviewNamesAreEnglish() {
         // 单类型波次：预告即类型英文名

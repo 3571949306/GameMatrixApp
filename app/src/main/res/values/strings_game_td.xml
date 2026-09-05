@@ -177,6 +177,48 @@
     <string name="game_td_stats_reset_done">战绩数据已清空</string>
     <string name="game_td_stats_btn_back">返回选关</string>
 
+    <!-- 图鉴浮层（塔与怪属性速查；数值行由引擎枚举字段实时格式化，特性行为纯描述不含数值） -->
+    <string name="game_td_btn_codex">📖 图鉴</string>
+    <string name="game_td_codex_title">塔与怪图鉴</string>
+    <string name="game_td_codex_section_towers">防御塔</string>
+    <string name="game_td_codex_section_monsters">怪物</string>
+    <string name="game_td_codex_base_hint">以下为 Lv1 基础属性；同类合成升级后按倍率成长</string>
+    <string name="game_td_codex_label_cost">造价</string>
+    <string name="game_td_codex_label_damage">伤害</string>
+    <string name="game_td_codex_label_range">射程</string>
+    <string name="game_td_codex_label_rate">攻速</string>
+    <string name="game_td_codex_label_anti_air">对空</string>
+    <string name="game_td_codex_label_income">收益</string>
+    <string name="game_td_codex_label_hp">生命</string>
+    <string name="game_td_codex_label_speed">速度</string>
+    <string name="game_td_codex_label_armor">护甲</string>
+    <string name="game_td_codex_label_bounty">赏金</string>
+    <string name="game_td_codex_label_leak">漏蛋伤害</string>
+    <string name="game_td_codex_value_fire_interval">每 %1$s 秒</string>
+    <string name="game_td_codex_value_speed">%1$s 格/秒</string>
+    <string name="game_td_codex_value_armor">-%1$d/次</string>
+    <string name="game_td_codex_trait_tower_bottle">单体速射，射程与伤害均衡的全能基础塔</string>
+    <string name="game_td_codex_trait_tower_sun">不会攻击，周期性产出金币的经济塔</string>
+    <string name="game_td_codex_trait_tower_snow">命中后短暂减速目标，为防线争取输出时间</string>
+    <string name="game_td_codex_trait_tower_fan">低单发伤害但带溅射，清理贴身地面集群</string>
+    <string name="game_td_codex_trait_tower_poison">命中附加持续毒伤，擅长消耗高血量目标</string>
+    <string name="game_td_codex_trait_tower_rocket">高单发重击并溅射周围目标，打 Boss 利器</string>
+    <string name="game_td_codex_trait_tower_lightning">弹射伤害为首击的固定比例，随等级提升</string>
+    <string name="game_td_codex_trait_tower_sniper">全场最远射程的重击塔，无法对空</string>
+    <string name="game_td_codex_trait_tower_mine">可重复触发的近路径陷阱，满级爆炸留下燃烧地带</string>
+    <string name="game_td_codex_trait_tower_amplifier">不会攻击，为范围内其他塔提升攻速与射程</string>
+    <string name="game_td_codex_trait_mon_generic">无特殊能力</string>
+    <string name="game_td_codex_trait_mon_fast">高速突进，稍不留神就会漏怪</string>
+    <string name="game_td_codex_trait_mon_fly">飞行：仅可对空塔能攻击</string>
+    <string name="game_td_codex_trait_mon_healer">周期治疗附近受伤最重的同伴</string>
+    <string name="game_td_codex_trait_mon_shield">自带护盾，优先吸收伤害</string>
+    <string name="game_td_codex_trait_mon_splitter">死亡后分裂为两只不会再次分裂的幼体</string>
+    <string name="game_td_codex_trait_mon_charger">周期性冲刺提速，冲刺与减速效果相乘</string>
+    <string name="game_td_codex_trait_mon_shield_generator">周期为附近同伴补充有上限的护盾</string>
+    <string name="game_td_codex_trait_mon_summoner">周期召唤低价值喽罗，召唤次数有限</string>
+    <string name="game_td_codex_trait_mon_resistant">减免毒素与雷电弹射伤害，减速效果也变弱</string>
+    <string name="game_td_codex_trait_mon_rager">生命低于一半时狂暴加速</string>
+
     <!-- 结算 -->
     <string name="game_td_list_separator">、</string>
 

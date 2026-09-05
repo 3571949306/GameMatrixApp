@@ -180,6 +180,49 @@
     <string name="game_td_stats_reset_done">Stats data cleared</string>
     <string name="game_td_stats_btn_back">Back to Levels</string>
 
+    <!-- Codex overlay (tower/monster stat reference; numeric rows are formatted live from
+         engine enum fields, trait lines are pure descriptions without numbers) -->
+    <string name="game_td_btn_codex">📖 Codex</string>
+    <string name="game_td_codex_title">Tower &amp; Monster Codex</string>
+    <string name="game_td_codex_section_towers">Towers</string>
+    <string name="game_td_codex_section_monsters">Monsters</string>
+    <string name="game_td_codex_base_hint">Stats below are Lv1 base values; merging same-type towers scales them up</string>
+    <string name="game_td_codex_label_cost">Cost</string>
+    <string name="game_td_codex_label_damage">Damage</string>
+    <string name="game_td_codex_label_range">Range</string>
+    <string name="game_td_codex_label_rate">Fire rate</string>
+    <string name="game_td_codex_label_anti_air">Anti-air</string>
+    <string name="game_td_codex_label_income">Income</string>
+    <string name="game_td_codex_label_hp">HP</string>
+    <string name="game_td_codex_label_speed">Speed</string>
+    <string name="game_td_codex_label_armor">Armor</string>
+    <string name="game_td_codex_label_bounty">Bounty</string>
+    <string name="game_td_codex_label_leak">Egg damage</string>
+    <string name="game_td_codex_value_fire_interval">every %1$ss</string>
+    <string name="game_td_codex_value_speed">%1$s cells/s</string>
+    <string name="game_td_codex_value_armor">-%1$d/hit</string>
+    <string name="game_td_codex_trait_tower_bottle">Single-target rapid fire — the all-round basic tower</string>
+    <string name="game_td_codex_trait_tower_sun">Never attacks; an economy tower that produces coins over time</string>
+    <string name="game_td_codex_trait_tower_snow">Chills targets briefly on hit, buying time for your defense</string>
+    <string name="game_td_codex_trait_tower_fan">Low per-shot damage with splash, ideal against tight ground clusters</string>
+    <string name="game_td_codex_trait_tower_poison">Applies lasting poison on hit, great for wearing down tough targets</string>
+    <string name="game_td_codex_trait_tower_rocket">Heavy single shot that splashes nearby enemies — a boss killer</string>
+    <string name="game_td_codex_trait_tower_lightning">Chain hits deal a fixed fraction of the first hit, scaling with level</string>
+    <string name="game_td_codex_trait_tower_sniper">Longest range in the game, but cannot hit air</string>
+    <string name="game_td_codex_trait_tower_mine">Repeatable near-path trap; at max level blasts leave a burning zone</string>
+    <string name="game_td_codex_trait_tower_amplifier">Never attacks; boosts nearby towers\' fire rate and range</string>
+    <string name="game_td_codex_trait_mon_generic">No special ability</string>
+    <string name="game_td_codex_trait_mon_fast">Sprints at high speed and slips through easily</string>
+    <string name="game_td_codex_trait_mon_fly">Flying: only anti-air towers can hit it</string>
+    <string name="game_td_codex_trait_mon_healer">Periodically heals the most wounded nearby ally</string>
+    <string name="game_td_codex_trait_mon_shield">Starts with a shield that soaks damage first</string>
+    <string name="game_td_codex_trait_mon_splitter">Splits into two young that cannot split again</string>
+    <string name="game_td_codex_trait_mon_charger">Periodically dashes — the dash multiplies with slows</string>
+    <string name="game_td_codex_trait_mon_shield_generator">Periodically grants capped shields to nearby allies</string>
+    <string name="game_td_codex_trait_mon_summoner">Periodically summons low-value minions, limited uses</string>
+    <string name="game_td_codex_trait_mon_resistant">Takes reduced poison and lightning-chain damage; slows are weakened too</string>
+    <string name="game_td_codex_trait_mon_rager">Enrages and speeds up below half HP</string>
+
     <!-- Result -->
     <string name="game_td_list_separator">,</string>
 

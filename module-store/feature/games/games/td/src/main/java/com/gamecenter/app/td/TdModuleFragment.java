@@ -49,7 +49,8 @@ import java.util.Set;
  * 塔防「保卫蛋蛋」主 Fragment — 成品版。
  *
  * 结构：HUD（金币/波次/生命 + 下一波预告）→ 棋盘 → 消息条 → 塔栏 → 控制栏。
- * 覆盖层：选关面板（星级/解锁/难度选择/战绩入口）、战绩/成就面板、结算面板（胜负统计、下一关/重玩）。
+ * 覆盖层：选关面板（星级/解锁/难度选择/战绩与图鉴入口）、战绩/成就面板、图鉴面板（塔与怪属性速查）、
+ * 结算面板（胜负统计、下一关/重玩）。
  *
  * 生命周期纪律：对局主循环挂 mainHandler，onDestroyView/onHiddenChanged 必须取消；
  * 程序化 Button 必须 setStateListAnimator(null)（避免宿主主题资源 ID 冲突）。
@@ -781,6 +782,22 @@ public class TdModuleFragment extends Fragment {
         ((LinearLayout.LayoutParams) statsEntry.getLayoutParams()).topMargin = dp(10);
         ((LinearLayout.LayoutParams) statsEntry.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
 
+        // 图鉴入口：与战绩按钮同构（程序化 Button + 圆角），青色区分战绩/无尽入口
+        Button codexEntry = new Button(requireContext());
+        codexEntry.setText(getString(R.string.game_td_btn_codex));
+        codexEntry.setTextSize(12);
+        codexEntry.setAllCaps(false);
+        codexEntry.setStateListAnimator(null);
+        GradientDrawable cb = new GradientDrawable();
+        cb.setColor(0xFF00897B);
+        cb.setCornerRadius(dp(8));
+        codexEntry.setBackground(cb);
+        codexEntry.setTextColor(0xFFFFFFFF);
+        codexEntry.setOnClickListener(v -> showCodexPanel());
+        panel.addView(codexEntry, new LinearLayout.LayoutParams(dp(120), dp(40)));
+        ((LinearLayout.LayoutParams) codexEntry.getLayoutParams()).topMargin = dp(8);
+        ((LinearLayout.LayoutParams) codexEntry.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
         Button back = ctrlButton(requireContext(), getString(R.string.game_td_btn_back_hall));
         back.setOnClickListener(v -> exitToHall());
         panel.addView(back, new LinearLayout.LayoutParams(dp(120), dp(40)));
@@ -1204,6 +1221,242 @@ public class TdModuleFragment extends Fragment {
         dim.addView(panel, panelLp);
         overlayRoot.addView(dim, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    // ===== 图鉴浮层（塔与怪属性速查）=====
+    // 与战绩面板同构：clearOverlay + ScrollView 长面板 + 返回选关。
+    // 数值单一来源：属性行全部实时取自 TowerType/MonsterType 枚举字段格式化；
+    // 特性行是纯机制描述（不含数值，避免把引擎常量复制进文案造成双源漂移）。
+
+    /** 主入口：图鉴浮层。打开时对局处于覆盖层暂停态，只读引擎静态枚举，无并发问题。 */
+    private void showCodexPanel() {
+        clearOverlay();
+        Context ctx = requireContext();
+        LinearLayout panel = new LinearLayout(ctx);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(16), dp(24), dp(16), dp(16));
+
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.game_td_codex_title));
+        title.setTextSize(22);
+        title.setTextColor(0xFFFFD54F);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
+
+        TextView hint = new TextView(ctx);
+        hint.setText(getString(R.string.game_td_codex_base_hint));
+        hint.setTextSize(11);
+        hint.setTextColor(0xFFB0BEC5);
+        hint.setGravity(Gravity.CENTER);
+        // 提示行自适应高度：EN 文案较长，窄屏折行后固定 24dp 会裁掉第二行
+        panel.addView(hint, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addStatsSection(panel, getString(R.string.game_td_codex_section_towers));
+        for (TowerType t : TowerType.values()) {
+            addCodexTowerSection(panel, t);
+        }
+        addStatsSection(panel, getString(R.string.game_td_codex_section_monsters));
+        for (MonsterType m : MonsterType.values()) {
+            addCodexMonsterSection(panel, m);
+        }
+
+        Button back = ctrlButton(ctx, getString(R.string.game_td_stats_btn_back));
+        back.setOnClickListener(v -> showLevelSelect());
+        panel.addView(back, new LinearLayout.LayoutParams(dp(180), dp(40)));
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).topMargin = dp(16);
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        ScrollView scroll = new ScrollView(ctx);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(0xF01E2A1F);
+        scroll.addView(panel, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        overlayRoot.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /**
+     * 图鉴塔段落：本地化名 + 定位标签（复用塔栏 game_td_role_*）+ 属性行 + 特性行。
+     * tag 「td_codex_tower:&lt;枚举名&gt;」供 UI 回归测试按段计数（每种塔恰一段）。
+     */
+    private void addCodexTowerSection(LinearLayout panel, TowerType t) {
+        LinearLayout section = new LinearLayout(requireContext());
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setTag("td_codex_tower:" + t.name());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF2A2318);
+        bg.setStroke(dp(1), 0xFF4A4238);
+        bg.setCornerRadius(dp(10));
+        section.setBackground(bg);
+        section.setPadding(dp(12), dp(8), dp(12), dp(10));
+
+        // 头行：程序化小模型 + 本地化名 + 定位标签
+        LinearLayout header = new LinearLayout(requireContext());
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(new TowerGlyphView(requireContext(), t),
+                new LinearLayout.LayoutParams(dp(20), dp(20)));
+        TextView name = new TextView(requireContext());
+        name.setText(towerName(t));
+        name.setTextSize(14);
+        name.setTextColor(0xFFFFFFFF);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setSingleLine(true);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        nameLp.leftMargin = dp(6);
+        header.addView(name, nameLp);
+        TextView role = new TextView(requireContext());
+        role.setText(towerRole(t));
+        role.setTextSize(10);
+        role.setTextColor(0xFFB8E9D0);
+        role.setSingleLine(true);
+        header.addView(role, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        section.addView(header, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // 属性行：造价恒有；伤害/射程/攻速/对空仅攻击塔展示（非攻击塔 damage=0 是合法语义）
+        addStatsRow(section, getString(R.string.game_td_codex_label_cost),
+                String.format(Locale.US, "₿%d", t.baseCost), 0xFFFFD54F);
+        if (t.damage > 0f) {
+            // 攻速口径：直接展示引擎开火间隔 fireInterval（秒），不做「次/秒」倒数换算
+            addStatsRow(section, getString(R.string.game_td_codex_label_damage),
+                    codexNum(t.damage), 0xFFFFF8E1);
+            addStatsRow(section, getString(R.string.game_td_codex_label_range),
+                    codexNum(t.range), 0xFFFFF8E1);
+            addStatsRow(section, getString(R.string.game_td_codex_label_rate),
+                    getString(R.string.game_td_codex_value_fire_interval, codexNum(t.fireInterval)),
+                    0xFFFFF8E1);
+            addStatsRow(section, getString(R.string.game_td_codex_label_anti_air),
+                    t.canAir ? "✓" : "✗", t.canAir ? 0xFF9CFFB0 : 0xFF78909C);
+        } else if (t == TowerType.SUN) {
+            // 收益口径：单次产币金额（引擎每 1.8 秒产一次，间隔为 TdGame 内部常量、非枚举字段，
+            // 故不展示周期，避免双源）；₿ 符号与塔栏造价同源
+            addStatsRow(section, getString(R.string.game_td_codex_label_income),
+                    String.format(Locale.US, "₿+%d", Math.round(t.income)), 0xFFFFD54F);
+        } else if (t == TowerType.AMPLIFIER) {
+            // 增幅塔的 range 字段即光环半径
+            addStatsRow(section, getString(R.string.game_td_codex_label_range),
+                    codexNum(t.range), 0xFFB8E9D0);
+        }
+        addCodexTraitLine(section, codexTowerTrait(t));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        panel.addView(section, lp);
+    }
+
+    /**
+     * 图鉴怪段落：本地化名 + 属性行（生命/速度/护甲/赏金/漏蛋伤害）+ 特性行。
+     * 飞行信息由 FLY 的特性行承载（「飞行：仅可对空塔能攻击」），不再单列属性行。
+     * tag 「td_codex_monster:&lt;枚举名&gt;」供 UI 回归测试按段计数。
+     */
+    private void addCodexMonsterSection(LinearLayout panel, MonsterType m) {
+        LinearLayout section = new LinearLayout(requireContext());
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setTag("td_codex_monster:" + m.name());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF2A2318);
+        bg.setStroke(dp(1), 0xFF4A4238);
+        bg.setCornerRadius(dp(10));
+        section.setBackground(bg);
+        section.setPadding(dp(12), dp(8), dp(12), dp(10));
+
+        TextView name = new TextView(requireContext());
+        name.setText(monsterName(m));
+        name.setTextSize(14);
+        name.setTextColor(0xFFFFFFFF);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setSingleLine(true);
+        section.addView(name, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addStatsRow(section, getString(R.string.game_td_codex_label_hp),
+                codexNum(m.hp), 0xFFFFF8E1);
+        addStatsRow(section, getString(R.string.game_td_codex_label_speed),
+                getString(R.string.game_td_codex_value_speed, codexNum(m.speed)), 0xFFFFF8E1);
+        // 护甲 0 是「无减伤」的合法语义：直接展示 0，不套用减伤格式
+        addStatsRow(section, getString(R.string.game_td_codex_label_armor),
+                m.armor > 0 ? getString(R.string.game_td_codex_value_armor, m.armor) : "0",
+                m.armor > 0 ? 0xFFFF8A80 : 0xFF78909C);
+        addStatsRow(section, getString(R.string.game_td_codex_label_bounty),
+                String.format(Locale.US, "₿%d", m.value), 0xFFFFD54F);
+        addStatsRow(section, getString(R.string.game_td_codex_label_leak),
+                String.format(Locale.US, "-%d", m.leakDamage), 0xFFFF8A80);
+        addCodexTraitLine(section, codexMonsterTrait(m));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        panel.addView(section, lp);
+    }
+
+    /** 特性描述行：tag 「td_codex_trait」供测试锁定 switch 全枚举覆盖（漏 case 会落空串）。 */
+    private void addCodexTraitLine(LinearLayout section, String trait) {
+        TextView traitView = new TextView(requireContext());
+        traitView.setText(trait);
+        traitView.setTextSize(11);
+        traitView.setTextColor(0xFFB8E9D0);
+        traitView.setTag("td_codex_trait");
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        section.addView(traitView, lp);
+    }
+
+    /** 图鉴塔特性行文案（game_td_codex_trait_tower_*）。新增 TowerType 必须补 case；
+     *  default 落空串，由 TdUiRegressionTest 的图鉴冒烟（特性行非空）拦截。 */
+    private String codexTowerTrait(TowerType t) {
+        switch (t) {
+            case BOTTLE: return getString(R.string.game_td_codex_trait_tower_bottle);
+            case SUN: return getString(R.string.game_td_codex_trait_tower_sun);
+            case SNOW: return getString(R.string.game_td_codex_trait_tower_snow);
+            case FAN: return getString(R.string.game_td_codex_trait_tower_fan);
+            case POISON: return getString(R.string.game_td_codex_trait_tower_poison);
+            case ROCKET: return getString(R.string.game_td_codex_trait_tower_rocket);
+            case LIGHTNING: return getString(R.string.game_td_codex_trait_tower_lightning);
+            case SNIPER: return getString(R.string.game_td_codex_trait_tower_sniper);
+            case MINE: return getString(R.string.game_td_codex_trait_tower_mine);
+            case AMPLIFIER: return getString(R.string.game_td_codex_trait_tower_amplifier);
+            default: return "";
+        }
+    }
+
+    /** 图鉴怪特性行文案（game_td_codex_trait_mon_*）。NORMAL/TANK/SWARM/BOSS 无特殊机制，
+     *  显式共用 generic；与塔侧 codexTowerTrait 对称：新增特殊怪必须补 case，
+     *  default 落空串，由 TdUiRegressionTest 的图鉴冒烟（特性行非空）拦截。 */
+    private String codexMonsterTrait(MonsterType m) {
+        switch (m) {
+            case FAST: return getString(R.string.game_td_codex_trait_mon_fast);
+            case FLY: return getString(R.string.game_td_codex_trait_mon_fly);
+            case HEALER: return getString(R.string.game_td_codex_trait_mon_healer);
+            case SHIELD: return getString(R.string.game_td_codex_trait_mon_shield);
+            case SPLITTER: return getString(R.string.game_td_codex_trait_mon_splitter);
+            case CHARGER: return getString(R.string.game_td_codex_trait_mon_charger);
+            case SHIELD_GENERATOR: return getString(R.string.game_td_codex_trait_mon_shield_generator);
+            case SUMMONER: return getString(R.string.game_td_codex_trait_mon_summoner);
+            case RESISTANT: return getString(R.string.game_td_codex_trait_mon_resistant);
+            case RAGER: return getString(R.string.game_td_codex_trait_mon_rager);
+            case NORMAL:
+            case TANK:
+            case SWARM:
+            case BOSS: return getString(R.string.game_td_codex_trait_mon_generic);
+            default: return "";
+        }
+    }
+
+    /** 图鉴数值口径：整数去尾、非整最多两位小数；Locale.US 与引擎内部格式一致，避免小数点本地化歧义。 */
+    private static String codexNum(float v) {
+        String s = String.format(Locale.US, "%.2f", v);
+        if (s.endsWith(".00")) return s.substring(0, s.length() - 3);
+        if (s.endsWith("0")) return s.substring(0, s.length() - 1);
+        return s;
     }
 
     private void clearOverlay() {
