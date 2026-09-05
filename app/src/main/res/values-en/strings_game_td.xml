@@ -72,6 +72,9 @@
     <string name="game_td_btn_merge_to">Merge to Lv%1$d</string>
     <string name="game_td_btn_target_economy">Economy</string>
     <string name="game_td_btn_target_mode">Target: %1$s</string>
+    <string name="game_td_upgrade_preview_next">Upgrade → Lv%1$d: damage %2$s, range %3$s, rate %4$s (merge a same-type tower)</string>
+    <string name="game_td_upgrade_preview_max">Max level</string>
+    <string name="game_td_upgrade_preview_amplified_note"> (base values, amplifier bonus not included)</string>
     <string name="game_td_btn_play">▶ Play</string>
     <string name="game_td_btn_endless">Endless</string>
     <string name="game_td_btn_back_hall">Back to Hall</string>
@@ -204,6 +207,7 @@
     <string name="game_td_codex_base_hint">Stats below are Lv1 base values; merging same-type towers scales them up</string>
     <string name="game_td_codex_label_cost">Cost</string>
     <string name="game_td_codex_label_damage">Damage</string>
+    <string name="game_td_codex_label_direct_damage">Direct hit</string>
     <string name="game_td_codex_label_range">Range</string>
     <string name="game_td_codex_label_rate">Fire rate</string>
     <string name="game_td_codex_label_anti_air">Anti-air</string>
@@ -216,6 +220,9 @@
     <string name="game_td_codex_value_fire_interval">every %1$ss</string>
     <string name="game_td_codex_value_speed">%1$s cells/s</string>
     <string name="game_td_codex_value_armor">-%1$d/hit</string>
+    <string name="game_td_codex_value_direct_damage">%1$s×%2$s=%3$s</string>
+    <string name="game_td_codex_value_income">₿+%2$d every %1$ss</string>
+    <string name="game_td_codex_value_poison_dot">%1$s poison/s for %2$ss</string>
     <string name="game_td_codex_trait_tower_bottle">Single-target rapid fire — the all-round basic tower</string>
     <string name="game_td_codex_trait_tower_sun">Never attacks; an economy tower that produces coins over time</string>
     <string name="game_td_codex_trait_tower_snow">Chills targets briefly on hit, buying time for your defense</string>

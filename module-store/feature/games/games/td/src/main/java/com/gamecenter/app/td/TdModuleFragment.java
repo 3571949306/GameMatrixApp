@@ -68,6 +68,8 @@ public class TdModuleFragment extends Fragment {
     private TextView tvCoin, tvWave, tvHp, tvNext, tvMsg, tvLevelLabel;
     private Button btnPrevLevel, btnNextLevel, btnSpeed, btnNextWave, btnQuitToMenu, btnSelectTower;
     private Button btnUpgrade, btnSell, btnTarget, btnDeselect;
+    /** 塔操作条顶部的升级预览行（tag=td_upgrade_preview，供回归测试定位）。 */
+    private TextView tvUpgradePreview;
     private final Runnable tickLoop = this::tickOnce;
     private TowerType selectedType = null;
     /** 合成源塔；非空时下一次点选塔会作为合成目标。 */
@@ -581,13 +583,25 @@ public class TdModuleFragment extends Fragment {
     }
 
     private View buildTowerOps(Context ctx) {
+        // 竖排结构：顶部升级预览行（决策信息）+ 底部原四按钮操作行，操作行布局与历史版本一致
         LinearLayout bar = new LinearLayout(ctx);
         towerOpsBar = bar;
-        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setOrientation(LinearLayout.VERTICAL);
         bar.setGravity(Gravity.CENTER);
         bar.setPadding(dp(6), dp(2), dp(6), dp(2));
         bar.setBackgroundColor(0xFF433A2C);
 
+        tvUpgradePreview = new TextView(ctx);
+        tvUpgradePreview.setTextSize(11);
+        tvUpgradePreview.setTextColor(0xFFFFD54F);
+        tvUpgradePreview.setGravity(Gravity.CENTER);
+        tvUpgradePreview.setTag("td_upgrade_preview");
+        bar.addView(tvUpgradePreview, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
         btnUpgrade = ctrlButton(ctx, getString(R.string.game_td_btn_upgrade));
         btnSell = ctrlButton(ctx, getString(R.string.game_td_btn_sell));
         btnTarget = ctrlButton(ctx, getString(R.string.game_td_btn_target));
@@ -622,10 +636,12 @@ public class TdModuleFragment extends Fragment {
         });
         btnDeselect.setOnClickListener(v -> hideTowerOps());
 
-        bar.addView(btnUpgrade, new LinearLayout.LayoutParams(0, dp(34), 1f));
-        bar.addView(btnTarget, new LinearLayout.LayoutParams(0, dp(34), 1f));
-        bar.addView(btnSell, new LinearLayout.LayoutParams(0, dp(34), 1f));
-        bar.addView(btnDeselect, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnUpgrade, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnTarget, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnSell, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnDeselect, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        bar.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         bar.setVisibility(View.GONE);
         return bar;
     }
@@ -640,6 +656,32 @@ public class TdModuleFragment extends Fragment {
         btnTarget.setEnabled(t.type != TowerType.SUN);
         btnTarget.setText(t.type == TowerType.SUN ? getString(R.string.game_td_btn_target_economy)
                 : getString(R.string.game_td_btn_target_mode, targetModeName(t.targetMode)));
+        refreshUpgradePreview(t);
+    }
+
+    /**
+     * 升级预览行：展示合成升到下一级后的基础数值（damageAt/rangeAt/fireIntervalAt(n+1)，
+     * 数值口径复用图鉴 codexNum），满级提示「已满级」。不标金币数——两条真实升级路径的
+     * 消耗口径不同（拖拽合成扣被拖塔 baseCost，点选合成不扣金只消耗一座塔），
+     * upgradeCost(n+1) 在生产路径零调用，标出会误导玩家。
+     * 增幅塔加成（AMPLIFIER 攻速/射程）不在本面板展示——当其确在射程内时，
+     * 预览行追加注记说明数值为加成前基础值，避免玩家把面板值误读为实战值。
+     */
+    private void refreshUpgradePreview(TdGame.Tower t) {
+        if (tvUpgradePreview == null) return;
+        if (t.level >= 3) {
+            tvUpgradePreview.setText(getString(R.string.game_td_upgrade_preview_max));
+            return;
+        }
+        int next = t.level + 1;
+        String preview = getString(R.string.game_td_upgrade_preview_next, next,
+                codexNum(t.type.damageAt(next)), codexNum(t.type.rangeAt(next)),
+                codexNum(t.type.fireIntervalAt(next)));
+        if (game != null
+                && (game.getAttackSpeedBonus(t) > 0f || game.getRangeBonus(t) > 0f)) {
+            preview += getString(R.string.game_td_upgrade_preview_amplified_note);
+        }
+        tvUpgradePreview.setText(preview);
     }
 
     private void hideTowerOps() {
@@ -1413,6 +1455,20 @@ public class TdModuleFragment extends Fragment {
             // 攻速口径：直接展示引擎开火间隔 fireInterval（秒），不做「次/秒」倒数换算
             addStatsRow(section, getString(R.string.game_td_codex_label_damage),
                     codexNum(t.damage), 0xFFFFF8E1);
+            if (t.directHitMultiplier < 1f) {
+                // 直伤系数低于 1 的塔（SNOW/FAN/POISON/ROCKET）：补一行有效直伤，
+                // 口径 = 单发伤害 × TowerType.directHitMultiplier（与 TdGame.fire() 同源）
+                addStatsRow(section, getString(R.string.game_td_codex_label_direct_damage),
+                        getString(R.string.game_td_codex_value_direct_damage,
+                                codexNum(t.damage), codexNum(t.directHitMultiplier),
+                                codexNum(t.damage * t.directHitMultiplier)), 0xFFFFF8E1);
+            }
+            if (t == TowerType.POISON) {
+                // 毒泡泡直伤行后补一行毒伤持续伤害：数值取引擎常量 POISON_DPS/POISON_SEC
+                // （与 TdGame 毒 DOT 同源）；插桩方式与特性行一致（单串整行），仅毒泡泡展示
+                addCodexTraitLine(section, getString(R.string.game_td_codex_value_poison_dot,
+                        codexNum(TowerType.POISON_DPS), codexNum(TowerType.POISON_SEC)));
+            }
             addStatsRow(section, getString(R.string.game_td_codex_label_range),
                     codexNum(t.range), 0xFFFFF8E1);
             addStatsRow(section, getString(R.string.game_td_codex_label_rate),
@@ -1421,10 +1477,11 @@ public class TdModuleFragment extends Fragment {
             addStatsRow(section, getString(R.string.game_td_codex_label_anti_air),
                     t.canAir ? "✓" : "✗", t.canAir ? 0xFF9CFFB0 : 0xFF78909C);
         } else if (t == TowerType.SUN) {
-            // 收益口径：单次产币金额（引擎每 1.8 秒产一次，间隔为 TdGame 内部常量、非枚举字段，
-            // 故不展示周期，避免双源）；₿ 符号与塔栏造价同源
+            // 收益口径：单次产币金额与产币周期（周期已提为 TowerType.incomeIntervalSec 数据源，
+            // 与 TdGame.updateTowers 同源展示）；₿ 符号与塔栏造价同源
             addStatsRow(section, getString(R.string.game_td_codex_label_income),
-                    String.format(Locale.US, "₿+%d", Math.round(t.income)), 0xFFFFD54F);
+                    getString(R.string.game_td_codex_value_income,
+                            codexNum(t.incomeIntervalSec), Math.round(t.income)), 0xFFFFD54F);
         } else if (t == TowerType.AMPLIFIER) {
             // 增幅塔的 range 字段即光环半径
             addStatsRow(section, getString(R.string.game_td_codex_label_range),

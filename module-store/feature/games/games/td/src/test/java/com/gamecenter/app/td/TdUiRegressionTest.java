@@ -550,6 +550,144 @@ public class TdUiRegressionTest {
                 hasTextViewWithText(overlayRoot, formatCodexNumber(MonsterType.NORMAL.hp)));
     }
 
+    // ===== 图鉴数据补全：收益周期 / 有效直伤（引擎常量提为 TowerType 数据源后的接线） =====
+
+    @Test
+    public void codexIncomeCycleAndDirectDamageRowsPinnedToTowerTypeFields() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "codex-data-host").commitNow();
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", new TdSaveManager(new MemoryPrefs()));
+
+        invokePrivateMethod(fragment, "showCodexPanel");
+
+        // SUN 收益行：产币周期（TowerType.incomeIntervalSec）+ 单次金额（income），双参数接线
+        ViewGroup sunSection = (ViewGroup) findTagged(overlayRoot, "td_codex_tower:SUN");
+        assertNotNull("图鉴必须存在太阳花段", sunSection);
+        assertTrue("收益行必须展示产币周期与单次产币金额（game_td_codex_value_income）",
+                hasTextViewWithText(sunSection, RecordingResources.stub(
+                        R.string.game_td_codex_value_income,
+                        formatCodexNumber(TowerType.SUN.incomeIntervalSec),
+                        Math.round(TowerType.SUN.income))));
+
+        // 直伤塔（系数 < 1）：有效直伤行 = 单发伤害 × directHitMultiplier（SNOW: 8×0.4=3.2）
+        ViewGroup snowSection = (ViewGroup) findTagged(overlayRoot, "td_codex_tower:SNOW");
+        assertNotNull("图鉴必须存在雪花段", snowSection);
+        assertTrue("雪花必须展示有效直伤行（game_td_codex_value_direct_damage）",
+                hasTextViewWithText(snowSection, RecordingResources.stub(
+                        R.string.game_td_codex_value_direct_damage,
+                        formatCodexNumber(TowerType.SNOW.damage),
+                        formatCodexNumber(TowerType.SNOW.directHitMultiplier),
+                        formatCodexNumber(TowerType.SNOW.damage * TowerType.SNOW.directHitMultiplier))));
+
+        // 全额直伤塔（BOTTLE 系数 = 1）不得出现有效直伤行
+        ViewGroup bottleSection = (ViewGroup) findTagged(overlayRoot, "td_codex_tower:BOTTLE");
+        assertNotNull("图鉴必须存在瓶炮段", bottleSection);
+        assertFalse("全额直伤塔不得展示有效直伤行",
+                hasTextViewWithText(bottleSection,
+                        RecordingResources.stub(R.string.game_td_codex_label_direct_damage)));
+
+        // POISON 毒 DOT 行：每秒毒伤与持续时间取 TowerType.POISON_DPS/POISON_SEC
+        // （与 TdGame 毒伤同源），插在有效直伤行后、仅毒泡泡展示
+        ViewGroup poisonSection = (ViewGroup) findTagged(overlayRoot, "td_codex_tower:POISON");
+        assertNotNull("图鉴必须存在毒泡泡段", poisonSection);
+        assertTrue("毒泡泡必须展示毒伤行（game_td_codex_value_poison_dot）",
+                hasTextViewWithText(poisonSection, RecordingResources.stub(
+                        R.string.game_td_codex_value_poison_dot,
+                        formatCodexNumber(TowerType.POISON_DPS),
+                        formatCodexNumber(TowerType.POISON_SEC))));
+        assertFalse("毒伤行仅 POISON 展示，其他塔不得出现",
+                hasTextViewWithText(bottleSection, RecordingResources.stub(
+                        R.string.game_td_codex_value_poison_dot,
+                        formatCodexNumber(TowerType.POISON_DPS),
+                        formatCodexNumber(TowerType.POISON_SEC))));
+        // 毒伤行走特性行插桩（tag=td_codex_trait），冒烟按首个 tag 命中会先读到毒伤行；
+        // 此处补钉真特性行，防止特性行 switch 漏 case 的守卫被毒伤行架空
+        assertTrue("毒泡泡特性行必须非空（game_td_codex_trait_tower_poison）",
+                hasTextViewWithText(poisonSection,
+                        RecordingResources.stub(R.string.game_td_codex_trait_tower_poison)));
+    }
+
+    // ===== 塔升级预览（showTowerOps）：下一级数值 / 满级 / 增幅加成注记 =====
+
+    @Test
+    public void towerOpsUpgradePreviewPinsNextLevelValuesAndMaxLevel() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "preview-host").commitNow();
+
+        // 与战绩/图鉴面板同接缝：onCreateView 被屏蔽，操作条由 buildTowerOps 单独构建，
+        // 对局状态（game）显式注入后再反射触发 showTowerOps
+        ViewGroup opsBar = (ViewGroup) invokePrivateMethod(fragment, "buildTowerOps",
+                new Class<?>[] {Context.class}, activity);
+
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 5, TdGame.Mode.CAMPAIGN);
+        assertNotNull(game.placeTower(TowerType.BOTTLE, 1, 2));
+        setPrivateField(fragment, "game", game);
+        TdGame.Tower tower = game.getTowers().get(0);
+
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class}, tower);
+
+        TextView preview = (TextView) findTagged(opsBar, "td_upgrade_preview");
+        assertNotNull("塔操作条必须包含升级预览行（tag=td_upgrade_preview）", preview);
+        int next = tower.level + 1;
+        assertEquals("升级预览必须钉住下一级数值且不标虚构金币数（资源键+参数+赋值结果三元组；"
+                        + "真实升级路径为拖拽合成/点选合成，均不按 upgradeCost 扣金）",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_next, next,
+                        formatCodexNumber(TowerType.BOTTLE.damageAt(next)),
+                        formatCodexNumber(TowerType.BOTTLE.rangeAt(next)),
+                        formatCodexNumber(TowerType.BOTTLE.fireIntervalAt(next))),
+                preview.getText().toString());
+
+        // 满级：预览行回落「已满级」
+        tower.level = 3;
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class}, tower);
+        assertEquals("满级塔预览行必须提示已满级",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_max),
+                preview.getText().toString());
+    }
+
+    @Test
+    public void towerOpsUpgradePreviewAppendsAmplifierNoteOnlyWhenAmplifierInRange() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "preview-note-host").commitNow();
+
+        ViewGroup opsBar = (ViewGroup) invokePrivateMethod(fragment, "buildTowerOps",
+                new Class<?>[] {Context.class}, activity);
+
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 5, TdGame.Mode.CAMPAIGN);
+        assertNotNull(game.placeTower(TowerType.BOTTLE, 1, 2));
+        // 增幅塔在射程内（塔心距 1 ≤ 光环半径 2.35；Lv1 攻速加成 10% > 0）
+        assertNotNull(game.placeTower(TowerType.AMPLIFIER, 1, 3));
+        setPrivateField(fragment, "game", game);
+        TdGame.Tower tower = game.getTowers().get(0);
+        assertTrue("前置：增幅塔必须对目标塔生效",
+                game.getAttackSpeedBonus(tower) > 0f || game.getRangeBonus(tower) > 0f);
+
+        invokePrivateMethod(fragment, "showTowerOps", new Class<?>[] {TdGame.Tower.class}, tower);
+
+        TextView preview = (TextView) findTagged(opsBar, "td_upgrade_preview");
+        assertNotNull("塔操作条必须包含升级预览行（tag=td_upgrade_preview）", preview);
+        assertEquals("增幅塔在射程内时预览行必须追加基础值注记（面板不展示加成数值）",
+                RecordingResources.stub(R.string.game_td_upgrade_preview_next, 2,
+                        formatCodexNumber(TowerType.BOTTLE.damageAt(2)),
+                        formatCodexNumber(TowerType.BOTTLE.rangeAt(2)),
+                        formatCodexNumber(TowerType.BOTTLE.fireIntervalAt(2)))
+                        + RecordingResources.stub(R.string.game_td_upgrade_preview_amplified_note),
+                preview.getText().toString());
+    }
+
     // ===== 选关面板（按章节分组）：章头顺序 / 本地化章节名 / 每章卡片数与滚动顺序 =====
 
     @Test
@@ -787,6 +925,14 @@ public class TdUiRegressionTest {
         Method method = TdModuleFragment.class.getDeclaredMethod(name);
         method.setAccessible(true);
         method.invoke(target);
+    }
+
+    /** 带参反射调用（buildTowerOps/showTowerOps 等需要参数的私有方法），返回方法结果。 */
+    private static Object invokePrivateMethod(Object target, String name,
+            Class<?>[] paramTypes, Object... args) throws Exception {
+        Method method = TdModuleFragment.class.getDeclaredMethod(name, paramTypes);
+        method.setAccessible(true);
+        return method.invoke(target, args);
     }
 
     /** 广度优先查找文本等于 stub(resId, args) 的 TextView（Button 亦是其子类）。 */

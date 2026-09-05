@@ -1142,7 +1142,7 @@ public class TdGame {
                 if (!isCombatActive()) continue;
                 t.incomeTimer -= FIXED_DT;
                 if (t.incomeTimer <= 0f) {
-                    t.incomeTimer = 1.8f; // 每 1.8 秒产一次
+                    t.incomeTimer = t.type.incomeIntervalSec; // 产币周期数据源：TowerType（1.8s）
                     int gained = Math.round(t.type.incomeAt(t.level));
                     coin += gained;
                     coinsEarned += gained;
@@ -1174,7 +1174,7 @@ public class TdGame {
                 target.slowTimer = TowerType.SNOW_SLOW_SEC * slowEffect;
                 // 在出生倍率基础上缩放，避免覆盖波次/难度叠加出的原始速度
                 target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT * slowEffect);
-                takeDamage(target, dmg * 0.4f, DamageKind.DIRECT);
+                takeDamage(target, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 break;
             }
             case FAN: {
@@ -1182,7 +1182,7 @@ public class TdGame {
                 for (Monster m : monsters) {
                     if (m.dead) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.8f, DamageKind.DIRECT);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 }
                 break;
             }
@@ -1191,7 +1191,7 @@ public class TdGame {
                 target.dotDps = TowerType.POISON_DPS * (0.7f + 0.3f * t.level);
                 float poisonEffect = target.type == MonsterType.RESISTANT ? .65f : 1f;
                 target.dotTimer = TowerType.POISON_SEC * poisonEffect;
-                takeDamage(target, dmg * 0.3f, DamageKind.DIRECT);
+                takeDamage(target, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 for (Monster m : monsters) {
                     if (m.dead || m == target) continue;
                     float d = dist(m.x, m.y, tx, ty);
@@ -1207,7 +1207,7 @@ public class TdGame {
                 for (Monster m : monsters) {
                     if (m.dead) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.7f, DamageKind.DIRECT);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 }
                 break;
             }

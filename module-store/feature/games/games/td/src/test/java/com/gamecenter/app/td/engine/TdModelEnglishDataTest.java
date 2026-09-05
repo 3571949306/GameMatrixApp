@@ -154,6 +154,10 @@ public class TdModelEnglishDataTest {
             assertTrue(what + ".damage 必须有限", Float.isFinite(tower.damage));
             assertTrue(what + ".fireInterval 必须有限", Float.isFinite(tower.fireInterval));
             assertTrue(what + ".income 必须有限", Float.isFinite(tower.income));
+            assertTrue(what + ".directHitMultiplier 必须有限（图鉴有效直伤行依赖）",
+                    Float.isFinite(tower.directHitMultiplier));
+            assertTrue(what + ".incomeIntervalSec 必须有限（图鉴产币周期依赖）",
+                    Float.isFinite(tower.incomeIntervalSec));
             assertTrue(what + ".range 不得为负", tower.range >= 0f);
             assertTrue(what + ".damage 不得为负", tower.damage >= 0f);
             assertTrue(what + ".fireInterval 不得为负", tower.fireInterval >= 0f);

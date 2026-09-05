@@ -744,6 +744,97 @@ public class TdGameTest {
         assertTrue("总金币应高于投入", g.getCoin() > coinBefore - TowerType.SUN.baseCost);
     }
 
+    // ===== 图鉴数据源：产币周期/直伤系数提为 TowerType 字段（引擎行为逐字节等价回归） =====
+
+    @Test
+    public void sunTower_incomeCycleIsExactlyTowerTypeInterval() {
+        // 数据源接线：updateTowers 重置 incomeTimer 的值必须逐字节等于 TowerType.incomeIntervalSec
+        assertEquals("产币周期数据源必须是 TowerType.incomeIntervalSec（1.8s）",
+                1.8f, TowerType.SUN.incomeIntervalSec, 0f);
+        for (TowerType t : TowerType.values()) {
+            if (t != TowerType.SUN) {
+                assertEquals("非经济塔 " + t + " 的产币周期必须为 0", 0f, t.incomeIntervalSec, 0f);
+            }
+        }
+        // 节拍回归：incomeTimer 初始为 0 → 首帧产出，此后每 1.8s（60Hz 下 108 帧）一次
+        TdGame g = minimalGame(2, 1000, TdGame.Mode.CAMPAIGN);
+        TdGame.Tower sun = g.placeTower(TowerType.SUN, 1, 0);
+        assertNotNull(sun);
+        assertTrue(g.startNextWaveEarly());
+        int perCycle = Math.round(TowerType.SUN.incomeAt(1));
+        g.tick();
+        assertEquals("首帧即产出一次", perCycle, g.getCoinsEarned());
+        assertEquals("重置值必须逐字节等于 TowerType.incomeIntervalSec",
+                TowerType.SUN.incomeIntervalSec, sun.incomeTimer, 0f);
+        // 周期内不再产出：第 2..108 帧（累计 ≤ 107×dt）距上次产出不足 1.8s
+        for (int i = 2; i <= 108; i++) {
+            g.tick();
+            assertEquals("产币周期 " + TowerType.SUN.incomeIntervalSec + "s 内不得二次产出（第 "
+                            + i + " 帧）", perCycle, g.getCoinsEarned());
+        }
+        // 周期结束必然再次产出（第二次产出的具体帧受浮点累加误差影响在 109/110 之间，
+        // 不钉单帧，只钉「1.8s 量级」与「不多产」两端）
+        boolean producedAgain = false;
+        for (int i = 109; i <= 120 && !producedAgain; i++) {
+            g.tick();
+            producedAgain = g.getCoinsEarned() >= 2 * perCycle;
+        }
+        assertTrue("周期结束后必须再次产出", producedAgain);
+        assertEquals("单帧至多产出一次", 2 * perCycle, g.getCoinsEarned());
+    }
+
+    @Test
+    public void directHitMultiplier_towerTypeIsSingleDataSource() {
+        assertEquals("雪花直伤系数必须为 0.4（数据源 TowerType）",
+                0.4f, TowerType.SNOW.directHitMultiplier, 0f);
+        assertEquals("毒液直伤系数必须为 0.3（数据源 TowerType）",
+                0.3f, TowerType.POISON.directHitMultiplier, 0f);
+        assertEquals("风扇直伤系数必须为 0.8（数据源 TowerType）",
+                0.8f, TowerType.FAN.directHitMultiplier, 0f);
+        assertEquals("火箭直伤系数必须为 0.7（数据源 TowerType）",
+                0.7f, TowerType.ROCKET.directHitMultiplier, 0f);
+        for (TowerType t : TowerType.values()) {
+            switch (t) {
+                case SNOW:
+                case POISON:
+                case FAN:
+                case ROCKET:
+                    continue;
+                default:
+                    assertEquals("塔 " + t + " 直伤必须全额（系数 1）",
+                            1f, t.directHitMultiplier, 0f);
+            }
+        }
+    }
+
+    @Test
+    public void snowFire_directDamageEqualsDamageTimesTowerTypeMultiplier() {
+        // 行为锁定：fire() 的 SNOW 直伤 = damageAt(level) × TowerType.directHitMultiplier。
+        // 单怪对局、零甲零盾 NORMAL，首击后血量必须恰为 34 - 8×0.4 = 30.8。
+        int cols = 12;
+        int[][] path = new int[cols][2];
+        for (int i = 0; i < cols; i++) path[i] = new int[] {0, i};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f, 1f, 1f));
+        TdGame g = new TdGame(cols, 2, path, 0, cols - 1, 500, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 4)); // 射程 5.0 覆盖出生段
+        assertTrue(g.startNextWaveEarly());
+        Float hpAfterFirstHit = null;
+        for (int i = 0; i < 120 && hpAfterFirstHit == null && !g.isEnded(); i++) {
+            g.tick();
+            // hitFlash 仅在受击帧置位且持续 ~11 帧，但再次开火间隔 0.9s ≫ hitFlash 时长，
+            // 故首个 hitFlash>0 的帧必为首击帧，读到的即首击后血量
+            if (!g.getMonsters().isEmpty() && g.getMonsters().get(0).hitFlash > 0f) {
+                hpAfterFirstHit = g.getMonsters().get(0).hp;
+            }
+        }
+        assertNotNull("雪花必须命中一次", hpAfterFirstHit);
+        float expected = MonsterType.NORMAL.hp
+                - TowerType.SNOW.damageAt(1) * TowerType.SNOW.directHitMultiplier;
+        assertEquals("直伤必须 = 单发伤害 × TowerType.directHitMultiplier",
+                expected, hpAfterFirstHit, 0.0001f);
+    }
+
     // ===== 对空：飞行兵需可对空塔 =====
 
     @Test
