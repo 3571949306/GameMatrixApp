@@ -17,6 +17,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -235,6 +236,207 @@ public class TdSaveManagerTest {
                 prefs.getBoolean("__migrated__", false));
         assertTrue("td_level_id_migrated_v1 守卫必须在 clearAll 后存活",
                 prefs.getBoolean("td_level_id_migrated_v1", false));
+    }
+
+    // ===== 成就系统：定义数据 / 写入点判定 / 边界 / 幂等 / 补漏 / 清空 =====
+
+    @Test public void achievementSaveKeysAreUniqueAndUseTdAchvPrefix() {
+        Set<String> keys = new HashSet<>();
+        for (TdAchievement a : TdAchievement.values()) {
+            assertTrue("成就存档键必须带 td_achv_ 前缀（沿用模块 td_ 键约定）: " + a.saveKey,
+                    a.saveKey.startsWith("td_achv_"));
+            keys.add(a.saveKey);
+        }
+        assertEquals("各成就存档键必须互不相同（布尔键与枚举一一对应）",
+                TdAchievement.values().length, keys.size());
+    }
+
+    @Test public void achievementMatchersArePureAndDefensive() {
+        assertTrue(TdAchievement.matchingCampaignWin(null).isEmpty());
+        assertTrue(TdAchievement.matchingCampaignWin("main_999").isEmpty());
+        List<TdAchievement> ch1 = TdAchievement.matchingCampaignWin("main_005");
+        assertEquals(1, ch1.size());
+        assertEquals(TdAchievement.CHAPTER1_CLEARED, ch1.get(0));
+        assertTrue(TdAchievement.matchingTotalKills(0).isEmpty());
+        assertTrue(TdAchievement.matchingEndlessWaves(0).isEmpty());
+        assertTrue(TdAchievement.matchingDualClear(true, false).isEmpty());
+        assertTrue(TdAchievement.matchingDualClear(false, true).isEmpty());
+        assertEquals(TdAchievement.DUAL_CROWN, TdAchievement.matchingDualClear(true, true).get(0));
+    }
+
+    @Test public void campaignWinAchievementsFireOnlyOnExactBoundaryLevels() {
+        // 初试啼声 = 通关 main_001，而非任意通关
+        TdSaveManager first = new TdSaveManager(new MemoryPrefs());
+        first.recordWin("main_001");
+        assertTrue(first.isAchievementUnlocked(TdAchievement.FIRST_WIN));
+        assertFalse(first.isAchievementUnlocked(TdAchievement.CHAPTER1_CLEARED));
+        assertEquals(1, first.getUnlockedAchievements().size());
+
+        // 第 1 章 = 通关 main_005 而非 main_004
+        TdSaveManager early = new TdSaveManager(new MemoryPrefs());
+        early.recordWin("main_004");
+        assertFalse(early.isAchievementUnlocked(TdAchievement.CHAPTER1_CLEARED));
+
+        // 通关 main_005 只触发第 1 章，不回溯触发首关成就
+        TdSaveManager ch1 = new TdSaveManager(new MemoryPrefs());
+        ch1.recordWin("main_005");
+        assertTrue(ch1.isAchievementUnlocked(TdAchievement.CHAPTER1_CLEARED));
+        assertFalse(ch1.isAchievementUnlocked(TdAchievement.FIRST_WIN));
+
+        // 第 2/3/4 章终关：main_015 / main_025 / main_035（索引回溯覆盖不到，走事件原始 id）
+        TdSaveManager ch2 = new TdSaveManager(new MemoryPrefs());
+        ch2.recordWin("main_015");
+        assertTrue(ch2.isAchievementUnlocked(TdAchievement.CHAPTER2_CLEARED));
+        TdSaveManager ch3 = new TdSaveManager(new MemoryPrefs());
+        ch3.recordWin("main_025");
+        assertTrue(ch3.isAchievementUnlocked(TdAchievement.CHAPTER3_CLEARED));
+        TdSaveManager ch4 = new TdSaveManager(new MemoryPrefs());
+        ch4.recordWin("main_035");
+        assertTrue(ch4.isAchievementUnlocked(TdAchievement.CHAPTER4_CLEARED));
+    }
+
+    /** 旧索引签名 recordWin(int) 同样走写入点成就检测（main_001 / main_005 均在可回溯范围内）。 */
+    @Test public void legacyIndexWinSignatureAlsoDetectsAchievements() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.recordWin(0);
+        assertTrue(save.isAchievementUnlocked(TdAchievement.FIRST_WIN));
+        save.recordWin(4);
+        assertTrue(save.isAchievementUnlocked(TdAchievement.CHAPTER1_CLEARED));
+    }
+
+    @Test public void killAchievementsUnlockAtExactBoundaries() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.addKills(99);
+        assertFalse(save.isAchievementUnlocked(TdAchievement.KILLS_100));
+        save.addKills(1); // 恰好 100
+        assertTrue(save.isAchievementUnlocked(TdAchievement.KILLS_100));
+        assertFalse(save.isAchievementUnlocked(TdAchievement.KILLS_1000));
+
+        TdSaveManager slayer = new TdSaveManager(new MemoryPrefs());
+        slayer.addKills(999);
+        assertTrue(slayer.isAchievementUnlocked(TdAchievement.KILLS_100));
+        assertFalse(slayer.isAchievementUnlocked(TdAchievement.KILLS_1000));
+        slayer.addKills(1); // 恰好 1000
+        assertTrue(slayer.isAchievementUnlocked(TdAchievement.KILLS_1000));
+    }
+
+    @Test public void singleLargeKillBatchUnlocksEachTierExactlyOnce() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.addKills(1500); // 一次大额累加同时跨两档
+
+        List<TdAchievement> newly = save.drainNewlyUnlockedAchievements();
+        assertEquals("一次大额 addKills 跨两档时每档必须恰好触发一次", 2, newly.size());
+        Set<TdAchievement> expected = new HashSet<>(
+                Arrays.asList(TdAchievement.KILLS_100, TdAchievement.KILLS_1000));
+        assertEquals(expected, new HashSet<>(newly));
+        assertEquals("重复取走必须为空（一次性取走语义）",
+                0, save.drainNewlyUnlockedAchievements().size());
+
+        save.addKills(500); // 未跨新档，不得再触发
+        assertTrue(save.drainNewlyUnlockedAchievements().isEmpty());
+    }
+
+    @Test public void addKillsToPartialTierUnlocksOnlySharpshooter() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.addKills(150);
+        List<TdAchievement> newly = save.drainNewlyUnlockedAchievements();
+        assertEquals(1, newly.size());
+        assertEquals(TdAchievement.KILLS_100, newly.get(0));
+    }
+
+    @Test public void endlessAchievementsUseAnyDifficultyWithExactBoundaries() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.recordEndlessWaves(TdGame.Difficulty.EASY, 9);
+        assertFalse(save.isAchievementUnlocked(TdAchievement.ENDLESS_10));
+        save.recordEndlessWaves(TdGame.Difficulty.EASY, 10); // 恰好 10 波
+        assertTrue(save.isAchievementUnlocked(TdAchievement.ENDLESS_10));
+        assertFalse(save.isAchievementUnlocked(TdAchievement.ENDLESS_25));
+
+        // 「任意难度」口径：换难度达阈值同样触发，且一次大额波数可同时跨两档
+        TdSaveManager warlord = new TdSaveManager(new MemoryPrefs());
+        warlord.recordEndlessWaves(TdGame.Difficulty.HARD, 25);
+        assertTrue(warlord.isAchievementUnlocked(TdAchievement.ENDLESS_10));
+        assertTrue(warlord.isAchievementUnlocked(TdAchievement.ENDLESS_25));
+    }
+
+    @Test public void dualCrownRequiresBothDifficultiesRegardlessOfOrder() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.setEasyCleared(true);
+        assertFalse(save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        save.setHardCleared(true);
+        assertTrue(save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+
+        // 顺序无关：先困难后简单同样解锁
+        TdSaveManager reversed = new TdSaveManager(new MemoryPrefs());
+        reversed.setHardCleared(true);
+        assertFalse(reversed.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        reversed.setEasyCleared(true);
+        assertTrue(reversed.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+    }
+
+    @Test public void achievementDetectionIsIdempotentOnRepeatedEvents() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.recordWin("main_005");
+        List<TdAchievement> first = save.drainNewlyUnlockedAchievements();
+        assertEquals(1, first.size());
+        assertEquals(TdAchievement.CHAPTER1_CLEARED, first.get(0));
+
+        save.recordWin("main_005"); // 重玩已通关关卡
+        assertTrue("重复事件不得再次触发（幂等）", save.drainNewlyUnlockedAchievements().isEmpty());
+        assertEquals(1, save.getUnlockedAchievements().size());
+
+        save.addKills(100);
+        assertEquals(1, save.drainNewlyUnlockedAchievements().size());
+        save.addKills(100); // 累计值仍在阈值上但已解锁
+        assertTrue(save.drainNewlyUnlockedAchievements().isEmpty());
+        assertEquals(2, save.getUnlockedAchievements().size());
+    }
+
+    /**
+     * 补漏：成就系统上线前的老存档（直接持有底层键，未经新写入点）经
+     * syncAchievementsFromState 幂等补章，且不误发未满足条件的成就。
+     */
+    @Test public void syncAchievementsFromStateBackfillsLegacyProgress() {
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_stars_main_005", 3);
+        prefs.data.put("td_kills_total", 250);
+        prefs.data.put("td_endless_best_normal", 12);
+        prefs.data.put("td_easy_done", Boolean.TRUE);
+        TdSaveManager save = new TdSaveManager(prefs);
+        assertEquals("补漏前不得有任何已解锁成就", 0, save.getUnlockedAchievements().size());
+
+        save.syncAchievementsFromState();
+
+        assertTrue(save.isAchievementUnlocked(TdAchievement.CHAPTER1_CLEARED));
+        assertTrue(save.isAchievementUnlocked(TdAchievement.KILLS_100));
+        assertTrue(save.isAchievementUnlocked(TdAchievement.ENDLESS_10));
+        assertFalse("困难未通关不得误发双冠王", save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertFalse(save.isAchievementUnlocked(TdAchievement.CHAPTER2_CLEARED));
+
+        // 幂等：重复补漏不得再次触发
+        save.drainNewlyUnlockedAchievements();
+        save.syncAchievementsFromState();
+        assertTrue(save.drainNewlyUnlockedAchievements().isEmpty());
+    }
+
+    @Test public void clearAllWipesAchievementsAndSyncDoesNotResurrectThem() {
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.recordWin("main_001");                          // FIRST_WIN
+        save.addKills(1200);                                 // KILLS_100 + KILLS_1000
+        save.recordEndlessWaves(TdGame.Difficulty.HARD, 30); // ENDLESS_10 + ENDLESS_25
+        save.setEasyCleared(true);
+        save.setHardCleared(true);                           // DUAL_CROWN
+        assertEquals(6, save.getUnlockedAchievements().size());
+
+        save.clearAll();
+
+        assertEquals("清空战绩必须一并清除全部成就", 0, save.getUnlockedAchievements().size());
+        assertFalse(save.isAchievementUnlocked(TdAchievement.FIRST_WIN));
+        assertFalse(save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertEquals("清空后待提示名单必须作废", 0, save.drainNewlyUnlockedAchievements().size());
+        // 条件已不再满足，补漏不得复活任何成就
+        save.syncAchievementsFromState();
+        assertEquals(0, save.getUnlockedAchievements().size());
     }
 
     /** 进程内 SharedPreferences 假实现：覆盖 TdSaveManager 用到的键值语义（clear/put/读回）。 */

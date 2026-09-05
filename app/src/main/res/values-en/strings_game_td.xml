@@ -155,7 +155,7 @@
     <string name="game_td_cd_unselected">%1$s, not selected</string>
     <string name="game_td_cd_locked">%1$s, %2$s</string>
 
-    <!-- Stats / achievements panel (all values read live from the save, no new persistence) -->
+    <!-- Stats / achievements panel (all values read live from the save; achievement states persist in td_achv_* boolean keys) -->
     <string name="game_td_btn_stats">📊 Stats</string>
     <string name="game_td_stats_title">Stats &amp; Achievements</string>
     <string name="game_td_stats_section_record">Overview</string>
@@ -180,6 +180,20 @@
     <string name="game_td_stats_reset_confirm_no">Cancel</string>
     <string name="game_td_stats_reset_done">Stats data cleared</string>
     <string name="game_td_stats_btn_back">Back to Levels</string>
+
+    <!-- Achievements (unlockable; conditions come from existing game events, detected at save write points) -->
+    <string name="game_td_achv_unlocked">🏆 Achievement unlocked: %1$s</string>
+    <string name="game_td_achv_section_achievements">Achievements</string>
+    <string name="game_td_achv_name_first_win">First Victory</string>
+    <string name="game_td_achv_name_ch1_cleared">Warmed Up</string>
+    <string name="game_td_achv_name_ch2_cleared">Stalwart Defender</string>
+    <string name="game_td_achv_name_ch3_cleared">Storm King</string>
+    <string name="game_td_achv_name_ch4_cleared">Ember Finale</string>
+    <string name="game_td_achv_name_kills_100">Sharpshooter</string>
+    <string name="game_td_achv_name_kills_1000">God of Slaughter</string>
+    <string name="game_td_achv_name_endless_10">Endless Rookie</string>
+    <string name="game_td_achv_name_endless_25">Endless Warlord</string>
+    <string name="game_td_achv_name_dual_crown">Dual Crown</string>
 
     <!-- Codex overlay (tower/monster stat reference; numeric rows are formatted live from
          engine enum fields, trait lines are pure descriptions without numbers) -->

@@ -8,10 +8,16 @@ import com.gamecenter.app.td.engine.TdLevels;
 
 import com.gamecenter.app.core.common.ModuleScopedPreferences;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * 塔防「保卫蛋蛋」存档管理器。
  *
- * <p>持久化各关卡的最高星级与解锁进度，以及各难度的最佳战绩。
+ * <p>持久化各关卡的最高星级与解锁进度、各难度的最佳战绩，以及可解锁成就（td_achv_* 布尔键）。
  * 存储走 ModuleScopedPreferences 模块作用域 SP（mod_td__td_save），历史扁平 td_save 数据自动迁移；
  * 键仍以 td_ 前缀命名，并使用 String 存储（见项目规范：避免 StringSet 跨实例缓存问题）。
  */
@@ -37,6 +43,8 @@ public class TdSaveManager {
     private static final String KEY_ENDLESS_BEST_PREFIX = "td_endless_best_";
 
     private final SharedPreferences prefs;
+    /** 本实例内新解锁、尚未被 UI 取走的成就（解锁瞬间提示用）；跨实例不共享，仅提示用途 */
+    private final List<TdAchievement> pendingUnlocks = new ArrayList<>();
 
     public TdSaveManager(Context context) {
         Context appContext = context.getApplicationContext();
@@ -95,13 +103,14 @@ public class TdSaveManager {
         return Math.max(1, prefs.getInt(KEY_UNLOCKED, 1));
     }
 
-    /** 记录通关，解锁下一关（解锁值硬上限 = 战役总关数，防脏数据超界） */
+    /** 记录通关，解锁下一关（解锁值硬上限 = 战役总关数，防脏数据超界）；同时判定通关型成就 */
     public void recordWin(int levelIndex) {
         int unlocked = getUnlockedLevelCount();
         int nextUnlocked = clampNextUnlockedToCampaignSize(levelIndex + 2);
         if (nextUnlocked > unlocked) {
             prefs.edit().putInt(KEY_UNLOCKED, nextUnlocked).apply();
         }
+        unlockAchievements(TdAchievement.matchingCampaignWin(levelIdForIndex(levelIndex)));
     }
 
     /**
@@ -126,6 +135,9 @@ public class TdSaveManager {
         if (!isValidLevelId(levelId)) return;
         int index = Integer.parseInt(levelId.substring(5)) - 1;
         recordWin(index);
+        // recordWin(int) 只能经 levelIdForIndex 回溯 index≤4 的关 id；后章终关
+        // （main_015/025/035）的通关成就必须用事件原始 id 判定（已解锁者幂等跳过，不重复入列）。
+        unlockAchievements(TdAchievement.matchingCampaignWin(levelId));
     }
 
     public void recordPlay() {
@@ -180,6 +192,8 @@ public class TdSaveManager {
 
     public void addKills(int n) {
         prefs.edit().putInt(KEY_KILLS_PREFIX + "total", getTotalKills() + n).apply();
+        // 击杀型成就按写入后的累计值判定：一次大额累加跨多档时同批解锁、各档仅触发一次
+        unlockAchievements(TdAchievement.matchingTotalKills(getTotalKills()));
     }
 
     /** 某关最佳战绩秒数（0 表示未记录） */
@@ -209,11 +223,17 @@ public class TdSaveManager {
 
     /** 简单难度是否通关过（用于成就显示） */
     public boolean isEasyCleared() { return prefs.getBoolean(KEY_EASY_DONE, false); }
-    public void setEasyCleared(boolean v) { prefs.edit().putBoolean(KEY_EASY_DONE, v).apply(); }
+    public void setEasyCleared(boolean v) {
+        prefs.edit().putBoolean(KEY_EASY_DONE, v).apply();
+        unlockAchievements(TdAchievement.matchingDualClear(isEasyCleared(), isHardCleared()));
+    }
 
     /** 困难难度是否通关过 */
     public boolean isHardCleared() { return prefs.getBoolean(KEY_HARD_DONE, false); }
-    public void setHardCleared(boolean v) { prefs.edit().putBoolean(KEY_HARD_DONE, v).apply(); }
+    public void setHardCleared(boolean v) {
+        prefs.edit().putBoolean(KEY_HARD_DONE, v).apply();
+        unlockAchievements(TdAchievement.matchingDualClear(isEasyCleared(), isHardCleared()));
+    }
 
     // ===== 无尽模式最佳波数（阶段 1：引擎与存档） =====
 
@@ -246,6 +266,86 @@ public class TdSaveManager {
         int current = prefs.getInt(key, 0);
         int merged = mergedBestEndlessWaves(current, waves);
         if (merged != current) prefs.edit().putInt(key, merged).apply();
+        // 无尽型成就走「任意难度」口径：写入后跨难度取最佳最大值判定
+        unlockAchievements(TdAchievement.matchingEndlessWaves(bestEndlessWavesAnyDifficulty()));
+    }
+
+    // ===== 成就系统（td_achv_* 布尔键，只增不减；条件定义见 TdAchievement） =====
+
+    /** 是否已解锁（战绩面板查询用；null 成就防御性返回 false）。 */
+    public boolean isAchievementUnlocked(TdAchievement achievement) {
+        return achievement != null && prefs.getBoolean(achievement.saveKey, false);
+    }
+
+    /** 全部已解锁成就（战绩面板渲染用；返回集合为独立快照，调用方可自由修改）。 */
+    public Set<TdAchievement> getUnlockedAchievements() {
+        Set<TdAchievement> out = EnumSet.noneOf(TdAchievement.class);
+        for (TdAchievement a : TdAchievement.values()) {
+            if (prefs.getBoolean(a.saveKey, false)) out.add(a);
+        }
+        return out;
+    }
+
+    /**
+     * 取走并清空本实例自上次取走后新解锁的成就（解锁瞬间 UI 提示用，一次性语义）。
+     * 仅本实例内存态：成就状态真源是存档布尔键，重启后不再补提示。
+     */
+    public List<TdAchievement> drainNewlyUnlockedAchievements() {
+        if (pendingUnlocks.isEmpty()) return Collections.emptyList();
+        List<TdAchievement> out = new ArrayList<>(pendingUnlocks);
+        pendingUnlocks.clear();
+        return out;
+    }
+
+    /** 幂等解锁：已解锁的跳过（不重复写键、不重复入列）。 */
+    private void unlockAchievements(List<TdAchievement> newlySatisfied) {
+        for (TdAchievement a : newlySatisfied) {
+            if (prefs.getBoolean(a.saveKey, false)) continue;
+            prefs.edit().putBoolean(a.saveKey, true).apply();
+            pendingUnlocks.add(a);
+        }
+    }
+
+    /**
+     * 幂等补漏：按当前持久化状态补齐「条件已满足但尚未落章」的成就。
+     * 覆盖老存档升级（成就系统上线前已通关/已累计）与写入点检测的纵深兜底；
+     * 供战绩面板打开时调用（对局处于覆盖层暂停态，无并发写存档问题），
+     * 清空战绩后条件不再满足，绝不复活已清掉的成就。
+     */
+    public void syncAchievementsFromState() {
+        int totalKills = getTotalKills();
+        int bestEndlessWaves = bestEndlessWavesAnyDifficulty();
+        boolean dualCleared = isEasyCleared() && isHardCleared();
+        List<TdAchievement> satisfied = new ArrayList<>();
+        for (TdAchievement a : TdAchievement.values()) {
+            if (isSatisfiedBy(a, totalKills, bestEndlessWaves, dualCleared)) satisfied.add(a);
+        }
+        unlockAchievements(satisfied);
+    }
+
+    /**
+     * 单枚成就的条件判定（补漏路径）：与写入点 matching* 共用同一份 TdAchievement
+     * 条件数据，不另设语义。「通关」口径与写入点一致：引擎 WON 时 starsEarned ≥ 1，
+     * 星数非零即通关标志。
+     */
+    private boolean isSatisfiedBy(TdAchievement a, int totalKills,
+                                  int bestEndlessWaves, boolean dualCleared) {
+        switch (a.kind) {
+            case CAMPAIGN_CLEAR: return getBestStars(a.campaignLevelId) > 0;
+            case TOTAL_KILLS: return totalKills >= a.threshold;
+            case ENDLESS_WAVES: return bestEndlessWaves >= a.threshold;
+            case DUAL_CLEAR: return dualCleared;
+            default: return false;
+        }
+    }
+
+    /** 各难度无尽最佳波数的最大值（成就「任意难度」口径；纯读取）。 */
+    private int bestEndlessWavesAnyDifficulty() {
+        int best = 0;
+        for (TdGame.Difficulty d : TdGame.Difficulty.values()) {
+            best = Math.max(best, getBestEndlessWaves(d));
+        }
+        return best;
     }
 
     public void clearAll() {
@@ -258,5 +358,8 @@ public class TdSaveManager {
                 .putBoolean(MIGRATE_FLAG_KEY, true)
                 .putBoolean(KEY_ID_MIGRATED, true)
                 .apply();
+        // 成就布尔键（td_achv_*）随上方 clear 一并清除；本实例待提示名单同步作废，
+        // 避免清空战绩后仍弹出清空前积压的解锁提示。
+        pendingUnlocks.clear();
     }
 }

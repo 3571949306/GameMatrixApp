@@ -152,7 +152,7 @@
     <string name="game_td_cd_unselected">%1$s，未选择</string>
     <string name="game_td_cd_locked">%1$s，%2$s</string>
 
-    <!-- 战绩/成就面板（数据全部实时读取自存档，不新增持久化） -->
+    <!-- 战绩/成就面板（数据实时读取自存档；成就解锁状态持久化于 td_achv_* 布尔键） -->
     <string name="game_td_btn_stats">📊 战绩</string>
     <string name="game_td_stats_title">战绩与成就</string>
     <string name="game_td_stats_section_record">战绩总览</string>
@@ -177,6 +177,20 @@
     <string name="game_td_stats_reset_confirm_no">取消</string>
     <string name="game_td_stats_reset_done">战绩数据已清空</string>
     <string name="game_td_stats_btn_back">返回选关</string>
+
+    <!-- 成就系统（可解锁成就：条件全部来自既有游戏事件；判定在存档写入点，面板打开时幂等补漏） -->
+    <string name="game_td_achv_unlocked">🏆 成就解锁：%1$s</string>
+    <string name="game_td_achv_section_achievements">成就</string>
+    <string name="game_td_achv_name_first_win">初试啼声</string>
+    <string name="game_td_achv_name_ch1_cleared">小试牛刀</string>
+    <string name="game_td_achv_name_ch2_cleared">中流砥柱</string>
+    <string name="game_td_achv_name_ch3_cleared">风暴之王</string>
+    <string name="game_td_achv_name_ch4_cleared">熔灰终章</string>
+    <string name="game_td_achv_name_kills_100">神射手</string>
+    <string name="game_td_achv_name_kills_1000">杀神</string>
+    <string name="game_td_achv_name_endless_10">无尽新兵</string>
+    <string name="game_td_achv_name_endless_25">无尽战神</string>
+    <string name="game_td_achv_name_dual_crown">双冠王</string>
 
     <!-- 图鉴浮层（塔与怪属性速查；数值行由引擎枚举字段实时格式化，特性行为纯描述不含数值） -->
     <string name="game_td_btn_codex">📖 图鉴</string>

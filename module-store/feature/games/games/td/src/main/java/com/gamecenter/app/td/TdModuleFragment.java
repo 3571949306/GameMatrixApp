@@ -1085,12 +1085,15 @@ public class TdModuleFragment extends Fragment {
         return c;
     }
 
-    // ===== 战绩 / 成就面板（数据全部实时读取自存档，不新增持久化） =====
+    // ===== 战绩 / 成就面板（数据实时读取自存档；成就解锁状态持久化于 td_achv_* 布尔键） =====
 
     /** 主入口：战绩/成就浮层。打开时对局处于覆盖层暂停态，无并发写存档问题。 */
     private void showStatsPanel() {
         clearOverlay();
         Context ctx = requireContext();
+        // 成就补漏：成就系统上线前的老存档（已通关/已累计但未落章）在此幂等补齐；
+        // 解锁判定主路径在存档写入点，此处为查询时纵深兜底
+        save.syncAchievementsFromState();
         LinearLayout panel = new LinearLayout(ctx);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
@@ -1151,6 +1154,17 @@ public class TdModuleFragment extends Fragment {
                         : R.string.game_td_stats_value_not_achieved),
                 save.isHardCleared() ? 0xFF9CFFB0 : 0xFF78909C);
 
+        // 成就系统：每个成就一行（名 + 达成状态），tag=td_achv:<枚举名> 供回归测试定位
+        addStatsSection(panel, getString(R.string.game_td_achv_section_achievements));
+        for (TdAchievement a : TdAchievement.values()) {
+            boolean unlocked = save.isAchievementUnlocked(a);
+            LinearLayout achvRow = addStatsRow(panel, achvName(a),
+                    getString(unlocked ? R.string.game_td_stats_value_achieved
+                            : R.string.game_td_stats_value_not_achieved),
+                    unlocked ? 0xFF9CFFB0 : 0xFF78909C);
+            achvRow.setTag("td_achv:" + a.name());
+        }
+
         // 危险操作：清空全部战绩（必须二次确认）
         Button reset = ctrlButton(ctx, getString(R.string.game_td_stats_btn_reset));
         GradientDrawable rb = new GradientDrawable();
@@ -1192,8 +1206,11 @@ public class TdModuleFragment extends Fragment {
         panel.addView(header, lp);
     }
 
-    /** 面板数据行：左标签右取值，样式与选关卡片同色系（深底圆角）。 */
-    private void addStatsRow(LinearLayout panel, String label, String value, int valueColor) {
+    /**
+     * 面板数据行：左标签右取值，样式与选关卡片同色系（深底圆角）。
+     * 返回该行容器，供调用方挂 tag（成就行 tag=td_achv:*，供回归测试定位）。
+     */
+    private LinearLayout addStatsRow(LinearLayout panel, String label, String value, int valueColor) {
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -1223,6 +1240,7 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(32));
         lp.topMargin = dp(4);
         panel.addView(row, lp);
+        return row;
     }
 
     /** 清空战绩的二次确认对话框（危险操作）：确认后 clearAll 并刷新面板为全零。 */
@@ -1624,7 +1642,7 @@ public class TdModuleFragment extends Fragment {
             }
             showResult(getString(R.string.game_td_result_win),
                     getString(R.string.game_td_result_stars, starsText(stars)),
-                    resultStats, 0xFF66BB6A);
+                    resultStats, drainAchievementLine(), 0xFF66BB6A);
         } else if (game.getMode() == TdGame.Mode.ENDLESS) {
             // 无尽结算：唯一结束方式是蛋死亡；记录按难度的最佳波数（只增不减），不显示战役星级
             int waves = game.getEndlessWaveReached();
@@ -1635,16 +1653,56 @@ public class TdModuleFragment extends Fragment {
                             game.getMonstersKilled(), (int) game.getElapsedSeconds());
             showResult(getString(R.string.game_td_result_lose),
                     newRecord ? getString(R.string.game_td_result_endless_best) : "",
-                    endlessStats, 0xFFE57373);
+                    endlessStats, drainAchievementLine(), 0xFFE57373);
         } else {
+            // 战役失败分支无结算写入点，但战绩面板 sync 补漏可能留有待提示成就，仍需一次性取走
             showResult(getString(R.string.game_td_result_lose), "",
                     getString(R.string.game_td_result_lose_stats,
                             game.getWaveIndex(), game.getMonstersKilled()),
-                    0xFFE57373);
+                    drainAchievementLine(), 0xFFE57373);
         }
     }
 
-    private void showResult(String title, String line2, String line3, int color) {
+    /**
+     * 取走结算写入点（recordWin/addKills/recordEndlessWaves/setEasyHardCleared，含战绩面板
+     * sync 补漏）新解锁的成就，合并为结算面板附加行文案（game_td_achv_unlocked，多枚合并、
+     * 分隔符随 locale）；无新解锁返回空串（面板不占行）。
+     *
+     * <p>必须在各结算分支写入点之后、showResult 之前调用并传参：成就提示随结算面板行展示，
+     * 不再走 tvMsg 弹条——tvMsg 在 HUD 列，z 序低于 0xE6 全屏结算浮层，弹条在浮层弹出瞬间
+     * 不可读。成就状态真源在存档，提示错过不补发。
+     */
+    private String drainAchievementLine() {
+        List<TdAchievement> newly = save.drainNewlyUnlockedAchievements();
+        if (newly.isEmpty()) return "";
+        StringBuilder names = new StringBuilder();
+        for (TdAchievement a : newly) {
+            if (names.length() > 0) names.append(getString(R.string.game_td_list_separator));
+            names.append(achvName(a));
+        }
+        return getString(R.string.game_td_achv_unlocked, names.toString());
+    }
+
+    /** 成就本地化名（game_td_achv_name_*）。新增 TdAchievement 必须补 case：default 只回落
+     * saveKey 保底可见性（TdUiRegressionTest 逐枚举断言名 ≠ saveKey 拦截漏 case）；与图鉴特性行同约定。 */
+    private String achvName(TdAchievement a) {
+        switch (a) {
+            case FIRST_WIN: return getString(R.string.game_td_achv_name_first_win);
+            case CHAPTER1_CLEARED: return getString(R.string.game_td_achv_name_ch1_cleared);
+            case CHAPTER2_CLEARED: return getString(R.string.game_td_achv_name_ch2_cleared);
+            case CHAPTER3_CLEARED: return getString(R.string.game_td_achv_name_ch3_cleared);
+            case CHAPTER4_CLEARED: return getString(R.string.game_td_achv_name_ch4_cleared);
+            case KILLS_100: return getString(R.string.game_td_achv_name_kills_100);
+            case KILLS_1000: return getString(R.string.game_td_achv_name_kills_1000);
+            case ENDLESS_10: return getString(R.string.game_td_achv_name_endless_10);
+            case ENDLESS_25: return getString(R.string.game_td_achv_name_endless_25);
+            case DUAL_CROWN: return getString(R.string.game_td_achv_name_dual_crown);
+            default: return a.saveKey;
+        }
+    }
+
+    private void showResult(String title, String line2, String line3, String achievementLine,
+            int color) {
         clearOverlay();
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -1677,6 +1735,19 @@ public class TdModuleFragment extends Fragment {
         t3.setMaxLines(2);
         panel.addView(t3, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 dp(line3.contains("\n") ? 52 : 30)));
+
+        // 成就解锁附加行（星级/统计行之后）：随面板展示，避免 tvMsg 弹条被本浮层遮挡；
+        // 文案来自 drainAchievementLine（game_td_achv_unlocked），空串不占行
+        if (!achievementLine.isEmpty()) {
+            TextView achv = new TextView(requireContext());
+            achv.setText(achievementLine);
+            achv.setTextSize(13);
+            achv.setTextColor(0xFFFFC107);
+            achv.setGravity(Gravity.CENTER);
+            achv.setMaxLines(2);
+            panel.addView(achv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
 
         boolean won = game.getState() == TdGame.State.WON;
         if (won && selectedLevelIdx + 1 < TdLevels.levelIds().size()) {

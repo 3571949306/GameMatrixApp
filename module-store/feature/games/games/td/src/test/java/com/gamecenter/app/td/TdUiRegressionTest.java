@@ -43,8 +43,10 @@ import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -237,6 +239,100 @@ public class TdUiRegressionTest {
         assertTrue("返回入口必须是 Button", back instanceof Button);
         assertNotNull("无尽最佳行必须由存档数据接线（game_td_stats_value_waves + 11）",
                 findViewByStubText(overlayRoot, R.string.game_td_stats_value_waves, 11));
+    }
+
+    // ===== 成就分组（TdAchievement × 战绩面板）：行数/标题/达成状态接线 =====
+
+    @Test
+    public void statsPanelShowsAchievementGroupWithOneRowPerAchievement() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "achv-host").commitNow();
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        // 写入点检测接线见证：recordWin(main_001) 必须已解锁 FIRST_WIN（不依赖面板补漏）
+        save.recordWin("main_001");
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+
+        invokePrivateMethod(fragment, "showStatsPanel");
+
+        assertNotNull("成就分组标题必须存在（game_td_achv_section_achievements）",
+                findViewByStubText(overlayRoot, R.string.game_td_achv_section_achievements));
+        assertEquals("战绩面板必须为每个成就各建一行",
+                TdAchievement.values().length, collectViewsByTagPrefix(overlayRoot, "td_achv:").size());
+
+        // 已解锁行显示 ✓ 已达成，未解锁行显示 未达成（复用既有达成状态文案键）
+        ViewGroup firstWinRow = (ViewGroup) findTagged(overlayRoot, "td_achv:FIRST_WIN");
+        assertNotNull("成就行必须挂 tag=td_achv:FIRST_WIN", firstWinRow);
+        assertTrue("已解锁成就行必须显示达成状态（game_td_stats_value_achieved）",
+                hasTextViewWithText(firstWinRow,
+                        RecordingResources.stub(R.string.game_td_stats_value_achieved)));
+        ViewGroup ch4Row = (ViewGroup) findTagged(overlayRoot, "td_achv:CHAPTER4_CLEARED");
+        assertNotNull("成就行必须挂 tag=td_achv:CHAPTER4_CLEARED", ch4Row);
+        assertTrue("未解锁成就行必须显示未达成状态（game_td_stats_value_not_achieved）",
+                hasTextViewWithText(ch4Row,
+                        RecordingResources.stub(R.string.game_td_stats_value_not_achieved)));
+    }
+
+    // ===== 结算面板成就行（回归：成就提示曾走 tvMsg 弹条，弹出瞬间被 0xE6 结算浮层覆盖不可读） =====
+
+    @Test
+    public void resultPanelRendersDrainedAchievementLineAsOwnRow() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "result-host").commitNow();
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.recordWin("main_001"); // 结算写入点产生一枚待提示成就（FIRST_WIN）
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", TdLevels.buildLevel("main_001", TdGame.Mode.CAMPAIGN));
+
+        // 结算时序接线：写入点之后 showResult 之前 drain，文案作为参数传入面板
+        Method drain = TdModuleFragment.class.getDeclaredMethod("drainAchievementLine");
+        drain.setAccessible(true);
+        String achvLine = (String) drain.invoke(fragment);
+        assertEquals("成就行文案必须来自 game_td_achv_unlocked 并代入成就名",
+                RecordingResources.stub(R.string.game_td_achv_unlocked,
+                        RecordingResources.stub(R.string.game_td_achv_name_first_win)),
+                achvLine);
+
+        Method showResult = TdModuleFragment.class.getDeclaredMethod("showResult",
+                String.class, String.class, String.class, String.class, int.class);
+        showResult.setAccessible(true);
+        showResult.invoke(fragment, "title", "stars", "stats", achvLine, 0xFF66BB6A);
+
+        assertNotNull("结算面板必须包含成就解锁附加行（星级/统计行之后，game_td_achv_unlocked）",
+                findViewByStubText(overlayRoot, R.string.game_td_achv_unlocked,
+                        RecordingResources.stub(R.string.game_td_achv_name_first_win)));
+    }
+
+    // ===== achvName 漏 case 拦截：default 兜底回落 saveKey，缺专属 case 在此显式失败 =====
+
+    @Test
+    public void achvNameResolvesDedicatedLocalizedCaseForEachAchievement() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "achv-name-host").commitNow();
+
+        Method achvName = TdModuleFragment.class.getDeclaredMethod("achvName", TdAchievement.class);
+        achvName.setAccessible(true);
+
+        Set<String> names = new HashSet<>();
+        for (TdAchievement a : TdAchievement.values()) {
+            String name = (String) achvName.invoke(fragment, a);
+            assertFalse("成就 " + a.name() + " 必须有专属本地化 case（不得回落 saveKey="
+                    + a.saveKey + "）", a.saveKey.equals(name));
+            names.add(name);
+        }
+        assertEquals("每个成就的本地化名必须互不相同（case 间不得共用/错用资源键）",
+                TdAchievement.values().length, names.size());
     }
 
     // ===== 图鉴面板（TdModuleFragment）：覆盖层冒烟 + 枚举字段到 UI 的数值接线 =====
