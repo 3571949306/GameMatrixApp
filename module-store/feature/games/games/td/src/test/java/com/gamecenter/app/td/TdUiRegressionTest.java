@@ -755,7 +755,7 @@ public class TdUiRegressionTest {
                 .add(android.R.id.content, fragment, "level-select-host").commitNow();
 
         // 进度口径见证：main_001（第 1 章）与 main_015（第 2 章）有星 → 前两章各「已通 1」，
-        // 第 3/4 章「已通 0」；星数非零即已通，与战绩面板 countCleared 同口径
+        // 其余章「已通 0」；星数非零即已通，与战绩面板 countCleared 同口径
         TdSaveManager save = new TdSaveManager(new MemoryPrefs());
         save.setBestStars("main_001", 3);
         save.setBestStars("main_015", 2);
@@ -766,8 +766,9 @@ public class TdUiRegressionTest {
 
         TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(
                 readAsset(findAssetsRoot().resolve("td/manifest.json")));
-        assertEquals("前置：manifest 必须注册 4 个章节（战役扩展时同步更新本用例）",
-                4, manifest.chapters.size());
+        // 章节数随战役扩展动态增长（不写死），两组断言都以 manifest 为唯一真相源
+        int expectedChapters = manifest.chapters.size();
+        assertTrue("前置：manifest 至少注册 4 个章节（含第 5 章）", expectedChapters >= 4);
 
         Locale original = Locale.getDefault();
         try {
@@ -775,7 +776,7 @@ public class TdUiRegressionTest {
             invokePrivateMethod(fragment, "showLevelSelect");
 
             List<View> sections = collectViewsByTagPrefix(overlayRoot, "td_chapter:");
-            assertEquals("选关面板必须按章节分 4 段（每章一个 section）", 4, sections.size());
+            assertEquals("选关面板必须按章节分段（每章一个 section）", expectedChapters, sections.size());
             for (int i = 0; i < manifest.chapters.size(); i++) {
                 TdLevelJsonParser.ChapterRef ref = manifest.chapters.get(i);
                 ViewGroup section = (ViewGroup) sections.get(i);

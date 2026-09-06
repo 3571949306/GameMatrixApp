@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
  * 若有人把中文写回 engine 层，本测试失败。
  *
  * <p>关卡资产层：章节 JSON 的 name/subtitle 是中文权威源，name_en/subtitle_en 是英文展示字段，
- * 由 {@link TdLevels} 按 locale 解析。守卫锁定全部 35 关英文字段非空且不含中文
+ * 由 {@link TdLevels} 按 locale 解析。守卫锁定全部战役关卡（随 manifest 动态增长）
+ * 英文字段非空且不含中文
  * （漏填会被解析器静默回退成中文，在此处被拦截）。
  *
  * <p>另守卫章节分组两条 fail-closed 不变量：章节名回退链（manifest 省略 name/name_en 时

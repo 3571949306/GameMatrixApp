@@ -10,6 +10,8 @@
     { "id": "chapter_main_03", "file": "chapters/chapter_main_03.json", "levelCount": 10,
       "name": "主线第三章", "name_en": "Chapter 3: Rift Echoes" },
     { "id": "chapter_main_04", "file": "chapters/chapter_main_04.json", "levelCount": 10,
-      "name": "主线第四章", "name_en": "Chapter 4: Embers and Storm" }
+      "name": "主线第四章", "name_en": "Chapter 4: Embers and Storm" },
+    { "id": "chapter_main_05", "file": "chapters/chapter_main_05.json", "levelCount": 10,
+      "name": "主线第五章", "name_en": "Chapter 5: After the Embers" }
   ]
 }

@@ -94,7 +94,7 @@ public class TdGameTest {
                 assertTrue(id + " 的每条入口路线都必须足够长", game.getRouteLength(route) >= 30);
             }
         }
-        assertTrue("35 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
+        assertTrue(campaignLevelCount + " 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
                 routeTopologies.size() >= 8);
     }
 

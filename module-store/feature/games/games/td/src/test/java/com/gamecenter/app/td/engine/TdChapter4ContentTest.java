@@ -213,9 +213,9 @@ public class TdChapter4ContentTest {
         }
     }
 
-    /** 跨章集成：全战役 35 关经 TdLevels.install 后顺序与 id 完整，第四章各关可开出对局。 */
+    /** 跨章集成：全战役（manifest 各章之和，随内容扩展增长）经 TdLevels.install 后顺序与 id 完整，第四章各关可开出对局。 */
     @Test
-    public void fullCampaignInstalls35LevelsAndChapter4BuildsGames() throws IOException {
+    public void fullCampaignInstallsAllLevelsAndChapter4BuildsGames() throws IOException {
         Path assetsRoot = findAssetsRoot();
         TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(readAsset(
                 assetsRoot.resolve("td/manifest.json")));
