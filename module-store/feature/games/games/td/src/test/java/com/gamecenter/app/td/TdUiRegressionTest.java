@@ -53,6 +53,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -413,6 +414,166 @@ public class TdUiRegressionTest {
 
         invokePrivateMethod(fragment, "onGameEnded"); // gameEnded 闸：重复结算不得重复累加
         assertEquals("每局击杀只计一次（gameEnded 闸幂等）", 2, save.getTotalKills());
+    }
+
+    // ===== 放弃局击杀入账（回归：放弃局 recordPlay 已计总局数，但不经过 onGameEnded，
+    // 该局击杀整体丢失——玩家直觉：杀了的怪就该算）=====
+
+    /**
+     * 确定性放弃局：进行中（未终态）且已携带击杀。1 波 8 只普通怪、蛋 100 血（漏怪不终局），
+     * 塔群覆盖整条路径，守卫式驱动到首次击杀即停——首杀必早于终局（8 只怪远多于首杀前
+     * 击杀数，WON 需整波清空；100 血不会被 8 次漏怪打穿），对局必仍处 RUNNING。
+     */
+    private static TdGame runningGameWithKills() {
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 8, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 100, TdGame.Mode.CAMPAIGN);
+        placeKillzoneDefenses(game);
+        assertTrue("前置：首波必须成功开战（PREPARING → RUNNING）", game.startNextWaveEarly());
+        for (int i = 0; i < 60 * 30 && game.getMonstersKilled() < 1; i++) {
+            assertFalse("放弃局构造必须在终态前停止（首杀不该晚于终局）", game.isEnded());
+            game.tick();
+        }
+        assertTrue("前置：放弃局必须已携带击杀", game.getMonstersKilled() >= 1);
+        assertFalse("前置：退出时对局必须仍在进行（未走过结算）", game.isEnded());
+        return game;
+    }
+
+    @Test
+    public void abandonedQuitToLevelSelectCountsKillsOnceTowardTotal() throws Exception {
+        // 真实退出回调链：对局中点「选关」（btnQuitToMenu → showLevelSelect，无确认框）。
+        // 修复前该路径零存档写入：总局数已在开局 recordPlay +1，击杀却整体丢失。
+        TdGame game = runningGameWithKills();
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "abandon-host").commitNow();
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", game);
+        assertEquals("前置：退出前总击杀未入账", 0, save.getTotalKills());
+
+        invokePrivateMethod(fragment, "showLevelSelect");
+
+        assertEquals("放弃局击杀必须在返回选关时计入总击杀（修复前丢失）",
+                game.getMonstersKilled(), save.getTotalKills());
+
+        invokePrivateMethod(fragment, "showLevelSelect"); // 选关 → 战绩/图鉴 → 再次返回选关
+        assertEquals("同一放弃局多次返回选关不得重复累加（killsRecordedForSession 守卫）",
+                game.getMonstersKilled(), save.getTotalKills());
+    }
+
+    @Test
+    public void abandonedTeardownOnDestroyViewCountsKillsOnceTowardTotal() throws Exception {
+        // 退出大厅（宿主确认框 → finish）不走 showLevelSelect，销毁即放弃局：
+        // onDestroyView 首次入账；先选关后销毁的复合路径不得双计。
+        TdGame game = runningGameWithKills();
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "teardown-host").commitNow();
+        setPrivateField(fragment, "overlayRoot", new FrameLayout(activity));
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", game);
+
+        activity.getSupportFragmentManager().beginTransaction().remove(fragment).commitNow();
+
+        assertEquals("销毁路径必须入账放弃局击杀（修复前退出大厅同样丢失）",
+                game.getMonstersKilled(), save.getTotalKills());
+
+        // 复合路径：先选关放弃（入账）再销毁 → killsRecordedForSession 防双计
+        TdGame game2 = runningGameWithKills();
+        StatsHostFragment fragment2 = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment2, "teardown-host-2").commitNow();
+        TdSaveManager save2 = new TdSaveManager(new MemoryPrefs());
+        setPrivateField(fragment2, "overlayRoot", new FrameLayout(activity));
+        setPrivateField(fragment2, "save", save2);
+        setPrivateField(fragment2, "game", game2);
+        invokePrivateMethod(fragment2, "showLevelSelect");
+        int afterSelect = save2.getTotalKills();
+        assertEquals("前置：选关路径已入账", game2.getMonstersKilled(), afterSelect);
+
+        activity.getSupportFragmentManager().beginTransaction().remove(fragment2).commitNow();
+
+        assertEquals("销毁不得与选关路径双计同一局击杀", afterSelect, save2.getTotalKills());
+    }
+
+    @Test
+    public void settledGameQuitToLevelSelectDoesNotDoubleCountKills() throws Exception {
+        // 已结算局（onGameEnded 已走 addKills）再点「选关」（结算面板 menu 按钮同路径）：
+        // game != null && !game.isEnded() 闸与 gameEnded 闸双重保证不重复累加。
+        List<TdGame.Wave> waves = new ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        TdGame game = minimalEndableGame(waves, 5, TdGame.Mode.CAMPAIGN);
+        placeKillzoneDefenses(game);
+        driveToEnd(game);
+        assertEquals(TdGame.State.WON, game.getState());
+        assertEquals(2, game.getMonstersKilled());
+
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "settled-host").commitNow();
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", game);
+        setPrivateField(fragment, "selectedLevelIdx", 0); // WON 分支读 TdLevels.levelIds().get(idx)
+
+        invokePrivateMethod(fragment, "onGameEnded");
+        assertEquals("前置：结算路径已计击杀", 2, save.getTotalKills());
+
+        invokePrivateMethod(fragment, "showLevelSelect");
+        assertEquals("已结算局返回选关不得重复计击杀", 2, save.getTotalKills());
+    }
+
+    @Test
+    public void abandonedQuitCrossingKillsThresholdUnlocksSilentlyWithRetentionSemantics()
+            throws Exception {
+        // 放弃局击杀跨阈值：KILLS_100 在 addKills 写入点即时解锁（存档真源）；
+        // 提示按方案 a 静默——选关浮层不得出现成就行；pendingUnlocks 滞留语义钉住：
+        // 下一次结算 drainAchievementLine 顺带带出（不复活），战绩面板 sync 补漏对
+        // 已解锁键幂等跳过，不产生重复提示。
+        TdGame game = runningGameWithKills();
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_kills_total", 99); // 放弃局击杀 ≥1 即跨 KILLS_100 阈值
+        TdSaveManager save = new TdSaveManager(prefs);
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "abandon-achv-host").commitNow();
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+        setPrivateField(fragment, "game", game);
+
+        invokePrivateMethod(fragment, "showLevelSelect");
+
+        assertEquals("放弃局击杀必须计入总击杀",
+                99 + game.getMonstersKilled(), save.getTotalKills());
+        assertTrue("放弃局击杀跨阈值必须即时解锁 KILLS_100（存档写入点判定）",
+                save.isAchievementUnlocked(TdAchievement.KILLS_100));
+        assertNull("放弃路径必须静默：选关浮层不得出现成就提示行（方案 a）",
+                findViewByStubText(overlayRoot, R.string.game_td_achv_unlocked,
+                        RecordingResources.stub(R.string.game_td_achv_name_kills_100)));
+
+        // 滞留语义 1：下一次结算 drainAchievementLine 把滞留项一次性带出（不复活不补发错时机）
+        Method drain = TdModuleFragment.class.getDeclaredMethod("drainAchievementLine");
+        drain.setAccessible(true);
+        assertEquals("滞留的 KILLS_100 必须由下一次结算提示顺带带出",
+                RecordingResources.stub(R.string.game_td_achv_unlocked,
+                        RecordingResources.stub(R.string.game_td_achv_name_kills_100)),
+                drain.invoke(fragment));
+
+        // 滞留语义 2：战绩面板 sync 补漏对已解锁键幂等跳过——sync 后不再产生重复提示
+        save.syncAchievementsFromState();
+        assertEquals("sync 补漏不得把已解锁成就重新入列（不复活）", "", drain.invoke(fragment));
     }
 
     // ===== 结算接线与确定性对局构造辅助 =====

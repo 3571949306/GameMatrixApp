@@ -80,6 +80,13 @@ public class TdModuleFragment extends Fragment {
     private int gameSession = 0;
     private boolean paused = false;
     private boolean gameEnded = false;
+    /**
+     * 放弃局击杀入账守卫（每局至多一次）：放弃路径（返回选关/对局中换关/销毁）可能被
+     * 连续触发（选关 → 战绩/图鉴 → 再返回选关；先选关后销毁），由本标记防止同一局
+     * 重复 addKills；startLevel 开新局时复位。不复用 gameEnded 承担此职责——它语义是
+     * 「结算已走过」，放弃局置位会连带改变 showLevelSelect 的 gameSession 闸等行为。
+     */
+    private boolean killsRecordedForSession = false;
 
     /** PVZ 式开局塔组：每局只带 5 张牌，避免小屏横向挤压。 */
     private static final int DECK_SIZE = 5;
@@ -724,6 +731,7 @@ public class TdModuleFragment extends Fragment {
     /** 主入口：进入选关面板 */
     public void showLevelSelect() {
         if (game != null && !game.isEnded()) {
+            recordAbandonedKills();
             gameSession++;
         }
         clearOverlay();
@@ -1647,6 +1655,7 @@ public class TdModuleFragment extends Fragment {
         gameSession++;
         paused = false;
         gameEnded = false;
+        killsRecordedForSession = false;
         selectedLevelIdx = idx;
         selectedMode = mode != null ? mode : TdGame.Mode.CAMPAIGN;
         btnSpeed.setText("⏸");
@@ -1669,6 +1678,9 @@ public class TdModuleFragment extends Fragment {
 
     private void restartLevel(int idx) {
         mainHandler.removeCallbacks(tickLoop);
+        // 对局中 ◀/▶ 换关同属放弃局（总局数已在开局 recordPlay 计入）：
+        // 旧局击杀先行入账；结算面板「重玩」走同一入口时 gameEnded 闸自动跳过。
+        recordAbandonedKills();
         startLevel(idx, game != null ? game.getDifficulty() : TdGame.Difficulty.NORMAL,
                 selectedMode);
     }
@@ -1742,6 +1754,31 @@ public class TdModuleFragment extends Fragment {
                             game.getWaveIndex(), game.getMonstersKilled()),
                     drainAchievementLine(), 0xFFE57373);
         }
+    }
+
+    /**
+     * 放弃局击杀入账：对局进行中（未走过结算）离开对局——点「选关」返回、对局中 ◀/▶
+     * 换关、退出大厅确认后销毁——时，本局已发生的击杀计入总击杀。开局选塔时 recordPlay
+     * 已让总局数 +1，而放弃局不经过 onGameEnded（三结局 WON/无尽死亡/战役败专属），
+     * 不在此补记则该局击杀整体丢失（玩家直觉：杀了的怪就该算）。
+     *
+     * <p>防双计：同一局游戏实例可能多次走到放弃路径（选关 → 战绩/图鉴 → 再返回选关；
+     * 先选关后销毁），由 {@link #killsRecordedForSession}（startLevel 开新局复位）保证
+     * 每局只落账一次；已结算局 gameEnded=true 直接跳过，不与 onGameEnded 的 addKills
+     * 重复累加（三结局路径零改动）。
+     *
+     * <p>成就提示取舍（方案 a，静默）：addKills 内部写入点会把跨阈值解锁（如 KILLS_100）
+     * 记入存档布尔键并入 pendingUnlocks，放弃路径不弹提示——选关浮层 z 序高于 HUD，
+     * tvMsg 弹条会被遮挡不可读（与结算面板成就行下沉的教训同理）。pendingUnlocks 滞留
+     * 语义可接受：成就状态真源是存档布尔键，滞留项由下一次结算面板 drainAchievementLine
+     * 顺带带出（unlockAchievements 对已解锁键幂等跳过，不复活不重复），或经战绩面板
+     * syncAchievementsFromState 在成就列表可见；clearAll 同步作废 pendingUnlocks，
+     * 清空战绩后不会弹出积压提示。
+     */
+    private void recordAbandonedKills() {
+        if (game == null || gameEnded || killsRecordedForSession) return;
+        killsRecordedForSession = true;
+        save.addKills(game.getMonstersKilled());
     }
 
     /**
@@ -2255,6 +2292,10 @@ public class TdModuleFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        // 退出大厅（宿主确认框→finish）与回退栈替换不走 showLevelSelect，销毁即放弃局：
+        // 击杀先行入账。killsRecordedForSession 防与选关路径双计（先选关后销毁），
+        // gameEnded 闸跳过已结算局。
+        recordAbandonedKills();
         gameSession++;
         mainHandler.removeCallbacks(tickLoop);
         tdView = null;
