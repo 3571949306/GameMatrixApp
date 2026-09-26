@@ -68,6 +68,7 @@ dependencies {
     testImplementation 'androidx.fragment:fragment:1.5.0'
     testImplementation 'androidx.appcompat:appcompat:1.6.1'
     testImplementation 'com.google.android.material:material:1.9.0'
+    testImplementation libs.gson
     // Exercise the real Fragment, host resources, score persistence and usage store.
     testImplementation libs.room.runtime
     testImplementation files("${project.rootDir}/app/build/libs/app-classes.jar")
