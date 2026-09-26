@@ -65,6 +65,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation libs.robolectric
     testImplementation libs.androidx.test.core
+    testImplementation libs.gson
     testImplementation 'androidx.fragment:fragment:1.5.0'
     // Fragment 的真实存档/终局统计依赖宿主实现及 Room 生成的 DAO。
     testImplementation libs.room.runtime
