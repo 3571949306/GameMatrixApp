@@ -134,6 +134,10 @@ jobs:
           :module-store:feature:tools:tools:testDebugUnitTest
           --stacktrace
 
+      - name: Summarize failed JVM tests
+        if: failure()
+        run: python scripts/summarize_test_failures.py
+
       - name: Verify QR and widget regression guards
         # Gradle unit tests resolve JUnit/Hamcrest before these guards inspect the cache.
         run: |
