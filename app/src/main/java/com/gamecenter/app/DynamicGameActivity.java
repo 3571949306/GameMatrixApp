@@ -13,11 +13,8 @@ import com.gamecenter.app.core.common.FeatureModule;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.ui.GameLauncherHelper;
-import com.gamecenter.app.modules.ModuleLoader;
 import com.gamecenter.app.modules.ModuleManager;
-import com.gamecenter.app.modules.ModuleDownloader;
 import com.gamecenter.app.core.common.ModuleManifest;
-import java.io.File;
 
 public class DynamicGameActivity extends AppCompatActivity {
     private static final String TAG = "DynamicGameActivity";
@@ -119,13 +116,10 @@ public class DynamicGameActivity extends AppCompatActivity {
 
         Log.d(TAG, "找到模块: " + manifest.getId() + ", fileName=" + manifest.getFileName());
 
-        if (manifest.getFileName() != null && !manifest.getFileName().isEmpty()) {
-            File moduleFile = ModuleDownloader.INSTANCE.getModuleFileCompat(this, manifest);
-            Log.d(TAG, "检查模块文件: " + moduleFile.getAbsolutePath() + ", exists=" + moduleFile.exists());
-            if (!moduleFile.exists()) {
-                return false;
-            }
-        } else if (!ModuleManager.INSTANCE.isModuleInstalled(this, manifest.getId())) {
+        // 外置模块的文件名和完整性必须由已安装快照决定。目录可指向更高版本，
+        // 回滚后不能先按目录路径判断缺失，也不能用待更新版本的 SHA 校验旧包。
+        if ((manifest.getFileName() == null || manifest.getFileName().isEmpty())
+                && !ModuleManager.INSTANCE.isModuleInstalled(this, manifest.getId())) {
             Log.d(TAG, "模块未安装: " + manifest.getId());
             return false;
         }
@@ -151,7 +145,7 @@ public class DynamicGameActivity extends AppCompatActivity {
         }
 
         Log.d(TAG, "开始加载模块: " + manifest.getId());
-        ModuleInterface moduleInstance = ModuleLoader.INSTANCE.loadModule(this, manifest);
+        ModuleInterface moduleInstance = ModuleManager.INSTANCE.loadModule(this, manifest.getId());
         if (moduleInstance == null) {
             Log.e(TAG, "模块加载返回 null: " + manifest.getId());
             return false;
@@ -162,6 +156,15 @@ public class DynamicGameActivity extends AppCompatActivity {
         if (moduleInstance instanceof FeatureModule) {
             try {
                 Fragment gameFragment = ((FeatureModule) moduleInstance).createFragment(this);
+                // 把难度索引透传给模块 Fragment（仅对声明读取该参数的模块生效，
+                // 其余模块忽略 arguments，无行为变化）
+                int difficultyIndex = getIntent().getIntExtra(
+                        GameLauncherHelper.EXTRA_DIFFICULTY_INDEX, -1);
+                if (difficultyIndex >= 0 && gameFragment.getArguments() == null) {
+                    Bundle args = new Bundle();
+                    args.putInt(GameLauncherHelper.EXTRA_DIFFICULTY_INDEX, difficultyIndex);
+                    gameFragment.setArguments(args);
+                }
                 Log.d(TAG, "Fragment 创建成功: " + gameFragment.getClass().getName());
                 getSupportFragmentManager().beginTransaction()
                         .replace(R.id.fragment_container, gameFragment)

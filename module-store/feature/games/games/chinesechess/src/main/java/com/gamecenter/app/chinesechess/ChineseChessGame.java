@@ -857,6 +857,101 @@ public class ChineseChessGame {
     }
 
     /**
+     * 校验并装载自定义残局局面（残局挑战等非标准开局使用）。
+     * <p>
+     * 输入按不可信数据校验：坐标越界、占位重叠、将帅数量异常、
+     * 仕出九宫、相过河、卒越起始行、双将帅无阻挡照面、非走子方被将军、
+     * 走子方编码非法等一律拒绝并返回 {@code false}，当前对局状态保持不变。
+     * 校验全部通过后才原子替换棋盘、清空历史并记录初始局面指纹，
+     * 后续所有落子仍必须经 {@link #commitMove} 集中闸门。
+     *
+     * @param pieces     棋子规格数组，每个元素为 {typeOrdinal, sideOrdinal, x, y}，
+     *                   typeOrdinal 对应 {@link PieceType} 序号（0..6），
+     *                   sideOrdinal：0=红方、1=黑方，x 为列（0..8）、y 为行（0..9）
+     * @param sideToMove 装载后的走子方：0=红方、1=黑方
+     * @return true 装载成功；false 规格非法（原局面不受影响）
+     */
+    public boolean loadEndgamePosition(int[][] pieces, int sideToMove) {
+        if (pieces == null || pieces.length == 0) return false;
+        if (sideToMove != 0 && sideToMove != 1) return false;
+
+        PieceType[] types = PieceType.values();
+        int redGenerals = 0, blackGenerals = 0;
+        boolean[][] occupied = new boolean[ROWS][COLS];
+        Piece[][] newBoard = new Piece[ROWS][COLS];
+
+        for (int[] spec : pieces) {
+            if (spec == null || spec.length != 4) return false;
+            int typeOrd = spec[0], sideOrd = spec[1], x = spec[2], y = spec[3];
+            if (typeOrd < 0 || typeOrd >= types.length) return false;
+            if (sideOrd != 0 && sideOrd != 1) return false;
+            if (!isValidPosition(x, y)) return false;
+            if (occupied[y][x]) return false;
+            occupied[y][x] = true;
+
+            PieceType type = types[typeOrd];
+            Side side = sideOrd == 0 ? Side.RED : Side.BLACK;
+            // 结构性摆放约束：将/仕在九宫、相不过河、卒不越起始行（红卒 y<=6，黑卒 y>=3）。
+            if (type == PieceType.GENERAL || type == PieceType.ADVISOR) {
+                if (!inPalace(x, y, side)) return false;
+            } else if (type == PieceType.ELEPHANT) {
+                if (side == Side.RED && y < 5) return false;
+                if (side == Side.BLACK && y > 4) return false;
+            } else if (type == PieceType.SOLDIER) {
+                if (side == Side.RED && y > 6) return false;
+                if (side == Side.BLACK && y < 3) return false;
+            }
+            if (type == PieceType.GENERAL) {
+                if (side == Side.RED) redGenerals++; else blackGenerals++;
+            }
+            newBoard[y][x] = new Piece(type, side, x, y);
+        }
+        if (redGenerals != 1 || blackGenerals != 1) return false;
+
+        // 动态校验依赖 isInCheck/findGeneral（基于 this.board），先把新棋盘挂上；
+        // 任一失败路径都必须还原旧棋盘，保证“拒绝即无副作用”。
+        Piece[][] oldBoard = board;
+        Side oldSide = currentSide;
+        board = newBoard;
+        currentSide = sideToMove == 0 ? Side.RED : Side.BLACK;
+
+        boolean valid = true;
+        // 双将帅同列且中间无任何阻挡（照面）是非法局面。
+        Piece redGen = findGeneral(Side.RED);
+        Piece blackGen = findGeneral(Side.BLACK);
+        if (redGen != null && blackGen != null && redGen.x == blackGen.x) {
+            int from = Math.min(redGen.y, blackGen.y) + 1;
+            int to = Math.max(redGen.y, blackGen.y);
+            boolean blocked = false;
+            for (int ty = from; ty < to; ty++) {
+                if (board[ty][redGen.x] != null) { blocked = true; break; }
+            }
+            if (!blocked) valid = false;
+        }
+        // 非走子方被将军 = 上一手主动送将，非法局面。
+        if (valid) {
+            Side idleSide = currentSide == Side.RED ? Side.BLACK : Side.RED;
+            if (isInCheck(idleSide)) valid = false;
+        }
+
+        if (!valid) {
+            board = oldBoard;
+            currentSide = oldSide;
+            return false;
+        }
+
+        // 校验通过：原子提交新局面。
+        moveHistory.clear();
+        positionHistory.clear();
+        movedSideHistory.clear();
+        checkingSideHistory.clear();
+        gameOver = false;
+        winner = null;
+        recordPosition(null);
+        return true;
+    }
+
+    /**
      * 深拷贝整个游戏状态——AI搜索时使用副本，避免污染View渲染的真实棋盘
      * <p>拷贝内容包括：棋盘上所有棋子的独立副本、当前走棋方、游戏结束状态和获胜方。
      * 注意：走棋历史不进行深拷贝（AI搜索不需要）。

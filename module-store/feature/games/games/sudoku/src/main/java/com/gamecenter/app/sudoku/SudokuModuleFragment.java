@@ -19,6 +19,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Space;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,6 +27,7 @@ import androidx.fragment.app.Fragment;
 
 import com.gamecenter.app.R;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -52,6 +54,10 @@ public class SudokuModuleFragment extends Fragment {
     private SudokuGame game;
     private SudokuSaveManager saveManager;
     private SudokuView sudokuView;
+    /** 当前游玩的自定义谜题名（null = 内置难度局）。 */
+    private String currentCustomPuzzleName;
+    /** 当前自定义谜题的给定盘快照（重开用，null = 内置难度局）。 */
+    private int[][] currentCustomPuzzleGrid;
 
     private LinearLayout menuPanel;
     private LinearLayout gamePanel;
@@ -207,6 +213,19 @@ public class SudokuModuleFragment extends Fragment {
             difficultyGrid.addView(difficultyRow, matchWidthWrapContent());
         }
         menuPanel.addView(difficultyGrid, matchWidthWrapContent());
+
+        // 自定义谜题入口：列表游玩 + 新建编辑（与难度按钮同风格的次级操作行）
+        LinearLayout customRow = new LinearLayout(context);
+        customRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button btnCustom = makeButton(context, "自定义谜题", colorMutedButton, colorMutedButtonText);
+        btnCustom.setOnClickListener(v -> showCustomPuzzleList());
+        Button btnNewPuzzle = makeButton(context, "＋ 新建谜题", colorMutedButton, colorMutedButtonText);
+        btnNewPuzzle.setOnClickListener(v -> openEditor());
+        customRow.addView(btnCustom, weightedActionParams());
+        customRow.addView(btnNewPuzzle, weightedActionParams());
+        LinearLayout.LayoutParams customParams = matchWidthWrapContent();
+        customParams.topMargin = dp(6);
+        menuPanel.addView(customRow, customParams);
 
         Button rules = makeButton(context, getString(R.string.game_sudoku_rules_button),
                 colorMutedButton, colorMutedButtonText);
@@ -374,7 +393,8 @@ public class SudokuModuleFragment extends Fragment {
                 colorPrimary, colorPrimaryText);
         Button choose = makeButton(context, getString(R.string.game_sudoku_result_choose_difficulty),
                 colorMutedButton, colorMutedButtonText);
-        replay.setOnClickListener(v -> startGameWithDifficulty(game.getCurrentDifficultyIndex()));
+        // 自定义谜题同样可“再来一局”：restartCurrentGame 内部会回到原给定盘
+        replay.setOnClickListener(v -> restartCurrentGame());
         choose.setOnClickListener(v -> showMenu());
         resultActions.addView(replay, weightedActionParams());
         resultActions.addView(choose, weightedActionParams());
@@ -413,6 +433,8 @@ public class SudokuModuleFragment extends Fragment {
         stopTimer();
         game = new SudokuGame();
         game.startNewGame(difficultyIndex);
+        currentCustomPuzzleName = null;
+        currentCustomPuzzleGrid = null;
         elapsedMs = 0L;
         notesMode = false;
         menuPanel.setVisibility(View.GONE);
@@ -436,6 +458,9 @@ public class SudokuModuleFragment extends Fragment {
             tvMenuStatus.setText(getString(R.string.game_sudoku_select_difficulty));
             return;
         }
+        // 恢复的存档只会是普通对局（自定义谜题从不写入存档槽）
+        currentCustomPuzzleName = null;
+        currentCustomPuzzleGrid = null;
         stopTimer();
         elapsedMs = saved.getElapsedMs();
         notesMode = false;
@@ -450,6 +475,118 @@ public class SudokuModuleFragment extends Fragment {
         renderGame();
         if (game.isBoardComplete()) onPuzzleSolved();
         else startTimer();
+    }
+
+    // ==================== 自定义谜题 ====================
+
+    /** 自定义谜题列表：点按游玩，末项进入删除列表。 */
+    private void showCustomPuzzleList() {
+        List<SudokuCustomPuzzles.CustomPuzzle> puzzles =
+                SudokuCustomPuzzles.loadAll(requireContext());
+        if (puzzles.isEmpty()) {
+            Toast.makeText(requireContext(), "还没有自定义谜题，先新建一个吧", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] names = new String[puzzles.size() + 1];
+        for (int i = 0; i < puzzles.size(); i++) {
+            names[i] = puzzles.get(i).name;
+        }
+        names[puzzles.size()] = "✕ 删除谜题…";
+        new AlertDialog.Builder(requireContext())
+                .setTitle("自定义谜题")
+                .setItems(names, (dialog, which) -> {
+                    if (which == puzzles.size()) {
+                        showDeletePuzzleList(puzzles);
+                    } else {
+                        playCustomPuzzle(puzzles.get(which));
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showDeletePuzzleList(List<SudokuCustomPuzzles.CustomPuzzle> puzzles) {
+        String[] names = new String[puzzles.size()];
+        for (int i = 0; i < puzzles.size(); i++) {
+            names[i] = puzzles.get(i).name;
+        }
+        new AlertDialog.Builder(requireContext())
+                .setTitle("选择要删除的谜题")
+                .setItems(names, (dialog, which) -> {
+                    SudokuCustomPuzzles.remove(requireContext(), puzzles.get(which).id);
+                    Toast.makeText(requireContext(),
+                            "已删除「" + puzzles.get(which).name + "」", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /** 打开谜题编辑器（replace + backstack，返回时宿主重建、列表自然刷新）。 */
+    private void openEditor() {
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new SudokuEditorFragment())
+                .addToBackStack(null)
+                .commit();
+    }
+
+    /** 以内置难度同样的流程进入自定义谜题。 */
+    private void playCustomPuzzle(SudokuCustomPuzzles.CustomPuzzle puzzle) {
+        int[][] grid = puzzle.decodeMap();
+        if (grid == null || !startCustomGame(grid, puzzle.name)) {
+            Toast.makeText(requireContext(), "谜题数据无效", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 装载自定义谜题并切入游戏面板（首次游玩与重开共用）。
+     *
+     * <p>与 {@link #startGameWithDifficulty(int)} 保持同一实例生命周期：整局替换
+     * {@code game} 字段；装载失败时当前对局不受影响。自定义谜题不写入
+     * {@code saveManager} 存档槽（见 {@link #saveCurrentGame()}）。</p>
+     */
+    private boolean startCustomGame(int[][] grid, String name) {
+        SudokuGame candidate = new SudokuGame();
+        if (!candidate.loadCustomPuzzle(grid)) return false;
+        stopTimer();
+        game = candidate;
+        currentCustomPuzzleName = name;
+        currentCustomPuzzleGrid = copyGrid(grid);
+        elapsedMs = 0L;
+        notesMode = false;
+        menuPanel.setVisibility(View.GONE);
+        gamePanel.setVisibility(View.VISIBLE);
+        resultPanel.setVisibility(View.GONE);
+        sudokuView.setInteractionEnabled(true);
+        sudokuView.clearSelection();
+        tvDifficulty.setText("自定义·" + name);
+        tvHeaderSubtitle.setText(getString(R.string.game_sudoku_playing));
+        tvMessage.setText(getString(R.string.game_sudoku_playing));
+        renderGame();
+        startTimer();
+        return true;
+    }
+
+    /** 重开当前对局：自定义谜题回到原给定盘，内置难度按当前难度重新生成。 */
+    private void restartCurrentGame() {
+        if (game != null && game.isCustomPuzzle()) {
+            // 自定义谜题没有难度种子，startGameWithDifficulty 会丢掉谜题改生成随机新局，
+            // 重开必须用留存的给定盘快照重新 loadCustomPuzzle 回到同一谜题。
+            if (currentCustomPuzzleGrid == null
+                    || !startCustomGame(currentCustomPuzzleGrid, currentCustomPuzzleName)) {
+                Toast.makeText(requireContext(), "谜题数据无效", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        startGameWithDifficulty(game == null ? 0 : game.getCurrentDifficultyIndex());
+    }
+
+    /** 深拷贝盘面（自定义谜题重开快照用，避免与解码结果共享可变数组）。 */
+    private static int[][] copyGrid(int[][] source) {
+        int[][] result = new int[source.length][];
+        for (int r = 0; r < source.length; r++) {
+            result[r] = source[r].clone();
+        }
+        return result;
     }
 
     private void renderGame() {
@@ -577,15 +714,23 @@ public class SudokuModuleFragment extends Fragment {
     private void onPuzzleSolved() {
         stopTimer();
         updateStats();
+        // 自定义谜题完成不计入使用统计/金币（防自制谜题刷金币与战绩；当前数独本就
+        // 未接 usageStore，这里同样保持不写）；也不清存档槽——自定义局从不写入
+        // 该槽，槽内可能是另一局未完成的普通对局，清了会误删。
+        boolean custom = game.isCustomPuzzle();
+        String message = custom
+                ? "🎉 自定义谜题《"
+                        + (currentCustomPuzzleName == null ? "" : currentCustomPuzzleName) + "》完成"
+                : getString(R.string.game_sudoku_result_title);
         tvHeaderSubtitle.setText(getString(R.string.game_sudoku_result_title));
-        tvMessage.setText(getString(R.string.game_sudoku_result_title));
+        tvMessage.setText(message);
         tvResultStats.setText(getString(R.string.game_sudoku_result_time, formatElapsed(elapsedMs))
                 + "\n" + getString(R.string.game_sudoku_result_mistakes, game.getMistakes())
                 + "\n" + getString(R.string.game_sudoku_result_hints, game.getHintsUsed()));
         resultPanel.setVisibility(View.VISIBLE);
         sudokuView.setInteractionEnabled(false);
         updateNumberButtons();
-        saveManager.clear();
+        if (!custom) saveManager.clear();
     }
 
     private void confirmLeaveToMenu() {
@@ -621,7 +766,7 @@ public class SudokuModuleFragment extends Fragment {
                 .setMessage(R.string.game_sudoku_restart_message)
                 .setNegativeButton(R.string.game_sudoku_cancel, null)
                 .setPositiveButton(R.string.game_sudoku_restart_confirm,
-                        (dialog, which) -> startGameWithDifficulty(game.getCurrentDifficultyIndex()))
+                        (dialog, which) -> restartCurrentGame())
                 .show();
     }
 
@@ -706,6 +851,9 @@ public class SudokuModuleFragment extends Fragment {
 
     private void saveCurrentGame() {
         if (saveManager == null || game == null || !game.isStarted() || game.isBoardComplete()) return;
+        // 自定义谜题不占用“继续游戏”存档槽：其 State 不带自定义标记，
+        // 存进去也无法经 restoreState 还原，只会挤掉可恢复的普通对局。
+        if (game.isCustomPuzzle()) return;
         updateElapsed();
         saveManager.save(game, elapsedMs);
     }

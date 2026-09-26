@@ -79,6 +79,12 @@ public final class TdTowerProgression {
     }
 
     /**
+     * i18n 说明：旧版此处曾提供 unlockRequirement(TowerType) 直接返回中文解锁条件文案。
+     * 引擎不得产出用户可见文案，文案已迁移到 UI 层（Fragment 以 unlockLevel +
+     * 宿主资源 game_td_unlock_* 格式化），该方法随之删除。
+     */
+
+    /**
      * 两个主线进度之间真正新增的塔。用于胜利结算，保证重复通关不会伪造“新解锁”。
      */
     public static List<TowerType> newlyUnlockedBetween(int beforeUnlockedLevelCount,
@@ -93,11 +99,5 @@ public final class TdTowerProgression {
             }
         }
         return Collections.unmodifiableList(result);
-    }
-
-    /** 锁定卡牌直接展示的解锁条件。 */
-    public static String unlockRequirement(TowerType tower) {
-        int level = unlockLevel(tower);
-        return level <= 1 ? "初始可用" : "通关第 " + (level - 1) + " 关解锁";
     }
 }

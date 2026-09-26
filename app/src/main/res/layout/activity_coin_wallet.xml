@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 金币钱包页：余额卡片 + 赚取规则 + 最近流水 + 称号商店（内容区 ScrollView 纵向滚动） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/eye_care_bg">
+
+    <!-- 顶部标题栏（仿成就中心样式） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:background="@color/eye_care_card"
+        android:elevation="2dp">
+
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/module_back"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="@dimen/gm_spacing_1" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/gm_spacing_3"
+            android:text="@string/coin_wallet_title"
+            android:textSize="20sp"
+            android:textColor="@color/eye_care_text_primary"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/gm_spacing_4">
+
+            <!-- ===== 余额卡片 ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="@dimen/gm_spacing_5"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/coin_wallet_balance_label"
+                    android:textSize="14sp"
+                    android:textColor="@color/eye_care_text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_coin_balance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_1"
+                    android:textSize="36sp"
+                    android:textColor="@color/brand_primary"
+                    android:textStyle="bold"
+                    tools:text="128" />
+
+                <TextView
+                    android:id="@+id/tv_coin_earned_today"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_1"
+                    android:textSize="12sp"
+                    android:textColor="@color/eye_care_text_secondary"
+                    tools:text="今日已赚 35 / 上限 200" />
+            </LinearLayout>
+
+            <!-- ===== 赚取规则说明区 ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/coin_wallet_rules_title"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/eye_care_text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:text="@string/coin_wallet_rules_body"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="4dp"
+                    android:textColor="@color/eye_care_text_secondary" />
+            </LinearLayout>
+
+            <!-- ===== 最近流水区（代码填充最近 20 条，最新在上） ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/coin_wallet_recent_title"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/eye_care_text_primary" />
+
+                <LinearLayout
+                    android:id="@+id/layout_coin_entries"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- ===== 称号商店区（代码填充 4 个称号行） ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/coin_wallet_shop_title"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/eye_care_text_primary" />
+
+                <LinearLayout
+                    android:id="@+id/layout_coin_titles"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_1"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

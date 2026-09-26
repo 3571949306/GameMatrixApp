@@ -3,6 +3,7 @@ package com.gamecenter.app.games.breakout;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -38,6 +39,8 @@ public class BreakoutActivity extends BaseGameActivity {
     private Handler handler = new Handler(Looper.getMainLooper());
     private int currentLevel = 1;
     private int totalLevels = 0;
+    private boolean waitingForNextLevel;
+    private long nextLevelAtUptime;
 
     /** 2026-08-23 P3: 统一音效/震动反馈（内部实时遵循设置开关） */
     private com.gamecenter.app.games.base.GameFeedback feedback;
@@ -49,13 +52,49 @@ public class BreakoutActivity extends BaseGameActivity {
         public void run() {
             // 由 Activity 的 isGameRunning / isGamePaused 控制循环存亡，
             // 不再依赖 view.isGameRunning()，避免初次测量前或过关/结束瞬间循环误停。
-            if (!isGameRunning || isGamePaused) return;
+            if (!canRunGameLoop()) return;
             if (breakoutView != null) {
                 breakoutView.update();
             }
-            handler.postDelayed(this, FRAME_INTERVAL_MS);
+            // update 可能同步触发结束或过关回调；取消排队任务无法取消当前帧，
+            // 因此必须在回调返回后重新检查状态，再决定是否安排下一帧。
+            scheduleGameLoop(FRAME_INTERVAL_MS);
         }
     };
+
+    private final Runnable nextLevelRunnable = () -> {
+        if (!isGameRunning || isGamePaused || !waitingForNextLevel) return;
+        waitingForNextLevel = false;
+        nextLevelAtUptime = 0L;
+        breakoutView.startNextLevel(currentLevel);
+        scheduleGameLoop(0L);
+    };
+
+    private boolean canRunGameLoop() {
+        return isGameRunning && !isGamePaused && !waitingForNextLevel;
+    }
+
+    private void scheduleGameLoop(long delayMillis) {
+        handler.removeCallbacks(gameLoop);
+        if (canRunGameLoop()) {
+            handler.postDelayed(gameLoop, delayMillis);
+        }
+    }
+
+    private void scheduleNextLevel() {
+        handler.removeCallbacks(gameLoop);
+        handler.removeCallbacks(nextLevelRunnable);
+        if (isGameRunning && !isGamePaused && waitingForNextLevel) {
+            handler.postDelayed(nextLevelRunnable,
+                    Math.max(0L, nextLevelAtUptime - SystemClock.uptimeMillis()));
+        }
+    }
+
+    private void cancelNextLevel() {
+        handler.removeCallbacks(nextLevelRunnable);
+        waitingForNextLevel = false;
+        nextLevelAtUptime = 0L;
+    }
 
     // ==================== BaseGameActivity 实现 ====================
 
@@ -76,6 +115,7 @@ public class BreakoutActivity extends BaseGameActivity {
         // 2026-08-23 P3：初始化音效/震动反馈
         feedback = new com.gamecenter.app.games.base.GameFeedback(this);
         breakoutView = new BreakoutView(this);
+        breakoutView.setOnRequestRestartListener(this::startGame);
 
         breakoutView.setOnGameListener(new BreakoutView.OnGameListener() {
             @Override
@@ -117,6 +157,7 @@ public class BreakoutActivity extends BaseGameActivity {
 
             @Override
             public void onLevelComplete(int level) {
+                waitingForNextLevel = true;
                 handler.removeCallbacks(gameLoop);
                 totalLevels++;
 
@@ -139,12 +180,8 @@ public class BreakoutActivity extends BaseGameActivity {
 
                 // 进入下一关（保留分数与生命）
                 currentLevel++;
-                handler.postDelayed(() -> {
-                    if (isGameRunning) {
-                        breakoutView.startNextLevel(currentLevel);
-                        handler.post(gameLoop);
-                    }
-                }, 1500);
+                nextLevelAtUptime = SystemClock.uptimeMillis() + 1500L;
+                scheduleNextLevel();
             }
         });
 
@@ -155,11 +192,16 @@ public class BreakoutActivity extends BaseGameActivity {
 
     @Override
     protected void startGame() {
+        handler.removeCallbacks(gameLoop);
+        cancelNextLevel();
+        currentLevel = 1;
+        totalLevels = 0;
+        updateScore(0);
         isGameRunning = true;
         isGamePaused = false;
         gameStartTime = System.currentTimeMillis();
         breakoutView.startGame(currentLevel);
-        handler.post(gameLoop);
+        scheduleGameLoop(0L);
     }
 
     @Override
@@ -169,6 +211,7 @@ public class BreakoutActivity extends BaseGameActivity {
             breakoutView.pauseGame();
         }
         handler.removeCallbacks(gameLoop);
+        handler.removeCallbacks(nextLevelRunnable);
     }
 
     @Override
@@ -177,13 +220,19 @@ public class BreakoutActivity extends BaseGameActivity {
         if (breakoutView != null) {
             breakoutView.resumeGame();
         }
-        handler.post(gameLoop);
+        if (waitingForNextLevel) {
+            // 保留原过关展示截止时间；后台到期也要等恢复前台后才切关。
+            scheduleNextLevel();
+        } else {
+            scheduleGameLoop(0L);
+        }
     }
 
     @Override
     protected void endGame() {
         isGameRunning = false;
         handler.removeCallbacks(gameLoop);
+        cancelNextLevel();
         if (breakoutView != null) {
             breakoutView.stopGame();
         }
@@ -228,11 +277,9 @@ public class BreakoutActivity extends BaseGameActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 自动启动 / 从后台恢复：未运行时开始新游戏；已暂停时恢复（修复后台返回后游戏冻结）。
+        // 自动恢复由基类的 autoPausedByLifecycle 处理，保留用户主动暂停。
         if (!isGameRunning) {
             startGame();
-        } else if (isGamePaused) {
-            resumeGame();
         }
     }
 

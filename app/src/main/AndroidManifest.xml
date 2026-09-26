@@ -178,10 +178,49 @@
             android:theme="@style/Theme.GameMatrixApp"
             android:screenOrientation="portrait" />
 
+        <!-- 金币经济（COIN_ECONOMY）：金币钱包页 -->
+        <activity
+            android:name=".games.coin.CoinWalletActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+        <!-- 游戏周报（WEEKLY_REPORT）：本周游玩汇总页 -->
+        <activity
+            android:name=".games.report.WeeklyReportActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
+        <!-- 关卡码合集本（CODEBOOK）：收藏推箱子/数独关卡码 -->
+        <activity
+            android:name=".games.codebook.CodeBookActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GameMatrixApp"
+            android:screenOrientation="portrait" />
+
         <!-- Batch 9-1 (GAME_LONG_PRESS_MENU): 接收桌面快捷方式创建结果（静默，无 UI） -->
         <receiver
             android:name=".ui.GameLongPressMenu$ShortcutResultReceiver"
             android:exported="false" />
+
+        <!-- 每日定时提醒（每天 20:00）：AlarmManager 闹钟触发后发送本地通知 -->
+        <receiver
+            android:name=".games.reminder.DailyReminderScheduler$Receiver"
+            android:exported="false" />
+
+        <!-- 桌面小组件（2x2 GameMatrix）：金币/今日挑战/今日时长；点击直达大厅或挑战游戏 -->
+        <receiver
+            android:name=".widget.GameMatrixWidgetProvider"
+            android:exported="true"
+            android:label="GameMatrix">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_game_matrix_info" />
+        </receiver>
 
         <activity
             android:name=".modules.ModuleStoreActivity"

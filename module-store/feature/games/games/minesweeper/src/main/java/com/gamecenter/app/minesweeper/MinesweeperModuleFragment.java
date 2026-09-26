@@ -49,6 +49,7 @@ public class MinesweeperModuleFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         Context ctx = requireContext();
         float dp = ctx.getResources().getDisplayMetrics().density;
+        int minTouchHeight = (int) Math.ceil(48f * dp);
         int colorBg = isNightMode() ? 0xFF121622 : 0xFFF5F5F5;
         int colorTextPrimary = isNightMode() ? 0xFFE4E6F0 : 0xFF212121;
         int colorTextSecondary = isNightMode() ? 0xFFAAAAAA : 0xFF757575;
@@ -115,18 +116,24 @@ public class MinesweeperModuleFragment extends Fragment {
         diffBar.setLayoutParams(diffBarLp);
 
         btnEasy = new Button(ctx);
+        btnEasy.setMinimumHeight(minTouchHeight);
+        btnEasy.setMinHeight(minTouchHeight);
         btnEasy.setText(getString(R.string.game_diff_easy));
         btnEasy.setTextSize(12);
         btnEasy.setOnClickListener(v -> setDifficulty(MinesweeperGame.DIFF_EASY));
         diffBar.addView(btnEasy);
 
         btnNormal = new Button(ctx);
+        btnNormal.setMinimumHeight(minTouchHeight);
+        btnNormal.setMinHeight(minTouchHeight);
         btnNormal.setText(getString(R.string.game_diff_normal));
         btnNormal.setTextSize(12);
         btnNormal.setOnClickListener(v -> setDifficulty(MinesweeperGame.DIFF_NORMAL));
         diffBar.addView(btnNormal);
 
         btnHard = new Button(ctx);
+        btnHard.setMinimumHeight(minTouchHeight);
+        btnHard.setMinHeight(minTouchHeight);
         btnHard.setText(getString(R.string.game_diff_hard));
         btnHard.setTextSize(12);
         btnHard.setOnClickListener(v -> setDifficulty(MinesweeperGame.DIFF_HARD));
@@ -142,6 +149,7 @@ public class MinesweeperModuleFragment extends Fragment {
         root.addView(gameContainer);
 
         minesweeperView = new MinesweeperView(ctx);
+        minesweeperView.setOnFlagCountChangedListener(count -> updateMinesDisplay());
         minesweeperView.setOnGameWinListener(elapsedSeconds -> {
             if (usageStore != null) {
                 usageStore.recordWin(GAME_ID);
@@ -161,6 +169,8 @@ public class MinesweeperModuleFragment extends Fragment {
 
         // 重新开始按钮
         btnRestart = new Button(ctx);
+        btnRestart.setMinimumHeight(minTouchHeight);
+        btnRestart.setMinHeight(minTouchHeight);
         btnRestart.setText(getString(R.string.game_btn_restart));
         LinearLayout.LayoutParams restartLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);

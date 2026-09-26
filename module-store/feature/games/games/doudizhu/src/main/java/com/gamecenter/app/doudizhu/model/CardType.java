@@ -29,38 +29,38 @@ public enum CardType {
      * 无效牌型 —— 当输入的牌无法组成任何合法牌型时返回此类型。
      * 例如：两张不同牌值的牌、不连续的散牌等。
      */
-    ERROR("错误牌型", 0),
+    ERROR("Invalid", 0),
 
     /**
      * 单牌 —— 任意一张单独的牌。
      * 最基本的出牌单位，任何单张牌都可以作为单牌出。
      */
-    SINGLE("单牌", 1),
+    SINGLE("Single", 1),
 
     /**
      * 对子 —— 两张牌值相同的牌。
      * 例如：两个3、两个K。注意：两张王不算对子，算王炸。
      */
-    PAIR("对子", 2),
+    PAIR("Pair", 2),
 
     /**
      * 三张 —— 三张牌值相同的牌。
      * 在标准斗地主中，三张不能单独出，必须带一张单牌或一对。
      * 但此处保留纯三张类型，用于飞机牌型的组成部分判定。
      */
-    TRIO("三张", 3),
+    TRIO("Trio", 3),
 
     /**
      * 三带一 —— 三张相同牌值 + 任意一张单牌。
      * 例如：333+5、KKK+7。附带的那张单牌不参与大小比较。
      */
-    TRIO_SINGLE("三带一", 4),
+    TRIO_SINGLE("Trio + Single", 4),
 
     /**
      * 三带一对 —— 三张相同牌值 + 一对。
      * 例如：333+55、KKK+77。附带的对子不参与大小比较。
      */
-    TRIO_PAIR("三带一对", 5),
+    TRIO_PAIR("Trio + Pair", 5),
 
     /**
      * 顺子（单顺）—— 五张或更多连续单牌。
@@ -72,7 +72,7 @@ public enum CardType {
      *   <li>A既可作最高牌（...JQKA），也可作最低牌（A2345不合法）</li>
      * </ul>
      */
-    STRAIGHT("顺子", 6),
+    STRAIGHT("Straight", 6),
 
     /**
      * 连对（双顺）—— 三对或更多连续对子。
@@ -83,14 +83,14 @@ public enum CardType {
      *   <li>不能包含2和王</li>
      * </ul>
      */
-    STRAIGHT_PAIRS("连对", 7),
+    STRAIGHT_PAIRS("Consecutive Pairs", 7),
 
     /**
      * 飞机 —— 两个或更多连续三张，不带任何附带牌。
      * 例如：333-444、555-666-777。
      * 三张的牌值必须连续，且不能包含2。
      */
-    AIRPLANE("飞机", 8),
+    AIRPLANE("Airplane", 8),
 
     /**
      * 飞机带翅膀 —— 飞机 + 相应数量的单牌或对子。
@@ -100,7 +100,7 @@ public enum CardType {
      *   <li>带对子：333-444+55+66（2组三张带2对）</li>
      * </ul>
      */
-    AIRPLANE_WITH_WINGS("飞机带翅膀", 9),
+    AIRPLANE_WITH_WINGS("Airplane with Wings", 9),
 
     /**
      * 炸弹 —— 四张牌值相同的牌。
@@ -108,28 +108,28 @@ public enum CardType {
      * 炸弹之间按牌值大小比较，大的炸弹压制小的炸弹。
      * 每出一个炸弹，游戏倍数翻倍。
      */
-    BOMB("炸弹", 10),
+    BOMB("Bomb", 10),
 
     /**
      * 王炸（火箭）—— 小王 + 大王。
      * 斗地主中最大的牌型，可以压制包括炸弹在内的所有牌型。
      * 每出一次王炸，游戏倍数翻两倍。
      */
-    JOKER_BOMB("王炸", 11),
+    JOKER_BOMB("Rocket", 11),
 
     /**
      * 四带两单 —— 四张相同牌值 + 两张单牌。
      * 注意：四带二不是炸弹！不能压制其他牌型，只能与同牌型比较。
      * 例如：3333+5+7、KKKK+3+4。
      */
-    QUAD_SINGLE("四带两单", 4),
+    QUAD_SINGLE("Quad + Two Singles", 4),
 
     /**
      * 四带两对 —— 四张相同牌值 + 两对。
      * 注意：四带两对不是炸弹！不能压制其他牌型，只能与同牌型比较。
      * 例如：3333+55+66、KKKK+99+10-10。
      */
-    QUAD_PAIR("四带两对", 5);
+    QUAD_PAIR("Quad + Two Pairs", 5);
 
     private final String name;
     private final int priority;
@@ -137,7 +137,8 @@ public enum CardType {
     /**
      * 枚举构造函数。
      *
-     * @param name     牌型的中文名称，用于 UI 显示和日志输出
+     * @param name     牌型的英文名称（数据层中性数据），用于日志输出；
+     *                 UI 需要中文展示时走宿主本地化资源
      * @param priority 牌型的优先级，数值越大优先级越高；炸弹和王炸拥有最高优先级
      */
     CardType(String name, int priority) {
@@ -146,9 +147,9 @@ public enum CardType {
     }
 
     /**
-     * 获取牌型的中文名称。
+     * 获取牌型的英文名称。
      *
-     * @return 牌型名称，如 "单牌"、"炸弹"、"王炸" 等
+     * @return 牌型名称，如 "Single"、"Bomb"、"Rocket" 等
      */
     public String getName() {
         return name;

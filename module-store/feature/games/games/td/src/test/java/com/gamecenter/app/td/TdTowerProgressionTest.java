@@ -22,7 +22,9 @@ public class TdTowerProgressionTest {
                 TdTowerProgression.availableForUnlockedLevelCount(1));
         assertTrue(TdTowerProgression.isUnlocked(TowerType.BOTTLE, 1));
         assertFalse(TdTowerProgression.isUnlocked(TowerType.FAN, 1));
-        assertEquals("通关第 1 关解锁", TdTowerProgression.unlockRequirement(TowerType.FAN));
+        // i18n 迁移：引擎不再产出「通关第 N 关解锁」文案（由 UI 层按 unlockLevel 本地化），
+        // 这里改断言解锁数据本身。
+        assertEquals(2, TdTowerProgression.unlockLevel(TowerType.FAN));
     }
 
     @Test

@@ -28,7 +28,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.modules.ModuleManager;
+import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TdLevels;
 import com.gamecenter.app.td.engine.TdTowerProgression;
@@ -47,7 +49,8 @@ import java.util.Set;
  * 塔防「保卫蛋蛋」主 Fragment — 成品版。
  *
  * 结构：HUD（金币/波次/生命 + 下一波预告）→ 棋盘 → 消息条 → 塔栏 → 控制栏。
- * 覆盖层：选关面板（星级/解锁/难度选择）、结算面板（胜负统计、下一关/重玩）。
+ * 覆盖层：选关面板（星级/解锁/难度选择/战绩与图鉴入口）、战绩/成就面板、图鉴面板（塔与怪属性速查）、
+ * 结算面板（胜负统计、下一关/重玩）。
  *
  * 生命周期纪律：对局主循环挂 mainHandler，onDestroyView/onHiddenChanged 必须取消；
  * 程序化 Button 必须 setStateListAnimator(null)（避免宿主主题资源 ID 冲突）。
@@ -65,17 +68,30 @@ public class TdModuleFragment extends Fragment {
     private TextView tvCoin, tvWave, tvHp, tvNext, tvMsg, tvLevelLabel;
     private Button btnPrevLevel, btnNextLevel, btnSpeed, btnNextWave, btnQuitToMenu, btnSelectTower;
     private Button btnUpgrade, btnSell, btnTarget, btnDeselect;
+    /** 塔操作条顶部的升级预览行（tag=td_upgrade_preview，供回归测试定位）。 */
+    private TextView tvUpgradePreview;
     private final Runnable tickLoop = this::tickOnce;
     private TowerType selectedType = null;
     /** 合成源塔；非空时下一次点选塔会作为合成目标。 */
     private TdGame.Tower mergeSource;
     private int selectedLevelIdx = 0;
+    /** 本局对局模式（战役/无尽）：restartLevel 与结算据此保持模式一致。 */
+    private TdGame.Mode selectedMode = TdGame.Mode.CAMPAIGN;
     private int gameSession = 0;
     private boolean paused = false;
     private boolean gameEnded = false;
+    /**
+     * 放弃局击杀入账守卫（每局至多一次）：放弃路径（返回选关/对局中换关/销毁）可能被
+     * 连续触发（选关 → 战绩/图鉴 → 再返回选关；先选关后销毁），由本标记防止同一局
+     * 重复 addKills；startLevel 开新局时复位。不复用 gameEnded 承担此职责——它语义是
+     * 「结算已走过」，放弃局置位会连带改变 showLevelSelect 的 gameSession 闸等行为。
+     */
+    private boolean killsRecordedForSession = false;
 
     /** PVZ 式开局塔组：每局只带 5 张牌，避免小屏横向挤压。 */
     private static final int DECK_SIZE = 5;
+    /** 每关最高星数（引擎 starsEarned 满分），战绩面板累计星级的分母 = 关卡数 × 此值。 */
+    private static final int MAX_STARS_PER_LEVEL = 3;
     private final List<TowerType> activeDeck = new ArrayList<>(Arrays.asList(
             TowerType.BOTTLE, TowerType.SUN, TowerType.SNOW));
     private final Map<TowerType, View> towerItemByType = new HashMap<>();
@@ -92,7 +108,6 @@ public class TdModuleFragment extends Fragment {
     public View onCreateView(@NonNull android.view.LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        save = new TdSaveManager(requireContext().getApplicationContext());
         try {
             moduleResources = ModuleManager.INSTANCE.getModuleResources("td");
             if (moduleResources == null) {
@@ -101,6 +116,8 @@ public class TdModuleFragment extends Fragment {
             // 关卡数据是模块资产真源。加载器会先完成 schema、路径、波次和枚举校验，
             // 绝不回退到陈旧 Java 关卡，避免内容版本与 UI/存档悄悄错配。
             TdLevels.initialize(moduleResources.getAssetManager());
+            // 存档的历史解锁清洗依赖已加载的 campaign catalog；必须在上面初始化之后构造。
+            save = new TdSaveManager(requireContext().getApplicationContext());
         } catch (RuntimeException contentFailure) {
             return buildCampaignUnavailableView();
         }
@@ -109,7 +126,7 @@ public class TdModuleFragment extends Fragment {
 
     private View buildCampaignUnavailableView() {
         TextView message = new TextView(requireContext());
-        message.setText("关卡内容加载失败\n请重新安装“保卫蛋蛋”模块后再试");
+        message.setText(getString(R.string.game_td_msg_campaign_unavailable));
         message.setTextColor(0xFFFFFFFF);
         message.setTextSize(17);
         message.setGravity(Gravity.CENTER);
@@ -208,19 +225,22 @@ public class TdModuleFragment extends Fragment {
             @Override public void onTowerPlaced(int row, int col, TowerType type) {
                 if (game == null) return;
                 if (game.placeTower(type, row, col) != null) {
-                    showMsg(game.getLastActionMessage(), game.getLastActionTone());
+                    showEngineMsg();
                     updateHud();
                 } else {
-                    showMsg(game.getLastActionMessage(), "err");
+                    showEngineMsg();
                 }
             }
             @Override public void onTowerSelected(int row, int col) {
                 if (game == null) return;
                 TdGame.Tower tapped = game.getTowerAt(row, col);
-                if (mergeSource != null) {
-                    game.mergeTowers(mergeSource.row, mergeSource.col, row, col);
-                    showMsg(game.getLastActionMessage(), game.getLastActionTone());
-                    mergeSource = null;
+                TdGame.Tower source = mergeSource;
+                mergeSource = null;
+                // A sold/consumed tower or a tower from another session cannot authorize
+                // merging a replacement that happens to occupy its former coordinates.
+                if (source != null && game.getTowerAt(source.row, source.col) == source) {
+                    game.mergeTowers(source.row, source.col, row, col);
+                    showEngineMsg();
                     hideTowerOps();
                 } else {
                     showTowerOps(tapped);
@@ -230,7 +250,7 @@ public class TdModuleFragment extends Fragment {
             @Override public void onTowerDeselected() {
                 if (mergeSource != null) {
                     mergeSource = null;
-                    showMsg("已取消合成", "info");
+                    showMsg(getString(R.string.game_td_msg_merge_cancelled), "info");
                 }
                 hideTowerOps();
             }
@@ -238,7 +258,7 @@ public class TdModuleFragment extends Fragment {
             @Override public void onTowerDragged(int sourceRow, int sourceCol, int targetRow, int targetCol) {
                 if (game == null) return;
                 boolean ok = game.mergeTowers(sourceRow, sourceCol, targetRow, targetCol);
-                showMsg(game.getLastActionMessage(), game.getLastActionTone());
+                showEngineMsg();
                 if (ok) {
                     mergeSource = null;
                     hideTowerOps();
@@ -274,13 +294,13 @@ public class TdModuleFragment extends Fragment {
                     int[] cell = tdView.cellAt(event.getX(), event.getY());
                     tdView.clearPaletteDragTarget();
                     if (cell == null) {
-                        showMsg("请把塔牌拖到棋盘格内", "err");
+                        showMsg(getString(R.string.game_td_msg_drop_inside_board), "err");
                         return true;
                     }
                     if (canDropPalette(dragType, cell[0], cell[1])) {
                         handlePaletteDrop(cell[0], cell[1], dragType);
                     } else {
-                        showMsg("这里不能放置或合成该塔", "err");
+                        showMsg(getString(R.string.game_td_msg_invalid_drop_cell), "err");
                     }
                     return true;
                 }
@@ -327,7 +347,7 @@ public class TdModuleFragment extends Fragment {
     private void handlePaletteDrop(int row, int col, TowerType type) {
         if (game == null) return;
         boolean ok = game.placeOrMergeTower(type, row, col);
-        showMsg(game.getLastActionMessage(), game.getLastActionTone());
+        showEngineMsg();
         if (ok) {
             selectedType = null;
             tdView.setSelectedType(null);
@@ -366,7 +386,7 @@ public class TdModuleFragment extends Fragment {
             View dot = new TowerGlyphView(ctx, t);
 
             TextView name = new TextView(ctx);
-            name.setText(t.displayName);
+            name.setText(towerName(t));
             name.setTextSize(10);
             name.setTextColor(0xFFFFF8E1);
             name.setGravity(Gravity.CENTER);
@@ -398,7 +418,7 @@ public class TdModuleFragment extends Fragment {
                 tdView.clearSelection();
                 hideTowerOps();
                 updateTowerBarSelection();
-                showMsg("选择 " + t.displayName + "，点击棋盘绿色空格建造", "info");
+                showMsg(getString(R.string.game_td_msg_select_tower_build, towerName(t)), "info");
             });
             final float[] dragDown = new float[2];
             final boolean[] dragStarted = {false};
@@ -417,7 +437,7 @@ public class TdModuleFragment extends Fragment {
                             paletteDragType = t;
                             dragStarted[0] = item.startDragAndDrop(data, shadow, null, 0);
                             if (!dragStarted[0]) paletteDragType = null;
-                            if (dragStarted[0]) showMsg("拖动 " + t.displayName + " 到空格或同类塔上", "info");
+                            if (dragStarted[0]) showMsg(getString(R.string.game_td_msg_drag_tower, towerName(t)), "info");
                         }
                         return true;
                     case MotionEvent.ACTION_UP:
@@ -491,19 +511,20 @@ public class TdModuleFragment extends Fragment {
         }
     }
 
-    private static String towerRole(TowerType t) {
+    /** 塔定位说明（塔栏卡片副标题），经宿主资源本地化。 */
+    private String towerRole(TowerType t) {
         switch (t) {
-            case BOTTLE: return "单体 · 对空";
-            case SUN: return "经济增益";
-            case SNOW: return "减速控制";
-            case FAN: return "范围清群";
-            case POISON: return "持续伤害";
-            case ROCKET: return "重炮爆发";
-            case LIGHTNING: return "连锁清群";
-            case SNIPER: return "超远强敌";
-            case MINE: return "路径陷阱";
-            case AMPLIFIER: return "强化友军";
-            default: return "防御塔";
+            case BOTTLE: return getString(R.string.game_td_role_bottle);
+            case SUN: return getString(R.string.game_td_role_sun);
+            case SNOW: return getString(R.string.game_td_role_snow);
+            case FAN: return getString(R.string.game_td_role_fan);
+            case POISON: return getString(R.string.game_td_role_poison);
+            case ROCKET: return getString(R.string.game_td_role_rocket);
+            case LIGHTNING: return getString(R.string.game_td_role_lightning);
+            case SNIPER: return getString(R.string.game_td_role_sniper);
+            case MINE: return getString(R.string.game_td_role_mine);
+            case AMPLIFIER: return getString(R.string.game_td_role_amplifier);
+            default: return getString(R.string.game_td_role_default);
         }
     }
 
@@ -517,9 +538,9 @@ public class TdModuleFragment extends Fragment {
         btnPrevLevel = ctrlButton(ctx, "◀");
         btnNextLevel = ctrlButton(ctx, "▶");
         btnSpeed = ctrlButton(ctx, "⏸");
-        btnNextWave = ctrlButton(ctx, "▶ 开战");
-        btnQuitToMenu = ctrlButton(ctx, "☰ 关卡");
-        btnSelectTower = ctrlButton(ctx, "塔");
+        btnNextWave = ctrlButton(ctx, getString(R.string.game_td_btn_fight));
+        btnQuitToMenu = ctrlButton(ctx, getString(R.string.game_td_btn_levels));
+        btnSelectTower = ctrlButton(ctx, getString(R.string.game_td_btn_tower));
 
         // 开战按钮主色化
         GradientDrawable wb = new GradientDrawable();
@@ -541,9 +562,14 @@ public class TdModuleFragment extends Fragment {
             int waveBefore = game.getWaveIndex();
             boolean ok = game.startNextWaveEarly();
             if (game.getState() == TdGame.State.RUNNING && game.getWaveIndex() != waveBefore) {
-                tdView.showWaveBanner(game.getWaveIndex(), game.getTotalWaves());
+                if (game.getMode() == TdGame.Mode.ENDLESS) {
+                    // 无尽模式 totalWaves 随合成波递增，"共 N 波"语义不成立。
+                    tdView.showWaveBannerEndless(game.getEndlessWaveReached());
+                } else {
+                    tdView.showWaveBanner(game.getWaveIndex(), game.getTotalWaves());
+                }
             }
-            showMsg(game.getLastActionMessage(), game.getLastActionTone());
+            showEngineMsg();
             updateHud();
         });
         btnQuitToMenu.setOnClickListener(v -> showLevelSelect());
@@ -553,7 +579,9 @@ public class TdModuleFragment extends Fragment {
                     : null;
             tdView.setSelectedType(selectedType);
             updateTowerBarSelection();
-            showMsg(selectedType == null ? "已取消选择" : "请选择塔并点击棋盘", "info");
+            showMsg(getString(selectedType == null
+                    ? R.string.game_td_msg_selection_cancelled
+                    : R.string.game_td_msg_select_tower_hint), "info");
         });
 
         bar.addView(btnQuitToMenu, new LinearLayout.LayoutParams(dp(56), dp(36)));
@@ -566,27 +594,39 @@ public class TdModuleFragment extends Fragment {
     }
 
     private View buildTowerOps(Context ctx) {
+        // 竖排结构：顶部升级预览行（决策信息）+ 底部原四按钮操作行，操作行布局与历史版本一致
         LinearLayout bar = new LinearLayout(ctx);
         towerOpsBar = bar;
-        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setOrientation(LinearLayout.VERTICAL);
         bar.setGravity(Gravity.CENTER);
         bar.setPadding(dp(6), dp(2), dp(6), dp(2));
         bar.setBackgroundColor(0xFF433A2C);
 
-        btnUpgrade = ctrlButton(ctx, "升级");
-        btnSell = ctrlButton(ctx, "卖出");
-        btnTarget = ctrlButton(ctx, "目标");
-        btnDeselect = ctrlButton(ctx, "取消");
+        tvUpgradePreview = new TextView(ctx);
+        tvUpgradePreview.setTextSize(11);
+        tvUpgradePreview.setTextColor(0xFFFFD54F);
+        tvUpgradePreview.setGravity(Gravity.CENTER);
+        tvUpgradePreview.setTag("td_upgrade_preview");
+        bar.addView(tvUpgradePreview, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+        btnUpgrade = ctrlButton(ctx, getString(R.string.game_td_btn_upgrade));
+        btnSell = ctrlButton(ctx, getString(R.string.game_td_btn_sell));
+        btnTarget = ctrlButton(ctx, getString(R.string.game_td_btn_target));
+        btnDeselect = ctrlButton(ctx, getString(R.string.game_td_btn_cancel));
         btnUpgrade.setOnClickListener(v -> {
             TdGame.Tower t = tdView.getHoverTower();
             if (t == null) return;
             if (t.level >= 3) {
-                showMsg("Lv3 已是最高等级", "info");
+                showMsg(getString(R.string.game_td_msg_max_level), "info");
                 return;
             }
             mergeSource = t;
-            showMsg("已选择 " + t.type.displayName + " Lv" + t.level
-                    + "，请点击另一座同级同类塔合成", "info");
+            showMsg(getString(R.string.game_td_msg_merge_source_selected, towerName(t.type), t.level),
+                    "info");
             hideTowerOps();
             updateHud();
         });
@@ -594,7 +634,7 @@ public class TdModuleFragment extends Fragment {
             TdGame.Tower t = tdView.getHoverTower();
             if (t == null) return;
             game.sellTower(t.row, t.col);
-            showMsg(game.getLastActionMessage(), "info");
+            showEngineMsg();
             hideTowerOps();
             updateHud();
         });
@@ -602,15 +642,17 @@ public class TdModuleFragment extends Fragment {
             TdGame.Tower t = tdView.getHoverTower();
             if (t == null) return;
             game.cycleTowerTargetMode(t.row, t.col);
-            showMsg(game.getLastActionMessage(), game.getLastActionTone());
+            showEngineMsg();
             showTowerOps(t);
         });
         btnDeselect.setOnClickListener(v -> hideTowerOps());
 
-        bar.addView(btnUpgrade, new LinearLayout.LayoutParams(0, dp(34), 1f));
-        bar.addView(btnTarget, new LinearLayout.LayoutParams(0, dp(34), 1f));
-        bar.addView(btnSell, new LinearLayout.LayoutParams(0, dp(34), 1f));
-        bar.addView(btnDeselect, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnUpgrade, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnTarget, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnSell, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        row.addView(btnDeselect, new LinearLayout.LayoutParams(0, dp(34), 1f));
+        bar.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         bar.setVisibility(View.GONE);
         return bar;
     }
@@ -619,10 +661,58 @@ public class TdModuleFragment extends Fragment {
 
     private void showTowerOps(TdGame.Tower t) {
         towerOpsBar.setVisibility(View.VISIBLE);
-        btnUpgrade.setText(t.level >= 3 ? "已满级 Lv3" : "合成 Lv" + (t.level + 1));
+        btnUpgrade.setText(t.level >= 3 ? getString(R.string.game_td_btn_merge_max)
+                : getString(R.string.game_td_btn_merge_to, t.level + 1));
         btnUpgrade.setEnabled(t.level < 3);
-        btnTarget.setEnabled(t.type != TowerType.SUN);
-        btnTarget.setText(t.type == TowerType.SUN ? "经济塔" : "目标·" + t.targetMode.displayName);
+        btnTarget.setEnabled(t.type != TowerType.SUN && t.type != TowerType.SNIPER);
+        btnTarget.setText(t.type == TowerType.SUN ? getString(R.string.game_td_btn_target_economy)
+                : getString(R.string.game_td_btn_target_mode, targetModeName(
+                        t.type == TowerType.SNIPER ? TdGame.TargetMode.STRONG : t.targetMode)));
+        refreshUpgradePreview(t);
+    }
+
+    /**
+     * 升级预览行：按塔型分口径展示合成升到下一级后的成长，满级提示「已满级」。
+     * 不标金币数——两条真实升级路径的消耗口径不同（拖拽合成扣被拖塔 baseCost，
+     * 点选合成不扣金只消耗一座塔），upgradeCost(n+1) 在生产路径零调用，标出会误导玩家。
+     * <ul>
+     *   <li>攻击塔：伤害/射程/攻速（damageAt/rangeAt/fireIntervalAt(n+1)，数值口径复用
+     *       图鉴 codexNum）。增幅塔加成（AMPLIFIER 攻速/射程）不在本面板展示——当其确在
+     *       射程内时，预览行追加注记说明数值为加成前基础值，避免玩家把面板值误读为实战值。</li>
+     *   <li>太阳花（SUN）：伤害/攻速恒为 0 无信息量，改示下一级单次产币金额
+     *       incomeAt(n+1)，取整口径与图鉴收益行（Math.round）一致。</li>
+     *   <li>增幅塔（AMPLIFIER）：改示下一级光环成长 amplifierAttackSpeedBonusAt(n+1) /
+     *       amplifierRangeBonusAt(n+1)，按百分数取整展示（引擎光环互不叠加、
+     *       增幅塔与太阳花不受光环加成，故无 amplified 注记分支）。</li>
+     * </ul>
+     */
+    private void refreshUpgradePreview(TdGame.Tower t) {
+        if (tvUpgradePreview == null) return;
+        if (t.level >= 3) {
+            tvUpgradePreview.setText(getString(R.string.game_td_upgrade_preview_max));
+            return;
+        }
+        int next = t.level + 1;
+        String preview;
+        if (t.type == TowerType.SUN) {
+            // 经济塔预览：改示下一级单次产币金额（incomeAt 与图鉴收益行同源）
+            preview = getString(R.string.game_td_upgrade_preview_sun, next,
+                    Math.round(t.type.incomeAt(next)));
+        } else if (t.type == TowerType.AMPLIFIER) {
+            // 增幅塔预览：改示下一级光环攻速/射程加成（×100 取整为百分数）
+            preview = getString(R.string.game_td_upgrade_preview_amplifier, next,
+                    Math.round(t.type.amplifierAttackSpeedBonusAt(next) * 100),
+                    Math.round(t.type.amplifierRangeBonusAt(next) * 100));
+        } else {
+            preview = getString(R.string.game_td_upgrade_preview_next, next,
+                    codexNum(t.type.damageAt(next)), codexNum(t.type.rangeAt(next)),
+                    codexNum(t.type.fireIntervalAt(next)));
+            if (game != null
+                    && (game.getAttackSpeedBonus(t) > 0f || game.getRangeBonus(t) > 0f)) {
+                preview += getString(R.string.game_td_upgrade_preview_amplified_note);
+            }
+        }
+        tvUpgradePreview.setText(preview);
     }
 
     private void hideTowerOps() {
@@ -637,7 +727,7 @@ public class TdModuleFragment extends Fragment {
         int next = (selectedLevelIdx + delta + TdLevels.levelIds().size())
                 % TdLevels.levelIds().size();
         if (next + 1 > n) {
-            showMsg("先通过前面的关卡解锁", "err");
+            showMsg(getString(R.string.game_td_msg_level_locked), "err");
             return;
         }
         restartLevel(next);
@@ -645,7 +735,9 @@ public class TdModuleFragment extends Fragment {
 
     /** 主入口：进入选关面板 */
     public void showLevelSelect() {
+        mergeSource = null;
         if (game != null && !game.isEnded()) {
+            recordAbandonedKills();
             gameSession++;
         }
         clearOverlay();
@@ -658,7 +750,7 @@ public class TdModuleFragment extends Fragment {
         panel.setPadding(dp(16), dp(24), dp(16), dp(16));
 
         TextView title = new TextView(requireContext());
-        title.setText("选择关卡");
+        title.setText(getString(R.string.game_td_title_level_select));
         title.setTextSize(22);
         title.setTextColor(0xFFFFD54F);
         title.setTypeface(Typeface.DEFAULT_BOLD);
@@ -666,76 +758,75 @@ public class TdModuleFragment extends Fragment {
         panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
 
         TextView sub = new TextView(requireContext());
-        sub.setText("保护蛋蛋，击退怪物");
+        sub.setText(getString(R.string.game_td_subtitle_protect_egg));
         sub.setTextSize(13);
         sub.setTextColor(0xFFCCFFE0);
         sub.setGravity(Gravity.CENTER);
         panel.addView(sub, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(24)));
 
-        for (int i = 0; i < ids.size(); i++) {
-            final int idx = i;
-            String id = ids.get(i);
-            boolean locked = idx >= unlocked;
-            int stars = save.getBestStars(id);
-
-            LinearLayout card = new LinearLayout(requireContext());
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setGravity(Gravity.CENTER_VERTICAL);
-            card.setPadding(dp(14), dp(12), dp(14), dp(12));
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(locked ? 0xFF3A3A3A : 0xFF4A4238);
-            bg.setStroke(dp(1), locked ? 0xFF555555 : 0xFFFFD54F);
-            bg.setCornerRadius(dp(12));
-            card.setBackground(bg);
-
-            TextView name = new TextView(requireContext());
-            name.setText((idx + 1) + ". " + TdLevels.levelDisplayName(idx, id));
-            name.setTextSize(16);
-            name.setTextColor(locked ? 0xFF777777 : 0xFFFFFFFF);
-            name.setTypeface(Typeface.DEFAULT_BOLD);
-
-            TextView meta = new TextView(requireContext());
-            meta.setText(locked ? "🔒 未解锁" : TdLevels.levelSub(idx, id) + "  ·  " + starsText(stars));
-            meta.setTextSize(11);
-            meta.setTextColor(0xFFB0BEC5);
-
-            LinearLayout inner = new LinearLayout(requireContext());
-            inner.setOrientation(LinearLayout.VERTICAL);
-            inner.addView(name);
-            inner.addView(meta);
-
-            card.addView(inner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            if (!locked) {
-                Button play = new Button(requireContext());
-                play.setText("▶ 玩");
-                play.setTextSize(12);
-                play.setAllCaps(false);
-                play.setStateListAnimator(null);
-                GradientDrawable pb = new GradientDrawable();
-                pb.setColor(0xFF2E9E4F);
-                pb.setCornerRadius(dp(8));
-                ((Button) play).setBackground(pb);
-                play.setTextColor(0xFFFFFFFF);
-                play.setOnClickListener(v -> showDifficultySelect(idx));
-                card.addView(play, new LinearLayout.LayoutParams(dp(56), dp(36)));
+        // 章节分组：滚动顺序 = 章节顺序，每章一个章头（章节名 + 已通进度）+ 该章关卡卡片。
+        // 兼容：catalog 未携带章节元数据（历史 installForTesting 纯关卡装填）时维持平铺渲染。
+        List<TdLevels.ChapterGroup> chapters = TdLevels.chapterGroups();
+        if (chapters.isEmpty()) {
+            for (int i = 0; i < ids.size(); i++) {
+                addLevelCard(panel, i, ids.get(i), unlocked);
             }
-            panel.addView(card, new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            ((LinearLayout.LayoutParams) card.getLayoutParams()).topMargin = dp(10);
+        } else {
+            int firstIdx = 0;
+            for (TdLevels.ChapterGroup group : chapters) {
+                panel.addView(chapterSection(group, firstIdx, unlocked),
+                        new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT));
+                firstIdx += group.levelIds().size();
+            }
         }
 
         TextView stats = new TextView(requireContext());
-        stats.setText("已通关 " + countCleared() + " · 总击杀 " + save.getTotalKills()
-                + " · 游玩 " + save.getPlayCount() + " 次");
+        stats.setText(getString(R.string.game_td_stats_summary,
+                countCleared(), save.getTotalKills(), save.getPlayCount()));
         stats.setTextSize(12);
         stats.setTextColor(0xFFB0BEC5);
         stats.setGravity(Gravity.CENTER);
         stats.setPadding(dp(8), dp(14), dp(8), dp(4));
         panel.addView(stats, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38)));
 
-        Button back = ctrlButton(requireContext(), "返回大厅");
+        // 战绩/成就面板入口：风格与「无尽模式」按钮一致（程序化 Button + 蓝底圆角）
+        Button statsEntry = new Button(requireContext());
+        statsEntry.setText(getString(R.string.game_td_btn_stats));
+        statsEntry.setTextSize(12);
+        statsEntry.setAllCaps(false);
+        statsEntry.setStateListAnimator(null);
+        GradientDrawable sb = new GradientDrawable();
+        sb.setColor(0xFF1E88E5);
+        sb.setCornerRadius(dp(8));
+        statsEntry.setBackground(sb);
+        statsEntry.setTextColor(0xFFFFFFFF);
+        statsEntry.setOnClickListener(v -> showStatsPanel());
+        panel.addView(statsEntry, new LinearLayout.LayoutParams(dp(120), dp(40)));
+        ((LinearLayout.LayoutParams) statsEntry.getLayoutParams()).topMargin = dp(10);
+        ((LinearLayout.LayoutParams) statsEntry.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        // 图鉴入口：与战绩按钮同构（程序化 Button + 圆角），青色区分战绩/无尽入口
+        Button codexEntry = new Button(requireContext());
+        codexEntry.setText(getString(R.string.game_td_btn_codex));
+        codexEntry.setTextSize(12);
+        codexEntry.setAllCaps(false);
+        codexEntry.setStateListAnimator(null);
+        GradientDrawable cb = new GradientDrawable();
+        cb.setColor(0xFF00897B);
+        cb.setCornerRadius(dp(8));
+        codexEntry.setBackground(cb);
+        codexEntry.setTextColor(0xFFFFFFFF);
+        codexEntry.setOnClickListener(v -> showCodexPanel());
+        panel.addView(codexEntry, new LinearLayout.LayoutParams(dp(120), dp(40)));
+        ((LinearLayout.LayoutParams) codexEntry.getLayoutParams()).topMargin = dp(8);
+        ((LinearLayout.LayoutParams) codexEntry.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        Button back = ctrlButton(requireContext(), getString(R.string.game_td_btn_back_hall));
         back.setOnClickListener(v -> exitToHall());
         panel.addView(back, new LinearLayout.LayoutParams(dp(120), dp(40)));
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).topMargin = dp(8);
         ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
 
         ScrollView scroll = new ScrollView(requireContext());
@@ -747,7 +838,130 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
+    /**
+     * 一个章节分组段：章头（章节名 + 已通进度）在上，该章关卡卡片按全局顺序排列在其下，
+     * 整体滚动顺序与章节顺序一致。tag 前缀（td_chapter:* / td_level_card:*）供 UI 回归测试定位。
+     */
+    private LinearLayout chapterSection(TdLevels.ChapterGroup group, int firstIdx, int unlocked) {
+        LinearLayout section = new LinearLayout(requireContext());
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setTag("td_chapter:" + group.id);
+        section.addView(chapterHeader(group));
+        List<String> groupIds = group.levelIds();
+        for (int i = 0; i < groupIds.size(); i++) {
+            addLevelCard(section, firstIdx + i, groupIds.get(i), unlocked);
+        }
+        return section;
+    }
+
+    /** 章头：章节名（TdLevels 按 locale 解析）+ 该章通关进度，延续浮层既有的金色标题风格。 */
+    private LinearLayout chapterHeader(TdLevels.ChapterGroup group) {
+        LinearLayout header = new LinearLayout(requireContext());
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(4), dp(12), dp(4), 0);
+
+        TextView name = new TextView(requireContext());
+        name.setText(group.displayName());
+        name.setTextSize(15);
+        name.setTextColor(0xFFFFD54F);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setTag("td_chapter_name:" + group.id);
+        header.addView(name, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        // 进度口径：该章内 getBestStars>0 的关卡数记为「已通」，与战绩面板 countCleared 一致
+        // （星数非零即通关；锁定关与未获星关均不计入）。总数为该章 levelCount。
+        int cleared = 0;
+        for (String id : group.levelIds()) {
+            if (save.getBestStars(id) > 0) cleared++;
+        }
+        TextView progress = new TextView(requireContext());
+        progress.setText(getString(R.string.game_td_chapter_progress, cleared, group.levelIds().size()));
+        progress.setTextSize(11);
+        progress.setTextColor(0xFFB0BEC5);
+        progress.setTag("td_chapter_progress:" + group.id);
+        header.addView(progress, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return header;
+    }
+
+    /** 单张关卡卡片（平铺时代的结构原样保留：序号+名称/副题+星级 + 开始/无尽入口），按全局序号判定锁定。 */
+    private void addLevelCard(LinearLayout parent, int idx, String id, int unlocked) {
+        final int levelIdx = idx;
+        String levelId = id;
+        boolean locked = levelIdx >= unlocked;
+        int stars = save.getBestStars(levelId);
+
+        LinearLayout card = new LinearLayout(requireContext());
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(14), dp(12), dp(14), dp(12));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(locked ? 0xFF3A3A3A : 0xFF4A4238);
+        bg.setStroke(dp(1), locked ? 0xFF555555 : 0xFFFFD54F);
+        bg.setCornerRadius(dp(12));
+        card.setBackground(bg);
+        card.setTag("td_level_card:" + levelId);
+
+        TextView name = new TextView(requireContext());
+        name.setText((levelIdx + 1) + ". " + TdLevels.levelDisplayName(levelIdx, levelId));
+        name.setTextSize(16);
+        name.setTextColor(locked ? 0xFF777777 : 0xFFFFFFFF);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+
+        TextView meta = new TextView(requireContext());
+        meta.setText(locked ? getString(R.string.game_td_label_locked)
+                : TdLevels.levelSub(levelIdx, levelId) + "  ·  " + starsText(stars));
+        meta.setTextSize(11);
+        meta.setTextColor(0xFFB0BEC5);
+
+        LinearLayout inner = new LinearLayout(requireContext());
+        inner.setOrientation(LinearLayout.VERTICAL);
+        inner.addView(name);
+        inner.addView(meta);
+
+        card.addView(inner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (!locked) {
+            Button play = new Button(requireContext());
+            play.setText(getString(R.string.game_td_btn_play));
+            play.setTextSize(12);
+            play.setAllCaps(false);
+            play.setStateListAnimator(null);
+            GradientDrawable pb = new GradientDrawable();
+            pb.setColor(0xFF2E9E4F);
+            pb.setCornerRadius(dp(8));
+            ((Button) play).setBackground(pb);
+            play.setTextColor(0xFFFFFFFF);
+            play.setOnClickListener(v -> showDifficultySelect(levelIdx));
+            card.addView(play, new LinearLayout.LayoutParams(dp(56), dp(36)));
+            // 无尽模式入口：复用同一张关卡地图/路线/蛋位，难度与塔组流程与战役一致
+            Button endless = new Button(requireContext());
+            endless.setText(getString(R.string.game_td_btn_endless));
+            endless.setTextSize(11);
+            endless.setAllCaps(false);
+            endless.setStateListAnimator(null);
+            GradientDrawable eb = new GradientDrawable();
+            eb.setColor(0xFF1E88E5);
+            eb.setCornerRadius(dp(8));
+            endless.setBackground(eb);
+            endless.setTextColor(0xFFFFFFFF);
+            endless.setOnClickListener(v -> showDifficultySelect(levelIdx, true));
+            LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(dp(64), dp(36));
+            elp.leftMargin = dp(6);
+            card.addView(endless, elp);
+        }
+        parent.addView(card, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ((LinearLayout.LayoutParams) card.getLayoutParams()).topMargin = dp(10);
+    }
+
     private void showDifficultySelect(final int levelIdx) {
+        showDifficultySelect(levelIdx, false);
+    }
+
+    /** endless=true 时沿用战役的难度/塔组流程，仅开局模式切换为 ENDLESS。 */
+    private void showDifficultySelect(final int levelIdx, final boolean endless) {
         clearOverlay();
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -756,7 +970,8 @@ public class TdModuleFragment extends Fragment {
         panel.setBackgroundColor(0xF01E2A1F);
 
         TextView title = new TextView(requireContext());
-        title.setText("难度 · " + TdLevels.levelDisplayName(levelIdx, TdLevels.levelIds().get(levelIdx)));
+        title.setText(getString(R.string.game_td_title_difficulty,
+                TdLevels.levelDisplayName(levelIdx, TdLevels.levelIds().get(levelIdx))));
         title.setTextSize(20);
         title.setTextColor(0xFFFFD54F);
         title.setTypeface(Typeface.DEFAULT_BOLD);
@@ -764,7 +979,7 @@ public class TdModuleFragment extends Fragment {
         panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
 
         for (final TdGame.Difficulty d : TdGame.Difficulty.values()) {
-            Button b = ctrlButton(requireContext(), d.displayName);
+            Button b = ctrlButton(requireContext(), difficultyName(d));
             GradientDrawable gb = new GradientDrawable();
             gb.setColor(0xFF4A4238);
             gb.setStroke(dp(1), 0xFFFFD54F);
@@ -772,7 +987,7 @@ public class TdModuleFragment extends Fragment {
             b.setBackground(gb);
             b.setTextSize(15);
             b.setOnClickListener(v -> {
-                showDeckSelect(levelIdx, d);
+                showDeckSelect(levelIdx, d, endless);
             });
             panel.addView(b, new LinearLayout.LayoutParams(dp(180), dp(46)));
             ((LinearLayout.LayoutParams) b.getLayoutParams()).topMargin = dp(12);
@@ -780,7 +995,7 @@ public class TdModuleFragment extends Fragment {
         }
 
         TextView hint = new TextView(requireContext());
-        hint.setText("简单：金币×1.3 怪弱 · 普通：标准 · 困难：金币×0.8 怪强");
+        hint.setText(getString(R.string.game_td_difficulty_hint));
         hint.setTextSize(11);
         hint.setTextColor(0xFFB0BEC5);
         hint.setGravity(Gravity.CENTER);
@@ -791,8 +1006,13 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
-    /** 开局选塔：最多 5 张牌，底部只显示本次选中的塔。 */
     private void showDeckSelect(final int levelIdx, final TdGame.Difficulty difficulty) {
+        showDeckSelect(levelIdx, difficulty, false);
+    }
+
+    /** 开局选塔：最多 5 张牌，底部只显示本次选中的塔。endless=true 时以无尽模式开局。 */
+    private void showDeckSelect(final int levelIdx, final TdGame.Difficulty difficulty,
+                                final boolean endless) {
         clearOverlay();
         final List<TowerType> availableTowers = TdTowerProgression
                 .availableForUnlockedLevelCount(save.getUnlockedLevelCount());
@@ -816,7 +1036,7 @@ public class TdModuleFragment extends Fragment {
         panel.setBackgroundColor(0xF01E2A1F);
 
         TextView title = new TextView(requireContext());
-        title.setText("选择本局塔组");
+        title.setText(getString(R.string.game_td_title_deck_select));
         title.setTextSize(22);
         title.setTextColor(0xFFFFD54F);
         title.setTypeface(Typeface.DEFAULT_BOLD);
@@ -824,8 +1044,8 @@ public class TdModuleFragment extends Fragment {
         panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
 
         TextView hint = new TextView(requireContext());
-        hint.setText("从已解锁的 " + availableTowers.size() + "/" + TowerType.values().length
-                + " 张塔牌中带上 3～" + DECK_SIZE + " 张；通关主线会解锁新塔");
+        hint.setText(getString(R.string.game_td_deck_hint,
+                availableTowers.size(), TowerType.values().length, DECK_SIZE));
         hint.setTextSize(12);
         hint.setTextColor(0xFFCCFFE0);
         hint.setGravity(Gravity.CENTER);
@@ -840,6 +1060,8 @@ public class TdModuleFragment extends Fragment {
 
         LinearLayout grid = new LinearLayout(requireContext());
         grid.setOrientation(LinearLayout.VERTICAL);
+        addBattleBriefing(grid, levelIdx, difficulty,
+                endless ? TdGame.Mode.ENDLESS : TdGame.Mode.CAMPAIGN);
         for (int start = 0; start < TowerType.values().length; start += 2) {
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
@@ -855,8 +1077,8 @@ public class TdModuleFragment extends Fragment {
                         new LinearLayout.LayoutParams(dp(32), dp(32)));
                 TextView label = new TextView(requireContext());
                 label.setText(towerUnlocked
-                        ? type.displayName + "\n" + towerRole(type)
-                        : "🔒 " + type.displayName + "\n" + TdTowerProgression.unlockRequirement(type));
+                        ? towerName(type) + "\n" + towerRole(type)
+                        : "🔒 " + towerName(type) + "\n" + unlockRequirementText(type));
                 label.setTextSize(10);
                 label.setTextColor(towerUnlocked ? 0xFFFFFFFF : 0xFF9E9E9E);
                 card.addView(label, new LinearLayout.LayoutParams(0, dp(38), 1f));
@@ -865,7 +1087,8 @@ public class TdModuleFragment extends Fragment {
                 row.addView(card, cardLp);
                 card.setOnClickListener(v -> {
                     if (!towerUnlocked) {
-                        showMsg(type.displayName + "：" + TdTowerProgression.unlockRequirement(type), "info");
+                        showMsg(getString(R.string.game_td_cd_locked,
+                                towerName(type), unlockRequirementText(type)), "info");
                         return;
                     }
                     if (draft.contains(type)) {
@@ -873,35 +1096,42 @@ public class TdModuleFragment extends Fragment {
                     } else if (draft.size() < DECK_SIZE) {
                         draft.add(type);
                     } else {
-                        showMsg("最多选择 " + DECK_SIZE + " 张塔牌", "info");
+                        showMsg(getString(R.string.game_td_msg_deck_max, DECK_SIZE), "info");
                         return;
                     }
                     updateDeckCard(card, draft.contains(type), true);
                     count.setText(deckCountText(draft.size(), availableTowers.size()));
                 });
                 card.setContentDescription(towerUnlocked
-                        ? type.displayName + (draft.contains(type) ? "，已选择" : "，未选择")
-                        : type.displayName + "，" + TdTowerProgression.unlockRequirement(type));
+                        ? getString(draft.contains(type)
+                                ? R.string.game_td_cd_selected : R.string.game_td_cd_unselected,
+                                towerName(type))
+                        : getString(R.string.game_td_cd_locked,
+                                towerName(type), unlockRequirementText(type)));
                 updateDeckCard(card, draft.contains(type), towerUnlocked);
             }
             grid.addView(row, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
         }
-        panel.addView(grid, new LinearLayout.LayoutParams(
+        ScrollView deckScroll = new ScrollView(requireContext());
+        deckScroll.setTag("td_deck_scroll");
+        deckScroll.addView(grid);
+        panel.addView(deckScroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        Button start = ctrlButton(requireContext(), "带上塔组，开始关卡");
+        Button start = ctrlButton(requireContext(), getString(R.string.game_td_btn_start_level));
         start.setTextSize(15);
         start.setOnClickListener(v -> {
             if (draft.size() < 3) {
-                showMsg("至少选择 3 张塔牌", "err");
+                showMsg(getString(R.string.game_td_msg_deck_min), "err");
                 return;
             }
             activeDeck.clear();
             activeDeck.addAll(draft);
-            save.recordPlay();
-            startLevel(levelIdx, difficulty);
+            // 先关闭塔组面板；startLevel 可能创建剧情浮层，开局后不能再次清除。
             clearOverlay();
+            startLevel(levelIdx, difficulty,
+                    endless ? TdGame.Mode.ENDLESS : TdGame.Mode.CAMPAIGN);
         });
         panel.addView(start, new LinearLayout.LayoutParams(dp(220), dp(44)));
         ((LinearLayout.LayoutParams) start.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
@@ -909,9 +1139,48 @@ public class TdModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
+    /** Preview uses the real level factory/difficulty rules without replacing the live session. */
+    private void addBattleBriefing(LinearLayout parent, int levelIdx,
+                                   TdGame.Difficulty difficulty, TdGame.Mode mode) {
+        String levelId = TdLevels.levelIds().get(levelIdx);
+        TdGame preview = TdLevels.buildLevel(levelId, mode);
+        preview.applyDifficulty(difficulty);
+        TextView summary = new TextView(requireContext());
+        summary.setTag("td_battle_brief_summary");
+        summary.setText(TdLevels.levelDisplayName(levelIdx, levelId) + "\n"
+                + getString(R.string.game_td_brief_resources, preview.getCoin(),
+                        preview.getMascotHp(), preview.getPaths().length) + "\n"
+                + getString(mode == TdGame.Mode.ENDLESS ? R.string.game_td_brief_endless
+                        : R.string.game_td_brief_campaign, preview.getTotalWaves()));
+        summary.setTextSize(13);
+        summary.setTextColor(0xFFFFF8E1);
+        summary.setPadding(dp(8), dp(8), dp(8), dp(4));
+        parent.addView(summary, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        Set<MonsterType> types = new LinkedHashSet<>();
+        for (TdGame.Wave wave : preview.getWaves()) {
+            java.util.Collections.addAll(types, wave.compositionTypes());
+        }
+        StringBuilder names = new StringBuilder();
+        for (MonsterType type : types) {
+            if (names.length() > 0) names.append(" · ");
+            names.append(monsterName(type));
+        }
+        TextView enemies = new TextView(requireContext());
+        enemies.setTag("td_battle_brief_enemies");
+        enemies.setText(getString(mode == TdGame.Mode.ENDLESS ? R.string.game_td_brief_opening_enemies
+                : R.string.game_td_brief_enemies, names.toString()));
+        enemies.setTextSize(12);
+        enemies.setTextColor(0xFFB3E5FC);
+        enemies.setPadding(dp(8), 0, dp(8), dp(12));
+        parent.addView(enemies, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
     private String deckCountText(int selectedCount, int availableCount) {
-        return "已选 " + selectedCount + "/" + DECK_SIZE + " · 已解锁 "
-                + availableCount + "/" + TowerType.values().length;
+        return getString(R.string.game_td_deck_count,
+                selectedCount, DECK_SIZE, availableCount, TowerType.values().length);
     }
 
     private void updateDeckCard(View card, boolean selected, boolean unlocked) {
@@ -935,6 +1204,507 @@ public class TdModuleFragment extends Fragment {
         return c;
     }
 
+    // ===== 战绩 / 成就面板（数据实时读取自存档；成就解锁状态持久化于 td_achv_* 布尔键） =====
+
+    /** 主入口：战绩/成就浮层。打开时对局处于覆盖层暂停态，无并发写存档问题。 */
+    private void showStatsPanel() {
+        showStatsPanel(null);
+    }
+
+    /** Builds the stats panel and optionally shows a visible one-shot notice below its title. */
+    private void showStatsPanel(@Nullable String notice) {
+        clearOverlay();
+        Context ctx = requireContext();
+        // 成就补漏：成就系统上线前的老存档（已通关/已累计但未落章）在此幂等补齐；
+        // 解锁判定主路径在存档写入点，此处为查询时纵深兜底
+        save.syncAchievementsFromState();
+        LinearLayout panel = new LinearLayout(ctx);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(16), dp(24), dp(16), dp(16));
+
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.game_td_stats_title));
+        title.setTextSize(22);
+        title.setTextColor(0xFFFFD54F);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
+
+        if (notice != null && !notice.isEmpty()) {
+            TextView noticeView = new TextView(ctx);
+            noticeView.setText(notice);
+            noticeView.setTextSize(13);
+            noticeView.setTextColor(0xFF9CFFB0);
+            noticeView.setGravity(Gravity.CENTER);
+            noticeView.setTag("td_stats_notice");
+            panel.addView(noticeView, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(30)));
+        }
+
+        int levelCount = TdLevels.levelIds().size();
+        int[] campaignStars = new int[levelCount];
+        for (int i = 0; i < levelCount; i++) {
+            campaignStars[i] = save.getBestStars(TdLevels.levelIds().get(i));
+        }
+
+        // 战绩总览：总击杀 / 总局数
+        addStatsSection(panel, getString(R.string.game_td_stats_section_record));
+        addStatsRow(panel, getString(R.string.game_td_stats_label_kills),
+                String.valueOf(save.getTotalKills()), 0xFFFFF8E1);
+        addStatsRow(panel, getString(R.string.game_td_stats_label_play_count),
+                String.valueOf(save.getPlayCount()), 0xFFFFF8E1);
+
+        // 战役进度：已解锁关数/总关数、累计星级/总星数
+        addStatsSection(panel, getString(R.string.game_td_stats_section_campaign));
+        // 分子钳制到 levelCount：历史存档可能残留越界 unlocked（recordWin 已在
+        // TdSaveManager 端硬上限钳制，此处为防御旧脏数据的纵深兜底）。
+        addStatsRow(panel, getString(R.string.game_td_stats_label_unlocked),
+                getString(R.string.game_td_stats_value_fraction,
+                        Math.min(save.getUnlockedLevelCount(), levelCount), levelCount), 0xFFFFD54F);
+        addStatsRow(panel, getString(R.string.game_td_stats_label_stars),
+                getString(R.string.game_td_stats_value_fraction,
+                        TdSaveManager.sumBestStars(campaignStars), levelCount * MAX_STARS_PER_LEVEL),
+                0xFFFFD54F);
+
+        // 战役最佳用时按难度隔离；0 表示该难度尚未记录胜局。
+        addStatsSection(panel, getString(R.string.game_td_stats_section_times));
+        for (TdGame.Difficulty d : TdGame.Difficulty.values()) {
+            int seconds = save.getBestCampaignTimeSec(d);
+            addStatsRow(panel, difficultyName(d),
+                    seconds > 0 ? getString(R.string.game_td_stats_value_seconds, seconds)
+                            : getString(R.string.game_td_stats_value_none),
+                    seconds > 0 ? 0xFF9CFFB0 : 0xFF78909C);
+        }
+
+        // 无尽最佳：各难度一行，0 = 未挑战
+        addStatsSection(panel, getString(R.string.game_td_stats_section_endless));
+        for (TdGame.Difficulty d : TdGame.Difficulty.values()) {
+            int waves = save.getBestEndlessWaves(d);
+            addStatsRow(panel, difficultyName(d),
+                    waves > 0 ? getString(R.string.game_td_stats_value_waves, waves)
+                            : getString(R.string.game_td_stats_value_none),
+                    waves > 0 ? 0xFF9CFFB0 : 0xFF78909C);
+        }
+
+        // 难度成就：简单/困难通关标记
+        addStatsSection(panel, getString(R.string.game_td_stats_section_achievements));
+        addStatsRow(panel, getString(R.string.game_td_stats_label_cleared_easy),
+                getString(save.isEasyCleared() ? R.string.game_td_stats_value_achieved
+                        : R.string.game_td_stats_value_not_achieved),
+                save.isEasyCleared() ? 0xFF9CFFB0 : 0xFF78909C);
+        addStatsRow(panel, getString(R.string.game_td_stats_label_cleared_hard),
+                getString(save.isHardCleared() ? R.string.game_td_stats_value_achieved
+                        : R.string.game_td_stats_value_not_achieved),
+                save.isHardCleared() ? 0xFF9CFFB0 : 0xFF78909C);
+
+        // 成就系统：每个成就一行（名 + 达成状态），tag=td_achv:<枚举名> 供回归测试定位
+        addStatsSection(panel, getString(R.string.game_td_achv_section_achievements));
+        for (TdAchievement a : TdAchievement.values()) {
+            boolean unlocked = save.isAchievementUnlocked(a);
+            LinearLayout achvRow = addStatsRow(panel, achvName(a),
+                    getString(unlocked ? R.string.game_td_stats_value_achieved
+                            : R.string.game_td_stats_value_not_achieved),
+                    unlocked ? 0xFF9CFFB0 : 0xFF78909C);
+            achvRow.setTag("td_achv:" + a.name());
+        }
+
+        // 危险操作：清空全部战绩（必须二次确认）
+        Button reset = ctrlButton(ctx, getString(R.string.game_td_stats_btn_reset));
+        GradientDrawable rb = new GradientDrawable();
+        rb.setColor(0xFFB3261E);
+        rb.setCornerRadius(dp(8));
+        reset.setBackground(rb);
+        reset.setTextColor(0xFFFFFFFF);
+        reset.setOnClickListener(v -> showStatsResetConfirm());
+        panel.addView(reset, new LinearLayout.LayoutParams(dp(180), dp(40)));
+        ((LinearLayout.LayoutParams) reset.getLayoutParams()).topMargin = dp(18);
+        ((LinearLayout.LayoutParams) reset.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        Button back = ctrlButton(ctx, getString(R.string.game_td_stats_btn_back));
+        back.setOnClickListener(v -> showLevelSelect());
+        panel.addView(back, new LinearLayout.LayoutParams(dp(180), dp(40)));
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).topMargin = dp(8);
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        ScrollView scroll = new ScrollView(ctx);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(0xF01E2A1F);
+        scroll.addView(panel, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        overlayRoot.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /** 面板分组标题（战绩总览/战役进度/无尽最佳/难度成就）。 */
+    private void addStatsSection(LinearLayout panel, String label) {
+        TextView header = new TextView(requireContext());
+        header.setText(label);
+        header.setTextSize(14);
+        header.setTextColor(0xFFCCFFE0);
+        header.setTypeface(Typeface.DEFAULT_BOLD);
+        header.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(30));
+        lp.topMargin = dp(12);
+        panel.addView(header, lp);
+    }
+
+    /**
+     * 面板数据行：左标签右取值，样式与选关卡片同色系（深底圆角）。
+     * 返回该行容器，供调用方挂 tag（成就行 tag=td_achv:*，供回归测试定位）。
+     */
+    private LinearLayout addStatsRow(LinearLayout panel, String label, String value, int valueColor) {
+        LinearLayout row = new LinearLayout(requireContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), 0, dp(12), 0);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF35302A);
+        bg.setCornerRadius(dp(8));
+        row.setBackground(bg);
+
+        TextView labelView = new TextView(requireContext());
+        labelView.setText(label);
+        labelView.setTextSize(13);
+        labelView.setTextColor(0xFFB0BEC5);
+        labelView.setSingleLine(true);
+        row.addView(labelView, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView valueView = new TextView(requireContext());
+        valueView.setText(value);
+        valueView.setTextSize(13);
+        valueView.setTextColor(valueColor);
+        valueView.setTypeface(Typeface.DEFAULT_BOLD);
+        row.addView(valueView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(32));
+        lp.topMargin = dp(4);
+        panel.addView(row, lp);
+        return row;
+    }
+
+    /** 清空战绩的二次确认对话框（危险操作）：确认后 clearAll 并刷新面板为全零。 */
+    private void showStatsResetConfirm() {
+        Context ctx = requireContext();
+        FrameLayout dim = new FrameLayout(ctx);
+        dim.setBackgroundColor(0x99000000);
+        // 吃掉背景点击，防止穿透到下层的战绩面板
+        dim.setOnClickListener(v -> { });
+
+        LinearLayout panel = new LinearLayout(ctx);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setPadding(dp(20), dp(20), dp(20), dp(16));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF1E2A1F);
+        bg.setStroke(dp(1), 0xFFFFD54F);
+        bg.setCornerRadius(dp(12));
+        panel.setBackground(bg);
+
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.game_td_stats_reset_confirm_title));
+        title.setTextSize(18);
+        title.setTextColor(0xFFFF8A80);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        TextView body = new TextView(ctx);
+        body.setText(getString(R.string.game_td_stats_reset_confirm_body));
+        body.setTextSize(13);
+        body.setTextColor(0xFFFFF8E1);
+        body.setLineSpacing(dp(2), 1f);
+        body.setGravity(Gravity.CENTER);
+        panel.addView(body, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ((LinearLayout.LayoutParams) body.getLayoutParams()).topMargin = dp(12);
+
+        Button confirm = ctrlButton(ctx, getString(R.string.game_td_stats_reset_confirm_yes));
+        GradientDrawable cb = new GradientDrawable();
+        cb.setColor(0xFFB3261E);
+        cb.setCornerRadius(dp(8));
+        confirm.setBackground(cb);
+        confirm.setTextColor(0xFFFFFFFF);
+        confirm.setOnClickListener(v -> {
+            save.clearAll();
+            // HUD 消息条位于全屏浮层下方；把确认结果放入重建后的面板，确保用户可见。
+            showStatsPanel(getString(R.string.game_td_stats_reset_done));
+        });
+        panel.addView(confirm, new LinearLayout.LayoutParams(dp(200), dp(42)));
+        ((LinearLayout.LayoutParams) confirm.getLayoutParams()).topMargin = dp(16);
+        ((LinearLayout.LayoutParams) confirm.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        Button cancel = ctrlButton(ctx, getString(R.string.game_td_stats_reset_confirm_no));
+        cancel.setOnClickListener(v -> overlayRoot.removeView(dim));
+        panel.addView(cancel, new LinearLayout.LayoutParams(dp(200), dp(42)));
+        ((LinearLayout.LayoutParams) cancel.getLayoutParams()).topMargin = dp(8);
+        ((LinearLayout.LayoutParams) cancel.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        FrameLayout.LayoutParams panelLp = new FrameLayout.LayoutParams(dp(300),
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        panelLp.gravity = Gravity.CENTER;
+        dim.addView(panel, panelLp);
+        overlayRoot.addView(dim, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    // ===== 图鉴浮层（塔与怪属性速查）=====
+    // 与战绩面板同构：clearOverlay + ScrollView 长面板 + 返回选关。
+    // 数值单一来源：属性行全部实时取自 TowerType/MonsterType 枚举字段格式化；
+    // 特性行是纯机制描述（不含数值，避免把引擎常量复制进文案造成双源漂移）。
+
+    /** 主入口：图鉴浮层。打开时对局处于覆盖层暂停态，只读引擎静态枚举，无并发问题。 */
+    private void showCodexPanel() {
+        clearOverlay();
+        Context ctx = requireContext();
+        LinearLayout panel = new LinearLayout(ctx);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(dp(16), dp(24), dp(16), dp(16));
+
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.game_td_codex_title));
+        title.setTextSize(22);
+        title.setTextColor(0xFFFFD54F);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
+
+        TextView hint = new TextView(ctx);
+        hint.setText(getString(R.string.game_td_codex_base_hint));
+        hint.setTextSize(11);
+        hint.setTextColor(0xFFB0BEC5);
+        hint.setGravity(Gravity.CENTER);
+        // 提示行自适应高度：EN 文案较长，窄屏折行后固定 24dp 会裁掉第二行
+        panel.addView(hint, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addStatsSection(panel, getString(R.string.game_td_codex_section_towers));
+        for (TowerType t : TowerType.values()) {
+            addCodexTowerSection(panel, t);
+        }
+        addStatsSection(panel, getString(R.string.game_td_codex_section_monsters));
+        for (MonsterType m : MonsterType.values()) {
+            addCodexMonsterSection(panel, m);
+        }
+
+        Button back = ctrlButton(ctx, getString(R.string.game_td_stats_btn_back));
+        back.setOnClickListener(v -> showLevelSelect());
+        panel.addView(back, new LinearLayout.LayoutParams(dp(180), dp(40)));
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).topMargin = dp(16);
+        ((LinearLayout.LayoutParams) back.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        ScrollView scroll = new ScrollView(ctx);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(0xF01E2A1F);
+        scroll.addView(panel, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        overlayRoot.addView(scroll, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /**
+     * 图鉴塔段落：本地化名 + 定位标签（复用塔栏 game_td_role_*）+ 属性行 + 特性行。
+     * tag 「td_codex_tower:&lt;枚举名&gt;」供 UI 回归测试按段计数（每种塔恰一段）。
+     */
+    private void addCodexTowerSection(LinearLayout panel, TowerType t) {
+        LinearLayout section = new LinearLayout(requireContext());
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setTag("td_codex_tower:" + t.name());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF2A2318);
+        bg.setStroke(dp(1), 0xFF4A4238);
+        bg.setCornerRadius(dp(10));
+        section.setBackground(bg);
+        section.setPadding(dp(12), dp(8), dp(12), dp(10));
+
+        // 头行：程序化小模型 + 本地化名 + 定位标签
+        LinearLayout header = new LinearLayout(requireContext());
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(new TowerGlyphView(requireContext(), t),
+                new LinearLayout.LayoutParams(dp(20), dp(20)));
+        TextView name = new TextView(requireContext());
+        name.setText(towerName(t));
+        name.setTextSize(14);
+        name.setTextColor(0xFFFFFFFF);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setSingleLine(true);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        nameLp.leftMargin = dp(6);
+        header.addView(name, nameLp);
+        TextView role = new TextView(requireContext());
+        role.setText(towerRole(t));
+        role.setTextSize(10);
+        role.setTextColor(0xFFB8E9D0);
+        role.setSingleLine(true);
+        header.addView(role, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        section.addView(header, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // 属性行：造价恒有；伤害/射程/攻速/对空仅攻击塔展示（非攻击塔 damage=0 是合法语义）
+        addStatsRow(section, getString(R.string.game_td_codex_label_cost),
+                String.format(Locale.US, "₿%d", t.baseCost), 0xFFFFD54F);
+        if (t.damage > 0f) {
+            // 攻速口径：直接展示引擎开火间隔 fireInterval（秒），不做「次/秒」倒数换算
+            addStatsRow(section, getString(R.string.game_td_codex_label_damage),
+                    codexNum(t.damage), 0xFFFFF8E1);
+            if (t.directHitMultiplier < 1f) {
+                // 直伤系数低于 1 的塔（SNOW/FAN/POISON/ROCKET）：补一行有效直伤，
+                // 口径 = 单发伤害 × TowerType.directHitMultiplier（与 TdGame.fire() 同源）
+                addStatsRow(section, getString(R.string.game_td_codex_label_direct_damage),
+                        getString(R.string.game_td_codex_value_direct_damage,
+                                codexNum(t.damage), codexNum(t.directHitMultiplier),
+                                codexNum(t.damage * t.directHitMultiplier)), 0xFFFFF8E1);
+            }
+            if (t == TowerType.POISON) {
+                // 毒泡泡直伤行后补一行毒伤持续伤害：数值取引擎常量 POISON_DPS/POISON_SEC
+                // （与 TdGame 毒 DOT 同源）；插桩方式与特性行一致（单串整行），仅毒泡泡展示
+                addCodexTraitLine(section, getString(R.string.game_td_codex_value_poison_dot,
+                        codexNum(TowerType.POISON_DPS), codexNum(TowerType.POISON_SEC)));
+            }
+            addStatsRow(section, getString(R.string.game_td_codex_label_range),
+                    codexNum(t.range), 0xFFFFF8E1);
+            addStatsRow(section, getString(R.string.game_td_codex_label_rate),
+                    getString(R.string.game_td_codex_value_fire_interval, codexNum(t.fireInterval)),
+                    0xFFFFF8E1);
+            addStatsRow(section, getString(R.string.game_td_codex_label_anti_air),
+                    t.canAir ? "✓" : "✗", t.canAir ? 0xFF9CFFB0 : 0xFF78909C);
+        } else if (t == TowerType.SUN) {
+            // 收益口径：单次产币金额与产币周期（周期已提为 TowerType.incomeIntervalSec 数据源，
+            // 与 TdGame.updateTowers 同源展示）；₿ 符号与塔栏造价同源
+            addStatsRow(section, getString(R.string.game_td_codex_label_income),
+                    getString(R.string.game_td_codex_value_income,
+                            codexNum(t.incomeIntervalSec), Math.round(t.income)), 0xFFFFD54F);
+        } else if (t == TowerType.AMPLIFIER) {
+            // 增幅塔的 range 字段即光环半径
+            addStatsRow(section, getString(R.string.game_td_codex_label_range),
+                    codexNum(t.range), 0xFFB8E9D0);
+        }
+        addCodexTraitLine(section, codexTowerTrait(t));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        panel.addView(section, lp);
+    }
+
+    /**
+     * 图鉴怪段落：本地化名 + 属性行（生命/速度/护甲/赏金/漏蛋伤害）+ 特性行。
+     * 飞行信息由 FLY 的特性行承载（「飞行：仅可对空塔能攻击」），不再单列属性行。
+     * tag 「td_codex_monster:&lt;枚举名&gt;」供 UI 回归测试按段计数。
+     */
+    private void addCodexMonsterSection(LinearLayout panel, MonsterType m) {
+        LinearLayout section = new LinearLayout(requireContext());
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setTag("td_codex_monster:" + m.name());
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF2A2318);
+        bg.setStroke(dp(1), 0xFF4A4238);
+        bg.setCornerRadius(dp(10));
+        section.setBackground(bg);
+        section.setPadding(dp(12), dp(8), dp(12), dp(10));
+
+        TextView name = new TextView(requireContext());
+        name.setText(monsterName(m));
+        name.setTextSize(14);
+        name.setTextColor(0xFFFFFFFF);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setSingleLine(true);
+        section.addView(name, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        addStatsRow(section, getString(R.string.game_td_codex_label_hp),
+                codexNum(m.hp), 0xFFFFF8E1);
+        addStatsRow(section, getString(R.string.game_td_codex_label_speed),
+                getString(R.string.game_td_codex_value_speed, codexNum(m.speed)), 0xFFFFF8E1);
+        // 护甲 0 是「无减伤」的合法语义：直接展示 0，不套用减伤格式
+        addStatsRow(section, getString(R.string.game_td_codex_label_armor),
+                m.armor > 0 ? getString(R.string.game_td_codex_value_armor, m.armor) : "0",
+                m.armor > 0 ? 0xFFFF8A80 : 0xFF78909C);
+        addStatsRow(section, getString(R.string.game_td_codex_label_bounty),
+                String.format(Locale.US, "₿%d", m.value), 0xFFFFD54F);
+        addStatsRow(section, getString(R.string.game_td_codex_label_leak),
+                String.format(Locale.US, "-%d", m.leakDamage), 0xFFFF8A80);
+        addCodexTraitLine(section, codexMonsterTrait(m));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        panel.addView(section, lp);
+    }
+
+    /** 特性描述行：tag 「td_codex_trait」供测试锁定 switch 全枚举覆盖（漏 case 会落空串）。 */
+    private void addCodexTraitLine(LinearLayout section, String trait) {
+        TextView traitView = new TextView(requireContext());
+        traitView.setText(trait);
+        traitView.setTextSize(11);
+        traitView.setTextColor(0xFFB8E9D0);
+        traitView.setTag("td_codex_trait");
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        section.addView(traitView, lp);
+    }
+
+    /** 图鉴塔特性行文案（game_td_codex_trait_tower_*）。新增 TowerType 必须补 case；
+     *  default 落空串，由 TdUiRegressionTest 的图鉴冒烟（特性行非空）拦截。 */
+    private String codexTowerTrait(TowerType t) {
+        switch (t) {
+            case BOTTLE: return getString(R.string.game_td_codex_trait_tower_bottle);
+            case SUN: return getString(R.string.game_td_codex_trait_tower_sun);
+            case SNOW: return getString(R.string.game_td_codex_trait_tower_snow);
+            case FAN: return getString(R.string.game_td_codex_trait_tower_fan);
+            case POISON: return getString(R.string.game_td_codex_trait_tower_poison);
+            case ROCKET: return getString(R.string.game_td_codex_trait_tower_rocket);
+            case LIGHTNING: return getString(R.string.game_td_codex_trait_tower_lightning);
+            case SNIPER: return getString(R.string.game_td_codex_trait_tower_sniper);
+            case MINE: return getString(R.string.game_td_codex_trait_tower_mine);
+            case AMPLIFIER: return getString(R.string.game_td_codex_trait_tower_amplifier);
+            default: return "";
+        }
+    }
+
+    /** 图鉴怪特性行文案（game_td_codex_trait_mon_*）。NORMAL/TANK/SWARM/BOSS 无特殊机制，
+     *  显式共用 generic；与塔侧 codexTowerTrait 对称：新增特殊怪必须补 case，
+     *  default 落空串，由 TdUiRegressionTest 的图鉴冒烟（特性行非空）拦截。 */
+    private String codexMonsterTrait(MonsterType m) {
+        switch (m) {
+            case FAST: return getString(R.string.game_td_codex_trait_mon_fast);
+            case FLY: return getString(R.string.game_td_codex_trait_mon_fly);
+            case HEALER: return getString(R.string.game_td_codex_trait_mon_healer);
+            case SHIELD: return getString(R.string.game_td_codex_trait_mon_shield);
+            case SPLITTER: return getString(R.string.game_td_codex_trait_mon_splitter);
+            case CHARGER: return getString(R.string.game_td_codex_trait_mon_charger);
+            case SHIELD_GENERATOR: return getString(R.string.game_td_codex_trait_mon_shield_generator);
+            case SUMMONER: return getString(R.string.game_td_codex_trait_mon_summoner);
+            case RESISTANT: return getString(R.string.game_td_codex_trait_mon_resistant);
+            case RAGER: return getString(R.string.game_td_codex_trait_mon_rager);
+            case NORMAL:
+            case TANK:
+            case SWARM:
+            case BOSS: return getString(R.string.game_td_codex_trait_mon_generic);
+            default: return "";
+        }
+    }
+
+    /** 图鉴数值口径：整数去尾、非整最多两位小数；Locale.US 与引擎内部格式一致，避免小数点本地化歧义。 */
+    private static String codexNum(float v) {
+        String s = String.format(Locale.US, "%.2f", v);
+        if (s.endsWith(".00")) return s.substring(0, s.length() - 3);
+        if (s.endsWith("0")) return s.substring(0, s.length() - 1);
+        return s;
+    }
+
     private void clearOverlay() {
         overlayRoot.removeAllViews();
     }
@@ -950,30 +1720,115 @@ public class TdModuleFragment extends Fragment {
     // ===== 对局管理 =====
 
     private void startLevel(int idx, TdGame.Difficulty diff) {
+        startLevel(idx, diff, TdGame.Mode.CAMPAIGN);
+    }
+
+    /**
+     * mode=ENDLESS 时复用所选关卡的地图/路线/蛋位与初始金币、蛋生命（难度同源规则，
+     * 与战役共用 applyDifficulty 的金币倍率链），仅波次耗尽后由工厂无限合成。
+     */
+    private void startLevel(int idx, TdGame.Difficulty diff, TdGame.Mode mode) {
+        mergeSource = null;
         gameSession++;
         paused = false;
         gameEnded = false;
+        killsRecordedForSession = false;
         selectedLevelIdx = idx;
+        selectedMode = mode != null ? mode : TdGame.Mode.CAMPAIGN;
         btnSpeed.setText("⏸");
-        btnNextWave.setText("▶ 开战");
-        game = TdLevels.buildLevel(TdLevels.levelIds().get(idx));
+        btnNextWave.setText(getString(R.string.game_td_btn_fight));
+        game = TdLevels.buildLevel(TdLevels.levelIds().get(idx), selectedMode);
         game.applyDifficulty(diff);
+        // Every newly created session counts once, including settlement retry/next level.
+        // Opening a menu or dismissing this session's story does not create another game.
+        save.recordPlay();
         tdView.bind(game);
         tdView.setSelectedType(null);
         selectedType = null;
         refreshTowerDeck();
         updateTowerBarSelection();
         hideTowerOps();
-        tvLevelLabel.setText("关" + (idx + 1) + "/" + TdLevels.levelIds().size());
+        tvLevelLabel.setText(getString(R.string.game_td_hud_level_short,
+                idx + 1, TdLevels.levelIds().size()));
         updateHud();
-        showMsg("准备！建好防御塔后点击「▶ 开战」", "info");
+        showMsg(getString(R.string.game_td_msg_preparing), "info");
         mainHandler.removeCallbacks(tickLoop);
         mainHandler.post(tickLoop);
+        // 剧情模式：战役开局且本关有引子故事时弹故事面板；面板打开期间 tick 自动暂停，
+        // 玩家点「出战」后关闭面板进入布防。无尽模式不讲故事，重玩同关再看一遍可直接出战。
+        if (selectedMode == TdGame.Mode.CAMPAIGN) {
+            String storyLevelId = TdLevels.levelIds().get(idx);
+            String story = TdLevels.levelStoryIntro(storyLevelId);
+            if (story != null && !story.isEmpty()) {
+                showStoryIntro(storyLevelId, story);
+            }
+        }
+    }
+
+    /**
+     * 开战前故事面板：标题 + 关名 + 故事正文 + 出战按钮。打开即暂停战斗
+     * （tickOnce 检测到 overlay 有子视图会自动停怪），点出战关闭后面板继续布防。
+     */
+    private void showStoryIntro(String levelId, String story) {
+        clearOverlay();
+        LinearLayout panel = new LinearLayout(requireContext());
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setBackgroundColor(0xE61E2A1F);
+        panel.setPadding(dp(24), dp(30), dp(24), dp(20));
+
+        TextView title = new TextView(requireContext());
+        title.setText(getString(R.string.game_td_story_title));
+        title.setTextSize(20);
+        title.setTextColor(0xFFFFC107);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+
+        TextView name = new TextView(requireContext());
+        name.setText(TdLevels.levelDisplayName(selectedLevelIdx, levelId));
+        name.setTextSize(16);
+        name.setTextColor(0xFFFFF8E1);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setGravity(Gravity.CENTER);
+        panel.addView(name, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36)));
+
+        ScrollView scroll = new ScrollView(requireContext());
+        TextView body = new TextView(requireContext());
+        body.setTag("td_story_intro");
+        body.setText(story);
+        body.setTextSize(15);
+        body.setTextColor(0xFFDCEDC8);
+        body.setGravity(Gravity.CENTER);
+        body.setLineSpacing(dp(4), 1f);
+        scroll.addView(body);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180));
+        scrollParams.topMargin = dp(8);
+        panel.addView(scroll, scrollParams);
+
+        Button start = ctrlButton(requireContext(), getString(R.string.game_td_story_start));
+        GradientDrawable gb = new GradientDrawable();
+        gb.setColor(0xFF2E9E4F);
+        gb.setCornerRadius(dp(10));
+        start.setBackground(gb);
+        start.setTextColor(0xFFFFFFFF);
+        start.setOnClickListener(v -> clearOverlay());
+        panel.addView(start, new LinearLayout.LayoutParams(dp(160), dp(44)));
+        ((LinearLayout.LayoutParams) start.getLayoutParams()).topMargin = dp(14);
+        ((LinearLayout.LayoutParams) start.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        overlayRoot.addView(panel, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     private void restartLevel(int idx) {
         mainHandler.removeCallbacks(tickLoop);
-        startLevel(idx, game != null ? game.getDifficulty() : TdGame.Difficulty.NORMAL);
+        // 对局中 ◀/▶ 换关同属放弃局（总局数已在开局 recordPlay 计入）：
+        // 旧局击杀先行入账；结算面板「重玩」走同一入口时 gameEnded 闸自动跳过。
+        recordAbandonedKills();
+        startLevel(idx, game != null ? game.getDifficulty() : TdGame.Difficulty.NORMAL,
+                selectedMode);
     }
 
     private void tickOnce() {
@@ -1002,33 +1857,122 @@ public class TdModuleFragment extends Fragment {
     private void onGameEnded() {
         if (gameEnded) return;
         gameEnded = true;
+        // 击杀与输赢无关：胜/无尽/败任一结局在此统一计一次（修复前仅 WON 分支计入，
+        // 败局与无尽局的击杀全部丢失，KILLS 型成就也永远算不到败局击杀）。gameEnded 闸
+        // 保证每局至多进入一次本方法，重开对局由 startLevel 复位，不会重复累加；KILLS 型
+        // 成就由 addKills 内部写入点判定，败局/无尽击杀跨阈值同样即时解锁，并经各分支
+        // 既有的 drainAchievementLine 随本局结算面板提示。
+        save.addKills(game.getMonstersKilled());
         if (game.getState() == TdGame.State.WON) {
             int stars = game.starsEarned();
             int unlockedBefore = save.getUnlockedLevelCount();
             String levelId = TdLevels.levelIds().get(selectedLevelIdx);
-            save.recordWin(levelId);
+            save.recordCampaignWin(levelId, game.getDifficulty(), (int) game.getElapsedSeconds());
             List<TowerType> newlyUnlocked = TdTowerProgression.newlyUnlockedBetween(
                     unlockedBefore, save.getUnlockedLevelCount());
             save.setBestStars(levelId, stars);
-            save.addKills(game.getMonstersKilled());
-            save.setBestTimeSec(levelId, (int) game.getElapsedSeconds());
-            if (game.getDifficulty() == TdGame.Difficulty.EASY) save.setEasyCleared(true);
-            if (game.getDifficulty() == TdGame.Difficulty.HARD) save.setHardCleared(true);
-            String resultStats = "击杀 " + game.getMonstersKilled() + " · 用时 "
-                    + (int) game.getElapsedSeconds() + "s";
+            String resultStats = getString(R.string.game_td_result_stats,
+                    game.getMonstersKilled(), (int) game.getElapsedSeconds());
             if (!newlyUnlocked.isEmpty()) {
-                resultStats += "\n新塔解锁：" + towerNames(newlyUnlocked);
+                resultStats += getString(R.string.game_td_result_new_towers, towerNames(newlyUnlocked));
             }
-            showResult("🎉 通关成功", "星级 ★★★★★".replace("★★★★★", starsText(stars)),
-                    resultStats, 0xFF66BB6A);
+            showResult(getString(R.string.game_td_result_win),
+                    getString(R.string.game_td_result_stars, starsText(stars)),
+                    resultStats, drainAchievementLine(), 0xFF66BB6A);
+        } else if (game.getMode() == TdGame.Mode.ENDLESS) {
+            // 无尽结算：唯一结束方式是蛋死亡；记录按难度的最佳波数（只增不减），不显示战役星级
+            int waves = game.getEndlessWaveReached();
+            boolean newRecord = waves > save.getBestEndlessWaves(game.getDifficulty());
+            save.recordEndlessWaves(game.getDifficulty(), waves);
+            String endlessStats = getString(R.string.game_td_result_endless, waves)
+                    + "  ·  " + getString(R.string.game_td_result_stats,
+                            game.getMonstersKilled(), (int) game.getElapsedSeconds());
+            showResult(getString(R.string.game_td_result_lose),
+                    newRecord ? getString(R.string.game_td_result_endless_best) : "",
+                    endlessStats, drainAchievementLine(), 0xFFE57373);
         } else {
-            showResult("💔 蛋蛋被吃掉了", "",
-                    "坚持到第 " + game.getWaveIndex() + " 波  ·  击杀 " + game.getMonstersKilled(),
-                    0xFFE57373);
+            // 战役失败分支无结算写入点，但战绩面板 sync 补漏可能留有待提示成就，仍需一次性取走
+            showResult(getString(R.string.game_td_result_lose), "",
+                    getString(R.string.game_td_result_lose_stats,
+                            game.getWaveIndex(), game.getMonstersKilled()),
+                    drainAchievementLine(), 0xFFE57373);
         }
     }
 
-    private void showResult(String title, String line2, String line3, int color) {
+    /**
+     * 放弃局击杀入账：对局进行中（未走过结算）离开对局——点「选关」返回、对局中 ◀/▶
+     * 换关、退出大厅确认后销毁——时，本局已发生的击杀计入总击杀。开局选塔时 recordPlay
+     * 已让总局数 +1，而放弃局不经过 onGameEnded（三结局 WON/无尽死亡/战役败专属），
+     * 不在此补记则该局击杀整体丢失（玩家直觉：杀了的怪就该算）。
+     *
+     * <p>防双计：同一局游戏实例可能多次走到放弃路径（选关 → 战绩/图鉴 → 再返回选关；
+     * 先选关后销毁），由 {@link #killsRecordedForSession}（startLevel 开新局复位）保证
+     * 每局只落账一次；已结算局 gameEnded=true 直接跳过，不与 onGameEnded 的 addKills
+     * 重复累加（三结局路径零改动）。
+     *
+     * <p>成就提示取舍（方案 a，静默）：addKills 内部写入点会把跨阈值解锁（如 KILLS_100）
+     * 记入存档布尔键并入 pendingUnlocks，放弃路径不弹提示——选关浮层 z 序高于 HUD，
+     * tvMsg 弹条会被遮挡不可读（与结算面板成就行下沉的教训同理）。pendingUnlocks 滞留
+     * 语义可接受：成就状态真源是存档布尔键，滞留项由下一次结算面板 drainAchievementLine
+     * 顺带带出（unlockAchievements 对已解锁键幂等跳过，不复活不重复），或经战绩面板
+     * syncAchievementsFromState 在成就列表可见；clearAll 同步作废 pendingUnlocks，
+     * 清空战绩后不会弹出积压提示。
+     */
+    private void recordAbandonedKills() {
+        if (game == null || gameEnded || killsRecordedForSession) return;
+        killsRecordedForSession = true;
+        save.addKills(game.getMonstersKilled());
+    }
+
+    /**
+     * 取走结算写入点（recordWin/addKills/recordEndlessWaves/setEasyHardCleared，含战绩面板
+     * sync 补漏）新解锁的成就，合并为结算面板附加行文案（game_td_achv_unlocked，多枚合并、
+     * 分隔符随 locale）；无新解锁返回空串（面板不占行）。
+     *
+     * <p>必须在各结算分支写入点之后、showResult 之前调用并传参：成就提示随结算面板行展示，
+     * 不再走 tvMsg 弹条——tvMsg 在 HUD 列，z 序低于 0xE6 全屏结算浮层，弹条在浮层弹出瞬间
+     * 不可读。成就状态真源在存档，提示错过不补发。
+     */
+    private String drainAchievementLine() {
+        List<TdAchievement> newly = save.drainNewlyUnlockedAchievements();
+        if (newly.isEmpty()) return "";
+        StringBuilder names = new StringBuilder();
+        for (TdAchievement a : newly) {
+            if (names.length() > 0) names.append(getString(R.string.game_td_list_separator));
+            names.append(achvName(a));
+        }
+        return getString(R.string.game_td_achv_unlocked, names.toString());
+    }
+
+    /** 成就本地化名（game_td_achv_name_*）。新增 TdAchievement 必须补 case：default 只回落
+     * saveKey 保底可见性（TdUiRegressionTest 逐枚举断言名 ≠ saveKey 拦截漏 case）；与图鉴特性行同约定。 */
+    private String achvName(TdAchievement a) {
+        switch (a) {
+            case FIRST_WIN: return getString(R.string.game_td_achv_name_first_win);
+            case CHAPTER1_CLEARED: return getString(R.string.game_td_achv_name_ch1_cleared);
+            case CHAPTER2_CLEARED: return getString(R.string.game_td_achv_name_ch2_cleared);
+            case CHAPTER3_CLEARED: return getString(R.string.game_td_achv_name_ch3_cleared);
+            case CHAPTER4_CLEARED: return getString(R.string.game_td_achv_name_ch4_cleared);
+            case CHAPTER5_CLEARED: return getString(R.string.game_td_achv_name_ch5_cleared);
+            case CHAPTER6_CLEARED: return getString(R.string.game_td_achv_name_ch6_cleared);
+            case CHAPTER7_CLEARED: return getString(R.string.game_td_achv_name_ch7_cleared);
+            case CHAPTER8_CLEARED: return getString(R.string.game_td_achv_name_ch8_cleared);
+            case CHAPTER9_CLEARED: return getString(R.string.game_td_achv_name_ch9_cleared);
+            case CHAPTER10_CLEARED: return getString(R.string.game_td_achv_name_ch10_cleared);
+            case CHAPTER11_CLEARED: return getString(R.string.game_td_achv_name_ch11_cleared);
+            case CHAPTER12_CLEARED: return getString(R.string.game_td_achv_name_ch12_cleared);
+            case CHAPTER13_CLEARED: return getString(R.string.game_td_achv_name_ch13_cleared);
+            case KILLS_100: return getString(R.string.game_td_achv_name_kills_100);
+            case KILLS_1000: return getString(R.string.game_td_achv_name_kills_1000);
+            case ENDLESS_10: return getString(R.string.game_td_achv_name_endless_10);
+            case ENDLESS_25: return getString(R.string.game_td_achv_name_endless_25);
+            case DUAL_CROWN: return getString(R.string.game_td_achv_name_dual_crown);
+            default: return a.saveKey;
+        }
+    }
+
+    private void showResult(String title, String line2, String line3, String achievementLine,
+            int color) {
         clearOverlay();
         LinearLayout panel = new LinearLayout(requireContext());
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -1062,9 +2006,46 @@ public class TdModuleFragment extends Fragment {
         panel.addView(t3, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 dp(line3.contains("\n") ? 52 : 30)));
 
+        // 成就解锁附加行（星级/统计行之后）：随面板展示，避免 tvMsg 弹条被本浮层遮挡；
+        // 文案来自 drainAchievementLine（game_td_achv_unlocked），空串不占行
+        if (!achievementLine.isEmpty()) {
+            TextView achv = new TextView(requireContext());
+            achv.setText(achievementLine);
+            achv.setTextSize(13);
+            achv.setTextColor(0xFFFFC107);
+            achv.setGravity(Gravity.CENTER);
+            achv.setMaxLines(2);
+            panel.addView(achv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
+        // 胜利尾声：战役胜利且本关有尾声故事时在结算面板加一段余波，供回归测试定位。
         boolean won = game.getState() == TdGame.State.WON;
+        if (won && selectedMode == TdGame.Mode.CAMPAIGN
+                && selectedLevelIdx >= 0 && selectedLevelIdx < TdLevels.levelIds().size()) {
+            String outro = TdLevels.levelStoryOutro(TdLevels.levelIds().get(selectedLevelIdx));
+            if (outro != null && !outro.isEmpty()) {
+                TextView outroTitle = new TextView(requireContext());
+                outroTitle.setText(getString(R.string.game_td_story_outro_title));
+                outroTitle.setTextSize(13);
+                outroTitle.setTextColor(0xFFFFC107);
+                outroTitle.setTypeface(Typeface.DEFAULT_BOLD);
+                outroTitle.setGravity(Gravity.CENTER);
+                panel.addView(outroTitle, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                TextView outroBody = new TextView(requireContext());
+                outroBody.setTag("td_story_outro");
+                outroBody.setText(outro);
+                outroBody.setTextSize(13);
+                outroBody.setTextColor(0xFFDCEDC8);
+                outroBody.setGravity(Gravity.CENTER);
+                outroBody.setMaxLines(4);
+                panel.addView(outroBody, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+        }
         if (won && selectedLevelIdx + 1 < TdLevels.levelIds().size()) {
-            Button next = ctrlButton(requireContext(), "下一关 ▶");
+            Button next = ctrlButton(requireContext(), getString(R.string.game_td_btn_next_level));
             GradientDrawable gb = new GradientDrawable();
             gb.setColor(0xFF2E9E4F);
             gb.setCornerRadius(dp(10));
@@ -1072,15 +2053,15 @@ public class TdModuleFragment extends Fragment {
             next.setTextColor(0xFFFFFFFF);
             final int nIdx = selectedLevelIdx + 1;
             next.setOnClickListener(v -> {
-                clearOverlay();
-                startLevel(nIdx, game.getDifficulty());
+                TdGame.Difficulty difficulty = game.getDifficulty();
+                showDeckSelect(nIdx, difficulty);
             });
             panel.addView(next, new LinearLayout.LayoutParams(dp(160), dp(44)));
             ((LinearLayout.LayoutParams) next.getLayoutParams()).topMargin = dp(10);
             ((LinearLayout.LayoutParams) next.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
         }
 
-        Button retry = ctrlButton(requireContext(), "↺ 重玩本关");
+        Button retry = ctrlButton(requireContext(), getString(R.string.game_td_btn_retry));
         retry.setOnClickListener(v -> {
             clearOverlay();
             restartLevel(selectedLevelIdx);
@@ -1089,7 +2070,7 @@ public class TdModuleFragment extends Fragment {
         ((LinearLayout.LayoutParams) retry.getLayoutParams()).topMargin = dp(10);
         ((LinearLayout.LayoutParams) retry.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
 
-        Button menu = ctrlButton(requireContext(), "☰ 选关");
+        Button menu = ctrlButton(requireContext(), getString(R.string.game_td_btn_select_level));
         menu.setOnClickListener(v -> showLevelSelect());
         panel.addView(menu, new LinearLayout.LayoutParams(dp(160), dp(44)));
         ((LinearLayout.LayoutParams) menu.getLayoutParams()).topMargin = dp(10);
@@ -1238,30 +2219,51 @@ public class TdModuleFragment extends Fragment {
     private void updateHud() {
         if (game == null) return;
         tvCoin.setText("₿ " + game.getCoin());
-        tvWave.setText("波 " + game.getWaveIndex() + "/" + game.getTotalWaves()
-                + (game.getState() == TdGame.State.PREPARING ? " 准备" : ""));
+        if (game.getMode() == TdGame.Mode.ENDLESS) {
+            // 无尽模式没有总波数概念：只显示已推进到的绝对波次；准备期钳制为第 1 波，避免「第 0 波」
+            tvWave.setText(getString(R.string.game_td_hud_endless_wave,
+                    Math.max(1, game.getEndlessWaveReached()))
+                    + (game.getState() == TdGame.State.PREPARING
+                            ? " " + getString(R.string.game_td_hud_wave_preparing) : ""));
+        } else {
+            tvWave.setText(getString(R.string.game_td_hud_wave, game.getWaveIndex(), game.getTotalWaves())
+                    + (game.getState() == TdGame.State.PREPARING
+                            ? " " + getString(R.string.game_td_hud_wave_preparing) : ""));
+        }
         tvHp.setText("🥚 " + game.getMascotHp() + "/" + game.getMaxMascotHp());
         // 下一波预告
         String next = nextWavePreview();
-        tvNext.setText(next.isEmpty() ? "守住最后防线" : "预告 " + next);
-        tvLevelLabel.setText("关" + (selectedLevelIdx + 1) + "·" + game.getDifficulty().displayName);
+        tvNext.setText(next.isEmpty() ? getString(R.string.game_td_hud_final_line)
+                : getString(R.string.game_td_hud_preview, next));
+        tvLevelLabel.setText(getString(R.string.game_td_hud_level_diff,
+                selectedLevelIdx + 1, difficultyName(game.getDifficulty())));
         if (!game.isEnded()) {
             if (game.getState() == TdGame.State.PREPARING) {
-                btnNextWave.setText("▶ 开战");
+                btnNextWave.setText(getString(R.string.game_td_btn_fight));
             } else if (game.isWaveSpawning()) {
-                btnNextWave.setText("⚡ 加速召唤");
+                btnNextWave.setText(getString(R.string.game_td_btn_rush_spawn));
             } else {
-                btnNextWave.setText("▶ 下一波");
+                btnNextWave.setText(getString(R.string.game_td_btn_next_wave));
             }
         }
     }
 
+    /** HUD 的下一波预告：引擎给中性构成数据，这里负责本地化（路线/混编前缀/本地化怪名）。 */
     private String nextWavePreview() {
         if (game == null) return "";
         int nextCount = game.nextWaveCount();
         if (nextCount <= 0) return "";
         int route = game.nextWaveRouteIndex();
-        return "路线" + (route + 1) + "·" + game.nextWaveTypeName() + "×" + nextCount;
+        List<MonsterType> composition = game.nextWaveComposition();
+        StringBuilder names = new StringBuilder();
+        for (int i = 0; i < composition.size(); i++) {
+            if (i > 0) names.append('+');
+            names.append(monsterName(composition.get(i)));
+        }
+        String compositionText = composition.size() > 1
+                ? getString(R.string.game_td_wave_mixed, names.toString())
+                : names.toString();
+        return getString(R.string.game_td_hud_preview_route, route + 1, compositionText, nextCount);
     }
 
     private void showMsg(String msg, String tone) {
@@ -1302,13 +2304,133 @@ public class TdModuleFragment extends Fragment {
         return n > 0 ? sb.toString() : "☆ ☆ ☆";
     }
 
-    private static String towerNames(List<TowerType> towers) {
+    /** 结算面板的解锁塔名列表（顿号等分隔符按 locale 取）。 */
+    private String towerNames(List<TowerType> towers) {
+        String separator = getString(R.string.game_td_list_separator);
         StringBuilder out = new StringBuilder();
         for (TowerType tower : towers) {
-            if (out.length() > 0) out.append("、");
-            out.append(tower.displayName);
+            if (out.length() > 0) out.append(separator);
+            out.append(towerName(tower));
         }
         return out.toString();
+    }
+
+    // ===== 本地化辅助：引擎只给中性枚举/码，名字一律经宿主资源解析 =====
+
+    /** 塔的本地化名（与 TowerType 一一对应，宿主资源 game_td_tower_*）。 */
+    private String towerName(TowerType t) {
+        if (t == null) return "";
+        switch (t) {
+            case BOTTLE: return getString(R.string.game_td_tower_bottle);
+            case SUN: return getString(R.string.game_td_tower_sun);
+            case SNOW: return getString(R.string.game_td_tower_snow);
+            case FAN: return getString(R.string.game_td_tower_fan);
+            case POISON: return getString(R.string.game_td_tower_poison);
+            case ROCKET: return getString(R.string.game_td_tower_rocket);
+            case LIGHTNING: return getString(R.string.game_td_tower_lightning);
+            case SNIPER: return getString(R.string.game_td_tower_sniper);
+            case MINE: return getString(R.string.game_td_tower_mine);
+            case AMPLIFIER: return getString(R.string.game_td_tower_amplifier);
+            default: return t.displayName; // 引擎英文名兜底
+        }
+    }
+
+    /** 怪的本地化名（与 MonsterType 一一对应，宿主资源 game_td_monster_*）。 */
+    private String monsterName(MonsterType m) {
+        if (m == null) return "";
+        switch (m) {
+            case NORMAL: return getString(R.string.game_td_monster_normal);
+            case FAST: return getString(R.string.game_td_monster_fast);
+            case TANK: return getString(R.string.game_td_monster_tank);
+            case FLY: return getString(R.string.game_td_monster_fly);
+            case SWARM: return getString(R.string.game_td_monster_swarm);
+            case HEALER: return getString(R.string.game_td_monster_healer);
+            case SHIELD: return getString(R.string.game_td_monster_shield);
+            case BOSS: return getString(R.string.game_td_monster_boss);
+            case SPLITTER: return getString(R.string.game_td_monster_splitter);
+            case CHARGER: return getString(R.string.game_td_monster_charger);
+            case SHIELD_GENERATOR: return getString(R.string.game_td_monster_shield_generator);
+            case SUMMONER: return getString(R.string.game_td_monster_summoner);
+            case RESISTANT: return getString(R.string.game_td_monster_resistant);
+            case RAGER: return getString(R.string.game_td_monster_rager);
+            default: return m.displayName; // 引擎英文名兜底
+        }
+    }
+
+    /** 难度本地化名（game_td_difficulty_*）。 */
+    private String difficultyName(TdGame.Difficulty d) {
+        if (d == null) return "";
+        switch (d) {
+            case EASY: return getString(R.string.game_td_difficulty_easy);
+            case HARD: return getString(R.string.game_td_difficulty_hard);
+            case NORMAL:
+            default: return getString(R.string.game_td_difficulty_normal);
+        }
+    }
+
+    /** 目标优先级本地化名（game_td_target_*）。 */
+    private String targetModeName(TdGame.TargetMode mode) {
+        if (mode == null) return "";
+        switch (mode) {
+            case STRONG: return getString(R.string.game_td_target_strong);
+            case WEAK: return getString(R.string.game_td_target_weak);
+            case FIRST:
+            default: return getString(R.string.game_td_target_first);
+        }
+    }
+
+    /** 塔牌解锁条件（替代引擎层旧 unlockRequirement 文案；引擎只出 unlockLevel 数据）。 */
+    private String unlockRequirementText(TowerType t) {
+        int level = TdTowerProgression.unlockLevel(t);
+        return level <= 1 ? getString(R.string.game_td_unlock_start)
+                : getString(R.string.game_td_unlock_after_level, level - 1);
+    }
+
+    /** 显示引擎最近一次操作结果：中性 ActionMsg + 参数 → 本地化文案。 */
+    private void showEngineMsg() {
+        if (game == null) return;
+        showMsg(formatEngineMsg(game.getLastActionMsg(), game.getLastActionArgs()),
+                game.getLastActionTone());
+    }
+
+    private String formatEngineMsg(TdGame.ActionMsg msg, Object[] args) {
+        if (msg == null) return "";
+        switch (msg) {
+            case INVALID_TOWER_TYPE: return getString(R.string.game_td_act_invalid_tower_type);
+            case GAME_ENDED: return getString(R.string.game_td_act_game_ended);
+            case OUT_OF_BOUNDS: return getString(R.string.game_td_act_out_of_bounds);
+            case MINE_NEEDS_PATH_SIDE: return getString(R.string.game_td_act_mine_needs_path);
+            case BLOCKS_PATH: return getString(R.string.game_td_act_blocks_path);
+            case BLOCKS_EGG: return getString(R.string.game_td_act_blocks_egg);
+            case CELL_OCCUPIED: return getString(R.string.game_td_act_cell_occupied);
+            case NOT_ENOUGH_COIN: return getString(R.string.game_td_act_not_enough_coin, (int) args[0]);
+            case PLACED: return getString(R.string.game_td_act_placed, towerName((TowerType) args[0]));
+            case DRAG_SAME_TYPE_ONLY: return getString(R.string.game_td_act_drag_same_type);
+            case MAX_LEVEL_REACHED: return getString(R.string.game_td_act_max_level);
+            case MERGED: return getString(R.string.game_td_act_merged,
+                    towerName((TowerType) args[0]), (int) args[1]);
+            case UPGRADE_DEPRECATED: return getString(R.string.game_td_act_upgrade_deprecated,
+                    towerName((TowerType) args[0]));
+            case MERGE_PICK_ANOTHER: return getString(R.string.game_td_act_merge_pick_another);
+            case MERGE_NEEDS_TWO_TOWERS: return getString(R.string.game_td_act_merge_need_two);
+            case MERGE_TYPE_MISMATCH: return getString(R.string.game_td_act_merge_type_mismatch);
+            case MERGE_LEVEL_MISMATCH: return getString(R.string.game_td_act_merge_level_mismatch);
+            case NO_TOWER_HERE: return getString(R.string.game_td_act_no_tower_here);
+            case SUN_NO_TARGET: return getString(R.string.game_td_act_sun_no_target);
+            case TARGET_MODE_SET: return getString(R.string.game_td_act_target_set,
+                    towerName((TowerType) args[0]), targetModeName((TdGame.TargetMode) args[1]));
+            case SOLD: return getString(R.string.game_td_act_sold, (int) args[0]);
+            case FIRST_WAVE_INCOMING: return getString(R.string.game_td_act_first_wave);
+            case WAVE_INCOMING: return getString(R.string.game_td_act_wave_incoming, (int) args[0]);
+            case RUSH_SUMMONED: return getString(R.string.game_td_act_rush_summoned,
+                    (int) args[0], (int) args[1]);
+            case WAVE_FULLY_SPAWNED: return getString(R.string.game_td_act_wave_fully_spawned);
+            case LAST_WAVE_REACHED: return getString(R.string.game_td_act_last_wave);
+            case EGG_HIT: return getString(R.string.game_td_act_egg_hit,
+                    monsterName((MonsterType) args[0]), (int) args[1], (int) args[2]);
+            case VICTORY: return getString(R.string.game_td_act_victory);
+            default: return "";
+        }
     }
 
     private int dp(float v) {
@@ -1342,6 +2464,11 @@ public class TdModuleFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        mergeSource = null;
+        // 退出大厅（宿主确认框→finish）与回退栈替换不走 showLevelSelect，销毁即放弃局：
+        // 击杀先行入账。killsRecordedForSession 防与选关路径双计（先选关后销毁），
+        // gameEnded 闸跳过已结算局。
+        recordAbandonedKills();
         gameSession++;
         mainHandler.removeCallbacks(tickLoop);
         tdView = null;

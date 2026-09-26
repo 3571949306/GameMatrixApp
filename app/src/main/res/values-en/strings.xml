@@ -60,6 +60,10 @@
 <string name="app_crashed_message">"The app encountered a problem, please restart"</string>
 <string name="app_description">"Aggregated gaming platform"</string>
 <string name="app_name">"GameMatrix"</string>
+    <!-- Positioning line: local-first, install only what you need -->
+    <string name="home_positioning_tagline">Local-first games and tools, modular by design</string>
+    <string name="home_positioning_modules">Module store · install only what you need</string>
+    <string name="home_positioning_sections">Classic games to start, tools and study to stay</string>
 <string name="app_update">"App update"</string>
 <string name="appearance">"Appearance"</string>
 <string name="appearance_settings">"Appearance settings"</string>
@@ -1677,6 +1681,7 @@
     <string name="module_icon_desc">Module icon</string>
     <string name="module_refresh">Refresh</string>
     <string name="module_store_title">Module Store</string>
+    <string name="module_store_subtitle">Install only what you need · local-first, modular</string>
     <string name="nav_ai">AI Assistant</string>
     <string name="nav_browser">Browser</string>
     <string name="nav_games">Games</string>
@@ -2078,6 +2083,66 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="profile_favorites_count_format">%1$d games favorited</string>
     <string name="profile_no_favorites">No favorites yet — tap ♥ on a game card to add one</string>
 
+    <!-- ===== Coin economy (COIN_ECONOMY): coin wallet ===== -->
+    <string name="profile_stat_coins">Coins</string>
+    <string name="profile_name_with_title_format">%1$s·%2$s</string>
+
+    <!-- ===== Elo rating (ELO_RATING): profile stats card ===== -->
+    <string name="profile_chess_rating_format">Chinese Chess rating: %1$d</string>
+    <string name="coin_wallet_title">Coin Wallet</string>
+    <string name="coin_wallet_balance_label">Coin Balance</string>
+    <string name="coin_wallet_earned_today_format">Earned today %1$d / cap 200</string>
+    <string name="coin_wallet_rules_title">Earning Rules</string>
+    <string name="coin_wallet_rules_body">· Win a game: 10 coins base, longer streaks give more bonus (up to 20)\n· Finish a game (not won): 3 coins\n· Daily earning cap: 200 coins\n· Spend coins on titles in the shop below</string>
+    <string name="coin_wallet_recent_title">Recent Activity</string>
+    <string name="coin_wallet_recent_empty">No activity yet — go finish a game</string>
+    <string name="coin_wallet_shop_title">Title Shop</string>
+    <string name="coin_wallet_title_price_format">%1$d coins</string>
+    <string name="coin_wallet_title_achievement_source">Achievement reward</string>
+    <string name="coin_wallet_btn_locked_format">Unlock %1$d achievements</string>
+    <string name="coin_wallet_btn_buy">Redeem</string>
+    <string name="coin_wallet_btn_equip">Equip</string>
+    <string name="coin_wallet_btn_equipped">Equipped</string>
+    <string name="coin_wallet_buy_success_format">Redeemed and equipped "%1$s"</string>
+    <string name="coin_wallet_buy_failed">Not enough coins — go win some games</string>
+
+    <!-- ===== Weekly game report (WEEKLY_REPORT) ===== -->
+    <string name="weekly_report_title">Weekly Report</string>
+    <string name="weekly_report_period_format">This Week in Games (%1$s ~ %2$s)</string>
+    <string name="weekly_report_playtime_label">Playtime (this week)</string>
+    <string name="weekly_report_playtime_hour_min_format">%1$d h %2$d min</string>
+    <string name="weekly_report_playtime_min_format">%1$d min</string>
+    <string name="weekly_report_active_days_label">Active Days</string>
+    <string name="weekly_report_active_days_format">%1$d/7</string>
+    <string name="weekly_report_total_games_label">Total Games (all time)</string>
+    <string name="weekly_report_total_games_format">%1$d games</string>
+    <string name="weekly_report_win_rate_format">All-time win rate %1$d%% (W/L %2$d/%3$d)</string>
+    <string name="weekly_report_no_decided_games">No win/loss records yet</string>
+    <string name="weekly_report_coin_label">Coins (this week)</string>
+    <string name="weekly_report_coin_format">+%1$d / -%2$d</string>
+    <string name="weekly_report_favorite_title">Most Played</string>
+    <string name="weekly_report_favorite_note">All-time playtime top 1 (ties broken by wins)</string>
+    <string name="weekly_report_no_play">No playtime this week</string>
+    <string name="weekly_report_daily_title">Daily Playtime</string>
+    <string name="weekly_report_daily_note">Last 7 days</string>
+    <string name="weekly_report_daily_empty">No playtime this week</string>
+    <string name="profile_weekly_report">Weekly Report</string>
+
+    <!-- ===== Level code book (CODEBOOK) ===== -->
+    <string name="codebook_title">Level Code Book</string>
+    <string name="codebook_section_title">Saved Levels</string>
+    <string name="codebook_title_hint">Title (optional)</string>
+    <string name="codebook_code_hint">Paste a Sokoban or Sudoku level code</string>
+    <string name="codebook_add">Add</string>
+    <string name="codebook_unrecognized">Unrecognized level code</string>
+    <string name="codebook_added_format">Added (%1$s)</string>
+    <string name="codebook_copy">Copy</string>
+    <string name="codebook_delete">Delete</string>
+    <string name="codebook_copied_format">Copied — import it in the %1$s editor</string>
+    <string name="codebook_copy_failed">Copy failed, please retry</string>
+    <string name="codebook_empty">No saved level codes yet — paste one to try</string>
+    <string name="profile_codebook">Level Code Book</string>
+
     <!-- Filter chips -->
     <string name="filter_all_games">All</string>
     <string name="filter_favorites_only">Favorites</string>
@@ -2112,7 +2177,7 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="empty_favorites_title">No favorite games yet</string>
     <string name="empty_favorites_subtitle">Tap the heart icon on a game card to favorite it</string>
     <string name="empty_default_title">No games available</string>
-    <string name="empty_default_subtitle">Visit the module store to download more games</string>
+    <string name="empty_default_subtitle">@string/home_positioning_modules</string>
     <string name="empty_action_browse_modules">Open Module Store</string>
     <string name="empty_action_clear_filter">Clear Filter</string>
 
@@ -2370,6 +2435,7 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="game_diff_normal">Normal</string>
     <string name="game_diff_medium">Medium</string>
     <string name="game_diff_hard">Hard</string>
+    <string name="game_brotato_diff_next_round">Difficulty applies to the next round</string>
     <string name="game_btn_restart">Restart</string>
     <string name="game_btn_start">Start Game</string>
     <string name="game_btn_play_again">Play Again</string>
@@ -2454,6 +2520,32 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="game_doudizhu_exit">Exit</string>
     <string name="game_doudizhu_exit_confirm">Quit the game? Current progress will be lost.</string>
     <string name="game_doudizhu_play_again">Play again</string>
+    <!-- Doudizhu P3 (temporary English, P6 will review translations) -->
+    <string name="game_ddz_bid_score_1">1</string>
+    <string name="game_ddz_bid_score_2">2</string>
+    <string name="game_ddz_bid_score_3">3</string>
+    <string name="game_ddz_hud_multiplier">Multiplier ×%1$d</string>
+    <string name="game_ddz_hud_highest_bid">Bid %1$d</string>
+    <string name="game_ddz_redeal_notice">No one bid, redeal (#%1$d)</string>
+    <string name="game_ddz_forced_landlord">No bids after several deals, forced 1-point start</string>
+    <string name="game_ddz_resume_game">Resume game</string>
+    <string name="game_ddz_save_broken">Save data is corrupted, cannot restore</string>
+    <string name="game_ddz_exit_confirm">Progress will be saved before quitting. Quit now?</string>
+    <string name="game_ddz_settle_landlord_win">Landlord wins</string>
+    <string name="game_ddz_settle_farmer_win">Farmers win</string>
+    <string name="game_ddz_settle_landlord">Landlord: %1$s</string>
+    <string name="game_ddz_settle_bid">Bid: %1$d</string>
+    <string name="game_ddz_settle_bombs">Bombs: %1$d</string>
+    <string name="game_ddz_settle_spring">Spring! Multiplier ×2</string>
+    <string name="game_ddz_settle_anti_spring">Anti-spring! Multiplier ×2</string>
+    <string name="game_ddz_settle_multiplier">Total multiplier: ×%1$d</string>
+    <string name="game_ddz_settle_score">Score: %1$s</string>
+    <string name="game_ddz_settle_duration">Duration: %1$s</string>
+    <string name="game_ddz_rules_extra">\n\nBidding: 1/2/3 points, highest bidder becomes landlord. Multiplier = bid × bombs (×2 each) × spring (×2). Spring: landlord wins without farmers playing any card; anti-spring: farmers win with landlord only leading once.</string>
+    <!-- Doudizhu P4: on-table draw text resources and inline messages -->
+    <string name="game_ddz_your_bid_turn">Your turn to bid</string>
+    <string name="game_ddz_ai_thinking">Thinking…</string>
+    <string name="game_ddz_hint_selected">Hint selected, tap Play to confirm</string>
     <string name="game_sudoku_complete">Sudoku complete!</string>
 
     <!-- Chinese Chess Online -->
@@ -2628,6 +2720,39 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="tool_name_text_codec">Encode/Timestamp/JSON</string>
     <string name="tool_name_file_hash">File Hash</string>
     <string name="tool_name_qr_plus">QR Plus</string>
+    <string name="tool_qr_plus_input_hint">Text, URL, or WiFi / vCard fields separated by commas</string>
+    <string name="tool_qr_plus_generate">Generate</string>
+    <string name="tool_qr_plus_decode_image">Decode Image</string>
+    <string name="tool_qr_plus_clipboard">Clipboard</string>
+    <string name="tool_qr_plus_wifi">Wi-Fi QR</string>
+    <string name="tool_qr_plus_vcard">vCard QR</string>
+    <string name="tool_qr_plus_preview_desc">QR code preview</string>
+    <string name="tool_qr_plus_result_placeholder">Generated or decoded result appears here</string>
+    <string name="tool_qr_plus_batch_limit_format">Batch limit is %1$d lines, got %2$d</string>
+    <string name="tool_qr_plus_batch_item_failed_format">%1$s — Failed: %2$s</string>
+    <string name="tool_qr_plus_fg_label">Code color</string>
+    <string name="tool_qr_plus_bg_label">Background</string>
+    <string name="tool_qr_plus_logo_check">Center logo (forces EC level H)</string>
+    <string name="tool_qr_plus_caption_hint">Caption (optional)</string>
+    <string name="tool_qr_plus_batch_check">Batch mode (one per line, max %1$d)</string>
+    <string name="tool_qr_plus_ec_label">EC level</string>
+    <string name="tool_qr_plus_save">Save to Gallery</string>
+    <string name="tool_qr_plus_share">Share</string>
+    <string name="tool_qr_plus_history_title">Generation history</string>
+    <string name="tool_qr_plus_history_clear">Clear</string>
+    <string name="tool_qr_plus_history_cleared">History cleared</string>
+    <string name="tool_qr_plus_history_deleted">History entry deleted</string>
+    <string name="tool_qr_plus_batch_hint">Batch mode: one per line (max %1$d)</string>
+    <string name="tool_qr_plus_generate_first">Generate a QR code first</string>
+    <string name="tool_qr_plus_saved_format">Saved to gallery %1$s</string>
+    <string name="tool_qr_plus_save_failed">Save failed, check storage permission</string>
+    <string name="tool_qr_plus_share_failed">Share failed</string>
+    <string name="tool_qr_plus_decode_failed_format">Decode failed: %1$s</string>
+    <string name="tool_qr_plus_history_clear_confirm_title">Clear generation history?</string>
+    <string name="tool_qr_plus_history_clear_confirm_message">This will delete all %1$d history entries and cannot be undone.</string>
+    <string name="tool_qr_plus_history_clear_confirm_ok">Clear</string>
+    <string name="tool_qr_plus_swatch_desc">Code color %1$s</string>
+    <string name="tool_qr_plus_bg_swatch_desc">Background %1$s</string>
     <string name="tool_name_color_plus">Color Plus</string>
     <string name="tool_name_permission_privacy">Permission &amp; Privacy</string>
     <string name="tool_name_ip">IP Address Info</string>

@@ -31,5 +31,9 @@ class WebRuntimeHandler : BaseRuntimeHandler(RuntimeType.WEB) {
     }
 
     override fun rollback(context: Context, module: CatalogModule): RuntimeResult =
-        SecureArchiveInstaller.rollback(context, module.id)
+        SecureArchiveInstaller.rollback(context, module.id) {
+            module.legacyManifest == null ||
+                !ModuleManager.isModuleInstalled(context, module.id) ||
+                ModuleManager.rollbackModule(context, module.id)
+        }
 }

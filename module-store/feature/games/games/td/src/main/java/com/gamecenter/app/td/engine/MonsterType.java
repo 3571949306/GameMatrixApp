@@ -2,28 +2,31 @@ package com.gamecenter.app.td.engine;
 
 /**
  * 塔防怪物类型定义。
+ *
+ * <p>i18n 契约：displayName 是英文中性数据（守卫测试 TdModelEnglishDataTest 锁定），
+ * 本地化名由 UI 层经宿主资源 com.gamecenter.app.R.string.game_td_monster_* 解析。
  */
 public enum MonsterType {
-    NORMAL("小怪", 34f, 1.5f, 8, false, 0, 1),
-    FAST("飞毛腿", 16f, 2.6f, 10, false, 0, 1),
-    TANK("胖子", 100f, 1.0f, 20, false, 2, 2),
-    FLY("飞行兵", 26f, 1.8f, 12, true, 0, 1),
-    SWARM("喽罗", 12f, 2.0f, 5, false, 0, 1),
-    HEALER("医生", 44f, 1.3f, 15, false, 0, 1),
-    SHIELD("护盾兵", 40f, 1.2f, 14, false, 0, 2),
+    NORMAL("Normal", 34f, 1.5f, 8, false, 0, 1),
+    FAST("Fast", 16f, 2.6f, 10, false, 0, 1),
+    TANK("Tank", 100f, 1.0f, 20, false, 2, 2),
+    FLY("Fly", 26f, 1.8f, 12, true, 0, 1),
+    SWARM("Swarm", 12f, 2.0f, 5, false, 0, 1),
+    HEALER("Healer", 44f, 1.3f, 15, false, 0, 1),
+    SHIELD("Shield", 40f, 1.2f, 14, false, 0, 2),
     BOSS("Boss", 600f, 0.8f, 60, false, 1, 3),
     /** 死亡后只会派生两只不可再次分裂的幼体。 */
-    SPLITTER("分裂怪", 52f, 1.45f, 16, false, 0, 1),
+    SPLITTER("Splitter", 52f, 1.45f, 16, false, 0, 1),
     /** 平时缓行、周期性短冲刺；冲刺与减速倍率相乘而非覆盖。 */
-    CHARGER("冲锋怪", 46f, 1.25f, 16, false, 0, 1),
+    CHARGER("Charger", 46f, 1.25f, 16, false, 0, 1),
     /** 定期给邻近同伴补充有上限的护盾。 */
-    SHIELD_GENERATOR("护盾发生器", 50f, 1.2f, 19, false, 0, 1),
+    SHIELD_GENERATOR("Shield Generator", 50f, 1.2f, 19, false, 0, 1),
     /** 周期生成低价值喽罗，派生物绝不具备召唤能力。 */
-    SUMMONER("召唤怪", 62f, 1.1f, 21, false, 0, 1),
+    SUMMONER("Summoner", 62f, 1.1f, 21, false, 0, 1),
     /** 仅软化减速、中毒和雷电后续弹射，任何塔都仍可攻击。 */
-    RESISTANT("抗性怪", 82f, 1.08f, 24, false, 1, 1),
+    RESISTANT("Resistant", 82f, 1.08f, 24, false, 1, 1),
     /** 低于半血后加速 30%，不引入额外攻击能力。 */
-    RAGER("狂暴怪", 62f, 1.25f, 20, false, 0, 1);
+    RAGER("Rager", 62f, 1.25f, 20, false, 0, 1);
 
     public final String displayName;
     /** 基础血量 */

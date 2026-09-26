@@ -30,6 +30,8 @@ public class TetrisModuleFragment extends Fragment {
 
     private TetrisView tetrisView;
     private TetrisGame game;
+    private android.widget.ImageButton pauseButton;
+    private androidx.appcompat.app.AlertDialog currentDialog;
 
     private int colorBg;
     private int colorTitle;
@@ -93,12 +95,11 @@ public class TetrisModuleFragment extends Fragment {
             btn.setText(TetrisGame.DIFFICULTY_NAMES[i]);
             btn.setTextSize(11);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    0, (int) (32 * dp), 1f);
+                    0, (int) (48 * dp), 1f);
             lp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
             btn.setLayoutParams(lp);
             applyDifficultyButtonStyle(btn, level == game.getDifficultyLevel());
             btn.setOnClickListener(v -> {
-                setDifficulty(level);
                 showDifficultyRestartConfirm(level);
             });
             difficultyBar.addView(btn);
@@ -114,27 +115,28 @@ public class TetrisModuleFragment extends Fragment {
         tetrisView = new TetrisView(ctx);
         gameContainer.addView(tetrisView);
 
-        // 浮动按钮：暂停/重开/设置/返回
+        // 功能按钮放在 HUD 上方的预留行，保留底部落块控制区。
         addFloatingButtons(gameContainer, dp);
 
         return root;
     }
 
     private void addFloatingButtons(FrameLayout container, float dp) {
-        int btnSize = (int) (40 * dp);
+        int btnSize = (int) (48 * dp);
+        int buttonGap = (int) (8 * dp);
 
         // 暂停
         android.widget.ImageButton btnPause = iconButton(android.R.drawable.ic_media_pause, btnSize);
+        btnPause.setContentDescription("暂停或继续游戏");
+        pauseButton = btnPause;
         FrameLayout.LayoutParams pLp = new FrameLayout.LayoutParams(btnSize, btnSize);
         pLp.gravity = Gravity.END | Gravity.TOP;
         pLp.setMargins((int) (8 * dp), (int) (8 * dp), (int) (8 * dp), 0);
         btnPause.setLayoutParams(pLp);
         btnPause.setOnClickListener(v -> {
-            if (tetrisView == null || tetrisView.isGameOver()) return;
+            if (tetrisView == null || tetrisView.isGameOver() || currentDialog != null) return;
             if (tetrisView.isPaused()) {
-                tetrisView.resumeGame();
-                paused = false;
-                btnPause.setImageResource(android.R.drawable.ic_media_pause);
+                resumeCurrentRound();
             } else {
                 tetrisView.pauseGame();
                 paused = true;
@@ -145,9 +147,10 @@ public class TetrisModuleFragment extends Fragment {
 
         // 重开
         android.widget.ImageButton btnRestart = iconButton(android.R.drawable.ic_menu_revert, btnSize);
+        btnRestart.setContentDescription("重新开始游戏");
         FrameLayout.LayoutParams rLp = new FrameLayout.LayoutParams(btnSize, btnSize);
         rLp.gravity = Gravity.END | Gravity.TOP;
-        rLp.setMargins(0, (int) (8 * dp + btnSize + 6 * dp), (int) (8 * dp), 0);
+        rLp.setMargins(0, buttonGap, buttonGap * 2 + btnSize, 0);
         btnRestart.setLayoutParams(rLp);
         btnRestart.setOnClickListener(v -> {
             if (tetrisView != null) showDifficultyRestartConfirm(game.getDifficultyLevel());
@@ -156,9 +159,10 @@ public class TetrisModuleFragment extends Fragment {
 
         // 设置
         android.widget.ImageButton btnSettings = iconButton(android.R.drawable.ic_menu_preferences, btnSize);
+        btnSettings.setContentDescription("游戏设置与规则");
         FrameLayout.LayoutParams sLp = new FrameLayout.LayoutParams(btnSize, btnSize);
-        sLp.gravity = Gravity.END | Gravity.BOTTOM;
-        sLp.setMargins(0, 0, (int) (8 * dp), (int) (8 * dp));
+        sLp.gravity = Gravity.END | Gravity.TOP;
+        sLp.setMargins(0, buttonGap, buttonGap * 3 + btnSize * 2, 0);
         btnSettings.setLayoutParams(sLp);
         btnSettings.setOnClickListener(v -> showModuleSettings());
         container.addView(btnSettings);
@@ -196,7 +200,23 @@ public class TetrisModuleFragment extends Fragment {
                     finalScore, Math.max(finalScore, game.getHighScore())), Toast.LENGTH_LONG).show();
         });
 
-        tetrisView.post(() -> tetrisView.startGame());
+        TetrisView createdView = tetrisView;
+        createdView.setOnRequestResumeListener(() -> {
+            if (tetrisView == createdView) resumeCurrentRound();
+        });
+        createdView.post(() -> {
+            if (tetrisView != createdView || getView() == null) return;
+            createdView.startGame();
+            if (!isResumed() || paused || currentDialog != null) createdView.pauseGame();
+        });
+    }
+
+    private void resumeCurrentRound() {
+        if (tetrisView == null || getView() == null || tetrisView.isGameOver() || currentDialog != null) return;
+        paused = false;
+        if (isResumed()) tetrisView.resumeGame();
+        else tetrisView.pauseGame();
+        if (pauseButton != null) pauseButton.setImageResource(android.R.drawable.ic_media_pause);
     }
 
     /**
@@ -237,44 +257,74 @@ public class TetrisModuleFragment extends Fragment {
     }
 
     private void showDifficultyRestartConfirm(int level) {
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        if (tetrisView == null || currentDialog != null) return;
+        TetrisView dialogView = tetrisView;
+        boolean wasPaused = dialogView.isPaused();
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(R.string.game_tetris_restart_confirm_title)
                 .setMessage(R.string.game_tetris_restart_confirm_msg)
                 .setPositiveButton(R.string.game_tetris_restart, (d, w) -> {
-                    tetrisView.pauseGame();
+                    if (currentDialog != d || tetrisView != dialogView || getView() == null) return;
+                    // Clearing ownership prevents dismissal from restoring the previous round.
+                    currentDialog = null;
                     setDifficulty(level);
-                    tetrisView.startGame();
+                    dialogView.startGame();
+                    resumeCurrentRound();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        showGameDialog(dialog, dialogView, wasPaused);
+    }
+
+    private void showGameDialog(androidx.appcompat.app.AlertDialog dialog, TetrisView dialogView,
+                                boolean wasPaused) {
+        // Transfer ownership before the settings list dismisses when it opens the rules.
+        currentDialog = dialog;
+        dialogView.pauseGame();
+        dialog.setOnDismissListener(d -> {
+            if (currentDialog != dialog) return;
+            currentDialog = null;
+            // Negative button, Back and outside dismissal share the same restoration path.
+            // Lifecycle resume owns reactivation when the host is currently in background.
+            if (!wasPaused && tetrisView == dialogView && getView() != null && isResumed()) {
+                resumeCurrentRound();
+            }
+        });
+        dialog.show();
     }
 
     private void showModuleSettings() {
+        if (tetrisView == null || currentDialog != null) return;
+        TetrisView dialogView = tetrisView;
+        boolean wasPaused = dialogView.isPaused();
         final String[] items = {
                 getString(R.string.game_tetris_settings_sound),
                 getString(R.string.game_tetris_settings_vibrate),
                 getString(R.string.tetris_rules_title)
         };
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog settings = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(R.string.game_tetris_settings_title)
                 .setItems(items, (d, w) -> {
+                    if (currentDialog != d || tetrisView != dialogView || getView() == null) return;
                     if (w == 2) {
                         String body = getString(R.string.tetris_rules_basic)
                                 + "\n\n" + getString(R.string.tetris_rules_victory)
                                 + "\n\n" + getString(R.string.tetris_rules_scoring)
                                 + "\n\n" + getString(R.string.tetris_rules_modern);
-                        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                        androidx.appcompat.app.AlertDialog rules = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                                 .setTitle(R.string.tetris_rules_title)
                                 .setMessage(body)
                                 .setPositiveButton(android.R.string.ok, null)
-                                .show();
+                                .create();
+                        showGameDialog(rules, dialogView, wasPaused);
                     } else {
                         // 模块商店版本提示进入宿主设置
                         Toast.makeText(requireContext(), "请到宿主 App 设置中调整", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        showGameDialog(settings, dialogView, wasPaused);
     }
 
     @Override
@@ -288,7 +338,7 @@ public class TetrisModuleFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (tetrisView != null && !tetrisView.isGameOver() && !paused) {
+        if (tetrisView != null && !tetrisView.isGameOver() && !paused && currentDialog == null) {
             tetrisView.resumeGame();
         }
     }
@@ -296,7 +346,12 @@ public class TetrisModuleFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        androidx.appcompat.app.AlertDialog dialog = currentDialog;
+        currentDialog = null;
+        if (dialog != null) dialog.dismiss();
         if (tetrisView != null) tetrisView.stopGame();
+        tetrisView = null;
+        pauseButton = null;
     }
 
     private void applyThemeColors() {

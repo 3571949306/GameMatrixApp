@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 桌面小组件（2x2 GameMatrix）根布局：LinearLayout vertical + 标题/金币/挑战/时长 4 行。
+     RemoteViews 在 launcher 进程渲染，文本颜色必须用固定色值（禁止 ?attr 主题引用）；
+     三行文案由 GameMatrixWidgetProvider 在更新时填充，此处仅保留首帧/预览占位文本。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_game_matrix_background"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="GameMatrix"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:textColor="#FFEEEAF6" />
+
+    <TextView
+        android:id="@+id/widget_coin_line"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="金币 0"
+        android:textSize="12sp"
+        android:textColor="#FFC8C3D4" />
+
+    <TextView
+        android:id="@+id/widget_challenge_line"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="挑战：数独 2/3"
+        android:textSize="12sp"
+        android:textColor="#FFC8C3D4" />
+
+    <TextView
+        android:id="@+id/widget_playtime_line"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="今日 45 分钟"
+        android:textSize="12sp"
+        android:textColor="#FFC8C3D4" />
+
+</LinearLayout>

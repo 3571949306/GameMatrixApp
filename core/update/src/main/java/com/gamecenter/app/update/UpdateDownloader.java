@@ -10,6 +10,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.gamecenter.app.SettingsManager;
 import com.gamecenter.app.update.BuildConfig;
 import com.gamecenter.app.utils.NetworkErrorHandler;
 
@@ -41,7 +42,7 @@ import java.util.regex.Pattern;
  * 关键设计决策：
  * <ul>
  *   <li>使用单线程线程池执行下载任务，避免并发下载冲突</li>
- *   <li>内置速度检测机制：下载开始 3 秒后检测速度，低于 50KB/s 自动切换源</li>
+ *   <li>内置速度检测机制：下载开始 2 秒后检测速度，低于 30KB/s 自动切换源</li>
  *   <li>下载前自动清理旧 APK 文件，避免占用过多存储空间</li>
  *   <li>支持断点续传检测：若本地已有 MD5 匹配的 APK，直接返回无需重新下载</li>
  * </ul>
@@ -100,7 +101,7 @@ public class UpdateDownloader {
                     if (callback != null) callback.onError("更新元数据无效");
                     return;
                 }
-                List<String> downloadUrls = buildDownloadUrls(info);
+                List<String> downloadUrls = buildDownloadUrls(context, info);
                 File apkFile = null;
                 String errorMsg = null;
                 for (int sourceIndex = 0; sourceIndex < downloadUrls.size(); sourceIndex++) {
@@ -167,10 +168,11 @@ public class UpdateDownloader {
         }
         UpdateUrlValidator.requireAllowedHttpsUrl(
                 downloadUrl,
-                info.getSourceVersionUrl(),
-                UpdateChecker.HK_BASE_URL,
-                UpdateChecker.GITHUB_RELEASES_BASE_URL,
-                BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                UpdateChecker.allowedUpdateBases(
+                        info.getSourceVersionUrl(),
+                        UpdateChecker.HK_BASE_URL,
+                        UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
         validateIntegrityMetadata(info);
 
         // 下载前清理旧 APK，释放存储空间
@@ -234,11 +236,12 @@ public class UpdateDownloader {
             for (int redirectCount = 0; ; redirectCount++) {
                 UpdateUrlValidator.requireAllowedHttpsUrl(
                         currentUrl,
-                        downloadUrl,
-                        info.getSourceVersionUrl(),
-                        UpdateChecker.HK_BASE_URL,
-                        UpdateChecker.GITHUB_RELEASES_BASE_URL,
-                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                        UpdateChecker.allowedUpdateBases(
+                                downloadUrl,
+                                info.getSourceVersionUrl(),
+                                UpdateChecker.HK_BASE_URL,
+                                UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                                BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
                 URL url = new URL(currentUrl);
                 conn = (HttpURLConnection) url.openConnection();
                 // Handle redirects ourselves so an HTTP downgrade is rejected
@@ -266,11 +269,12 @@ public class UpdateDownloader {
                     }
                     currentUrl = UpdateUrlValidator.resolveHttpsRedirect(
                             conn.getURL(), conn.getHeaderField("Location"),
-                            downloadUrl,
-                            info.getSourceVersionUrl(),
-                            UpdateChecker.HK_BASE_URL,
-                            UpdateChecker.GITHUB_RELEASES_BASE_URL,
-                            BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                            UpdateChecker.allowedUpdateBases(
+                                    downloadUrl,
+                                    info.getSourceVersionUrl(),
+                                    UpdateChecker.HK_BASE_URL,
+                                    UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                                    BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
                     conn.disconnect();
                     conn = null;
                     continue;
@@ -281,11 +285,12 @@ public class UpdateDownloader {
                 }
                 UpdateUrlValidator.requireAllowedHttpsUrl(
                         conn.getURL().toExternalForm(),
-                        downloadUrl,
-                        info.getSourceVersionUrl(),
-                        UpdateChecker.HK_BASE_URL,
-                        UpdateChecker.GITHUB_RELEASES_BASE_URL,
-                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                        UpdateChecker.allowedUpdateBases(
+                                downloadUrl,
+                                info.getSourceVersionUrl(),
+                                UpdateChecker.HK_BASE_URL,
+                                UpdateChecker.GITHUB_RELEASES_BASE_URL,
+                                BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
 
                 // 获取文件总大小，优先使用服务端返回的 Content-Length
                 totalSize = conn.getContentLengthLong();
@@ -476,42 +481,45 @@ public class UpdateDownloader {
      * <p>
      * 列表构建逻辑：
      * <ol>
-     *   <li>UpdateInfo 中的主下载 URL</li>
-     *   <li>GitHub Releases 下载 URL</li>
-     *   <li>香港 VPS 下载 URL</li>
+     *   <li>按测速结果排序的边缘镜像；读取元数据的镜像保持首位</li>
+     *   <li>更新元数据提供的下载地址</li>
+     *   <li>GitHub Releases 与旧 HK 下载地址</li>
      * </ol>
      * 自动去重，避免同一 URL 出现多次。
      * </p>
-     * <p>
-     * 2026-06-19: 已移除美国 VPS 下载源，仅保留 HK VPS + GitHub 两级分发。
-     * </p>
      *
+     * @param context 上下文，用于读取测速历史和自动选源设置
      * @param info 更新信息
      * @return 按优先级排列的下载 URL 列表
      */
-    List<String> buildDownloadUrls(UpdateInfo info) {
-        List<String> urls = new ArrayList<>();
+    List<String> buildDownloadUrls(Context context, UpdateInfo info) {
         if (info == null) {
-            return urls;
+            return new ArrayList<>();
         }
         String primaryUrl = info.getDownloadUrl();
-        addSafeUrl(urls, primaryUrl);
         String apkName = extractApkName(primaryUrl, info);
         String githubUrl = buildGitHubAssetUrl(info);
         String hkUrl = UpdateManager.trimTrailingSlash(UpdateChecker.HK_BASE_URL) + "/" + apkName;
+        List<String> mirrorBases = UpdateMirrorOrder.parseBases(BuildConfig.UPDATE_MIRROR_BASES);
+        String sourceVersionUrl = info.getSourceVersionUrl();
+        String metadataMirror = UpdateMirrorOrder.baseForUrl(sourceVersionUrl, mirrorBases);
+        String preferredHost = metadataMirror == null
+                ? (context != null && SettingsManager.getInstance(context).isDlAutoSelect()
+                        ? UpdateMirrorOrder.preferredHostFromHistory(context, mirrorBases) : null)
+                : UpdateMirrorOrder.hostForBase(metadataMirror);
+        List<String> orderedMirrors = UpdateMirrorOrder.orderBases(mirrorBases, preferredHost);
 
-        // 添加备用源，自动去重（2026-06-19: 移除美国 VPS 源）
-        addSafeUrl(urls, githubUrl);
-        addSafeUrl(urls, hkUrl);
-        return urls;
-    }
-
-    private void addSafeUrl(List<String> urls, String candidate) {
-        if (candidate != null && !candidate.isEmpty()
-                && UpdateUrlValidator.isValidHttpsUrl(candidate)
-                && !urls.contains(candidate)) {
-            urls.add(candidate);
-        }
+        boolean customSource = !sourceVersionUrl.isEmpty()
+                && metadataMirror == null
+                && !UpdateMirrorOrder.sameOrigin(sourceVersionUrl, UpdateChecker.HK_BASE_URL)
+                && !sourceVersionUrl.startsWith(UpdateChecker.GITHUB_RELEASES_BASE_URL);
+        // Preserve a user-selected/custom source as primary. Built-in mirror, legacy HK,
+        // and GitHub metadata use the speed-selected edge queue before independent fallbacks.
+        String safeLegacyUrl = hkUrl.contains("your-server.example.com") || hkUrl.contains("example.com")
+                ? "" : hkUrl;
+        return UpdateMirrorOrder.buildApkDownloadQueue(
+                orderedMirrors, apkName, primaryUrl, customSource || sourceVersionUrl.isEmpty(),
+                githubUrl, safeLegacyUrl);
     }
 
     /**

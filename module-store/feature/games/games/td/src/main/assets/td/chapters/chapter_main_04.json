@@ -1,0 +1,5016 @@
+{
+  "schema": 1,
+  "id": "chapter_main_04",
+  "name": "主线第四章",
+  "levels": [
+    {
+      "id": "main_026",
+      "order": 26,
+      "name": "熔焰前夜",
+      "subtitle": "充能与短冲首发 · 双径交替压境",
+      "name_en": "Eve of Embers",
+      "subtitle_en": "Chargers and Shield Generators debut · Alternating pressure from two lanes",
+      "theme": "STORM",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 265,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "NORMAL",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.5,
+          "delay": 0.4,
+          "hpMul": 1.22,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "FAST",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.45,
+          "hpMul": 1.26,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "CHARGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.52,
+          "delay": 0.5,
+          "hpMul": 1.32,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "SUMMONER"
+          ],
+          "route": 1,
+          "count": 5,
+          "interval": 1.3,
+          "delay": 0.5,
+          "hpMul": 1.36,
+          "speedMul": 1.04
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.42,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "RAGER",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 16,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.5,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.0,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "熔焰前夜热浪扑面，冲锋怪和护盾发生器第一次在双路上交替施压。蛋蛋左右两边来回跑，决心哪边都不漏怪。",
+      "story_intro_en": "Eve of Embers glows hot as chargers and shield generators debut with alternating pressure from two lanes. Eggy runs left and right, determined to leak nothing on either side.",
+      "story_outro": "前夜过去了，双路防线稳稳立住。",
+      "story_outro_en": "The eve passes, and the twin line stands firm."
+    },
+    {
+      "id": "main_027",
+      "order": 27,
+      "name": "灰烬双径",
+      "subtitle": "召唤双线施压 · 东西两道不可偏废",
+      "name_en": "Ashen Twin Paths",
+      "subtitle_en": "Summoners pressure both lanes · Neither entrance can be neglected",
+      "theme": "VALLEY",
+      "rows": 10,
+      "cols": 12,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 270,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            11
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.4,
+          "hpMul": 1.26,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER"
+          ],
+          "route": 1,
+          "count": 5,
+          "interval": 1.25,
+          "delay": 0.45,
+          "hpMul": 1.3,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.44,
+          "delay": 0.45,
+          "hpMul": 1.36,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "CHARGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.4,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.46,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER"
+          ],
+          "route": 1,
+          "count": 14,
+          "interval": 0.5,
+          "delay": 0.5,
+          "hpMul": 1.54,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.05,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "灰烬双径两处入口同时被召唤怪盯上，哪边松懈哪边就会被突破。蛋蛋把兵力对半分开，两边都留好后手。",
+      "story_intro_en": "Ashen Twin Paths sees summoners pressure both lanes, where either neglected entrance will break. Eggy splits forces evenly and keeps backup on both sides.",
+      "story_outro": "双径都保住了，灰烬里开出了小小的花。",
+      "story_outro_en": "Both paths survive, and small flowers bloom in the ash."
+    },
+    {
+      "id": "main_028",
+      "order": 28,
+      "name": "岩浆回廊",
+      "subtitle": "抗性与治疗结阵 · 铁壁波考验穿透",
+      "name_en": "Magma Corridor",
+      "subtitle_en": "Resistants and Healers entrench · Iron-wall waves test your penetration",
+      "theme": "CRYSTAL",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 275,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "NORMAL",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.4,
+          "hpMul": 1.3,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 14,
+          "interval": 0.5,
+          "delay": 0.45,
+          "hpMul": 1.36,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "RAGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.42,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RESISTANT"
+          ],
+          "route": 1,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.46,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.52,
+          "delay": 0.5,
+          "hpMul": 1.52,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.5,
+          "hpMul": 1.6,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.08,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "岩浆回廊里抗性怪和治疗怪扎下根来，像铁壁一样考验穿透力。蛋蛋换上穿透和减速组合，一点点凿开缺口。",
+      "story_intro_en": "Magma Corridor entrenches resistant foes and healers like an iron wall testing penetration. Eggy swaps to penetration and slowing combos to carve an opening bit by bit.",
+      "story_outro": "回廊的铁壁被凿穿了，岩浆的光也变得温柔起来。",
+      "story_outro_en": "The iron wall breaks, and even the magma glow softens."
+    },
+    {
+      "id": "main_029",
+      "order": 29,
+      "name": "焦谷三岔",
+      "subtitle": "三岔口空地齐袭 · 飞行与短冲同压",
+      "name_en": "Scorched Fork Valley",
+      "subtitle_en": "Three forks under air and ground raids · Fliers and Chargers press together",
+      "theme": "BRAMBLE",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 280,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "FLY"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.4,
+          "delay": 0.4,
+          "hpMul": 1.34,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "CHARGER",
+            "SWARM"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.34,
+          "delay": 0.45,
+          "hpMul": 1.38,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "FLY",
+            "CHARGER"
+          ],
+          "route": 2,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.45,
+          "hpMul": 1.44,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.5,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "RAGER",
+            "FAST"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.36,
+          "delay": 0.5,
+          "hpMul": 1.56,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "TANK",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 2,
+          "count": 14,
+          "interval": 0.5,
+          "delay": 0.5,
+          "hpMul": 1.66,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.12,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "焦谷三岔分出三条路，空中地上一起突袭，飞行兵和冲锋怪结伴压来。蛋蛋抬头看天又低头看地，防空和地面一个都不落下。",
+      "story_intro_en": "Scorched Fork Valley splits into three forks under air and ground raids, with fliers and chargers pressing together. Eggy watches sky and ground at once, missing neither anti air nor ground defense.",
+      "story_outro": "三岔全部守住，山谷里响起开心的呼喊。",
+      "story_outro_en": "All three forks hold, and happy shouts fill the valley."
+    },
+    {
+      "id": "main_030",
+      "order": 30,
+      "name": "雷暴焦土",
+      "subtitle": "虫潮短冲浪涌 · 中段强度陡增",
+      "name_en": "Storm-Scorched Ground",
+      "subtitle_en": "Swarm tides and Charger surges · Mid-chapter intensity spikes",
+      "theme": "STORM",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 285,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SWARM",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.3,
+          "delay": 0.4,
+          "hpMul": 1.4,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "CHARGER",
+            "RAGER"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.38,
+          "delay": 0.45,
+          "hpMul": 1.46,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.5,
+          "hpMul": 1.52,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "SWARM",
+            "CHARGER",
+            "FLY"
+          ],
+          "route": 1,
+          "count": 22,
+          "interval": 0.3,
+          "delay": 0.5,
+          "hpMul": 1.58,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.64,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 16,
+          "interval": 0.5,
+          "delay": 0.5,
+          "hpMul": 1.7,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.34,
+          "delay": 0.5,
+          "hpMul": 1.74,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 1,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.16,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "雷暴焦土虫群如潮，冲锋怪一波接一波，双线强度陡然升高。蛋蛋提前攒好群攻塔，等潮水来了迎头痛击。",
+      "story_intro_en": "Storm Scorched Ground rolls swarm tides and charger surges with mid chapter intensity spiking on two lanes. Eggy saves splash towers early to meet the tide head on.",
+      "story_outro": "潮水退去，焦土上留下了一条干净的防线。",
+      "story_outro_en": "The tide recedes, leaving a clean line on the scorched land."
+    },
+    {
+      "id": "main_031",
+      "order": 31,
+      "name": "风暴隘口",
+      "subtitle": "召唤双径接力 · 治疗核心护航",
+      "name_en": "Storm Narrows",
+      "subtitle_en": "Summoners relay down both lanes · Healer cores escort the horde",
+      "theme": "GARDEN",
+      "rows": 10,
+      "cols": 12,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 290,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            11
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.36,
+          "delay": 0.4,
+          "hpMul": 1.44,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SUMMONER"
+          ],
+          "route": 1,
+          "count": 6,
+          "interval": 1.15,
+          "delay": 0.45,
+          "hpMul": 1.48,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.54,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "FAST"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.58,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "FLY",
+            "CHARGER"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.62,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "TANK",
+            "SHIELD_GENERATOR",
+            "RESISTANT"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.42,
+          "delay": 0.5,
+          "hpMul": 1.68,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.36,
+          "delay": 0.5,
+          "hpMul": 1.76,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 1,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.2,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "风暴隘口两条路上召唤怪接力不断，还有治疗核心一路护送。蛋蛋算好接力点，在交接处设下埋伏。",
+      "story_intro_en": "Storm Narrows relays summoners down both lanes with healer cores escorting the horde. Eggy counts the relay points and sets ambushes where they hand off.",
+      "story_outro": "接力被打断了，隘口的风也小了下来。",
+      "story_outro_en": "The relay breaks, and winds ease at the narrows."
+    },
+    {
+      "id": "main_032",
+      "order": 32,
+      "name": "熔核裂隙",
+      "subtitle": "分裂体浪潮 · 治疗链拖垮火力",
+      "name_en": "Molten Core Rift",
+      "subtitle_en": "Splitter tides · Healer chains grind down your firepower",
+      "theme": "BRAMBLE",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 295,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SPLITTER",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.4,
+          "hpMul": 1.46,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "RAGER",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.36,
+          "delay": 0.45,
+          "hpMul": 1.5,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "HEALER"
+          ],
+          "route": 2,
+          "count": 16,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.54,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "FLY",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.58,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.46,
+          "delay": 0.5,
+          "hpMul": 1.64,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "RAGER",
+            "SWARM"
+          ],
+          "route": 2,
+          "count": 20,
+          "interval": 0.34,
+          "delay": 0.5,
+          "hpMul": 1.7,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.36,
+          "delay": 0.5,
+          "hpMul": 1.8,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 1,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.24,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "熔核裂隙张开三条裂缝，分裂潮涌个不停，治疗链还一直在磨火力。蛋蛋把高伤塔分散开，三条路一起开火。",
+      "story_intro_en": "Molten Core Rift opens three lanes of splitter tides while healer chains grind down firepower. Eggy spreads heavy hitters wide to fire on all three roads at once.",
+      "story_outro": "裂隙的三条缝都被堵住，熔核的光暗了下去。",
+      "story_outro_en": "All three cracks plug shut, and the core glow dims."
+    },
+    {
+      "id": "main_033",
+      "order": 33,
+      "name": "灰烬王庭",
+      "subtitle": "铁壁强化共振 · 双召唤轮替施压",
+      "name_en": "Court of Ash",
+      "subtitle_en": "Iron walls with support resonance · Twin Summoners apply pressure in turn",
+      "theme": "CRYSTAL",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 300,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.32,
+          "delay": 0.4,
+          "hpMul": 1.5,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.44,
+          "delay": 0.45,
+          "hpMul": 1.56,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.6,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 1,
+          "count": 20,
+          "interval": 0.36,
+          "delay": 0.5,
+          "hpMul": 1.66,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.72,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "FAST",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 22,
+          "interval": 0.32,
+          "delay": 0.5,
+          "hpMul": 1.78,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.86,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 1,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.28,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "灰烬王庭铁壁林立，支援怪互相呼应，两拨召唤怪轮流施压。蛋蛋稳住心神，先断呼应，再逐个击破。",
+      "story_intro_en": "Court of Ash raises iron walls with support resonance while twin summoners press in turn. Eggy steadies his mind, cuts their link first, then breaks them one by one.",
+      "story_outro": "王庭的灰落定了，铁壁也被推倒。",
+      "story_outro_en": "Ash settles in the court, and the iron walls fall."
+    },
+    {
+      "id": "main_034",
+      "order": 34,
+      "name": "风暴穹顶",
+      "subtitle": "狂暴风暴与重装 · 双径极限绞杀",
+      "name_en": "Storm Dome",
+      "subtitle_en": "Rager storms and heavy armor · Both lanes squeeze to the limit",
+      "theme": "VALLEY",
+      "rows": 10,
+      "cols": 12,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 305,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            11
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "RAGER",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.3,
+          "delay": 0.4,
+          "hpMul": 1.58,
+          "speedMul": 1.2
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 20,
+          "interval": 0.36,
+          "delay": 0.45,
+          "hpMul": 1.62,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.42,
+          "delay": 0.5,
+          "hpMul": 1.68,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER"
+          ],
+          "route": 1,
+          "count": 20,
+          "interval": 0.36,
+          "delay": 0.5,
+          "hpMul": 1.72,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "FLY",
+            "CHARGER",
+            "SWARM"
+          ],
+          "route": 0,
+          "count": 24,
+          "interval": 0.28,
+          "delay": 0.5,
+          "hpMul": 1.78,
+          "speedMul": 1.2
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "HEALER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 20,
+          "interval": 0.38,
+          "delay": 0.5,
+          "hpMul": 1.86,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER",
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.34,
+          "delay": 0.5,
+          "hpMul": 1.94,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 1,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.3,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "风暴穹顶下狂暴风暴裹着重甲怪，两条路同时被挤到极限。蛋蛋把减速铺满全场，让风暴慢下来再打。",
+      "story_intro_en": "Storm Dome brews rager storms and heavy armor that squeeze both lanes to the limit. Eggy blankets the field with slowing so the storm slows before it breaks.",
+      "story_outro": "穹顶的风暴散了，双线防线依然完整。",
+      "story_outro_en": "The dome storm clears, and both lanes remain whole."
+    },
+    {
+      "id": "main_035",
+      "order": 35,
+      "name": "余烬王座",
+      "subtitle": "终幕双王分道 · 全机制会师决战",
+      "name_en": "Throne of Embers",
+      "subtitle_en": "Grand finale · Twin Bosses split the lanes as every mechanic converges",
+      "theme": "STORM",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 310,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.3,
+          "delay": 0.4,
+          "hpMul": 1.62,
+          "speedMul": 1.2
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 18,
+          "interval": 0.38,
+          "delay": 0.45,
+          "hpMul": 1.68,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "CHARGER",
+            "SWARM",
+            "FLY"
+          ],
+          "route": 2,
+          "count": 22,
+          "interval": 0.3,
+          "delay": 0.5,
+          "hpMul": 1.74,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "TANK",
+            "RESISTANT",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.8,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 22,
+          "interval": 0.32,
+          "delay": 0.5,
+          "hpMul": 1.88,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "HEALER",
+            "FAST"
+          ],
+          "route": 2,
+          "count": 20,
+          "interval": 0.36,
+          "delay": 0.5,
+          "hpMul": 1.96,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "BOSS",
+            "RESISTANT",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 3,
+          "interval": 1.2,
+          "delay": 0.8,
+          "hpMul": 1.28,
+          "speedMul": 0.92
+        },
+        {
+          "types": [
+            "BOSS",
+            "SHIELD_GENERATOR",
+            "RAGER"
+          ],
+          "route": 1,
+          "count": 3,
+          "interval": 1.2,
+          "delay": 0.8,
+          "hpMul": 1.32,
+          "speedMul": 0.92
+        }
+      ],
+      "story_intro": "余烬王座是第四章的大终局，两位首领分走两条路，所有手段在此交汇，三条防线一起告急。蛋蛋握紧村长给的哨子说，这一次绝不后退。",
+      "story_intro_en": "Throne of Embers is the grand finale of chapter four, with twin Bosses splitting the lanes as every mechanic converges across three lines. Eggy grips the whistle from the chief and vows no retreat this time.",
+      "story_outro": "王座的余烬熄灭了，双线防守画上圆满句号。",
+      "story_outro_en": "Embers of the throne fade, closing the two front defense in triumph."
+    }
+  ]
+}

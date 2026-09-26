@@ -10,6 +10,8 @@ import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.database.AppDatabase;
 import com.gamecenter.app.database.dao.AchievementDao;
 import com.gamecenter.app.database.entity.AchievementEntity;
+import com.gamecenter.app.games.coin.CoinWallet;
+import com.gamecenter.app.games.coin.TitleCatalog;
 import com.gamecenter.app.games.model.AchievementData;
 import com.gamecenter.app.ui.AchievementToastView;
 
@@ -165,8 +167,44 @@ public class AchievementManager {
      * Batch 8-3 (ACHIEVEMENT_TOAST): 解锁成功后弹出顶部浮层。
      */
     private void showAchievementToastIfEnabled(@NonNull String achievementId) {
+        // 每日挑战：此处是所有解锁路径（checkAndUnlock/unlock/@Deprecated 三条）的统一
+        // 必经点——解锁成功后必调本方法。在此推进"解锁成就"型挑战（此前
+        // recordAchievementUnlocked 全仓库无生产调用点，该型挑战为永久死任务）。
+        try {
+            com.gamecenter.app.games.achievement.DailyChallengeManager
+                    .getInstance(context).recordAchievementUnlocked();
+        } catch (Exception e) {
+            Log.w(TAG, "推进每日挑战进度失败", e);
+        }
+        // 成就→称号联动：解锁总数达到里程碑（3/8/15）时自动授予对应专属称号。
+        // 独立 try 包裹，授予失败绝不影响解锁主流程。
+        try {
+            grantAchievementTitlesForMilestones();
+        } catch (Exception e) {
+            Log.w(TAG, "成就称号授予失败", e);
+        }
         if (BuildConfig.ACHIEVEMENT_TOAST) {
             showAchievementToast(achievementId);
+        }
+    }
+
+    /**
+     * 成就→称号联动：解锁总数达到 3/8/15 里程碑时，依次授予成就称号 101/102/103。
+     * <p>
+     * 解锁总数用 {@link AchievementDao#getUnlockedCountSync()}（Room 现成 count 查询，
+     * 与成就中心同库同表）。本方法只在解锁成功后（saveToRoom 已写入）调用，
+     * 计数能覆盖本次解锁；grantAchievementTitle 内部幂等（已拥有返回 false），
+     * 未达门槛或重复授予均无副作用。
+     * </p>
+     */
+    private void grantAchievementTitlesForMilestones() {
+        int unlockedCount = achievementDao.getUnlockedCountSync();
+        CoinWallet wallet = new CoinWallet(context);
+        for (TitleCatalog.Title title : TitleCatalog.achievementTitles()) {
+            if (unlockedCount >= title.requiredAchievements
+                    && wallet.grantAchievementTitle(title.id)) {
+                Log.i(TAG, "成就称号授予: " + title.name);
+            }
         }
     }
 

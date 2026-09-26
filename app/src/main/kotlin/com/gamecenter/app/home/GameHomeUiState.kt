@@ -16,6 +16,8 @@ data class GameHomeStrings(
     val viewAll: String,
     val collapse: String,
     val allFilter: String,
+    /** 定位分区叙事（可选，空则不渲染）：经典游戏是入口，工具与学习是留存 */
+    val positioningTitle: String = "",
 )
 
 /** 页面筛选状态（SavedStateHandle 持久化）。 */
@@ -147,7 +149,10 @@ object GameHomeStateBuilder {
             }
         }
 
-        // 5. 全部游戏（含收藏空状态）
+        // 5. 全部游戏（含收藏空状态）；前置定位分区叙事（可选）
+        if (strings.positioningTitle.isNotBlank()) {
+            items.add(GameHomeItem.SectionHeader(strings.positioningTitle))
+        }
         items.add(GameHomeItem.SectionHeader(strings.allGamesTitle))
         if (favFiltered.isEmpty() && filters.favoritesOnly) {
             items.add(GameHomeItem.EmptyState(strings.emptyFavorites, strings.emptyFavoritesAction))

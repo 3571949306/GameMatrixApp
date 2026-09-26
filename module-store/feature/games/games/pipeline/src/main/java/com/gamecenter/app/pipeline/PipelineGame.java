@@ -1,5 +1,6 @@
 package com.gamecenter.app.pipeline;
 
+import java.util.ArrayDeque;
 import java.util.Random;
 
 /**
@@ -19,18 +20,30 @@ public class PipelineGame {
     public static final int PIPE_T = 3;         // T型
     public static final int PIPE_CROSS = 4;     // 十字
 
-    // 管道符号（0=上, 1=右, 2=下, 3=左）
+    // 管道符号（旋转值 0-3，每次顺时针旋转 90°）
     public static final String[] PIPE_CHARS = {"│", "─", "│", "─"};
     public static final String[] PIPE_L_CHARS = {"└", "┌", "┐", "┘"};
     public static final String[] PIPE_T_CHARS = {"├", "┬", "┤", "┴"};
     public static final String PIPE_CROSS_CHAR = "┼";
+
+    // 与上述可视字符一一对应：上=1、右=2、下=4、左=8。
+    // 生成解与玩家连通判定共用此表，不能分别维护两套朝向约定。
+    private static final int[][] PIPE_PORTS = {
+            {0, 0, 0, 0},
+            {5, 10, 5, 10},
+            {3, 6, 12, 9},
+            {7, 14, 13, 11},
+            {15, 15, 15, 15}
+    };
+    private static final int[] ROW_STEP = {-1, 0, 1, 0};
+    private static final int[] COL_STEP = {0, 1, 0, -1};
 
     // ==================== 游戏状态 ====================
     private int currentLevel = 1;
     private int gridSize = 5;
     private int[][] pipeTypes;        // 管道类型
     private int[][] pipeRotations;    // 管道旋转（0-3）
-    private int[][] targetRotations;  // 目标旋转
+    private int[][] targetRotations;  // 生成器的一组可解旋转见证，不参与玩家胜利判定
     private int moveCount = 0;
     private boolean gameActive = false;
     private final Random random = new Random();
@@ -112,42 +125,32 @@ public class PipelineGame {
         for (int r = 0; r < gridSize; r++) {
             for (int c = 0; c < gridSize; c++) {
                 if (onPath[r][c]) {
-                    boolean hasUp = r > 0 && onPath[r - 1][c];
-                    boolean hasDown = r < gridSize - 1 && onPath[r + 1][c];
-                    boolean hasLeft = c > 0 && onPath[r][c - 1];
-                    boolean hasRight = c < gridSize - 1 && onPath[r][c + 1];
-
-                    int connections = (hasUp ? 1 : 0) + (hasDown ? 1 : 0)
-                            + (hasLeft ? 1 : 0) + (hasRight ? 1 : 0);
-
-                    if (connections == 4) {
-                        pipeTypes[r][c] = PIPE_CROSS;
-                        targetRotations[r][c] = 0;
-                    } else if (connections == 3) {
-                        pipeTypes[r][c] = PIPE_T;
-                        if (!hasUp) targetRotations[r][c] = 2;
-                        else if (!hasRight) targetRotations[r][c] = 3;
-                        else if (!hasDown) targetRotations[r][c] = 0;
-                        else targetRotations[r][c] = 1;
-                    } else if (connections == 2) {
-                        if ((hasUp && hasDown) || (hasLeft && hasRight)) {
-                            pipeTypes[r][c] = PIPE_STRAIGHT;
-                            targetRotations[r][c] = (hasUp && hasDown) ? 0 : 1;
-                        } else {
-                            pipeTypes[r][c] = PIPE_L;
-                            if (hasDown && hasRight) targetRotations[r][c] = 0;
-                            else if (hasDown && hasLeft) targetRotations[r][c] = 3;
-                            else if (hasUp && hasRight) targetRotations[r][c] = 1;
-                            else targetRotations[r][c] = 2;
+                    int requiredPorts = 0;
+                    for (int direction = 0; direction < 4; direction++) {
+                        int nextRow = r + ROW_STEP[direction];
+                        int nextCol = c + COL_STEP[direction];
+                        if (inBounds(nextRow, nextCol) && onPath[nextRow][nextCol]) {
+                            requiredPorts |= 1 << direction;
                         }
-                    } else {
-                        // 死胡同 - 用直线
-                        pipeTypes[r][c] = PIPE_STRAIGHT;
-                        targetRotations[r][c] = hasUp || hasDown ? 0 : 1;
                     }
+                    assignPathPipe(r, c, requiredPorts);
                 }
             }
         }
+    }
+
+    private void assignPathPipe(int row, int col, int requiredPorts) {
+        // 优先使用能满足路径的最简单管形；端点只要求向棋盘内的连接。
+        for (int type = PIPE_STRAIGHT; type <= PIPE_CROSS; type++) {
+            for (int rotation = 0; rotation < 4; rotation++) {
+                if ((PIPE_PORTS[type][rotation] & requiredPorts) == requiredPorts) {
+                    pipeTypes[row][col] = type;
+                    targetRotations[row][col] = rotation;
+                    return;
+                }
+            }
+        }
+        throw new IllegalStateException("No pipe can satisfy the generated path ports");
     }
 
     /**
@@ -192,34 +195,58 @@ public class PipelineGame {
     }
 
     /**
-     * 判断指定格子的管道旋转是否与目标一致（十字管道恒为正确）。
+     * 判断该格是否能沿当前显示管道从左上起点到达，供 UI 高亮水路。
+     * 保留原 API 名称；不比较生成器的旋转见证，空格或断开的支管返回 false。
      */
     public boolean isPipeCorrect(int row, int col) {
-        if (pipeTypes[row][col] == PIPE_NONE || pipeTypes[row][col] == PIPE_CROSS) {
-            return true;
-        }
-        return pipeRotations[row][col] == targetRotations[row][col];
+        return inBounds(row, col) && reachableFromStart()[row][col];
     }
 
     /**
-     * 检查所有管道是否全部正确。
+     * 检查左上起点与右下终点是否双向连通，允许支路、空闲开口和非路径管道。
      */
     public boolean isAllCorrect() {
-        for (int r = 0; r < gridSize; r++) {
-            for (int c = 0; c < gridSize; c++) {
-                if (!isPipeCorrect(r, c)) {
-                    return false;
+        return reachableFromStart()[gridSize - 1][gridSize - 1];
+    }
+
+    private boolean[][] reachableFromStart() {
+        boolean[][] reached = new boolean[gridSize][gridSize];
+        if (pipeTypes == null || pipeRotations == null || pipeTypes[0][0] == PIPE_NONE) {
+            return reached;
+        }
+        ArrayDeque<Integer> pending = new ArrayDeque<>();
+        reached[0][0] = true;
+        pending.add(0);
+        while (!pending.isEmpty()) {
+            int cell = pending.remove();
+            int row = cell / gridSize;
+            int col = cell % gridSize;
+            int ports = PIPE_PORTS[pipeTypes[row][col]][pipeRotations[row][col]];
+            for (int direction = 0; direction < 4; direction++) {
+                int nextRow = row + ROW_STEP[direction];
+                int nextCol = col + COL_STEP[direction];
+                if (!inBounds(nextRow, nextCol) || reached[nextRow][nextCol]) continue;
+                int nextPorts = PIPE_PORTS[pipeTypes[nextRow][nextCol]][pipeRotations[nextRow][nextCol]];
+                int opposite = (direction + 2) % 4;
+                if ((ports & (1 << direction)) != 0 && (nextPorts & (1 << opposite)) != 0) {
+                    reached[nextRow][nextCol] = true;
+                    pending.add(nextRow * gridSize + nextCol);
                 }
             }
         }
-        return true;
+        return reached;
+    }
+
+    private boolean inBounds(int row, int col) {
+        return row >= 0 && col >= 0 && row < gridSize && col < gridSize;
     }
 
     /**
      * 关卡通关：结算分数、推进关卡、结束本关。
-     * @return 本关得分
+     * @return 本关得分；未开始、尚未连通或已经结算时返回 0，不改变关卡和分数。
      */
     public int completeLevel() {
+        if (!gameActive || !isAllCorrect()) return 0;
         gameActive = false;
         int score = Math.max(200 - moveCount * 5, 20) * currentLevel;
         totalScore += score;

@@ -20,7 +20,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.brotato.engine.BrotatoArena;
+import com.gamecenter.app.brotato.engine.BrotatoContent;
 import com.gamecenter.app.games.GameUsageStore;
+import com.gamecenter.app.modules.ModuleManager;
 
 /**
  * 土豆兄弟游戏 Fragment（独立 APK 模块版本）。
@@ -28,16 +31,23 @@ import com.gamecenter.app.games.GameUsageStore;
  * <p>由宿主 BrotatoActivity 迁移而来。使用纯 Android widget 构建 UI，
  * 不依赖宿主 R 资源，支持浅色/深色主题。难度选择以代码内按钮实现，
  * 不含成就系统，仅保留基本游戏功能。</p>
+ *
+ * <p>本层只做三件事：装载数据驱动内容（{@link BrotatoAssets}，失败即抛、不回退）、
+ * 把三档难度映射成引擎倍率 0.7/1.0/1.45、以及用 16ms 定时器驱动
+ * {@link BrotatoView#update()}（与 {@link BrotatoArena#TICK_MS} 同频）。
+ * 战场规则全在 {@link BrotatoArena} 内，这里不再有任何游戏逻辑。</p>
  */
 public class BrotatoModuleFragment extends Fragment {
 
     private static final String GAME_ID = "brotato";
-    private static final long FRAME_INTERVAL_MS = 16;
+    /** 驱动频率：与引擎固定帧步长一致，保证"一 tick = 16ms 引擎时间"。 */
+    private static final long FRAME_INTERVAL_MS = BrotatoArena.TICK_MS;
 
     private BrotatoView brotatoView;
     private Handler handler = new Handler(Looper.getMainLooper());
     private int highScore = 0;
     private int totalGames = 0;
+    /** UI 侧保持旧版难度因子口径（0.3/0.5/0.8），只在传给引擎时映射成倍率。 */
     private float difficultyFactor = 0.5f;
 
     private TextView tvScore;
@@ -157,7 +167,30 @@ public class BrotatoModuleFragment extends Fragment {
         gameContainer.setLayoutParams(containerLp);
         root.addView(gameContainer);
 
-        brotatoView = new BrotatoView(ctx);
+        // 模块 APK 的资产必须走模块 AssetManager（宿主 getAssets() 看不到 assets/brotato/，
+        // 与 td/klotski/chinesechess 同款装载口）；失败给可见提示并返回空视图，不崩宿主。
+        com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources moduleResources = null;
+        try {
+            moduleResources = ModuleManager.INSTANCE.getModuleResources("brotato");
+        } catch (RuntimeException exception) {
+            android.util.Log.e("BrotatoFragment", "module resources unavailable", exception);
+        }
+        if (moduleResources == null) {
+            android.widget.Toast.makeText(ctx, "土豆兄弟模块资源装载失败，请重新安装该模块",
+                    android.widget.Toast.LENGTH_LONG).show();
+            return new android.widget.FrameLayout(requireContext());
+        }
+        BrotatoContent content;
+        try {
+            content = BrotatoAssets.load(moduleResources.getAssetManager());
+        } catch (IllegalStateException exception) {
+            android.util.Log.e("BrotatoFragment", "brotato content assets invalid", exception);
+            android.widget.Toast.makeText(ctx, "土豆兄弟内容文件校验失败：" + exception.getMessage(),
+                    android.widget.Toast.LENGTH_LONG).show();
+            return new android.widget.FrameLayout(requireContext());
+        }
+        final int totalWavesForHud = content.totalWaves();
+        brotatoView = new BrotatoView(ctx, content);
         applyDifficulty();
         brotatoView.setOnGameListener(new BrotatoView.OnGameListener() {
             @Override
@@ -167,22 +200,19 @@ public class BrotatoModuleFragment extends Fragment {
 
             @Override
             public void onGameOver(int score, int wave) {
-                handler.removeCallbacks(gameLoop);
-                totalGames++;
-                if (score > highScore) {
-                    highScore = score;
-                }
-                if (usageStore != null) {
-                    usageStore.recordScore(GAME_ID, highScore);
-                    usageStore.recordLoss(GAME_ID);
-                }
-                tvBest.setText(getString(R.string.game_high_score_format, highScore));
+                finishGame(score, false);
+            }
+
+            @Override
+            public void onWin(int score) {
+                finishGame(score, true);
             }
 
             @Override
             public void onWaveComplete(int wave) {
                 if (tvWave != null) {
-                    tvWave.setText(getString(R.string.game_wave_format, wave + 1));
+                    tvWave.setText(getString(R.string.game_wave_format,
+                            Math.min(wave + 1, totalWavesForHud)));
                 }
             }
         });
@@ -224,15 +254,52 @@ public class BrotatoModuleFragment extends Fragment {
         handler.post(gameLoop);
     }
 
+    /** UI 难度因子 → 引擎倍率：简单 0.3 → {@code DIFFICULTY_EASY}、普通 0.5 → NORMAL、困难 0.8 → HARD。 */
     private void setDifficulty(float factor) {
         difficultyFactor = factor;
         applyDifficulty();
         updateDifficultyButtons();
+        // 引擎标量在构造期固定，难度只对下一局生效——给用户明确反馈，避免"点了没反应"
+        if (isAdded()) {
+            android.widget.Toast.makeText(requireContext(),
+                    R.string.game_brotato_diff_next_round,
+                    android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
+    /**
+     * 倍率乘在敌人 hp/speed 上、除在出怪间隔上。引擎的难度标量是构造期入参（一整局固定，
+     * 以保证同 seed 同标量可复现），所以这里改的值在下一局（"重新开始"）生效。
+     */
     private void applyDifficulty() {
         if (brotatoView == null) return;
-        brotatoView.setDifficultyFactor(difficultyFactor);
+        brotatoView.setDifficultyScalar(difficultyScalar(difficultyFactor));
+    }
+
+    private static float difficultyScalar(float factor) {
+        if (factor <= 0.3f) return BrotatoArena.DIFFICULTY_EASY;
+        if (factor >= 0.8f) return BrotatoArena.DIFFICULTY_HARD;
+        return BrotatoArena.DIFFICULTY_NORMAL;
+    }
+
+    /** 一局结束的结算：停循环、记最高分、按胜负分别记胜/负。 */
+    private void finishGame(int score, boolean won) {
+        handler.removeCallbacks(gameLoop);
+        totalGames++;
+        if (score > highScore) {
+            highScore = score;
+        }
+        if (usageStore != null) {
+            usageStore.recordScore(GAME_ID, highScore);
+            if (won) {
+                usageStore.recordWin(GAME_ID);
+            } else {
+                usageStore.recordLoss(GAME_ID);
+            }
+        }
+        if (tvBest != null) {
+            tvBest.setText(getString(R.string.game_high_score_format, highScore));
+        }
     }
 
     private void updateDifficultyButtons() {
@@ -267,6 +334,8 @@ public class BrotatoModuleFragment extends Fragment {
         super.onResume();
         if (brotatoView != null && brotatoView.isGameRunning()) {
             brotatoView.resumeGame();
+            // 先摘再挂：防止 onViewCreated/onResume 同帧双投递造成 2× 速自排循环
+            handler.removeCallbacks(gameLoop);
             handler.post(gameLoop);
         }
     }

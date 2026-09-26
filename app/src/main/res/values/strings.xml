@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">游戏中心</string>
+    <!-- 定位红线：本地优先、按需组装；经典游戏入口、工具学习留存、模块化壁垒 -->
+    <string name="home_positioning_tagline">本地优先 · 按需组装的游戏与工具箱</string>
+    <string name="home_positioning_modules">模块商店 · 只装需要的</string>
+    <string name="home_positioning_sections">经典游戏是入口，工具与学习是留存</string>
     <string name="nav_browser">网页浏览</string>
     <string name="nav_games">游戏大厅</string>
     <string name="nav_tools">工具箱</string>
@@ -355,6 +359,7 @@
     <string name="module_back">返回</string>
     <string name="module_refresh">刷新</string>
     <string name="module_store_title">模块商店</string>
+    <string name="module_store_subtitle">只装需要的 · 本地优先，按需组装</string>
     <string name="module_empty">暂无可下载的模块</string>
     <!-- 动态工具区 -->
     <string name="dynamic_tools_empty_state">暂无工具模块，请前往模块商店下载。</string>
@@ -2197,6 +2202,66 @@
     <string name="profile_favorites_count_format">已收藏 %1$d 款游戏</string>
     <string name="profile_no_favorites">还没有收藏的游戏，去游戏大厅点 ♥ 收藏吧</string>
 
+    <!-- ===== 金币经济（COIN_ECONOMY）：金币钱包 ===== -->
+    <string name="profile_stat_coins">金币</string>
+    <string name="profile_name_with_title_format">%1$s·%2$s</string>
+
+    <!-- ===== Elo 棋力等级分（ELO_RATING）：Profile 战绩卡 ===== -->
+    <string name="profile_chess_rating_format">中国象棋棋力：%1$d</string>
+    <string name="coin_wallet_title">金币钱包</string>
+    <string name="coin_wallet_balance_label">金币余额</string>
+    <string name="coin_wallet_earned_today_format">今日已赚 %1$d / 上限 200</string>
+    <string name="coin_wallet_rules_title">赚取规则</string>
+    <string name="coin_wallet_rules_body">· 对局胜利：10 金币起步，连胜越久加成越高（最高 20）\n· 完成对局（未获胜）：3 金币\n· 每日赚取上限 200 金币\n· 金币可在下方称号商店兑换称号</string>
+    <string name="coin_wallet_recent_title">最近流水</string>
+    <string name="coin_wallet_recent_empty">暂无流水，去完成一局游戏吧</string>
+    <string name="coin_wallet_shop_title">称号商店</string>
+    <string name="coin_wallet_title_price_format">%1$d 金币</string>
+    <string name="coin_wallet_title_achievement_source">成就解锁</string>
+    <string name="coin_wallet_btn_locked_format">解锁 %1$d 个成就</string>
+    <string name="coin_wallet_btn_buy">兑换</string>
+    <string name="coin_wallet_btn_equip">佩戴</string>
+    <string name="coin_wallet_btn_equipped">已佩戴</string>
+    <string name="coin_wallet_buy_success_format">兑换成功，已佩戴「%1$s」</string>
+    <string name="coin_wallet_buy_failed">金币不足，先去赢几局吧</string>
+
+    <!-- ===== 游戏周报（WEEKLY_REPORT） ===== -->
+    <string name="weekly_report_title">游戏周报</string>
+    <string name="weekly_report_period_format">本周游戏周报（%1$s ~ %2$s）</string>
+    <string name="weekly_report_playtime_label">本周时长</string>
+    <string name="weekly_report_playtime_hour_min_format">%1$d 小时 %2$d 分</string>
+    <string name="weekly_report_playtime_min_format">%1$d 分钟</string>
+    <string name="weekly_report_active_days_label">活跃天数</string>
+    <string name="weekly_report_active_days_format">%1$d/7</string>
+    <string name="weekly_report_total_games_label">全期对局</string>
+    <string name="weekly_report_total_games_format">%1$d 局</string>
+    <string name="weekly_report_win_rate_format">全期胜率 %1$d%%（胜负 %2$d/%3$d）</string>
+    <string name="weekly_report_no_decided_games">全期暂无胜负记录</string>
+    <string name="weekly_report_coin_label">金币收支（本周）</string>
+    <string name="weekly_report_coin_format">+%1$d / -%2$d</string>
+    <string name="weekly_report_favorite_title">最常游玩</string>
+    <string name="weekly_report_favorite_note">全期时长 Top1（时长并列取胜场多者）</string>
+    <string name="weekly_report_no_play">本周暂未游玩</string>
+    <string name="weekly_report_daily_title">每日时长</string>
+    <string name="weekly_report_daily_note">近 7 天</string>
+    <string name="weekly_report_daily_empty">本周暂未游玩</string>
+    <string name="profile_weekly_report">游戏周报</string>
+
+    <!-- ===== 关卡码合集本（CODEBOOK） ===== -->
+    <string name="codebook_title">关卡码合集本</string>
+    <string name="codebook_section_title">已收藏关卡</string>
+    <string name="codebook_title_hint">标题（可选）</string>
+    <string name="codebook_code_hint">粘贴推箱子或数独关卡码</string>
+    <string name="codebook_add">添加</string>
+    <string name="codebook_unrecognized">无法识别的关卡码</string>
+    <string name="codebook_added_format">已添加（%1$s）</string>
+    <string name="codebook_copy">复制</string>
+    <string name="codebook_delete">删除</string>
+    <string name="codebook_copied_format">已复制，请到%1$s的编辑器导入</string>
+    <string name="codebook_copy_failed">复制失败，请重试</string>
+    <string name="codebook_empty">还没有收藏关卡码，粘贴一个试试</string>
+    <string name="profile_codebook">关卡码合集本</string>
+
     <!-- 收藏筛选 chip -->
     <string name="filter_all_games">全部</string>
     <string name="filter_favorites_only">我的收藏</string>
@@ -2313,7 +2378,7 @@
     <string name="empty_favorites_title">还没有收藏的游戏</string>
     <string name="empty_favorites_subtitle">点击游戏卡片右上角的心形图标即可收藏</string>
     <string name="empty_default_title">暂无游戏</string>
-    <string name="empty_default_subtitle">前往模块市场下载更多游戏</string>
+    <string name="empty_default_subtitle">@string/home_positioning_modules</string>
     <string name="empty_action_browse_modules">去模块市场</string>
     <string name="empty_action_clear_filter">清除筛选</string>
 
@@ -2582,6 +2647,7 @@
     <string name="game_diff_normal">普通</string>
     <string name="game_diff_medium">中等</string>
     <string name="game_diff_hard">困难</string>
+    <string name="game_brotato_diff_next_round">难度将在下一局生效</string>
     <string name="game_btn_restart">重新开始</string>
     <string name="game_btn_start">开始游戏</string>
     <string name="game_btn_play_again">再玩一次</string>
@@ -2666,6 +2732,32 @@
     <string name="game_doudizhu_exit">退出</string>
     <string name="game_doudizhu_exit_confirm">对局进行中，退出将丢失本局进度，确定退出？</string>
     <string name="game_doudizhu_play_again">再来一局</string>
+    <!-- 斗地主 P3：叫分/倍数/春天/结算/存档（P6 待翻译英文） -->
+    <string name="game_ddz_bid_score_1">1 分</string>
+    <string name="game_ddz_bid_score_2">2 分</string>
+    <string name="game_ddz_bid_score_3">3 分</string>
+    <string name="game_ddz_hud_multiplier">倍数 ×%1$d</string>
+    <string name="game_ddz_hud_highest_bid">叫分 %1$d</string>
+    <string name="game_ddz_redeal_notice">无人叫地主，重新发牌（第 %1$d 次）</string>
+    <string name="game_ddz_forced_landlord">多次无人叫地主，保底 1 分开局</string>
+    <string name="game_ddz_resume_game">继续对局</string>
+    <string name="game_ddz_save_broken">存档损坏，无法恢复对局</string>
+    <string name="game_ddz_exit_confirm">对局进行中，退出前将保存进度，确定退出？</string>
+    <string name="game_ddz_settle_landlord_win">地主胜</string>
+    <string name="game_ddz_settle_farmer_win">农民胜</string>
+    <string name="game_ddz_settle_landlord">地主：%1$s</string>
+    <string name="game_ddz_settle_bid">叫分：%1$d</string>
+    <string name="game_ddz_settle_bombs">炸弹：%1$d 次</string>
+    <string name="game_ddz_settle_spring">春天！倍数再 ×2</string>
+    <string name="game_ddz_settle_anti_spring">反春天！倍数再 ×2</string>
+    <string name="game_ddz_settle_multiplier">总倍数：×%1$d</string>
+    <string name="game_ddz_settle_score">得分：%1$s</string>
+    <string name="game_ddz_settle_duration">耗时：%1$s</string>
+    <string name="game_ddz_rules_extra">\n\n叫分：1/2/3 分三档，叫分最高者当地主，叫分计入倍数。\n倍数：叫分 × 炸弹（每次 ×2） × 春天（×2）。\n春天：地主获胜且农民一张未出；反春天：农民获胜且地主只出过首手。</string>
+    <!-- 斗地主 P4：桌面绘制文案资源化（中英混排修正）与行内提示 -->
+    <string name="game_ddz_your_bid_turn">轮到你叫分</string>
+    <string name="game_ddz_ai_thinking">思考中…</string>
+    <string name="game_ddz_hint_selected">已按提示选中，点“出牌”确认</string>
     <string name="game_sudoku_complete">数独完成！</string>
 
     <!-- 中国象棋联机 -->
@@ -2840,6 +2932,39 @@
     <string name="tool_name_text_codec">编码/时间戳/JSON</string>
     <string name="tool_name_file_hash">文件哈希</string>
     <string name="tool_name_qr_plus">二维码增强</string>
+    <string name="tool_qr_plus_input_hint">文本、URL，或用逗号分隔 WiFi / 名片信息</string>
+    <string name="tool_qr_plus_generate">生成</string>
+    <string name="tool_qr_plus_decode_image">识别图片</string>
+    <string name="tool_qr_plus_clipboard">剪贴板</string>
+    <string name="tool_qr_plus_wifi">WiFi 码</string>
+    <string name="tool_qr_plus_vcard">名片码</string>
+    <string name="tool_qr_plus_preview_desc">二维码预览</string>
+    <string name="tool_qr_plus_result_placeholder">生成或识别结果会显示在这里</string>
+    <string name="tool_qr_plus_batch_limit_format">批量上限 %1$d 行，当前 %2$d 行</string>
+    <string name="tool_qr_plus_batch_item_failed_format">%1$s — 生成失败: %2$s</string>
+    <string name="tool_qr_plus_fg_label">码色</string>
+    <string name="tool_qr_plus_bg_label">底色</string>
+    <string name="tool_qr_plus_logo_check">中心 Logo（自动高容错 H）</string>
+    <string name="tool_qr_plus_caption_hint">标题（选填）</string>
+    <string name="tool_qr_plus_batch_check">批量模式（每行一条，上限 %1$d 行）</string>
+    <string name="tool_qr_plus_ec_label">容错</string>
+    <string name="tool_qr_plus_save">保存到相册</string>
+    <string name="tool_qr_plus_share">分享</string>
+    <string name="tool_qr_plus_history_title">生码历史</string>
+    <string name="tool_qr_plus_history_clear">清空</string>
+    <string name="tool_qr_plus_history_cleared">已清空生码历史</string>
+    <string name="tool_qr_plus_history_deleted">已删除该条历史</string>
+    <string name="tool_qr_plus_batch_hint">批量模式：每行一条内容（≤%1$d 行）</string>
+    <string name="tool_qr_plus_generate_first">请先生成二维码</string>
+    <string name="tool_qr_plus_saved_format">已保存到相册 %1$s</string>
+    <string name="tool_qr_plus_save_failed">保存失败，请检查存储权限</string>
+    <string name="tool_qr_plus_share_failed">分享失败</string>
+    <string name="tool_qr_plus_decode_failed_format">识别失败: %1$s</string>
+    <string name="tool_qr_plus_history_clear_confirm_title">清空生码历史？</string>
+    <string name="tool_qr_plus_history_clear_confirm_message">将删除全部 %1$d 条生码历史，不可恢复。</string>
+    <string name="tool_qr_plus_history_clear_confirm_ok">清空</string>
+    <string name="tool_qr_plus_swatch_desc">码色 %1$s</string>
+    <string name="tool_qr_plus_bg_swatch_desc">底色 %1$s</string>
     <string name="tool_name_color_plus">颜色增强</string>
     <string name="tool_name_permission_privacy">权限与隐私说明</string>
     <string name="tool_name_ip">IP地址信息</string>

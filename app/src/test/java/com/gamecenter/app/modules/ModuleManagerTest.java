@@ -2,6 +2,7 @@ package com.gamecenter.app.modules;
 
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
+import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.core.common.ModuleInterface;
 import com.gamecenter.app.core.common.ModuleManifest;
 import org.junit.After;
@@ -13,10 +14,18 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import static org.junit.Assert.*;
 
@@ -44,11 +53,44 @@ public class ModuleManagerTest {
     @Before
     public void setUp() {
         context = ApplicationProvider.getApplicationContext();
+        clearModuleManifests();
     }
 
     @After
     public void tearDown() {
+        clearModuleManifests();
         ShadowLooper.idleMainLooper();
+    }
+
+    /** ModuleManager 是进程 singleton；每个测试都必须从空 runtime index 开始。 */
+    private void clearModuleManifests() {
+        try {
+            Field field = ModuleManager.class.getDeclaredField("manifests");
+            field.setAccessible(true);
+            Map<?, ?> manifests = (Map<?, ?>) field.get(ModuleManager.INSTANCE);
+            manifests.clear();
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("无法清理 ModuleManager.manifests", e);
+        }
+    }
+
+    private ModuleManifest readShippedVpnManifest() throws Exception {
+        StringBuilder jsonText = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                context.getAssets().open("modules.json"), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonText.append(line);
+            }
+        }
+        JSONArray modules = new JSONObject(jsonText.toString()).getJSONArray("modules");
+        for (int i = 0; i < modules.length(); i++) {
+            JSONObject module = modules.getJSONObject(i);
+            if ("vpn".equals(module.optString("id"))) {
+                return ModuleManifest.Companion.fromJson(module);
+            }
+        }
+        throw new AssertionError("assets/modules.json 缺少 VPN 条目");
     }
 
     /**
@@ -210,14 +252,76 @@ public class ModuleManagerTest {
      * 测试注册本地备用 URL（如果需要）。
      */
     @Test
-    public void testRegisterLocalFallbackIfNeeded() {
+    public void testRegisterLocalFallbackIfNeeded() throws Exception {
+        ModuleManifest shipped = readShippedVpnManifest();
         // 注册本地备用（应该不抛出异常）
         try {
             ModuleManager.INSTANCE.registerLocalFallbackIfNeeded(context);
-            assertTrue(true);
+            ModuleManifest vpn = ModuleManager.INSTANCE.getModuleManifest("vpn");
+            assertNotNull("assets 清单必须包含 VPN", vpn);
+            assertEquals(
+                    "有 Context 时应保留 assets 清单自身的下载地址",
+                    shipped.getDownloadUrl(),
+                    vpn.getDownloadUrl());
         } catch (Exception e) {
             fail("注册本地备用不应该抛出异常: " + e.getMessage());
         }
+    }
+
+    /**
+     * 无 Context 的导航清单恢复也必须使用当前配置的下载源。
+     *
+     * <p>回归：registerAvailableManifests() 会调用无 Context 的本地兜底，
+     * 该路径曾把 vpn 的下载地址改回已废弃的 tcp0053.shop，导致 VPN 下载
+     * 无法命中当前镜像级联。</p>
+     */
+    @Test
+    public void testVpnFallbackMatchesShippedMetadataAndConfiguredUrl() throws Exception {
+        ModuleManifest shipped = readShippedVpnManifest();
+        ModuleManager.INSTANCE.registerLocalFallbackIfNeeded(null);
+
+        ModuleManifest vpn = ModuleManager.INSTANCE.getModuleManifest("vpn");
+        assertNotNull("VPN 本地兜底清单必须存在", vpn);
+        assertEquals(shipped.getFileName(), vpn.getFileName());
+        assertEquals(shipped.getFileSize(), vpn.getFileSize());
+        assertEquals(shipped.getSha256(), vpn.getSha256());
+        assertEquals(shipped.getCategory(), vpn.getCategory());
+        assertEquals(shipped.getMinAppVersionCode(), vpn.getMinAppVersionCode());
+        assertEquals(shipped.getDetails(), vpn.getDetails());
+        assertEquals(
+                "VPN 兜底必须跟随当前下载源配置",
+                BuildConfig.DOWNLOAD_BASE_URL + shipped.getFileName(),
+                vpn.getDownloadUrl());
+    }
+
+    @Test
+    public void testTrustedVpnManifestIsNotOverwrittenByFallback() throws Exception {
+        String sha256 = new String(new char[64]).replace('\0', 'a');
+        ModuleManifest trusted = ModuleManifest.Companion.fromJson(new JSONObject()
+                .put("id", "vpn")
+                .put("name", "VPN cached")
+                .put("versionCode", 999)
+                .put("entryClass", "com.gamecenter.app.vpn.VpnModuleEntryPoint")
+                .put("fileName", "vpn-v999.apk")
+                .put("fileSize", 123L)
+                .put("sha256", sha256)
+                .put("downloadUrl", "https://catalog.example/vpn-v999.apk"));
+
+        ModuleManager.INSTANCE.registerAvailableManifests(Collections.singletonList(trusted));
+        ModuleManager.INSTANCE.registerLocalFallbackIfNeeded(null);
+
+        assertEquals("可信 Catalog 清单不可被本地兜底覆盖", trusted,
+                ModuleManager.INSTANCE.getModuleManifest("vpn"));
+    }
+
+    @Test
+    public void testNullFallbackRegistersVpnWhenManifestTableIsEmpty() {
+        assertTrue(ModuleManager.INSTANCE.getManifests().isEmpty());
+
+        ModuleManager.INSTANCE.registerLocalFallbackIfNeeded(null);
+
+        ModuleManifest vpn = ModuleManager.INSTANCE.getModuleManifest("vpn");
+        assertNotNull("空 manifests 时 null fallback 仍须注册 VPN", vpn);
     }
 
     // 2026-06-19: 以下测试方法已移除（ModuleManager 中不存在对应 API）：

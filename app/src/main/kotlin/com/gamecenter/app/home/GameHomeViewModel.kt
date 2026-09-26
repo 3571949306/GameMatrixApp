@@ -120,6 +120,7 @@ class GameHomeViewModel(
             viewAll = res.getString(com.gamecenter.app.R.string.game_library_view_all),
             collapse = res.getString(com.gamecenter.app.R.string.game_library_collapse),
             allFilter = res.getString(com.gamecenter.app.R.string.game_library_all_filter),
+            positioningTitle = res.getString(com.gamecenter.app.R.string.home_positioning_sections),
         )
     }
 

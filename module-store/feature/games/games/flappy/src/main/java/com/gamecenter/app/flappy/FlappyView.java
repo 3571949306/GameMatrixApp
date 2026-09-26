@@ -82,6 +82,7 @@ public class FlappyView extends View {
         density = getResources().getDisplayMetrics().density;
         birdSize = BIRD_SIZE * density;
         pipeWidth = PIPE_WIDTH * density;
+        pipeGap *= density;
         setBackgroundColor(isNightMode() ? 0xFF0D47A1 : 0xFF81D4FA);
     }
 
@@ -97,10 +98,11 @@ public class FlappyView extends View {
 
     /**
      * 设置管道速度与间隙（由 Fragment 根据难度调用）。
+     * gap 使用 dp，与小鸟和管道宽度一样转换为像素；speed 保持每次更新的像素速度。
      */
     public void setPipeConfig(float speed, float gap) {
         this.pipeSpeed = speed;
-        this.pipeGap = gap;
+        this.pipeGap = gap * density;
     }
 
     // ==================== 游戏控制 ====================
@@ -260,7 +262,7 @@ public class FlappyView extends View {
         if (nextPipeX <= viewWidth) {
             float gapCenter = pipeGap / 2 + random.nextFloat() * (viewHeight - pipeGap - 100);
             pipes.add(new float[]{viewWidth, gapCenter});
-            nextPipeX = viewWidth + PIPE_INTERVAL;
+            nextPipeX = viewWidth + PIPE_INTERVAL * density;
         }
 
         // 得分判定

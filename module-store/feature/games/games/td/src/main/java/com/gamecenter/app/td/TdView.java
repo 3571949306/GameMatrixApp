@@ -17,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import com.gamecenter.app.R;
 import com.gamecenter.app.td.engine.MonsterType;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TowerType;
@@ -96,8 +97,65 @@ public class TdView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint gradPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    /** 主题晶体复用路径，避免战斗中的装饰每帧分配对象。 */
+    /** 晶体/怪物造型/箭头/横幅旗形等复用路径：各使用点先 reset 再重建，且不嵌套持有，避免每帧分配。 */
     private final Path reusableShapePath = new Path();
+    /** 白十字/护盾/drawSprite 目标框等复用矩形（与 reusableShapePath 同纪律：即建即用不嵌套）。 */
+    private final RectF reusableRectF = new RectF();
+    private final Rect reusableRect = new Rect();
+    /** 路线折线坐标复用数组，按最长路线按需扩容，避免每帧每条路线分配。 */
+    private float[] routeXs;
+    private float[] routeYs;
+
+    // ===== 绘制热路径文案缓存（镜像斗地主记牌器 f556f96 的既定模式）=====
+    // locale 失效说明：固定文案在构造期解析一次；选塔提示随 setSelectedType 刷新。
+    // 切换语言会触发 Activity/View 重建并重新走构造，极端场景（不重建仅切 locale）
+    // 下旧文案最多保留到下次 setSelectedType，可接受。
+    private String signEntranceText;
+    private String[] routeEntranceLabels = new String[0];
+    private String hintBuildModeText;
+    private String dragMergeText;
+    private String overlayWinText;
+    private String overlayLoseText;
+    /** 塔的本地化展示名，按 TowerType.ordinal 缓存（构造期建满），避免选塔提示每帧 getString。 */
+    private String[] towerNameCache;
+    /** 当前选塔的两条提示文案（可建造/金币不足）。文案只依赖所选塔，affordable 仅是每帧的布尔选择器。 */
+    private String hintPlaceText = "";
+    private String hintNotEnoughText = "";
+
+    // ===== 渐变着色器缓存：参数完全一致时复用，任一键变化即重建，保证渲染逐像素不变 =====
+    private RadialGradient backgroundGradient;
+    private int backgroundW = -1;
+    private int backgroundH = -1;
+    private ThemePalette backgroundPalette;
+    private RadialGradient eggGlowGradient;
+    private float eggGlowX = Float.NaN;
+    private float eggGlowY;
+    private float eggGlowCell;
+    private LinearGradient topDimGradient;
+    private float topDimH = Float.NaN;
+    private LinearGradient bottomDimGradient;
+    private float bottomDimH = Float.NaN;
+    /** 蛋身渐变中心受击时抖动：用 float 位级精确键，静止帧复用、抖动帧按原参数重建。 */
+    private RadialGradient eggBodyGradient;
+    private float eggBodyX = Float.NaN;
+    private float eggBodyY;
+    private float eggBodyR;
+    private RadialGradient snowCoreGradient;
+    private float snowCoreX = Float.NaN;
+    private float snowCoreY;
+    private float snowCoreB;
+    private RadialGradient bossBodyGradient;
+    private float bossBodyX = Float.NaN;
+    private float bossBodyY;
+    private float bossBodyR;
+    private int bossBodyColor;
+
+    /** 火箭尾焰三段颜色与宽度系数（drawBeams 每帧热路径，原为每条火箭光束分配数组）。 */
+    private static final int[] ROCKET_FLAME_COLORS = {0xFFFFF176, 0xFFFFB74D, 0xFFE64A19};
+    private static final float[] ROCKET_FLAME_WIDTH_FACTORS = {0.14f, 0.10f, 0.06f};
+    /** 花瓣颜色板（drawFlower 每帧热路径，原为每朵花每次绘制分配数组）。 */
+    private static final int[] FLOWER_PETAL_COLORS =
+            {0xFFFF8A80, 0xFFFFAB91, 0xFFFFF176, 0xFFF48FB1, 0xFFBA68C8};
     private Bitmap towerSprites;
     private Bitmap monsterSprites;
     private Bitmap towerExpansionSprites;
@@ -146,10 +204,35 @@ public class TdView extends View {
         textPaint.setTextAlign(Paint.Align.CENTER);
         setLayerType(View.LAYER_TYPE_SOFTWARE, null); // 渐变需要软件层
         touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        initDrawTextCaches();
+    }
+
+    /**
+     * 构造期解析绘制路径上的固定文案（镜像斗地主记牌器热路径缓存模式，见字段区注释）。
+     * 每帧不变的文本（路线木牌、建塔模式提示、拖拽合成字符、结算文案、塔名）在此解析一次。
+     */
+    private void initDrawTextCaches() {
+        signEntranceText = getContext().getString(R.string.game_td_sign_entrance);
+        hintBuildModeText = getContext().getString(R.string.game_td_hint_build_mode);
+        dragMergeText = getContext().getString(R.string.game_td_drag_merge_char);
+        overlayWinText = getContext().getString(R.string.game_td_overlay_win);
+        overlayLoseText = getContext().getString(R.string.game_td_overlay_lose);
+        TowerType[] types = TowerType.values();
+        towerNameCache = new String[types.length];
+        for (int i = 0; i < types.length; i++) {
+            towerNameCache[i] = resolveTowerName(types[i]);
+        }
     }
 
     public void bind(TdGame game) {
         this.game = game;
+        int routeCount = game == null ? 0 : game.getPaths().length;
+        routeEntranceLabels = new String[routeCount];
+        for (int route = 0; route < routeCount; route++) {
+            // Match the one-based route number shown in the next-wave preview. Resolve
+            // once per map so the draw loop does not allocate labels every frame.
+            routeEntranceLabels[route] = routeCount == 1 ? signEntranceText : String.valueOf(route + 1);
+        }
         particles.clear();
         towerVisualStartTimes.clear();
         animationTimeMs = SystemClock.uptimeMillis();
@@ -160,7 +243,24 @@ public class TdView extends View {
 
     public void setSelectedType(TowerType type) {
         this.selectedType = type;
+        refreshSelectionHintCache(type);
         invalidate();
+    }
+
+    /**
+     * 选塔提示文案只依赖所选塔（可建造/金币不足两变体，文本与每帧金币数无关，
+     * affordable 只是绘制时的布尔选择器），在唯一变异点 setSelectedType 解析一次。
+     */
+    private void refreshSelectionHintCache(TowerType type) {
+        if (type == null) {
+            hintPlaceText = "";
+            hintNotEnoughText = "";
+            return;
+        }
+        String name = towerName(type);
+        hintPlaceText = getContext().getString(R.string.game_td_hint_place, name);
+        hintNotEnoughText =
+                getContext().getString(R.string.game_td_hint_not_enough, name, type.baseCost);
     }
 
     public void setListener(OnTowerActionListener l) {
@@ -201,9 +301,16 @@ public class TdView extends View {
         invalidate();
     }
 
-    /** 由 Fragment 在波次开始时调用，触发横幅动画 */
+    /** 由 Fragment 在波次开始时调用，触发横幅动画（文案经宿主资源本地化） */
     public void showWaveBanner(int waveNo, int total) {
-        waveBannerText = "第 " + waveNo + " 波 ⚔ 共 " + total + " 波";
+        waveBannerText = getContext().getString(R.string.game_td_banner_wave, waveNo, total);
+        waveBannerTicks = 90; // 1.5 秒
+        invalidate();
+    }
+
+    /** 无尽模式横幅：总波数随合成波递增、无固定上限，只显示当前到达的波次。 */
+    public void showWaveBannerEndless(int waveNo) {
+        waveBannerText = getContext().getString(R.string.game_td_banner_wave_endless, waveNo);
         waveBannerTicks = 90; // 1.5 秒
         invalidate();
     }
@@ -295,11 +402,19 @@ public class TdView extends View {
     // =====================================================================
     private void drawBackground(Canvas canvas) {
         ThemePalette palette = themePalette();
-        // 径向渐变草地
-        gradPaint.setShader(new RadialGradient(getWidth() / 2f, getHeight() / 2f,
-                Math.max(getWidth(), getHeight()) * 0.75f, palette.bgLight, palette.bgDark,
-                Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, getWidth(), getHeight(), gradPaint);
+        // 径向渐变草地（尺寸/主题不变时复用着色器，键变化才重建，输出逐像素一致）
+        int w = getWidth(), h = getHeight();
+        if (backgroundGradient == null || backgroundW != w || backgroundH != h
+                || backgroundPalette != palette) {
+            backgroundW = w;
+            backgroundH = h;
+            backgroundPalette = palette;
+            backgroundGradient = new RadialGradient(w / 2f, h / 2f,
+                    Math.max(w, h) * 0.75f, palette.bgLight, palette.bgDark,
+                    Shader.TileMode.CLAMP);
+        }
+        gradPaint.setShader(backgroundGradient);
+        canvas.drawRect(0, 0, w, h, gradPaint);
         // 方格线
         paint.setColor(palette.gridLine);
         paint.setStrokeWidth(Math.max(1f, cellSize * 0.02f));
@@ -339,17 +454,36 @@ public class TdView extends View {
         float eggX = originX + (game.getEggCol() + 0.5f) * cellSize;
         float eggY = originY + (game.getEggRow() + 0.5f) * cellSize;
 
-        gradPaint.setShader(new RadialGradient(eggX, eggY, cellSize * 5.8f,
-                0x243FFFFF, 0x001FFFFF, Shader.TileMode.CLAMP));
+        if (eggGlowGradient == null
+                || Float.floatToIntBits(eggGlowX) != Float.floatToIntBits(eggX)
+                || Float.floatToIntBits(eggGlowY) != Float.floatToIntBits(eggY)
+                || Float.floatToIntBits(eggGlowCell) != Float.floatToIntBits(cellSize)) {
+            eggGlowX = eggX;
+            eggGlowY = eggY;
+            eggGlowCell = cellSize;
+            eggGlowGradient = new RadialGradient(eggX, eggY, cellSize * 5.8f,
+                    0x243FFFFF, 0x001FFFFF, Shader.TileMode.CLAMP);
+        }
+        gradPaint.setShader(eggGlowGradient);
         canvas.drawCircle(eggX, eggY, cellSize * 5.8f, gradPaint);
         gradPaint.setShader(null);
 
         // 顶部和底部微暗，避免路径与 HUD 连成一片，形成类似关卡海报的聚焦感。
-        gradPaint.setShader(new LinearGradient(0, 0, 0, h * 0.24f,
-                0x26000000, 0x00000000, Shader.TileMode.CLAMP));
+        if (topDimGradient == null
+                || Float.floatToIntBits(topDimH) != Float.floatToIntBits(h)) {
+            topDimH = h;
+            topDimGradient = new LinearGradient(0, 0, 0, h * 0.24f,
+                    0x26000000, 0x00000000, Shader.TileMode.CLAMP);
+        }
+        gradPaint.setShader(topDimGradient);
         canvas.drawRect(0, 0, w, h * 0.24f, gradPaint);
-        gradPaint.setShader(new LinearGradient(0, h * 0.76f, 0, h,
-                0x00000000, 0x30000000, Shader.TileMode.CLAMP));
+        if (bottomDimGradient == null
+                || Float.floatToIntBits(bottomDimH) != Float.floatToIntBits(h)) {
+            bottomDimH = h;
+            bottomDimGradient = new LinearGradient(0, h * 0.76f, 0, h,
+                    0x00000000, 0x30000000, Shader.TileMode.CLAMP);
+        }
+        gradPaint.setShader(bottomDimGradient);
         canvas.drawRect(0, h * 0.76f, w, h, gradPaint);
         gradPaint.setShader(null);
 
@@ -419,8 +553,7 @@ public class TdView extends View {
 
     private void drawFlower(Canvas canvas, float cx, float cy) {
         float s = cellSize * 0.11f;
-        int[] petals = {0xFFFF8A80, 0xFFFFAB91, 0xFFFFF176, 0xFFF48FB1, 0xFFBA68C8};
-        paint.setColor(petals[(int) ((cx + cy) / cellSize * 7) % petals.length]);
+        paint.setColor(FLOWER_PETAL_COLORS[(int) ((cx + cy) / cellSize * 7) % FLOWER_PETAL_COLORS.length]);
         for (int i = 0; i < 5; i++) {
             double a = Math.PI * 2 * i / 5 + 0.4;
             canvas.drawCircle(cx + (float) Math.cos(a) * s, cy - s * 0.4f + (float) Math.sin(a) * s * 0.8f,
@@ -600,13 +733,19 @@ public class TdView extends View {
 
     private void drawRoute(Canvas canvas, int[][] path, ThemePalette palette, int routeIndex) {
         if (path.length < 2) return;
-        float[] xs = new float[path.length];
-        float[] ys = new float[path.length];
+        // 折线坐标复用数组：按最长路线扩容，避免每帧每条路线分配（热路径复查项）
+        if (routeXs == null || routeXs.length < path.length) {
+            routeXs = new float[path.length];
+            routeYs = new float[path.length];
+        }
+        float[] xs = routeXs;
+        float[] ys = routeYs;
         for (int i = 0; i < path.length; i++) {
             xs[i] = originX + (path[i][1] + 0.5f) * cellSize;
             ys[i] = originY + (path[i][0] + 0.5f) * cellSize;
         }
-        Path p = new Path();
+        Path p = reusableShapePath;
+        p.reset();
         p.moveTo(xs[0], ys[0]);
         for (int i = 1; i < path.length; i++) p.lineTo(xs[i], ys[i]);
 
@@ -642,7 +781,7 @@ public class TdView extends View {
                     cellSize * (0.045f + seed * 0.008f), paint);
         }
 
-        // 方向箭头（半透明）
+        // 方向箭头（半透明，复用路径逐个重建，绘制顺序与逐点坐标不变）
         paint.setColor(palette.pathArrow);
         for (int i = 1; i < path.length; i += Math.max(1, path.length / 8)) {
             float ax = (xs[i - 1] + xs[i]) / 2f, ay = (ys[i - 1] + ys[i]) / 2f;
@@ -651,12 +790,12 @@ public class TdView extends View {
             if (len < 0.001f) continue;
             float ux = dx / len, uy = dy / len;
             float s = cellSize * 0.13f;
-            Path arrow = new Path();
-            arrow.moveTo(ax + ux * s, ay + uy * s);
-            arrow.lineTo(ax - uy * s * 0.6f - ux * s * 0.5f, ay + ux * s * 0.6f - uy * s * 0.5f);
-            arrow.lineTo(ax + uy * s * 0.6f - ux * s * 0.5f, ay - ux * s * 0.6f - uy * s * 0.5f);
-            arrow.close();
-            canvas.drawPath(arrow, paint);
+            p.reset();
+            p.moveTo(ax + ux * s, ay + uy * s);
+            p.lineTo(ax - uy * s * 0.6f - ux * s * 0.5f, ay + ux * s * 0.6f - uy * s * 0.5f);
+            p.lineTo(ax + uy * s * 0.6f - ux * s * 0.5f, ay - ux * s * 0.6f - uy * s * 0.5f);
+            p.close();
+            canvas.drawPath(p, paint);
         }
 
         // 入口木牌
@@ -672,7 +811,8 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.26f);
         textPaint.setColor(0xFF6D4C41);
         textPaint.setFakeBoldText(true);
-        canvas.drawText("入", ex, ey + cellSize * 0.03f, textPaint);
+        canvas.drawText(routeEntranceLabels[routeIndex],
+                ex, ey + cellSize * 0.03f, textPaint);
         textPaint.setFakeBoldText(false);
         textPaint.setColor(C_TEXT);
     }
@@ -729,9 +869,9 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.32f);
         textPaint.setColor(0xFFFFFFFF);
         textPaint.setFakeBoldText(true);
-        String hint = !selected ? "空格可建塔 · 先从下方选择防御塔"
-                : affordable ? "点击发光格放置：" + selectedType.displayName
-                : "金币不足：" + selectedType.displayName + " 需要 ₿" + selectedType.baseCost;
+        // 三种提示文案均为缓存（构造期/setSelectedType 变异点解析），此处只按状态挑选
+        String hint = !selected ? hintBuildModeText
+                : affordable ? hintPlaceText : hintNotEnoughText;
         canvas.drawText(hint,
                 originX + cellSize * game.getCols() / 2f, originY - cellSize * 0.24f, textPaint);
         textPaint.setFakeBoldText(false);
@@ -763,7 +903,8 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.32f);
         textPaint.setColor(0xFFFFFFFF);
         textPaint.setFakeBoldText(true);
-        canvas.drawText((draggingTower ? dragTargetValid : paletteDragValid) ? "合" : "×",
+        canvas.drawText((draggingTower ? dragTargetValid : paletteDragValid)
+                        ? dragMergeText : "×",
                 x + cellSize * 0.5f, y + cellSize * 0.62f, textPaint);
         textPaint.setFakeBoldText(false);
         textPaint.setColor(C_TEXT);
@@ -790,9 +931,19 @@ public class TdView extends View {
         }
         paint.setColor(0xFF9CB44E);
         canvas.drawOval(cx - r * 1.05f, cy + r * 0.78f, cx + r * 1.05f, cy + r * 1.18f, paint);
-        // 蛋身（渐变）
-        gradPaint.setShader(new RadialGradient(cx + shake, cy - r * 0.3f, r * 1.7f,
-                0xFFFFFFFF, 0xFFFFE0A0, Shader.TileMode.CLAMP));
+        // 蛋身（渐变）：受击抖动使中心逐帧变化，用位级精确键——静止帧复用、抖动帧按原参数重建
+        float glowX = cx + shake, glowY = cy - r * 0.3f, glowR = r * 1.7f;
+        if (eggBodyGradient == null
+                || Float.floatToIntBits(eggBodyX) != Float.floatToIntBits(glowX)
+                || Float.floatToIntBits(eggBodyY) != Float.floatToIntBits(glowY)
+                || Float.floatToIntBits(eggBodyR) != Float.floatToIntBits(glowR)) {
+            eggBodyX = glowX;
+            eggBodyY = glowY;
+            eggBodyR = glowR;
+            eggBodyGradient = new RadialGradient(glowX, glowY, glowR,
+                    0xFFFFFFFF, 0xFFFFE0A0, Shader.TileMode.CLAMP);
+        }
+        gradPaint.setShader(eggBodyGradient);
         canvas.drawOval(cx - r + shake, cy - r * 1.18f, cx + r + shake, cy + r * 1.08f, gradPaint);
         gradPaint.setShader(null);
         // 蛋壳斑点
@@ -827,12 +978,14 @@ public class TdView extends View {
                     cx + r * 0.12f + shake, cy + r * 0.46f, paint);
         } else if (hpRatio < 0.999f) {
             // 中等伤情：抿平的小嘴
-            Path flat = new Path();
+            Path flat = reusableShapePath;
+            flat.reset();
             flat.moveTo(cx - r * 0.18f + shake, cy + r * 0.36f);
             flat.quadTo(cx + shake, cy + r * 0.40f, cx + r * 0.18f + shake, cy + r * 0.36f);
             canvas.drawPath(flat, paint);
         } else {
-            Path mouth = new Path();
+            Path mouth = reusableShapePath;
+            mouth.reset();
             mouth.moveTo(cx - r * 0.2f + shake, cy + r * 0.32f);
             mouth.quadTo(cx + shake, cy + r * 0.48f, cx + r * 0.2f + shake, cy + r * 0.32f);
             canvas.drawPath(mouth, paint);
@@ -843,7 +996,8 @@ public class TdView extends View {
         paint.setColor(0xFF6D4C41);
         paint.setStrokeWidth(r * 0.06f);
         paint.setStrokeCap(Paint.Cap.ROUND);
-        Path hair = new Path();
+        Path hair = reusableShapePath;
+        hair.reset();
         float hx = cx + shake;
         hair.moveTo(hx, cy - r * 1.1f);
         hair.quadTo(hx + r * 0.18f, cy - r * 1.55f, hx + r * 0.1f, cy - r * 1.65f);
@@ -870,7 +1024,10 @@ public class TdView extends View {
         if (towerVisualStartTimes.size() > game.getTowers().size() + 8) {
             towerVisualStartTimes.keySet().retainAll(game.getTowers());
         }
-        for (TdGame.Tower t : game.getTowers()) {
+        // 战斗期 60fps 主循环：引擎列表是 ArrayList，索引遍历替代增强 for 消除每帧迭代器分配
+        List<TdGame.Tower> towers = game.getTowers();
+        for (int ti = 0; ti < towers.size(); ti++) {
+            TdGame.Tower t = towers.get(ti);
             float cx = originX + (t.col + 0.5f) * cellSize;
             float cy = originY + (t.row + 0.5f) * cellSize;
             // 塔体留出明显轮廓，避免在高分辨率小格子上被压成“彩色小点”。
@@ -971,7 +1128,10 @@ public class TdView extends View {
      */
     private TdGame.Beam firingBeamFor(TdGame.Tower t) {
         float tx = t.col + 0.5f, ty = t.row + 0.5f;
-        for (TdGame.Beam b : game.getBeams()) {
+        // 每塔每帧最多调用两次（开火判定 + 炮管朝向），索引遍历消除迭代器分配
+        List<TdGame.Beam> beams = game.getBeams();
+        for (int i = 0; i < beams.size(); i++) {
+            TdGame.Beam b = beams.get(i);
             if (Math.abs(b.x1 - tx) < 0.01f && Math.abs(b.y1 - ty) < 0.01f) return b;
         }
         return null;
@@ -1049,7 +1209,8 @@ public class TdView extends View {
                 canvas.drawCircle(cx + b * 0.12f, cy - b * 0.36f, b * 0.05f, paint);
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(b * 0.05f);
-                Path smile = new Path();
+                Path smile = reusableShapePath;
+                smile.reset();
                 smile.moveTo(cx - b * 0.1f, cy - b * 0.22f);
                 smile.quadTo(cx, cy - b * 0.12f, cx + b * 0.1f, cy - b * 0.22f);
                 canvas.drawPath(smile, paint);
@@ -1082,8 +1243,18 @@ public class TdView extends View {
                 }
                 paint.setStrokeCap(Paint.Cap.BUTT);
                 paint.setStyle(Paint.Style.FILL);
-                gradPaint.setShader(new RadialGradient(cx, cy - b * 0.2f, b * 0.5f,
-                        0xFFE1F5FE, 0xFF4FC3F7, Shader.TileMode.CLAMP));
+                float coreX = cx, coreY = cy - b * 0.2f, coreR = b * 0.5f;
+                if (snowCoreGradient == null
+                        || Float.floatToIntBits(snowCoreX) != Float.floatToIntBits(coreX)
+                        || Float.floatToIntBits(snowCoreY) != Float.floatToIntBits(coreY)
+                        || Float.floatToIntBits(snowCoreB) != Float.floatToIntBits(coreR)) {
+                    snowCoreX = coreX;
+                    snowCoreY = coreY;
+                    snowCoreB = coreR;
+                    snowCoreGradient = new RadialGradient(coreX, coreY, coreR,
+                            0xFFE1F5FE, 0xFF4FC3F7, Shader.TileMode.CLAMP);
+                }
+                gradPaint.setShader(snowCoreGradient);
                 canvas.drawCircle(cx, cy - b * 0.2f, b * 0.34f, gradPaint);
                 gradPaint.setShader(null);
                 break;
@@ -1098,7 +1269,8 @@ public class TdView extends View {
                 for (int i = 0; i < 3; i++) {
                     double a = Math.PI * 2 * i / 3 + time * 5.4f;
                     paint.setColor(0xFFCFD8DC);
-                    Path blade = new Path();
+                    Path blade = reusableShapePath;
+                    blade.reset();
                     float bx0 = cx + (float) Math.cos(a) * b * 0.2f;
                     float by0 = cy - b * 0.25f + (float) Math.sin(a) * b * 0.2f;
                     float bx1 = cx + (float) Math.cos(a + 0.55f) * b * 0.85f;
@@ -1367,7 +1539,9 @@ public class TdView extends View {
     // 光束：光晕 + 火箭尾焰 + 命中火花
     // =====================================================================
     private void drawBeams(Canvas canvas) {
-        for (TdGame.Beam b : game.getBeams()) {
+        List<TdGame.Beam> beams = game.getBeams();
+        for (int bi = 0; bi < beams.size(); bi++) {
+            TdGame.Beam b = beams.get(bi);
             float x1 = originX + b.x1 * cellSize, y1 = originY + b.y1 * cellSize;
             float x2 = originX + b.x2 * cellSize, y2 = originY + b.y2 * cellSize;
             int col = beamColor(b.type);
@@ -1388,15 +1562,13 @@ public class TdView extends View {
                 float len = (float) Math.hypot(dx, dy);
                 if (len > 0.001f) {
                     float ux = dx / len, uy = dy / len;
-                    int[] flame = {0xFFFFF176, 0xFFFFB74D, 0xFFE64A19};
-                    float[] w = {cellSize * 0.14f, cellSize * 0.1f, cellSize * 0.06f};
                     float t0 = 0f;
-                    for (int i = 0; i < 3; i++) {
+                    for (int i = 0; i < ROCKET_FLAME_COLORS.length; i++) {
                         float t1 = t0 + len * 0.13f;
-                        paint.setColor(flame[i]);
+                        paint.setColor(ROCKET_FLAME_COLORS[i]);
                         paint.setStyle(Paint.Style.STROKE);
                         paint.setStrokeCap(Paint.Cap.ROUND);
-                        paint.setStrokeWidth(w[i]);
+                        paint.setStrokeWidth(cellSize * ROCKET_FLAME_WIDTH_FACTORS[i]);
                         canvas.drawLine(x1 + ux * t0, y1 + uy * t0, x1 + ux * t1, y1 + uy * t1, paint);
                         t0 = t1;
                     }
@@ -1417,7 +1589,10 @@ public class TdView extends View {
     private void drawMonsters(Canvas canvas) {
         float hpBarW = cellSize * 0.62f;
         float time = animationSeconds();
-        for (TdGame.Monster m : game.getMonsters()) {
+        // 战斗期 60fps 主循环：索引遍历消除每帧迭代器分配（列表为 ArrayList，绘制期不改结构）
+        List<TdGame.Monster> monsters = game.getMonsters();
+        for (int mi = 0; mi < monsters.size(); mi++) {
+            TdGame.Monster m = monsters.get(mi);
             float cx = originX + m.x * cellSize;
             boolean boss = m.type == MonsterType.BOSS;
             // 类型化的步态/漂浮。使用真实视觉时间，掉帧和准备状态都不改变动作速度。
@@ -1575,22 +1750,23 @@ public class TdView extends View {
         }
         switch (m.type) {
             case NORMAL: {
-                // 圆头 + 尖耳（小狼）
+                // 圆头 + 尖耳（小狼）：复用路径逐耳重建，绘制顺序（左耳→右耳）与逐点坐标不变
                 paint.setColor(body);
                 canvas.drawCircle(cx, cy, r, paint);
                 paint.setColor(body);
-                Path ears = new Path();
+                Path ears = reusableShapePath;
+                ears.reset();
                 ears.moveTo(cx - r * 0.62f, cy - r * 0.28f);
                 ears.lineTo(cx - r * 0.35f, cy - r * 0.02f);
                 ears.lineTo(cx - r * 0.55f, cy - r * 0.5f);
                 ears.close();
-                Path ears2 = new Path();
-                ears2.moveTo(cx + r * 0.62f, cy - r * 0.28f);
-                ears2.lineTo(cx + r * 0.35f, cy - r * 0.02f);
-                ears2.lineTo(cx + r * 0.55f, cy - r * 0.5f);
-                ears2.close();
                 canvas.drawPath(ears, paint);
-                canvas.drawPath(ears2, paint);
+                ears.reset();
+                ears.moveTo(cx + r * 0.62f, cy - r * 0.28f);
+                ears.lineTo(cx + r * 0.35f, cy - r * 0.02f);
+                ears.lineTo(cx + r * 0.55f, cy - r * 0.5f);
+                ears.close();
+                canvas.drawPath(ears, paint);
                 paint.setColor(0x66E0C0A0);
                 canvas.drawCircle(cx - r * 0.45f, cy - r * 0.35f, r * 0.2f, paint);
                 paint.setColor(0x44FFFFFF);
@@ -1602,7 +1778,8 @@ public class TdView extends View {
                 paint.setColor(body);
                 canvas.drawCircle(cx, cy, r, paint);
                 paint.setColor(0xFFFFF176);
-                Path bolt = new Path();
+                Path bolt = reusableShapePath;
+                bolt.reset();
                 bolt.moveTo(cx + r * 0.1f, cy - r * 0.62f);
                 bolt.lineTo(cx - r * 0.28f, cy + r * 0.05f);
                 bolt.lineTo(cx + r * 0.02f, cy + r * 0.05f);
@@ -1658,14 +1835,16 @@ public class TdView extends View {
                 break;
             }
             case HEALER: {
-                // 医生护士怪：粉身 + 白十字
+                // 医生护士怪：粉身 + 白十字（复用矩形，先竖后横，绘制顺序不变）
                 paint.setColor(body);
                 canvas.drawCircle(cx, cy, r, paint);
                 paint.setColor(0xFFFFFFFF);
-                canvas.drawRect(new RectF(cx - r * 0.12f, cy - r * 0.55f,
-                        cx + r * 0.12f, cy + r * 0.18f), paint);
-                canvas.drawRect(new RectF(cx - r * 0.36f, cy - r * 0.32f,
-                        cx + r * 0.36f, cy - r * 0.08f), paint);
+                reusableRectF.set(cx - r * 0.12f, cy - r * 0.55f,
+                        cx + r * 0.12f, cy + r * 0.18f);
+                canvas.drawRect(reusableRectF, paint);
+                reusableRectF.set(cx - r * 0.36f, cy - r * 0.32f,
+                        cx + r * 0.36f, cy - r * 0.08f);
+                canvas.drawRect(reusableRectF, paint);
                 paint.setColor(0x44FFFFFF);
                 canvas.drawCircle(cx - r * 0.32f, cy - r * 0.34f, r * 0.22f, paint);
                 break;
@@ -1676,7 +1855,8 @@ public class TdView extends View {
                 canvas.drawCircle(cx, cy, r, paint);
                 float sx = cx;
                 paint.setColor(0xFF78909C);
-                RectF shield = new RectF(sx + r * 0.05f, cy - r * 0.62f,
+                RectF shield = reusableRectF;
+                shield.set(sx + r * 0.05f, cy - r * 0.62f,
                         sx + r * 0.72f, cy + r * 0.62f);
                 canvas.drawRoundRect(shield, r * 0.2f, r * 0.2f, paint);
                 paint.setColor(0xFFB0BEC5);
@@ -1691,24 +1871,38 @@ public class TdView extends View {
             }
             case BOSS: {
                 // Boss 巨魔：大角 + 怒眉 + 獠牙
-                gradPaint.setShader(new RadialGradient(cx, cy - r * 0.4f, r * 1.6f,
-                        body, 0xFF8E0000, Shader.TileMode.CLAMP));
+                // 渐变色含受击闪白混合色（body），位级精确键：闪白窗口外稳定复用
+                float bossGY = cy - r * 0.4f, bossGR = r * 1.6f;
+                if (bossBodyGradient == null
+                        || Float.floatToIntBits(bossBodyX) != Float.floatToIntBits(cx)
+                        || Float.floatToIntBits(bossBodyY) != Float.floatToIntBits(bossGY)
+                        || Float.floatToIntBits(bossBodyR) != Float.floatToIntBits(bossGR)
+                        || bossBodyColor != body) {
+                    bossBodyX = cx;
+                    bossBodyY = bossGY;
+                    bossBodyR = bossGR;
+                    bossBodyColor = body;
+                    bossBodyGradient = new RadialGradient(cx, bossGY, bossGR,
+                            body, 0xFF8E0000, Shader.TileMode.CLAMP);
+                }
+                gradPaint.setShader(bossBodyGradient);
                 canvas.drawCircle(cx, cy, r, gradPaint);
                 gradPaint.setShader(null);
-                // 双角
+                // 双角（复用路径，左角→右角顺序不变）
                 paint.setColor(0xFF5D4037);
-                Path hornL = new Path();
+                Path hornL = reusableShapePath;
+                hornL.reset();
                 hornL.moveTo(cx - r * 0.6f, cy - r * 0.3f);
                 hornL.lineTo(cx - r * 0.2f, cy - r * 0.15f);
                 hornL.lineTo(cx - r * 0.42f, cy - r * 0.85f);
                 hornL.close();
-                Path hornR = new Path();
-                hornR.moveTo(cx + r * 0.6f, cy - r * 0.3f);
-                hornR.lineTo(cx + r * 0.2f, cy - r * 0.15f);
-                hornR.lineTo(cx + r * 0.42f, cy - r * 0.85f);
-                hornR.close();
                 canvas.drawPath(hornL, paint);
-                canvas.drawPath(hornR, paint);
+                hornL.reset();
+                hornL.moveTo(cx + r * 0.6f, cy - r * 0.3f);
+                hornL.lineTo(cx + r * 0.2f, cy - r * 0.15f);
+                hornL.lineTo(cx + r * 0.42f, cy - r * 0.85f);
+                hornL.close();
+                canvas.drawPath(hornL, paint);
                 paint.setColor(0xFFFF8A80);
                 canvas.drawCircle(cx - r * 0.05f, cy - r * 0.62f, r * 0.36f, paint); // 额头瘤
                 break;
@@ -1729,7 +1923,8 @@ public class TdView extends View {
                 paint.setColor(body);
                 canvas.drawOval(cx - r * 1.05f, cy - r * .72f, cx + r * 1.05f, cy + r * .72f, paint);
                 paint.setColor(0xFFFFD54F);
-                Path horn = new Path();
+                Path horn = reusableShapePath;
+                horn.reset();
                 horn.moveTo(cx + r * .4f, cy - r * .35f);
                 horn.lineTo(cx + r * 1.15f, cy - r * .7f);
                 horn.lineTo(cx + r * .78f, cy - r * .05f);
@@ -1757,7 +1952,8 @@ public class TdView extends View {
                 paint.setColor(body);
                 canvas.drawCircle(cx, cy, r, paint);
                 paint.setColor(0xFFE1BEE7);
-                Path hat = new Path();
+                Path hat = reusableShapePath;
+                hat.reset();
                 hat.moveTo(cx - r * .7f, cy - r * .35f);
                 hat.lineTo(cx, cy - r * 1.15f);
                 hat.lineTo(cx + r * .7f, cy - r * .35f);
@@ -1970,8 +2166,11 @@ public class TdView extends View {
         int right = (column + 1) * sheet.getWidth() / columns;
         int bottom = (row + 1) * sheet.getHeight() / rows;
         if (right <= left || bottom <= top) return false;
-        Rect source = new Rect(left, top, right, bottom);
-        RectF destination = new RectF(cx - radius, cy - radius, cx + radius, cy + radius);
+        // 源格/目标框复用矩形：塔+怪每帧都会走到这里，是热路径分配大头（复查项）
+        Rect source = reusableRect;
+        source.set(left, top, right, bottom);
+        RectF destination = reusableRectF;
+        destination.set(cx - radius, cy - radius, cx + radius, cy + radius);
         int oldAlpha = paint.getAlpha();
         Paint.Style oldStyle = paint.getStyle();
         paint.setStyle(Paint.Style.FILL);
@@ -1986,7 +2185,9 @@ public class TdView extends View {
     // 粒子：爆裂碎屑 / 冲击波环 / 金币飘字（带描边）
     // =====================================================================
     private void drawParticles(Canvas canvas) {
-        for (Particle p : particles) {
+        // 粒子在战斗期逐帧遍历：索引访问消除增强 for 的迭代器分配（循环体只改字段不改结构）
+        for (int pi = 0; pi < particles.size(); pi++) {
+            Particle p = particles.get(pi);
             float a = p.life / (float) p.maxLife;
             if (p.isText) {
                 p.y += p.vy;
@@ -2033,7 +2234,12 @@ public class TdView extends View {
                 paint.setAlpha(255);
             }
         }
-        particles.removeIf(p -> --p.life <= 0);
+        // 反向索引移除代替 removeIf：避免每帧的 BitSet/迭代器临时分配；每个粒子每帧
+        // 仍恰好递减一次生命并按同一判活条件移除，与 removeIf 行为完全一致。
+        for (int i = particles.size() - 1; i >= 0; i--) {
+            Particle p = particles.get(i);
+            if (--p.life <= 0) particles.remove(i);
+        }
     }
 
     /** 由 Fragment 每帧传入引擎击杀事件，播放特效 */
@@ -2102,9 +2308,10 @@ public class TdView extends View {
         paint.setColor(0xCC3B3327);
         canvas.drawRoundRect(cx - bw, top, cx + bw, top + bh,
                 cellSize * 0.22f, cellSize * 0.22f, paint);
-        // 顶部金色三角旗檐
+        // 顶部金色三角旗檐（复用路径；横幅文案 waveBannerText 的事件驱动赋值路径不受影响）
         paint.setColor(0xCCFFC107);
-        Path flag = new Path();
+        Path flag = reusableShapePath;
+        flag.reset();
         flag.moveTo(cx - bw, top);
         flag.lineTo(cx + bw, top);
         flag.lineTo(cx + bw + cellSize * 0.28f, top + bh * 0.42f);
@@ -2131,9 +2338,9 @@ public class TdView extends View {
     // =====================================================================
     private void drawOverlay(Canvas canvas) {
         if (game.getState() == TdGame.State.WON) {
-            drawResultOverlay(canvas, "守住了！蛋蛋安全了", 0xFF66BB6A, game.starsEarned(), true);
+            drawResultOverlay(canvas, overlayWinText, 0xFF66BB6A, game.starsEarned(), true);
         } else if (game.getState() == TdGame.State.LOST) {
-            drawResultOverlay(canvas, "蛋蛋被吃掉了…", 0xFFE57373, 0, false);
+            drawResultOverlay(canvas, overlayLoseText, 0xFFE57373, 0, false);
         }
     }
 
@@ -2214,6 +2421,30 @@ public class TdView extends View {
     }
 
     // =====================================================================
+    // 本地化辅助：引擎 displayName 为英文中性数据，展示名一律经宿主资源解析
+    /** 塔的本地化名（与 TowerType 一一对应，宿主资源 game_td_tower_*）。 */
+    private String towerName(TowerType t) {
+        if (t == null) return "";
+        return towerNameCache[t.ordinal()];
+    }
+
+    /** 逐塔解析本地化名（仅构造期调用一次；引擎英文名兜底）。 */
+    private String resolveTowerName(TowerType t) {
+        switch (t) {
+            case BOTTLE: return getContext().getString(R.string.game_td_tower_bottle);
+            case SUN: return getContext().getString(R.string.game_td_tower_sun);
+            case SNOW: return getContext().getString(R.string.game_td_tower_snow);
+            case FAN: return getContext().getString(R.string.game_td_tower_fan);
+            case POISON: return getContext().getString(R.string.game_td_tower_poison);
+            case ROCKET: return getContext().getString(R.string.game_td_tower_rocket);
+            case LIGHTNING: return getContext().getString(R.string.game_td_tower_lightning);
+            case SNIPER: return getContext().getString(R.string.game_td_tower_sniper);
+            case MINE: return getContext().getString(R.string.game_td_tower_mine);
+            case AMPLIFIER: return getContext().getString(R.string.game_td_tower_amplifier);
+            default: return t.displayName; // 引擎英文名兜底
+        }
+    }
+
     // 颜色工具
     // =====================================================================
     private static int towerColor(TowerType t) {

@@ -110,4 +110,7 @@
     <string name="game_doudizhu_effect_spring">春天</string>
     <string name="game_doudizhu_effect_straight">顺子</string>
     <string name="game_doudizhu_effect_consecutive_pairs">连对</string>
+
+    <!-- P6（2026-09-04）：模块入口点展示文案（硬编码中文迁移） -->
+    <string name="game_ddz_module_title">斗地主</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.gamecenter.app.td.engine;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,8 +28,15 @@ public final class TdLevelJsonParser {
     public static final class ChapterRef {
         public final String id, file;
         public final int levelCount;
-        ChapterRef(String id, String file, int levelCount) {
+        /**
+         * Localized chapter display names carried by the manifest entry; null when the manifest
+         * omits them (historical content). Resolution against the chapter file's own name happens
+         * in {@link TdLevels#initialize}, mirroring the level name_en fallback chain.
+         */
+        public final String name, nameEn;
+        ChapterRef(String id, String file, int levelCount, String name, String nameEn) {
             this.id = id; this.file = file; this.levelCount = levelCount;
+            this.name = name; this.nameEn = nameEn;
         }
     }
 
@@ -52,13 +61,18 @@ public final class TdLevelJsonParser {
         Set<String> ids = new HashSet<>(), files = new HashSet<>();
         for (Object raw : rawChapters) {
             Map<String, Object> chapter = object(raw, "manifest chapter");
-            exact(chapter, "id", "file", "levelCount");
+            exactOptional(chapter, new String[]{"id", "file", "levelCount"}, "name", "name_en");
             String id = id(chapter, "id");
             String file = requiredString(chapter, "file", 1, 96);
             if (!file.matches("chapters/[a-z0-9_]+\\.json")) throw bad("unsafe chapter file");
             int count = requiredInt(chapter, "levelCount", 1, 200);
+            // Localized chapter display fields follow the level name_en precedent: a missing
+            // field must not fail the load (the gap is logged for content QA); an explicitly
+            // present value still fails closed: null, wrong-type, empty or overlong throws.
+            String name = optionalDisplayString(chapter, id, "name", null, 1, 64);
+            String nameEn = optionalDisplayString(chapter, id, "name_en", name, 1, 64);
             if (!ids.add(id) || !files.add(file)) throw bad("duplicate manifest chapter");
-            chapters.add(new ChapterRef(id, file, count));
+            chapters.add(new ChapterRef(id, file, count, name, nameEn));
         }
         return new Manifest(requiredInt(root, "contentVersion", 1, Integer.MAX_VALUE), chapters);
     }
@@ -80,12 +94,25 @@ public final class TdLevelJsonParser {
     }
 
     private static TdLevelDefinition level(Map<String, Object> value) {
-        exact(value, "id", "order", "name", "subtitle", "theme", "rows", "cols", "egg",
-                "startCoin", "mascotHp", "routes", "waves");
+        exactOptional(value,
+                new String[]{"id", "order", "name", "subtitle", "theme", "rows", "cols", "egg",
+                        "startCoin", "mascotHp", "routes", "waves"},
+                "name_en", "subtitle_en",
+                "story_intro", "story_intro_en", "story_outro", "story_outro_en");
         String levelId = id(value, "id");
         int order = requiredInt(value, "order", 1, 9999);
         String name = requiredString(value, "name", 1, 64);
         String subtitle = requiredString(value, "subtitle", 0, 120);
+        // Localized display fields: the Chinese source text stays authoritative; the English
+        // fields are optional so a chapter without them still loads (with a logged warning).
+        String nameEn = optionalDisplayString(value, levelId, "name_en", name, 1, 64);
+        String subtitleEn = optionalDisplayString(value, levelId, "subtitle_en", subtitle, 0, 120);
+        String storyIntro = optionalStoryString(value, "story_intro", 0, 800);
+        String storyIntroEn = optionalStoryString(value, "story_intro_en", 0, 800);
+        if (storyIntroEn.isEmpty()) storyIntroEn = storyIntro;
+        String storyOutro = optionalStoryString(value, "story_outro", 0, 800);
+        String storyOutroEn = optionalStoryString(value, "story_outro_en", 0, 800);
+        if (storyOutroEn.isEmpty()) storyOutroEn = storyOutro;
         TdLevelDefinition.Theme theme;
         try {
             theme = TdLevelDefinition.Theme.valueOf(requiredString(value, "theme", 3, 16)
@@ -101,7 +128,9 @@ public final class TdLevelJsonParser {
         List<int[][]> routes = routes(requiredArray(value, "routes", 1, 8), rows, cols, eggRow, eggCol);
         requireBuildableArea(routes, rows, cols);
         List<TdLevelDefinition.Wave> waves = waves(requiredArray(value, "waves", 1, 100), routes.size());
-        return new TdLevelDefinition(levelId, order, name, subtitle, theme, rows, cols, eggRow, eggCol,
+        return new TdLevelDefinition(levelId, order, name, subtitle, nameEn, subtitleEn,
+                storyIntro, storyIntroEn, storyOutro, storyOutroEn, theme,
+                rows, cols, eggRow, eggCol,
                 requiredInt(value, "startCoin", 0, 100000),
                 requiredInt(value, "mascotHp", 1, 100), routes, waves);
     }
@@ -181,6 +210,43 @@ public final class TdLevelJsonParser {
     private static void exact(Map<String, Object> object, String... fields) {
         Set<String> expected = new HashSet<>(Arrays.asList(fields));
         if (!object.keySet().equals(expected)) throw bad("unknown or missing field");
+    }
+
+    /** Like {@link #exact} but tolerates explicitly whitelisted optional fields. */
+    private static void exactOptional(Map<String, Object> object, String[] required,
+                                      String... optional) {
+        Set<String> keys = object.keySet();
+        Set<String> requiredSet = new HashSet<>(Arrays.asList(required));
+        if (!keys.containsAll(requiredSet)) throw bad("unknown or missing field");
+        Set<String> allowed = new HashSet<>(requiredSet);
+        Collections.addAll(allowed, optional);
+        if (!allowed.containsAll(keys)) throw bad("unknown or missing field");
+    }
+
+    /**
+     * Reads an optional story field. Missing means no story (""); a present value must be a
+     * string within bounds (empty string explicitly clears the story). No QA warning: most
+     * legacy levels simply have no story yet.
+     */
+    private static String optionalStoryString(Map<String, Object> value, String key, int min, int max) {
+        if (!value.containsKey(key)) return "";
+        return string(value.get(key), key, min, max);
+    }
+
+    /**
+     * Reads an optional localized display field. A missing field must not fail the load: the
+     * Chinese source text remains the fallback, and the gap is logged for content QA instead.
+     * An explicitly present value still fails closed: null, wrong-type, empty or overlong text
+     * throws instead of falling back.
+     */
+    private static String optionalDisplayString(Map<String, Object> value, String subject,
+                                                String key, String fallback, int min, int max) {
+        if (!value.containsKey(key)) {
+            Log.w("TdLevelJsonParser", "TD content " + subject + " is missing " + key
+                    + "; falling back to the source display text");
+            return fallback;
+        }
+        return string(value.get(key), key, min, max);
     }
 
     private static String id(Map<String, Object> object, String key) {

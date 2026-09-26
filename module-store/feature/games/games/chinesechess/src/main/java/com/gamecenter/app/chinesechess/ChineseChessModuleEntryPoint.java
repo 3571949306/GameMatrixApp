@@ -40,7 +40,7 @@ public class ChineseChessModuleEntryPoint implements ModuleInterface, FeatureMod
 
     @Override
     public String getVersion() {
-        return "3.0.0";
+        return "3.1.0";
     }
 
     @Override

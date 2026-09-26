@@ -3,35 +3,2468 @@
   "id": "chapter_main_03",
   "name": "主线第三章",
   "levels": [
-    {"id":"main_016","order":16,"name":"警报边缘","subtitle":"召唤与抗性 · 先稳住入口","theme":"GARDEN","rows":10,"cols":10,"egg":[9,0],"startCoin":250,"mascotHp":6,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["NORMAL","FAST"],"route":0,"count":12,"interval":0.5,"delay":0.4,"hpMul":1.12,"speedMul":1.05},{"types":["SUMMONER"],"route":0,"count":4,"interval":1.35,"delay":0.5,"hpMul":1.16,"speedMul":1.02},{"types":["RESISTANT","RAGER"],"route":0,"count":10,"interval":0.55,"delay":0.45,"hpMul":1.2,"speedMul":1.08},{"types":["SHIELD_GENERATOR","RESISTANT"],"route":0,"count":8,"interval":0.65,"delay":0.5,"hpMul":1.24,"speedMul":1.06},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":0.95,"speedMul":0.92}]},
-    {"id":"main_017","order":17,"name":"荆棘封锁","subtitle":"狂暴叠压 · 护盾发生器拖慢火力","theme":"BRAMBLE","rows":10,"cols":10,"egg":[9,0],"startCoin":255,"mascotHp":6,
-      "routes":[[[0,9],[0,8],[0,7],[0,6],[0,5],[0,4],[0,3],[0,2],[0,1],[1,1],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],[3,7],[4,7],[4,6],[4,5],[4,4],[4,3],[4,2],[4,1],[5,1],[5,2],[5,3],[5,4],[5,5],[5,6],[5,7],[5,8],[6,8],[7,8],[7,7],[7,6],[7,5],[7,4],[7,3],[7,2],[8,2],[9,2],[9,1],[9,0]]],
-      "waves":[{"types":["FAST","RAGER"],"route":0,"count":14,"interval":0.46,"delay":0.4,"hpMul":1.16,"speedMul":1.08},{"types":["RESISTANT"],"route":0,"count":10,"interval":0.65,"delay":0.45,"hpMul":1.22,"speedMul":1.05},{"types":["SHIELD_GENERATOR","RAGER"],"route":0,"count":10,"interval":0.55,"delay":0.5,"hpMul":1.28,"speedMul":1.08},{"types":["SUMMONER","RESISTANT"],"route":0,"count":12,"interval":0.52,"delay":0.5,"hpMul":1.32,"speedMul":1.1},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.0,"speedMul":0.92}]},
-    {"id":"main_018","order":18,"name":"晶脉震荡","subtitle":"抗性高墙 · 召唤窗口与狂暴突袭","theme":"CRYSTAL","rows":10,"cols":10,"egg":[9,0],"startCoin":260,"mascotHp":6,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["NORMAL","FAST"],"route":0,"count":16,"interval":0.42,"delay":0.4,"hpMul":1.2,"speedMul":1.1},{"types":["SUMMONER","RESISTANT"],"route":0,"count":12,"interval":0.5,"delay":0.45,"hpMul":1.26,"speedMul":1.08},{"types":["RAGER","SHIELD_GENERATOR"],"route":0,"count":12,"interval":0.48,"delay":0.5,"hpMul":1.32,"speedMul":1.12},{"types":["TANK","RESISTANT"],"route":0,"count":12,"interval":0.58,"delay":0.5,"hpMul":1.38,"speedMul":1.08},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.03,"speedMul":0.9}]},
-    {"id":"main_019","order":19,"name":"裂隙回响","subtitle":"召唤、抗性与护盾交替压境","theme":"VALLEY","rows":10,"cols":10,"egg":[9,0],"startCoin":265,"mascotHp":6,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["FAST","RESISTANT"],"route":0,"count":16,"interval":0.42,"delay":0.4,"hpMul":1.24,"speedMul":1.1},{"types":["SUMMONER","RAGER"],"route":0,"count":12,"interval":0.5,"delay":0.45,"hpMul":1.3,"speedMul":1.12},{"types":["SHIELD_GENERATOR","RESISTANT"],"route":0,"count":14,"interval":0.45,"delay":0.5,"hpMul":1.38,"speedMul":1.14},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.05,"speedMul":0.9}]},
-    {"id":"main_020","order":20,"name":"风暴前线","subtitle":"高频狂暴 · 发生器保护召唤核心","theme":"STORM","rows":10,"cols":10,"egg":[9,0],"startCoin":270,"mascotHp":6,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["RAGER","FAST"],"route":0,"count":18,"interval":0.38,"delay":0.4,"hpMul":1.28,"speedMul":1.14},{"types":["RESISTANT","SHIELD_GENERATOR"],"route":0,"count":14,"interval":0.45,"delay":0.45,"hpMul":1.36,"speedMul":1.12},{"types":["SUMMONER","RAGER","RESISTANT"],"route":0,"count":16,"interval":0.4,"delay":0.5,"hpMul":1.44,"speedMul":1.16},{"types":["TANK","SHIELD_GENERATOR"],"route":0,"count":12,"interval":0.5,"delay":0.5,"hpMul":1.5,"speedMul":1.1},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.08,"speedMul":0.9}]},
-    {"id":"main_021","order":21,"name":"熔光关隘","subtitle":"抗性重装 · 狂暴冲击的火力考验","theme":"CRYSTAL","rows":10,"cols":10,"egg":[9,0],"startCoin":275,"mascotHp":6,
-      "routes":[[[0,9],[0,8],[0,7],[0,6],[0,5],[0,4],[0,3],[0,2],[0,1],[1,1],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],[3,7],[4,7],[4,6],[4,5],[4,4],[4,3],[4,2],[4,1],[5,1],[5,2],[5,3],[5,4],[5,5],[5,6],[5,7],[5,8],[6,8],[7,8],[7,7],[7,6],[7,5],[7,4],[7,3],[7,2],[8,2],[9,2],[9,1],[9,0]]],
-      "waves":[{"types":["RESISTANT","TANK"],"route":0,"count":14,"interval":0.54,"delay":0.4,"hpMul":1.32,"speedMul":1.08},{"types":["RAGER","FAST"],"route":0,"count":18,"interval":0.36,"delay":0.45,"hpMul":1.38,"speedMul":1.16},{"types":["SUMMONER","SHIELD_GENERATOR"],"route":0,"count":14,"interval":0.48,"delay":0.5,"hpMul":1.46,"speedMul":1.12},{"types":["RESISTANT","RAGER","TANK"],"route":0,"count":16,"interval":0.42,"delay":0.5,"hpMul":1.54,"speedMul":1.14},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.1,"speedMul":0.9}]},
-    {"id":"main_022","order":22,"name":"回廊封印","subtitle":"护盾链 · 召唤核心必须优先处理","theme":"BRAMBLE","rows":10,"cols":10,"egg":[9,0],"startCoin":280,"mascotHp":6,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["SUMMONER"],"route":0,"count":6,"interval":1.15,"delay":0.4,"hpMul":1.3,"speedMul":1.06},{"types":["SHIELD_GENERATOR","RESISTANT"],"route":0,"count":16,"interval":0.43,"delay":0.45,"hpMul":1.42,"speedMul":1.12},{"types":["RAGER","SUMMONER"],"route":0,"count":16,"interval":0.4,"delay":0.5,"hpMul":1.5,"speedMul":1.16},{"types":["TANK","RESISTANT","SHIELD_GENERATOR"],"route":0,"count":18,"interval":0.4,"delay":0.5,"hpMul":1.58,"speedMul":1.12},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.12,"speedMul":0.9}]},
-    {"id":"main_023","order":23,"name":"黑潮门槛","subtitle":"多重高压 · 每一波都逼迫重新布阵","theme":"GARDEN","rows":10,"cols":10,"egg":[9,0],"startCoin":285,"mascotHp":7,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["FAST","RAGER","RESISTANT"],"route":0,"count":20,"interval":0.32,"delay":0.4,"hpMul":1.38,"speedMul":1.18},{"types":["SUMMONER","SHIELD_GENERATOR"],"route":0,"count":18,"interval":0.4,"delay":0.45,"hpMul":1.5,"speedMul":1.14},{"types":["TANK","RESISTANT","RAGER"],"route":0,"count":18,"interval":0.4,"delay":0.5,"hpMul":1.58,"speedMul":1.16},{"types":["SUMMONER","RAGER","SHIELD_GENERATOR"],"route":0,"count":20,"interval":0.34,"delay":0.5,"hpMul":1.66,"speedMul":1.18},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.15,"speedMul":0.9}]},
-    {"id":"main_024","order":24,"name":"终端风眼","subtitle":"极限混编 · 护盾与抗性共振","theme":"STORM","rows":10,"cols":10,"egg":[9,0],"startCoin":290,"mascotHp":7,
-      "routes":[[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[2,7],[2,6],[2,5],[2,4],[2,3],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[5,8],[6,8],[6,7],[6,6],[6,5],[6,4],[6,3],[6,2],[6,1],[7,1],[8,1],[9,1],[9,0]]],
-      "waves":[{"types":["RAGER","FAST"],"route":0,"count":22,"interval":0.3,"delay":0.4,"hpMul":1.46,"speedMul":1.2},{"types":["RESISTANT","SHIELD_GENERATOR"],"route":0,"count":20,"interval":0.36,"delay":0.45,"hpMul":1.56,"speedMul":1.16},{"types":["SUMMONER","TANK","RAGER"],"route":0,"count":20,"interval":0.34,"delay":0.5,"hpMul":1.66,"speedMul":1.18},{"types":["RESISTANT","SHIELD_GENERATOR","TANK"],"route":0,"count":22,"interval":0.32,"delay":0.5,"hpMul":1.76,"speedMul":1.16},{"types":["BOSS"],"route":0,"count":1,"interval":0,"delay":0.9,"hpMul":1.18,"speedMul":0.9}]},
-    {"id":"main_025","order":25,"name":"蛋蛋守望","subtitle":"最终高压组合 · 召唤、抗性、狂暴与 Boss","theme":"STORM","rows":10,"cols":10,"egg":[9,0],"startCoin":300,"mascotHp":7,
-      "routes":[[[0,9],[0,8],[0,7],[0,6],[0,5],[0,4],[0,3],[0,2],[0,1],[1,1],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],[3,7],[4,7],[4,6],[4,5],[4,4],[4,3],[4,2],[4,1],[5,1],[5,2],[5,3],[5,4],[5,5],[5,6],[5,7],[5,8],[6,8],[7,8],[7,7],[7,6],[7,5],[7,4],[7,3],[7,2],[8,2],[9,2],[9,1],[9,0]]],
-      "waves":[{"types":["FAST","RAGER","RESISTANT"],"route":0,"count":24,"interval":0.28,"delay":0.4,"hpMul":1.5,"speedMul":1.22},{"types":["SUMMONER","SHIELD_GENERATOR","RESISTANT"],"route":0,"count":22,"interval":0.34,"delay":0.45,"hpMul":1.62,"speedMul":1.18},{"types":["TANK","RAGER","RESISTANT"],"route":0,"count":22,"interval":0.32,"delay":0.5,"hpMul":1.74,"speedMul":1.2},{"types":["SUMMONER","SHIELD_GENERATOR","RAGER"],"route":0,"count":24,"interval":0.28,"delay":0.5,"hpMul":1.84,"speedMul":1.22},{"types":["BOSS","RESISTANT","SHIELD_GENERATOR"],"route":0,"count":3,"interval":1.2,"delay":0.8,"hpMul":1.25,"speedMul":0.92}]}
+    {
+      "id": "main_016",
+      "order": 16,
+      "name": "警报边缘",
+      "subtitle": "召唤与抗性 · 先稳住入口",
+      "name_en": "Edge of Alarm",
+      "subtitle_en": "Summoners and resistance · Steady the entrance first",
+      "theme": "GARDEN",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 250,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "NORMAL",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.5,
+          "delay": 0.4,
+          "hpMul": 1.12,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 4,
+          "interval": 1.35,
+          "delay": 0.5,
+          "hpMul": 1.16,
+          "speedMul": 1.02
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 10,
+          "interval": 0.55,
+          "delay": 0.45,
+          "hpMul": 1.2,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 8,
+          "interval": 0.65,
+          "delay": 0.5,
+          "hpMul": 1.24,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 0.95,
+          "speedMul": 0.92
+        }
+      ],
+      "story_intro": "警报边缘拉响了警钟，会召唤帮手的召唤怪带着抗性怪逼近。蛋蛋决定先稳住入口，不让第一波冲进来。",
+      "story_intro_en": "Edge of Alarm rings the warning bell as summoners lead resistant foes forward. Eggy decides to steady the entrance and stop the first push cold.",
+      "story_outro": "入口稳住了，村子的警报声变成了欢呼声。",
+      "story_outro_en": "The entrance holds, and alarm turns to cheers."
+    },
+    {
+      "id": "main_017",
+      "order": 17,
+      "name": "荆棘封锁",
+      "subtitle": "狂暴叠压 · 护盾发生器拖慢火力",
+      "name_en": "Bramble Blockade",
+      "subtitle_en": "Rager stacks · Shield generators slow your firepower",
+      "theme": "BRAMBLE",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 255,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.46,
+          "delay": 0.4,
+          "hpMul": 1.16,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 10,
+          "interval": 0.65,
+          "delay": 0.45,
+          "hpMul": 1.22,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 10,
+          "interval": 0.55,
+          "delay": 0.5,
+          "hpMul": 1.28,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.52,
+          "delay": 0.5,
+          "hpMul": 1.32,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.0,
+          "speedMul": 0.92
+        }
+      ],
+      "story_intro": "荆棘封锁里狂暴怪越积越多，还有护盾发生器让火力变钝。蛋蛋优先敲掉护盾发生器，再回头收拾狂暴怪。",
+      "story_intro_en": "Bramble Blockade stacks ragers higher while shield generators dull all firepower. Eggy knocks out the generators first, then cleans up the ragers.",
+      "story_outro": "封锁线没有被冲破，蛋蛋的判断越来越准。",
+      "story_outro_en": "The blockade never breaks, and judgment grows sharper."
+    },
+    {
+      "id": "main_018",
+      "order": 18,
+      "name": "晶脉震荡",
+      "subtitle": "抗性高墙 · 召唤窗口与狂暴突袭",
+      "name_en": "Crystal Vein Quake",
+      "subtitle_en": "Wall of resistance · Summoner windows and rager surges",
+      "theme": "CRYSTAL",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 260,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "NORMAL",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.4,
+          "hpMul": 1.2,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.5,
+          "delay": 0.45,
+          "hpMul": 1.26,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "RAGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.48,
+          "delay": 0.5,
+          "hpMul": 1.32,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "TANK",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.58,
+          "delay": 0.5,
+          "hpMul": 1.38,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.03,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "晶脉震荡像一堵抗性高墙，召唤怪总想找空子放出帮手，狂暴怪趁机涌上。蛋蛋掐准召唤的间隙，集中火力打断节奏。",
+      "story_intro_en": "Crystal Vein Quake stands like a resistant wall, with summoners seeking windows to spawn help while ragers surge. Eggy times those windows and breaks their rhythm with focused fire.",
+      "story_outro": "震荡平息，晶脉的光重新连成一片。",
+      "story_outro_en": "The quake settles, and the crystal veins glow connected again."
+    },
+    {
+      "id": "main_019",
+      "order": 19,
+      "name": "裂隙回响",
+      "subtitle": "召唤、抗性与护盾交替压境",
+      "name_en": "Rift Echoes",
+      "subtitle_en": "Summoners, resistant, and shields close in by turns",
+      "theme": "VALLEY",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 265,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.4,
+          "hpMul": 1.24,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.5,
+          "delay": 0.45,
+          "hpMul": 1.3,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.45,
+          "delay": 0.5,
+          "hpMul": 1.38,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.05,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "裂隙回响里回声不断，召唤怪、抗性怪和护盾怪轮番逼近。蛋蛋轮流调整阵型，来一波就解一波。",
+      "story_intro_en": "Rift Echoes hum without pause as summoners, resistant foes, and shields close in by turns. Eggy shifts formation each round and answers every wave.",
+      "story_outro": "回声散去，裂隙口只剩下胜利的旗帜。",
+      "story_outro_en": "Echoes fade, leaving only victory flags at the rift."
+    },
+    {
+      "id": "main_020",
+      "order": 20,
+      "name": "风暴前线",
+      "subtitle": "高频狂暴 · 发生器保护召唤核心",
+      "name_en": "Storm Frontline",
+      "subtitle_en": "High-frequency ragers · Shield Generators protect the summoner core",
+      "theme": "STORM",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 270,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "RAGER",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.38,
+          "delay": 0.4,
+          "hpMul": 1.28,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.45,
+          "delay": 0.45,
+          "hpMul": 1.36,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.44,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "TANK",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 0.5,
+          "delay": 0.5,
+          "hpMul": 1.5,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.08,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "风暴前线狂暴怪来得又密又急，护盾发生器还护着召唤核心。蛋蛋决定绕开护盾，先远距离点掉核心。",
+      "story_intro_en": "Storm Frontline sends high frequency ragers while shield generators guard the summoner core. Eggy works around the shields to snipe the core from afar.",
+      "story_outro": "前线顶住了，后方的村庄安然无恙。",
+      "story_outro_en": "The frontline holds, and the village behind stays safe."
+    },
+    {
+      "id": "main_021",
+      "order": 21,
+      "name": "熔光关隘",
+      "subtitle": "抗性重装 · 狂暴冲击的火力考验",
+      "name_en": "Molten Pass",
+      "subtitle_en": "Armored resistance · A firepower test under rager charges",
+      "theme": "CRYSTAL",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 275,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.54,
+          "delay": 0.4,
+          "hpMul": 1.32,
+          "speedMul": 1.08
+        },
+        {
+          "types": [
+            "RAGER",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.36,
+          "delay": 0.45,
+          "hpMul": 1.38,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 14,
+          "interval": 0.48,
+          "delay": 0.5,
+          "hpMul": 1.46,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "RAGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.42,
+          "delay": 0.5,
+          "hpMul": 1.54,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.1,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "熔光关隘披着重甲的抗性怪列队而来，狂暴怪的冲锋震得地面发烫。这是对火力的纯粹考验，蛋蛋把输出拉到极限。",
+      "story_intro_en": "Molten Pass marches armored resistant foes in line while rager charges heat the ground. It is a pure test of firepower, and Eggy pushes damage to the limit.",
+      "story_outro": "关隘守住，蛋蛋的炮火赢得了大伙的掌声。",
+      "story_outro_en": "The pass holds, and the firepower earns loud applause."
+    },
+    {
+      "id": "main_022",
+      "order": 22,
+      "name": "回廊封印",
+      "subtitle": "护盾链 · 召唤核心必须优先处理",
+      "name_en": "Corridor Seal",
+      "subtitle_en": "Shield chains · Summoner cores must be handled first",
+      "theme": "BRAMBLE",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 280,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 6,
+          "interval": 1.15,
+          "delay": 0.4,
+          "hpMul": 1.3,
+          "speedMul": 1.06
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.43,
+          "delay": 0.45,
+          "hpMul": 1.42,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "RAGER",
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.5,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "TANK",
+            "RESISTANT",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.58,
+          "speedMul": 1.12
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.12,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "回廊封印里护盾一环套一环，召唤核心躲在后面不停招帮手。蛋蛋下令先处理召唤核心，再慢慢磨开护盾链。",
+      "story_intro_en": "Corridor Seal links shields in chains while summoner cores hide behind and spawn help. Eggy orders cores handled first, then grinds the shield chains down.",
+      "story_outro": "封印完好无损，召唤核心一个也没留下。",
+      "story_outro_en": "The seal stays intact, with no summoner core left."
+    },
+    {
+      "id": "main_023",
+      "order": 23,
+      "name": "黑潮门槛",
+      "subtitle": "多重高压 · 每一波都逼迫重新布阵",
+      "name_en": "Dark Tide Gate",
+      "subtitle_en": "Stacked pressure · Every wave forces a fresh setup",
+      "theme": "GARDEN",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 285,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.32,
+          "delay": 0.4,
+          "hpMul": 1.38,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.45,
+          "hpMul": 1.5,
+          "speedMul": 1.14
+        },
+        {
+          "types": [
+            "TANK",
+            "RESISTANT",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 18,
+          "interval": 0.4,
+          "delay": 0.5,
+          "hpMul": 1.58,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.34,
+          "delay": 0.5,
+          "hpMul": 1.66,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.15,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "黑潮门槛像涨潮一样叠加压力，每一波都逼人换阵。蛋蛋也不固执，推倒重布，见招拆招。",
+      "story_intro_en": "Dark Tide Gate stacks pressure like a rising tide, forcing a fresh setup every wave. Eggy stays flexible, rebuilds fast, and answers move with move.",
+      "story_outro": "黑潮退去，门槛前只剩下整齐的塔阵。",
+      "story_outro_en": "The dark tide recedes, leaving only neat towers at the gate."
+    },
+    {
+      "id": "main_024",
+      "order": 24,
+      "name": "终端风眼",
+      "subtitle": "极限混编 · 护盾与抗性共振",
+      "name_en": "Terminal Eyewall",
+      "subtitle_en": "Extreme mixes · Shields and resistance in resonance",
+      "theme": "STORM",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 290,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "RAGER",
+            "FAST"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.3,
+          "delay": 0.4,
+          "hpMul": 1.46,
+          "speedMul": 1.2
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.36,
+          "delay": 0.45,
+          "hpMul": 1.56,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "TANK",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 20,
+          "interval": 0.34,
+          "delay": 0.5,
+          "hpMul": 1.66,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "SHIELD_GENERATOR",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.32,
+          "delay": 0.5,
+          "hpMul": 1.76,
+          "speedMul": 1.16
+        },
+        {
+          "types": [
+            "BOSS"
+          ],
+          "route": 0,
+          "count": 1,
+          "interval": 0,
+          "delay": 0.9,
+          "hpMul": 1.18,
+          "speedMul": 0.9
+        }
+      ],
+      "story_intro": "终端风眼是风暴的中心，护盾与抗性产生共鸣，混编队伍强得吓人。蛋蛋把破盾和穿透搭配起来，寻找共鸣的裂缝。",
+      "story_intro_en": "Terminal Eyewall is the storm center, where shields and resistance resonate in extreme mixes. Eggy pairs shield breaking with penetration to find cracks in the resonance.",
+      "story_outro": "风眼的共鸣被打断了，天空重新透出亮光。",
+      "story_outro_en": "The resonance breaks, and light returns to the sky."
+    },
+    {
+      "id": "main_025",
+      "order": 25,
+      "name": "蛋蛋守望",
+      "subtitle": "最终高压组合 · 召唤、抗性、狂暴与 Boss",
+      "name_en": "Egg Watch",
+      "subtitle_en": "Final pressure · Summoners, resistance, rage, and Boss",
+      "theme": "STORM",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        9,
+        0
+      ],
+      "startCoin": 300,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FAST",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 24,
+          "interval": 0.28,
+          "delay": 0.4,
+          "hpMul": 1.5,
+          "speedMul": 1.22
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.34,
+          "delay": 0.45,
+          "hpMul": 1.62,
+          "speedMul": 1.18
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.32,
+          "delay": 0.5,
+          "hpMul": 1.74,
+          "speedMul": 1.2
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 24,
+          "interval": 0.28,
+          "delay": 0.5,
+          "hpMul": 1.84,
+          "speedMul": 1.22
+        },
+        {
+          "types": [
+            "BOSS",
+            "RESISTANT",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 3,
+          "interval": 1.2,
+          "delay": 0.8,
+          "hpMul": 1.25,
+          "speedMul": 0.92
+        }
+      ],
+      "story_intro": "蛋蛋守望是第三章最后的守望夜，召唤怪、抗性怪、狂暴怪和首领一起压境。蛋蛋站在村口轻声说，今晚我们哪里也不去。",
+      "story_intro_en": "Egg Watch is the final watch night of chapter three, with summoners, resistant foes, ragers, and a Boss pressing together. Eggy stands at the gate and whispers that no one steps back tonight.",
+      "story_outro": "长夜过去，晨光照在守望塔上，全村一起吃上了热乎乎的早餐。",
+      "story_outro_en": "The long night passes, and morning lights the watchtower."
+    }
   ]
 }

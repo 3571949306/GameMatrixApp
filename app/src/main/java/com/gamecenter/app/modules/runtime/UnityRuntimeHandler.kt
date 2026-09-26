@@ -28,7 +28,11 @@ class UnityRuntimeHandler : BaseRuntimeHandler(RuntimeType.UNITY) {
     override fun uninstall(context: Context, module: CatalogModule): RuntimeResult {
         if (module.required) return RuntimeResult(false, "required_module", context.getString(R.string.module_error_required_unity_no_remove))
         if (module.deliveryType == DeliveryType.CONTENT) {
-            return SecureArchiveInstaller.uninstall(context, module.id)
+            val result = SecureArchiveInstaller.uninstall(context, module.id)
+            if (result.success && module.legacyManifest != null) {
+                ModuleManager.uninstallModule(context, module.id)
+            }
+            return result
         }
         ModuleManager.uninstallModule(context, module.id)
         return RuntimeResult(true)
@@ -36,7 +40,11 @@ class UnityRuntimeHandler : BaseRuntimeHandler(RuntimeType.UNITY) {
 
     override fun rollback(context: Context, module: CatalogModule): RuntimeResult =
         if (module.deliveryType == DeliveryType.CONTENT) {
-            SecureArchiveInstaller.rollback(context, module.id)
+            SecureArchiveInstaller.rollback(context, module.id) {
+                module.legacyManifest == null ||
+                    !ModuleManager.isModuleInstalled(context, module.id) ||
+                    ModuleManager.rollbackModule(context, module.id)
+            }
         } else {
             super.rollback(context, module)
         }

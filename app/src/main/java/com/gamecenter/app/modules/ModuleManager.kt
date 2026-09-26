@@ -9,6 +9,7 @@ import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.DynamicGameActivity
 import com.gamecenter.app.R
 import com.gamecenter.app.core.common.FeatureModule
+import com.gamecenter.app.core.common.ModuleDetail
 import com.gamecenter.app.core.common.VpnDelegate
 import com.gamecenter.app.core.security.SecureOkHttpFactory
 import com.gamecenter.app.games.GameRegistry
@@ -16,6 +17,8 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
 
 object ModuleManager {
 
@@ -24,6 +27,10 @@ object ModuleManager {
     private const val KEY_INSTALLED_MODULES = "installed_modules"
     private const val KEY_MODULE_VERSION_PREFIX = "module_version_"
     private const val KEY_LAST_GOOD_VERSION_PREFIX = "module_last_good_version_"
+    private const val KEY_CURRENT_MANIFEST_PREFIX = "module_current_manifest_"
+    private const val KEY_LAST_GOOD_MANIFEST_PREFIX = "module_last_good_manifest_"
+    private const val KEY_LEGACY_QUARANTINE_PREFIX = "module_legacy_quarantine_"
+    private const val KEY_LEGACY_VERSION_PREFIX = "module_legacy_version_"
     private const val KEY_DISABLED_MODULES = "disabled_modules"
     private const val KEY_MODULES_LIST_VERSION = "modules_list_version"
     private const val KEY_MODULES_LIST_JSON = "modules_list_json"
@@ -36,6 +43,87 @@ object ModuleManager {
     private val manifests = ConcurrentHashMap<String, ModuleManifest>()
     private val downloadCallbacks = ConcurrentHashMap<String, ModuleDownloader.Callback>()
     private val mainHandler = Handler(Looper.getMainLooper())
+    /** Download completion is delivered on main; transaction install/load must not run there. */
+    private val installExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "ModuleInstall")
+    }
+
+    /**
+     * 冒烟缺陷修复（Games 大厅 Classics 首次为空）：出厂预装安装完成监听器。
+     *
+     * 背景：首启预装（installBundledModulesIfNeeded）是重 IO，可能晚于 GamesFragment
+     * 的首次 onResume；底部导航 add/hide/show 切换不触发 onResume，导致大厅一直
+     * 显示 "No games available"，需手动进一次商店才刷新。预装完成后在此通知
+     * 已注册的监听者（主线程回调），UI 侧据此重载游戏列表。
+     */
+    private val bundledInstallListeners = CopyOnWriteArrayList<Runnable>()
+
+    /** 出厂预装安装是否已在本进程跑完（区别于标记"已启动"的 [bundledInstallDone]）。 */
+    @Volatile
+    private var bundledInstallCompleted = false
+
+    /**
+     * 完成事件的整表派发消息是否已在主线程执行。与补偿回调互斥的判据：
+     * 派发执行时先置位再遍历。监听器注册若发生在派发之前（消息还在队列中），
+     * 整表派发必然会遍历到它，补偿必须跳过，否则同一监听器会被回调两次
+     * （M1 整表派发一次 + M2 补偿一次的竞争时序）。
+     */
+    @Volatile
+    private var bundledInstallDispatchDone = false
+
+    /** 注册预装安装完成监听器（主线程回调）。若预装已完成则立即回调一次。 */
+    fun addBundledInstallListener(listener: Runnable) {
+        bundledInstallListeners.add(listener)
+        if (bundledInstallCompleted && bundledInstallDispatchDone) {
+            // 仅当整表派发已经跑过才需要补偿：新注册者错过了派发窗口。
+            // 若派发消息尚在主线程队列中（dispatchDone==false），它会遍历到本
+            // 监听器，此处再补偿就会双回调。补偿回调定向派发给新注册者（避免
+            // 整表重派导致老监听器重复回调），执行前复查其仍在列表中：注册后、
+            // 执行前注销的监听器不会收到回调。
+            mainHandler.post {
+                if (listener in bundledInstallListeners) {
+                    try {
+                        listener.run()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "预装完成监听器回调失败: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    /** 注销监听器。 */
+    fun removeBundledInstallListener(listener: Runnable) {
+        bundledInstallListeners.remove(listener)
+    }
+
+    /**
+     * 标记出厂预装安装完成并派发监听器（主线程）。
+     *
+     * internal 开放给单元测试（BundledInstallListenerTest）：真实安装链路含 31 个
+     * APK 的 SHA/签名校验与 dex 装载，无法在 Robolectric 下运行，测试经本接缝
+     * 直接驱动完成事件。幂等：重复调用只派发一次。
+     */
+    internal fun notifyBundledInstallCompleted() {
+        if (bundledInstallCompleted) return
+        bundledInstallCompleted = true
+        mainHandler.post { dispatchBundledInstallCompleted() }
+    }
+
+    /** 主线程统一派发：遍历监听器快照逐个回调，单个异常不阻断其他监听器。 */
+    private fun dispatchBundledInstallCompleted() {
+        // 先置位再遍历：此后注册的监听器由 addBundledInstallListener 据
+        // dispatchDone 补偿一次，本派发覆盖此刻已在列表中的所有监听器，
+        // 两条路径对任一监听器互斥，合计恰好一次。
+        bundledInstallDispatchDone = true
+        for (listener in bundledInstallListeners) {
+            try {
+                listener.run()
+            } catch (e: Exception) {
+                Log.w(TAG, "预装完成监听器回调失败: ${e.message}")
+            }
+        }
+    }
 
     // MODULE_STORE_PERF_OPT: 内存级缓存，消除主线程 N+1 文件 IO
     @Volatile private var installedIdsCache: MutableSet<String>? = null
@@ -242,43 +330,19 @@ object ModuleManager {
             }
 
             override fun onComplete(moduleId: String, file: File) {
-                Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
-                downloadCallbacks[moduleId]?.onStateChanged(moduleId, "installing")
-                rememberLastGoodVersion(context, manifest)
-
-                // P3: 事务性安装 - 将文件从 staging 移动到 current
-                val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
-                    context, manifest, file
-                )
-
-                if (!installResult.isSuccess) {
-                    val reason = (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Failure)?.reason ?: "未知原因"
-                    Log.e(TAG, "事务安装失败: $moduleId, $reason")
-                    downloadCallbacks[moduleId]?.onError(moduleId, "安装失败: $reason")
-                    downloadCallbacks.remove(moduleId)
-                    return
-                }
-
-                // 获取安装后的 current 文件
-                val installedFile = ModuleDownloader.getInstalledModuleFile(context, manifest)
-                Log.d(TAG, "事务安装成功: $moduleId -> ${installedFile.absolutePath}")
-
-                ModuleLoader.unloadModule(moduleId)
-                markModuleInstalled(context, manifest)
-                if (manifest.type == "game") {
-                    registerInstalledGameModules(context)
-                } else if (BuildConfig.PRELOAD_INSTALLED_TOOL_MODULES && manifest.category == "tool") {
-                    // 工具模块下载后立即 load 进内存，使其 TOOLS_GRID 贡献可被 DynamicToolsFragment 收集
-                    // ModuleLoader.loadModule 是幂等的（内部有 loadedModules 缓存）
+                installExecutor.execute {
                     try {
-                        ModuleLoader.loadModule(context, manifest)
-                        Log.d(TAG, "工具模块已加载: ${manifest.id}")
+                        installDownloadedModule(context.applicationContext, moduleId, manifest, file)
                     } catch (e: Exception) {
-                        Log.e(TAG, "工具模块加载失败: ${manifest.id}", e)
+                        Log.e(TAG, "下载完成后的模块安装异常: $moduleId", e)
+                        val callback = downloadCallbacks.remove(moduleId)
+                        if (callback != null) {
+                            mainHandler.post {
+                                callback.onError(moduleId, "安装异常: ${e.message ?: "未知错误"}")
+                            }
+                        }
                     }
                 }
-                downloadCallbacks[moduleId]?.onComplete(moduleId, installedFile)
-                downloadCallbacks.remove(moduleId)
             }
 
             override fun onError(moduleId: String, message: String) {
@@ -298,10 +362,127 @@ object ModuleManager {
         })
     }
 
+    /**
+     * Handles the post-download transaction off the main thread. Only the final callback
+     * delivery is posted back to main because store/UI observers expect that thread.
+     */
+    private fun installDownloadedModule(
+        context: Context,
+        moduleId: String,
+        manifest: ModuleManifest,
+        file: File
+    ) {
+        val callback = downloadCallbacks[moduleId]
+        fun deliver(action: (ModuleDownloader.Callback) -> Unit) {
+            callback ?: return
+            mainHandler.post { action(callback) }
+        }
+
+        Log.d(TAG, "onComplete: $moduleId file=${file.absolutePath}")
+        deliver { it.onStateChanged(moduleId, "installing") }
+        // 先读取真正已安装版本的清单快照。不能用本次待安装的 manifest
+        // 充当旧版本，否则 fileName/SHA 等元数据会与 last_good 文件错配。
+        val wasInstalledBefore = isModuleInstalled(context, moduleId)
+        if (wasInstalledBefore && !migrateLegacyCurrentFile(context, moduleId, manifest)) {
+            Log.e(TAG, "legacy 模块文件迁移失败，拒绝覆盖 current: $moduleId")
+            downloadCallbacks.remove(moduleId)
+            deliver { it.onError(moduleId, "旧模块文件迁移失败") }
+            return
+        }
+        val previousVersion = getInstalledVersionCode(context, moduleId)
+        val previousManifest = prepareInstalledManifest(context, manifest)
+        val allowUntrackedCurrent = wasInstalledBefore && previousManifest == null
+
+        // P3: 事务性安装 - 将文件从 staging 移动到 current
+        val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
+            context, manifest, file, previousManifest, allowUntrackedCurrent
+        )
+        synchronizeLastGoodManifest(context, moduleId, previousManifest, installResult)
+
+        if (!installResult.isSuccess) {
+            val reason = (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Failure)?.reason ?: "未知原因"
+            Log.e(TAG, "事务安装失败: $moduleId, $reason")
+            downloadCallbacks.remove(moduleId)
+            deliver { it.onError(moduleId, "安装失败: $reason") }
+            return
+        }
+        val quarantinedPrevious =
+            (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Success)
+                ?.quarantinedPrevious
+        if (quarantinedPrevious != null) {
+            rememberLegacyRecovery(context, moduleId, quarantinedPrevious, previousVersion)
+        } else {
+            clearLegacyRecovery(context, moduleId)
+        }
+
+        // 获取安装后的 current 文件
+        val installedFile = ModuleDownloader.getInstalledModuleFile(context, manifest)
+        Log.d(TAG, "事务安装成功: $moduleId -> ${installedFile.absolutePath}")
+
+        ModuleLoader.unloadModule(moduleId)
+        markModuleInstalled(context, manifest)
+        if (manifest.type == "game") {
+            // 游戏安装后先做一次真实装载探测，再注册大厅卡片；否则坏包会
+            // 先生成可见幻影，直到用户点击时才暴露，且可能错过 last_good 回滚。
+            val loaded = ModuleLoader.loadModule(context, manifest)
+            if (loaded == null) {
+                val restored = restoreFailedExternalUpdate(
+                    context = context,
+                    moduleId = moduleId,
+                    manifest = manifest,
+                    previousManifest = previousManifest,
+                    wasInstalled = wasInstalledBefore
+                )
+                if (!restored) {
+                    Log.e(TAG, "游戏模块装载失败且补偿恢复未完成: $moduleId")
+                }
+                downloadCallbacks.remove(moduleId)
+                deliver { it.onError(moduleId, "模块装载失败") }
+                return
+            }
+            ModuleLoader.unloadModule(moduleId)
+            clearLegacyRecovery(context, moduleId)
+            registerInstalledGameModules(context)
+        } else if (BuildConfig.PRELOAD_INSTALLED_TOOL_MODULES && manifest.category == "tool") {
+            // 工具模块下载后立即 load 进内存，使其 TOOLS_GRID 贡献可被 DynamicToolsFragment 收集
+            // ModuleLoader.loadModule 是幂等的（内部有 loadedModules 缓存）
+            val loaded = runCatching { ModuleLoader.loadModule(context, manifest) }
+                .onFailure { e ->
+                    Log.e(TAG, "工具模块加载失败: ${manifest.id}", e)
+                }
+                .getOrNull()
+            if (loaded != null) {
+                clearLegacyRecovery(context, moduleId)
+                Log.d(TAG, "工具模块已加载: ${manifest.id}")
+            } else {
+                val restored = restoreFailedExternalUpdate(
+                    context = context,
+                    moduleId = moduleId,
+                    manifest = manifest,
+                    previousManifest = previousManifest,
+                    wasInstalled = wasInstalledBefore
+                )
+                if (!restored) {
+                    Log.e(TAG, "工具模块装载失败且补偿恢复未完成: $moduleId")
+                }
+                downloadCallbacks.remove(moduleId)
+                deliver { it.onError(moduleId, "模块装载失败") }
+                return
+            }
+        }
+        downloadCallbacks.remove(moduleId)
+        deliver { it.onComplete(moduleId, installedFile) }
+    }
+
     fun loadModule(context: Context, moduleId: String): ModuleInterface? {
         if (manifests.isEmpty()) registerLocalFallbackIfNeeded(context)
-        val manifest = manifests[moduleId] ?: return null
-        return ModuleLoader.loadModule(context, manifest)
+        val catalogManifest = manifests[moduleId] ?: return null
+        // 目录清单代表可用更新；实际装载必须优先使用已安装快照，避免冷启动时
+        // 用远程 v2 清单校验回滚后仍在 current 的 v1 文件。
+        val manifest = installedManifestOr(context, moduleId, catalogManifest)
+        val loaded = ModuleLoader.loadModule(context, manifest)
+        if (loaded != null) clearLegacyRecovery(context, moduleId)
+        return loaded
     }
 
     /**
@@ -328,11 +509,14 @@ object ModuleManager {
 
     /**
      * 将已下载的外部更新 APK 应用到模块（内置模块热更新到外置版本）。
-     * 单加载器路径：拷贝到规范路径 → 写入安装版本状态 → 经 ModuleLoader 加载（自动先卸载旧内置版本）。
+     * 单加载器路径：旧 manifest/文件快照 → staging → TransactionInstaller 事务安装
+     * （SHA/签名校验）→ markModuleInstalled → ModuleLoader 加载。markModuleInstalled
+     * 会先记录待验证的 current 路径，供统一加载失败回调定位新文件；失败时由幂等补偿
+     * 恢复旧状态，不会把该待验证版本当作最终成功更新。
      * 取代原 Java BuiltInModuleUpdater 经 ModuleLoaderV2/ModuleInstaller 的失效加载链路。
      */
     fun applyExternalUpdate(context: Context, moduleId: String, apkFile: File, versionCode: Int): Boolean {
-        val manifest = manifests[moduleId] ?: run {
+        val catalogManifest = manifests[moduleId] ?: run {
             Log.e(TAG, "applyExternalUpdate: manifest 未找到 $moduleId")
             return false
         }
@@ -340,33 +524,124 @@ object ModuleManager {
             Log.e(TAG, "applyExternalUpdate: APK 不存在 $apkFile")
             return false
         }
+
+        // versionCode 是旧 API 的独立参数；其余完整性/签名元数据仍必须来自
+        // 已信任 catalog manifest，不能为了兼容调用方而放宽 SHA/证书校验。
+        val manifest = if (versionCode > 0 && versionCode != catalogManifest.versionCode) {
+            catalogManifest.copy(versionCode = versionCode)
+        } else {
+            catalogManifest
+        }
+        val appCtx = context.applicationContext
+        val wasInstalled = isModuleInstalled(appCtx, moduleId)
+        if (wasInstalled && !migrateLegacyCurrentFile(appCtx, moduleId, manifest)) {
+            Log.e(TAG, "legacy 模块文件迁移失败，拒绝覆盖 current: $moduleId")
+            return false
+        }
+        val previousVersion = getInstalledVersionCode(appCtx, moduleId)
+        // 已安装状态若缺少可验证的 current manifest，不能伪造 last_good；
+        // 事务安装会先隔离同名未知 current，再执行一次性旧安装迁移。
+        val previousManifest = prepareInstalledManifest(appCtx, manifest)
+        val allowUntrackedCurrent = wasInstalled && previousManifest == null
+
+        val stagingFile = com.gamecenter.app.modules.store.TransactionInstaller
+            .getStagingFile(appCtx, manifest)
         return try {
-            val dest = ModuleDownloader.getModuleFileCompat(context, manifest)
-            if (dest.exists()) dest.delete()
-            apkFile.copyTo(dest, overwrite = true)
-            val appCtx = context.applicationContext
-            val p = prefs(appCtx)
-            val installed = p.getStringSet(KEY_INSTALLED_MODULES, emptySet())?.toMutableSet()
-                ?: mutableSetOf()
-            installed.add(moduleId)
-            p.edit().putStringSet(KEY_INSTALLED_MODULES, installed)
-                .putInt(KEY_MODULE_VERSION_PREFIX + moduleId, versionCode).apply()
-            installedIdsCache?.add(moduleId)
-            installedVersionCache?.put(moduleId, versionCode)
+            // 外部输入先复制到 staging，避免事务安装把调用方持有的文件 rename
+            // 到 current；真正的移动、SHA、签名、旧版本备份统一由 installer 完成。
+            if (apkFile.canonicalFile != stagingFile.canonicalFile) {
+                stagingFile.parentFile?.mkdirs()
+                apkFile.copyTo(stagingFile, overwrite = true)
+            }
+            val installResult = com.gamecenter.app.modules.store.TransactionInstaller.install(
+                appCtx,
+                manifest,
+                stagingFile,
+                previousManifest,
+                allowUntrackedCurrent
+            )
+            synchronizeLastGoodManifest(appCtx, moduleId, previousManifest, installResult)
+            if (!installResult.isSuccess) {
+                Log.e(TAG, "applyExternalUpdate 事务安装失败: $moduleId, $installResult")
+                return false
+            }
+            val quarantinedPrevious =
+                (installResult as? com.gamecenter.app.modules.store.TransactionInstaller.InstallResult.Success)
+                    ?.quarantinedPrevious
+
+            if (quarantinedPrevious != null) {
+                // legacy 迁移没有可信 last_good，先持久化隔离文件名，再允许加载新版本；
+                // 进程在加载失败前退出时，下一次启动仍能找到隔离记录并安全清理失败包。
+                rememberLegacyRecovery(appCtx, moduleId, quarantinedPrevious, previousVersion)
+            } else {
+                clearLegacyRecovery(appCtx, moduleId)
+            }
+
+            // 先记录待验证版本，使 CoreModuleLoader 的失败回调能够按新 fileName
+            // 隔离坏 current；restoreFailedExternalUpdate 会幂等地提交旧状态。
+            ModuleLoader.unloadModule(moduleId)
+            markModuleInstalled(appCtx, manifest)
             val loaded = ModuleLoader.loadModule(appCtx, manifest)
-            loaded != null
+            if (loaded == null) {
+                // 正常情况下 core loader 的失败回调已尝试回滚；这里覆盖未注入
+                // 回调的测试/早期初始化路径，避免成功提交后静默遗留坏 current。
+                // legacy 无快照时只能隔离失败包并撤销本次安装状态，不能恢复未验证旧包。
+                val restored = restoreFailedExternalUpdate(
+                    context = appCtx,
+                    moduleId = moduleId,
+                    manifest = manifest,
+                    previousManifest = previousManifest,
+                    wasInstalled = wasInstalled
+                )
+                if (!restored) {
+                    Log.e(TAG, "外部更新加载失败且补偿恢复未完成: $moduleId")
+                }
+                return false
+            }
+            clearLegacyRecovery(appCtx, moduleId)
+            // 冒烟缺陷修复：与下载路径（downloadModule.onComplete）对齐，
+            // 预装/热更安装游戏模块且装载成功后立即注册到 GameRegistry。此前仅
+            // 下载路径注册，首启预装晚于 GamesFragment 首次加载时大厅不显示卡片。
+            // 仅在装载成功后注册：装载失败时 onVerifyFailure 已清理安装状态，
+            // 不应残留无法启动的幻影卡片。
+            // 注册判据与 registerInstalledGameModules 统一为 isLaunchableGameManifest：
+            // type=="game" 且入口可用（entryClass 非空，或 builtIn+activityClass），
+            // 防止无入口类的 game 清单注册出无法启动的幻影卡片。
+            if (isLaunchableGameManifest(manifest)) {
+                registerGameFromManifest(appCtx, manifest)
+            }
+            true
         } catch (e: Exception) {
             Log.e(TAG, "applyExternalUpdate 失败: $moduleId", e)
             false
+        } finally {
+            // install 成功时 staging 已被移动；失败时只清理本次复制的 staging，
+            // 不触碰外部源文件，也不触碰 current/last_good/quarantine。
+            if (stagingFile.canonicalFile != apkFile.canonicalFile && stagingFile.exists()) {
+                stagingFile.delete()
+            }
         }
     }
 
     fun uninstallModule(context: Context, moduleId: String) {
         ModuleLoader.unloadModule(moduleId)
-        val manifest = manifests[moduleId] ?: return
+        val catalogManifest = manifests[moduleId] ?: return
+        val manifest = installedManifestOr(context, moduleId, catalogManifest)
+        // Capture only the verified backup belonging to this module before removing its
+        // metadata. Untracked files and other modules' backups are not uninstall targets.
+        val lastGoodFile = validatedLastGoodManifest(context, moduleId)?.let {
+            com.gamecenter.app.modules.store.TransactionInstaller.getLastGoodFile(context, it)
+        }
         // P3: 使用兼容方法获取模块文件路径
         val file = ModuleDownloader.getModuleFileCompat(context, manifest)
-        if (file.exists()) file.delete()
+        if (file.exists()) {
+            file.setWritable(true, false)
+            file.delete()
+        }
+        lastGoodFile?.let {
+            it.setWritable(true, false)
+            it.delete()
+        }
         removeInstalledModule(context, moduleId)
         if (manifest.type == "game") {
             GameRegistry.unregister(manifest.gameId.ifEmpty { manifest.id })
@@ -418,6 +693,10 @@ object ModuleManager {
         }
         Log.i(TAG, "出厂预装扫描: manifests=${manifests.size}")
         var installedCount = 0
+        // 本次实际尝试过安装/提取的模块数（未被 alreadyApplied 跳过）。
+        // 为 0 说明全部已达标（非首启快路径），本进程未发生任何安装状态变化，
+        // 结尾无需广播完成事件（省一次大厅无谓 loadGames）。
+        var attemptedCount = 0
         for (m in manifests.values) {
             if (m.fileName.isBlank()) continue
             val current = try {
@@ -434,6 +713,7 @@ object ModuleManager {
                     prefs(appCtx).getBoolean(appliedKey, false)
             Log.i(TAG, "预装检查 ${m.id}: current=$current bundled=${m.versionCode} fileReady=$fileReady applied=${alreadyApplied}")
             if (alreadyApplied) continue
+            attemptedCount++
             try {
                 val tmp = java.io.File(appCtx.cacheDir, "bundled_${m.fileName}")
                 appCtx.assets.open("modules/${m.fileName}").use { input ->
@@ -451,6 +731,17 @@ object ModuleManager {
             }
         }
         Log.i(TAG, "出厂预装完成: 新装/升级 $installedCount 个模块")
+        // 冒烟缺陷修复：无论本次是否有新装（幂等场景也要通知，首启竞态下
+        // GamesFragment 可能在预装进行中就已加载过空列表），统一广播完成事件，
+        // 让已打开的游戏大厅等 UI 自动重载。例外：本次一个模块都没尝试过
+        // （attemptedCount==0，非首启全部 alreadyApplied 跳过）说明本进程没有
+        // 任何安装状态变化，跳过广播，省去大厅一次无谓 loadGames；只要尝试过
+        // （即使失败）仍广播，保证大厅重扫。
+        if (attemptedCount > 0) {
+            notifyBundledInstallCompleted()
+        } else {
+            Log.i(TAG, "预装无待处理模块，跳过完成广播")
+        }
     }
 
     /**
@@ -503,14 +794,16 @@ object ModuleManager {
                     continue
                 }
                 val savedV = p.getInt(KEY_MODULE_VERSION_PREFIX + id, 0)
-                val fileExists = if (manifest.fileName.isNotEmpty()) {
-                    ModuleDownloader.getModuleFileCompat(appContext, manifest).exists()
+                val installedManifest = installedManifestOr(appContext, id, manifest)
+                val fileExists = if (installedManifest.fileName.isNotEmpty()) {
+                    ModuleDownloader.getModuleFileCompat(appContext, installedManifest).exists()
                 } else {
                     false
                 }
                 if (installed.contains(id)) {
-                    // SP 已标记为已安装：必须校验文件是否真的存在，文件缺失则视为脏数据清理
-                    if (!fileExists) {
+                    // SP 已标记为已安装：文件缺失且没有可恢复来源才视为脏数据；
+                    // 有 last_good/quarantine 时必须保留状态，给加载器机会完成恢复。
+                    if (!fileExists && !hasRecoverableInstalledState(appContext, id)) {
                         installed.remove(id)
                         versions.remove(id)
                         staleIds.add(id)
@@ -543,6 +836,10 @@ object ModuleManager {
             for (id in staleIds) {
                 editor.remove(KEY_MODULE_VERSION_PREFIX + id)
                 editor.remove(KEY_LAST_GOOD_VERSION_PREFIX + id)
+                editor.remove(KEY_CURRENT_MANIFEST_PREFIX + id)
+                editor.remove(KEY_LAST_GOOD_MANIFEST_PREFIX + id)
+                editor.remove(KEY_LEGACY_QUARANTINE_PREFIX + id)
+                editor.remove(KEY_LEGACY_VERSION_PREFIX + id)
             }
             for ((seedId, seedV) in seededVersions) {
                 editor.putInt(KEY_MODULE_VERSION_PREFIX + seedId, seedV)
@@ -582,9 +879,10 @@ object ModuleManager {
         if (installed.contains(moduleId)) return true
         val manifest = manifests[moduleId] ?: return false
         if (manifest.builtIn) return true
-        if (manifest.fileName.isNotEmpty()) {
+        val installedManifest = installedManifestOr(context, moduleId, manifest)
+        if (installedManifest.fileName.isNotEmpty()) {
             // P3: 使用兼容方法检查模块文件
-            val file = ModuleDownloader.getModuleFileCompat(context, manifest)
+            val file = ModuleDownloader.getModuleFileCompat(context, installedManifest)
             if (file.exists()) return true
         }
         return false
@@ -616,10 +914,11 @@ object ModuleManager {
         if (installedVersion > 0) return installedVersion
         if (manifests.isEmpty()) registerLocalFallbackIfNeeded(context)
         val manifest = manifests[moduleId] ?: return 0
+        val installedManifest = installedManifestOr(context, moduleId, manifest)
         return if (manifest.builtIn) {
             if (manifest.builtInVersionCode > 0) manifest.builtInVersionCode else manifest.versionCode
-        } else if (manifest.fileName.isNotEmpty() &&
-            ModuleDownloader.getModuleFileCompat(context, manifest).exists()
+        } else if (installedManifest.fileName.isNotEmpty() &&
+            ModuleDownloader.getModuleFileCompat(context, installedManifest).exists()
         ) {
             // 预装补种（与 ensureInstalledCache 同源）：文件在而 SP 无版本时按出厂清单版本回退并持久化
             val bundledV = bundledVersionCodeOf(context, moduleId)
@@ -661,7 +960,11 @@ object ModuleManager {
         for (manifest in available) {
             manifests[manifest.id] = manifest
         }
-        registerLocalFallbackIfNeeded()
+        // Catalog V2 已提供可信清单时，只补齐缺失的本地 VPN 兜底；不能再用
+        // 旧兜底覆盖其版本、哈希和下载地址。
+        if (!manifests.containsKey("vpn")) {
+            registerLocalFallbackIfNeeded()
+        }
     }
 
     fun getAvailableModules(): List<ModuleManifest> = manifests.values.toList()
@@ -705,9 +1008,10 @@ object ModuleManager {
                 installed.add(id)
                 continue
             }
-            if (!installed.contains(id) && manifest.fileName.isNotEmpty()) {
+            val installedManifest = installedManifestOr(context, id, manifest)
+            if (!installed.contains(id) && installedManifest.fileName.isNotEmpty()) {
                 // P3: 使用兼容方法检查模块文件
-                val file = ModuleDownloader.getModuleFileCompat(context, manifest)
+                val file = ModuleDownloader.getModuleFileCompat(context, installedManifest)
                 if (file.exists()) installed.add(id)
             }
         }
@@ -732,48 +1036,461 @@ object ModuleManager {
 
     fun hasRollback(context: Context, moduleId: String): Boolean {
         val manifest = getModuleManifest(moduleId) ?: return false
-        return manifest.rollbackAllowed &&
-            com.gamecenter.app.modules.store.TransactionInstaller.getLastGoodFile(context, manifest).exists()
+        if (!manifest.rollbackAllowed) return false
+        if (validatedLastGoodManifest(context, moduleId) == null) return false
+        // rollbackModule also requires a parseable current snapshot. Without it, reporting
+        // rollback availability produces a button that can never succeed.
+        return readManifestSnapshot(
+            context,
+            KEY_CURRENT_MANIFEST_PREFIX + moduleId,
+            moduleId,
+            "current"
+        ) != null
     }
 
     fun rollbackModule(context: Context, moduleId: String): Boolean {
         val manifest = getModuleManifest(moduleId) ?: return false
         if (!manifest.rollbackAllowed) return false
+        val lastGoodManifest = validatedLastGoodManifest(context, moduleId) ?: return false
+        val currentInstalledManifest = readManifestSnapshot(
+            context,
+            KEY_CURRENT_MANIFEST_PREFIX + moduleId,
+            moduleId,
+            "current"
+        ) ?: return false
         ModuleLoader.unloadModule(moduleId)
-        val rolledBack = com.gamecenter.app.modules.store.TransactionInstaller.rollback(context, manifest)
+        val rolledBack = com.gamecenter.app.modules.store.TransactionInstaller.rollback(
+            context,
+            currentInstalledManifest,
+            lastGoodManifest
+        )
         if (!rolledBack) return false
-        val p = prefs(context)
-        val currentVersion = p.getInt(KEY_MODULE_VERSION_PREFIX + moduleId, manifest.versionCode)
-        val lastGoodVersion = p.getInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, 0)
-        p.edit()
-            .putInt(KEY_MODULE_VERSION_PREFIX + moduleId, if (lastGoodVersion > 0) lastGoodVersion else currentVersion)
-            .putInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, currentVersion)
-            .apply()
+        val restoredFile = com.gamecenter.app.modules.store.TransactionInstaller
+            .getCurrentFile(context, lastGoodManifest)
+        if (!com.gamecenter.app.core.security.ModuleVerifier
+                .verify(restoredFile, lastGoodManifest.sha256, lastGoodManifest.fileSize).isSuccess
+        ) {
+            Log.w(TAG, "模块 $moduleId 回滚后完整性校验失败，拒绝提交状态")
+            return false
+        }
+        // 文件恢复成功后，清单索引、已安装清单和缓存必须一起切回旧版本。
+        // last_good 文件仍由同一份快照描述，不能把版本号单独交换成当前坏版本。
+        commitInstalledManifestState(context, moduleId, lastGoodManifest)
         return true
     }
 
-    private fun rememberLastGoodVersion(context: Context, manifest: ModuleManifest) {
-        if (!isModuleInstalled(context, manifest.id)) return
-        val oldVersion = getInstalledVersionCode(context, manifest.id)
-        if (oldVersion > 0 && oldVersion != manifest.versionCode) {
-            prefs(context).edit()
-                .putInt(KEY_LAST_GOOD_VERSION_PREFIX + manifest.id, oldVersion)
-                .apply()
+    /**
+     * 统一加载失败后的内部恢复入口。只有带可信 last_good 的状态才属于公开回滚；
+     * 无快照的 legacy 更新只能隔离失败文件并清除安装状态，不能向用户伪造回滚成功。
+     */
+    fun recoverFailedModuleLoad(context: Context, moduleId: String): Boolean {
+        val manifest = getModuleManifest(moduleId) ?: return false
+        if (!manifest.rollbackAllowed) return false
+        return if (validatedLastGoodManifest(context, moduleId) != null) {
+            rollbackModule(context, moduleId)
+        } else {
+            restoreLegacyRecovery(context, moduleId, manifest)
         }
     }
 
-    /** 本地内置模块兜底 — 无条件覆盖（不检查 containsKey），确保非内置模块的关键字段（sha256 等）不被缓存脏数据覆盖 */
+    private fun restoreLegacyRecovery(
+        context: Context,
+        moduleId: String,
+        manifest: ModuleManifest
+    ): Boolean {
+        val p = prefs(context)
+        val quarantineName = p.getString(KEY_LEGACY_QUARANTINE_PREFIX + moduleId, null)
+            ?: return false
+        if (com.gamecenter.app.modules.store.TransactionInstaller
+                .findQuarantineFile(context, quarantineName) == null
+        ) return false
+        ModuleLoader.unloadModule(moduleId)
+        // The old package has no trusted manifest/SHA. Keep it quarantined rather than
+        // restoring it as current, because the unified loader would otherwise validate it
+        // against the newer catalog manifest on the next cold start.
+        if (!com.gamecenter.app.modules.store.TransactionInstaller.restoreUntrackedCurrent(
+                context,
+                manifest,
+                null
+            )
+        ) return false
+        val previousVersion = p.getInt(KEY_LEGACY_VERSION_PREFIX + moduleId, 0)
+        removeInstalledModule(context, moduleId)
+        Log.w(TAG, "模块 $moduleId 的 legacy 旧包无法验证，已隔离并清除安装状态 v$previousVersion")
+        return true
+    }
+
+    private fun restoreFailedExternalUpdate(
+        context: Context,
+        moduleId: String,
+        manifest: ModuleManifest,
+        previousManifest: ModuleManifest?,
+        wasInstalled: Boolean
+    ): Boolean {
+        val alreadyRestored = if (previousManifest != null) {
+            val currentSnapshot = readManifestSnapshot(
+                context,
+                KEY_CURRENT_MANIFEST_PREFIX + moduleId,
+                moduleId,
+                "current"
+            )
+            currentSnapshot == previousManifest && isVerifiedManifestFile(
+                com.gamecenter.app.modules.store.TransactionInstaller
+                    .getCurrentFile(context, previousManifest),
+                previousManifest
+            )
+        } else {
+            wasInstalled && !isModuleInstalled(context, moduleId) &&
+                !com.gamecenter.app.modules.store.TransactionInstaller
+                    .getCurrentFile(context, manifest).exists()
+        }
+        if (alreadyRestored) {
+            if (previousManifest != null) {
+                commitInstalledManifestState(context, moduleId, previousManifest)
+            } else {
+                removeInstalledModule(context, moduleId)
+            }
+            return true
+        }
+
+        val restored = if (previousManifest != null) {
+            val rolledBack = com.gamecenter.app.modules.store.TransactionInstaller.rollback(
+                context,
+                manifest,
+                previousManifest
+            )
+            rolledBack && isVerifiedManifestFile(
+                com.gamecenter.app.modules.store.TransactionInstaller
+                    .getCurrentFile(context, previousManifest),
+                previousManifest
+            )
+        } else {
+            com.gamecenter.app.modules.store.TransactionInstaller.restoreUntrackedCurrent(
+                context,
+                manifest,
+                null
+            )
+        }
+        if (!restored) return false
+
+        if (previousManifest != null) {
+            commitInstalledManifestState(context, moduleId, previousManifest)
+        } else {
+            // 没有隔离到旧 current 时无法证明旧安装仍可恢复（例如旧 fileName
+            // 与新清单不同）；不能把新文件移走后仍标记成已安装旧版本。
+            removeInstalledModule(context, moduleId)
+        }
+        return true
+    }
+
+    private fun commitInstalledManifestState(
+        context: Context,
+        moduleId: String,
+        manifest: ModuleManifest
+    ) {
+        manifests[moduleId] = manifest
+        val p = prefs(context)
+        val installed = p.getStringSet(KEY_INSTALLED_MODULES, emptySet())?.toMutableSet()
+            ?: mutableSetOf()
+        installed.add(moduleId)
+        p.edit()
+            .putStringSet(KEY_INSTALLED_MODULES, installed)
+            .putInt(KEY_MODULE_VERSION_PREFIX + moduleId, manifest.versionCode)
+            .putString(KEY_CURRENT_MANIFEST_PREFIX + moduleId, manifest.toJson().toString())
+            // A successful recovery consumes last_good; the next update will create
+            // a fresh snapshot from this verified current manifest.
+            .remove(KEY_LAST_GOOD_VERSION_PREFIX + moduleId)
+            .remove(KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId)
+            .remove(KEY_LEGACY_QUARANTINE_PREFIX + moduleId)
+            .remove(KEY_LEGACY_VERSION_PREFIX + moduleId)
+            .apply()
+        installedIdsCache?.add(moduleId)
+        installedVersionCache?.put(moduleId, manifest.versionCode)
+    }
+
+    /**
+     * 安装前只读取并验证 current 快照，不能提前覆盖仍有效的 last_good 元数据。
+     * 实际备份结果由 synchronizeLastGoodManifest 在事务返回后核对。
+     */
+    private fun prepareInstalledManifest(
+        context: Context,
+        newManifest: ModuleManifest
+    ): ModuleManifest? {
+        if (!isModuleInstalled(context, newManifest.id)) {
+            return null
+        }
+
+        val previous = readManifestSnapshot(
+            context,
+            KEY_CURRENT_MANIFEST_PREFIX + newManifest.id,
+            newManifest.id,
+            "current"
+        ) ?: run {
+            Log.w(TAG, "模块 ${newManifest.id} 缺少可解析的 current manifest，兼容旧安装：本次不建立回滚快照")
+            return null
+        }
+        val previousFile = com.gamecenter.app.modules.store.TransactionInstaller
+            .getCurrentFile(context, previous)
+        if (!isVerifiedManifestFile(previousFile, previous)) {
+            Log.w(TAG, "模块 ${newManifest.id} 的 current 文件校验失败，拒绝建立回滚快照")
+            return null
+        }
+        return previous
+    }
+
+    /**
+     * Match last_good metadata to files after the transaction, including failed moves.
+     * Preflight rejection leaves the existing verified snapshot intact. If backup already
+     * replaced the file before a later failure, only the verified previous-current snapshot
+     * may describe that new backup; the superseded metadata must not survive.
+     */
+    private fun synchronizeLastGoodManifest(
+        context: Context,
+        moduleId: String,
+        previousManifest: ModuleManifest?,
+        installResult: com.gamecenter.app.modules.store.TransactionInstaller.InstallResult
+    ) {
+        val previousBackup = previousManifest?.takeIf {
+            isVerifiedManifestFile(
+                com.gamecenter.app.modules.store.TransactionInstaller.getLastGoodFile(context, it),
+                it
+            )
+        }
+        val snapshot = if (installResult.isSuccess) {
+            // Legacy updates without a trusted current snapshot do not invent rollback.
+            previousBackup
+        } else {
+            val existing = readManifestSnapshot(
+                context,
+                KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId,
+                moduleId,
+                "last-good"
+            )?.takeIf {
+                isVerifiedManifestFile(
+                    com.gamecenter.app.modules.store.TransactionInstaller.getLastGoodFile(context, it),
+                    it
+                )
+            }
+            if (existing != null) {
+                // A failed transaction did not invalidate this backup. Preserve the
+                // original snapshot verbatim, including absent optional/unknown fields.
+                val p = prefs(context)
+                if (p.getInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, 0) != existing.versionCode) {
+                    p.edit().putInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, existing.versionCode).apply()
+                }
+                return
+            }
+            previousBackup
+        }
+        if (snapshot == null) {
+            clearLastGoodMetadata(context, moduleId)
+            return
+        }
+        prefs(context).edit()
+            .putString(KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId, snapshot.toJson().toString())
+            .putInt(KEY_LAST_GOOD_VERSION_PREFIX + moduleId, snapshot.versionCode)
+            .apply()
+    }
+
+    /**
+     * 将旧版扁平 modules/ 目录中的已安装包迁移到事务 current/ 目录。
+     *
+     * 已有 current 快照时按旧清单文件名定位；没有快照时只接受精确文件名、模块
+     * 默认名或唯一的 moduleId_ 前缀文件，避免把同目录的未知包误认成当前模块。
+     */
+    private fun migrateLegacyCurrentFile(
+        context: Context,
+        moduleId: String,
+        manifest: ModuleManifest
+    ): Boolean {
+        val previous = readManifestSnapshot(
+            context,
+            KEY_CURRENT_MANIFEST_PREFIX + moduleId,
+            moduleId,
+            "current"
+        )
+        val targetManifest = previous ?: manifest
+        val target = com.gamecenter.app.modules.store.TransactionInstaller
+            .getCurrentFile(context, targetManifest)
+        if (target.exists()) return true
+
+        val legacyDir = File(context.filesDir, "modules")
+        val configuredName = File(targetManifest.fileName).name
+        val exactCandidates = linkedSetOf<String>()
+        if (configuredName.isNotEmpty() && configuredName == targetManifest.fileName) {
+            exactCandidates.add(configuredName)
+        }
+        exactCandidates.add("$moduleId.apk")
+        val exact = exactCandidates.asSequence()
+            .map { File(legacyDir, it) }
+            .firstOrNull { it.isFile }
+        val source = exact ?: legacyDir.listFiles()
+            ?.filter { it.isFile && it.name.startsWith("${moduleId}_") }
+            ?.takeIf { it.size == 1 }
+            ?.single()
+            ?: return true
+
+        return try {
+            target.parentFile?.mkdirs()
+            source.setWritable(true, false)
+            if (!source.renameTo(target)) {
+                Log.e(TAG, "legacy 模块文件无法迁移: ${source.absolutePath} -> ${target.absolutePath}")
+                false
+            } else {
+                Log.i(TAG, "已迁移 legacy 模块文件: $moduleId (${source.name})")
+                true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "legacy 模块文件迁移异常: $moduleId", e)
+            false
+        }
+    }
+
+    /** Runtime backups must come from the same verified package as outer rollback. */
+    internal fun getVerifiedLastGoodManifest(context: Context, moduleId: String): ModuleManifest? =
+        validatedLastGoodManifest(context, moduleId)
+
+    /**
+     * 读取并验证 last_good 的完整快照。旧的独立版本号不是可信来源：快照缺失、
+     * 损坏、路径不安全或文件 SHA/size 不匹配时，清掉旧数字，避免 UI 假报可回滚。
+     * 清理只涉及状态元数据，不删除 last_good/quarantine 中的用户文件。
+     */
+    private fun validatedLastGoodManifest(context: Context, moduleId: String): ModuleManifest? {
+        val snapshot = readManifestSnapshot(
+            context,
+            KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId,
+            moduleId,
+            "last-good"
+        ) ?: run {
+            clearLastGoodMetadata(context, moduleId)
+            return null
+        }
+        val file = com.gamecenter.app.modules.store.TransactionInstaller
+            .getLastGoodFile(context, snapshot)
+        if (!isVerifiedManifestFile(file, snapshot)) {
+            Log.w(TAG, "模块 $moduleId 的 last-good 文件校验失败，保守禁用回滚")
+            clearLastGoodMetadata(context, moduleId)
+            return null
+        }
+        return snapshot
+    }
+
+    private fun isVerifiedManifestFile(file: File, manifest: ModuleManifest): Boolean {
+        if (manifest.fileName.isBlank() || File(manifest.fileName).name != manifest.fileName) return false
+        return com.gamecenter.app.core.security.ModuleVerifier
+            .verify(file, manifest.sha256, manifest.fileSize).isSuccess
+    }
+
+    /** 保留仍有可恢复来源的安装标记，避免缓存初始化抢在加载器回滚前清掉状态。 */
+    private fun hasRecoverableInstalledState(context: Context, moduleId: String): Boolean {
+        val lastGood = readManifestSnapshot(
+            context,
+            KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId,
+            moduleId,
+            "last-good"
+        )
+        if (lastGood != null && isVerifiedManifestFile(
+                com.gamecenter.app.modules.store.TransactionInstaller.getLastGoodFile(context, lastGood),
+                lastGood
+            )
+        ) {
+            return true
+        }
+        val quarantineName = prefs(context).getString(KEY_LEGACY_QUARANTINE_PREFIX + moduleId, null)
+        return quarantineName != null && com.gamecenter.app.modules.store.TransactionInstaller
+            .findQuarantineFile(context, quarantineName) != null
+    }
+
+    private fun clearLastGoodMetadata(context: Context, moduleId: String) {
+        prefs(context).edit()
+            .remove(KEY_LAST_GOOD_VERSION_PREFIX + moduleId)
+            .remove(KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId)
+            .apply()
+    }
+
+    private fun rememberLegacyRecovery(
+        context: Context,
+        moduleId: String,
+        quarantinedPrevious: File,
+        previousVersion: Int
+    ) {
+        val persisted = prefs(context).edit()
+            .putString(KEY_LEGACY_QUARANTINE_PREFIX + moduleId, quarantinedPrevious.name)
+            .putInt(KEY_LEGACY_VERSION_PREFIX + moduleId, previousVersion)
+            .commit()
+        if (!persisted) {
+            Log.e(TAG, "无法持久化 legacy recovery token: $moduleId")
+        }
+    }
+
+    private fun clearLegacyRecovery(context: Context, moduleId: String) {
+        prefs(context).edit()
+            .remove(KEY_LEGACY_QUARANTINE_PREFIX + moduleId)
+            .remove(KEY_LEGACY_VERSION_PREFIX + moduleId)
+            .apply()
+    }
+
+    private fun readManifestSnapshot(
+        context: Context,
+        key: String,
+        moduleId: String,
+        label: String
+    ): ModuleManifest? {
+        val raw = prefs(context).getString(key, null)
+        if (raw.isNullOrBlank()) {
+            Log.w(TAG, "模块 $moduleId 缺少 $label manifest 快照")
+            return null
+        }
+        return try {
+            ModuleManifest.fromJson(JSONObject(raw)).also {
+                require(it.id == moduleId) { "manifest id 不匹配" }
+                require(it.fileName.isBlank() || File(it.fileName).name == it.fileName) {
+                    "manifest fileName 不安全"
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "模块 $moduleId 的 $label manifest 快照损坏: ${e.message}")
+            null
+        }
+    }
+
+    /** 读取已安装清单供文件定位/装载使用；缺失时回退到目录清单（旧安装兼容）。 */
+    private fun installedManifestOr(
+        context: Context,
+        moduleId: String,
+        fallback: ModuleManifest
+    ): ModuleManifest {
+        val raw = prefs(context).getString(KEY_CURRENT_MANIFEST_PREFIX + moduleId, null)
+            ?: return fallback
+        return try {
+            ModuleManifest.fromJson(JSONObject(raw)).also {
+                require(it.id == moduleId) { "manifest id 不匹配" }
+                require(it.fileName.isBlank() || File(it.fileName).name == it.fileName) {
+                    "manifest fileName 不安全"
+                }
+            }
+        } catch (_: Exception) {
+            fallback
+        }
+    }
+
+    /**
+     * 本地 VPN 兜底。Catalog V2 恢复路径和直接 null 调用都不能覆盖已有清单。
+     */
     fun registerLocalFallbackIfNeeded(context: Context? = null) {
         if (context != null && registerBundledModuleList(context.applicationContext)) {
             return
         }
+        // null 入口也可能由后台导航恢复调用；已有清单（尤其是可信 Catalog
+        // 清单）优先，避免 fallback 的旧元数据覆盖版本、哈希和下载地址。
+        if (manifests.containsKey("vpn")) return
 
-        // Batch 21 修复：vpn 硬编码与 assets/modules.json 保持完全一致
-        // （sha256/fileName/fallbackUrl/githubUrl 完全对齐）
+        // Batch 21 修复：vpn 兜底的文件元数据与 assets/modules.json 保持一致
+        // （sha256/fileName/fallbackUrl/githubUrl 完全对齐）；下载地址跟随当前
+        // BuildConfig，避免导航恢复路径把已更新的分发域名改回历史死域。
         // 避免 assets 读取失败时，使用与 modules.json 不一致的 sha256 导致下载后校验失败
-        // 注意：registerAvailableManifests 会不传 context 调用本方法，
-        // 因此硬编码兜底会无条件覆盖 modules.json 已加载的 vpn 条目，
-        // 必须保持此处的字段与 assets/modules.json 中的 vpn 条目完全一致。
+        // 注意：无 Context 调用无法读取 assets，必须保持此处的文件元数据与
+        // assets/modules.json 中的 vpn 条目完全一致。
         val localModules = listOf(
             ModuleManifest(
                 id = "vpn",
@@ -782,12 +1499,22 @@ object ModuleManager {
                 versionName = "1.0.0", versionCode = 100,
                 entryClass = "com.gamecenter.app.vpn.VpnModuleEntryPoint",
                 fileName = "vpn-release.apk",
-                fileSize = 640752,
-                sha256 = "fe9c62efe569a4c5824d0bf7d900e7d60588a57ebfe3b695acf9d44552fef306",
-                downloadUrl = "https://hk-update.tcp0053.shop/modules/vpn-release.apk",
+                fileSize = 1134494,
+                sha256 = "a973532064cbc0e455e41e785600d5f1357eb8ef82d79e48c2df3d7ac797cf11",
+                downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "vpn-release.apk",
                 fallbackUrl = "",
                 githubUrl = "",
-                type = "nav", storeCategory = "device_network",
+                type = "nav", storeCategory = "device_network", category = "tool",
+                minAppVersionCode = 492,
+                details = ModuleDetail(
+                    valueDescription = "提供远程代理连接能力，支持配置管理与连接状态控制。",
+                    audience = "需要通过代理访问网络或保护网络隐私的用户。",
+                    offlineCapability = "需联网建立 VPN 隧道；配置管理界面离线可用。",
+                    updateImpact = "更新保留已保存的 VPN 配置。",
+                    uninstallImpact = "卸载将清除所有 VPN 配置与连接凭证。",
+                    highlights = listOf("代理配置管理", "连接状态监控", "多配置切换", "启动即连接"),
+                    limitations = listOf("仅支持远程配置的代理协议", "连接质量依赖服务器与网络环境")
+                ),
                 builtIn = false, isBaseFramework = false, iconUrl = ""
             )
         )
@@ -831,6 +1558,7 @@ object ModuleManager {
         p.edit()
             .putStringSet(KEY_INSTALLED_MODULES, installed)
             .putInt(KEY_MODULE_VERSION_PREFIX + manifest.id, manifest.versionCode)
+            .putString(KEY_CURRENT_MANIFEST_PREFIX + manifest.id, manifest.toJson().toString())
             .apply()
         // MODULE_STORE_PERF_OPT: 同步更新内存缓存
         installedIdsCache?.add(manifest.id)
@@ -845,6 +1573,10 @@ object ModuleManager {
             .putStringSet(KEY_INSTALLED_MODULES, installed)
             .remove(KEY_MODULE_VERSION_PREFIX + moduleId)
             .remove(KEY_LAST_GOOD_VERSION_PREFIX + moduleId)
+            .remove(KEY_CURRENT_MANIFEST_PREFIX + moduleId)
+            .remove(KEY_LAST_GOOD_MANIFEST_PREFIX + moduleId)
+            .remove(KEY_LEGACY_QUARANTINE_PREFIX + moduleId)
+            .remove(KEY_LEGACY_VERSION_PREFIX + moduleId)
             .apply()
         setModuleEnabled(context, moduleId, true)
         // MODULE_STORE_PERF_OPT: 同步更新内存缓存
@@ -852,12 +1584,7 @@ object ModuleManager {
         installedVersionCache?.remove(moduleId)
     }
 
-    /**
-     * BUG-007 修复：供 [ModuleLoader] 在加载失败（文件不存在 / SHA-256 校验失败 / 签名失败）时调用，
-     * 主动清理 SP 与内存缓存中的安装状态记录，避免脏数据持续存在导致模块商店统计与实际不符。
-     *
-     * 与 [removeInstalledModule] 行为一致，仅是将其暴露为 public 以便 ModuleLoader 跨对象调用。
-     */
+    /** 供 [ModuleLoader] 在确认无可恢复来源后清理 SP 与内存缓存中的安装状态。 */
     fun removeInstalledModulePublic(context: Context, moduleId: String) {
         removeInstalledModule(context, moduleId)
     }
@@ -867,7 +1594,8 @@ object ModuleManager {
     fun registerInstalledGameModules(context: Context) {
         val installedIds = getInstalledModuleIds(context)
         for (id in installedIds) {
-            val manifest = manifests[id] ?: continue
+            val catalogManifest = manifests[id] ?: continue
+            val manifest = installedManifestOr(context, id, catalogManifest)
             if (isLaunchableGameManifest(manifest)) {
                 registerGameFromManifest(context, manifest)
             }

@@ -1,7 +1,10 @@
 package com.gamecenter.app.modules.core
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import com.gamecenter.app.R
+import com.gamecenter.app.core.security.ModuleVerifier
 import com.gamecenter.app.modules.ModuleDownloader
 import com.gamecenter.app.modules.ModuleManager
 import com.gamecenter.app.modules.catalog.CatalogModule
@@ -9,8 +12,11 @@ import com.gamecenter.app.modules.catalog.CatalogV2
 import com.gamecenter.app.modules.catalog.CatalogV2Repository
 import com.gamecenter.app.modules.catalog.RuntimeType
 import com.gamecenter.app.modules.runtime.ModuleRuntimeRegistry
+import com.gamecenter.app.modules.runtime.RuntimeResult
+import com.gamecenter.app.modules.store.TransactionInstaller
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /** Stable native facade used by both Flutter and the legacy store migration. */
 class ModuleCoreFacade private constructor(private val context: Context) {
@@ -18,6 +24,10 @@ class ModuleCoreFacade private constructor(private val context: Context) {
     private val runtimeRegistry = ModuleRuntimeRegistry()
     private val modules = ConcurrentHashMap<String, CatalogModule>()
     private val progress = ConcurrentHashMap<String, ModuleProgress>()
+    private val runtimeExecutor = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "module-runtime-install")
+    }
+    private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var lastCatalog: CatalogV2? = null
 
     fun getCatalog(callback: (Result<CatalogV2>) -> Unit) {
@@ -151,6 +161,8 @@ class ModuleCoreFacade private constructor(private val context: Context) {
     }
 
     private fun createDownloadCallback(module: CatalogModule) = object : ModuleDownloader.Callback {
+        private var outerPhase = ModuleState.QUEUED
+
         override fun onProgress(moduleId: String, downloaded: Long, total: Long, speedKbps: Long) {
             val item = ModuleProgress(moduleId, downloaded, total, speedKbps, ModuleState.DOWNLOADING)
             progress[moduleId] = item
@@ -159,6 +171,7 @@ class ModuleCoreFacade private constructor(private val context: Context) {
 
         override fun onStateChanged(moduleId: String, state: String) {
             val mapped = ModuleState.fromWire(state)
+            outerPhase = mapped
             val item = progress[moduleId]?.copy(state = mapped)
                 ?: ModuleProgress(moduleId, 0, module.packageInfo.fileSize, 0, mapped)
             progress[moduleId] = item
@@ -173,17 +186,48 @@ class ModuleCoreFacade private constructor(private val context: Context) {
         }
 
         override fun onComplete(moduleId: String, file: File) {
-            val installResult = runtimeRegistry.forModule(module).install(context, module)
-            if (!installResult.success) {
-                val error = error(module, installResult.code, installResult.message, true, context.getString(R.string.module_error_action_retry_install))
-                progress[moduleId] = ModuleProgress(moduleId, file.length(), file.length(), 0, ModuleState.FAILED)
-                publish("InstallFailed", module, ModuleState.FAILED, error = error)
-                return
+            // The verified already-installed path has no outer transaction. Capture this
+            // callback's phase before dispatch; another request can replace global progress.
+            val completedOuterPhase = outerPhase
+            // Archive extraction and runtime validation are also blocking I/O. Keep the
+            // ModuleManager callback contract on main, but never perform this work there.
+            runtimeExecutor.execute {
+                val installResult = runCatching {
+                    runtimeRegistry.forModule(module).install(context, module)
+                }.getOrElse { error ->
+                    RuntimeResult(false, "runtime_install_exception", error.message.orEmpty())
+                }
+                if (!installResult.success) {
+                    // A failed atomic repair already restores the old runtime layout. If
+                    // no outer transaction occurred, preserve its matching verified ZIP.
+                    // New transactions and archive/entry rejections retain normal recovery.
+                    val preserveExisting = completedOuterPhase != ModuleState.INSTALLING &&
+                        installResult.code == "atomic_switch_failed" &&
+                        module.legacyManifest?.let { manifest ->
+                            ModuleVerifier.verify(
+                                TransactionInstaller.getCurrentFile(context, manifest),
+                                manifest.sha256, manifest.fileSize
+                            ).isSuccess
+                        } == true
+                    if (!preserveExisting) {
+                        val recovered = ModuleManager.recoverFailedModuleLoad(context, moduleId)
+                        if (!recovered) ModuleManager.removeInstalledModulePublic(context, moduleId)
+                    }
+                    val failure = error(module, installResult.code, installResult.message, true, context.getString(R.string.module_error_action_retry_install))
+                    val failed = ModuleProgress(moduleId, file.length(), file.length(), 0, ModuleState.FAILED)
+                    mainHandler.post {
+                        progress[moduleId] = failed
+                        publish("InstallFailed", module, ModuleState.FAILED, error = failure)
+                    }
+                    return@execute
+                }
+                val complete = ModuleProgress(moduleId, file.length(), file.length(), 0, ModuleState.INSTALLED)
+                mainHandler.post {
+                    progress[moduleId] = complete
+                    publish("DownloadCompleted", module, ModuleState.INSTALLED, complete)
+                    publish("InstallCompleted", module, ModuleState.INSTALLED, complete)
+                }
             }
-            val complete = ModuleProgress(moduleId, file.length(), file.length(), 0, ModuleState.INSTALLED)
-            progress[moduleId] = complete
-            publish("DownloadCompleted", module, ModuleState.INSTALLED, complete)
-            publish("InstallCompleted", module, ModuleState.INSTALLED, complete)
         }
 
         override fun onError(moduleId: String, message: String) {

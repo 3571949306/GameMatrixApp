@@ -168,6 +168,8 @@ object GameLongPressMenu {
         return intent.getStringExtra(EXTRA_GAME_ID)
     }
 
-    private const val EXTRA_GAME_ID = "extra_long_press_game_id"
-    private const val EXTRA_GAME_NAME = "extra_long_press_game_name"
+    // 桌面小组件（GameMatrixWidgetProvider）也引用这两个 extra 构造直达游戏的 PendingIntent，
+    // 因此对同包调用方公开，避免在 widget 侧硬编码重复字符串。
+    const val EXTRA_GAME_ID = "extra_long_press_game_id"
+    const val EXTRA_GAME_NAME = "extra_long_press_game_name"
 }

@@ -30,11 +30,11 @@ public class TdGame {
         LOST         // 失败（蛋蛋被吃）
     }
 
-    /** 难度档位：影响初始金币与怪血倍率 */
+    /** 难度档位：影响初始金币与怪血倍率。displayName 为英文中性数据，本地化名由 UI 层解析。 */
     public enum Difficulty {
-        EASY("简单", 1.3f, 0.82f, 1f),
-        NORMAL("普通", 1f, 1f, 1f),
-        HARD("困难", 0.8f, 1.25f, 1.05f);
+        EASY("Easy", 1.3f, 0.82f, 1f),
+        NORMAL("Normal", 1f, 1f, 1f),
+        HARD("Hard", 0.8f, 1.25f, 1.05f);
 
         public final String displayName;
         /** 初始金币倍率 */
@@ -51,6 +51,13 @@ public class TdGame {
             this.speedMul = speedMul;
         }
     }
+
+    /**
+     * 对局模式。CAMPAIGN 为默认值：波次推进、胜利判定等所有行为与历史版本保持一致；
+     * ENDLESS 在定义波次耗尽后由 {@link TdEndlessWaveFactory} 确定性合成后续波，
+     * 永不进入胜利分支，唯一结束方式是蛋蛋死亡。
+     */
+    public enum Mode { CAMPAIGN, ENDLESS }
 
     /**
      * 仅供渲染层读取的关卡视觉主题。它不参与判定、随机数或存档，因此更换地图画风
@@ -92,8 +99,9 @@ public class TdGame {
                 if (monsterType == null) throw new IllegalArgumentException("wave monster type is null");
             }
             if (routeIndex < 0 || count <= 0 || intervalSec < 0f || startDelaySec < 0f
-                    || hpMul <= 0f || speedMul <= 0f || Float.isNaN(intervalSec)
-                    || Float.isNaN(startDelaySec) || Float.isNaN(hpMul) || Float.isNaN(speedMul)) {
+                    || hpMul <= 0f || speedMul <= 0f || !Float.isFinite(intervalSec)
+                    || !Float.isFinite(startDelaySec) || !Float.isFinite(hpMul)
+                    || !Float.isFinite(speedMul)) {
                 throw new IllegalArgumentException("invalid wave values");
             }
             this.composition = composition.clone();
@@ -111,23 +119,35 @@ public class TdGame {
             return composition[Math.floorMod(spawnIndex, composition.length)];
         }
 
-        /** HUD 使用的可读波次预告。 */
+        /**
+         * HUD 使用的可读波次预告。英文中性输出（单类型波次即类型名，混编波次以 "+" 连接）；
+         * 本地化（如「混编」前缀、本地化怪名）由 UI 层基于 {@link #compositionTypes()} 拼装。
+         */
         public String previewName() {
-            if (composition.length == 1) return composition[0].displayName;
-            StringBuilder out = new StringBuilder("混编：");
+            StringBuilder out = new StringBuilder();
             for (int i = 0; i < composition.length; i++) {
                 if (i > 0) out.append('+');
                 out.append(composition[i].displayName);
             }
             return out.toString();
         }
+
+        /** 波次构成的中性数据（克隆；单类型波次长度为 1）。 */
+        public MonsterType[] compositionTypes() {
+            return composition.clone();
+        }
+
+        /** 是否为多类型混编波次。 */
+        public boolean isMixedComposition() {
+            return composition.length > 1;
+        }
     }
 
-    /** 玩家可为每座塔切换的目标优先级。 */
+    /** 玩家可为每座塔切换的目标优先级。displayName 为英文中性数据，本地化名由 UI 层解析。 */
     public enum TargetMode {
-        FIRST("最前"),
-        STRONG("强敌"),
-        WEAK("残血");
+        FIRST("First"),
+        STRONG("Strong"),
+        WEAK("Weak");
 
         public final String displayName;
 
@@ -139,6 +159,44 @@ public class TdGame {
             TargetMode[] modes = values();
             return modes[(ordinal() + 1) % modes.length];
         }
+    }
+
+    /**
+     * 玩家操作结果的本地化消息码。
+     *
+     * <p>引擎是纯 JVM、无 Context，不得产出任何面向用户的文案；此处只发布
+     * 中性消息码 + 中性参数（Integer 数字、TowerType/MonsterType/TargetMode 枚举），
+     * UI 层据此经宿主资源 com.gamecenter.app.R.string.game_td_act_* 格式化本地化文本。
+     */
+    public enum ActionMsg {
+        INVALID_TOWER_TYPE,      // 无效的塔类型
+        GAME_ENDED,              // 对局已结束
+        OUT_OF_BOUNDS,           // 位置越界
+        MINE_NEEDS_PATH_SIDE,    // 地雷塔只能放在紧邻路径的陷阱位
+        BLOCKS_PATH,             // 不能在路径上建塔
+        BLOCKS_EGG,              // 不能占蛋蛋的位置
+        CELL_OCCUPIED,           // 该位置已有塔
+        NOT_ENOUGH_COIN,         // 金币不足（args: [0]=需要的金币 Integer）
+        PLACED,                  // 已放置（args: [0]=TowerType）
+        DRAG_SAME_TYPE_ONLY,     // 只能拖到同类型防御塔上
+        MAX_LEVEL_REACHED,       // Lv3 已是最高等级，不能继续合成
+        MERGED,                  // 合成完成（args: [0]=TowerType, [1]=目标等级 Integer）
+        UPGRADE_DEPRECATED,      // 请用两座同级塔合成升级（args: [0]=TowerType）
+        MERGE_PICK_ANOTHER,      // 请选择另一座同级同类塔
+        MERGE_NEEDS_TWO_TOWERS,  // 合成需要两座已建造的塔
+        MERGE_TYPE_MISMATCH,     // 只能合成同类型防御塔
+        MERGE_LEVEL_MISMATCH,    // 只能合成相同等级的防御塔
+        NO_TOWER_HERE,           // 该位置没有塔
+        SUN_NO_TARGET,           // 太阳花不需要选择目标
+        TARGET_MODE_SET,         // 目标已切换（args: [0]=TowerType, [1]=TargetMode）
+        SOLD,                    // 卖出返还（args: [0]=返还金币 Integer）
+        FIRST_WAVE_INCOMING,     // 第 1 波来袭，准备防守
+        WAVE_INCOMING,           // 波次来袭（args: [0]=波次序号 Integer）
+        RUSH_SUMMONED,           // 加速召唤（args: [0]=召唤数 Integer, [1]=奖励金币 Integer）
+        WAVE_FULLY_SPAWNED,      // 本波已全部生成
+        LAST_WAVE_REACHED,       // 已是最后一波
+        EGG_HIT,                 // 蛋蛋受击（args: [0]=MonsterType, [1]=伤害 Integer, [2]=剩余生命 Integer）
+        VICTORY                  // 胜利
     }
 
     /** 塔实例 */
@@ -314,8 +372,10 @@ public class TdGame {
 
     /** 塔坐标索引：key = row * 1000 + col */
     private final java.util.Map<Integer, Tower> towerGrid = new java.util.HashMap<>();
-    /** 玩家上次操作结果：LAST_ACTION_RESULT 描述可读结果，UI 弹 Toast */
-    private String lastActionMessage = "";
+    /** 玩家上次操作结果：中性消息码 + 参数，UI 层负责本地化（见 {@link ActionMsg}）。 */
+    private static final Object[] NO_ARGS = new Object[0];
+    private ActionMsg lastActionMsg = null;
+    private Object[] lastActionArgs = NO_ARGS;
     private String lastActionTone = ""; // "ok" | "err" | "info"
 
     private int totalWaves;
@@ -325,6 +385,7 @@ public class TdGame {
     private int monstersSpawnedTotal = 0;
     private long elapsedTicks = 0;
     private Difficulty difficulty = Difficulty.NORMAL;
+    private Mode mode = Mode.CAMPAIGN;
     private VisualTheme visualTheme = VisualTheme.GARDEN;
 
     public TdGame(int cols, int rows, int[][] path, int eggRow, int eggCol,
@@ -422,10 +483,21 @@ public class TdGame {
 
     /** 应用难度：初始金币 × 难度倍率（仅 PREPARING 阶段生效）。 */
     public void applyDifficulty(Difficulty d) {
+        if (state != State.PREPARING) return;
         this.difficulty = d != null ? d : Difficulty.NORMAL;
-        if (state == State.PREPARING) {
-            coin = Math.round(startCoin * difficulty.coinMul);
+        coin = Math.round(startCoin * difficulty.coinMul);
+    }
+    public Mode getMode() { return mode; }
+
+    /**
+     * 设置对局模式（默认 CAMPAIGN）。null 或非 PREPARING 状态一律忽略：
+     * 模式在开战后不可变，避免对局中途切换改变胜负语义。链式返回便于关卡工厂装配。
+     */
+    public TdGame setMode(Mode value) {
+        if (value != null && state == State.PREPARING) {
+            mode = value;
         }
+        return this;
     }
     public int getCols() { return cols; }
     public int getRows() { return rows; }
@@ -434,6 +506,16 @@ public class TdGame {
     public int getMaxMascotHp() { return maxMascotHp; }
     public int getWaveIndex() { return Math.min(waveIndex + 1, totalWaves); }
     public int getTotalWaves() { return totalWaves; }
+
+    /**
+     * 已进入的波次序号（含工厂合成的无尽波）。ENDLESS 下 PREPARING 返回 0、开战后为
+     * 最近进入的波次绝对序号；CAMPAIGN 下语义与 {@link #getWaveIndex()} 一致（当前波），
+     * 不破坏既有调用方。
+     */
+    public int getEndlessWaveReached() {
+        if (mode != Mode.ENDLESS) return getWaveIndex();
+        return state == State.PREPARING ? 0 : Math.min(waveIndex + 1, totalWaves);
+    }
     /** 波次定义的只读快照，供关卡预览和规则测试检查教学投放。 */
     public List<Wave> getWaves() { return new ArrayList<>(waves); }
     public long getTicks() { return gameTicks; }
@@ -460,7 +542,10 @@ public class TdGame {
         killEvents.clear();
         return out;
     }
-    public String getLastActionMessage() { return lastActionMessage; }
+    /** 玩家上次操作结果的中性消息码；无未读结果时为 null。 */
+    public ActionMsg getLastActionMsg() { return lastActionMsg; }
+    /** {@link #getLastActionMsg()} 的参数（Integer 或枚举，克隆返回）。 */
+    public Object[] getLastActionArgs() { return lastActionArgs.clone(); }
     public String getLastActionTone() { return lastActionTone; }
     /** 主路线（兼容旧调用方）；多入口地图请使用 {@link #getPaths()}。 */
     public int[][] getPath() { return paths[0]; }
@@ -473,10 +558,16 @@ public class TdGame {
     public int getEggCol() { return eggCol; }
     public boolean isEnded() { return state == State.WON || state == State.LOST; }
 
-    /** 下一波（未开始的下一波）怪类型 Display 名；无则返回空串 */
+    /** 下一波（未开始的下一波）怪类型 Display 名（英文中性）；无则返回空串。 */
     public String nextWaveTypeName() {
         Wave wave = upcomingWave();
         return wave == null ? "" : wave.previewName();
+    }
+    /** 下一未开波次的构成中性数据（本地化预告由 UI 拼装）；无则空列表。 */
+    public java.util.List<MonsterType> nextWaveComposition() {
+        Wave wave = upcomingWave();
+        if (wave == null) return new java.util.ArrayList<>();
+        return new java.util.ArrayList<>(java.util.Arrays.asList(wave.compositionTypes()));
     }
     /** 下一波怪数量；无则 0 */
     public int nextWaveCount() {
@@ -492,7 +583,12 @@ public class TdGame {
 
     private Wave upcomingWave() {
         int nextIdx = state == State.PREPARING ? 0 : waveIndex + 1;
-        return nextIdx >= 0 && nextIdx < totalWaves ? waves.get(nextIdx) : null;
+        if (nextIdx >= 0 && nextIdx < totalWaves) return waves.get(nextIdx);
+        // 无尽模式：定义波次耗尽后按同一工厂规则零副作用地预览下一波（与推进时的合成同参同结果）
+        if (mode == Mode.ENDLESS && nextIdx >= 0) {
+            return TdEndlessWaveFactory.createWave(nextIdx + 1, difficulty, paths.length);
+        }
+        return null;
     }
 
     /** 当前波是否仍在向场上刷怪（生成中）——供 UI/测试判断是否可推进下一波 */
@@ -545,22 +641,22 @@ public class TdGame {
     /** 新建塔。失败返回 null（金币不足/占用/路径/越界/已结束）。 */
     public Tower placeTower(TowerType type, int row, int col) {
         clearAction();
-        if (type == null) { return fail("无效的塔类型"); }
-        if (state == State.WON || state == State.LOST) { return fail("对局已结束"); }
-        if (row < 0 || row >= rows || col < 0 || col >= cols) { return fail("位置越界"); }
+        if (type == null) { return fail(ActionMsg.INVALID_TOWER_TYPE); }
+        if (state == State.WON || state == State.LOST) { return fail(ActionMsg.GAME_ENDED); }
+        if (row < 0 || row >= rows || col < 0 || col >= cols) { return fail(ActionMsg.OUT_OF_BOUNDS); }
         if (type == TowerType.MINE && !isMinePlacementCell(row, col)) {
-            return fail("地雷塔只能放在紧邻路径的陷阱位");
+            return fail(ActionMsg.MINE_NEEDS_PATH_SIDE);
         }
-        if (type != TowerType.MINE && isPathCell(row, col)) { return fail("不能在路径上建塔"); }
-        if (isEggCell(row, col)) { return fail("不能占蛋蛋的位置"); }
-        if (towerGrid.containsKey(key(row, col))) { return fail("该位置已有塔"); }
-        if (coin < type.baseCost) { return fail("金币不足，需要 " + type.baseCost); }
+        if (type != TowerType.MINE && isPathCell(row, col)) { return fail(ActionMsg.BLOCKS_PATH); }
+        if (isEggCell(row, col)) { return fail(ActionMsg.BLOCKS_EGG); }
+        if (towerGrid.containsKey(key(row, col))) { return fail(ActionMsg.CELL_OCCUPIED); }
+        if (coin < type.baseCost) { return fail(ActionMsg.NOT_ENOUGH_COIN, type.baseCost); }
         coin -= type.baseCost;
         Tower t = new Tower(type, row, col);
         towers.add(t);
         towerGrid.put(key(row, col), t);
         lastActionTone = "ok";
-        lastActionMessage = "已放置 " + type.displayName;
+        succeed(ActionMsg.PLACED, type);
         return t;
     }
 
@@ -575,17 +671,17 @@ public class TdGame {
             return placeTower(type, row, col) != null;
         }
         clearAction();
-        if (type == null) { return failBoolean("无效的塔类型"); }
-        if (state == State.WON || state == State.LOST) { return failBoolean("对局已结束"); }
-        if (target.type != type) { return failBoolean("只能拖到同类型防御塔上"); }
-        if (target.level >= 3) { return failBoolean("Lv3 已是最高等级，不能继续合成"); }
-        if (coin < type.baseCost) { return failBoolean("金币不足，需要 " + type.baseCost); }
+        if (type == null) { return failBoolean(ActionMsg.INVALID_TOWER_TYPE); }
+        if (state == State.WON || state == State.LOST) { return failBoolean(ActionMsg.GAME_ENDED); }
+        if (target.type != type) { return failBoolean(ActionMsg.DRAG_SAME_TYPE_ONLY); }
+        if (target.level >= 3) { return failBoolean(ActionMsg.MAX_LEVEL_REACHED); }
+        if (coin < type.baseCost) { return failBoolean(ActionMsg.NOT_ENOUGH_COIN, type.baseCost); }
         coin -= type.baseCost;
         target.level++;
         target.investedCost += type.baseCost;
         target.buildAge = 0;
         lastActionTone = "ok";
-        lastActionMessage = type.displayName + " 合成为 Lv" + target.level;
+        succeed(ActionMsg.MERGED, type, target.level);
         return true;
     }
 
@@ -596,7 +692,8 @@ public class TdGame {
     public boolean upgradeTower(int row, int col) {
         clearAction();
         Tower t = towerGrid.get(key(row, col));
-        lastActionMessage = t == null ? "该位置没有塔" : "请用两座同级" + t.type.displayName + "合成升级";
+        lastActionMsg = t == null ? ActionMsg.NO_TOWER_HERE : ActionMsg.UPGRADE_DEPRECATED;
+        lastActionArgs = t == null ? NO_ARGS : new Object[] { t.type };
         lastActionTone = t == null ? "err" : "info";
         return false;
     }
@@ -608,34 +705,25 @@ public class TdGame {
     public boolean mergeTowers(int sourceRow, int sourceCol, int targetRow, int targetCol) {
         clearAction();
         if (state == State.WON || state == State.LOST) {
-            lastActionMessage = "对局已结束";
-            lastActionTone = "err";
-            return false;
+            return failBoolean(ActionMsg.GAME_ENDED);
         }
         if (sourceRow == targetRow && sourceCol == targetCol) {
-            lastActionMessage = "请选择另一座同级同类塔";
-            lastActionTone = "err";
-            return false;
+            return failBoolean(ActionMsg.MERGE_PICK_ANOTHER);
         }
         Tower source = towerGrid.get(key(sourceRow, sourceCol));
         Tower target = towerGrid.get(key(targetRow, targetCol));
         if (source == null || target == null) {
-            lastActionMessage = "合成需要两座已建造的塔";
-            lastActionTone = "err";
-            return false;
+            return failBoolean(ActionMsg.MERGE_NEEDS_TWO_TOWERS);
         }
         if (source.type != target.type) {
-            lastActionMessage = "只能合成同类型防御塔";
-            lastActionTone = "err";
-            return false;
+            return failBoolean(ActionMsg.MERGE_TYPE_MISMATCH);
         }
         if (source.level != target.level) {
-            lastActionMessage = "只能合成相同等级的防御塔";
-            lastActionTone = "err";
-            return false;
+            return failBoolean(ActionMsg.MERGE_LEVEL_MISMATCH);
         }
         if (target.level >= 3) {
-            lastActionMessage = "Lv3 已是最高等级，不能继续合成";
+            lastActionMsg = ActionMsg.MAX_LEVEL_REACHED;
+            lastActionArgs = NO_ARGS;
             lastActionTone = "info";
             return false;
         }
@@ -647,7 +735,7 @@ public class TdGame {
         target.investedCost += source.investedCost;
         target.buildAge = 0;
         lastActionTone = "ok";
-        lastActionMessage = source.type.displayName + " 合成为 Lv" + target.level;
+        succeed(ActionMsg.MERGED, target.type, target.level);
         return true;
     }
 
@@ -655,19 +743,18 @@ public class TdGame {
     public boolean cycleTowerTargetMode(int row, int col) {
         clearAction();
         if (state == State.WON || state == State.LOST) {
-            lastActionMessage = "对局已结束";
-            lastActionTone = "err";
-            return false;
+            return failBoolean(ActionMsg.GAME_ENDED);
         }
         Tower tower = towerGrid.get(key(row, col));
         if (tower == null || tower.type == TowerType.SUN) {
-            lastActionMessage = tower == null ? "该位置没有塔" : "太阳花不需要选择目标";
+            lastActionMsg = tower == null ? ActionMsg.NO_TOWER_HERE : ActionMsg.SUN_NO_TARGET;
+            lastActionArgs = NO_ARGS;
             lastActionTone = "info";
             return false;
         }
         tower.targetMode = tower.targetMode.next();
         lastActionTone = "info";
-        lastActionMessage = tower.type.displayName + "目标：" + tower.targetMode.displayName;
+        succeed(ActionMsg.TARGET_MODE_SET, tower.type, tower.targetMode);
         return true;
     }
 
@@ -676,19 +763,19 @@ public class TdGame {
         clearAction();
         if (state == State.WON || state == State.LOST) { return false; }
         Tower t = towerGrid.remove(key(row, col));
-        if (t == null) { lastActionMessage = "该位置没有塔"; lastActionTone = "err"; return false; }
+        if (t == null) { fail(ActionMsg.NO_TOWER_HERE); return false; }
         towers.remove(t);
         int refund = (int) (t.totalInvested() * 0.6f);
         coin += refund;
         lastActionTone = "info";
-        lastActionMessage = "卖出返还 " + refund + " 金币";
+        succeed(ActionMsg.SOLD, refund);
         return true;
     }
 
     /** 立刻开始下一波（PREPARING 时开始首波）；生成中可加速召唤剩余敌人换取奖励。 */
     public boolean startNextWaveEarly() {
         clearAction();
-        if (state == State.WON || state == State.LOST) { lastActionMessage = "对局已结束"; lastActionTone = "err"; return false; }
+        if (state == State.WON || state == State.LOST) { return failBoolean(ActionMsg.GAME_ENDED); }
         if (state == State.PREPARING) {
             // 首波开战
             state = State.RUNNING;
@@ -697,7 +784,7 @@ public class TdGame {
             spawnedInWave = 0;
             spawnTimer = waves.get(0).startDelaySec;
             lastActionTone = "info";
-            lastActionMessage = "第 1 波来袭，准备防守！";
+            succeed(ActionMsg.FIRST_WAVE_INCOMING);
             return true;
         }
         Wave w = waves.get(waveIndex);
@@ -711,17 +798,26 @@ public class TdGame {
                 coin += bonus;
                 coinsEarned += bonus;
                 lastActionTone = "info";
-                lastActionMessage = "加速召唤 " + remaining + " 名敌人，奖励 " + bonus + " 金币";
+                succeed(ActionMsg.RUSH_SUMMONED, remaining, bonus);
             } else {
-                lastActionMessage = "本波已全部生成"; lastActionTone = "info";
+                lastActionTone = "info";
+                succeed(ActionMsg.WAVE_FULLY_SPAWNED);
             }
             waveStarted = false;
             return true;
         }
-        // 本波已生成完 → 进入下一波（无下一波时提示）
+        // 本波已生成完 → 进入下一波（无下一波时提示；无尽模式则确定性合成下一波继续）
         if (waveIndex + 1 >= totalWaves) {
-            lastActionMessage = "已是最后一波"; lastActionTone = "info";
-            return false;
+            if (mode != Mode.ENDLESS) {
+                lastActionTone = "info";
+                succeed(ActionMsg.LAST_WAVE_REACHED);
+                return false;
+            }
+            // 无尽推进 hook：定义波次耗尽后由工厂合成下一波并追加到波次列表副本。
+            // waves 本就是构造期深拷贝出的私有 ArrayList，Wave 自身不可变，追加不破坏深拷贝语义；
+            // 合成序号取 totalWaves + 1（绝对序号），与 upcomingWave() 的预览公式严格一致。
+            waves.add(TdEndlessWaveFactory.createWave(totalWaves + 1, difficulty, paths.length));
+            totalWaves++;
         }
         waveIndex++;
         waveStarted = true;
@@ -729,7 +825,7 @@ public class TdGame {
         Wave next = waves.get(waveIndex);
         spawnTimer = next.startDelaySec;
         lastActionTone = "info";
-        lastActionMessage = "第 " + (waveIndex + 1) + " 波来袭";
+        succeed(ActionMsg.WAVE_INCOMING, waveIndex + 1);
         return true;
     }
 
@@ -835,7 +931,8 @@ public class TdGame {
         for (BurnZone zone : burnZones) {
             zone.secondsLeft -= FIXED_DT;
             for (Monster monster : monsters) {
-                if (!monster.dead && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
+                if (!monster.dead && canHit(TowerType.MINE, monster)
+                        && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
                     takeDamage(monster, TowerType.MINE_BURN_DPS * FIXED_DT, DamageKind.BURN);
                 }
             }
@@ -963,11 +1060,13 @@ public class TdGame {
     private void reachEgg(Monster m) {
         m.dead = true;
         int damage = m.type.leakDamage;
-        mascotHp -= damage;
-        mascotHpLost += damage;
+        int hpBefore = Math.max(mascotHp, 0);
+        int effective = Math.min(damage, hpBefore);
+        mascotHp = hpBefore - effective;
+        mascotHpLost += effective;
         eggHitTimer = 0.6f;
         lastActionTone = "err";
-        lastActionMessage = m.type.displayName + "突破防线！蛋蛋 -" + damage + "，剩余生命 " + mascotHp;
+        succeed(ActionMsg.EGG_HIT, m.type, damage, mascotHp);
         if (mascotHp <= 0) {
             mascotHp = 0;
             state = State.LOST;
@@ -1046,7 +1145,7 @@ public class TdGame {
                 if (!isCombatActive()) continue;
                 t.incomeTimer -= FIXED_DT;
                 if (t.incomeTimer <= 0f) {
-                    t.incomeTimer = 1.8f; // 每 1.8 秒产一次
+                    t.incomeTimer = t.type.incomeIntervalSec; // 产币周期数据源：TowerType（1.8s）
                     int gained = Math.round(t.type.incomeAt(t.level));
                     coin += gained;
                     coinsEarned += gained;
@@ -1078,15 +1177,15 @@ public class TdGame {
                 target.slowTimer = TowerType.SNOW_SLOW_SEC * slowEffect;
                 // 在出生倍率基础上缩放，避免覆盖波次/难度叠加出的原始速度
                 target.speedMul = target.baseSpeedMul * (1f - TowerType.SNOW_SLOW_PCT * slowEffect);
-                takeDamage(target, dmg * 0.4f, DamageKind.DIRECT);
+                takeDamage(target, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 break;
             }
             case FAN: {
                 // 周围溅射
                 for (Monster m : monsters) {
-                    if (m.dead) continue;
+                    if (!canHit(t.type, m)) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.8f, DamageKind.DIRECT);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 }
                 break;
             }
@@ -1095,9 +1194,9 @@ public class TdGame {
                 target.dotDps = TowerType.POISON_DPS * (0.7f + 0.3f * t.level);
                 float poisonEffect = target.type == MonsterType.RESISTANT ? .65f : 1f;
                 target.dotTimer = TowerType.POISON_SEC * poisonEffect;
-                takeDamage(target, dmg * 0.3f, DamageKind.DIRECT);
+                takeDamage(target, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 for (Monster m : monsters) {
-                    if (m.dead || m == target) continue;
+                    if (!canHit(t.type, m) || m == target) continue;
                     float d = dist(m.x, m.y, tx, ty);
                     if (d <= TowerType.AOE_RADIUS * 0.8f) {
                         m.dotDps = TowerType.POISON_DPS * 0.5f;
@@ -1109,9 +1208,9 @@ public class TdGame {
             }
             case ROCKET: {
                 for (Monster m : monsters) {
-                    if (m.dead) continue;
+                    if (!canHit(t.type, m)) continue;
                     float d = dist(m.x, m.y, tx, ty);
-                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * 0.7f, DamageKind.DIRECT);
+                    if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 }
                 break;
             }
@@ -1124,7 +1223,8 @@ public class TdGame {
             case MINE: {
                 float radius = t.type.mineBlastRadiusAt(t.level);
                 for (Monster monster : monsters) {
-                    if (!monster.dead && dist(monster.x, monster.y, tx, ty) <= radius) {
+                    if (!monster.dead && canHit(t.type, monster)
+                            && dist(monster.x, monster.y, tx, ty) <= radius) {
                         takeDamage(monster, dmg, DamageKind.DIRECT);
                     }
                 }
@@ -1153,7 +1253,7 @@ public class TdGame {
             Monster next = null;
             float bestDistance = Float.MAX_VALUE;
             for (Monster candidate : monsters) {
-                if (candidate.dead || hit.contains(candidate)) continue;
+                if (!canHit(tower.type, candidate) || hit.contains(candidate)) continue;
                 float distance = dist(previous.x, previous.y, candidate.x, candidate.y);
                 if (distance <= TowerType.LIGHTNING_CHAIN_RANGE && distance < bestDistance) {
                     bestDistance = distance;
@@ -1174,8 +1274,7 @@ public class TdGame {
         float bestScore = -Float.MAX_VALUE;
         float cx = t.col + 0.5f, cy = t.row + 0.5f;
         for (Monster m : monsters) {
-            if (m.dead) continue;
-            if (m.type.fly && !t.type.canAir) continue;
+            if (!canHit(t.type, m)) continue;
             float d = dist(m.x, m.y, cx, cy);
             if (d > effectiveRangeAt(t)) continue;
             // 狙击塔固定优先关键强敌，避免玩家忘记切目标模式时退化成昂贵瓶子炮。
@@ -1187,6 +1286,12 @@ public class TdGame {
             }
         }
         return best;
+    }
+
+    /** All damage paths share the same air-target rule, including area effects. */
+    private static boolean canHit(TowerType towerType, Monster monster) {
+        return towerType != null && monster != null && !monster.dead
+                && (!monster.type.fly || towerType.canAir);
     }
 
     private static float targetScore(TargetMode mode, Monster monster) {
@@ -1210,12 +1315,14 @@ public class TdGame {
 
     private void checkEnd() {
         if (state == State.LOST) return;
+        // 无尽模式没有胜利分支：波次由工厂无限合成，唯一结束是蛋死亡（reachEgg → LOST）
+        if (mode == Mode.ENDLESS) return;
         // 最后一波已开始且生成完毕、场上无怪 → 胜利
         boolean lastWaveDone = waveIndex + 1 >= totalWaves && !waveStarted;
         if (lastWaveDone && monsters.isEmpty()) {
             state = State.WON;
             lastActionTone = "ok";
-            lastActionMessage = "胜利！蛋蛋安全了";
+            succeed(ActionMsg.VICTORY);
         }
     }
 
@@ -1280,16 +1387,28 @@ public class TdGame {
         return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
-    private void clearAction() { lastActionMessage = ""; lastActionTone = "info"; }
+    private void clearAction() {
+        lastActionMsg = null;
+        lastActionArgs = NO_ARGS;
+        lastActionTone = "info";
+    }
 
-    private Tower fail(String msg) {
-        lastActionMessage = msg;
+    /** 记录一条成功/中性操作结果（可变参数：Integer 数字或 TowerType/MonsterType/TargetMode 枚举）。 */
+    private void succeed(ActionMsg msg, Object... args) {
+        lastActionMsg = msg;
+        lastActionArgs = args.length == 0 ? NO_ARGS : args;
+    }
+
+    private Tower fail(ActionMsg msg, Object... args) {
+        lastActionMsg = msg;
+        lastActionArgs = args.length == 0 ? NO_ARGS : args;
         lastActionTone = "err";
         return null;
     }
 
-    private boolean failBoolean(String msg) {
-        lastActionMessage = msg;
+    private boolean failBoolean(ActionMsg msg, Object... args) {
+        lastActionMsg = msg;
+        lastActionArgs = args.length == 0 ? NO_ARGS : args;
         lastActionTone = "err";
         return false;
     }

@@ -1,10 +1,33 @@
 {
   "schema": 1,
-  "contentVersion": 1,
+  "contentVersion": 9,
   "gameId": "td",
   "chapters": [
-    { "id": "chapter_main_01", "file": "chapters/chapter_main_01.json", "levelCount": 5 },
-    { "id": "chapter_main_02", "file": "chapters/chapter_main_02.json", "levelCount": 10 },
-    { "id": "chapter_main_03", "file": "chapters/chapter_main_03.json", "levelCount": 10 }
+    { "id": "chapter_main_01", "file": "chapters/chapter_main_01.json", "levelCount": 5,
+      "name": "主线第一章", "name_en": "Chapter 1: Morning Dew" },
+    { "id": "chapter_main_02", "file": "chapters/chapter_main_02.json", "levelCount": 10,
+      "name": "主线第二章", "name_en": "Chapter 2: Misty Bloom" },
+    { "id": "chapter_main_03", "file": "chapters/chapter_main_03.json", "levelCount": 10,
+      "name": "主线第三章", "name_en": "Chapter 3: Rift Echoes" },
+    { "id": "chapter_main_04", "file": "chapters/chapter_main_04.json", "levelCount": 10,
+      "name": "主线第四章", "name_en": "Chapter 4: Embers and Storm" },
+    { "id": "chapter_main_05", "file": "chapters/chapter_main_05.json", "levelCount": 10,
+      "name": "主线第五章", "name_en": "Chapter 5: After the Embers" },
+    { "id": "chapter_main_06", "file": "chapters/chapter_main_06.json", "levelCount": 5,
+      "name": "番外章·常青之春", "name_en": "Side Story: Everlasting Spring" },
+    { "id": "chapter_main_07", "file": "chapters/chapter_main_07.json", "levelCount": 5,
+      "name": "番外章·未醒之谷", "name_en": "Side Story II: The Un-Woken Valley" },
+    { "id": "chapter_main_08", "file": "chapters/chapter_main_08.json", "levelCount": 5,
+      "name": "番外章·夏潮彼岸", "name_en": "Side Story III: The Summer Shore" },
+    { "id": "chapter_main_09", "file": "chapters/chapter_main_09.json", "levelCount": 5,
+      "name": "番外章·秋实之夜", "name_en": "Side Story IV: The Autumn Harvest Night" },
+    { "id": "chapter_main_10", "file": "chapters/chapter_main_10.json", "levelCount": 5,
+      "name": "番外章·冬至长明", "name_en": "Side Story V: The Longest Light" },
+    { "id": "chapter_main_11", "file": "chapters/chapter_main_11.json", "levelCount": 5,
+      "name": "番外章·夜巡试炼", "name_en": "Side Story VI: The Night-Watch Trials" },
+    { "id": "chapter_main_12", "file": "chapters/chapter_main_12.json", "levelCount": 5,
+      "name": "番外章·烽灯连营", "name_en": "Side Story VII: The Beacon Chain" },
+    { "id": "chapter_main_13", "file": "chapters/chapter_main_13.json", "levelCount": 5,
+      "name": "番外章·雪峰终哨", "name_en": "Side Story VIII: The Last Watch" }
   ]
 }

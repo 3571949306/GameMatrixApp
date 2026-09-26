@@ -8,9 +8,9 @@ import android.graphics.RectF;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,7 +42,11 @@ public class SnakeView extends View {
     private final SnakeGame game = new SnakeGame();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable gameLoopRunnable;
-    private GestureDetector gestureDetector;
+    private int touchSlop;
+    private float gestureStartX;
+    private float gestureStartY;
+    private boolean gestureActive;
+    private boolean gestureDirectionRequested;
     private float speedFactor = 0.5f;
 
     private final Paint paintBg = new Paint();
@@ -90,22 +94,7 @@ public class SnakeView extends View {
         paintOverlay.setColor(COLOR_OVERLAY);
         paintOverlay.setStyle(Paint.Style.FILL);
 
-        gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                if (e1 == null || e2 == null) return false;
-                float dx = e2.getX() - e1.getX();
-                float dy = e2.getY() - e1.getY();
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    if (dx > 0) game.setNextDirection(SnakeGame.DIR_RIGHT);
-                    else if (dx < 0) game.setNextDirection(SnakeGame.DIR_LEFT);
-                } else {
-                    if (dy > 0) game.setNextDirection(SnakeGame.DIR_DOWN);
-                    else if (dy < 0) game.setNextDirection(SnakeGame.DIR_UP);
-                }
-                return true;
-            }
-        });
+        touchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
     }
 
     public void setOnScoreChangeListener(OnScoreChangeListener l) { this.scoreChangeListener = l; }
@@ -119,6 +108,7 @@ public class SnakeView extends View {
     public SnakeGame getGame() { return game; }
 
     public void startGame() {
+        clearGesture();
         game.reset();
         if (scoreChangeListener != null) scoreChangeListener.onScoreChanged(game.getScore());
         scheduleNextTick();
@@ -126,6 +116,7 @@ public class SnakeView extends View {
     }
 
     public void pauseGame() {
+        clearGesture();
         game.pause();
         handler.removeCallbacksAndMessages(null);
     }
@@ -136,6 +127,7 @@ public class SnakeView extends View {
     }
 
     public void stopGame() {
+        clearGesture();
         game.stop();
         handler.removeCallbacksAndMessages(null);
     }
@@ -228,19 +220,59 @@ public class SnakeView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (game.isGameOver() && event.getAction() == MotionEvent.ACTION_DOWN) {
+        int action = event.getActionMasked();
+        if (game.isGameOver() && action == MotionEvent.ACTION_DOWN) {
             startGame();
             return true;
         }
-        if (gestureDetector != null) {
-            gestureDetector.onTouchEvent(event);
+        if (!game.isRunning() || game.isGameOver()) {
+            clearGesture();
+            return true;
+        }
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                gestureStartX = event.getX();
+                gestureStartY = event.getY();
+                gestureActive = true;
+                gestureDirectionRequested = false;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                requestGestureDirection(event);
+                break;
+            case MotionEvent.ACTION_UP:
+                requestGestureDirection(event);
+                clearGesture();
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                clearGesture();
+                break;
         }
         return true;
+    }
+
+    private void requestGestureDirection(MotionEvent event) {
+        if (!gestureActive || gestureDirectionRequested) return;
+        float dx = event.getX() - gestureStartX;
+        float dy = event.getY() - gestureStartY;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) <= touchSlop) return;
+        // One direction attempt per gesture, including a rejected reverse turn.
+        gestureDirectionRequested = true;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            game.setNextDirection(dx > 0 ? SnakeGame.DIR_RIGHT : SnakeGame.DIR_LEFT);
+        } else {
+            game.setNextDirection(dy > 0 ? SnakeGame.DIR_DOWN : SnakeGame.DIR_UP);
+        }
+    }
+
+    private void clearGesture() {
+        gestureActive = false;
+        gestureDirectionRequested = false;
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        clearGesture();
         handler.removeCallbacksAndMessages(null);
     }
 }

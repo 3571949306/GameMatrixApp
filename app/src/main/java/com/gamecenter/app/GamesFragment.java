@@ -164,6 +164,24 @@ public class GamesFragment extends Fragment {
             registerForActivityResult(new ActivityResultContracts.OpenDocument(),
                     uri -> handleImportResult(uri));
 
+    /**
+     * 冒烟缺陷修复（Classics 首次进入 "No games available"）：出厂预装安装完成监听器。
+     *
+     * <p>首启预装提取/安装是重 IO，可能晚于本 Fragment 的首次 onResume；且底部导航
+     * add/hide/show 切换不触发 onResume。预装完成后 ModuleManager 会通知本监听器
+     * （主线程），此时重扫已安装模块并重载游戏列表，斗地主/21点等预装游戏卡片即可
+     * 自动出现，无需再手动进一次模块商店。</p>
+     */
+    private final Runnable onBundledInstallCompleted = new Runnable() {
+        @Override
+        public void run() {
+            if (!isAdded() || getContext() == null || rootView == null) return;
+            ModuleManager.INSTANCE.registerInstalledGameModules(requireContext());
+            loadGames();
+        }
+    };
+    private boolean bundledInstallListenerRegistered = false;
+
     public GamesFragment() {
         super(R.layout.fragment_games);
     }
@@ -177,6 +195,12 @@ public class GamesFragment extends Fragment {
             ratingStore = new GameRatingStore(requireContext());
         }
         initViews(view);
+        // 冒烟缺陷修复：监听出厂预装安装完成事件，完成后自动重载游戏列表。
+        // 用字段持有实例保证注册/注销传入同一引用（方法引用每次求值会新建 lambda）。
+        if (!bundledInstallListenerRegistered) {
+            ModuleManager.INSTANCE.addBundledInstallListener(onBundledInstallCompleted);
+            bundledInstallListenerRegistered = true;
+        }
         // 包 D-1 (DAILY_CHECKIN): 每日首次进入游戏大厅自动记录登录天数（2026-07-22 起由手动签到改为自动记录）
         recordLoginDay();
     }
@@ -242,6 +266,11 @@ public class GamesFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // 冒烟缺陷修复：视图销毁时注销预装完成监听器，避免持有已销毁视图的引用
+        if (bundledInstallListenerRegistered) {
+            ModuleManager.INSTANCE.removeBundledInstallListener(onBundledInstallCompleted);
+            bundledInstallListenerRegistered = false;
+        }
         // Batch 7-2 (ANIM_SHIMMER_LOADING): 清理动画避免泄漏
         if (shimmerAlphaAnim != null) {
             shimmerAlphaAnim.cancel();
@@ -974,9 +1003,38 @@ public class GamesFragment extends Fragment {
         if (tvProgress != null) {
             tvProgress.setText(getString(R.string.daily_challenge_progress_format, c.progress, c.target));
         }
-        // 点击卡片提示
-        cardRoot.setOnClickListener(card -> Toast.makeText(requireContext(),
-                R.string.home_daily_card_click_hint, Toast.LENGTH_SHORT).show());
+        // 点击卡片直达挑战游戏：按 challenge.gameId 在注册表中查找条目，复用游戏卡片
+        // 的统一点击入口 onGameClick（不另写第二套启动逻辑）；找不到（如解锁成就型挑战
+        // 未绑定游戏）时保留原提示 Toast 兜底
+        cardRoot.setOnClickListener(card -> {
+            GameRegistry.Entry entry = findGameEntryById(c.gameId);
+            if (entry != null) {
+                onGameClick(entry);
+            } else {
+                Toast.makeText(requireContext(),
+                        R.string.home_daily_card_click_hint, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * 包 D-2 (HOME_DAILY_CARDS): 按 id 在游戏注册表中查找条目。
+     * 与 {@link DailyChallengeManager} 生成挑战时的 GameRegistry.getCategories 同源，
+     * 天然覆盖静态 + 动态注册的全部游戏，不依赖 allEntries 的填充时序。
+     *
+     * @return 对应条目；null = id 为空或注册表中不存在
+     */
+    @Nullable
+    private GameRegistry.Entry findGameEntryById(@Nullable String gameId) {
+        if (gameId == null || gameId.isEmpty()) return null;
+        for (GameRegistry.Category cat : GameRegistry.getCategories(requireContext())) {
+            for (GameRegistry.Entry entry : cat.games) {
+                if (gameId.equals(entry.id)) {
+                    return entry;
+                }
+            }
+        }
+        return null;
     }
 
     /**
