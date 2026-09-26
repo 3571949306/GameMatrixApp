@@ -8,6 +8,8 @@
       "order": 6,
       "name": "晨雾花圃",
       "subtitle": "资源调度 · 分叉入口与高速突袭",
+      "name_en": "Misty Flowerbed",
+      "subtitle_en": "Resource pacing · Forked entries and high-speed raids",
       "theme": "GARDEN",
       "rows": 12,
       "cols": 12,
@@ -235,6 +237,232 @@
             9,
             0
           ]
+        ],
+        [
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
         ]
       ],
       "waves": [
@@ -253,7 +481,7 @@
           "types": [
             "FAST"
           ],
-          "route": 0,
+          "route": 1,
           "count": 8,
           "interval": 0.52,
           "delay": 0.4,
@@ -289,7 +517,7 @@
             "FLY",
             "FAST"
           ],
-          "route": 0,
+          "route": 1,
           "count": 10,
           "interval": 0.5,
           "delay": 0.5,
@@ -308,13 +536,19 @@
           "hpMul": 1.25,
           "speedMul": 1.1
         }
-      ]
+      ],
+      "story_intro": "村里晶石不够了，蛋蛋推着小车来到晨雾花圃。第2波快跑怪会从右下入口绕来，第5波还有飞行与快跑混编。先守住两路汇合处，再用余钱补防支路；提前叫下一波前，记得看清入口。",
+      "story_intro_en": "The village needs crystals, so Eggy brings his cart to Misty Flowerbed. Fast enemies use the lower-right entrance in wave 2, followed by fliers and fast enemies in wave 5. Defend the shared stretch first, then spend spare coins on the branch. Check the entrance before calling the next wave early.",
+      "story_outro": "第一车晶石运回村，蛋蛋的外出之旅开了个好头。",
+      "story_outro_en": "The first cart of crystals returns, and the journey starts well."
     },
     {
       "id": "main_007",
       "order": 7,
       "name": "荆棘双径",
       "subtitle": "分叉布防 · 飞行与护盾交替压迫",
+      "name_en": "Bramble Twin Paths",
+      "subtitle_en": "Split defenses · Alternating fly and shield pressure",
       "theme": "BRAMBLE",
       "rows": 10,
       "cols": 12,
@@ -542,6 +776,232 @@
             9,
             0
           ]
+        ],
+        [
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
         ]
       ],
       "waves": [
@@ -561,7 +1021,7 @@
             "SHIELD",
             "NORMAL"
           ],
-          "route": 0,
+          "route": 1,
           "count": 12,
           "interval": 0.58,
           "delay": 0.45,
@@ -585,7 +1045,7 @@
             "SPLITTER",
             "SHIELD"
           ],
-          "route": 0,
+          "route": 1,
           "count": 9,
           "interval": 0.68,
           "delay": 0.5,
@@ -609,20 +1069,26 @@
             "TANK",
             "SHIELD_GENERATOR"
           ],
-          "route": 0,
+          "route": 1,
           "count": 8,
           "interval": 0.72,
           "delay": 0.55,
           "hpMul": 1.3,
           "speedMul": 1.06
         }
-      ]
+      ],
+      "story_intro": "荆棘双径要分线防守：上方入口的第1、3、5波带着飞行怪，右下入口的第2、4、6波有护盾部队。蛋蛋按入口分配防空和破盾火力，再用汇合区接住两边漏过来的敌人。",
+      "story_intro_en": "Bramble Twin Paths calls for split defenses. Waves 1, 3, and 5 bring fliers through the upper entrance; waves 2, 4, and 6 bring shield support through the lower-right entrance. Eggy assigns anti-air and shield-breaking firepower to each approach, with shared defenses catching enemies from either route.",
+      "story_outro": "双径守住，推车上又多了满满一袋晶石。",
+      "story_outro_en": "Both paths hold, and another bag of crystals lands on the cart."
     },
     {
       "id": "main_008",
       "order": 8,
       "name": "水晶合流",
       "subtitle": "组合火力 · 治疗核心与分裂潮",
+      "name_en": "Crystal Confluence",
+      "subtitle_en": "Combined firepower · Healer cores and splitter tides",
       "theme": "CRYSTAL",
       "rows": 10,
       "cols": 12,
@@ -928,13 +1394,19 @@
           "hpMul": 1.0,
           "speedMul": 0.98
         }
-      ]
+      ],
+      "story_intro": "水晶合流是两条小溪汇成大河的地方，治疗核心带着分裂潮涌来。蛋蛋决定集火治疗怪，不让分裂怪越分越多。",
+      "story_intro_en": "Crystal Confluence joins two streams into one river, where healer cores escort splitter tides. Eggy focuses healers first so splitters cannot multiply out of control.",
+      "story_outro": "合流口的浪花平息了，蛋蛋摸到了以少胜多的窍门。",
+      "story_outro_en": "The rapids calm, and Eggy learns how to win outnumbered."
     },
     {
       "id": "main_009",
       "order": 9,
       "name": "峡谷回环",
       "subtitle": "双线调度 · 冲锋破阵与空袭",
+      "name_en": "Canyon Loop",
+      "subtitle_en": "Dual-lane control · Charger break-ins and air raids",
       "theme": "VALLEY",
       "rows": 10,
       "cols": 12,
@@ -1162,6 +1634,232 @@
             9,
             0
           ]
+        ],
+        [
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
         ]
       ],
       "waves": [
@@ -1182,7 +1880,7 @@
             "FLY",
             "FAST"
           ],
-          "route": 0,
+          "route": 1,
           "count": 12,
           "interval": 0.48,
           "delay": 0.45,
@@ -1194,7 +1892,7 @@
             "SHIELD",
             "CHARGER"
           ],
-          "route": 0,
+          "route": 1,
           "count": 10,
           "interval": 0.62,
           "delay": 0.5,
@@ -1220,7 +1918,7 @@
             "FLY",
             "CHARGER"
           ],
-          "route": 0,
+          "route": 1,
           "count": 16,
           "interval": 0.4,
           "delay": 0.5,
@@ -1240,13 +1938,19 @@
           "hpMul": 1.02,
           "speedMul": 1.0
         }
-      ]
+      ],
+      "story_intro": "峡谷回环里，右下入口的第2、3波会连续来敌，第5波也从那里突袭。冲锋怪和空袭不会乖乖轮流换路。蛋蛋先看下一波预告，再决定补防哪边，并在汇合后留好能照顾两路的火力。",
+      "story_intro_en": "In Canyon Loop, waves 2 and 3 arrive consecutively through the lower-right entrance, and wave 5 returns there. Chargers and air raids do not simply alternate entrances. Eggy checks the next-wave preview before reinforcing a branch, while keeping firepower beyond the junction to cover both routes.",
+      "story_outro": "回环守住，峡谷里采到的晶石闪闪发光。",
+      "story_outro_en": "The loop holds, and the canyon crystals glitter brightly."
     },
     {
       "id": "main_010",
       "order": 10,
       "name": "雷云前哨",
       "subtitle": "中期考验 · 护盾、治疗与冲锋混编",
+      "name_en": "Thundercloud Outpost",
+      "subtitle_en": "Mid-game trial · Shields, healers, and chargers mixed",
       "theme": "STORM",
       "rows": 10,
       "cols": 12,
@@ -1552,13 +2256,19 @@
           "hpMul": 1.05,
           "speedMul": 1.0
         }
-      ]
+      ],
+      "story_intro": "雷云前哨是中途的考验站，护盾、治疗和冲锋怪混在一起冲锋。蛋蛋深吸一口气，把减速和集火排得整整齐齐。",
+      "story_intro_en": "Thundercloud Outpost is the mid journey trial, mixing shields, healers, and chargers in one push. Eggy takes a deep breath and lines up slowing and focus fire neatly.",
+      "story_outro": "前哨的乌云散开，蛋蛋的队伍越来越有模样。",
+      "story_outro_en": "The clouds part above the outpost, and the team looks stronger."
     },
     {
       "id": "main_011",
       "order": 11,
       "name": "花园暗潮",
       "subtitle": "资源管理 · 分裂链与治疗护航",
+      "name_en": "Garden Undercurrent",
+      "subtitle_en": "Resource management · Splitter chains under healer escort",
       "theme": "GARDEN",
       "rows": 10,
       "cols": 12,
@@ -1864,13 +2574,19 @@
           "hpMul": 1.08,
           "speedMul": 1.0
         }
-      ]
+      ],
+      "story_intro": "花园暗潮表面平静，水下却涌动着分裂链，还有治疗怪一路护航。蛋蛋管好每一枚金币，不浪费一次合成机会。",
+      "story_intro_en": "Garden Undercurrent looks calm, yet splitter chains surge below with healer escorts. Eggy minds every coin and wastes no chance to merge.",
+      "story_outro": "暗潮退去，蛋蛋的钱袋和经验一起鼓了起来。",
+      "story_outro_en": "The undercurrent fades, and both purse and experience grow."
     },
     {
       "id": "main_012",
       "order": 12,
       "name": "荆棘裂隙",
       "subtitle": "路线取舍 · 飞行、冲锋与护盾叠压",
+      "name_en": "Bramble Rift",
+      "subtitle_en": "Route triage · Fly, charger, and shield stacks",
       "theme": "BRAMBLE",
       "rows": 10,
       "cols": 12,
@@ -2098,6 +2814,232 @@
             9,
             0
           ]
+        ],
+        [
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ]
         ]
       ],
       "waves": [
@@ -2118,7 +3060,7 @@
             "SHIELD",
             "FAST"
           ],
-          "route": 0,
+          "route": 1,
           "count": 14,
           "interval": 0.48,
           "delay": 0.45,
@@ -2144,7 +3086,7 @@
             "SHIELD_GENERATOR",
             "TANK"
           ],
-          "route": 0,
+          "route": 1,
           "count": 14,
           "interval": 0.54,
           "delay": 0.5,
@@ -2170,20 +3112,26 @@
             "FLY",
             "BOSS"
           ],
-          "route": 0,
+          "route": 1,
           "count": 8,
           "interval": 0.72,
           "delay": 0.75,
           "hpMul": 1.1,
           "speedMul": 1.02
         }
-      ]
+      ],
+      "story_intro": "荆棘裂隙中，飞行、冲锋和护盾部队从两处入口轮番压来，最后一波首领从右下进入。蛋蛋按威胁补防入口，把主要火力留在汇合段。两条路都通向蛋蛋，取舍的是金币投向，不能放任一路漏怪。",
+      "story_intro_en": "At Bramble Rift, mixed groups of fliers, chargers, and shielded enemies alternate between the two entrances. The final Boss wave enters from the lower right. Eggy reinforces each approach for its threats and concentrates his main firepower on the shared stretch. Both routes reach Eggy: choose where to spend coins without allowing one lane to leak enemies.",
+      "story_outro": "裂隙守住，蛋蛋学会了取舍也是防守的一部分。",
+      "story_outro_en": "The rift holds, and Eggy learns that choice is part of defense."
     },
     {
       "id": "main_013",
       "order": 13,
       "name": "水晶风眼",
       "subtitle": "组合极限 · 治疗链与分裂重装军",
+      "name_en": "Crystal Eyewall",
+      "subtitle_en": "Combo limits · Healer chains and heavy splitter ranks",
       "theme": "CRYSTAL",
       "rows": 10,
       "cols": 12,
@@ -2490,13 +3438,19 @@
           "hpMul": 1.12,
           "speedMul": 1.02
         }
-      ]
+      ],
+      "story_intro": "水晶风眼静得吓人，治疗链一环扣一环，重装分裂怪排着整齐的队伍。蛋蛋顶着组合上限，把高星塔摆在最关键的拐角。",
+      "story_intro_en": "Crystal Eyewall sits eerily still, with healer chains linked tight and heavy splitters marching in ranks. Eggy respects the combo limit and plants top star towers at the key corner.",
+      "story_outro": "风眼重新转动起来，蛋蛋的高星阵容经住了考验。",
+      "story_outro_en": "The eyewall spins again, and the high star lineup passes the test."
     },
     {
       "id": "main_014",
       "order": 14,
       "name": "峡谷雷鸣",
       "subtitle": "终盘调度 · 冲锋、狂暴与多重支援",
+      "name_en": "Thundering Canyon",
+      "subtitle_en": "Endgame control · Chargers, ragers, and layered support",
       "theme": "VALLEY",
       "rows": 10,
       "cols": 12,
@@ -2803,13 +3757,19 @@
           "hpMul": 1.16,
           "speedMul": 1.04
         }
-      ]
+      ],
+      "story_intro": "峡谷雷鸣电光闪闪，冲锋怪和狂暴怪带着一串支援怪压上来。蛋蛋稳住掌控节奏，让减速塔先行，输出塔跟上。",
+      "story_intro_en": "Thundering Canyon flashes with lightning as chargers and ragers press in with layered support. Eggy steadies the pace, letting slowing towers lead and damage follow.",
+      "story_outro": "雷声远去，峡谷的晶石矿尽收眼底。",
+      "story_outro_en": "Thunder fades, and the canyon crystal mine lies in sight."
     },
     {
       "id": "main_015",
       "order": 15,
       "name": "风暴王座",
       "subtitle": "第二章终局 · 全机制组合与资源决战",
+      "name_en": "Storm Throne",
+      "subtitle_en": "Chapter two finale · Every mechanic at once, economy showdown",
       "theme": "STORM",
       "rows": 10,
       "cols": 12,
@@ -3119,7 +4079,11 @@
           "hpMul": 1.2,
           "speedMul": 1.04
         }
-      ]
+      ],
+      "story_intro": "风暴王座是第二章的终局，各种手段轮番上阵，还有首领亲自压阵，经济调度稍有差错就会崩盘。蛋蛋想起空空的仓库，决定把每一枚金币都花在刀刃上。",
+      "story_intro_en": "Storm Throne is the chapter two finale, throwing every trick at once with a Boss on the field and no room for economic mistakes. Eggy thinks of the empty storehouse and spends every coin where it counts.",
+      "story_outro": "王座的风暴平息了，满载晶石的车队缓缓回村。",
+      "story_outro_en": "The throne storm quiets, and the crystal convoy rolls home."
     }
   ]
 }

@@ -531,16 +531,25 @@ object ModuleDownloader {
     fun getModuleFileCompat(context: Context, manifest: ModuleManifest): File {
         val currentFile = getInstalledModuleFile(context, manifest)
         if (currentFile.exists()) return currentFile
-        
+
         // 兼容旧版本：检查旧 modules/ 目录
         val legacyDir = File(context.filesDir, "modules")
-        var safeFileName = File(manifest.fileName).name
-        if (safeFileName.isEmpty() || !safeFileName.endsWith(".apk")) {
-            safeFileName = "${manifest.id}.apk"
+        val configuredName = File(manifest.fileName).name
+        if (configuredName.isNotEmpty() && configuredName == manifest.fileName) {
+            val configuredFile = File(legacyDir, configuredName)
+            if (configuredFile.exists()) return configuredFile
         }
-        val legacyFile = File(legacyDir, safeFileName)
+        val legacyFile = File(legacyDir, "${manifest.id}.apk")
         if (legacyFile.exists()) return legacyFile
-        
+
+        // Older builds could retain a versioned filename after the catalog filename changed.
+        // Only accept one direct child with the module-id prefix; ambiguity must not select an
+        // arbitrary package from the flat legacy directory.
+        val prefixed = legacyDir.listFiles()
+            ?.filter { it.isFile && it.name.startsWith("${manifest.id}_") }
+            .orEmpty()
+        if (prefixed.size == 1) return prefixed[0]
+
         // 默认返回 current 路径
         return currentFile
     }

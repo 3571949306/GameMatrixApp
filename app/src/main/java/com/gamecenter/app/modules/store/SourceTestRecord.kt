@@ -52,7 +52,16 @@ object SourceTestStore {
     private const val FILE_NAME = "source_tests.json"
     private const val MAX_AGE_MS = 30L * 24 * 3600 * 1000
 
+    /**
+     * Deterministic seam for the interruption contract test. The normal app path leaves this null,
+     * so it does not alter the write protocol; tests may throw here after the tmp write and before
+     * the replacement attempt.
+     */
+    internal var beforeTargetReplaceHook: ((File, File) -> Unit)? = null
+
     fun file(context: Context): File = File(context.filesDir, FILE_NAME)
+
+    internal fun tempFile(context: Context): File = File(context.filesDir, "$FILE_NAME.tmp")
 
     @Synchronized
     fun load(context: Context): List<SourceTestSession> {
@@ -68,13 +77,15 @@ object SourceTestStore {
     fun append(context: Context, session: SourceTestSession) {
         val kept = prune(load(context) + session)
         // 原子写：tmp + rename，避免测速中途进程被杀留下截断 JSON
-        val tmp = File(context.filesDir, "$FILE_NAME.tmp")
+        val tmp = tempFile(context)
         tmp.writeText(JSONObject().put("sessions", JSONArray().apply {
             kept.forEach { put(it.toJson()) }
         }).toString())
-        if (!tmp.renameTo(file(context))) {
+        val target = file(context)
+        beforeTargetReplaceHook?.invoke(tmp, target)
+        if (!tmp.renameTo(target)) {
             // 极端设备 rename 失败兜底：直接覆盖（保持旧行为）
-            file(context).writeText(tmp.readText())
+            target.writeText(tmp.readText())
             tmp.delete()
         }
     }

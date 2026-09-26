@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Egg Guardian (tower defense) strings, English mirror of
+    values/strings_game_td.xml. One <string> per key, same order.
+-->
+<resources>
+    <!-- Module identity -->
+    <string name="game_td_module_name">Egg Guardian</string>
+    <string name="game_td_module_desc">Tower defense: build towers along fixed paths and keep the egg safe from monsters!</string>
+
+    <!-- Tower names (one per TowerType) -->
+    <string name="game_td_tower_bottle">Bottle</string>
+    <string name="game_td_tower_sun">Sunflower</string>
+    <string name="game_td_tower_snow">Snow</string>
+    <string name="game_td_tower_fan">Fan</string>
+    <string name="game_td_tower_poison">Poison</string>
+    <string name="game_td_tower_rocket">Rocket</string>
+    <string name="game_td_tower_lightning">Lightning</string>
+    <string name="game_td_tower_sniper">Sniper</string>
+    <string name="game_td_tower_mine">Mine</string>
+    <string name="game_td_tower_amplifier">Amplifier</string>
+
+    <!-- Tower role blurbs (deck cards) -->
+    <string name="game_td_role_bottle">Single · Anti-air</string>
+    <string name="game_td_role_sun">Economy</string>
+    <string name="game_td_role_snow">Slow</string>
+    <string name="game_td_role_fan">AoE crowd</string>
+    <string name="game_td_role_poison">Damage over time</string>
+    <string name="game_td_role_rocket">Heavy burst</string>
+    <string name="game_td_role_lightning">Chain crowd</string>
+    <string name="game_td_role_sniper">Ultra range</string>
+    <string name="game_td_role_mine">Path trap</string>
+    <string name="game_td_role_amplifier">Buffs allies</string>
+    <string name="game_td_role_default">Tower</string>
+
+    <!-- Monster names (one per MonsterType) -->
+    <string name="game_td_monster_normal">Normal</string>
+    <string name="game_td_monster_fast">Fast</string>
+    <string name="game_td_monster_tank">Tank</string>
+    <string name="game_td_monster_fly">Fly</string>
+    <string name="game_td_monster_swarm">Swarm</string>
+    <string name="game_td_monster_healer">Healer</string>
+    <string name="game_td_monster_shield">Shield</string>
+    <string name="game_td_monster_boss">Boss</string>
+    <string name="game_td_monster_splitter">Splitter</string>
+    <string name="game_td_monster_charger">Charger</string>
+    <string name="game_td_monster_shield_generator">Shield Generator</string>
+    <string name="game_td_monster_summoner">Summoner</string>
+    <string name="game_td_monster_resistant">Resistant</string>
+    <string name="game_td_monster_rager">Rager</string>
+
+    <!-- Difficulty / target priority -->
+    <string name="game_td_difficulty_easy">Easy</string>
+    <string name="game_td_difficulty_normal">Normal</string>
+    <string name="game_td_difficulty_hard">Hard</string>
+    <string name="game_td_target_first">First</string>
+    <string name="game_td_target_strong">Strong</string>
+    <string name="game_td_target_weak">Weak</string>
+
+    <!-- Control bar / action buttons -->
+    <string name="game_td_btn_fight">▶ Fight</string>
+    <string name="game_td_btn_next_wave">▶ Next Wave</string>
+    <string name="game_td_btn_rush_spawn">⚡ Rush Spawn</string>
+    <string name="game_td_btn_levels">☰ Levels</string>
+    <string name="game_td_btn_select_level">☰ Levels</string>
+    <string name="game_td_btn_tower">Tower</string>
+    <string name="game_td_btn_upgrade">Upgrade</string>
+    <string name="game_td_btn_sell">Sell</string>
+    <string name="game_td_btn_target">Target</string>
+    <string name="game_td_btn_cancel">Cancel</string>
+    <string name="game_td_btn_merge_max">Max Level 3</string>
+    <string name="game_td_btn_merge_to">Merge to Lv%1$d</string>
+    <string name="game_td_btn_target_economy">Economy</string>
+    <string name="game_td_btn_target_mode">Target: %1$s</string>
+    <string name="game_td_upgrade_preview_next">Upgrade → Lv%1$d: damage %2$s, range %3$s, rate %4$s (merge a same-type tower)</string>
+    <string name="game_td_upgrade_preview_max">Max level</string>
+    <string name="game_td_upgrade_preview_amplified_note"> (base values, amplifier bonus not included)</string>
+    <string name="game_td_upgrade_preview_sun">Income → Lv%1$d: ₿+%2$d</string>
+    <string name="game_td_upgrade_preview_amplifier">Aura → Lv%1$d: fire rate +%2$d%%, range +%3$d%%</string>
+    <string name="game_td_btn_play">▶ Play</string>
+    <string name="game_td_btn_endless">Endless</string>
+    <string name="game_td_btn_back_hall">Back to Hall</string>
+    <string name="game_td_btn_next_level">Next Level ▶</string>
+    <string name="game_td_btn_retry">↺ Retry</string>
+    <string name="game_td_btn_start_level">Start with This Deck</string>
+
+    <!-- HUD -->
+    <string name="game_td_hud_level_short">Level %1$d/%2$d</string>
+    <string name="game_td_hud_level_diff">Level %1$d · %2$s</string>
+    <string name="game_td_hud_wave">Wave %1$d/%2$d</string>
+    <string name="game_td_hud_wave_preparing">Prepare</string>
+    <string name="game_td_hud_preview">Next: %1$s</string>
+    <string name="game_td_hud_preview_route">Route %1$d: %2$s ×%3$d</string>
+    <string name="game_td_hud_final_line">Hold the final line</string>
+    <string name="game_td_wave_mixed">Mixed: %1$s</string>
+    <string name="game_td_banner_wave">Wave %1$d of %2$d</string>
+    <string name="game_td_banner_wave_endless">Wave %1$d ⚔ Endless</string>
+    <string name="game_td_hud_endless_wave">Wave %1$d</string>
+
+    <!-- Message bar / hints -->
+    <string name="game_td_msg_campaign_unavailable">Failed to load level content\nPlease reinstall the Egg Guardian module and try again</string>
+    <string name="game_td_msg_merge_cancelled">Merge cancelled</string>
+    <string name="game_td_msg_drop_inside_board">Drop the tower card inside the board</string>
+    <string name="game_td_msg_invalid_drop_cell">Cannot place or merge a tower here</string>
+    <string name="game_td_msg_select_tower_build">Selected %1$s — tap a green empty cell to build</string>
+    <string name="game_td_msg_drag_tower">Drag %1$s onto an empty cell or a same-type tower</string>
+    <string name="game_td_msg_selection_cancelled">Selection cleared</string>
+    <string name="game_td_msg_select_tower_hint">Pick a tower and tap the board</string>
+    <string name="game_td_msg_max_level">Level 3 is the max level</string>
+    <string name="game_td_msg_merge_source_selected">Picked %1$s Lv%2$d — tap another same-type, same-level tower to merge</string>
+    <string name="game_td_msg_level_locked">Clear earlier levels to unlock this one</string>
+    <string name="game_td_msg_deck_max">You can pick at most %1$d tower cards</string>
+    <string name="game_td_msg_deck_min">Pick at least 3 tower cards</string>
+    <string name="game_td_msg_preparing">Get ready! Build your towers, then tap ▶ Fight</string>
+
+    <!-- Engine action results (TdGame.ActionMsg, localized on the UI side) -->
+    <string name="game_td_act_invalid_tower_type">Invalid tower type</string>
+    <string name="game_td_act_game_ended">The game is already over</string>
+    <string name="game_td_act_out_of_bounds">Position is out of bounds</string>
+    <string name="game_td_act_mine_needs_path">The Mine can only be placed on a trap cell next to the path</string>
+    <string name="game_td_act_blocks_path">Cannot build on the path</string>
+    <string name="game_td_act_blocks_egg">Cannot occupy the egg\'s cell</string>
+    <string name="game_td_act_cell_occupied">A tower already occupies this cell</string>
+    <string name="game_td_act_not_enough_coin">Not enough coins — need %1$d</string>
+    <string name="game_td_act_placed">Placed %1$s</string>
+    <string name="game_td_act_drag_same_type">You can only drop onto a tower of the same type</string>
+    <string name="game_td_act_max_level">Level 3 is the max — no further merging</string>
+    <string name="game_td_act_merged">%1$s merged into Lv%2$d</string>
+    <string name="game_td_act_upgrade_deprecated">Merge two same-level %1$s towers to upgrade</string>
+    <string name="game_td_act_merge_pick_another">Choose another same-type, same-level tower</string>
+    <string name="game_td_act_merge_need_two">Merging requires two built towers</string>
+    <string name="game_td_act_merge_type_mismatch">Only towers of the same type can merge</string>
+    <string name="game_td_act_merge_level_mismatch">Only towers of the same level can merge</string>
+    <string name="game_td_act_no_tower_here">There is no tower here</string>
+    <string name="game_td_act_sun_no_target">The Sunflower doesn\'t need a target mode</string>
+    <string name="game_td_act_target_set">%1$s target: %2$s</string>
+    <string name="game_td_act_sold">Sold — refunded %1$d coins</string>
+    <string name="game_td_act_first_wave">Wave 1 incoming — get ready to defend!</string>
+    <string name="game_td_act_wave_incoming">Wave %1$d incoming</string>
+    <string name="game_td_act_rush_summoned">Rushed out %1$d enemies, earned %2$d coins</string>
+    <string name="game_td_act_wave_fully_spawned">This wave has fully spawned</string>
+    <string name="game_td_act_last_wave">That was the final wave</string>
+    <string name="game_td_act_egg_hit">%1$s broke through! Egg -%2$d, %3$d HP left</string>
+    <string name="game_td_act_victory">Victory! The egg is safe</string>
+
+    <!-- Story (per-level intro before battle and outro after victory, from level files) -->
+    <string name="game_td_story_title">📖 Story</string>
+    <string name="game_td_story_start">⚔ Battle</string>
+    <string name="game_td_story_outro_title">📖 Aftermath</string>
+
+    <!-- Level select / difficulty / deck panels -->
+    <string name="game_td_title_level_select">Select Level</string>
+    <string name="game_td_subtitle_protect_egg">Protect the egg, repel the monsters</string>
+    <string name="game_td_chapter_progress">Cleared %1$d/%2$d</string>
+    <string name="game_td_label_locked">🔒 Locked</string>
+    <string name="game_td_stats_summary">Cleared %1$d · Total kills %2$d · Played %3$d times</string>
+    <string name="game_td_title_difficulty">Difficulty · %1$s</string>
+    <string name="game_td_difficulty_hint">Easy: coins ×1.3, weaker monsters · Normal: standard · Hard: coins ×0.8, stronger monsters</string>
+    <string name="game_td_title_deck_select">Choose Your Deck</string>
+    <string name="game_td_deck_hint">Bring 3–%3$d cards from the %1$d/%2$d unlocked tower cards; clearing the campaign unlocks new towers</string>
+    <string name="game_td_deck_count">Picked %1$d/%2$d · Unlocked %3$d/%4$d</string>
+    <string name="game_td_unlock_start">Available from the start</string>
+    <string name="game_td_unlock_after_level">Unlocks after clearing level %1$d</string>
+    <string name="game_td_cd_selected">%1$s, selected</string>
+    <string name="game_td_cd_unselected">%1$s, not selected</string>
+    <string name="game_td_cd_locked">%1$s, %2$s</string>
+
+    <!-- Stats / achievements panel (all values read live from the save; achievement states persist in td_achv_* boolean keys) -->
+    <string name="game_td_btn_stats">📊 Stats</string>
+    <string name="game_td_stats_title">Stats &amp; Achievements</string>
+    <string name="game_td_stats_section_record">Overview</string>
+    <string name="game_td_stats_label_kills">Total kills</string>
+    <string name="game_td_stats_label_play_count">Games played</string>
+    <string name="game_td_stats_section_campaign">Campaign Progress</string>
+    <string name="game_td_stats_label_unlocked">Levels unlocked</string>
+    <string name="game_td_stats_label_stars">Stars earned</string>
+    <string name="game_td_stats_value_fraction">%1$d/%2$d</string>
+    <string name="game_td_stats_section_times">Best Times</string>
+    <string name="game_td_stats_value_seconds">%1$d sec</string>
+    <string name="game_td_stats_section_endless">Endless Best</string>
+    <string name="game_td_stats_value_waves">%1$d waves</string>
+    <string name="game_td_stats_value_none">Not attempted</string>
+    <string name="game_td_stats_section_achievements">Difficulty Achievements</string>
+    <string name="game_td_stats_label_cleared_easy">Clear on Easy</string>
+    <string name="game_td_stats_label_cleared_hard">Clear on Hard</string>
+    <string name="game_td_stats_value_achieved">✓ Achieved</string>
+    <string name="game_td_stats_value_not_achieved">Not yet</string>
+    <string name="game_td_stats_btn_reset">Clear All Stats</string>
+    <string name="game_td_stats_reset_confirm_title">Clear all stats?</string>
+    <string name="game_td_stats_reset_confirm_body">This permanently deletes all stats: kills, games played, stars, per-difficulty times, unlock progress and endless records.\nThis cannot be undone. Continue?</string>
+    <string name="game_td_stats_reset_confirm_yes">Clear Everything</string>
+    <string name="game_td_stats_reset_confirm_no">Cancel</string>
+    <string name="game_td_stats_reset_done">Stats data cleared</string>
+    <string name="game_td_stats_btn_back">Back to Levels</string>
+
+    <!-- Achievements (unlockable; conditions come from existing game events, detected at save write points) -->
+    <string name="game_td_achv_unlocked">🏆 Achievement unlocked: %1$s</string>
+    <string name="game_td_achv_section_achievements">Achievements</string>
+    <string name="game_td_achv_name_first_win">First Victory</string>
+    <string name="game_td_achv_name_ch1_cleared">Warmed Up</string>
+    <string name="game_td_achv_name_ch2_cleared">Stalwart Defender</string>
+    <string name="game_td_achv_name_ch3_cleared">Storm King</string>
+    <string name="game_td_achv_name_ch4_cleared">Ember Finale</string>
+    <string name="game_td_achv_name_ch5_cleared">Ember Watch</string>
+    <string name="game_td_achv_name_ch6_cleared">Everlasting Spring Triumph</string>
+    <string name="game_td_achv_name_ch7_cleared">Long-Night Dawn</string>
+    <string name="game_td_achv_name_ch8_cleared">Summer Fireworks</string>
+    <string name="game_td_achv_name_ch9_cleared">Harvest Crown</string>
+    <string name="game_td_achv_name_ch10_cleared">Longest Light</string>
+    <string name="game_td_achv_name_ch11_cleared">Night-Watch Crown</string>
+    <string name="game_td_achv_name_ch12_cleared">Beacon Homecoming</string>
+    <string name="game_td_achv_name_ch13_cleared">Snowpeak Last Watch</string>
+    <string name="game_td_achv_name_kills_100">Sharpshooter</string>
+    <string name="game_td_achv_name_kills_1000">God of Slaughter</string>
+    <string name="game_td_achv_name_endless_10">Endless Rookie</string>
+    <string name="game_td_achv_name_endless_25">Endless Warlord</string>
+    <string name="game_td_achv_name_dual_crown">Dual Crown</string>
+
+    <!-- Codex overlay (tower/monster stat reference; numeric rows are formatted live from
+         engine enum fields, trait lines are pure descriptions without numbers) -->
+    <string name="game_td_btn_codex">📖 Codex</string>
+    <string name="game_td_codex_title">Tower &amp; Monster Codex</string>
+    <string name="game_td_codex_section_towers">Towers</string>
+    <string name="game_td_codex_section_monsters">Monsters</string>
+    <string name="game_td_codex_base_hint">Stats below are Lv1 base values; merging same-type towers scales them up</string>
+    <string name="game_td_codex_label_cost">Cost</string>
+    <string name="game_td_codex_label_damage">Damage</string>
+    <string name="game_td_codex_label_direct_damage">Direct hit</string>
+    <string name="game_td_codex_label_range">Range</string>
+    <string name="game_td_codex_label_rate">Fire rate</string>
+    <string name="game_td_codex_label_anti_air">Anti-air</string>
+    <string name="game_td_codex_label_income">Income</string>
+    <string name="game_td_codex_label_hp">HP</string>
+    <string name="game_td_codex_label_speed">Speed</string>
+    <string name="game_td_codex_label_armor">Armor</string>
+    <string name="game_td_codex_label_bounty">Bounty</string>
+    <string name="game_td_codex_label_leak">Egg damage</string>
+    <string name="game_td_codex_value_fire_interval">every %1$ss</string>
+    <string name="game_td_codex_value_speed">%1$s cells/s</string>
+    <string name="game_td_codex_value_armor">-%1$d/hit</string>
+    <string name="game_td_codex_value_direct_damage">%1$s×%2$s=%3$s</string>
+    <string name="game_td_codex_value_income">₿+%2$d every %1$ss</string>
+    <string name="game_td_codex_value_poison_dot">%1$s poison/s for %2$ss (scales with level)</string>
+    <string name="game_td_codex_trait_tower_bottle">Single-target rapid fire — the all-round basic tower</string>
+    <string name="game_td_codex_trait_tower_sun">Never attacks; an economy tower that produces coins over time</string>
+    <string name="game_td_codex_trait_tower_snow">Chills targets briefly on hit, buying time for your defense</string>
+    <string name="game_td_codex_trait_tower_fan">Low per-shot damage with splash, ideal against tight ground clusters</string>
+    <string name="game_td_codex_trait_tower_poison">Applies lasting poison on hit, great for wearing down tough targets</string>
+    <string name="game_td_codex_trait_tower_rocket">Heavy single shot that splashes nearby enemies — a boss killer</string>
+    <string name="game_td_codex_trait_tower_lightning">Chain hits deal a fixed fraction of the first hit, scaling with level</string>
+    <string name="game_td_codex_trait_tower_sniper">Longest range in the game, but cannot hit air</string>
+    <string name="game_td_codex_trait_tower_mine">Repeatable near-path trap; at max level blasts leave a burning zone</string>
+    <string name="game_td_codex_trait_tower_amplifier">Never attacks; boosts nearby towers\' fire rate and range</string>
+    <string name="game_td_codex_trait_mon_generic">No special ability</string>
+    <string name="game_td_codex_trait_mon_fast">Sprints at high speed and slips through easily</string>
+    <string name="game_td_codex_trait_mon_fly">Flying: only anti-air towers can hit it</string>
+    <string name="game_td_codex_trait_mon_healer">Periodically heals the most wounded nearby ally</string>
+    <string name="game_td_codex_trait_mon_shield">Starts with a shield that soaks damage first</string>
+    <string name="game_td_codex_trait_mon_splitter">Splits into two young that cannot split again</string>
+    <string name="game_td_codex_trait_mon_charger">Periodically dashes — the dash multiplies with slows</string>
+    <string name="game_td_codex_trait_mon_shield_generator">Periodically grants capped shields to nearby allies</string>
+    <string name="game_td_codex_trait_mon_summoner">Periodically summons low-value minions, limited uses</string>
+    <string name="game_td_codex_trait_mon_resistant">Takes reduced poison and lightning-chain damage; slows are weakened too</string>
+    <string name="game_td_codex_trait_mon_rager">Enrages and speeds up below half HP</string>
+
+    <!-- Result -->
+    <string name="game_td_list_separator">,</string>
+
+    <string name="game_td_result_win">🎉 Level Cleared</string>
+    <string name="game_td_result_stars">Stars %1$s</string>
+    <string name="game_td_result_lose">💔 The egg got eaten</string>
+    <string name="game_td_result_stats">Kills %1$d · Time %2$ds</string>
+    <string name="game_td_result_new_towers">\nNew towers unlocked: %1$s</string>
+    <string name="game_td_result_lose_stats">Reached wave %1$d  ·  Kills %2$d</string>
+    <string name="game_td_result_endless">Survived %1$d waves</string>
+    <string name="game_td_result_endless_best">New record!</string>
+    <string name="game_td_overlay_win">Defended! The egg is safe</string>
+    <string name="game_td_overlay_lose">The egg got eaten…</string>
+
+    <!-- Board-drawn text (TdView) -->
+    <string name="game_td_sign_entrance">GO</string>
+    <string name="game_td_drag_merge_char">M</string>
+    <string name="game_td_hint_build_mode">Empty cells can host towers · Pick a tower below</string>
+    <string name="game_td_hint_place">Tap a glowing cell to place: %1$s</string>
+    <string name="game_td_hint_not_enough">Not enough coins: %1$s costs ₿%2$d</string>
+    <!-- Battle preparation uses the actual level and selected difficulty. -->
+    <string name="game_td_brief_resources">Starting coins %1$d · Egg health %2$d · %3$d attack routes</string>
+    <string name="game_td_brief_campaign">Campaign goal: defend all %1$d waves</string>
+    <string name="game_td_brief_endless">Endless challenge: %1$d opening waves, then increasingly strong reinforcements</string>
+    <string name="game_td_brief_enemies">Enemies in this level: %1$s</string>
+    <string name="game_td_brief_opening_enemies">Enemies in the opening waves: %1$s</string>
+</resources>

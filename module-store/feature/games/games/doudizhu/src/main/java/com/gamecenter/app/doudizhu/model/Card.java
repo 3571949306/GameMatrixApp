@@ -123,40 +123,21 @@ public class Card implements Serializable, Comparable<Card> {
     }
 
     /**
-     * 获取卡牌的中文显示名称。
+     * 获取卡牌的英文显示名称。
      * <p>
-     * 用于调试日志或在 UI 上显示牌的信息。
-     * 王牌直接返回"小王"/"大王"，普通牌返回花色+牌值的组合。
+     * 用于调试日志。数据层统一返回英文中性数据（P6：数据层英文化）；
+     * 王牌直接返回 "Small Joker"/"Big Joker"，普通牌返回花色 + 牌值的组合。
      *
-     * @return 花色+牌值的组合名称，如 "黑桃3"、"红桃K"、"小王"
+     * @return 花色 + 牌值的组合名称，如 "Spade Three"、"Heart King"、"Small Joker"
      */
     public String getDisplayName() {
-        String suitName = getSuitDisplayName();
+        String suitName = suit.getDisplayName();
         if (rank == Rank.SMALL_JOKER) {
-            return "小王";
+            return "Small Joker";
         } else if (rank == Rank.BIG_JOKER) {
-            return "大王";
+            return "Big Joker";
         } else {
-            return suitName + rank.getSymbol();
-        }
-    }
-
-    /**
-     * 获取花色的中文显示名称。
-     * <p>
-     * 王牌的花色名称为空字符串，因为显示时不需要花色前缀。
-     *
-     * @return 花色的中文名称，如 "黑桃"、"红桃"、"梅花"、"方块"；王牌返回空字符串
-     */
-    private String getSuitDisplayName() {
-        switch (suit) {
-            case SPADE: return "黑桃";
-            case HEART: return "红桃";
-            case CLUB: return "梅花";
-            case DIAMOND: return "方块";
-            case JOKER_small: return "";
-            case JOKER_big: return "";
-            default: return "";
+            return suitName + " " + rank.getDisplayName();
         }
     }
 
@@ -246,9 +227,9 @@ public class Card implements Serializable, Comparable<Card> {
     }
 
     /**
-     * 转换为字符串表示，返回卡牌的中文显示名称。
+     * 转换为字符串表示，返回卡牌的英文显示名称。
      *
-     * @return 卡牌的中文名称，如 "黑桃3"、"大王"
+     * @return 卡牌的英文名称，如 "Spade Three"、"Big Joker"
      */
     @Override
     public String toString() {

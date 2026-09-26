@@ -182,7 +182,7 @@ public class Game2048Fragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        if (game != null && !game.isGameOver()) {
+        if (game != null) {
             saveGameState();
         }
     }

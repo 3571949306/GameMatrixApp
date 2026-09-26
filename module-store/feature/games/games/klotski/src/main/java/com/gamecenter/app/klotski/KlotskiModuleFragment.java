@@ -37,6 +37,20 @@ public class KlotskiModuleFragment extends Fragment {
     private static final String TAG = "KlotskiFragment";
     private static final String SLOT_AUTO = "auto";
 
+    private static final String LEVEL_CLASSIC = "classic";
+    private static final String LEVEL_RANDOM = "random";
+    private static final String LEVEL_FREE = "legacy_free";
+    private static final int SAVE_FORMAT_VERSION = 1;
+
+    private String selectedLevelId = LEVEL_CLASSIC;
+    private String restartStateCsv;
+    private String sourceLevelId;
+    private JSONObject saveEnvelope = new JSONObject();
+    private boolean allowAutoSave = true;
+    private long sessionRevision;
+    private long hintRequestId;
+    private Button btnHint;
+    private AlertDialog levelDialog;
     private KlotskiView klotskiView;
     private KlotskiGame game;
     private TextView tvStatus;
@@ -118,161 +132,376 @@ public class KlotskiModuleFragment extends Fragment {
         tvStatus = view.findViewById(getResId("tv_game_status", "id"));
         tvMoves = view.findViewById(getResId("tv_moves", "id"));
         klotskiView = view.findViewById(getResId("klotski_view", "id"));
-        game = new KlotskiGame();
-        klotskiView.setGame(game);
+        btnHint = view.findViewById(getResId("btn_hint", "id"));
 
-        // 检测自动存档并恢复
-        if (saveManager.hasSave(GAME_ID, SLOT_AUTO)) {
-            String saved = saveManager.load(GAME_ID, SLOT_AUTO);
-            if (saved != null && game.restoreState(saved)) {
-                updateStatus("已恢复进度");
-            } else {
-                updateStatus("滑动方块，帮助曹操逃出华容道");
-            }
-        } else {
-            updateStatus("滑动方块，帮助曹操逃出华容道");
+        KlotskiGame initialGame = new KlotskiGame();
+        allowAutoSave = true;
+        adoptGame(initialGame, LEVEL_CLASSIC, initialGame.serializeState(), null,
+                new JSONObject(), "滑动方块，帮助曹操到达下方出口");
+        String saved = saveManager.load(GAME_ID, SLOT_AUTO);
+        if (saved != null && !restoreSavedGame(saved)) {
+            allowAutoSave = false;
+            updateStatus("原存档保留，可选局或重开开始新局");
         }
 
-        // 获胜监听
-        klotskiView.setOnWinListener(() -> {
-            int moves = game.getMoves();
-            updateStatus("🎉 完成！曹操逃出华容道！");
-            Toast.makeText(requireContext(), getString(R.string.klotski_win_format, moves), Toast.LENGTH_LONG).show();
-            saveManager.deleteSave(GAME_ID, SLOT_AUTO);
-            saveBestMoves(moves);
-            if (elapsedMs > 0) {
-                usageStore.recordPlayTime(GAME_ID, elapsedMs);
-            }
+        klotskiView.setOnWinListener(this::onGameWon);
+        klotskiView.setOnMoveListener(() -> {
+            invalidateHintRequest();
+            updateStatus("继续移动，让曹操到达下方出口");
         });
-        klotskiView.setOnMoveListener(() -> updateStatus("继续移动，目标是让曹操到达下方出口"));
 
-        gameActive = true;
-        gameStartTime = System.currentTimeMillis();
-
-        // 重新开始按钮
         Button btnRestart = view.findViewById(getResId("btn_game_restart", "id"));
-        btnRestart.setOnClickListener(v -> {
-            game.reset();
-            klotskiView.clearHint();
-            klotskiView.invalidate();
-            updateStatus("已重新开始");
-            tvMoves.setText("");
-            isHintSearching = false;
-            saveManager.deleteSave(GAME_ID, SLOT_AUTO);
-            resetTimer();
-            Toast.makeText(requireContext(), R.string.klotski_reset, Toast.LENGTH_SHORT).show();
-        });
+        btnRestart.setOnClickListener(v -> restartCurrentGame());
 
-        // 打乱按钮
-        Button btnShuffle = view.findViewById(getResId("btn_shuffle", "id"));
-        btnShuffle.setOnClickListener(v -> {
-            game.shuffle();
-            klotskiView.clearHint();
-            klotskiView.invalidate();
-            updateStatus("🔀 已随机打乱（可解）");
-            tvMoves.setText("");
-            isHintSearching = false;
-            Toast.makeText(requireContext(), R.string.klotski_shuffled, Toast.LENGTH_SHORT).show();
-        });
+        Button btnSelect = view.findViewById(getResId("btn_shuffle", "id"));
+        btnSelect.setOnClickListener(v -> showLevelPicker());
 
-        // 提示按钮
-        Button btnHint = view.findViewById(getResId("btn_hint", "id"));
         btnHint.setOnClickListener(v -> {
+            if (game == null) return;
             if (game.isWon()) {
-                Toast.makeText(requireContext(), R.string.klotski_already_won, Toast.LENGTH_SHORT).show();
-                return;
+                advanceAfterPractice();
+            } else {
+                requestHint();
             }
-            if (isHintSearching) {
-                Toast.makeText(requireContext(), R.string.klotski_computing, Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            isHintSearching = true;
-            updateStatus("💡 正在计算最优解...");
-            btnHint.setEnabled(false);
-            String boardBeforeSearch = game.serializeBoardState();
-
-            new Thread(() -> {
-                KlotskiGame.HintResult hint = game.getHint();
-
-                mainHandler.post(() -> {
-                    isHintSearching = false;
-                    btnHint.setEnabled(true);
-
-                    if (!boardBeforeSearch.equals(game.serializeBoardState())) {
-                        updateStatus("棋盘已变化，请重新点击提示");
-                        return;
-                    }
-
-                    if (hint != null) {
-                        KlotskiGame.Block block = game.getBlocks().get(hint.blockId);
-                        String dir = getDirection(hint.dx, hint.dy);
-                        klotskiView.showHint(hint);
-                        updateStatus("💡 移动「" + block.name + "」向" + dir + "\n预计 " + hint.totalSteps + " 步到出口");
-                        Toast.makeText(requireContext(), R.string.klotski_hint_tip, Toast.LENGTH_LONG).show();
-                    } else {
-                        updateStatus("未找到解法，请尝试其他走法");
-                        Toast.makeText(requireContext(), R.string.klotski_compute_retry, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }).start();
         });
 
-        // 教程按钮
         Button btnTutorial = view.findViewById(getResId("btn_game_tutorial", "id"));
         btnTutorial.setOnClickListener(v -> GameTutorialHelper.showKlotskiTutorial(requireContext()));
-
-        klotskiView.invalidate();
-
         return view;
     }
 
+    private void showLevelPicker() {
+        if (levelDialog != null) levelDialog.dismiss();
+        java.util.List<KlotskiPracticeLevels.Level> levels = KlotskiPracticeLevels.all();
+        String[] labels = new String[levels.size() + 2];
+        labels[0] = "经典局 · 横刀立马";
+        for (int i = 0; i < levels.size(); i++) {
+            KlotskiPracticeLevels.Level level = levels.get(i);
+            labels[i + 1] = "练习 " + (i + 1) + " · " + level.title
+                    + "（参考 " + level.referenceMoves + " 步）";
+        }
+        labels[labels.length - 1] = "随机打乱 · 新棋局";
+        final KlotskiView ownerView = klotskiView;
+        levelDialog = new AlertDialog.Builder(requireContext())
+                .setTitle("选择棋局")
+                .setItems(labels, (dialog, which) -> {
+                    if (klotskiView != ownerView || getView() == null) return;
+                    if (which == 0) startSelectedGame(LEVEL_CLASSIC);
+                    else if (which == labels.length - 1) startSelectedGame(LEVEL_RANDOM);
+                    else startSelectedGame(levels.get(which - 1).id);
+                })
+                .setNegativeButton("取消", null)
+                .create();
+        levelDialog.show();
+    }
+
+    private void startSelectedGame(String levelId) {
+        KlotskiGame nextGame = new KlotskiGame();
+        KlotskiPracticeLevels.Level level = KlotskiPracticeLevels.find(levelId);
+        if (level != null) {
+            if (!nextGame.restoreState(level.initialStateCsv)) {
+                Log.e(TAG, "Invalid built-in practice: " + levelId);
+                return;
+            }
+        } else if (LEVEL_RANDOM.equals(levelId)) {
+            nextGame.shuffle();
+        } else if (!LEVEL_CLASSIC.equals(levelId)) {
+            return;
+        }
+        allowAutoSave = true;
+        adoptGame(nextGame, levelId, nextGame.serializeState(), null, new JSONObject(),
+                level == null ? "滑动方块，帮助曹操到达下方出口" : "每次滑动一格，试着接近参考步数");
+        saveCurrentGame();
+    }
+
+    private void restartCurrentGame() {
+        KlotskiGame nextGame = new KlotskiGame();
+        if (!nextGame.restoreState(restartStateCsv)) {
+            Log.w(TAG, "Cannot restore current starting board");
+            return;
+        }
+        allowAutoSave = true;
+        adoptGame(nextGame, selectedLevelId, restartStateCsv, sourceLevelId, saveEnvelope,
+                "已重开当前棋局");
+        saveCurrentGame();
+        Toast.makeText(requireContext(), R.string.klotski_reset, Toast.LENGTH_SHORT).show();
+    }
+
+    private void adoptGame(KlotskiGame nextGame, String levelId, String initialState,
+                           String originalId, JSONObject envelope, String message) {
+        sessionRevision++;
+        invalidateHintRequest();
+        game = nextGame;
+        selectedLevelId = levelId;
+        restartStateCsv = initialState;
+        sourceLevelId = originalId;
+        saveEnvelope = envelope;
+        klotskiView.setGame(nextGame);
+        resetTimer();
+        updateStatus(game.isWon() ? "已完成，可重开或选择棋局" : message);
+        refreshHintButton();
+    }
+
+    private boolean restoreSavedGame(String saved) {
+        try {
+            KlotskiGame restored = new KlotskiGame();
+            if (!saved.trim().startsWith("{")) {
+                if (!restored.restoreState(saved)) return false;
+                adoptGame(restored, LEVEL_FREE, "0," + restored.serializeBoardState(), null,
+                        new JSONObject(), "已恢复历史棋盘与步数");
+                return true;
+            }
+            JSONObject envelope = new JSONObject(saved);
+            if (envelope.optInt("formatVersion", -1) != SAVE_FORMAT_VERSION
+                    || !restored.restoreState(envelope.optString("state", null))) return false;
+            String levelId = envelope.optString("levelId", "");
+            String originalId = null;
+            String initialState;
+            KlotskiPracticeLevels.Level level = KlotskiPracticeLevels.find(levelId);
+            if (level != null) {
+                initialState = level.initialStateCsv;
+            } else if (LEVEL_CLASSIC.equals(levelId)) {
+                initialState = new KlotskiGame().serializeState();
+            } else {
+                if (!LEVEL_RANDOM.equals(levelId) && !LEVEL_FREE.equals(levelId)) {
+                    originalId = levelId;
+                    levelId = LEVEL_FREE;
+                } else if (LEVEL_FREE.equals(levelId)) {
+                    originalId = envelope.optString("sourceLevelId", null);
+                }
+                KlotskiGame initial = new KlotskiGame();
+                if (initial.restoreState(envelope.optString("initialState", null)) && !initial.isWon()) {
+                    initialState = "0," + initial.serializeBoardState();
+                } else {
+                    initialState = "0," + restored.serializeBoardState();
+                }
+            }
+            adoptGame(restored, levelId, initialState, originalId, envelope, "已恢复棋局与步数");
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "Restore saved game: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private void saveCurrentGame() {
+        if (!allowAutoSave || saveManager == null || game == null) return;
+        if (game.isWon() && KlotskiPracticeLevels.find(selectedLevelId) == null) return;
+        try {
+            saveEnvelope.put("formatVersion", SAVE_FORMAT_VERSION);
+            saveEnvelope.put("levelId", selectedLevelId);
+            saveEnvelope.put("state", game.serializeState());
+            saveEnvelope.put("initialState", restartStateCsv);
+            if (sourceLevelId != null) saveEnvelope.put("sourceLevelId", sourceLevelId);
+            else saveEnvelope.remove("sourceLevelId");
+            saveManager.save(GAME_ID, SLOT_AUTO, saveEnvelope.toString());
+        } catch (Exception e) {
+            Log.w(TAG, "Save game: " + e.getMessage());
+        }
+    }
+
+    private void onGameWon() {
+        if (!gameActive || game == null || !game.isWon()) return;
+        gameActive = false;
+        invalidateHintRequest();
+        int moves = game.getMoves();
+        KlotskiPracticeLevels.Level level = KlotskiPracticeLevels.find(selectedLevelId);
+        if (level != null) saveCurrentGame();
+        else if (allowAutoSave) saveManager.deleteSave(GAME_ID, SLOT_AUTO);
+        if (level != null) savePracticeBestMoves(level.id, moves);
+        else if (sourceLevelId == null) saveBestMoves(moves);
+        updateStatus("已用 " + moves + " 步通关！" + (level == null ? "可重开或选局" : "点击下方继续"));
+        refreshHintButton();
+        Toast.makeText(requireContext(), getString(R.string.klotski_win_format, moves), Toast.LENGTH_LONG).show();
+        if (elapsedMs > 0) usageStore.recordPlayTime(GAME_ID, elapsedMs);
+    }
+
+    private void advanceAfterPractice() {
+        java.util.List<KlotskiPracticeLevels.Level> levels = KlotskiPracticeLevels.all();
+        for (int i = 0; i < levels.size(); i++) {
+            if (levels.get(i).id.equals(selectedLevelId)) {
+                startSelectedGame(i + 1 < levels.size() ? levels.get(i + 1).id : LEVEL_CLASSIC);
+                return;
+            }
+        }
+    }
+
+    private void requestHint() {
+        if (isHintSearching || game == null || game.isWon()) return;
+        final KlotskiGame snapshot = new KlotskiGame();
+        if (!snapshot.restoreState(game.serializeState())) return;
+        final KlotskiGame ownerGame = game;
+        final KlotskiView ownerView = klotskiView;
+        final Handler callbackHandler = mainHandler;
+        final String boardBeforeSearch = game.serializeBoardState();
+        final long revision = sessionRevision;
+        final long request = ++hintRequestId;
+        isHintSearching = true;
+        refreshHintButton();
+        updateStatus("正在计算最优解...");
+        executeHintSearch(() -> {
+            final KlotskiGame.HintResult hint = snapshot.getHint();
+            callbackHandler.post(() -> {
+                // Check ownership before changing the busy flag, button, status or arrow.
+                if (request != hintRequestId || revision != sessionRevision
+                        || game != ownerGame || klotskiView != ownerView
+                        || !isAdded() || getView() == null
+                        || !boardBeforeSearch.equals(game.serializeBoardState())) return;
+                isHintSearching = false;
+                refreshHintButton();
+                if (hint != null) {
+                    KlotskiGame.Block block = game.getBlocks().get(hint.blockId);
+                    klotskiView.showHint(hint);
+                    updateStatus("移动「" + block.name + "」向" + getDirection(hint.dx, hint.dy)
+                            + "，距出口 " + hint.totalSteps + " 步");
+                    Toast.makeText(requireContext(), R.string.klotski_hint_tip, Toast.LENGTH_LONG).show();
+                } else {
+                    updateStatus("未找到解法，请尝试其他走法");
+                    Toast.makeText(requireContext(), R.string.klotski_compute_retry, Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    // A scheduling seam for tests; the work always solves the captured real board.
+    void executeHintSearch(Runnable search) {
+        new Thread(search, "klotski-hint").start();
+    }
+
+    private void invalidateHintRequest() {
+        hintRequestId++;
+        isHintSearching = false;
+        if (klotskiView != null) klotskiView.clearHint();
+        refreshHintButton();
+    }
+
+    private void refreshHintButton() {
+        if (btnHint == null || game == null) return;
+        KlotskiPracticeLevels.Level level = KlotskiPracticeLevels.find(selectedLevelId);
+        if (game.isWon() && level != null) {
+            java.util.List<KlotskiPracticeLevels.Level> levels = KlotskiPracticeLevels.all();
+            boolean last = levels.get(levels.size() - 1).id.equals(level.id);
+            btnHint.setText(last ? "经典局" : "下一关");
+            btnHint.setContentDescription(last ? "进入经典局" : "进入下一练习关");
+            btnHint.setEnabled(true);
+        } else {
+            btnHint.setText("提示");
+            btnHint.setContentDescription("提示下一步");
+            btnHint.setEnabled(!game.isWon() && !isHintSearching);
+        }
+    }
+
     private String getDirection(int dx, int dy) {
-        if (dx > 0) return "right".equals(moduleRes.getString("direction_right")) ? "右" : "右";
+        if (dx > 0) return "右";
         if (dx < 0) return "左";
         if (dy > 0) return "下";
         if (dy < 0) return "上";
         return "";
     }
 
-    private void updateStatus(String status) {
-        if (tvStatus != null) {
-            tvStatus.setText(status);
+    private String getSessionTitle() {
+        KlotskiPracticeLevels.Level level = KlotskiPracticeLevels.find(selectedLevelId);
+        if (level != null) {
+            return "练习 " + (KlotskiPracticeLevels.all().indexOf(level) + 1) + "/"
+                    + KlotskiPracticeLevels.all().size() + " · " + level.title;
         }
-        if (tvMoves != null) {
-            if (game.getMoves() > 0) {
-                tvMoves.setText(getString(R.string.klotski_moves_format, game.getMoves()));
-            } else {
-                tvMoves.setText("");
+        if (LEVEL_CLASSIC.equals(selectedLevelId)) return "经典局 · 横刀立马";
+        if (LEVEL_RANDOM.equals(selectedLevelId)) return "随机局 · 重开保留本局布局";
+        return sourceLevelId == null ? "自由局 · 历史进度" : "自由局 · 未知棋局";
+    }
+
+    private void updateStatus(String status) {
+        if (tvStatus != null) tvStatus.setText(getSessionTitle() + "\n" + status);
+        if (tvMoves != null && game != null) {
+            String moves = "步数 " + game.getMoves();
+            KlotskiPracticeLevels.Level level = KlotskiPracticeLevels.find(selectedLevelId);
+            if (level != null) {
+                int best = loadPracticeBestMoves(level.id);
+                moves += " · 参考 " + level.referenceMoves + " · 最佳 " + (best > 0 ? best : "—");
             }
+            tvMoves.setText(moves);
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        if (isHintSearching) updateStatus("提示已取消，可重新请求");
+        invalidateHintRequest();
+        if (levelDialog != null) {
+            levelDialog.dismiss();
+            levelDialog = null;
+        }
         if (gameActive && elapsedMs > 0) {
             elapsedMs = System.currentTimeMillis() - gameStartTime;
             usageStore.recordPlayTime(GAME_ID, elapsedMs);
         }
-        if (game != null && !game.isWon()) {
-            saveManager.save(GAME_ID, SLOT_AUTO, game.serializeState());
-        }
+        saveCurrentGame();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (gameActive && !game.isWon()) {
+        if (gameActive && game != null && !game.isWon()) {
             gameStartTime = System.currentTimeMillis();
         }
     }
 
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
+        sessionRevision++;
+        invalidateHintRequest();
+        if (mainHandler != null) mainHandler.removeCallbacksAndMessages(null);
+        if (levelDialog != null) {
+            levelDialog.dismiss();
+            levelDialog = null;
+        }
         if (klotskiView != null) {
-            klotskiView.clearHint();
+            klotskiView.setOnWinListener(null);
+            klotskiView.setOnMoveListener(null);
+            klotskiView.setGame(null);
+        }
+        klotskiView = null;
+        btnHint = null;
+        tvStatus = null;
+        tvMoves = null;
+        game = null;
+        gameActive = false;
+        super.onDestroyView();
+    }
+
+    private int loadPracticeBestMoves(String levelId) {
+        try {
+            String saved = saveManager.loadProgress(GAME_ID);
+            if (saved == null) return 0;
+            JSONObject records = new JSONObject(saved).optJSONObject("practiceBestMoves");
+            return records == null ? 0 : records.optInt(levelId, 0);
+        } catch (Exception e) {
+            Log.w(TAG, "Read practice progress: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    private void savePracticeBestMoves(String levelId, int moves) {
+        try {
+            String saved = saveManager.loadProgress(GAME_ID);
+            JSONObject progress = saved == null ? new JSONObject() : new JSONObject(saved);
+            JSONObject records = progress.optJSONObject("practiceBestMoves");
+            if (records == null) {
+                if (progress.has("practiceBestMoves")) {
+                    Log.w(TAG, "Unrecognized practice records retained");
+                    return;
+                }
+                records = new JSONObject();
+            }
+            int previous = records.optInt(levelId, Integer.MAX_VALUE);
+            if (moves < previous) {
+                records.put(levelId, moves);
+                progress.put("practiceBestMoves", records);
+                saveManager.saveProgress(GAME_ID, progress.toString());
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Save practice progress: " + e.getMessage());
         }
     }
 
@@ -298,7 +527,7 @@ public class KlotskiModuleFragment extends Fragment {
     }
 
     private void resetTimer() {
-        gameActive = false;
+        gameActive = game != null && !game.isWon();
         elapsedMs = 0;
         gameStartTime = System.currentTimeMillis();
     }

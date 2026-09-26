@@ -185,7 +185,32 @@ public class KlotskiView extends View {
      * @param game 华容道游戏逻辑对象
      */
     public void setGame(KlotskiGame game) {
+        resetInteraction();
         this.game = game;
+        invalidate();
+    }
+
+    private void resetInteraction() {
+        if (currentAnimator != null) {
+            // cancel() dispatches end callbacks; remove listeners before changing boards.
+            currentAnimator.removeAllUpdateListeners();
+            currentAnimator.removeAllListeners();
+            currentAnimator.cancel();
+            currentAnimator = null;
+        }
+        draggingBlock = null;
+        touchStartX = 0f;
+        touchStartY = 0f;
+        moveHandled = false;
+        animatingBlock = null;
+        animOffsetX = 0f;
+        animOffsetY = 0f;
+        showHint = false;
+        hintTotalSteps = 0;
+        hintArrowX = 0f;
+        hintArrowY = 0f;
+        hintArrowDx = 0f;
+        hintArrowDy = 0f;
     }
 
     /**
@@ -276,11 +301,15 @@ public class KlotskiView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (game == null) return;
-        float cellW = w / 4f;
-        float cellH = h / 5.8f;  // 5.8 = 5行 + 0.8行出口空间
-        cellSize = Math.min(cellW, cellH);
-        offsetX = (w - cellSize * 4) / 2;
-        offsetY = (h - cellSize * 5.8f) / 2 + cellSize * 0.4f;  // 向上偏移半个出口高度
+        // 整幅垂直堆栈 = 5 行棋盘 + 上下 0.15 格外框 + 出口面板（含 1.05 脉冲峰值 0.615 格）
+        // + 8px 板面间隙 + 2px 视口安全边；水平最宽 = 4 格 + 0.3 格外框 + 2px。
+        // 旧公式按裸 4x5.8 格计算，外框与脉冲被裁出视口（400x580 时边框 left=-15）。
+        float cellW = (w - 2f) / 4.3f;
+        float cellH = (h - 10f) / 5.775f;  // 5.765 + 8px 间隙折成一格小数余量
+        cellSize = Math.max(1f, Math.min(cellW, cellH));
+        offsetX = (w - cellSize * 4f) / 2f;
+        float stack = cellSize * 5.765f + 8f;
+        offsetY = (h - stack) / 2f + cellSize * 0.15f;
     }
 
     /**
@@ -517,7 +546,7 @@ public class KlotskiView extends View {
      */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (game == null || cellSize <= 0) return true;
+        if (game == null || game.isWon() || cellSize <= 0) return true;
 
         float ex = event.getX();
         float ey = event.getY();
@@ -642,8 +671,6 @@ public class KlotskiView extends View {
         if (exitPulseAnimator != null && exitPulseAnimator.isRunning()) {
             exitPulseAnimator.cancel();
         }
-        if (currentAnimator != null && currentAnimator.isRunning()) {
-            currentAnimator.cancel();
-        }
+        resetInteraction();
     }
 }

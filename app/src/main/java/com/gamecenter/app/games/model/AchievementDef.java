@@ -13,6 +13,12 @@ public class AchievementDef {
     public String key;
     @SuppressWarnings("unused")
     public AchievementLevel level;
+    /** 解锁条件类型（game_configs.json 原文，全大写）：WIN_COUNT / STREAK / SCORE / SPECIAL / TIME */
+    @SuppressWarnings("unused")
+    public String conditionType;
+    /** 解锁阈值：WIN_COUNT=胜场数、STREAK=连胜天数、SCORE=分数、SPECIAL/TIME=模块内语义 */
+    @SuppressWarnings("unused")
+    public int threshold;
 
     /**
      * 拼接 gameId + key 作为 SharedPreferences 存储键。

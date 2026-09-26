@@ -142,6 +142,35 @@ public enum Rank {
     }
 
     /**
+     * 获取牌值的英文展示名。
+     * <p>
+     * 数据层统一使用英文中性数据（P6：数据层英文化），UI 若需中文展示请走宿主
+     * 本地化资源，不要在 model 层内联中文。
+     *
+     * @return 牌值英文展示名，如 "Three"、"Ace"、"Two"、"Small Joker"、"Big Joker"
+     */
+    public String getDisplayName() {
+        switch (this) {
+            case THREE: return "Three";
+            case FOUR: return "Four";
+            case FIVE: return "Five";
+            case SIX: return "Six";
+            case SEVEN: return "Seven";
+            case EIGHT: return "Eight";
+            case NINE: return "Nine";
+            case TEN: return "Ten";
+            case JACK: return "Jack";
+            case QUEEN: return "Queen";
+            case KING: return "King";
+            case ACE: return "Ace";
+            case TWO: return "Two";
+            case SMALL_JOKER: return "Small Joker";
+            case BIG_JOKER: return "Big Joker";
+            default: return symbol;
+        }
+    }
+
+    /**
      * 获取牌值的权重。
      * <p>
      * 权重是斗地主大小比较的核心依据：

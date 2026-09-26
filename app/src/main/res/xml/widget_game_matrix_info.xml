@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 桌面小组件（2x2）元数据：updatePeriodMillis=0（省电，刷新靠 app 打开 + 系统增删）；
+     targetCellWidth/Height 需 API 31+（旧版本自动忽略，回退 minWidth/minHeight）；
+     previewLayout 需 API 33+（小组件选择器预览），旧版本自动忽略。 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_game_matrix"
+    android:previewLayout="@layout/widget_game_matrix"
+    android:widgetCategory="home_screen" />

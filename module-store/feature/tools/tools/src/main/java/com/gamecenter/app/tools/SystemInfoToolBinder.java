@@ -81,9 +81,7 @@ public final class SystemInfoToolBinder implements ToolBinder {
                 .create();
         dialog.show();
 
-        ExecutorService used = (executor != null && !executor.isShutdown())
-                ? executor
-                : java.util.concurrent.Executors.newSingleThreadExecutor();
+        ExecutorService used = ToolIo.require(executor);
         used.execute(() -> {
             String fullInfo = buildFullInfo(context);
             android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());

@@ -38,8 +38,14 @@ def main() -> int:
         TESTS / "stubs/androidx/annotation/Nullable.java",
         TESTS / "stubs/com/gamecenter/app/core/common/GameAI.java",
         SOURCE / "ChineseChessGame.java",
+        SOURCE / "ChineseChessEndgames.java",
         SOURCE / "ChineseChessAI.java",
+        SOURCE / "ChineseChessReplay.java",
+        SOURCE / "ChineseChessReviewAnnotator.java",
+        SOURCE / "LanChessProtocol.java",
+        SOURCE / "LanChessSession.java",
         TESTS / "ChessRegressionTest.java",
+        TESTS / "LanChessTest.java",
     ]
     missing = [str(path.relative_to(ROOT)) for path in sources if not path.is_file()]
     if missing:
@@ -48,21 +54,23 @@ def main() -> int:
 
     compile_cmd = [javac, "-encoding", "UTF-8", "-d", str(OUTPUT), *map(str, sources)]
     subprocess.run(compile_cmd, cwd=ROOT, check=True)
-    result = subprocess.run(
-        [java, "-Dfile.encoding=UTF-8", "-cp", str(OUTPUT), "ChessRegressionTest"],
-        cwd=ROOT,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        check=False,
-    )
-    try:
-        output = result.stdout.decode("utf-8")
-    except UnicodeDecodeError:
-        output = result.stdout.decode("gb18030", errors="replace")
-    print(output, end="")
-    if result.returncode != 0:
-        return result.returncode
-    return 0
+    exit_code = 0
+    for test_class in ("ChessRegressionTest", "LanChessTest"):
+        result = subprocess.run(
+            [java, "-Dfile.encoding=UTF-8", "-cp", str(OUTPUT), test_class],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        try:
+            output = result.stdout.decode("utf-8")
+        except UnicodeDecodeError:
+            output = result.stdout.decode("gb18030", errors="replace")
+        print(output, end="")
+        if result.returncode != 0:
+            exit_code = result.returncode
+    return exit_code
 
 
 if __name__ == "__main__":

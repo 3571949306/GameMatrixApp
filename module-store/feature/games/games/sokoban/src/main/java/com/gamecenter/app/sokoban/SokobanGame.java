@@ -12,18 +12,18 @@ import java.util.Deque;
  */
 public class SokobanGame {
 
-    /** 地图元素常量（与 SokobanView 对齐） */
-    public static final int EMPTY = SokobanView.EMPTY;
-    public static final int WALL = SokobanView.WALL;
-    public static final int FLOOR = SokobanView.FLOOR;
-    public static final int TARGET = SokobanView.TARGET;
-    public static final int BOX = SokobanView.BOX;
-    public static final int BOX_ON_TARGET = SokobanView.BOX_ON_TARGET;
-    public static final int PLAYER = SokobanView.PLAYER;
-    public static final int PLAYER_ON_TARGET = SokobanView.PLAYER_ON_TARGET;
+    /** 地图元素常量（真源在此逻辑层；SokobanView 渲染时引用本类保持单一真相源） */
+    public static final int EMPTY = 0;
+    public static final int WALL = 1;
+    public static final int FLOOR = 2;
+    public static final int TARGET = 3;
+    public static final int BOX = 4;
+    public static final int BOX_ON_TARGET = 5;
+    public static final int PLAYER = 6;
+    public static final int PLAYER_ON_TARGET = 7;
 
     /** 总关卡数 */
-    public static final int TOTAL_LEVELS = 10;
+    public static final int TOTAL_LEVELS = 15;
 
     /** 每关最多撤销次数 */
     public static final int MAX_UNDO = 10;
@@ -70,6 +70,81 @@ public class SokobanGame {
 
         map = loadLevel(level);
         originalMap = copyMap(map);
+        findPlayer();
+    }
+
+    /**
+     * 自定义关卡标记：{@link #currentLevel} 为此值时表示自定义关卡。
+     * {@link #onLevelComplete()} 中 {@code Math.max(levelsCleared, currentLevel)}
+     * 对负值天然不推进内置通关进度，无需特殊分支。
+     */
+    public static final int CUSTOM_LEVEL = -1;
+
+    /** 当前是否为自定义关卡。 */
+    public boolean isCustomLevel() {
+        return currentLevel == CUSTOM_LEVEL;
+    }
+
+    /**
+     * 装载自定义关卡（关卡编辑器 / 关卡码导入）。
+     *
+     * <p>输入按不可信数据校验：地图为空、非矩形、尺寸超限、格子值非法、
+     * 玩家数量 != 1、无箱子、箱子数与目标数不一致，一律返回 {@code false}
+     * 且当前对局状态保持不变（先校验后装载，拒绝无副作用）。</p>
+     *
+     * @param customMap 地图二维数组，元素取值为本类常量
+     * @return true 装载成功并开局；false 校验拒绝
+     */
+    public boolean startCustomLevel(int[][] customMap) {
+        if (customMap == null || customMap.length == 0 || customMap[0].length == 0) return false;
+        int rows = customMap.length;
+        int cols = customMap[0].length;
+        if (rows > 20 || cols > 20) return false;
+
+        int players = 0;
+        int boxes = 0;
+        int targets = 0;
+        for (int r = 0; r < rows; r++) {
+            if (customMap[r] == null || customMap[r].length != cols) return false;
+            for (int c = 0; c < cols; c++) {
+                int cell = customMap[r][c];
+                if (cell < EMPTY || cell > PLAYER_ON_TARGET) return false;
+                if (cell == PLAYER || cell == PLAYER_ON_TARGET) players++;
+                if (cell == BOX || cell == BOX_ON_TARGET) boxes++;
+                if (cell == TARGET || cell == BOX_ON_TARGET || cell == PLAYER_ON_TARGET) targets++;
+            }
+        }
+        if (players != 1) return false;
+        if (boxes < 1) return false;
+        if (boxes != targets) return false;
+
+        // 全部校验通过，原子提交
+        currentLevel = CUSTOM_LEVEL;
+        moveCount = 0;
+        pushCount = 0;
+        undoStack = new ArrayDeque<>();
+        undoCount = 0;
+        running = true;
+        map = copyMap(customMap);
+        originalMap = copyMap(customMap);
+        findPlayer();
+        return true;
+    }
+
+    /**
+     * 重开当前关卡（内置/自定义通用）：用 {@code originalMap} 恢复初始局面。
+     *
+     * <p>自定义关卡的 {@code currentLevel} 为 {@link #CUSTOM_LEVEL}，不能经
+     * {@code startLevel(currentLevel)} 重开（会触发 {@code loadLevel(-1)} 返回 null）。</p>
+     */
+    public void restartLevel() {
+        if (originalMap == null) return; // 尚未开局
+        moveCount = 0;
+        pushCount = 0;
+        undoStack = new ArrayDeque<>();
+        undoCount = 0;
+        running = true;
+        map = copyMap(originalMap);
         findPlayer();
     }
 
@@ -259,8 +334,8 @@ public class SokobanGame {
                 {0, WALL, WALL, WALL, 0},
                 {WALL, WALL, FLOOR, WALL, 0},
                 {WALL, TARGET, PLAYER, WALL, WALL},
-                {WALL, WALL, BOX, FLOOR, WALL},
-                {0, WALL, FLOOR, BOX, WALL},
+                {WALL, BOX, BOX, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, WALL},
                 {0, WALL, TARGET, FLOOR, WALL},
                 {0, WALL, WALL, WALL, WALL}
             };
@@ -276,7 +351,7 @@ public class SokobanGame {
             };
             case 3: return new int[][] {
                 {0, WALL, WALL, WALL, WALL},
-                {WALL, WALL, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, WALL},
                 {WALL, PLAYER, BOX, FLOOR, WALL},
                 {WALL, FLOOR, BOX, BOX, WALL},
                 {WALL, FLOOR, FLOOR, FLOOR, WALL},
@@ -352,6 +427,58 @@ public class SokobanGame {
                 {WALL, FLOOR, BOX, FLOOR, BOX, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
                 {WALL, TARGET, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, FLOOR, TARGET, WALL},
                 {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            // Route around offset pillars to reach two target areas.
+            case 11: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, TARGET, TARGET, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, BOX, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, TARGET, WALL},
+                {WALL, FLOOR, FLOOR, PLAYER, FLOOR, FLOOR, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            // Fill the deep storage targets while keeping the doorway accessible.
+            case 12: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, WALL, TARGET, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, FLOOR, WALL, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, BOX, WALL, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            // Move the doorway goal box aside, then return it after passing through.
+            case 13: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, FLOOR, FLOOR, WALL, FLOOR, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, BOX, BOX_ON_TARGET, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, WALL, FLOOR, BOX, FLOOR, WALL},
+                {WALL, FLOOR, TARGET, WALL, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, PLAYER, WALL, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            // Change pushing sides between staggered walls to reach three target areas.
+            case 14: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, FLOOR, FLOOR, TARGET, TARGET, WALL, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, BOX, FLOOR, WALL, FLOOR, TARGET, WALL},
+                {WALL, FLOOR, WALL, BOX, FLOOR, BOX, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, WALL, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, BOX, FLOOR, PLAYER, FLOOR, TARGET, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
+            };
+            // Use the side routes while preserving access behind the vertical goals.
+            case 15: return new int[][] {
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL},
+                {WALL, FLOOR, FLOOR, TARGET, TARGET, TARGET, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, WALL, TARGET, WALL, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, BOX, BOX, FLOOR, BOX, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, WALL, FLOOR, WALL, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, BOX, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, FLOOR, WALL, FLOOR, FLOOR, FLOOR, WALL, FLOOR, WALL},
+                {WALL, FLOOR, FLOOR, FLOOR, PLAYER, FLOOR, FLOOR, FLOOR, WALL},
+                {WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL, WALL}
             };
             default:
                 return loadLevel(1);

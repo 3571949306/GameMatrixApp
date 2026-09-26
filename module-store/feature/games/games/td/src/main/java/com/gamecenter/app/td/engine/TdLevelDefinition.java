@@ -26,19 +26,43 @@ public final class TdLevelDefinition {
         }
     }
 
+    /**
+     * name/subtitle are the authoritative Chinese source texts; nameEn/subtitleEn carry the
+     * English display text (or a logged fallback copy of the source when a chapter omits them).
+     */
     public final String id, name, subtitle;
+    public final String nameEn, subtitleEn;
+    /** 每关剧情：开战前引子与胜利后尾声；中文为源文本，英文仅英文系统使用；空串表示无剧情。 */
+    public final String storyIntro, storyIntroEn, storyOutro, storyOutroEn;
     public final int order, rows, cols, eggRow, eggCol, startCoin, mascotHp;
     public final Theme theme;
     public final List<Wave> waves;
     private final List<int[][]> routes;
 
-    TdLevelDefinition(String id, int order, String name, String subtitle, Theme theme,
+    TdLevelDefinition(String id, int order, String name, String subtitle,
+                      String nameEn, String subtitleEn, Theme theme,
+                      int rows, int cols, int eggRow, int eggCol, int startCoin, int mascotHp,
+                      List<int[][]> routes, List<Wave> waves) {
+        this(id, order, name, subtitle, nameEn, subtitleEn, "", "", "", "", theme,
+                rows, cols, eggRow, eggCol, startCoin, mascotHp, routes, waves);
+    }
+
+    TdLevelDefinition(String id, int order, String name, String subtitle,
+                      String nameEn, String subtitleEn,
+                      String storyIntro, String storyIntroEn,
+                      String storyOutro, String storyOutroEn, Theme theme,
                       int rows, int cols, int eggRow, int eggCol, int startCoin, int mascotHp,
                       List<int[][]> routes, List<Wave> waves) {
         this.id = id;
         this.order = order;
         this.name = name;
         this.subtitle = subtitle;
+        this.nameEn = nameEn;
+        this.subtitleEn = subtitleEn;
+        this.storyIntro = storyIntro != null ? storyIntro : "";
+        this.storyIntroEn = storyIntroEn != null ? storyIntroEn : this.storyIntro;
+        this.storyOutro = storyOutro != null ? storyOutro : "";
+        this.storyOutroEn = storyOutroEn != null ? storyOutroEn : this.storyOutro;
         this.theme = theme;
         this.rows = rows;
         this.cols = cols;

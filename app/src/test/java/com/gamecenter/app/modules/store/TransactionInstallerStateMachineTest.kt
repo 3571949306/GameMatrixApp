@@ -116,6 +116,76 @@ class TransactionInstallerStateMachineTest {
     }
 
     @Test
+    fun installUsesPreviousManifestFileNameForLastGoodBackup() {
+        val oldContent = "module-payload-previous-name".toByteArray()
+        val newContent = "module-payload-current-name".toByteArray()
+        val oldManifest = ModuleManifest(
+            id = "testmod",
+            name = "Test Module",
+            versionCode = 1,
+            fileName = "testmod_previous.zip",
+            sha256 = sha256(oldContent),
+            fileSize = oldContent.size.toLong()
+        )
+        val newManifest = ModuleManifest(
+            id = "testmod",
+            name = "Test Module",
+            versionCode = 2,
+            fileName = "testmod_current.zip",
+            sha256 = sha256(newContent),
+            fileSize = newContent.size.toLong()
+        )
+        TransactionInstaller.getCurrentFile(context, oldManifest).apply { writeBytes(oldContent) }
+        val staged = TransactionInstaller.getStagingFile(context, newManifest).apply { writeBytes(newContent) }
+
+        val result = TransactionInstaller.install(context, newManifest, staged, oldManifest)
+
+        assertTrue("应安装成功: $result", result.isSuccess)
+        assertContentEquals(oldContent, TransactionInstaller.getLastGoodFile(context, oldManifest))
+        assertContentEquals(newContent, TransactionInstaller.getCurrentFile(context, newManifest))
+    }
+
+    @Test
+    fun legacyCurrentCanBeQuarantinedWithoutInventingLastGoodMetadata() {
+        val oldContent = "legacy-current-content".toByteArray()
+        val newContent = "migrated-current-content".toByteArray()
+        val manifest = ModuleManifest(
+            id = "legacy_migration_mod",
+            name = "Legacy Migration Module",
+            versionCode = 2,
+            fileName = "legacy_migration_mod.zip",
+            sha256 = sha256(newContent),
+            fileSize = newContent.size.toLong()
+        )
+        val current = TransactionInstaller.getCurrentFile(context, manifest).apply {
+            parentFile?.mkdirs()
+            writeBytes(oldContent)
+        }
+        val staged = TransactionInstaller.getStagingFile(context, manifest).apply {
+            parentFile?.mkdirs()
+            writeBytes(newContent)
+            setReadOnly()
+        }
+
+        val result = TransactionInstaller.install(
+            context,
+            manifest,
+            staged,
+            previousManifest = null,
+            allowUntrackedCurrent = true
+        )
+
+        assertTrue("旧安装迁移应成功: $result", result.isSuccess)
+        assertContentEquals(newContent, current)
+        assertFalse("未知旧文件不得伪装成 last_good", TransactionInstaller.getLastGoodFile(context, manifest).exists())
+        val quarantined = TransactionInstaller.getQuarantineDir(context).listFiles().orEmpty()
+        assertTrue(
+            "未知旧 current 应被隔离",
+            quarantined.any { it.readBytes().contentEquals(oldContent) }
+        )
+    }
+
+    @Test
     fun rollbackRestoresLastGoodAndQuarantinesCurrent() {
         val goodContent = "good-v1".toByteArray()
         val badContent = "bad-v2".toByteArray()
@@ -155,7 +225,6 @@ class TransactionInstallerStateMachineTest {
 
     private fun assertContentEquals(expected: ByteArray, file: File) {
         assertTrue("文件应存在: ${file.absolutePath}", file.exists())
-        file.setWritable(true) // install/rollback 会 setReadOnly，Windows 下读取前先解锁保险
         assertEquals(String(expected), file.readText())
     }
 }

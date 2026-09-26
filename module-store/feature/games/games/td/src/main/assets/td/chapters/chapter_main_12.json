@@ -1,0 +1,2912 @@
+{
+  "schema": 1,
+  "id": "chapter_main_12",
+  "name": "番外章·烽灯连营",
+  "levels": [
+    {
+      "id": "main_076",
+      "order": 76,
+      "name": "萤火回廊",
+      "subtitle": "双径各提萤笼 · 一夜连烽未明",
+      "name_en": "Firefly Cloister",
+      "subtitle_en": "Twin lanes each carry a firefly cage · the beacon chain glows before dawn",
+      "theme": "BRAMBLE",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 368,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "NORMAL"
+          ],
+          "route": 0,
+          "count": 39,
+          "interval": 0.62,
+          "delay": 1.0,
+          "hpMul": 1.98,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 39,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 2.2,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 39,
+          "interval": 0.6,
+          "delay": 14.0,
+          "hpMul": 2.3,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER"
+          ],
+          "route": 1,
+          "count": 39,
+          "interval": 0.6,
+          "delay": 24.0,
+          "hpMul": 2.36,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 39,
+          "interval": 0.6,
+          "delay": 35.0,
+          "hpMul": 2.4,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 39,
+          "interval": 0.6,
+          "delay": 45.0,
+          "hpMul": 2.42,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "SPLITTER"
+          ],
+          "route": 0,
+          "count": 12,
+          "interval": 1.5,
+          "delay": 56.0,
+          "hpMul": 2.0,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "夜巡第一季后，联盟把哨线从雪原推进了旧萤火廊：两径萤笼接力，笼在径在、灯灭哨断。据说廊底压着季轮没写完的那页——守夜人不愿它重见光，于是把考题又加深了一寸。",
+      "story_intro_en": "After the watch's first season, the league pushed its line from snowfields into the old Firefly Cloister: twin lanes passed cages from hand to hand — while the cage walks, the lane holds; one lamp out and the watch is severed. Below the floor lies a page the season round never finished; the night watch would rather not see it lit — so the exam went one inch deeper.",
+      "story_outro": "萤笼在庭心会齐，像一小片提前到岗的星。廊底那页纸没被翻开，只从缝里递出半句话：下一烽，冻湖。",
+      "story_outro_en": "The cages mustered at the court like stars reporting early. The buried page stayed shut, sliding up only half a sentence through the crack: next beacon — the Frozen Lake."
+    },
+    {
+      "id": "main_077",
+      "order": 77,
+      "name": "冻湖三环",
+      "subtitle": "三径踩冰试环 · 裂纹皆有回响",
+      "name_en": "Three Rings of the Frozen Lake",
+      "subtitle_en": "Three roads skate the ice rings · every crack keeps an echo",
+      "theme": "CRYSTAL",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        5,
+        5
+      ],
+      "startCoin": 380,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            2,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            5,
+            5
+          ]
+        ],
+        [
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ]
+        ],
+        [
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            5,
+            5
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "SHIELD"
+          ],
+          "route": 0,
+          "count": 73,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 2.14,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 73,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 2.3,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 73,
+          "interval": 0.6,
+          "delay": 14.0,
+          "hpMul": 2.4,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 73,
+          "interval": 0.6,
+          "delay": 24.0,
+          "hpMul": 2.46,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 73,
+          "interval": 0.6,
+          "delay": 35.0,
+          "hpMul": 2.5,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 73,
+          "interval": 0.6,
+          "delay": 45.0,
+          "hpMul": 2.52,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 29,
+          "interval": 1.5,
+          "delay": 56.0,
+          "hpMul": 2.0,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "冻湖是天然的三环校场：冰把每一支队伍的重量都变成回响。夜巡把蛋所立在环心，三条冰径同时试压——裂声就是计时。联盟第一次把总帐挂在湖上：谁把冰踩穿，谁就替全夜巡沉底。",
+      "story_intro_en": "The frozen lake is a three-ring drill ground laid out by ice itself: every rank's weight turns to echo underfoot. The watch set the roost at the ring's heart and pressed all three ice roads at once — the cracking kept the time. For the first time the league staked its whole ledger on the lake: whoever breaks through the ice drowns the night watch entire.",
+      "story_outro": "三环的裂纹在寅时互相抵消，湖面重新合拢成一面完整的鼓。鼓心传出最后一响，方向很明确：岸上的烽台。",
+      "story_outro_en": "At the third watch the three rings' cracks canceled each other and the lake sealed back into one whole drum. Its last beat said only one thing, and it pointed at the shore — the beacon towers."
+    },
+    {
+      "id": "main_078",
+      "order": 78,
+      "name": "烽火传薪",
+      "subtitle": "双径接力烽台 · 火种不落人手",
+      "name_en": "Beacons Passing the Flame",
+      "subtitle_en": "Twin lanes of relay towers · the seed-fire never falls from human hands",
+      "theme": "VALLEY",
+      "rows": 10,
+      "cols": 12,
+      "egg": [
+        0,
+        6
+      ],
+      "startCoin": 394,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            0,
+            6
+          ]
+        ],
+        [
+          [
+            8,
+            11
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            2,
+            11
+          ],
+          [
+            1,
+            11
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            6
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SPLITTER",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 32,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 2.26,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "NORMAL"
+          ],
+          "route": 1,
+          "count": 32,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 2.4,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 32,
+          "interval": 0.6,
+          "delay": 14.0,
+          "hpMul": 2.46,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "SHIELD"
+          ],
+          "route": 1,
+          "count": 32,
+          "interval": 0.6,
+          "delay": 24.0,
+          "hpMul": 2.5,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 32,
+          "interval": 0.6,
+          "delay": 35.0,
+          "hpMul": 2.54,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "FLY",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 32,
+          "interval": 0.6,
+          "delay": 45.0,
+          "hpMul": 2.5,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "BOSS",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 13,
+          "interval": 1.5,
+          "delay": 56.0,
+          "hpMul": 2.02,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "烽台的规矩只有一条：火种可以烫手，不能落地。两条山径上的守夜人轮流提火试阵——寒流学会了两栖，飞兵便直扑接力间隙。这一课没有塔谱可查，艾吉把塔排成了两列随时准备交出火把的样子。",
+      "story_intro_en": "The beacon towers keep one rule: the seed-fire may burn the hand but must never touch the ground. Watchkeepers on two lanes relayed the flame through drill after drill — until the cold tide learned to go amphibious and flyers struck straight at the handoff gaps. No turret manual covers this lesson; Eggy arrayed the towers in two columns that always looked ready to pass the torch.",
+      "story_outro": "一夜交接，火种连一个火星都没掉。烽台放行时鸣了三声号——向千窗之楼。",
+      "story_outro_en": "One night of relays, not a single spark lost. The towers sounded three blasts on clearing — toward the House of a Thousand Windows."
+    },
+    {
+      "id": "main_079",
+      "order": 79,
+      "name": "千窗楼",
+      "subtitle": "双径穿楼试灯 · 窗窗有人夜巡",
+      "name_en": "Corridor of a Thousand Windows",
+      "subtitle_en": "Twin lanes thread the lamp-lit tower · in every window a watcher walks",
+      "theme": "CRYSTAL",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        5
+      ],
+      "startCoin": 410,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            8,
+            11
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FLY",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 2.32,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 2.44,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 14.0,
+          "hpMul": 2.5,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "TANK",
+            "SHIELD"
+          ],
+          "route": 1,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 24.0,
+          "hpMul": 2.54,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 35.0,
+          "hpMul": 2.56,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 45.0,
+          "hpMul": 2.58,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "BOSS",
+            "CHARGER"
+          ],
+          "route": 0,
+          "count": 35,
+          "interval": 1.4,
+          "delay": 56.0,
+          "hpMul": 2.04,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "旧烽火楼的每一扇窗都是一只不肯闭上的眼睛：夜巡用它考『立体之守』——寒流从窗棂、屋脊与楼梯三向灌入，而双径其实只是楼里两条最长的窗。艾吉上楼那晚明白了一件事：塔阵守不住楼，是楼在人心里。",
+      "story_intro_en": "In the old beacon tower every window is an eye that refuses to close: the watch used it to test three-dimensional keeping — the cold poured in through lattice, ridge and stair, while the twin lanes were only the tower's two longest windows. The night Eggy climbed it, the lesson arrived: the towers do not hold the house; the house holds when someone holds it.",
+      "story_outro": "天亮清点，千窗无一盏熄灭。楼灵在门楣上落灰成字：最后一烽，极夜归营。",
+      "story_outro_en": "At dawn's roll-call not one of the thousand windows had gone dark. The house spirit wrote in dust across the lintel: last beacon — the Homecoming of the Polar Night."
+    },
+    {
+      "id": "main_080",
+      "order": 80,
+      "name": "极夜归营",
+      "subtitle": "三寒再叩三径 · 归途即是哨线",
+      "name_en": "Homecoming Through Polar Night",
+      "subtitle_en": "Three colds knock on three roads again · the road home is itself the watchline",
+      "theme": "GARDEN",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 428,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            1,
+            6
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 2.4,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 4.0,
+          "hpMul": 2.48,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER"
+          ],
+          "route": 2,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 10.0,
+          "hpMul": 2.52,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 19.0,
+          "hpMul": 2.56,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "NORMAL"
+          ],
+          "route": 1,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 28.0,
+          "hpMul": 2.58,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 86,
+          "interval": 0.6,
+          "delay": 37.0,
+          "hpMul": 2.58,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 9,
+          "interval": 1.0,
+          "delay": 48.0,
+          "hpMul": 2.06,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "RESISTANT"
+          ],
+          "route": 1,
+          "count": 9,
+          "interval": 1.0,
+          "delay": 52.0,
+          "hpMul": 2.06,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "HEALER"
+          ],
+          "route": 2,
+          "count": 9,
+          "interval": 1.0,
+          "delay": 56.0,
+          "hpMul": 2.06,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "夜巡第二次大考在极夜正中开营：冻溪的余寒、极光的斜光与墨影的旧路，各率一影重踏三条归途。联盟不再问『春天会不会来』——这一次三径上全是提灯回营的人。归途即哨线，营门即国境，艾吉站在灯列的最前面。",
+      "story_intro_en": "The watch's second great exam pitched camp at the very noon of polar night: the creek's leftover cold, the aurora's slanting light and the ink-shadow's old road each led one shade down a homeward lane. The league no longer asks whether spring will come — this time all three roads are thick with keepers walking home carrying lamps. The road home is the watchline, the camp gate the border; Eggy stands at the head of the lamplit column.",
+      "story_outro": "三影在营地篝火前低头，随火焰一起归座。夜巡归档第二卷，卷首写道：哨位从不画在地图尽头——画在下一个还愿意熬夜的人眼里。",
+      "story_outro_en": "The three shades bowed before the campfire and took their seats in the flame. Volume two of the Night Watch closed with one line at its head: a sentinel post is never drawn at the edge of a map — it is drawn in the eyes of whoever is still willing to stay up."
+    }
+  ]
+}

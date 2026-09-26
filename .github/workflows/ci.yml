@@ -74,12 +74,19 @@ jobs:
           python scripts/verify_adb_operations.py
           python scripts/verify_adb_process.py
           python scripts/verify_adb_protocol.py
+          python scripts/verify_adaptive.py
           python scripts/verify_ai_parity.py
           python scripts/verify_browser.py
+          python scripts/verify_codebook.py
+          python scripts/verify_coin_economy.py
           python scripts/verify_isolation.py
           python scripts/verify_preinstalled_modules.py
+          python scripts/verify_positioning_guard.py
+          python scripts/verify_rating.py
           python scripts/verify_scrcpy.py
           python scripts/verify_security_clauses.py
+          python scripts/verify_sokoban.py
+          python scripts/verify_sudoku.py
           python scripts/verify_ratchet.py
 
       - name: Verify fix discipline (production diff requires test/guard change)
@@ -97,7 +104,45 @@ jobs:
         run: ./gradlew ktlintCheck --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest :core:adb:testDebugUnitTest :core:common:testDebugUnitTest :core:network:testDebugUnitTest :core:update:testDebugUnitTest --stacktrace
+        # §三 欠账补齐：doudizhu（72 单测）/td/ai/tools 模块 src/test 全部进 CI，
+        # 杜绝"测试存在但无人跑"的死测试（BL-008 教训）
+        # 2026-09-20 内容推进补齐：仓库里 21 个含 src/test 的模块必须一个不漏，
+        # 补齐的 12 个游戏模块（brotato/flappy/game2048/klotski/match/memory/minesweeper/
+        # pipeline/snake/sokoban/sudoku/tetris）本地实测 1310 用例全绿后才并入。
+        run: >-
+          ./gradlew
+          :app:testDebugUnitTest
+          :core:adb:testDebugUnitTest
+          :core:common:testDebugUnitTest
+          :core:network:testDebugUnitTest
+          :core:update:testDebugUnitTest
+          :module-store:feature:games:games:brotato:testDebugUnitTest
+          :module-store:feature:games:games:doudizhu:testDebugUnitTest
+          :module-store:feature:games:games:flappy:testDebugUnitTest
+          :module-store:feature:games:games:game2048:testDebugUnitTest
+          :module-store:feature:games:games:klotski:testDebugUnitTest
+          :module-store:feature:games:games:match:testDebugUnitTest
+          :module-store:feature:games:games:memory:testDebugUnitTest
+          :module-store:feature:games:games:minesweeper:testDebugUnitTest
+          :module-store:feature:games:games:pipeline:testDebugUnitTest
+          :module-store:feature:games:games:snake:testDebugUnitTest
+          :module-store:feature:games:games:sokoban:testDebugUnitTest
+          :module-store:feature:games:games:sudoku:testDebugUnitTest
+          :module-store:feature:games:games:td:testDebugUnitTest
+          :module-store:feature:games:games:tetris:testDebugUnitTest
+          :module-store:feature:tools:ai:testDebugUnitTest
+          :module-store:feature:tools:tools:testDebugUnitTest
+          --stacktrace
+
+      - name: Summarize failed JVM tests
+        if: failure()
+        run: python scripts/summarize_test_failures.py
+
+      - name: Verify QR and widget regression guards
+        # Gradle unit tests resolve JUnit/Hamcrest before these guards inspect the cache.
+        run: |
+          python scripts/verify_qr.py
+          python scripts/verify_widget.py
 
       - name: Verify tests did not rewrite release assets
         if: always()

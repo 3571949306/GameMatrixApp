@@ -39,9 +39,7 @@ public class FileHashToolBinder implements ToolBinder {
         }
         AdvancedToolBinders.bindFileHash(context, contentView, v ->
                 fragment.requestPickFile(uri -> {
-                    ExecutorService used = (executor != null && !executor.isShutdown())
-                            ? executor
-                            : java.util.concurrent.Executors.newSingleThreadExecutor();
+                    ExecutorService used = ToolIo.require(executor);
                     used.execute(() -> AdvancedToolBinders.handleFileHashResult(context, contentView, uri, used));
                 }, new String[]{"*/*"}));
     }

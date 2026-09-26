@@ -37,6 +37,8 @@ public class MatchModuleFragment extends Fragment {
     private static final String TAG = "MatchModuleFragment";
     private static final String GAME_ID = "match";
     private static final long FLIP_DELAY_MS = 800;
+    private static final String[] CHALLENGE_NAMES = {"熟悉牌面", "稳稳配对", "精准消除"};
+    private static final int[] CHALLENGE_ERROR_LIMITS = {6, 4, 2};
 
     private static final String[] CARD_SYMBOLS = {"🍎", "🍊", "🍋", "🍇", "🍓", "🍒", "🥝", "🍑", "🍌", "🥑", "🌽", "🥕"};
 
@@ -66,6 +68,7 @@ public class MatchModuleFragment extends Fragment {
     private boolean gameActive = false;
     private int currentScore = 0;
     private int highScore = 0;
+    private String completedRoundMessage;
     private Handler handler = new Handler(Looper.getMainLooper());
 
     // UI 组件
@@ -118,6 +121,7 @@ public class MatchModuleFragment extends Fragment {
         btnEasy = new Button(ctx);
         btnEasy.setText(getString(R.string.game_match_easy));
         btnEasy.setTextSize(12f);
+        btnEasy.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams easyLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         easyLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
         btnEasy.setLayoutParams(easyLp);
@@ -126,6 +130,7 @@ public class MatchModuleFragment extends Fragment {
         btnNormal = new Button(ctx);
         btnNormal.setText(getString(R.string.game_match_normal));
         btnNormal.setTextSize(12f);
+        btnNormal.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams normalLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         normalLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
         btnNormal.setLayoutParams(normalLp);
@@ -134,6 +139,7 @@ public class MatchModuleFragment extends Fragment {
         btnHard = new Button(ctx);
         btnHard.setText(getString(R.string.game_match_hard));
         btnHard.setTextSize(12f);
+        btnHard.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams hardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         hardLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
         btnHard.setLayoutParams(hardLp);
@@ -143,7 +149,7 @@ public class MatchModuleFragment extends Fragment {
 
         tvStatus = new TextView(ctx);
         tvStatus.setGravity(Gravity.CENTER);
-        tvStatus.setTextSize(18f);
+        tvStatus.setTextSize(14f);
         tvStatus.setTextColor(0xFF212121);
         tvStatus.setPadding(0, (int) (8 * dp), 0, (int) (4 * dp));
         tvStatus.setText(getString(R.string.game_click_to_start));
@@ -162,11 +168,14 @@ public class MatchModuleFragment extends Fragment {
         gridLayout.setRowCount(gridRows);
         gridLayout.setUseDefaultMargins(true);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
         gridLayout.setLayoutParams(gridLp);
+        gridLayout.addOnLayoutChangeListener((v, left, top, right, bottom,
+                oldLeft, oldTop, oldRight, oldBottom) -> resizeCardsToGrid());
         root.addView(gridLayout);
 
         btnStart = new Button(ctx);
+        btnStart.setMinHeight((int) Math.ceil(48 * dp));
         btnStart.setText(getString(R.string.game_btn_start));
         btnStart.setBackgroundColor(0xFF1976D2);
         btnStart.setTextColor(Color.WHITE);
@@ -187,6 +196,8 @@ public class MatchModuleFragment extends Fragment {
         saveManager = SaveManager.getInstance(ctx);
         usageStore = new GameUsageStore(ctx);
         highScore = loadHighScore();
+        showReadyStatus();
+        updateStatsDisplay();
 
         btnEasy.setOnClickListener(v -> { setDifficulty(4, 4, 8); });
         btnNormal.setOnClickListener(v -> { setDifficulty(4, 5, 10); });
@@ -198,11 +209,16 @@ public class MatchModuleFragment extends Fragment {
         baseGridRows = rows;
         baseGridCols = cols;
         basePairCount = pairs;
-        tvStatus.setText(String.format("难度已设为 %dx%d（%d 对），点击开始", rows, cols, pairs));
+        if (gameActive) updatePlayingStatus();
+        else {
+            showReadyStatus();
+            if (completedRoundMessage == null) updateStatsDisplay();
+        }
     }
 
     private void startNewGame() {
         btnStart.setVisibility(View.GONE);
+        completedRoundMessage = null;
         gameActive = true;
         moveCount = 0;
         matchedPairs = 0;
@@ -235,8 +251,8 @@ public class MatchModuleFragment extends Fragment {
         gridLayout.setColumnCount(gridCols);
         gridLayout.setRowCount(gridRows);
 
-        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int cardSize = (int) (screenWidth * 0.85 / gridCols);
+        // Initial size only; the existing views then fit the actual board allocation.
+        int cardSize = (int) Math.ceil(48 * getResources().getDisplayMetrics().density);
 
         cardButtons = new Button[totalCards];
         for (int i = 0; i < totalCards; i++) {
@@ -256,7 +272,7 @@ public class MatchModuleFragment extends Fragment {
             gridLayout.addView(btn);
         }
 
-        tvStatus.setText(String.format("第 %d 关，翻开两张相同的卡牌消除", currentLevel));
+        resizeCardsToGrid();
         updateStatsDisplay();
     }
 
@@ -335,13 +351,17 @@ public class MatchModuleFragment extends Fragment {
         int score = Math.max(100 - moveCount * 3, 10) * currentLevel;
         currentScore += score;
 
-        tvStatus.setText(String.format("第 %d 关通关！步数 %d，用时 %d 秒，+%d 分", currentLevel, moveCount, elapsedSec, score));
+        completedRoundMessage = String.format("第 %d 关通关 · %s\n阶段 %d/3 %s · +%d 分 · %d 秒",
+                currentLevel, errorCount <= challengeErrorLimit() ? "挑战达成" : "挑战未达成",
+                challengeIndex() + 1, CHALLENGE_NAMES[challengeIndex()], score, elapsedSec);
+        tvStatus.setText(completedRoundMessage);
 
         if (currentScore > highScore) {
             highScore = currentScore;
             saveHighScore(highScore);
         }
         usageStore.recordScore(GAME_ID, highScore);
+        updateStatsDisplay();
 
         currentLevel++;
         btnStart.setText(String.format("下一关 %d", currentLevel));
@@ -349,7 +369,59 @@ public class MatchModuleFragment extends Fragment {
     }
 
     private void updateStatsDisplay() {
-        tvStats.setText(String.format("关卡 %d  步数 %d  配对 %d/%d", currentLevel, moveCount, matchedPairs, pairCount));
+        int displayedPairCount = !gameActive && completedRoundMessage == null ? basePairCount : pairCount;
+        tvStats.setText(String.format("步数 %d  配对 %d/%d  失误 %d/%d\n累计 %d  最佳 %d",
+                moveCount, matchedPairs, displayedPairCount, errorCount, challengeErrorLimit(), currentScore, highScore));
+        if (gameActive) updatePlayingStatus();
+    }
+
+    private int challengeIndex() {
+        return (currentLevel - 1) % CHALLENGE_NAMES.length;
+    }
+
+    private int challengeErrorLimit() {
+        return CHALLENGE_ERROR_LIMITS[challengeIndex()];
+    }
+
+    private void showReadyStatus() {
+        if (completedRoundMessage != null) {
+            tvStatus.setText(completedRoundMessage + String.format("\n下一关使用 %dx%d（%d 对）",
+                    baseGridRows, baseGridCols, basePairCount));
+        } else {
+            tvStatus.setText(String.format("%dx%d（%d 对），点击开始\n阶段 %d/3 %s · 失误≤%d",
+                    baseGridRows, baseGridCols, basePairCount, challengeIndex() + 1,
+                    CHALLENGE_NAMES[challengeIndex()], challengeErrorLimit()));
+        }
+    }
+
+    private void updatePlayingStatus() {
+        String message = String.format("第 %d 关 · 阶段 %d/3 %s\n目标：失误≤%d · %s",
+                currentLevel, challengeIndex() + 1, CHALLENGE_NAMES[challengeIndex()], challengeErrorLimit(),
+                errorCount <= challengeErrorLimit() ? "目标内" : "已超出，仍可通关");
+        if (baseGridRows != gridRows || baseGridCols != gridCols || basePairCount != pairCount) {
+            message += String.format("\n难度下一关生效：%dx%d（%d 对）", baseGridRows, baseGridCols, basePairCount);
+        }
+        tvStatus.setText(message);
+    }
+
+    private void resizeCardsToGrid() {
+        if (cardButtons == null || cardButtons.length == 0) return;
+        int width = gridLayout.getWidth() - gridLayout.getPaddingLeft() - gridLayout.getPaddingRight();
+        int height = gridLayout.getHeight() - gridLayout.getPaddingTop() - gridLayout.getPaddingBottom();
+        if (width <= 0 || height <= 0) return;
+        GridLayout.LayoutParams first = (GridLayout.LayoutParams) cardButtons[0].getLayoutParams();
+        int horizontalMargins = first.leftMargin + first.rightMargin;
+        int verticalMargins = first.topMargin + first.bottomMargin;
+        int size = Math.max(1, Math.min(width / gridCols - horizontalMargins,
+                height / gridRows - verticalMargins));
+        for (Button card : cardButtons) {
+            GridLayout.LayoutParams params = (GridLayout.LayoutParams) card.getLayoutParams();
+            if (params.width != size || params.height != size) {
+                params.width = size;
+                params.height = size;
+                card.setLayoutParams(params);
+            }
+        }
     }
 
     @Override

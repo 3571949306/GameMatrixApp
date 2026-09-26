@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 塔防「保卫蛋蛋」游戏字符串资源（中文默认；英文镜像见 values-en/strings_game_td.xml） -->
+<resources>
+    <!-- 模块身份（导航/标题） -->
+    <string name="game_td_module_name">保卫蛋蛋</string>
+    <string name="game_td_module_desc">塔防：固定路径建塔，守住蛋蛋别被怪物吃掉！</string>
+
+    <!-- 塔名（与 TowerType 枚举一一对应） -->
+    <string name="game_td_tower_bottle">瓶子炮</string>
+    <string name="game_td_tower_sun">太阳花</string>
+    <string name="game_td_tower_snow">雪花</string>
+    <string name="game_td_tower_fan">风扇</string>
+    <string name="game_td_tower_poison">毒泡泡</string>
+    <string name="game_td_tower_rocket">火箭</string>
+    <string name="game_td_tower_lightning">雷电塔</string>
+    <string name="game_td_tower_sniper">狙击塔</string>
+    <string name="game_td_tower_mine">地雷塔</string>
+    <string name="game_td_tower_amplifier">增幅塔</string>
+
+    <!-- 塔定位说明（塔栏卡片） -->
+    <string name="game_td_role_bottle">单体 · 对空</string>
+    <string name="game_td_role_sun">经济增益</string>
+    <string name="game_td_role_snow">减速控制</string>
+    <string name="game_td_role_fan">范围清群</string>
+    <string name="game_td_role_poison">持续伤害</string>
+    <string name="game_td_role_rocket">重炮爆发</string>
+    <string name="game_td_role_lightning">连锁清群</string>
+    <string name="game_td_role_sniper">超远强敌</string>
+    <string name="game_td_role_mine">路径陷阱</string>
+    <string name="game_td_role_amplifier">强化友军</string>
+    <string name="game_td_role_default">防御塔</string>
+
+    <!-- 怪名（与 MonsterType 枚举一一对应） -->
+    <string name="game_td_monster_normal">小怪</string>
+    <string name="game_td_monster_fast">飞毛腿</string>
+    <string name="game_td_monster_tank">胖子</string>
+    <string name="game_td_monster_fly">飞行兵</string>
+    <string name="game_td_monster_swarm">喽罗</string>
+    <string name="game_td_monster_healer">医生</string>
+    <string name="game_td_monster_shield">护盾兵</string>
+    <string name="game_td_monster_boss">Boss</string>
+    <string name="game_td_monster_splitter">分裂怪</string>
+    <string name="game_td_monster_charger">冲锋怪</string>
+    <string name="game_td_monster_shield_generator">护盾发生器</string>
+    <string name="game_td_monster_summoner">召唤怪</string>
+    <string name="game_td_monster_resistant">抗性怪</string>
+    <string name="game_td_monster_rager">狂暴怪</string>
+
+    <!-- 难度 / 目标优先级（引擎枚举的中性名经 UI 解析） -->
+    <string name="game_td_difficulty_easy">简单</string>
+    <string name="game_td_difficulty_normal">普通</string>
+    <string name="game_td_difficulty_hard">困难</string>
+    <string name="game_td_target_first">最前</string>
+    <string name="game_td_target_strong">强敌</string>
+    <string name="game_td_target_weak">残血</string>
+
+    <!-- 控制栏 / 操作按钮 -->
+    <string name="game_td_btn_fight">▶ 开战</string>
+    <string name="game_td_btn_next_wave">▶ 下一波</string>
+    <string name="game_td_btn_rush_spawn">⚡ 加速召唤</string>
+    <string name="game_td_btn_levels">☰ 关卡</string>
+    <string name="game_td_btn_select_level">☰ 选关</string>
+    <string name="game_td_btn_tower">塔</string>
+    <string name="game_td_btn_upgrade">升级</string>
+    <string name="game_td_btn_sell">卖出</string>
+    <string name="game_td_btn_target">目标</string>
+    <string name="game_td_btn_cancel">取消</string>
+    <string name="game_td_btn_merge_max">已满级 Lv3</string>
+    <string name="game_td_btn_merge_to">合成 Lv%1$d</string>
+    <string name="game_td_btn_target_economy">经济塔</string>
+    <string name="game_td_btn_target_mode">目标·%1$s</string>
+    <string name="game_td_upgrade_preview_next">升级 → Lv%1$d:伤害 %2$s 射程 %3$s 攻速 %4$s（拖入同类塔合成）</string>
+    <string name="game_td_upgrade_preview_max">已满级</string>
+    <string name="game_td_upgrade_preview_amplified_note">（基础值，未含增幅塔加成）</string>
+    <string name="game_td_upgrade_preview_sun">收益 → Lv%1$d:₿+%2$d</string>
+    <string name="game_td_upgrade_preview_amplifier">光环 → Lv%1$d:攻速 +%2$d%% 射程 +%3$d%%</string>
+    <string name="game_td_btn_play">▶ 玩</string>
+    <string name="game_td_btn_endless">无尽模式</string>
+    <string name="game_td_btn_back_hall">返回大厅</string>
+    <string name="game_td_btn_next_level">下一关 ▶</string>
+    <string name="game_td_btn_retry">↺ 重玩本关</string>
+    <string name="game_td_btn_start_level">带上塔组，开始关卡</string>
+
+    <!-- HUD -->
+    <string name="game_td_hud_level_short">关%1$d/%2$d</string>
+    <string name="game_td_hud_level_diff">关%1$d·%2$s</string>
+    <string name="game_td_hud_wave">波 %1$d/%2$d</string>
+    <string name="game_td_hud_wave_preparing">准备</string>
+    <string name="game_td_hud_preview">预告 %1$s</string>
+    <string name="game_td_hud_preview_route">路线%1$d·%2$s×%3$d</string>
+    <string name="game_td_hud_final_line">守住最后防线</string>
+    <string name="game_td_wave_mixed">混编：%1$s</string>
+    <string name="game_td_banner_wave">第 %1$d 波 ⚔ 共 %2$d 波</string>
+    <string name="game_td_banner_wave_endless">第 %1$d 波 ⚔ 无尽</string>
+    <string name="game_td_hud_endless_wave">第 %1$d 波</string>
+
+    <!-- 消息条 / 提示 -->
+    <string name="game_td_msg_campaign_unavailable">关卡内容加载失败\n请重新安装“保卫蛋蛋”模块后再试</string>
+    <string name="game_td_msg_merge_cancelled">已取消合成</string>
+    <string name="game_td_msg_drop_inside_board">请把塔牌拖到棋盘格内</string>
+    <string name="game_td_msg_invalid_drop_cell">这里不能放置或合成该塔</string>
+    <string name="game_td_msg_select_tower_build">选择 %1$s，点击棋盘绿色空格建造</string>
+    <string name="game_td_msg_drag_tower">拖动 %1$s 到空格或同类塔上</string>
+    <string name="game_td_msg_selection_cancelled">已取消选择</string>
+    <string name="game_td_msg_select_tower_hint">请选择塔并点击棋盘</string>
+    <string name="game_td_msg_max_level">Lv3 已是最高等级</string>
+    <string name="game_td_msg_merge_source_selected">已选择 %1$s Lv%2$d，请点击另一座同级同类塔合成</string>
+    <string name="game_td_msg_level_locked">先通过前面的关卡解锁</string>
+    <string name="game_td_msg_deck_max">最多选择 %1$d 张塔牌</string>
+    <string name="game_td_msg_deck_min">至少选择 3 张塔牌</string>
+    <string name="game_td_msg_preparing">准备！建好防御塔后点击「▶ 开战」</string>
+
+    <!-- 引擎操作结果（TdGame.ActionMsg 的 UI 侧本地化文案） -->
+    <string name="game_td_act_invalid_tower_type">无效的塔类型</string>
+    <string name="game_td_act_game_ended">对局已结束</string>
+    <string name="game_td_act_out_of_bounds">位置越界</string>
+    <string name="game_td_act_mine_needs_path">地雷塔只能放在紧邻路径的陷阱位</string>
+    <string name="game_td_act_blocks_path">不能在路径上建塔</string>
+    <string name="game_td_act_blocks_egg">不能占蛋蛋的位置</string>
+    <string name="game_td_act_cell_occupied">该位置已有塔</string>
+    <string name="game_td_act_not_enough_coin">金币不足，需要 %1$d</string>
+    <string name="game_td_act_placed">已放置 %1$s</string>
+    <string name="game_td_act_drag_same_type">只能拖到同类型防御塔上</string>
+    <string name="game_td_act_max_level">Lv3 已是最高等级，不能继续合成</string>
+    <string name="game_td_act_merged">%1$s 合成为 Lv%2$d</string>
+    <string name="game_td_act_upgrade_deprecated">请用两座同级%1$s合成升级</string>
+    <string name="game_td_act_merge_pick_another">请选择另一座同级同类塔</string>
+    <string name="game_td_act_merge_need_two">合成需要两座已建造的塔</string>
+    <string name="game_td_act_merge_type_mismatch">只能合成同类型防御塔</string>
+    <string name="game_td_act_merge_level_mismatch">只能合成相同等级的防御塔</string>
+    <string name="game_td_act_no_tower_here">该位置没有塔</string>
+    <string name="game_td_act_sun_no_target">太阳花不需要选择目标</string>
+    <string name="game_td_act_target_set">%1$s目标：%2$s</string>
+    <string name="game_td_act_sold">卖出返还 %1$d 金币</string>
+    <string name="game_td_act_first_wave">第 1 波来袭，准备防守！</string>
+    <string name="game_td_act_wave_incoming">第 %1$d 波来袭</string>
+    <string name="game_td_act_rush_summoned">加速召唤 %1$d 名敌人，奖励 %2$d 金币</string>
+    <string name="game_td_act_wave_fully_spawned">本波已全部生成</string>
+    <string name="game_td_act_last_wave">已是最后一波</string>
+    <string name="game_td_act_egg_hit">%1$s突破防线！蛋蛋 -%2$d，剩余生命 %3$d</string>
+    <string name="game_td_act_victory">胜利！蛋蛋安全了</string>
+
+    <!-- 剧情（每关开战前引子与胜利后尾声，内容来自关卡文件） -->
+    <string name="game_td_story_title">📖 关卡故事</string>
+    <string name="game_td_story_start">⚔ 出战</string>
+    <string name="game_td_story_outro_title">📖 战后余波</string>
+
+    <!-- 选关 / 难度 / 塔组面板 -->
+    <string name="game_td_title_level_select">选择关卡</string>
+    <string name="game_td_subtitle_protect_egg">保护蛋蛋，击退怪物</string>
+    <string name="game_td_chapter_progress">已通 %1$d/%2$d</string>
+    <string name="game_td_label_locked">🔒 未解锁</string>
+    <string name="game_td_stats_summary">已通关 %1$d · 总击杀 %2$d · 游玩 %3$d 次</string>
+    <string name="game_td_title_difficulty">难度 · %1$s</string>
+    <string name="game_td_difficulty_hint">简单：金币×1.3 怪弱 · 普通：标准 · 困难：金币×0.8 怪强</string>
+    <string name="game_td_title_deck_select">选择本局塔组</string>
+    <string name="game_td_deck_hint">从已解锁的 %1$d/%2$d 张塔牌中带上 3～%3$d 张；通关主线会解锁新塔</string>
+    <string name="game_td_deck_count">已选 %1$d/%2$d · 已解锁 %3$d/%4$d</string>
+    <string name="game_td_unlock_start">初始可用</string>
+    <string name="game_td_unlock_after_level">通关第 %1$d 关解锁</string>
+    <string name="game_td_cd_selected">%1$s，已选择</string>
+    <string name="game_td_cd_unselected">%1$s，未选择</string>
+    <string name="game_td_cd_locked">%1$s，%2$s</string>
+
+    <!-- 战绩/成就面板（数据实时读取自存档；成就解锁状态持久化于 td_achv_* 布尔键） -->
+    <string name="game_td_btn_stats">📊 战绩</string>
+    <string name="game_td_stats_title">战绩与成就</string>
+    <string name="game_td_stats_section_record">战绩总览</string>
+    <string name="game_td_stats_label_kills">总击杀</string>
+    <string name="game_td_stats_label_play_count">总局数</string>
+    <string name="game_td_stats_section_campaign">战役进度</string>
+    <string name="game_td_stats_label_unlocked">已解锁关卡</string>
+    <string name="game_td_stats_label_stars">累计星级</string>
+    <string name="game_td_stats_value_fraction">%1$d/%2$d</string>
+    <string name="game_td_stats_section_times">最佳用时</string>
+    <string name="game_td_stats_value_seconds">%1$d 秒</string>
+    <string name="game_td_stats_section_endless">无尽最佳</string>
+    <string name="game_td_stats_value_waves">%1$d 波</string>
+    <string name="game_td_stats_value_none">未挑战</string>
+    <string name="game_td_stats_section_achievements">难度成就</string>
+    <string name="game_td_stats_label_cleared_easy">通关简单难度</string>
+    <string name="game_td_stats_label_cleared_hard">通关困难难度</string>
+    <string name="game_td_stats_value_achieved">✓ 已达成</string>
+    <string name="game_td_stats_value_not_achieved">未达成</string>
+    <string name="game_td_stats_btn_reset">清空战绩数据</string>
+    <string name="game_td_stats_reset_confirm_title">清空战绩数据？</string>
+    <string name="game_td_stats_reset_confirm_body">将永久删除全部战绩：击杀、局数、星级、各难度用时、解锁进度与无尽最佳纪录。\n此操作不可恢复，确定继续吗？</string>
+    <string name="game_td_stats_reset_confirm_yes">确认清空</string>
+    <string name="game_td_stats_reset_confirm_no">取消</string>
+    <string name="game_td_stats_reset_done">战绩数据已清空</string>
+    <string name="game_td_stats_btn_back">返回选关</string>
+
+    <!-- 成就系统（可解锁成就：条件全部来自既有游戏事件；判定在存档写入点，面板打开时幂等补漏） -->
+    <string name="game_td_achv_unlocked">🏆 成就解锁：%1$s</string>
+    <string name="game_td_achv_section_achievements">成就</string>
+    <string name="game_td_achv_name_first_win">初试啼声</string>
+    <string name="game_td_achv_name_ch1_cleared">小试牛刀</string>
+    <string name="game_td_achv_name_ch2_cleared">中流砥柱</string>
+    <string name="game_td_achv_name_ch3_cleared">风暴之王</string>
+    <string name="game_td_achv_name_ch4_cleared">熔灰终章</string>
+    <string name="game_td_achv_name_ch5_cleared">余烬守望</string>
+    <string name="game_td_achv_name_ch6_cleared">常春凯旋</string>
+    <string name="game_td_achv_name_ch7_cleared">长夜破晓</string>
+    <string name="game_td_achv_name_ch8_cleared">夏夜烟火</string>
+    <string name="game_td_achv_name_ch9_cleared">秋实加冕</string>
+    <string name="game_td_achv_name_ch10_cleared">冬至长明</string>
+    <string name="game_td_achv_name_ch11_cleared">夜巡之冠</string>
+    <string name="game_td_achv_name_ch12_cleared">烽灯归营</string>
+    <string name="game_td_achv_name_ch13_cleared">雪峰终哨</string>
+    <string name="game_td_achv_name_kills_100">神射手</string>
+    <string name="game_td_achv_name_kills_1000">杀神</string>
+    <string name="game_td_achv_name_endless_10">无尽新兵</string>
+    <string name="game_td_achv_name_endless_25">无尽战神</string>
+    <string name="game_td_achv_name_dual_crown">双冠王</string>
+
+    <!-- 图鉴浮层（塔与怪属性速查；数值行由引擎枚举字段实时格式化，特性行为纯描述不含数值） -->
+    <string name="game_td_btn_codex">📖 图鉴</string>
+    <string name="game_td_codex_title">塔与怪图鉴</string>
+    <string name="game_td_codex_section_towers">防御塔</string>
+    <string name="game_td_codex_section_monsters">怪物</string>
+    <string name="game_td_codex_base_hint">以下为 Lv1 基础属性；同类合成升级后按倍率成长</string>
+    <string name="game_td_codex_label_cost">造价</string>
+    <string name="game_td_codex_label_damage">伤害</string>
+    <string name="game_td_codex_label_direct_damage">有效直伤</string>
+    <string name="game_td_codex_label_range">射程</string>
+    <string name="game_td_codex_label_rate">攻速</string>
+    <string name="game_td_codex_label_anti_air">对空</string>
+    <string name="game_td_codex_label_income">收益</string>
+    <string name="game_td_codex_label_hp">生命</string>
+    <string name="game_td_codex_label_speed">速度</string>
+    <string name="game_td_codex_label_armor">护甲</string>
+    <string name="game_td_codex_label_bounty">赏金</string>
+    <string name="game_td_codex_label_leak">漏蛋伤害</string>
+    <string name="game_td_codex_value_fire_interval">每 %1$s 秒</string>
+    <string name="game_td_codex_value_speed">%1$s 格/秒</string>
+    <string name="game_td_codex_value_armor">-%1$d/次</string>
+    <string name="game_td_codex_value_direct_damage">%1$s×%2$s=%3$s</string>
+    <string name="game_td_codex_value_income">每 %1$s 秒 ₿+%2$d</string>
+    <string name="game_td_codex_value_poison_dot">毒伤 %1$s/秒 ×%2$s 秒（随等级成长）</string>
+    <string name="game_td_codex_trait_tower_bottle">单体速射，射程与伤害均衡的全能基础塔</string>
+    <string name="game_td_codex_trait_tower_sun">不会攻击，周期性产出金币的经济塔</string>
+    <string name="game_td_codex_trait_tower_snow">命中后短暂减速目标，为防线争取输出时间</string>
+    <string name="game_td_codex_trait_tower_fan">低单发伤害但带溅射，清理贴身地面集群</string>
+    <string name="game_td_codex_trait_tower_poison">命中附加持续毒伤，擅长消耗高血量目标</string>
+    <string name="game_td_codex_trait_tower_rocket">高单发重击并溅射周围目标，打 Boss 利器</string>
+    <string name="game_td_codex_trait_tower_lightning">弹射伤害为首击的固定比例，随等级提升</string>
+    <string name="game_td_codex_trait_tower_sniper">全场最远射程的重击塔，无法对空</string>
+    <string name="game_td_codex_trait_tower_mine">可重复触发的近路径陷阱，满级爆炸留下燃烧地带</string>
+    <string name="game_td_codex_trait_tower_amplifier">不会攻击，为范围内其他塔提升攻速与射程</string>
+    <string name="game_td_codex_trait_mon_generic">无特殊能力</string>
+    <string name="game_td_codex_trait_mon_fast">高速突进，稍不留神就会漏怪</string>
+    <string name="game_td_codex_trait_mon_fly">飞行：仅可对空塔能攻击</string>
+    <string name="game_td_codex_trait_mon_healer">周期治疗附近受伤最重的同伴</string>
+    <string name="game_td_codex_trait_mon_shield">自带护盾，优先吸收伤害</string>
+    <string name="game_td_codex_trait_mon_splitter">死亡后分裂为两只不会再次分裂的幼体</string>
+    <string name="game_td_codex_trait_mon_charger">周期性冲刺提速，冲刺与减速效果相乘</string>
+    <string name="game_td_codex_trait_mon_shield_generator">周期为附近同伴补充有上限的护盾</string>
+    <string name="game_td_codex_trait_mon_summoner">周期召唤低价值喽罗，召唤次数有限</string>
+    <string name="game_td_codex_trait_mon_resistant">减免毒素与雷电弹射伤害，减速效果也变弱</string>
+    <string name="game_td_codex_trait_mon_rager">生命低于一半时狂暴加速</string>
+
+    <!-- 结算 -->
+    <string name="game_td_list_separator">、</string>
+
+    <string name="game_td_result_win">🎉 通关成功</string>
+    <string name="game_td_result_stars">星级 %1$s</string>
+    <string name="game_td_result_lose">💔 蛋蛋被吃掉了</string>
+    <string name="game_td_result_stats">击杀 %1$d · 用时 %2$ds</string>
+    <string name="game_td_result_new_towers">\n新塔解锁：%1$s</string>
+    <string name="game_td_result_lose_stats">坚持到第 %1$d 波  ·  击杀 %2$d</string>
+    <string name="game_td_result_endless">坚持到第 %1$d 波</string>
+    <string name="game_td_result_endless_best">新纪录！</string>
+    <string name="game_td_overlay_win">守住了！蛋蛋安全了</string>
+    <string name="game_td_overlay_lose">蛋蛋被吃掉了…</string>
+
+    <!-- 棋盘内绘制文字（TdView） -->
+    <string name="game_td_sign_entrance">入</string>
+    <string name="game_td_drag_merge_char">合</string>
+    <string name="game_td_hint_build_mode">空格可建塔 · 先从下方选择防御塔</string>
+    <string name="game_td_hint_place">点击发光格放置：%1$s</string>
+    <string name="game_td_hint_not_enough">金币不足：%1$s 需要 ₿%2$d</string>
+    <!-- 出战选塔时读取真实关卡与难度规则的战前情报 -->
+    <string name="game_td_brief_resources">初始金币 %1$d · 蛋蛋生命 %2$d · %3$d 路进攻</string>
+    <string name="game_td_brief_campaign">战役目标：守住全部 %1$d 波</string>
+    <string name="game_td_brief_endless">无尽挑战：开局 %1$d 波后持续强化，尽量守得更久</string>
+    <string name="game_td_brief_enemies">本关波次敌人：%1$s</string>
+    <string name="game_td_brief_opening_enemies">开局波次敌人：%1$s</string>
+</resources>

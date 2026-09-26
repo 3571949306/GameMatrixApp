@@ -18,7 +18,8 @@ paths = [
   '''README\.md$''',
   '''CHANGELOG\.md$''',
   '''CHANGELOG\.txt$''',
-  '''docs/.*\.md$''',
+  # 注意：不得整目录放行 docs/*.md —— 2026-07-20 的 keystore 口令正是藏在
+  # docs/SECURITY_AUDIT 里逃过扫描的（BL 记录于 BUG_LEDGER）。
   # Build outputs
   '''build/.*$''',
   '''.*/build/.*$''',
@@ -52,3 +53,15 @@ description = "Hardcoded server URL or fallback with credentials"
 # Catches URLs with embedded user:pass@
 regex = '''https?://[a-zA-Z0-9_]+:[a-zA-Z0-9_]+@[a-zA-Z0-9.-]+'''
 tags = ["secret", "url-credentials"]
+
+# generic-api-key can match Java constructor parameter types across a comma.
+# Limit this exception to the exact credential-free declaration, not the file.
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "AdbIdentity constructor parameter type declaration"
+  condition = "AND"
+  regexTarget = "line"
+  paths = ['''(^|/)core/adb/src/main/java/com/gamecenter/app/adb/AdbIdentity\.java$''']
+  regexes = ['''^\s*private AdbIdentity\(File directory, PrivateKey key, X509Certificate certificate\) \{\s*$''']

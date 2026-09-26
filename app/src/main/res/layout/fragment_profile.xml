@@ -68,7 +68,7 @@
                 android:text="@string/profile_subtitle" />
         </LinearLayout>
 
-        <!-- ===== 战绩卡片 ===== -->
+        <!-- ===== 战绩卡片（金币经济：点击进入金币钱包） ===== -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_stats"
             style="@style/Widget.GameMatrix.Card"
@@ -76,7 +76,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/gm_spacing_2"
             android:layout_marginStart="@dimen/gm_spacing_4"
-            android:layout_marginEnd="@dimen/gm_spacing_4">
+            android:layout_marginEnd="@dimen/gm_spacing_4"
+            android:clickable="true"
+            android:focusable="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -97,7 +99,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/gm_spacing_3"
                     android:orientation="horizontal"
-                    android:weightSum="3">
+                    android:weightSum="4">
 
                     <!-- 当前连胜 -->
                     <LinearLayout
@@ -173,7 +175,44 @@
                             android:textSize="11sp"
                             android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
+
+                    <!-- 金币（定位裁剪：产品面下线，SP 保留） -->
+                    <LinearLayout
+                        android:visibility="gone"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_profile_coins_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorPrimary"
+                            tools:text="128" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_stat_coins"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
                 </LinearLayout>
+
+                <!-- Elo 棋力等级分：MVP 仅展示中国象棋；RatingStore 按 gameId 存取，
+                     后续接入更多对战 AI 的游戏时可在此扩展为多行/多游戏渲染 -->
+                <TextView
+                    android:id="@+id/tv_profile_chess_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="中国象棋棋力：1000" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -242,12 +281,11 @@
              根因：LinearLayout 在 EXACTLY 模式（fillViewport=true 时父容器强制高度）
              下会把 wrap_content 的最后一个子 View 重新测量为 AT_MOST，
              导致 card_quick_entries 被压缩，第二行按钮高度从 72dp 被压缩到 32dp。
-             固定 168dp = padding(8dp*2) + 第一行按钮(72dp) + 行间距(8dp) + 第二行按钮(72dp)
-             可以避免 LinearLayout 的 wrap_content 重新测量机制。 -->
+             固定 248dp = padding(8dp*2) + 三行按钮(72dp*3) + 行间距(8dp*2)（第三行为游戏周报入口）。 -->
         <LinearLayout
             android:id="@+id/card_quick_entries"
             android:layout_width="match_parent"
-            android:layout_height="168dp"
+            android:layout_height="248dp"
             android:orientation="vertical"
             android:layout_marginTop="@dimen/gm_spacing_1"
             android:layout_marginStart="@dimen/gm_spacing_4"
@@ -377,6 +415,70 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:text="@string/profile_settings"
+                        android:textSize="12sp"
+                        android:textColor="?attr/colorOnSurface" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 第三行：游戏周报 / 关卡合集 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:weightSum="2">
+
+                <LinearLayout
+                    android:visibility="gone"
+                    android:id="@+id/btn_profile_weekly_report"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_checkin_calendar"
+                        android:contentDescription="@string/profile_weekly_report"
+                        app:tint="?attr/colorPrimary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/profile_weekly_report"
+                        android:textSize="12sp"
+                        android:textColor="?attr/colorOnSurface" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btn_profile_codebook"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_reading_list"
+                        android:contentDescription="@string/profile_codebook"
+                        app:tint="?attr/colorPrimary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/profile_codebook"
                         android:textSize="12sp"
                         android:textColor="?attr/colorOnSurface" />
                 </LinearLayout>

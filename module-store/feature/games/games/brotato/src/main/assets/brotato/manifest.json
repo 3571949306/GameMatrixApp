@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "gameId": "brotato",
+  "contentVersion": 1,
+  "files": {
+    "enemies": "enemies.json",
+    "waves": "waves.json"
+  }
+}

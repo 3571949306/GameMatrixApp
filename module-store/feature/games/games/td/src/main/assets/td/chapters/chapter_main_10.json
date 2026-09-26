@@ -1,0 +1,2558 @@
+{
+  "schema": 1,
+  "id": "chapter_main_10",
+  "name": "番外章·冬至长明",
+  "levels": [
+    {
+      "id": "main_066",
+      "order": 66,
+      "name": "雪链封径",
+      "subtitle": "冬之果核落地 · 双径披上素链",
+      "name_en": "Snowchains Seal the Lanes",
+      "subtitle_en": "The winter stone strikes ground · pale chains lace both lanes",
+      "theme": "VALLEY",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        0,
+        0
+      ],
+      "startCoin": 342,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        [
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "NORMAL"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.64,
+          "delay": 1.0,
+          "hpMul": 1.85,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 22,
+          "interval": 0.62,
+          "delay": 3.0,
+          "hpMul": 1.94,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.62,
+          "delay": 14.0,
+          "hpMul": 1.98,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "SHIELD",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 24,
+          "interval": 0.6,
+          "delay": 24.0,
+          "hpMul": 1.98,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.62,
+          "delay": 35.0,
+          "hpMul": 2.0,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 7,
+          "interval": 1.5,
+          "delay": 46.0,
+          "hpMul": 1.68,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "秋席上那枚没说完话的冬之果核，在初雪夜裂开了：冻溪的守灵用雪链锁住果园的双径，向四季讨还最后一场较量——不是复仇，是确认：当万物收藏，村庄的灯还亮不建议。艾吉把春夏秋三季的灯串上了雪链。",
+      "story_intro_en": "On the first snowy night the winter stone left on the autumn banquet cracked open: the frozen-creek warden chained the orchard's two lanes with snow, asking the four seasons to settle one last account — not vengeance, but a check: when all things rest, do the village lamps still burn? Eggy strung the lamps of three seasons onto the chains.",
+      "story_outro": "雪链一节节自己解开，冻溪重新歌唱。守灵只留下一句话：极光的水晶阶，正为亮着的眼睛一级级结霜。",
+      "story_outro_en": "Link by link the chains undid themselves and the frozen creek began to sing again. The warden left one line only: the aurora's crystal stair is frosting, step by step, for eyes that stay lit."
+    },
+    {
+      "id": "main_067",
+      "order": 67,
+      "name": "极光晶阶",
+      "subtitle": "三径结为光帘 · 召唤与护盾登阶",
+      "name_en": "Aurora Stair of Glass",
+      "subtitle_en": "Three roads knit into a veil of light · Summons and shields ascend the stair",
+      "theme": "CRYSTAL",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        5
+      ],
+      "startCoin": 356,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            11
+          ],
+          [
+            1,
+            11
+          ],
+          [
+            2,
+            11
+          ],
+          [
+            3,
+            11
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            5,
+            11
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            8,
+            11
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            8,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 41,
+          "interval": 0.62,
+          "delay": 1.0,
+          "hpMul": 1.9,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 41,
+          "interval": 0.62,
+          "delay": 4.0,
+          "hpMul": 2.0,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 41,
+          "interval": 0.62,
+          "delay": 10.0,
+          "hpMul": 2.04,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 41,
+          "interval": 0.62,
+          "delay": 19.0,
+          "hpMul": 2.06,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SHIELD",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 45,
+          "interval": 0.6,
+          "delay": 28.0,
+          "hpMul": 2.08,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 41,
+          "interval": 0.6,
+          "delay": 37.0,
+          "hpMul": 2.1,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 16,
+          "interval": 1.5,
+          "delay": 48.0,
+          "hpMul": 1.7,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "极光守灵把冬考挂在天上：三道光帘结成一阶一阶的水晶楼梯，召唤者领登、护盾者压阶——若蛋下的灯在光里断一次亮，光就为村庄熄一整冬。艾吉仰头看完三径，把塔排成了拾级而上的样子。",
+      "story_intro_en": "The aurora warden hung winter's exam in the sky: three veils of light knitted into a stair of crystal, summons leading each step, shields bracing it from behind — let the lamp under the egg falter once in the glow, and the light goes out for the village the whole winter through. Eggy craned up to read all three roads, then filed the towers like ascending steps.",
+      "story_outro": "光帘收成一匹白，铺进下一个无光的夜里。晶阶消融前最后闪了一下，像在指炉火的方向。",
+      "story_outro_en": "The veils folded into one white sheet and slipped into the next lightless night. Before the crystal stair melted, it flashed once more, pointing toward the hearth."
+    },
+    {
+      "id": "main_068",
+      "order": 68,
+      "name": "炉灰余温",
+      "subtitle": "长夜也有灶火 · 双廓共守余温",
+      "name_en": "Embers of the Long Hearth",
+      "subtitle_en": "Even long nights keep a stove · Both galleries guard the shared warmth",
+      "theme": "BRAMBLE",
+      "rows": 10,
+      "cols": 12,
+      "egg": [
+        0,
+        0
+      ],
+      "startCoin": 370,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        [
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SPLITTER",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 76,
+          "interval": 0.62,
+          "delay": 1.0,
+          "hpMul": 2.0,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "SHIELD"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 2.02,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 14.0,
+          "hpMul": 2.04,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "NORMAL"
+          ],
+          "route": 1,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 24.0,
+          "hpMul": 2.04,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 35.0,
+          "hpMul": 2.06,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 45.0,
+          "hpMul": 2.06,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "BOSS",
+            "SPLITTER"
+          ],
+          "route": 0,
+          "count": 31,
+          "interval": 1.5,
+          "delay": 56.0,
+          "hpMul": 1.7,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "冬之守灵没有军队，只有一灶将熄的炉火和两条吹不透的长廓：它把最后的寒流编成队列，试的不是塔的火力，而是村庄肯不肯为别人留火——守得住这炉余温，长夜便不再设考。",
+      "story_intro_en": "The winter warden keeps no army — only a hearth about to gutter and two galleries no wind can pass. It drilled the last cold wave into ranks; the test is not the towers' firepower but whether a village will keep a fire lit for someone else. Guard this ember through the night, and the long dark sets no more exams.",
+      "story_outro": "炉火在天亮前重新站稳。守灵把寒流的令旗投进火里，化作第一朵庭雪：去庭院吧，最后的题在雪下等着。",
+      "story_outro_en": "Before dawn the hearth stood steady again. The warden tossed its cold-command pennant into the flame, where it bloomed into the first garden snowflake: go to the yard — the last question waits beneath the snow."
+    },
+    {
+      "id": "main_069",
+      "order": 69,
+      "name": "雪夜墨影",
+      "subtitle": "飞兵掠过三径墨夜 · 光影同阵",
+      "name_en": "Ink-Night Silhouettes",
+      "subtitle_en": "Flyers shear the three ink-dark roads · Light and shadow form one line",
+      "theme": "GARDEN",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        5
+      ],
+      "startCoin": 384,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            11
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            6,
+            5
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FLY",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 2.07,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 2.12,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "FLY",
+            "RAGER"
+          ],
+          "route": 2,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 10.0,
+          "hpMul": 2.1,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 19.0,
+          "hpMul": 2.1,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.6,
+          "delay": 28.0,
+          "hpMul": 2.1,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 37.0,
+          "hpMul": 2.14,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "FLY"
+          ],
+          "route": 0,
+          "count": 31,
+          "interval": 1.4,
+          "delay": 48.0,
+          "hpMul": 1.72,
+          "speedMul": 1.05
+        }
+      ],
+      "story_intro": "庭雪落满灯罩的夜里，墨影守灵从三径同时渗进来：它不进攻，只吞光——吞一盏，冬就深一寸。要赢它不需要炮火更猛，只需要每盏灯后面都站着一个不肯睡的人。艾吉把全村的孩子都喊上了墙。",
+      "story_intro_en": "On the night garden snow hooded every lamp, the ink-shadow warden seeped in along all three roads at once. It does not attack — it drinks light: swallow one lamp and the winter deepens one inch. To beat it takes not heavier cannon but one wakeful soul behind every flame. Eggy pressed every child in the village onto the walls.",
+      "story_outro": "墨影在第三径的灯下退了潮——它怕的不是光，是守着光不睡的人。雪止，庭中只剩一盏灯还睁着：节至之灯。",
+      "story_outro_en": "Under the lamps of the third road the ink-shadow tide retreated — what it feared was never light but the people who stayed awake to keep it. The snow stopped; one lamp alone still watched in the yard: the lamp of the solstice."
+    },
+    {
+      "id": "main_070",
+      "order": 70,
+      "name": "冬至长明",
+      "subtitle": "三灵环灯守岁 · 三径共此长明",
+      "name_en": "The Longest Night, the Longest Light",
+      "subtitle_en": "Three spirits ring the year-lamp · Three roads share one endless flare",
+      "theme": "GARDEN",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 400,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 59,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 2.2,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SHIELD",
+            "RAGER"
+          ],
+          "route": 1,
+          "count": 59,
+          "interval": 0.6,
+          "delay": 4.0,
+          "hpMul": 2.16,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 59,
+          "interval": 0.6,
+          "delay": 10.0,
+          "hpMul": 2.2,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 59,
+          "interval": 0.6,
+          "delay": 19.0,
+          "hpMul": 2.22,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 59,
+          "interval": 0.6,
+          "delay": 28.0,
+          "hpMul": 2.22,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "FLY",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 65,
+          "interval": 0.6,
+          "delay": 37.0,
+          "hpMul": 2.22,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "BOSS",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 6,
+          "interval": 1.0,
+          "delay": 48.0,
+          "hpMul": 1.78,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 6,
+          "interval": 1.0,
+          "delay": 52.0,
+          "hpMul": 1.78,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "RAGER"
+          ],
+          "route": 2,
+          "count": 6,
+          "interval": 1.0,
+          "delay": 56.0,
+          "hpMul": 1.78,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "冬至之夜，四季之灵同环一盏灯：冻溪的链、极光的阶、炉火的余温与墨影的寒，各领一影踏上三径，只为问最后一个问题——春明年还会来，但若它失约一夜，村庄的灯还亮吗？三尊长夜之影各踏一径，灯芯摆在蛋边。",
+      "story_intro_en": "On the solstice night the four seasons ringed a single lamp: the creek's chains, the aurora's stair, the hearth's last warmth and the ink-shadow's cold, each leading one shade down one of three roads to ask the final question — spring will come again, but if it ever fails a single night, will the village lamps still burn? Three shades of the long night, one per road; the wick laid beside the egg.",
+      "story_outro": "长夜在三声鸡鸣里碎成霜花，灯芯自己引燃了第一个黎明。四季谢幕，各归其序——泉庭的井台上，新一年的晨露，已经悄悄结在了灯罩边缘。",
+      "story_outro_en": "At the third crow of the cock the long night shattered into frost, and the wick set the first dawn alight itself. The four seasons took their bows and returned to order — and at the rim of the spring-yard lamp, this new year's morning dew had already gathered, in secret."
+    }
+  ]
+}

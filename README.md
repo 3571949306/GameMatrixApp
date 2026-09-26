@@ -1,8 +1,15 @@
 # GameMatrix
 
-一个本地优先、可按需扩展的 Android 模块平台：在同一应用里玩游戏、使用常用工具、浏览网页、整理错题或使用 AI 辅助功能。你只安装自己需要的能力，并可自行管理导航、权限和数据。
+一个本地优先、可按需扩展的 Android 模块平台。
 
-A local-first, modular Android platform for games, everyday tools, web browsing, study organization, and AI assistance. Install only the capabilities you need and manage your own navigation, permissions, and data.
+**定位**：经典游戏是入口，工具与学习是留存，模块化是壁垒。<br>
+**Local-first, modular Android platform** — classic games to start, tools and study to stay, modules as the moat.
+
+- **入口（P0）**：经典棋牌与益智——五子棋、围棋、中国象棋、斗地主、数独、华容道、塔防等<br>
+- **留存（P1）**：工具箱与学习——二维码、网络诊断、文件哈希、错题本<br>
+- **可选模块（P2）**：浏览器、AI 助手、VPN 等——按需安装，不用不装<br>
+
+你只安装自己需要的模块，并可自行管理导航、权限和数据。
 
 [下载最新版本 / Download latest release](https://github.com/3571949306/GameMatrixApp/releases/latest) ·
 [查看本次更新 / Release notes](RELEASE_NOTES.md) ·
@@ -11,66 +18,52 @@ A local-first, modular Android platform for games, everyday tools, web browsing,
 ## 你可以用它做什么
 ## What you can do
 
-### 玩游戏
-### Play games
+### 玩经典游戏（获客入口）
+### Play classic games (how you start)
 
 - 五子棋、围棋、中国象棋、斗地主、2048。
-- 贪吃蛇、俄罗斯方块、数独、扫雷、推箱子等休闲游戏。
-- 部分游戏支持人机对战或联网对战。
+- 贪吃蛇、俄罗斯方块、数独、扫雷、推箱子、塔防等益智与休闲游戏。
+- 部分游戏支持人机对战或局域网对战。
 - 自动记录最近游玩、游戏时长和部分游戏数据。
 
 - Play Gomoku, Go, Chinese Chess, Dou Dizhu, 2048, and more.
-- Enjoy casual games such as Snake, Tetris, Sudoku, Minesweeper, and Sokoban.
-- Some games support matches against AI or online opponents.
+- Enjoy classics such as Snake, Tetris, Sudoku, Minesweeper, Sokoban, and tower defense.
+- Some games support AI matches or LAN play.
 - Track recently played games, play time, and selected game data automatically.
 
-### 按需添加能力
-### Add capabilities when needed
+### 按需添加能力（模块化壁垒）
+### Add capabilities when needed (modular by design)
 
-应用内提供模块商店，不需要的能力无需安装。模块按用户目标组织，例如娱乐与对战、学习与整理、阅读与浏览、文本与创作、设备与网络。
+应用内提供模块商店，不需要的能力无需安装。模块按用户目标组织：娱乐与对战、学习与整理、阅读与浏览、文本与创作、设备与网络。
 
-The built-in module store lets you install only the capabilities you need. Modules are organized around user goals, such as entertainment and competition, study and organization, reading and browsing, text and creation, or device and network tasks.
+The built-in module store lets you install only the capabilities you need. Modules are organized around user goals: entertainment and competition, study and organization, reading and browsing, text and creation, device and network.
 
-- 浏览、搜索、安装、更新或卸载模块。
-- 添加新的游戏、工具、浏览器、AI 助手、错题本或网络能力。
-- 安装前了解模块需要的权限、联网能力和数据用途。
+- 浏览、搜索、安装、更新或卸载模块；安装前了解权限、联网能力与数据用途。
 - 自定义底部导航的显示内容和顺序。
-- 随时在设置中管理已安装模块与本地数据。
+- 浏览器 / AI / VPN 属于可选模块，不强制安装。
 
-- Browse, search, install, update, or uninstall modules.
-- Add games, tools, browser features, AI assistance, a wrong-answer notebook, or network capabilities.
-- Review required permissions, network access, and data use before installation.
-- Customize which items appear in the bottom navigation and in what order.
-- Manage installed modules and local data at any time in Settings.
+- Browse, search, install, update, or uninstall modules; review permissions and data use before install.
+- Customize bottom navigation.
+- Browser / AI / VPN are optional modules — never forced.
 
-模块提供的是独立能力；是否需要联网、会使用哪些权限，以模块详情和首次操作说明为准。
+### 使用常用工具与学习（留存理由）
+### Use everyday tools and study (why you stay)
 
-Each module is an independent capability. Its details and first-use prompts explain whether it needs network access and which permissions it uses.
-
-### 使用常用能力
-### Use everyday capabilities
-
-- 二维码生成与识别。
-- 网络检测、DNS 查询、端口扫描。
-- 设备、电池和网络信息。
-- Base64、URL、JSON、时间戳等常用处理。
-- 文件哈希和颜色工具。
+- 二维码生成、美化与识别。
+- 网络检测、DNS 查询、端口扫描；设备、电池与网络信息。
+- Base64、URL、JSON、时间戳、文件哈希、颜色工具。
 - 错题记录、科目管理与复习计划。
-- 浏览、阅读、翻译和保存网页内容。
-- 在需要时使用本地或在线 AI 辅助。
+- 可选：网页浏览与保存、本地或在线 AI 辅助。
 
-- Create and scan QR codes.
-- Run network checks, DNS queries, and port scans.
-- View device, battery, and network information.
-- Work with Base64, URLs, JSON, timestamps, and related formats.
-- Use file hash and color tools.
-- Record wrong answers, manage subjects, and plan reviews.
-- Browse, read, translate, and save web content.
-- Use local or online AI assistance when needed.
+- Create, style, and scan QR codes.
+- Network checks, DNS, port scan; device and battery info.
+- Base64, URL, JSON, timestamps, file hash, color tools.
+- Wrong-answer notebook with subjects and review plans.
+- Optional: web browsing/saving, local or online AI.
 
-大部分基础能力可在本地使用。联网对战、在线 AI、网页浏览、更新检查和云同步等功能会连接网络；应用会在相关操作前说明用途，部分能力可能需要单独安装对应模块。
+大部分基础能力可在本地使用。联网对战、在线 AI、网页浏览、更新检查和云同步会连接网络；相关操作前会说明用途。
 
-Most basic capabilities can be used locally. Online matches, online AI, web browsing, update checks, and cloud sync use a network connection. The app explains the purpose before relevant actions, and some capabilities may require their own module.
+Most basic capabilities work locally. Online matches, AI, browsing, and updates use the network; the app explains why before connecting.
 
 ## 下载与安装
 ## Download and install
@@ -118,62 +111,8 @@ The app requests permissions only when a related feature needs them:
 |---|---|
 | 相机 / Camera | 扫描二维码、拍摄错题等 / Scan QR codes or capture study material |
 | 麦克风 / Microphone | 语音相关功能 / Voice-related features |
-| 照片与文件 / Photos and files | 导入、导出或选择图片 / Import, export, or select images |
-| 位置与附近网络 / Location and nearby networks | Wi-Fi、局域网发现等 Android 系统要求的功能 / Android-required support for Wi-Fi and local-network discovery |
-| 通知 / Notifications | 显示下载、更新或重要状态 / Show downloads, updates, and important status |
-| 安装应用 / Install apps | 安装你主动下载的应用更新 / Install app updates that you choose to download |
+| 存储 / Storage | 保存图片、导入导出文件 / Save images and import/export files |
+| 网络 / Network | 在线对战、更新检查、网页与 AI / Online matches, updates, web, and AI |
 
-你可以随时在 Android 系统设置中关闭不需要的权限；对应功能可能因此无法使用。
-
-You can disable unneeded permissions in Android system settings at any time. Related features may stop working as a result.
-
-## 数据与隐私
-## Data and privacy
-
-- 单机游戏记录和大部分设置默认保存在设备本地。
-- 联网对战、在线 AI、网页浏览、更新检查和云同步等功能需要连接网络。
-- 使用在线服务时，完成请求所需的内容会发送给相应服务；在首次配置或执行相关操作时，请查看模块的说明和权限提示。
-- 你可以通过设置管理模块权限、已安装能力、本地缓存和备份；卸载模块或应用前，请先导出需要保留的数据。
-
-- Single-player game records and most settings are stored locally by default.
-- Online matches, online AI, web browsing, update checks, and cloud sync need a network connection.
-- When you use an online service, the information required to complete the request is sent to that service. Review the module description and permission prompts during setup or before the action.
-- Use Settings to manage module permissions, installed capabilities, local cache, and backups. Export data you want to keep before uninstalling a module or the app.
-
-## 常见问题
-## Frequently asked questions
-
-### 为什么有些功能需要再次下载？
-### Why do some features need another download?
-
-夹层采用按需扩展方式。常用能力可随应用提供，其他游戏、学习、浏览、工具或 AI 能力可以在模块商店中单独安装。安装前可查看模块所需权限、联网能力和数据用途；更新某个模块时不必重新下载整个应用。
-
-GameMatrix uses on-demand extensions. Common capabilities may come with the app, while other game, study, browsing, tool, or AI capabilities can be installed separately from the module store. Review permissions, network access, and data use before installation. Updating one module does not require downloading the entire app again.
-
-### 为什么更新应用时会出现安装提示？
-### Why does updating show an installation prompt?
-
-Android 会要求你确认 APK 更新。只有在你主动安装更新时，应用才会引导你开启对应的系统安装权限；普通功能模块由应用内部管理。
-
-Android requires you to confirm APK updates. The app guides you to enable the relevant system installation permission only when you actively install an update. Regular feature modules are managed inside the app.
-
-### 更新后原来的数据还在吗？
-### Will my data remain after an update?
-
-使用新版 APK 直接覆盖安装通常会保留数据。卸载后重新安装则可能丢失本地数据。
-
-Installing a new APK over the existing version normally keeps your data. Uninstalling and reinstalling can remove local data.
-
-### 遇到闪退、无法更新或模块安装失败怎么办？
-### What if the app crashes, cannot update, or a module fails to install?
-
-请在应用内提交反馈，或前往 [问题反馈页面](https://github.com/3571949306/GameMatrixApp/issues)。描述问题时建议附上手机型号、Android 版本和操作步骤，但不要公开密码、令牌或其他敏感信息。
-
-Send feedback in the app or visit the [issue tracker](https://github.com/3571949306/GameMatrixApp/issues). Include your device model, Android version, and steps to reproduce when possible, but never publish passwords, tokens, or other sensitive information.
-
-## 开源许可
-## License
-
-本项目采用 [MIT License](LICENSE)。
-
-This project is licensed under the [MIT License](LICENSE).
+具体以模块详情与系统授权为准。<br>
+See module details and system prompts for the final word.

@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "gameId": "brotato",
+  "id": "brotato_enemies_v1",
+  "enemies": [
+    {
+      "id": "swarm",
+      "name": "小虫",
+      "name_en": "Swarmling",
+      "hp": 1.0,
+      "speed": 3.2,
+      "sizeDp": 8,
+      "color": -3354623,
+      "contactDamage": 1,
+      "score": 4,
+      "behaviors": []
+    },
+    {
+      "id": "grunt",
+      "name": "杂兵",
+      "name_en": "Grunt",
+      "hp": 3.0,
+      "speed": 2.1,
+      "sizeDp": 12,
+      "color": -2355168,
+      "contactDamage": 1,
+      "score": 8,
+      "behaviors": []
+    },
+    {
+      "id": "runner",
+      "name": "疾奔者",
+      "name_en": "Runner",
+      "hp": 2.0,
+      "speed": 4.2,
+      "sizeDp": 10,
+      "color": -2922785,
+      "contactDamage": 1,
+      "score": 10,
+      "behaviors": []
+    },
+    {
+      "id": "zigzag",
+      "name": "飘忽蛾",
+      "name_en": "Flutterer",
+      "hp": 3.0,
+      "speed": 2.6,
+      "sizeDp": 12,
+      "color": -6684775,
+      "contactDamage": 1,
+      "score": 12,
+      "behaviors": [
+        "ZIGZAG"
+      ]
+    },
+    {
+      "id": "splitter",
+      "name": "胞裂兽",
+      "name_en": "Splitter",
+      "hp": 6.0,
+      "speed": 1.7,
+      "sizeDp": 15,
+      "color": -14685084,
+      "contactDamage": 2,
+      "score": 18,
+      "behaviors": [
+        "SPLIT"
+      ]
+    },
+    {
+      "id": "minion",
+      "name": "裂子",
+      "name_en": "Minion",
+      "hp": 1.5,
+      "speed": 3.0,
+      "sizeDp": 7,
+      "color": -8355636,
+      "contactDamage": 1,
+      "score": 3,
+      "behaviors": []
+    },
+    {
+      "id": "tank",
+      "name": "厚甲兽",
+      "name_en": "Tank",
+      "hp": 12.0,
+      "speed": 1.2,
+      "sizeDp": 18,
+      "color": -10066432,
+      "contactDamage": 2,
+      "score": 25,
+      "behaviors": []
+    },
+    {
+      "id": "boss",
+      "name": "巢穴主宰",
+      "name_en": "Hive Lord",
+      "hp": 40.0,
+      "speed": 1.0,
+      "sizeDp": 30,
+      "color": -1879066,
+      "contactDamage": 3,
+      "score": 120,
+      "behaviors": []
+    }
+  ]
+}

@@ -34,9 +34,7 @@ public class ColorPlusToolBinder implements ToolBinder {
         }
         AdvancedToolBinders.bindColorPlus(context, contentView, v ->
                 fragment.requestPickFile(uri -> {
-                    ExecutorService used = (executor != null && !executor.isShutdown())
-                            ? executor
-                            : java.util.concurrent.Executors.newSingleThreadExecutor();
+                    ExecutorService used = ToolIo.require(executor);
                     used.execute(() -> AdvancedToolBinders.handleColorImageResult(context, contentView, uri, used));
                 }, new String[]{"image/*"}));
     }

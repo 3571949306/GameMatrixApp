@@ -1,6 +1,7 @@
 package com.gamecenter.app.td;
 
 import com.gamecenter.app.td.engine.MonsterType;
+import com.gamecenter.app.td.engine.TdEndlessWaveFactory;
 import com.gamecenter.app.td.engine.TdGame;
 import com.gamecenter.app.td.engine.TdLevelJsonParser;
 import com.gamecenter.app.td.engine.TdLevels;
@@ -24,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * TdGame 引擎确定性测试 — 无 Android 依赖，验证状态与不变量。
@@ -32,13 +34,18 @@ public class TdGameTest {
 
     private static final int MAX_TICKS = 60 * 240; // 最多模拟 4 分钟（真实时间）
 
+    /** manifest 各章 levelCount 之和，随战役扩展动态增长，不得写死。 */
+    private static int campaignLevelCount;
+
     @BeforeClass
     public static void loadProductionCampaignData() throws IOException {
         Path assetRoot = findAssetsRoot();
         TdLevelJsonParser.Manifest manifest = TdLevelJsonParser.parseManifest(readAsset(
                 assetRoot.resolve("td/manifest.json")));
         List<com.gamecenter.app.td.engine.TdLevelDefinition> definitions = new ArrayList<>();
+        campaignLevelCount = 0;
         for (TdLevelJsonParser.ChapterRef chapter : manifest.chapters) {
+            campaignLevelCount += chapter.levelCount;
             definitions.addAll(TdLevelJsonParser.parseChapter(readAsset(
                     assetRoot.resolve("td").resolve(chapter.file))).levels);
         }
@@ -62,9 +69,10 @@ public class TdGameTest {
 
     @Test
     public void campaignUsesStableIdsWhileSupportingLegacyDeepLinks() {
-        assertEquals(25, TdLevels.levelIds().size());
+        assertEquals("全战役关卡数应等于 manifest 各章 levelCount 之和", campaignLevelCount,
+                TdLevels.levelIds().size());
         assertEquals("main_001", TdLevels.levelIds().get(0));
-        assertEquals("main_025", TdLevels.levelIds().get(24));
+        assertEquals("main_035", TdLevels.levelIds().get(34));
         assertTrue(TdLevels.isKnownLevelId("main_001"));
         assertTrue(TdLevels.isKnownLevelId("level_01"));
         assertEquals(TdLevels.buildLevel("main_001").getRouteLength(0),
@@ -87,7 +95,7 @@ public class TdGameTest {
                 assertTrue(id + " 的每条入口路线都必须足够长", game.getRouteLength(route) >= 30);
             }
         }
-        assertTrue("25 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
+        assertTrue(campaignLevelCount + " 关不能只换怪物数值，至少需要 8 种地图路径拓扑",
                 routeTopologies.size() >= 8);
     }
 
@@ -280,6 +288,55 @@ public class TdGameTest {
         g.tick();
         TdGame.Monster fly = g.getMonsters().get(0);
         assertEquals("狙击塔不应误伤飞行兵", fly.maxHp, fly.hp, .0001f);
+    }
+
+    @Test
+    public void mineAreaAndBurnRespectAntiAirFilter() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {MonsterType.NORMAL, MonsterType.FLY},
+                0, 2, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
+        TdGame.Tower mine = g.placeTower(TowerType.MINE, 1, 0);
+        assertNotNull(mine);
+        mine.level = 3;
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+
+        TdGame.Monster normal = null;
+        TdGame.Monster fly = null;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (monster.type == MonsterType.NORMAL) normal = monster;
+            if (monster.type == MonsterType.FLY) fly = monster;
+        }
+        assertNotNull(normal);
+        assertNotNull(fly);
+        assertTrue("地雷应能命中范围内的地面目标", normal.dead);
+        assertFalse("地雷爆炸不得绕过对空规则误伤飞行目标", fly.dead);
+        assertEquals("地雷爆炸不得扣除飞行目标生命", fly.maxHp, fly.hp, .0001f);
+        assertEquals("满级地雷应留下燃烧区", 1, g.getBurnZones().size());
+
+        g.tick();
+        assertEquals("地雷燃烧区同样不得伤害飞行目标", fly.maxHp, fly.hp, .0001f);
+    }
+
+    @Test
+    public void waveRejectsNonFiniteNumericValues() {
+        try {
+            new TdGame.Wave(MonsterType.NORMAL, 1, Float.POSITIVE_INFINITY,
+                    0f, 1f, 1f);
+            fail("波次间隔不能接受无穷值");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+
+        try {
+            new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f,
+                    Float.POSITIVE_INFINITY, 1f);
+            fail("波次血量倍率不能接受无穷值");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
     }
 
     @Test
@@ -737,6 +794,97 @@ public class TdGameTest {
         assertTrue("总金币应高于投入", g.getCoin() > coinBefore - TowerType.SUN.baseCost);
     }
 
+    // ===== 图鉴数据源：产币周期/直伤系数提为 TowerType 字段（引擎行为逐字节等价回归） =====
+
+    @Test
+    public void sunTower_incomeCycleIsExactlyTowerTypeInterval() {
+        // 数据源接线：updateTowers 重置 incomeTimer 的值必须逐字节等于 TowerType.incomeIntervalSec
+        assertEquals("产币周期数据源必须是 TowerType.incomeIntervalSec（1.8s）",
+                1.8f, TowerType.SUN.incomeIntervalSec, 0f);
+        for (TowerType t : TowerType.values()) {
+            if (t != TowerType.SUN) {
+                assertEquals("非经济塔 " + t + " 的产币周期必须为 0", 0f, t.incomeIntervalSec, 0f);
+            }
+        }
+        // 节拍回归：incomeTimer 初始为 0 → 首帧产出，此后每 1.8s（60Hz 下 108 帧）一次
+        TdGame g = minimalGame(2, 1000, TdGame.Mode.CAMPAIGN);
+        TdGame.Tower sun = g.placeTower(TowerType.SUN, 1, 0);
+        assertNotNull(sun);
+        assertTrue(g.startNextWaveEarly());
+        int perCycle = Math.round(TowerType.SUN.incomeAt(1));
+        g.tick();
+        assertEquals("首帧即产出一次", perCycle, g.getCoinsEarned());
+        assertEquals("重置值必须逐字节等于 TowerType.incomeIntervalSec",
+                TowerType.SUN.incomeIntervalSec, sun.incomeTimer, 0f);
+        // 周期内不再产出：第 2..108 帧（累计 ≤ 107×dt）距上次产出不足 1.8s
+        for (int i = 2; i <= 108; i++) {
+            g.tick();
+            assertEquals("产币周期 " + TowerType.SUN.incomeIntervalSec + "s 内不得二次产出（第 "
+                            + i + " 帧）", perCycle, g.getCoinsEarned());
+        }
+        // 周期结束必然再次产出（第二次产出的具体帧受浮点累加误差影响在 109/110 之间，
+        // 不钉单帧，只钉「1.8s 量级」与「不多产」两端）
+        boolean producedAgain = false;
+        for (int i = 109; i <= 120 && !producedAgain; i++) {
+            g.tick();
+            producedAgain = g.getCoinsEarned() >= 2 * perCycle;
+        }
+        assertTrue("周期结束后必须再次产出", producedAgain);
+        assertEquals("单帧至多产出一次", 2 * perCycle, g.getCoinsEarned());
+    }
+
+    @Test
+    public void directHitMultiplier_towerTypeIsSingleDataSource() {
+        assertEquals("雪花直伤系数必须为 0.4（数据源 TowerType）",
+                0.4f, TowerType.SNOW.directHitMultiplier, 0f);
+        assertEquals("毒液直伤系数必须为 0.3（数据源 TowerType）",
+                0.3f, TowerType.POISON.directHitMultiplier, 0f);
+        assertEquals("风扇直伤系数必须为 0.8（数据源 TowerType）",
+                0.8f, TowerType.FAN.directHitMultiplier, 0f);
+        assertEquals("火箭直伤系数必须为 0.7（数据源 TowerType）",
+                0.7f, TowerType.ROCKET.directHitMultiplier, 0f);
+        for (TowerType t : TowerType.values()) {
+            switch (t) {
+                case SNOW:
+                case POISON:
+                case FAN:
+                case ROCKET:
+                    continue;
+                default:
+                    assertEquals("塔 " + t + " 直伤必须全额（系数 1）",
+                            1f, t.directHitMultiplier, 0f);
+            }
+        }
+    }
+
+    @Test
+    public void snowFire_directDamageEqualsDamageTimesTowerTypeMultiplier() {
+        // 行为锁定：fire() 的 SNOW 直伤 = damageAt(level) × TowerType.directHitMultiplier。
+        // 单怪对局、零甲零盾 NORMAL，首击后血量必须恰为 34 - 8×0.4 = 30.8。
+        int cols = 12;
+        int[][] path = new int[cols][2];
+        for (int i = 0; i < cols; i++) path[i] = new int[] {0, i};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f, 1f, 1f));
+        TdGame g = new TdGame(cols, 2, path, 0, cols - 1, 500, 10, waves);
+        assertNotNull(g.placeTower(TowerType.SNOW, 1, 4)); // 射程 5.0 覆盖出生段
+        assertTrue(g.startNextWaveEarly());
+        Float hpAfterFirstHit = null;
+        for (int i = 0; i < 120 && hpAfterFirstHit == null && !g.isEnded(); i++) {
+            g.tick();
+            // hitFlash 仅在受击帧置位且持续 ~11 帧，但再次开火间隔 0.9s ≫ hitFlash 时长，
+            // 故首个 hitFlash>0 的帧必为首击帧，读到的即首击后血量
+            if (!g.getMonsters().isEmpty() && g.getMonsters().get(0).hitFlash > 0f) {
+                hpAfterFirstHit = g.getMonsters().get(0).hp;
+            }
+        }
+        assertNotNull("雪花必须命中一次", hpAfterFirstHit);
+        float expected = MonsterType.NORMAL.hp
+                - TowerType.SNOW.damageAt(1) * TowerType.SNOW.directHitMultiplier;
+        assertEquals("直伤必须 = 单发伤害 × TowerType.directHitMultiplier",
+                expected, hpAfterFirstHit, 0.0001f);
+    }
+
     // ===== 对空：飞行兵需可对空塔 =====
 
     @Test
@@ -1009,6 +1157,26 @@ public class TdGameTest {
     }
 
     @Test
+    public void eggOverkill_clampsHpAndLostToRemaining() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
+        java.util.List<TdGame.Wave> bossWave = new java.util.ArrayList<>();
+        bossWave.add(new TdGame.Wave(MonsterType.BOSS, 1, 0f, 0f, .01f, 1f));
+        TdGame game = new TdGame(4, 1, path, 0, 3, 200, 2, bossWave);
+        game.startNextWaveEarly();
+        for (int i = 0; i < 60 * 10 && !game.isEnded(); i++) game.tick();
+        assertEquals("超额伤害不得打出负血", 0, game.getMascotHp());
+        assertEquals("丢失统计只计有效伤害", 2, game.getMascotHpLost());
+        assertEquals(TdGame.State.LOST, game.getState());
+        assertEquals(TdGame.ActionMsg.EGG_HIT, game.getLastActionMsg());
+        Object[] args = game.getLastActionArgs();
+        assertEquals(3, args.length);
+        assertEquals("受击消息剩余生命不得为负", 0, ((Integer) args[2]).intValue());
+        game.tick();
+        assertEquals(0, game.getMascotHp());
+        assertEquals(2, game.getMascotHpLost());
+    }
+
+    @Test
     public void healer_restoresNearbyDamagedAlly_withoutOverhealing() {
         int[][] path = new int[][] {
                 {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}
@@ -1123,6 +1291,167 @@ public class TdGameTest {
         int beforeIdle = g.getCoinsEarned();
         for (int i = 0; i < 600; i++) g.tick();
         assertEquals("波间空闲期太阳花不应继续产币", beforeIdle, g.getCoinsEarned());
+    }
+
+    // ===== 无尽模式（阶段 1：仅引擎与存档） =====
+
+    /** 构造最小对局：definedWaves 条单怪定义波 + 8 格直路线；mode 为 null 时保持默认战役。 */
+    private static TdGame minimalGame(int definedWaves, int mascotHp, TdGame.Mode mode) {
+        int[][] path = new int[8][2];
+        for (int i = 0; i < path.length; i++) { path[i][0] = 0; path[i][1] = i; }
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        for (int i = 0; i < definedWaves; i++) {
+            waves.add(new TdGame.Wave(MonsterType.NORMAL, 1, 0.5f, 0.1f, 1f, 1f));
+        }
+        return new TdGame(8, 2, path, 0, 7, 1000, mascotHp, waves).setMode(mode);
+    }
+
+    /** 按真实节奏推进：本波生成完毕且场上清空即返回（与 UI「下一波」按钮的调用时机一致）。 */
+    private static void driveCurrentWaveUntilCleared(TdGame g) {
+        for (int i = 0; i < MAX_TICKS && !g.isEnded(); i++) {
+            g.tick();
+            if (!g.isWaveSpawning() && g.getMonsters().isEmpty()) return;
+        }
+        throw new AssertionError("波次应在有限时间内清场");
+    }
+
+    @Test
+    public void endlessMode_synthesizesWavesBeyondDefinition_andIncrementsReached() {
+        TdGame g = minimalGame(2, 1000, TdGame.Mode.ENDLESS);
+        assertEquals(TdGame.Mode.ENDLESS, g.getMode());
+        assertEquals("开战前未进入任何波次", 0, g.getEndlessWaveReached());
+        assertTrue(g.startNextWaveEarly());
+        assertEquals(1, g.getEndlessWaveReached());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly());
+        assertEquals(2, g.getEndlessWaveReached());
+        // 定义波即将耗尽：HUD 预览必须零副作用地展示工厂将要合成的第 3 波
+        assertEquals("无尽预览与推进时的合成必须同参同结果",
+                TdEndlessWaveFactory.createWave(3, TdGame.Difficulty.NORMAL, 1).count,
+                g.nextWaveCount());
+        assertFalse("合成波预览不得为空", g.nextWaveComposition().isEmpty());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue("无尽模式波次耗尽后必须合成下一波继续", g.startNextWaveEarly());
+        assertEquals(3, g.getEndlessWaveReached());
+        assertEquals("合成波计入总波数", 3, g.getTotalWaves());
+        assertEquals(3, g.getWaveIndex());
+        assertEquals(TdGame.State.RUNNING, g.getState());
+        assertFalse("无尽模式打完定义波次后不得胜利", g.getState() == TdGame.State.WON);
+        assertFalse(g.isEnded());
+        // 合成波刷出的怪必须携带正确的绝对波次序号
+        for (int i = 0; i < 120 && g.getMonsters().isEmpty(); i++) g.tick();
+        assertFalse("合成波应开始刷怪", g.getMonsters().isEmpty());
+        assertEquals("合成波怪的 waveNo 必须是绝对序号", 3, g.getMonsters().get(0).waveNo);
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly());
+        assertEquals("波次序号持续递增", 4, g.getEndlessWaveReached());
+        assertEquals(4, g.getTotalWaves());
+        assertEquals("下一波预告继续指向合成波",
+                TdEndlessWaveFactory.createWave(5, TdGame.Difficulty.NORMAL, 1).count,
+                g.nextWaveCount());
+    }
+
+    @Test
+    public void endlessMode_eggDeathIsTheOnlyEnd_neverVictory() {
+        TdGame g = minimalGame(1, 2, TdGame.Mode.ENDLESS);
+        assertTrue(g.startNextWaveEarly());
+        driveCurrentWaveUntilCleared(g);
+        assertEquals("定义波漏一只后剩 1 点蛋血", 1, g.getMascotHp());
+        assertEquals("定义波打完不得触发胜利", TdGame.State.RUNNING, g.getState());
+        assertTrue("无尽必须合成下一波", g.startNextWaveEarly());
+        assertEquals(2, g.getTotalWaves());
+        for (int i = 0; i < MAX_TICKS && !g.isEnded(); i++) g.tick();
+        assertEquals("唯一结束方式是蛋死亡", TdGame.State.LOST, g.getState());
+        assertEquals("蛋蛋 HP 归零", 0, g.getMascotHp());
+        assertEquals(2, g.getMascotHpLost());
+        assertFalse("绝不能进入胜利分支", g.getState() == TdGame.State.WON);
+        assertEquals("结束波次仍计为已进入", 2, g.getEndlessWaveReached());
+        g.tick();
+        assertEquals("结束后 tick 不应改变状态", TdGame.State.LOST, g.getState());
+    }
+
+    @Test
+    public void campaignMode_lastWaveReachedPathAndVictoryRemainUnchanged() {
+        TdGame g = minimalGame(2, 1000, null);
+        assertEquals("默认必须是战役模式", TdGame.Mode.CAMPAIGN, g.getMode());
+        assertTrue(g.startNextWaveEarly());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly());
+        // 等最后一波生成完毕但怪仍在场上（未触发胜利判定）
+        for (int i = 0; i < MAX_TICKS && (g.isWaveSpawning() || g.getMonsters().isEmpty()); i++) {
+            g.tick();
+        }
+        // 最后一只怪刷出的那一帧 waveStarted 尚未复位，补一帧让它走完“本波生成完毕”复位路径
+        g.tick();
+        assertFalse(g.isWaveSpawning());
+        assertFalse(g.getMonsters().isEmpty());
+        assertFalse("战役最后一波进行中不得再推进", g.startNextWaveEarly());
+        assertEquals("战役必须保留 LAST_WAVE_REACHED 原语义",
+                TdGame.ActionMsg.LAST_WAVE_REACHED, g.getLastActionMsg());
+        assertEquals(TdGame.State.RUNNING, g.getState());
+        driveCurrentWaveUntilCleared(g);
+        assertEquals("战役场上清空后照常胜利（行为不变）", TdGame.State.WON, g.getState());
+        assertEquals("CAMPAIGN 下 getEndlessWaveReached 语义=当前波",
+                g.getWaveIndex(), g.getEndlessWaveReached());
+        assertFalse("已胜利后不得再推进", g.startNextWaveEarly());
+    }
+
+    @Test
+    public void buildLevelEndless_overloadReusesLevelResources_andNullKeepsCampaign() {
+        TdGame campaign = TdLevels.buildLevel("level_01");
+        TdGame endless = TdLevels.buildLevel("level_01", TdGame.Mode.ENDLESS);
+        assertEquals(TdGame.Mode.ENDLESS, endless.getMode());
+        assertEquals("无尽复用同一张地图", campaign.getCols(), endless.getCols());
+        assertEquals(campaign.getRows(), endless.getRows());
+        assertEquals("无尽复用路线数量", campaign.getPaths().length, endless.getPaths().length);
+        assertEquals("无尽复用路线拓扑", campaign.getRouteLength(0), endless.getRouteLength(0));
+        assertEquals("无尽保留初始金币", campaign.getCoin(), endless.getCoin());
+        assertEquals("无尽保留蛋蛋生命", campaign.getMaxMascotHp(), endless.getMaxMascotHp());
+        assertEquals("战役波次定义原样保留", campaign.getWaves().size(), endless.getWaves().size());
+        assertEquals("null 模式必须安全回退战役", TdGame.Mode.CAMPAIGN,
+                TdLevels.buildLevel("level_01", null).getMode());
+    }
+
+    @Test
+    public void endlessSynthesizedMonsters_composeHpWithDifficultyViaEngine() {
+        TdGame g = minimalGame(1, 1000, TdGame.Mode.ENDLESS);
+        g.applyDifficulty(TdGame.Difficulty.HARD);
+        assertTrue(g.startNextWaveEarly());
+        driveCurrentWaveUntilCleared(g);
+        assertTrue(g.startNextWaveEarly()); // 合成第 2 波
+        for (int i = 0; i < 120 && g.getMonsters().isEmpty(); i++) g.tick();
+        assertFalse("合成波应开始刷怪", g.getMonsters().isEmpty());
+        TdGame.Monster monster = g.getMonsters().get(0);
+        assertEquals(MonsterType.NORMAL, monster.type);
+        float expected = MonsterType.NORMAL.hp
+                * TdEndlessWaveFactory.createWave(2, TdGame.Difficulty.HARD, 1).hpMul
+                * TdGame.Difficulty.HARD.hpMul;
+        assertEquals("难度只在引擎侧合成一次，工厂不重复叠加", expected, monster.maxHp, 0.01f);
+    }
+
+    @Test
+    public void applyDifficulty_isIgnoredAfterBattleStarts() {
+        TdGame g = minimalGame(1, 100, TdGame.Mode.CAMPAIGN);
+        g.applyDifficulty(TdGame.Difficulty.EASY);
+        assertEquals(TdGame.Difficulty.EASY, g.getDifficulty());
+        int coinAtStart = g.getCoin();
+        assertTrue(g.startNextWaveEarly());
+
+        g.applyDifficulty(TdGame.Difficulty.HARD);
+
+        assertEquals("开战后不能切换难度", TdGame.Difficulty.EASY, g.getDifficulty());
+        assertEquals("开战后切换难度不得改写金币", coinAtStart, g.getCoin());
+    }
+
+    @Test
+    public void setMode_ignoredOnceStartedOrNull() {
+        TdGame g = minimalGame(1, 100, null);
+        assertTrue(g.startNextWaveEarly());
+        g.setMode(TdGame.Mode.ENDLESS);
+        assertEquals("开战后切换模式必须被忽略", TdGame.Mode.CAMPAIGN, g.getMode());
+        TdGame fresh = minimalGame(1, 100, null);
+        fresh.setMode(null);
+        assertEquals("null 模式必须被忽略", TdGame.Mode.CAMPAIGN, fresh.getMode());
     }
 
     private static void assertIllegalArgument(Runnable action) {

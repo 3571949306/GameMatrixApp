@@ -46,6 +46,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -57,6 +61,15 @@ dependencies {
     compileOnly 'androidx.appcompat:appcompat:1.6.1'
     compileOnly 'com.google.android.material:material:1.9.0'
     compileOnly 'androidx.fragment:fragment:1.5.0'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation libs.robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation 'androidx.fragment:fragment:1.5.0'
+    // 真实 Fragment 的统计依赖宿主实现及 Room 生成的 DAO。
+    testImplementation libs.room.runtime
+    testImplementation files("${project.rootDir}/app/build/libs/app-classes.jar")
+    testImplementation files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {

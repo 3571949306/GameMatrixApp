@@ -24,6 +24,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:title="@string/module_store_title"
+        app:subtitle="@string/module_store_subtitle"
         app:titleTextColor="?android:attr/textColorPrimary"
         app:navigationIcon="@android:drawable/ic_menu_revert"
         app:navigationIconTint="?attr/colorOnSurface"

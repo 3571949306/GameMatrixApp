@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    斗地主游戏字符串资源（英文补充，values/strings_game_doudizhu_new.xml 的镜像）。
+    P4（2026-09-01）实机冒烟证实牌桌操作条与大小王牌面在英文 locale 回退中文，
+    本文件补齐全部 89 条 key 与中文一一镜像；其中 invalid_card_type /
+    cannot_beat / select_cards 等行内提示为 P6 计划项，此处提前补齐。
+-->
+<resources>
+    <!-- 成就 -->
+    <string name="doudizhu_ach_first_win_name">First Dou Dizhu Win</string>
+    <string name="doudizhu_ach_first_win_desc">Win a Dou Dizhu game for the first time</string>
+    <string name="doudizhu_ach_win_10_name">Table Veteran</string>
+    <string name="doudizhu_ach_win_10_desc">Win 10 games in total</string>
+    <string name="doudizhu_ach_win_50_name">Table Legend</string>
+    <string name="doudizhu_ach_win_50_desc">Win 50 games in total</string>
+    <string name="doudizhu_ach_streak_3_name">Three in a Row</string>
+    <string name="doudizhu_ach_streak_3_desc">Win 3 games in a row</string>
+    <string name="doudizhu_ach_streak_5_name">Five in a Row</string>
+    <string name="doudizhu_ach_streak_5_desc">Win 5 games in a row</string>
+    <string name="doudizhu_ach_landlord_win_name">King of Landlords</string>
+    <string name="doudizhu_ach_landlord_win_desc">Win a game as the landlord</string>
+    <string name="doudizhu_ach_farmer_win_name">Farmer Hero</string>
+    <string name="doudizhu_ach_farmer_win_desc">Win a game as a farmer</string>
+
+    <!-- 玩家身份标签 -->
+    <string name="game_doudizhu_role_you_landlord">You (Landlord)</string>
+    <string name="game_doudizhu_role_you_farmer">You (Farmer)</string>
+    <string name="game_doudizhu_role_left_ai_landlord">Left AI (Landlord)</string>
+    <string name="game_doudizhu_role_left_ai_farmer">Left AI (Farmer)</string>
+    <string name="game_doudizhu_role_right_ai_landlord">Right AI (Landlord)</string>
+    <string name="game_doudizhu_role_right_ai_farmer">Right AI (Farmer)</string>
+
+    <!-- 叫地主 Toast -->
+    <string name="game_doudizhu_you_bid">You bid %1$d points</string>
+    <string name="game_doudizhu_must_bid_higher">Must bid higher than the current bid</string>
+    <string name="game_doudizhu_ai_calls_landlord">%1$s bids to be landlord</string>
+    <string name="game_doudizhu_ai_passes_bid">%1$s passes</string>
+    <string name="game_doudizhu_all_pass_must_call">Everyone passed, you must bid to be the landlord</string>
+
+    <!-- 出牌 Toast -->
+    <string name="game_doudizhu_select_cards">Select cards to play</string>
+    <string name="game_doudizhu_invalid_card_type">Invalid card combination</string>
+    <string name="game_doudizhu_cannot_beat">Cannot beat the previous hand</string>
+    <string name="game_doudizhu_no_beat_pass">No hand can beat it, select \'Pass\'</string>
+    <string name="game_doudizhu_hint_suggest">Hint: play %1$s</string>
+    <string name="game_doudizhu_cannot_pass_first">You lead this round and cannot pass</string>
+
+    <!-- 游戏结束 -->
+    <string name="game_doudizhu_you_win">You win!</string>
+    <string name="game_doudizhu_you_lose">You lose!</string>
+    <string name="game_doudizhu_game_over">Game Over</string>
+    <string name="game_doudizhu_score_detail">Round score: %1$s</string>
+
+    <!-- 状态指示器 -->
+    <!-- landlord_label 尾随空格与 joker_king 前导空格按 Android 规范用引号包裹保留（代码侧直接拼接玩家名/大小前缀） -->
+    <string name="game_doudizhu_landlord_label">"Landlord: "</string>
+    <string name="game_doudizhu_turn_label">Turn: %1$s</string>
+    <string name="game_doudizhu_player_you">You</string>
+    <string name="game_doudizhu_player_left_ai">Left AI</string>
+    <string name="game_doudizhu_player_right_ai">Right AI</string>
+    <string name="game_doudizhu_player_pending">Pending</string>
+    <string name="game_doudizhu_turn_you">Your turn</string>
+    <string name="game_doudizhu_turn_left_ai">Left AI\'s turn</string>
+    <string name="game_doudizhu_turn_right_ai">Right AI\'s turn</string>
+
+    <!-- UIController — 大厅与联机 -->
+    <string name="game_doudizhu_cloud_open">Cloud Room</string>
+    <string name="game_doudizhu_create_room">Create Room</string>
+    <string name="game_doudizhu_enter_room_code">Enter Room Code</string>
+    <string name="game_doudizhu_join_room">Join Room</string>
+    <string name="game_doudizhu_cloud_title">Dou Dizhu Cloud Play</string>
+    <string name="game_doudizhu_lobby_hint">Choose an action to create or join a room</string>
+    <string name="game_doudizhu_host_cloud_hint">As host, tap \u201CCloud Room\u201D to generate a 6-digit room code.\n\nOther players tap \u201CEnter Room Code\u201D and type or paste the code to join.\nThe legacy p2p://IP:port address still works as an advanced direct-connect entry.</string>
+    <string name="game_doudizhu_lan_join_hint">Tap \"Join Room\" to search for LAN rooms</string>
+    <string name="game_doudizhu_status_cloud_host">Cloud room host</string>
+    <string name="game_doudizhu_status_host">Host</string>
+    <string name="game_doudizhu_status_connected_cloud">Connected to cloud room</string>
+    <string name="game_doudizhu_status_connected_host">Connected to host</string>
+    <string name="game_doudizhu_copied">Copied to clipboard</string>
+
+    <!-- UIController — 对话框 -->
+    <string name="game_doudizhu_manual_join_title">Join by IP</string>
+    <string name="game_doudizhu_ip_hint">IP address</string>
+    <string name="game_doudizhu_port_hint">Port</string>
+    <string name="game_doudizhu_join_btn">Join</string>
+    <string name="game_doudizhu_cancel_btn">Cancel</string>
+    <string name="game_doudizhu_input_code_title">Enter Room Code</string>
+    <string name="game_doudizhu_code_hint">6-digit room code</string>
+    <string name="game_doudizhu_select_room_title">Select Room</string>
+
+    <!-- TableView — 桌面绘制文字 -->
+    <string name="game_doudizhu_p1_pending">P1 (Pending)</string>
+    <string name="game_doudizhu_ai_pending">AI (Pending)</string>
+    <string name="game_doudizhu_p1_landlord">P1 (Landlord)</string>
+    <string name="game_doudizhu_p1_farmer">P1 (Farmer)</string>
+    <string name="game_doudizhu_p2_landlord">P2 (Landlord)</string>
+    <string name="game_doudizhu_p2_farmer">P2 (Farmer)</string>
+    <string name="game_doudizhu_p3_landlord">P3 (Landlord)</string>
+    <string name="game_doudizhu_p3_farmer">P3 (Farmer)</string>
+    <string name="game_doudizhu_pass_label">Pass</string>
+    <string name="game_doudizhu_card_counter">Counter</string>
+    <string name="game_doudizhu_cards_remaining">%1$d left</string>
+    <string name="game_doudizhu_select_prompt">Select cards to play</string>
+    <string name="game_doudizhu_btn_play">Play</string>
+    <string name="game_doudizhu_btn_pass">Pass</string>
+    <string name="game_doudizhu_btn_hint">Hint</string>
+    <string name="game_doudizhu_joker_small">S</string>
+    <string name="game_doudizhu_joker_big">B</string>
+    <string name="game_doudizhu_joker_king">" Joker"</string>
+
+    <!-- 特效名称（canvas.drawText 提取） -->
+    <string name="game_doudizhu_effect_rocket">Rocket</string>
+    <string name="game_doudizhu_effect_bomb">Bomb</string>
+    <string name="game_doudizhu_effect_plane">Plane</string>
+    <string name="game_doudizhu_effect_spring">Spring</string>
+    <string name="game_doudizhu_effect_straight">Straight</string>
+    <string name="game_doudizhu_effect_consecutive_pairs">Consecutive Pairs</string>
+
+    <!-- P6（2026-09-04）：模块入口点展示文案（硬编码中文迁移） -->
+    <string name="game_ddz_module_title">Dou Dizhu</string>
+</resources>

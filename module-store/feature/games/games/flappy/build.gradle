@@ -42,6 +42,10 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.includeAndroidResources = true
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -57,6 +61,16 @@ dependencies {
     compileOnly 'androidx.appcompat:appcompat:1.6.1'
     compileOnly 'com.google.android.material:material:1.9.0'
     compileOnly 'androidx.fragment:fragment:1.5.0'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation libs.robolectric
+    testImplementation project(':core:common')
+    testImplementation 'androidx.fragment:fragment:1.5.0'
+    testImplementation 'androidx.appcompat:appcompat:1.6.1'
+    // Exercise the real Fragment's Handler, host strings, and score persistence.
+    testImplementation libs.room.runtime
+    testImplementation files("${project.rootDir}/app/build/libs/app-classes.jar")
+    testImplementation files("${project.rootDir}/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar")
 }
 
 tasks.matching { it.name.contains("compile") && (it.name.contains("JavaWithJavac") || it.name.contains("Kotlin")) }.configureEach {

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 关卡码合集本：标题栏返回 + 添加区（标题/码输入 + 添加按钮）
+     + 列表区（代码填充条目行：游戏名徽标 + 标题 + 复制/删除按钮） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/eye_care_bg">
+
+    <!-- 顶部标题栏（仿周报页/金币钱包样式） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:background="@color/eye_care_card"
+        android:elevation="2dp">
+
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/module_back"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="@dimen/gm_spacing_1" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/gm_spacing_3"
+            android:text="@string/codebook_title"
+            android:textSize="20sp"
+            android:textColor="@color/eye_care_text_primary"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/gm_spacing_4">
+
+            <!-- ===== 添加区：标题输入 + 关卡码输入 + 添加按钮 ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <EditText
+                    android:id="@+id/et_codebook_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:textSize="14sp"
+                    android:textColor="@color/eye_care_text_primary"
+                    android:hint="@string/codebook_title_hint"
+                    android:textColorHint="@color/eye_care_text_secondary" />
+
+                <EditText
+                    android:id="@+id/et_codebook_code"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:maxLines="4"
+                    android:gravity="top"
+                    android:textSize="14sp"
+                    android:textColor="@color/eye_care_text_primary"
+                    android:hint="@string/codebook_code_hint"
+                    android:textColorHint="@color/eye_care_text_secondary" />
+
+                <Button
+                    android:id="@+id/btn_codebook_add"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:stateListAnimator="@null"
+                    android:text="@string/codebook_add"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- ===== 列表区：条目行代码填充；空列表显示占位文案 ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/codebook_section_title"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/eye_care_text_primary" />
+
+                <LinearLayout
+                    android:id="@+id/layout_codebook_entries"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tv_codebook_empty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:text="@string/codebook_empty"
+                    android:textSize="12sp"
+                    android:textColor="@color/eye_care_text_secondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
