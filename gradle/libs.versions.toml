@@ -54,7 +54,7 @@ androidx-startup = { group = "androidx.startup", name = "startup-runtime", versi
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.15.0" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.19.1" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version = "1.7.1" }
 
 # Compose (Phase 1 试点：设置页) — 与 ViewBinding 共存
