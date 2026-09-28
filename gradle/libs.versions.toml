@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.4.20-RC2"
-room = "2.7.1"
+room = "2.8.5"
 hilt = "2.60.1"
 coroutines = "1.11.0"
 jacoco = "0.8.12"
