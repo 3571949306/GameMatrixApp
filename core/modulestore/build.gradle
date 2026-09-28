@@ -38,7 +38,7 @@ dependencies {
     implementation project(':core:security')
 
     implementation 'androidx.annotation:annotation:1.9.1'
-    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.core:core-ktx:1.19.1'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.4.20-RC2'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
