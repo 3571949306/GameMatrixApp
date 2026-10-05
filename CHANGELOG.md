@@ -3,6 +3,97 @@
 
 # GameMatrixApp - 版本更新日志
 
+## [Sprint 3：定位裁剪落地（金币/游戏周报/提醒下线）] - 2026-09-25
+
+### 变更
+
+- **裁剪域产品面下线**（SP/用户数据保留，不删源码）：
+  - 个人页金币余额块、称号昵称渲染隐藏；战绩卡片改为进「统计」而非金币钱包。
+  - 「游戏周报」快捷入口隐藏；`DailyReminderScheduler.ensureScheduled` 停用（Receiver 仍注册，不再调度）。
+- **保留域限域收口**：关卡码合集本正名（「关卡码合集本 / Level Code Book」，避免误读成密码管理）；Elo 棋力分仅游戏内展示，不开平台级评分中心。
+- **防回潮守卫**：新增 `scripts/verify_positioning_guard.py` 并接入 CI——禁止 `CoinWalletActivity.launch` / `WeeklyReportActivity.launch` / `ensureScheduled` 回潮。
+
+### 验证与发布
+
+- `verify_positioning_guard.py`：PASS。
+- `:app:compileDebugKotlin`：BUILD SUCCESSFUL。
+- `verify_codebook/rating/adaptive` 保持绿（限域逻辑未动）。
+- 受保护产物零改动。真机一眼复核见 backlog（个人页无金币/周报/提醒入口）。
+
+## [Sprint 3：定位裁剪表 + 大厅分区叙事] - 2026-09-25
+
+### 变更
+
+- **定位裁剪表**（仓库外 `定位裁剪表_sprint3.md`）：评分/错题本/工具箱保留（P1 留存）；金币/密码本/周报/提醒/自适应挂起不发；象棋联机/小组件待真机。
+- **大厅分区叙事**：游戏列表前置定位分区标题「经典游戏是入口，工具与学习是留存」（`home_positioning_sections`，中英双语）；空态 CTA 改用 `home_positioning_modules`（只装需要的）。
+
+### 验证与发布
+
+- `:app:compileDebugKotlin` + `:app:testDebugUnitTest --tests home.*`：BUILD SUCCESSFUL。
+- `verify_ratchet`：PASS（guardless 3≤5）。
+- 受保护产物零改动。
+
+## [Sprint 2：定位叙事闭环 + 挂起域账清] - 2026-09-25
+
+### 变更
+
+- **README 门面对齐定位**：开篇改为「经典游戏=入口 / 工具与学习=留存 / 浏览器·AI·VPN=可选模块」三级，去掉与游戏并列的超级 App 观感；中英同步。
+- **模块商店定位可见**：工具栏副标题「只装需要的 · 本地优先，按需组装」；Flutter 商店路径原先整页替换丢标题栏，现包一层共用 toolbar，legacy / Flutter 两路同句。
+- **挂起域 Backlog**（仓库外 `下批backlog_sprint3候选.md`）：象棋联机、小组件、评分/金币/密码本/周报/提醒/自适应、推箱子/数独编辑器、成就桥、BL-002/003/006 真机与服务端守卫——每域「已有/缺口/验收门槛/建议批号」。
+
+### 验证与发布
+
+- `:app:compileDebugKotlin` + `compileDebugJavaWithJavac`：BUILD SUCCESSFUL。
+- 全量 verify 本地 24/25 PASS；`verify_protected_assets` FAIL 为预期（catalog/modules/version=713 构建副作用，见分诊台账，不 revert）。
+- 受保护产物零改动。
+
+## [Sprint 1：门禁加固 + 工具泄漏收口 + 首页定位可见化] - 2026-09-25
+
+### 变更
+
+- **verify 门禁补齐**：`verify_qr/widget/rating/sokoban/sudoku/codebook/coin_economy/adaptive` 8 个专项脚本接入 CI `lint-and-test` 腿；AGENTS 速查表同步。此前脚本存在但无人跑。
+- **工具箱资源泄漏收口**：新增 `ToolIo`（共享兜底线程 / BitmapHold / ShareCachePruner）。4 处 ToolBinder 在调用方 executor 已 shutdown 时按次 `newSingleThreadExecutor()` 且不回收——改为共享 daemon 池；`QrPlusController` 换图时在无 save/share 持有下 recycle 旧 Bitmap；`QrImageIo` 分享前修剪 `cacheDir/qr_share/` 至最近 5 个。回归 `ToolIoTest` 5 条。
+- **首页定位可见化**：Hero 副标题与空态文案改为定位句「本地优先 · 按需组装的游戏与工具箱 / 经典游戏是入口，工具与学习是留存」（中英双语）；空列表引导改为模块商店按需安装口径。
+- **工作树分诊台账**（仓库外 `工作树分诊台账_sprint1.md`）：约 251 处未提交按「本批发 / 本批挂起」标注；受保护产物 catalog/modules/versionCode=713 记录在案，不 revert 用户资产。
+
+### 验证与发布
+
+- `:module-store:feature:tools:tools:testDebugUnitTest`：QrHistoryStore 7 + QrPlusRegression 18 + ToolIo 5 + 既有 7 全绿。
+- `:module-store:feature:games:games:td:testDebugUnitTest`：22 个测试类约 286 用例 0 失败（13 章内容守卫 + 成就战役守卫 + UI 回归）。
+- `verify_qr.py` / `verify_agent_contract.py`：PASS。
+- 挂起不发：象棋联机实机验收、小组件、评分/金币/密码本/周报/提醒/自适应、推箱子/数独编辑器（详见分诊台账）。
+
+## [工具箱二维码增强（QR Plus）收尾：纯逻辑分层 + verify_qr + 中英双语 + UX 触达] - 2026-09-25
+
+### 变更
+
+- **纯逻辑分层**：抽出 `QrHistoryCodec`（历史行式编解码/去重/截断）、`QrStyleMath`（Logo 强制 H、静区钳制、标题几何、批量常量）、`QrPayloads`（WiFi 转义与 WIFI:/vCard 拼装），`QrHistoryStore`/`QrStyleRenderer`/`AdvancedToolBinders` 改为委托，行为不变。此前历史/几何/载荷逻辑混在 Android 门面里，纯 javac 验证脚本编不过。
+- **回归守卫**：新增 `QrPlusRegressionTest` 18 条（历史往返/未知转义/CJK emoji/去重截断、Logo 容错、静区、标题字号收缩、WiFi/vCard 格式）+ `scripts/verify_qr.py`（纯 javac 跑用例，并校验 `tool_qr_plus_*` 中英 key 成对、用户可见代码无硬编码中文）。既有 `QrHistoryStoreTest` 7 条保持绿。
+- **i18n**：布局与 `QrPlusController`/`QrImageIo` 全部用户可见文案抽入宿主 `values/` + `values-en/`（`tool_qr_plus_*` 共 33 对），英文界面不再漏中文。
+- **UX 触达**：样式面板/批量行/历史行底色改 `colorSurfaceVariant`（深浅色自适应）；色块触达 48dp（视觉仍 28dp）；「生成」14sp；历史时间 `Locale.getDefault()`；「清空」历史加确认对话框；色块/预览补 contentDescription。
+
+### 验证与发布
+
+- `python scripts/verify_qr.py`：`QR_PLUS_TEST_RESULT=PASS`（18/18）+ `I18N_KEYS=PASS`（33 对）+ `NO_HARDCODED_CN=PASS`。
+- `:module-store:feature:tools:tools:testDebugUnitTest`：QrHistoryStoreTest 7 + QrPlusRegressionTest 18 + 既有 7 条全绿。
+- `python scripts/verify_agent_contract.py`：PASS。
+- 发布产物（`catalog.json`/`modules.json`/`modules/*.apk`/`version.properties`）本次未改动；工作树 versionCode=713 为既有构建副作用，发布构建以最终回写值为准。
+- 真机验收见仓库外 `D:/Developmment/qr_plus_QA验收计划.md` §4 勾选清单（生成/批量/历史/保存分享/识别/深浅色）。
+- 明确不扩：自定义 Logo 图、圆角码点等记入 Could，不阻塞本次。
+
+## [内容推进：塔防番外八章 + 华容道练习局 + 生存射击数值重定标] - 2026-09-20
+
+### 变更
+
+- 塔防「保卫蛋蛋」战役由 5 章 45 关扩到 13 章 85 关：新增番外「常青之春 / 未醒之谷 / 夏潮彼岸 / 秋实之夜 / 冬至长明 / 夜巡试炼 / 烽灯连营 / 雪峰终哨」共 40 关，全部是数据驱动 JSON，逐章与上一章锚定经济包络（开局金币 ≤ ×1.08、血量/速度/波间隔曲线、终幕比值带宽 1.08–1.14、八章梯度 5.62→11.56），并配 8 条章节内容守卫与 85 关跨章 QA。
+- 塔防成就补上第 6–13 章终关（常春凯旋…雪峰终哨共 8 枚，中英双语文案齐全）；新增清单驱动的成就守卫测试——以后再加一章却没给终关成就会直接红。
+- 华容道练习局由 3 关扩到 8 关，参考步数 4/8/16/20/26/32/40/48 由对称去重后的全盘 BFS（53,954 个规范态）逐关证明，并把参考解冻结为回放守卫。
+- 华容道棋盘几何修复：高密度屏上出口被裁、底行放不下最后一格的问题，改为按整幅堆栈（含 0.15 格外框与 1.05 脉冲峰值）换算格边长。
+- 生存射击（土豆兄弟玩法）改为引擎/渲染拆分 + 数据驱动内容：8 种敌人（含 ZIGZAG 飘移与 SPLIT 分裂行为）、20 波、第 5/10/15/20 波为 Boss 波；修复模块资源未装载导致进屏即空的 P0，死亡后补上结算遮罩。
+- 生存射击数值重定标：用无头模拟（挂机 / 会走位乱选卡 / 会走位会选卡三种脚本玩家 × 三档难度）跑真实局长，发现旧成长表可把 dps 叠到 720、站着不动也能通关普通、第 11 波后场上无法聚集；据此收紧叠乘与上限（射速 ×0.85 且间隔下限 130ms、单发伤害 ×1.25 且上限 8、单轮弹数上限 3）、把三档难度重锚为 0.7/1.0/1.35，并抬高四个"压力空拍"波次的密度。新增 6 条手感守卫：挂机打不过普通、会走位会选卡必通普通、困难是可控而不是一胜俱胜、后半程必须成群且掉血、满配 dps 与终幕出怪到达率挂钩。
+- 联机令牌存储改为 fail-closed：加密首选项不可用时不再静默回退写明文（BL-064，配两条静态守卫）。
+- CI 欠账补齐：仓库内 21 个含 `src/test` 的模块全部进入 `Run unit tests`（此前 12 个游戏模块的单测无人跑），并在 agent 契约守卫里新增「有测试但 CI 不跑即 FAIL」的不变量。本地全量 1310 用例 0 失败。
+
 ## [stable vc599：更新检查兼容性修复] - 2026-07-23
 
 ### 变更

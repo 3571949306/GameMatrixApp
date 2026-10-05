@@ -25,6 +25,10 @@
 | 场景 | 脚本 |
 |---|---|
 | 象棋/围棋/构建链契约 | `verify_agent_contract.py`、`verify_chinese_chess.py`、`verify_go.py` |
+| 工具箱二维码 Plus | `verify_qr.py` |
+| 定位裁剪防回潮（金币/周报/提醒入口） | `verify_positioning_guard.py` |
+| 桌面小组件 / Elo 评分 | `verify_widget.py`、`verify_rating.py` |
+| 推箱子 / 数独 / 密码本 / 金币经济 / 自适应 | `verify_sokoban.py`、`verify_sudoku.py`、`verify_codebook.py`、`verify_coin_economy.py`、`verify_adaptive.py` |
 | 单一真相源守卫 | `verify_ai_parity.py` |
 | 模块隔离 | `verify_isolation.py` |
 | 预装模块 | `verify_preinstalled_modules.py` |
