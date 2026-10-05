@@ -1,23 +1,18 @@
 package com.gamecenter.app.chinesechess;
 
-// [DEAD-ONLINE] 联机功能已通过 OnlinePlayGate 统一下线。
-// 本类全仓库零外部调用，属于死代码。
-// 清理时直接删除文件及镜像。
-
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
-import com.gamecenter.app.core.common.ModuleScopedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -29,661 +24,528 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.gamecenter.app.R;
-import com.gamecenter.app.network.GameSocketClient;
-import com.gamecenter.app.network.GameSocketServer;
-import com.gamecenter.app.network.OnlineChatHelper;
-import com.gamecenter.app.network.OnlineDialogHelper;
-import com.gamecenter.app.network.RelayHttpClient;
-import com.gamecenter.app.network.RoomCodeHelper;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
 /**
- * 中国象棋联机对战 Fragment。
+ * 局域网双机对战 Fragment（LOCAL-P2P，无服务器、local-first）。
+ *
+ * <p>玩法：一台设备「创建房间」（ServerSocket 随机端口 + NSD 广播），另一台在同一
+ * 局域网「加入房间」（NSD 发现列表或手动 IP:PORT 直连），双端经 LanChessSession
+ * 行协议实时同步着法。NSD 组播不可用的网络下降级为纯直连。</p>
+ *
+ * <p>对局承载：本 Fragment 自带棋盘渲染（ChineseChessView）与对局逻辑（ChineseChessGame），
+ * 与人机主界面（ChineseChessModuleFragment）平行的独立对局页。不把 Session 回传主界面
+ * 是有意为之：连接生命周期与页面生命周期天然一致（退出页面即 session.close 成对释放），
+ * 也避免主界面为联机注入 AI 回调/代次保护之外的又一状态源。</p>
+ *
+ * <p>线程约定：session 回调来自 Socket 读线程，一律经 mainHandler 切主线程后再
+ * 操作视图与棋局；网络 connect/建房的阻塞操作放后台线程。</p>
  */
 public class ChineseChessOnlineFragment extends Fragment {
 
-    private static final String P2P_PREFS = "xiangqi_p2p";
-    /** 模块作用域 ID（必须与 catalog.json 中 chinesechess 模块 id 一致） */
-    private static final String MODULE_ID = "chinesechess";
-    private static final String PROTOCOL = "XQ";
-    private static final String RELAY_BASE_URL = RelayHttpClient.DEFAULT_BASE_URL;
-    private static final String LOG_TAG = "ChineseChessOnline";
-    private static final int MAX_SYNC_MOVES = 1000;
+    private static final String TAG = "ChineseChessOnline";
+    private static final int CONNECT_TIMEOUT_MS = 5000;
+    private static final String ROOM_NAME_PREFIX = "GameMatrix-象棋-";
+    private static final char[] ROOM_SUFFIX_ALPHABET =
+            "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray();
 
-    private SharedPreferences prefs;
-    private GameSocketServer server;
-    private GameSocketClient client;
-
-    private volatile boolean isHost = false;
-    private volatile boolean isPlaying = false;
-    private volatile boolean opponentHasJoined = false;
-
-    private int myPlayerId = -1;
-    private int opponentPlayerId = -1;
-    private String roomCode = "";
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Random random = new Random();
 
     private ChineseChessGame game;
-    private volatile long currentStateVersion = 0;
+    private ChineseChessView boardView;
 
-    private OnlineChatHelper chatHelper;
-    private ChineseChessGame.Side mySide;
+    private LanChessSession session;
+    private LanChessServer server;
+    private LanChessClient client;
 
-    private Handler mainHandler = new Handler(Looper.getMainLooper());
-
+    // ---- 大厅视图（建房/加入） ----
     private LinearLayout lobbyLayout;
-    private FrameLayout gameLayout;
-    private TextView roomCodeText;
-    private TextView connectionStatusText;
+    private LinearLayout roomListLayout;
+    private TextView lobbyStatusText;
+    private ProgressBar lobbyProgress;
+    private EditText ipInput;
+    private EditText portInput;
+
+    // ---- 对局视图 ----
+    private LinearLayout gameLayout;
     private TextView turnStatusText;
     private TextView winnerText;
-    private ProgressBar loadingBar;
-    private ChineseChessView boardView;
+
+    private volatile boolean connecting;
+    private volatile boolean isPlaying;
+    private boolean matchResultShown;
+    private boolean iAmRed;
 
     private int selectedX = -1;
     private int selectedY = -1;
     private List<int[]> selectedMoves;
 
-    private TextView chatDisplay;
-    private AlertDialog waitingDialog;
-    private ScrollView chatScroll;
-    private EditText chatInput;
-
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // Phase 3 数据隔离：迁移旧扁平 SP 并使用作用域 SP（mod_chinesechess__xiangqi_p2p）
-        ModuleScopedPreferences.migrateFrom(requireContext(), MODULE_ID, P2P_PREFS);
-        prefs = ModuleScopedPreferences.get(requireContext(), MODULE_ID, P2P_PREFS);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         game = new ChineseChessGame();
-
-        View rootView = initViews();
-
-        // 初始化WebSocket服务器（房主模式）
-        server = new GameSocketServer(requireContext());
-        server.setOnClientConnectedListener(this::onClientConnected);
-        server.setOnClientDisconnectedListener(this::onClientDisconnected);
-        server.setOnMessageReceivedListener(this::onHostMessageReceived);
-        server.setOnErrorListener(this::onServerError);
-
-        // 初始化WebSocket客户端（加入方模式）
-        client = GameSocketClient.getInstance(requireContext());
-        client.setPlayerName("Player");
-        client.setOnConnectedListener(this::onClientConnectedToHost);
-        client.setOnDisconnectedListener(this::onClientDisconnectedFromHost);
-        client.setOnMessageReceivedListener(this::onClientMessageReceived);
-        client.setOnErrorListener(this::onClientError);
-
-        // 初始化聊天功能
-        chatHelper = new OnlineChatHelper(requireContext());
-        chatHelper.setOnChatMessageSendListener(text -> {
-            JSONObject msg = chatHelper.createChatMessage(text);
-            if (msg != null) {
-                if (isHost) {
-                    server.broadcast(msg);
-                } else {
-                    client.send(msg);
-                }
-            }
-        });
-
-        chatHelper.setInlineDisplay(chatDisplay, chatScroll);
-
-        return rootView;
+        View root = buildViews();
+        return root;
     }
 
-    private View initViews() {
+    private View buildViews() {
         Context ctx = requireContext();
-
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT));
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        root.addView(buildLobby(ctx));
+        root.addView(buildGameScreen(ctx));
+        return root;
+    }
 
+    // ==================== 大厅 ====================
+
+    private View buildLobby(Context ctx) {
         lobbyLayout = new LinearLayout(ctx);
         lobbyLayout.setOrientation(LinearLayout.VERTICAL);
         lobbyLayout.setPadding(48, 48, 48, 48);
         lobbyLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT));
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
 
-        TextView titleText = new TextView(ctx);
-        titleText.setText(getString(R.string.chess_online_title));
-        titleText.setTextSize(24);
-        titleText.setTextColor(0xFF1E1E32);
-        titleText.setGravity(View.TEXT_ALIGNMENT_CENTER);
+        TextView title = new TextView(ctx);
+        title.setText(getString(R.string.chess_online_title));
+        title.setTextSize(22);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, 0, 0, 12);
 
-        Button createRoomBtn = new Button(ctx);
-        createRoomBtn.setText(getString(R.string.chess_online_create_room));
-        createRoomBtn.setTextSize(18);
-        createRoomBtn.setBackgroundColor(0xFF4CAF50);
-        createRoomBtn.setTextColor(0xFFFFFFFF);
-        createRoomBtn.setPadding(32, 24, 32, 24);
-        createRoomBtn.setOnClickListener(v -> createRoom());
+        TextView subtitle = new TextView(ctx);
+        subtitle.setText("局域网双机对战：两台设备连同一 Wi-Fi 热点即可");
+        subtitle.setTextSize(13);
+        subtitle.setGravity(Gravity.CENTER);
+        subtitle.setPadding(0, 0, 0, 16);
 
-        Button joinRoomBtn = new Button(ctx);
-        joinRoomBtn.setText(getString(R.string.chess_online_join_room));
-        joinRoomBtn.setTextSize(18);
-        joinRoomBtn.setBackgroundColor(0xFF2196F3);
-        joinRoomBtn.setTextColor(0xFFFFFFFF);
-        joinRoomBtn.setPadding(32, 24, 32, 24);
-        joinRoomBtn.setOnClickListener(v -> showJoinDialog());
+        Button createRoomBtn = buildButton(ctx, getString(R.string.chess_online_create_room), 18);
+        createRoomBtn.setOnClickListener(v -> hostRoom());
 
-        loadingBar = new ProgressBar(ctx);
-        loadingBar.setVisibility(View.GONE);
+        Button joinRoomBtn = buildButton(ctx, getString(R.string.chess_online_join_room), 18);
+        joinRoomBtn.setOnClickListener(v -> startRoomDiscovery());
 
-        roomCodeText = new TextView(ctx);
-        roomCodeText.setTextSize(20);
-        roomCodeText.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        roomCodeText.setPadding(0, 16, 0, 16);
+        lobbyProgress = new ProgressBar(ctx);
+        lobbyProgress.setVisibility(View.GONE);
 
-        connectionStatusText = new TextView(ctx);
-        connectionStatusText.setTextSize(16);
-        connectionStatusText.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        connectionStatusText.setPadding(0, 8, 0, 8);
+        lobbyStatusText = new TextView(ctx);
+        lobbyStatusText.setTextSize(15);
+        lobbyStatusText.setGravity(Gravity.CENTER);
+        lobbyStatusText.setPadding(0, 16, 0, 8);
 
-        lobbyLayout.addView(titleText);
+        // NSD 发现的房间列表（点击即连；滚动容器防止房间过多撑爆大厅）。
+        ScrollView roomScroll = new ScrollView(ctx);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(ctx, 150));
+        roomScroll.setLayoutParams(scrollParams);
+        roomListLayout = new LinearLayout(ctx);
+        roomListLayout.setOrientation(LinearLayout.VERTICAL);
+        roomScroll.addView(roomListLayout);
+
+        TextView manualTitle = new TextView(ctx);
+        manualTitle.setText("自动发现不可用？手动输入房主 IP 直连：");
+        manualTitle.setTextSize(13);
+        manualTitle.setPadding(0, 8, 0, 4);
+
+        LinearLayout manualRow = new LinearLayout(ctx);
+        manualRow.setOrientation(LinearLayout.HORIZONTAL);
+        ipInput = new EditText(ctx);
+        ipInput.setHint("如 192.168.1.10");
+        ipInput.setSingleLine(true);
+        ipInput.setTextSize(14);
+        ipInput.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 2.2f));
+        portInput = new EditText(ctx);
+        portInput.setHint("端口");
+        portInput.setSingleLine(true);
+        portInput.setTextSize(14);
+        portInput.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.8f));
+        Button connectBtn = buildButton(ctx, "直连加入", 14);
+        connectBtn.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        connectBtn.setOnClickListener(v -> connectFromManualInput());
+        manualRow.addView(ipInput);
+        manualRow.addView(portInput);
+        manualRow.addView(connectBtn);
+
+        lobbyLayout.addView(title);
+        lobbyLayout.addView(subtitle);
         lobbyLayout.addView(createRoomBtn);
         lobbyLayout.addView(joinRoomBtn);
-        lobbyLayout.addView(loadingBar);
-        lobbyLayout.addView(roomCodeText);
-        lobbyLayout.addView(connectionStatusText);
+        lobbyLayout.addView(lobbyProgress);
+        lobbyLayout.addView(lobbyStatusText);
+        lobbyLayout.addView(roomScroll);
+        lobbyLayout.addView(manualTitle);
+        lobbyLayout.addView(manualRow);
+        return lobbyLayout;
+    }
 
-        gameLayout = new FrameLayout(ctx);
+    /** 统一构建程序化 Button：动态模块资源上下文必须显式关闭宿主主题 stateListAnimator。 */
+    private Button buildButton(Context ctx, String text, float sizeSp) {
+        Button button = new Button(ctx);
+        button.setText(text);
+        button.setTextSize(sizeSp);
+        button.setStateListAnimator(null);
+        return button;
+    }
+
+    private int dp(Context ctx, int value) {
+        return (int) (value * ctx.getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    /** 建房：随机端口 + NSD 广播（失败仅告警），大厅展示本机 IP:PORT 等对手直连。 */
+    private void hostRoom() {
+        if (connecting || isPlaying || server != null) return;
+        lobbyProgress.setVisibility(View.VISIBLE);
+        lobbyStatusText.setText("正在创建房间…");
+        server = new LanChessServer(requireContext());
+        server.setOnClientConnectedListener(this::onOpponentConnected);
+        new Thread(() -> {
+            try {
+                final int boundPort = server.start(ROOM_NAME_PREFIX + randomRoomSuffix());
+                final String localIp = LanChessServer.getLocalIpv4();
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
+                    lobbyProgress.setVisibility(View.GONE);
+                    lobbyStatusText.setText("房间已创建："
+                            + (localIp != null ? localIp + ":" + boundPort : "端口 " + boundPort)
+                            + "\n等待对手加入…（对方可自动发现或直连）");
+                });
+            } catch (IOException e) {
+                Log.w(TAG, "创建房间失败", e);
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
+                    lobbyProgress.setVisibility(View.GONE);
+                    lobbyStatusText.setText("");
+                    Toast.makeText(requireContext(),
+                            R.string.chess_online_create_failed, Toast.LENGTH_SHORT).show();
+                    closeServerQuietly();
+                });
+            }
+        }, "LanChessHostRoom").start();
+    }
+
+    private void onOpponentConnected(LanChessSession.Transport transport, String peerIp) {
+        // accept 线程回调 → 切主线程
+        mainHandler.post(() -> {
+            if (!isAdded() || isPlaying) {
+                transport.close(); // 页面已销毁或已进入其他对局：成对释放，防泄漏
+                return;
+            }
+            server.stopAccepting(); // 已有对手：停 accept + 注销 NSD，连接交给会话管理
+            startMatch(LanChessSession.Role.HOST, transport);
+        });
+    }
+
+    /** NSD 发现列表（自动发现 + 手动直连共用）。 */
+    private void startRoomDiscovery() {
+        if (connecting || isPlaying) return;
+        ensureClient();
+        roomListLayout.removeAllViews();
+        lobbyProgress.setVisibility(View.VISIBLE);
+        lobbyStatusText.setText("正在搜索局域网房间…（搜不到可直接输入 IP）");
+        client.startDiscovery(new LanChessClient.RoomListener() {
+            @Override
+            public void onRoomFound(String roomName, String host, int port) {
+                // NsdManager 回调已在主线程，仍统一 post 保证视图操作收口一处。
+                mainHandler.post(() -> addRoomToList(roomName, host, port));
+            }
+
+            @Override
+            public void onDiscoveryStopped(String reason) {
+                mainHandler.post(() -> {
+                    if (isAdded()) lobbyProgress.setVisibility(View.GONE);
+                });
+            }
+
+            @Override
+            public void onDiscoveryStartFailed(String reason) {
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
+                    lobbyProgress.setVisibility(View.GONE);
+                    lobbyStatusText.setText("自动发现不可用（" + reason
+                            + "），请让房主查看 IP 后直连");
+                });
+            }
+        });
+    }
+
+    private void addRoomToList(String roomName, String host, int port) {
+        if (!isAdded() || isPlaying) return;
+        // 房主自己也会收到本机房间广播：跳过自己，避免连到自己。
+        if (server != null && server.getPort() == port
+                && host != null && host.equals(LanChessServer.getLocalIpv4())) {
+            return;
+        }
+        Button roomBtn = buildButton(requireContext(),
+                roomName + "\n" + host + ":" + port, 14);
+        roomBtn.setPadding(12, 8, 12, 8);
+        roomBtn.setOnClickListener(v -> connectToRoom(host, port));
+        roomListLayout.addView(roomBtn);
+        lobbyProgress.setVisibility(View.GONE);
+        lobbyStatusText.setText("发现房间，点击加入（列表持续刷新…）");
+    }
+
+    private void connectFromManualInput() {
+        String ip = ipInput.getText().toString().trim();
+        String portText = portInput.getText().toString().trim();
+        if (ip.isEmpty()) {
+            Toast.makeText(requireContext(), "请输入房主 IP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int port;
+        try {
+            port = Integer.parseInt(portText);
+        } catch (NumberFormatException e) {
+            Toast.makeText(requireContext(), "端口无效", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (port < 1 || port > 65535) {
+            Toast.makeText(requireContext(), "端口须在 1~65535", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        connectToRoom(ip, port);
+    }
+
+    private void connectToRoom(String host, int port) {
+        if (connecting || isPlaying || !isAdded()) return;
+        connecting = true;
+        lobbyProgress.setVisibility(View.VISIBLE);
+        lobbyStatusText.setText("正在连接 " + host + ":" + port + "…");
+        ensureClient();
+        client.stopDiscovery();
+        new Thread(() -> {
+            try {
+                LanChessSession.Transport transport =
+                        client.connect(host, port, CONNECT_TIMEOUT_MS);
+                mainHandler.post(() -> {
+                    if (!isAdded()) {
+                        transport.close(); // 页面已销毁：立即成对释放，防泄漏
+                        return;
+                    }
+                    connecting = false;
+                    startMatch(LanChessSession.Role.GUEST, transport);
+                });
+            } catch (IOException e) {
+                Log.w(TAG, "直连失败 " + host + ":" + port, e);
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
+                    connecting = false;
+                    lobbyProgress.setVisibility(View.GONE);
+                    lobbyStatusText.setText("连接失败，请检查 IP/端口与同一 Wi-Fi");
+                });
+            }
+        }, "LanChessConnect").start();
+    }
+
+    private void ensureClient() {
+        if (client == null) {
+            client = new LanChessClient(requireContext());
+        }
+    }
+
+    private String randomRoomSuffix() {
+        StringBuilder sb = new StringBuilder(4);
+        for (int i = 0; i < 4; i++) {
+            sb.append(ROOM_SUFFIX_ALPHABET[random.nextInt(ROOM_SUFFIX_ALPHABET.length)]);
+        }
+        return sb.toString();
+    }
+
+    // ==================== 对局 ====================
+
+    private View buildGameScreen(Context ctx) {
+        gameLayout = new LinearLayout(ctx);
+        gameLayout.setOrientation(LinearLayout.VERTICAL);
         gameLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                0, 1.0f));
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f));
         gameLayout.setVisibility(View.GONE);
-
-        LinearLayout gameContent = new LinearLayout(ctx);
-        gameContent.setOrientation(LinearLayout.VERTICAL);
 
         turnStatusText = new TextView(ctx);
         turnStatusText.setTextSize(18);
-        turnStatusText.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        turnStatusText.setTextColor(0xFFFF9800);
-        turnStatusText.setPadding(8, 8, 8, 4);
+        turnStatusText.setGravity(Gravity.CENTER);
+        turnStatusText.setPadding(8, 12, 8, 4);
 
         winnerText = new TextView(ctx);
         winnerText.setTextSize(20);
-        winnerText.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        winnerText.setTextColor(0xFF4CAF50);
+        winnerText.setGravity(Gravity.CENTER);
         winnerText.setPadding(8, 4, 8, 4);
 
         boardView = new ChineseChessView(ctx);
         boardView.bindGame(game);
         boardView.setSimpleMode(ChineseChessUiPreferences.isSimpleMode(ctx));
-        boardView.setOnCellClickListener(this::selectPiece);
-        LinearLayout.LayoutParams boardParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                0, 1.0f);
-        boardView.setLayoutParams(boardParams);
+        boardView.setLocked(true);
+        boardView.setOnCellClickListener(this::onCellTap);
+        boardView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
-        chatDisplay = new TextView(ctx);
-        chatDisplay.setTextSize(12);
-        chatDisplay.setBackgroundColor(0xFFF5F5F5);
-        chatDisplay.setPadding(12, 8, 12, 8);
-        chatDisplay.setMaxLines(4);
-        chatDisplay.setGravity(View.TEXT_ALIGNMENT_VIEW_START);
-        LinearLayout.LayoutParams chatParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                (int) (getResources().getDisplayMetrics().density * 80));
-        chatParams.setMargins(8, 2, 8, 2);
-        chatDisplay.setLayoutParams(chatParams);
+        Button resignBtn = buildButton(ctx, "认输", 14);
+        resignBtn.setOnClickListener(v -> confirmResign());
+        Button leaveBtn = buildButton(ctx, getString(R.string.chess_online_leave), 14);
+        leaveBtn.setOnClickListener(v -> leaveMatch());
 
-        chatScroll = new ScrollView(ctx);
-        chatScroll.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                (int) (getResources().getDisplayMetrics().density * 80)));
-        chatScroll.addView(chatDisplay);
-        chatScroll.setSmoothScrollingEnabled(true);
+        LinearLayout buttonRow = new LinearLayout(ctx);
+        buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+        buttonRow.setPadding(8, 4, 8, 8);
+        buttonRow.addView(resignBtn, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+        buttonRow.addView(leaveBtn, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-        LinearLayout chatInputRow = new LinearLayout(ctx);
-        chatInputRow.setOrientation(LinearLayout.HORIZONTAL);
-        chatInputRow.setPadding(8, 0, 8, 4);
-
-        chatInput = new EditText(ctx);
-        chatInput.setHint(getString(R.string.chess_online_chat_hint));
-        chatInput.setSingleLine(true);
-        chatInput.setTextSize(14);
-        chatInput.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
-
-        Button chatSendBtn = new Button(ctx);
-        chatSendBtn.setText(getString(R.string.chess_online_send));
-        chatSendBtn.setTextSize(14);
-        chatSendBtn.setBackgroundColor(0xFF9C27B0);
-        chatSendBtn.setTextColor(0xFFFFFFFF);
-        chatSendBtn.setPadding(16, 8, 16, 8);
-        chatSendBtn.setOnClickListener(v -> sendChatMessage());
-
-        chatInput.setOnEditorActionListener((v, actionId, event) -> {
-            sendChatMessage();
-            return true;
-        });
-
-        chatInputRow.addView(chatInput);
-        chatInputRow.addView(chatSendBtn);
-
-        Button leaveBtn = new Button(ctx);
-        leaveBtn.setText(getString(R.string.chess_online_leave));
-        leaveBtn.setTextSize(14);
-        leaveBtn.setBackgroundColor(0xFF9E9E9E);
-        leaveBtn.setTextColor(0xFFFFFFFF);
-        leaveBtn.setPadding(16, 8, 16, 8);
-        leaveBtn.setOnClickListener(v -> leaveRoom());
-
-        LinearLayout btnRow = new LinearLayout(ctx);
-        btnRow.setOrientation(LinearLayout.HORIZONTAL);
-        btnRow.setPadding(8, 0, 8, 4);
-        btnRow.addView(leaveBtn);
-
-        gameContent.addView(turnStatusText);
-        gameContent.addView(winnerText);
-        gameContent.addView(boardView);
-        gameContent.addView(chatScroll);
-        gameContent.addView(chatInputRow);
-        gameContent.addView(btnRow);
-
-        gameLayout.addView(gameContent);
-
-        root.addView(lobbyLayout);
-        root.addView(gameLayout);
-
-        return root;
+        gameLayout.addView(turnStatusText);
+        gameLayout.addView(winnerText);
+        gameLayout.addView(boardView);
+        gameLayout.addView(buttonRow);
+        return gameLayout;
     }
 
-    private void sendChatMessage() {
-        String text = chatInput.getText().toString().trim();
-        if (!text.isEmpty()) {
-            chatHelper.sendChat(text);
-            chatInput.setText("");
+    /** 建立对局：组装会话（规则校验注入 + 回调监听），握手后进入棋盘页。 */
+    private void startMatch(LanChessSession.Role role, LanChessSession.Transport transport) {
+        if (isPlaying) {
+            transport.close(); // 防御：已有进行中对局，拒绝重复进入
+            return;
         }
-    }
-
-    private void createRoom() {
-        loadingBar.setVisibility(View.VISIBLE);
-        connectionStatusText.setText(getString(R.string.chess_online_creating));
-
-        new Thread(() -> {
-            String code = RoomCodeHelper.generateRoomCode();
-            String wsUrl = RelayHttpClient.getWebSocketUrl(RELAY_BASE_URL, code, "");
-            boolean success = server.startWebSocket(wsUrl);
-            mainHandler.post(() -> {
-                loadingBar.setVisibility(View.GONE);
-                if (success) {
-                    isHost = true;
-                    myPlayerId = 1;
-                    roomCode = code;
-                    connectionStatusText.setText(getString(R.string.chess_online_room_created));
-                    roomCodeText.setText(getString(R.string.chess_online_room_code_format, code));
-                    showWaitingDialog(roomCode);
-                } else {
-                    Toast.makeText(requireContext(), R.string.chess_online_create_failed, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }).start();
-    }
-
-    private void showWaitingDialog(String roomCode) {
-        waitingDialog = OnlineDialogHelper.showWaitingDialog(requireActivity(), roomCode, this::leaveRoom);
-    }
-
-    private void showJoinDialog() {
-        OnlineDialogHelper.showJoinDialog(requireActivity(), this::joinRoom);
-    }
-
-    private void joinRoom(String roomCode) {
-        loadingBar.setVisibility(View.VISIBLE);
-        connectionStatusText.setText(getString(R.string.chess_online_joining_format, roomCode));
-
-        String savedToken = prefs.getString("last_peer_token", null);
-        String wsUrl = RelayHttpClient.getWebSocketClientUrl(RELAY_BASE_URL, roomCode);
-
-        if (savedToken != null) {
-            client.setPeerToken(savedToken);
+        if (session != null) {
+            session.close(); // 理论不可达（结束局必经「返回」离开）：防御性收口旧会话
         }
-
-        client.connectWebSocket(wsUrl);
-    }
-
-    private void onClientConnected(int clientId, String ip) {
-        opponentPlayerId = clientId;
-        opponentHasJoined = true;
-        mainHandler.post(() -> {
-            connectionStatusText.setText(getString(R.string.chess_online_opponent_joined));
-            isPlaying = true;
-            startGame();
-        });
-    }
-
-    private void onClientDisconnected(int clientId, String reason) {
-        if (clientId == opponentPlayerId) {
-            mainHandler.post(() -> {
-                Toast.makeText(requireContext(), getString(R.string.chess_online_opponent_left_format, reason), Toast.LENGTH_SHORT).show();
-                isPlaying = false;
-                showLobby();
-            });
-        }
-    }
-
-    private void onClientConnectedToHost(int clientId) {
-        myPlayerId = 2;
-        isPlaying = true;
-
-        String token = client.getPeerToken();
-        if (token != null && !token.isEmpty()) {
-            prefs.edit().putString("last_peer_token", token).apply();
-        }
-
-        mainHandler.post(() -> {
-            connectionStatusText.setText(getString(R.string.chess_online_connected_host));
-            startGame();
-        });
-    }
-
-    private void onClientDisconnectedFromHost(String reason) {
-        mainHandler.post(() -> {
-            Toast.makeText(requireContext(), getString(R.string.chess_online_disconnected_format, reason), Toast.LENGTH_SHORT).show();
-            isPlaying = false;
-            showLobby();
-        });
-    }
-
-    private void onServerError(String message) {
-        mainHandler.post(() -> Toast.makeText(requireContext(), getString(R.string.chess_online_server_error_format, message), Toast.LENGTH_SHORT).show());
-    }
-
-    private void onClientError(String message) {
-        mainHandler.post(() -> Toast.makeText(requireContext(), getString(R.string.chess_online_client_error_format, message), Toast.LENGTH_SHORT).show());
-    }
-
-    private void startGame() {
         game.reset();
-        currentStateVersion = 0;
-        mySide = myPlayerId == 1 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK;
+        matchResultShown = false;
         selectedX = -1;
         selectedY = -1;
         selectedMoves = null;
-        showGameScreen();
-        updateTurnStatus();
+
+        session = new LanChessSession(role, transport, playerName(),
+                this::isOpponentMoveLegal, sessionListener);
+        session.start(); // GUEST 发送 HELLO；HOST 等待对端 HELLO 后回 WELCOME
+
+        isPlaying = true;
+        lobbyLayout.setVisibility(View.GONE);
+        gameLayout.setVisibility(View.VISIBLE);
+        boardView.bindGame(game);
+        boardView.clearSelected();
+        boardView.clearLastMove();
+        boardView.setLocked(true);
+        turnStatusText.setText("握手确认中…");
+        winnerText.setText("");
     }
 
-    private void updateTurnStatus() {
-        boolean isMyTurn = game.getCurrentSide() == mySide;
+    private String playerName() {
+        String model = Build.MODEL;
+        return model == null || model.isEmpty() ? "GameMatrix玩家" : model;
+    }
 
+    /**
+     * 会话在读线程上的对方着法预检。轮次排他保证：只有轮到对方时才会调用，
+     * 主线程此时不会对 game 做写操作；主线程收到回调后仍会经 syncedGame 终检。
+     */
+    private boolean isOpponentMoveLegal(int fromX, int fromY, int toX, int toY) {
+        return game.isMoveLegal(fromX, fromY, toX, toY);
+    }
+
+    private final LanChessSession.SessionListener sessionListener = new LanChessSession.SessionListener() {
+        @Override
+        public void onReady(boolean red, String opponentName) {
+            mainHandler.post(() -> {
+                if (!isAdded() || !isPlaying) return;
+                iAmRed = red;
+                updateTurnStatus("你执" + (red ? "红" : "黑")
+                        + "，对手：" + opponentName);
+            });
+        }
+
+        @Override
+        public void onOpponentMove(int fromX, int fromY, int toX, int toY) {
+            mainHandler.post(() -> applyOpponentMove(fromX, fromY, toX, toY));
+        }
+
+        @Override
+        public void onOpponentResigned() {
+            mainHandler.post(() -> showMatchResult(
+                    getString(R.string.chess_online_you_win) + "（对方认输）"));
+        }
+
+        @Override
+        public void onOpponentLeft() {
+            mainHandler.post(() -> showMatchResult("对手已离开对局"));
+        }
+
+        @Override
+        public void onDisconnected(String reason) {
+            mainHandler.post(() -> showMatchResult("连接断开："
+                    + (reason == null || reason.isEmpty() ? "未知原因" : reason)));
+        }
+    };
+
+    private void updateTurnStatus(String prefix) {
+        if (!isPlaying) return;
         if (game.isGameOver()) {
-            ChineseChessGame.Side winner = game.getWinner();
-            if (winner == null) {
-                winnerText.setText("和棋");
-            } else if (winner == mySide) {
-                winnerText.setText(getString(R.string.chess_online_you_win));
-            } else {
-                winnerText.setText(getString(R.string.chess_online_opponent_wins));
-            }
-            turnStatusText.setText(getString(R.string.chess_online_game_over));
-            boardView.setLocked(true);
+            turnStatusText.setText(R.string.chess_online_game_over);
+            return;
+        }
+        boolean myTurn = session != null && session.isMyTurn();
+        if (prefix != null && !prefix.isEmpty()) {
+            turnStatusText.setText(prefix + " · " + (myTurn ? "轮到你走棋" : "等待对手…"));
         } else {
-            winnerText.setText("");
-            turnStatusText.setText(isMyTurn ? "轮到你走棋" : "等待对手...");
-            boardView.setLocked(!isMyTurn);
+            turnStatusText.setText(myTurn ? "轮到你走棋" : "等待对手…");
         }
-
-        boardView.invalidate();
+        boardView.setLocked(!myTurn);
     }
 
-    private void onHostMessageReceived(int clientId, JSONObject message) {
-        try {
-            String type = message.optString("type", "");
-            if (chatHelper.isChatMessage(message)) {
-                chatHelper.handleIncomingChat(message);
-                return;
-            }
-            switch (type) {
-                case "MOVE":
-                    handleMove(clientId, message);
-                    break;
-                case "SYNC_STATE":
-                    handleClientSyncState(message);
-                    break;
-                case "GAME_OVER":
-                    handleGameOver(message);
-                    break;
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void onClientMessageReceived(JSONObject message) {
-        try {
-            String type = message.optString("type", "");
-            if (chatHelper.isChatMessage(message)) {
-                chatHelper.handleIncomingChat(message);
-                return;
-            }
-            switch (type) {
-                case "SYNC_STATE":
-                    handleClientSyncState(message);
-                    break;
-                case "GAME_OVER":
-                    handleGameOver(message);
-                    break;
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void handleMove(int clientId, JSONObject message) throws JSONException {
-        if (clientId != opponentPlayerId) return;
-
-        int fromX = message.getInt("fromX");
-        int fromY = message.getInt("fromY");
-        int toX = message.getInt("toX");
-        int toY = message.getInt("toY");
-
-        // 集中闸门落子，并拒绝对手发来的非法着法（程序缺陷或对局作弊），
-        // 杜绝非法局面污染本地棋盘（即"AI 非法吃将"类问题的联机对应形态）。
-        ChineseChessGame.MoveRecord record = game.commitMove(fromX, fromY, toX, toY);
-        if (record == null) {
-            Log.e("ChineseChessOnline", "收到对手非法着法，已拒绝: "
-                    + fromX + "," + fromY + "->" + toX + "," + toY);
+    /** 对方着法已过会话四重校验；主线程经重放副本终检后由集中闸门落子（双保险）。 */
+    private void applyOpponentMove(int fromX, int fromY, int toX, int toY) {
+        if (!isAdded() || !isPlaying || game.isGameOver()) return;
+        // 联机消息一律按不可信输入处理：先在重放副本上过 commitMove 闸门终检，
+        // 非法数据绝不能污染本地棋盘（与中继联机旧实现的防线语义一致）。
+        ChineseChessGame syncedGame = game.deepCopy();
+        if (syncedGame.commitMove(fromX, fromY, toX, toY) == null
+                || game.commitMove(fromX, fromY, toX, toY) == null) {
+            Log.e(TAG, "LAN_OPPONENT_MOVE_REJECTED " + fromX + "," + fromY
+                    + "->" + toX + "," + toY + "，断开对局");
+            if (session != null) session.close();
+            showMatchResult("对方着法非法，对局已断开");
             return;
         }
-
-        sendSyncState();
-
-        if (game.isGameOver()) {
-            broadcastGameOver();
-        }
-
-        mainHandler.post(this::updateTurnStatus);
-    }
-
-    private void sendSyncState() {
-        try {
-            currentStateVersion++;
-            JSONObject state = new JSONObject();
-            state.put("type", "SYNC_STATE");
-            state.put("stateVersion", currentStateVersion);
-            state.put("currentSide", game.getCurrentSide().ordinal());
-            state.put("gameOver", game.isGameOver());
-            if (game.isGameOver()) {
-                state.put("winner", game.getWinner() == null ? -1 : game.getWinner().ordinal());
-            }
-
-            JSONArray moveHistory = new JSONArray();
-            for (ChineseChessGame.MoveRecord move : game.getMoveHistory()) {
-                JSONObject moveObj = new JSONObject();
-                moveObj.put("fx", move.fromX);
-                moveObj.put("fy", move.fromY);
-                moveObj.put("tx", move.toX);
-                moveObj.put("ty", move.toY);
-                moveHistory.put(moveObj);
-            }
-            state.put("moveHistory", moveHistory);
-
-            broadcast(state);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void broadcastGameOver() {
-        try {
-            JSONObject gameOverMsg = new JSONObject();
-            gameOverMsg.put("type", "GAME_OVER");
-            gameOverMsg.put("winner", game.getWinner() == null ? -1 : game.getWinner().ordinal());
-            broadcast(gameOverMsg);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void handleClientSyncState(JSONObject message) throws JSONException {
-        long version = message.optLong("stateVersion", 0);
-        if (version <= currentStateVersion) return;
-
-        JSONArray moveHistoryArray = message.optJSONArray("moveHistory");
-        if (moveHistoryArray != null && moveHistoryArray.length() > MAX_SYNC_MOVES) {
-            Log.e(LOG_TAG, "拒绝超长同步历史: " + moveHistoryArray.length());
-            return;
-        }
-
-        // 在临时棋局中完整验证后再原子替换，非法/截断历史不能污染当前棋盘。
-        ChineseChessGame syncedGame = new ChineseChessGame();
-        if (moveHistoryArray != null) {
-            for (int i = 0; i < moveHistoryArray.length(); i++) {
-                JSONObject moveObj = moveHistoryArray.optJSONObject(i);
-                if (moveObj == null) {
-                    Log.e(LOG_TAG, "同步历史第 " + i + " 手格式错误，已拒绝");
-                    return;
-                }
-                int fx = moveObj.getInt("fx");
-                int fy = moveObj.getInt("fy");
-                int tx = moveObj.getInt("tx");
-                int ty = moveObj.getInt("ty");
-                if (syncedGame.commitMove(fx, fy, tx, ty) == null) {
-                    Log.e(LOG_TAG, "同步历史第 " + i + " 手非法，已拒绝: "
-                            + fx + "," + fy + "->" + tx + "," + ty);
-                    return;
-                }
-            }
-        }
-
-        int currentSideOrdinal = message.optInt("currentSide", -1);
-        if (currentSideOrdinal < 0 || currentSideOrdinal > 1
-                || syncedGame.getCurrentSide().ordinal() != currentSideOrdinal) {
-            Log.e(LOG_TAG, "同步走棋方与历史不一致，已拒绝: " + currentSideOrdinal);
-            return;
-        }
-
-        boolean advertisedGameOver = message.optBoolean("gameOver", false);
-        if (syncedGame.isGameOver() != advertisedGameOver) {
-            Log.e(LOG_TAG, "同步终局状态与合法重放结果不一致，已拒绝");
-            return;
-        }
-        if (advertisedGameOver) {
-            int winnerOrdinal = message.optInt("winner", -2);
-            if (winnerOrdinal < -1 || winnerOrdinal > 1) {
-                Log.e(LOG_TAG, "同步胜方编码非法，已拒绝: " + winnerOrdinal);
-                return;
-            }
-            ChineseChessGame.Side syncedWinner = winnerOrdinal < 0 ? null
-                    : (winnerOrdinal == 0 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK);
-            if (syncedGame.getWinner() != syncedWinner) {
-                Log.e(LOG_TAG, "同步胜方与合法重放结果不一致，已拒绝");
-                return;
-            }
-        }
-
-        currentStateVersion = version;
-        game = syncedGame;
-        mainHandler.post(() -> {
-            boardView.bindGame(game);
-            updateTurnStatus();
-        });
-    }
-
-    private void handleGameOver(JSONObject message) throws JSONException {
-        int winnerOrdinal = message.optInt("winner", -2);
-        if (winnerOrdinal < -1 || winnerOrdinal > 1) {
-            Log.e(LOG_TAG, "忽略非法终局胜方编码: " + winnerOrdinal);
-            return;
-        }
-        ChineseChessGame.Side winnerSide = winnerOrdinal < 0 ? null
-                : (winnerOrdinal == 0 ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK);
-        game.setGameOver(winnerSide);
-        mainHandler.post(this::updateTurnStatus);
-    }
-
-    private void makeMove(int fromX, int fromY, int toX, int toY) {
-        if (!isPlaying || game.isGameOver()) return;
-
-        boolean isMyTurn = game.getCurrentSide() == mySide;
-        if (!isMyTurn) return;
-
-        ChineseChessGame.Piece piece = game.getBoard()[fromY][fromX];
-        if (piece == null || piece.side != mySide) return;
-
-        // 集中闸门：校验 + 落子 + 切换 + 记录 + 终局判定原子完成。
-        // 玩家着法来自 getLegalMoves（已合法），再次经 isMoveLegal 防御性把关。
-        ChineseChessGame.MoveRecord record = game.commitMove(fromX, fromY, toX, toY);
-        if (record == null) return;
-
-        if (isHost) {
-            sendSyncState();
-            if (game.isGameOver()) {
-                broadcastGameOver();
-            }
-        } else {
-            try {
-                JSONObject msg = new JSONObject();
-                msg.put("type", "MOVE");
-                msg.put("fromX", fromX);
-                msg.put("fromY", fromY);
-                msg.put("toX", toX);
-                msg.put("toY", toY);
-                client.send(msg);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-
         selectedX = -1;
         selectedY = -1;
         selectedMoves = null;
         boardView.clearSelected();
         boardView.setLastMove(fromX, fromY, toX, toY);
-
-        mainHandler.post(this::updateTurnStatus);
+        boardView.invalidate();
+        if (game.isGameOver()) {
+            showMatchResult(localResultMessage());
+            return;
+        }
+        updateTurnStatus(null);
     }
 
-    private void selectPiece(int x, int y) {
-        if (!isPlaying || game.isGameOver()) return;
+    private void onCellTap(int x, int y) {
+        if (!isPlaying || game.isGameOver() || session == null || !session.isMyTurn()) return;
+        ChineseChessGame.Side mySide = iAmRed
+                ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK;
+        if (game.getCurrentSide() != mySide) return;
 
-        boolean isMyTurn = game.getCurrentSide() == mySide;
-        if (!isMyTurn) return;
-
-        ChineseChessGame.Piece piece = game.getBoard()[y][x];
-
-        if (piece != null && piece.side == mySide) {
+        ChineseChessGame.Piece target = game.getBoard()[y][x];
+        if (selectedX >= 0 && selectedMoves != null) {
+            for (int[] move : selectedMoves) {
+                if (move[0] == x && move[1] == y) {
+                    performMyMove(selectedX, selectedY, x, y);
+                    return;
+                }
+            }
+        }
+        if (target != null && target.side == mySide) {
             selectedX = x;
             selectedY = y;
             selectedMoves = game.getLegalMoves(x, y);
             boardView.setSelected(x, y, selectedMoves);
-        } else if (selectedX >= 0 && selectedMoves != null) {
-            for (int[] move : selectedMoves) {
-                if (move[0] == x && move[1] == y) {
-                    makeMove(selectedX, selectedY, x, y);
-                    return;
-                }
-            }
+        } else {
             selectedX = -1;
             selectedY = -1;
             selectedMoves = null;
@@ -691,41 +553,103 @@ public class ChineseChessOnlineFragment extends Fragment {
         }
     }
 
-    private void broadcast(JSONObject json) {
-        if (isHost && server != null) {
-            server.broadcast(json);
+    /** 本方走子：会话完成轮次校验并发出 MOVE（返回 true 即本地确认），随后集中闸门落子。 */
+    private void performMyMove(int fromX, int fromY, int toX, int toY) {
+        if (!isPlaying || game.isGameOver() || session == null) return;
+        selectedX = -1;
+        selectedY = -1;
+        selectedMoves = null;
+        boardView.clearSelected();
+        if (!session.sendMove(fromX, fromY, toX, toY)) return;
+
+        // 集中闸门：着法来自 getLegalMoves（已合法），commitMove 再防御性把关。
+        ChineseChessGame.MoveRecord record = game.commitMove(fromX, fromY, toX, toY);
+        if (record == null) {
+            // 理论不可达（会话轮次校验 + UI 合法着法集双保险）；按异常终止处理。
+            Log.e(TAG, "LAN_LOCAL_MOVE_REJECTED " + fromX + "," + fromY
+                    + "->" + toX + "," + toY);
+            session.close();
+            showMatchResult("本地着法校验失败，对局已终止");
+            return;
         }
+        boardView.setLastMove(fromX, fromY, toX, toY);
+        boardView.invalidate();
+        if (game.isGameOver()) {
+            showMatchResult(localResultMessage());
+            return;
+        }
+        updateTurnStatus(null);
     }
 
-    private void showGameScreen() {
-        lobbyLayout.setVisibility(View.GONE);
-        gameLayout.setVisibility(View.VISIBLE);
-        isPlaying = true;
+    private String localResultMessage() {
+        ChineseChessGame.Side winner = game.getWinner();
+        ChineseChessGame.Side mySide = iAmRed
+                ? ChineseChessGame.Side.RED : ChineseChessGame.Side.BLACK;
+        if (winner == null) return "和棋！";
+        return winner == mySide
+                ? getString(R.string.chess_online_you_win)
+                : getString(R.string.chess_online_opponent_wins);
     }
 
-    private void showLobby() {
-        gameLayout.setVisibility(View.GONE);
-        lobbyLayout.setVisibility(View.VISIBLE);
+    private void confirmResign() {
+        if (!isPlaying || session == null) return;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("认输")
+                .setMessage("确定向对方认输吗？")
+                .setPositiveButton("认输", (dialog, which) -> {
+                    if (session != null && session.sendResign()) {
+                        showMatchResult("你已认输，" + getString(R.string.chess_online_opponent_wins));
+                    }
+                })
+                .setNegativeButton("继续对局", null)
+                .show();
+    }
+
+    /** 对局结束统一收口：终止本地交互 + 结果提示 + 返回（连接资源在 onDestroy 成对释放）。 */
+    private void showMatchResult(String message) {
+        if (!isAdded() || matchResultShown) return;
+        matchResultShown = true;
         isPlaying = false;
+        boardView.setLocked(true);
+        turnStatusText.setText(R.string.chess_online_game_over);
+        winnerText.setText(message);
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.chess_online_game_over)
+                .setMessage(message)
+                .setCancelable(false)
+                .setPositiveButton("返回", (dialog, which) -> leaveMatch())
+                .show();
     }
 
-    private void leaveRoom() {
-        if (isHost && server != null) {
-            server.stop();
+    private void leaveMatch() {
+        if (session != null) {
+            session.sendLeave(); // 尽力通知对方后进入终态；其余释放由 onDestroy 兜底
         }
-        if (client != null && client.isConnected()) {
-            client.disconnect();
-        }
-        isPlaying = false;
-        isHost = false;
         getParentFragmentManager().popBackStack();
+    }
+
+    // ==================== 生命周期与释放 ====================
+
+    private void closeServerQuietly() {
+        if (server != null) {
+            server.close();
+            server = null;
+        }
     }
 
     @Override
     public void onDestroy() {
+        // 成对释放：会话（含传输连接）/ 建房监听 / 发现监听，全部幂等。
+        if (session != null) {
+            session.close();
+            session = null;
+        }
+        closeServerQuietly();
+        if (client != null) {
+            client.close();
+            client = null;
+        }
+        connecting = false;
         super.onDestroy();
-        if (chatHelper != null) chatHelper.cleanup();
-        if (server != null) server.stop();
-        if (client != null) client.release();
     }
 }

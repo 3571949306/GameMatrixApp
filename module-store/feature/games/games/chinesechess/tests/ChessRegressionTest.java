@@ -1,7 +1,11 @@
 import com.gamecenter.app.chinesechess.ChineseChessGame;
 import com.gamecenter.app.chinesechess.ChineseChessAI;
+import com.gamecenter.app.chinesechess.ChineseChessEndgames;
+import com.gamecenter.app.chinesechess.ChineseChessReplay;
+import com.gamecenter.app.chinesechess.ChineseChessReviewAnnotator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.lang.reflect.Method;
 
@@ -459,6 +463,277 @@ public class ChessRegressionTest {
     }
 
     // ====================================================================
+    // 15. 残局装载：内置关卡合法、非法规格拒绝且无副作用、将杀可达成
+    // ====================================================================
+    static void testEndgameLoading() {
+        System.out.println("[T15] 残局装载与守卫");
+        ChineseChessGame g = new ChineseChessGame();
+
+        // 15.1 内置关卡全部装载成功，红先，红方有合法着法
+        for (ChineseChessEndgames.EndgameSpec spec : ChineseChessEndgames.LEVELS) {
+            boolean loaded = g.loadEndgamePosition(spec.pieces, 0);
+            check("残局《" + spec.name + "》装载成功", loaded);
+            if (!loaded) continue;
+            check("《" + spec.name + "》红方先行", g.getCurrentSide() == RED);
+            check("《" + spec.name + "》红方存在合法着法",
+                    g.getAllMoves(RED).size() > 0);
+            check("《" + spec.name + "》初始未终局", !g.isGameOver());
+        }
+
+        // 15.2 非法规格一律拒绝
+        check("拒绝：空规格", !g.loadEndgamePosition(new int[][]{}, 0));
+        check("拒绝：缺黑将",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9}}, 0));
+        check("拒绝：坐标越界",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {GENERAL.ordinal(), 1, 9, 0}}, 0));
+        check("拒绝：占位重叠",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {CHARIOT.ordinal(), 0, 3, 9},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 0));
+        check("拒绝：双将帅无阻挡照面",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 4, 9},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 0));
+        check("拒绝：走子方编码非法",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 2));
+        check("拒绝：士出九宫",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {ADVISOR.ordinal(), 0, 4, 5},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 0));
+        check("拒绝：黑士出宫",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {ADVISOR.ordinal(), 1, 4, 5},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 0));
+        check("拒绝：红卒越起始行",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {SOLDIER.ordinal(), 0, 0, 8},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 0));
+        check("拒绝：非走子方被将军（红先但黑被车将军）",
+                !g.loadEndgamePosition(new int[][]{
+                        {GENERAL.ordinal(), 0, 3, 9},
+                        {CHARIOT.ordinal(), 0, 4, 5},
+                        {GENERAL.ordinal(), 1, 4, 0}}, 0));
+
+        // 15.3 拒绝必须无副作用：装载 L1 后尝试非法装载，局面保持不变
+        ChineseChessEndgames.EndgameSpec l1 = ChineseChessEndgames.findById(1);
+        check("L1 查找存在", l1 != null);
+        check("L1 装载成功", g.loadEndgamePosition(l1.pieces, 0));
+        boolean badLoad = g.loadEndgamePosition(new int[][]{
+                {GENERAL.ordinal(), 0, 4, 9},
+                {GENERAL.ordinal(), 1, 4, 0}}, 0);
+        check("非法装载被拒绝", !badLoad);
+        check("拒绝后红车仍在 (2,5)",
+                g.getBoard()[5][2] != null && g.getBoard()[5][2].type == CHARIOT);
+        check("拒绝后仍为红先", g.getCurrentSide() == RED);
+        check("拒绝后走子历史为空", g.getMoveHistory().isEmpty());
+        check("拒绝后未终局", !g.isGameOver());
+
+        // 15.4 残局将杀可达成：一步重炮/马车配合将死孤将
+        //     黑将(4,0)；红帅(3,9)、车(8,3)、马(3,3)。
+        //     红车 (8,3)->(8,0) 沿底线将军；马(3,3) 控制 (4,1)，
+        //     (3,0)/(5,0) 被底线车控制 => 将杀。
+        check("将杀局面装载成功", g.loadEndgamePosition(new int[][]{
+                {GENERAL.ordinal(), 0, 3, 9},
+                {CHARIOT.ordinal(), 0, 8, 3},
+                {HORSE.ordinal(), 0, 3, 3},
+                {GENERAL.ordinal(), 1, 4, 0}}, 0));
+        check("杀着车(8,3)->(8,0) 合法", g.isMoveLegal(8, 3, 8, 0));
+        check("杀着提交成功", g.commitMove(8, 3, 8, 0) != null);
+        check("提交后终局", g.isGameOver());
+        check("红方将杀获胜", g.getWinner() == RED);
+    }
+
+    // ====================================================================
+    // 16. 对局回放记录器：深拷贝独立性、越界、pop/clear 与快照装载渲染管线
+    // ====================================================================
+    static void testReplayRecorder() {
+        System.out.println("[T16] 对局回放记录器");
+        ChineseChessReplay replay = new ChineseChessReplay();
+        check("新记录器为空", replay.size() == 0);
+        check("空表 snapshot(0) 越界返回 null", replay.snapshot(0) == null);
+        check("空表 snapshotSide(0) 越界返回 -1", replay.snapshotSide(0) == -1);
+        replay.pop();
+        check("空表 pop 安全（size 仍为 0）", replay.size() == 0);
+
+        // 深拷贝独立性：记录后修改原盘不影响快照；snapshot 返回防御性拷贝。
+        ChineseChessGame g = new ChineseChessGame();
+        int[][] live = g.getBoardAsIntArray();
+        replay.recordSnapshot(live, 0);
+        check("记录后 size=1", replay.size() == 1);
+        live[9][4] = 0; // 模拟原盘继续变化（红帅位被清空）
+        check("修改原盘不影响已存快照（深拷贝独立性）", replay.snapshot(0)[9][4] != 0);
+        int[][] got = replay.snapshot(0);
+        got[0][0] = 99; // 篡改返回值
+        check("snapshot 返回防御性拷贝", replay.snapshot(0)[0][0] != 99);
+        check("snapshotSide 记录走子方（红=0）", replay.snapshotSide(0) == 0);
+        check("snapshot 负下标越界返回 null", replay.snapshot(-1) == null);
+
+        replay.clear();
+        check("clear 后为空", replay.size() == 0);
+
+        // 模拟短对局：开局前 + 两步合法着，逐步记录快照。
+        replay.recordSnapshot(g.getBoardAsIntArray(), 0);
+        check("红兵前进一步可提交", g.commitMove(0, 6, 0, 5) != null);
+        replay.recordSnapshot(g.getBoardAsIntArray(), 1);
+        check("黑卒前进一步可提交", g.commitMove(8, 3, 8, 4) != null);
+        replay.recordSnapshot(g.getBoardAsIntArray(), 0);
+        check("三快照序列 size=3（开局前+两着）", replay.size() == 3);
+        check("快照1红兵已到位", replay.snapshot(1)[5][0] == 7 && replay.snapshot(1)[6][0] == 0);
+        check("快照1轮到黑方走", replay.snapshotSide(1) == 1);
+        check("快照2黑卒已到位", replay.snapshot(2)[4][8] == -7 && replay.snapshot(2)[3][8] == 0);
+        check("快照2轮到红方走", replay.snapshotSide(2) == 0);
+
+        // 回放渲染管线：每个快照都能经 toEndgameSpec 装载回临时棋局且棋盘逐格一致。
+        for (int i = 0; i < replay.size(); i++) {
+            ChineseChessGame scratch = new ChineseChessGame();
+            boolean loaded = scratch.loadEndgamePosition(
+                    ChineseChessReplay.toEndgameSpec(replay.snapshot(i)),
+                    replay.snapshotSide(i));
+            check("快照 " + i + " 可经 toEndgameSpec 装载", loaded);
+            if (loaded) {
+                check("快照 " + i + " 装载后棋盘逐格一致",
+                        Arrays.deepEquals(scratch.getBoardAsIntArray(), replay.snapshot(i)));
+            }
+        }
+
+        // pop 回退：悔棋一轮撤销两着后，末尾快照应回到黑方走前局面。
+        replay.pop();
+        replay.pop();
+        check("pop 两个后 size=1", replay.size() == 1);
+        check("pop 后仅剩开局前快照",
+                replay.snapshot(0)[6][0] == 7 && replay.snapshot(0)[3][8] == -7);
+    }
+
+    // ====================================================================
+    // 17. 复盘 AI 标注器：吃子/反吃/将军启发式三档标注
+    // ====================================================================
+    static final ChineseChessReviewAnnotator.Grade R_GOOD = ChineseChessReviewAnnotator.Grade.GOOD;
+    static final ChineseChessReviewAnnotator.Grade R_NEUTRAL = ChineseChessReviewAnnotator.Grade.NEUTRAL;
+    static final ChineseChessReviewAnnotator.Grade R_BLUNDER = ChineseChessReviewAnnotator.Grade.BLUNDER;
+
+    /** 构造最小合法盘面：红帅 (3,9)、黑将 (5,0)（不同列，不照面）。 */
+    static int[][] reviewBoard() {
+        int[][] b = new int[10][9];
+        b[9][3] = 1;
+        b[0][5] = -1;
+        return b;
+    }
+
+    /** 复制盘面并应用 [fromX, fromY, toX, toY] 着法，返回走后盘面。 */
+    static int[][] applyReviewMove(int[][] before, int[] move) {
+        int[][] after = new int[before.length][];
+        for (int y = 0; y < before.length; y++) after[y] = before[y].clone();
+        after[move[3]][move[2]] = after[move[1]][move[0]];
+        after[move[1]][move[0]] = 0;
+        return after;
+    }
+
+    /** 对单步着法做标注：自动构造走后盘面。 */
+    static ChineseChessReviewAnnotator.Annotation annotate(
+            ChineseChessReviewAnnotator annotator, int[][] before, int[] move, int moverSide) {
+        return annotator.annotateMove(before, applyReviewMove(before, move), move, moverSide);
+    }
+
+    static void testReviewAnnotator() {
+        System.out.println("[T17] 复盘 AI 标注器");
+        ChineseChessReviewAnnotator annotator = new ChineseChessReviewAnnotator();
+        ChineseChessReviewAnnotator.Annotation a;
+
+        // 17.1 白吃车：黑车无根、无反吃 => GOOD，短评含「吃」
+        int[][] b1 = reviewBoard();
+        b1[5][2] = 5;   // 红车 (2,5)
+        b1[1][2] = -5;  // 黑车 (2,1)
+        a = annotate(annotator, b1, new int[]{2, 5, 2, 1}, 0);
+        check("白吃车判 GOOD", a.grade == R_GOOD);
+        check("白吃车短评含「吃」", a.comment.contains("吃"));
+
+        // 17.2 走子送车：红车走进黑炮口（黑卒作炮架）且无补偿 => BLUNDER
+        int[][] b2 = reviewBoard();
+        b2[7][8] = 5;   // 红车 (8,7)
+        b2[0][0] = -6;  // 黑炮 (0,0)
+        b2[3][0] = -7;  // 黑卒 (0,3)（炮架）
+        a = annotate(annotator, b2, new int[]{8, 7, 0, 7}, 0);
+        check("送车给炮判 BLUNDER", a.grade == R_BLUNDER);
+        check("送车短评含「白吃」", a.comment.contains("白吃"));
+
+        // 17.3 纯将军（无吃无险）=> GOOD，短评含「将军」
+        int[][] b3 = reviewBoard();
+        b3[5][1] = 5;   // 红车 (1,5) -> (5,5) 直攻黑将 (5,0)
+        a = annotate(annotator, b3, new int[]{1, 5, 5, 5}, 0);
+        check("将军判 GOOD", a.grade == R_GOOD);
+        check("将军短评含「将军」", a.comment.contains("将军"));
+
+        // 17.4 普通安静着（无吃无险无将军）=> NEUTRAL
+        int[][] b4 = reviewBoard();
+        b4[6][0] = 7;   // 红兵 (0,6)
+        a = annotate(annotator, b4, new int[]{0, 6, 0, 5}, 0);
+        check("普通移动判 NEUTRAL", a.grade == R_NEUTRAL);
+
+        // 17.5 以马换车（马会被黑另一车吃回，净得 +5）=> GOOD
+        int[][] b5 = reviewBoard();
+        b5[5][3] = 4;   // 红马 (3,5)
+        b5[3][4] = -5;  // 黑车 (4,3)
+        b5[0][4] = -5;  // 黑车 (4,0)（吃回红马）
+        a = annotate(annotator, b5, new int[]{3, 5, 4, 3}, 0);
+        check("以马换车判 GOOD", a.grade == R_GOOD);
+
+        // 17.6 以车换马（车会被黑炮吃回，净得 -5）=> BLUNDER
+        int[][] b6 = reviewBoard();
+        b6[9][4] = 5;   // 红车 (4,9)
+        b6[4][4] = -4;  // 黑马 (4,4)
+        b6[0][4] = -6;  // 黑炮 (4,0)
+        b6[1][4] = -2;  // 黑士 (4,1)（炮架）
+        a = annotate(annotator, b6, new int[]{4, 9, 4, 4}, 0);
+        check("以车换马判 BLUNDER", a.grade == R_BLUNDER);
+
+        // 17.7 擒将获胜：吃掉黑将 => GOOD（走后盘面缺将仍需稳定定档）
+        int[][] b7 = reviewBoard();
+        b7[9][5] = 5;   // 红车 (5,9)
+        a = annotate(annotator, b7, new int[]{5, 9, 5, 0}, 0);
+        check("擒将获胜判 GOOD", a.grade == R_GOOD);
+
+        // 17.8 等价兑子（车换车，净差 0）=> NEUTRAL
+        int[][] b8 = reviewBoard();
+        b8[7][2] = 5;   // 红车 (2,7)
+        b8[2][2] = -5;  // 黑车 (2,2)
+        b8[2][0] = -5;  // 黑车 (0,2)（吃回红车）
+        a = annotate(annotator, b8, new int[]{2, 7, 2, 2}, 0);
+        check("车兑车判 NEUTRAL", a.grade == R_NEUTRAL);
+        check("兑子短评含「兑」", a.comment.contains("兑"));
+
+        // 17.9 结构异常输入兜底为 NEUTRAL，不抛异常
+        a = annotator.annotateMove(null, null, null, 0);
+        check("异常输入兜底 NEUTRAL", a.grade == R_NEUTRAL);
+
+        // 17.10 整局管线：真实对局逐步记快照 => diffMove/annotateGame 全链路
+        ChineseChessGame g = new ChineseChessGame();
+        ChineseChessReplay replay = new ChineseChessReplay();
+        replay.recordSnapshot(g.getBoardAsIntArray(), 0);
+        check("管线前置红兵着法合法", g.commitMove(0, 6, 0, 5) != null);
+        replay.recordSnapshot(g.getBoardAsIntArray(), 1);
+        check("管线前置黑卒着法合法", g.commitMove(8, 3, 8, 4) != null);
+        replay.recordSnapshot(g.getBoardAsIntArray(), 0);
+        check("diffMove 推演首着坐标",
+                Arrays.equals(ChineseChessReviewAnnotator.diffMove(
+                                replay.snapshot(0), replay.snapshot(1)),
+                        new int[]{0, 6, 0, 5}));
+        List<ChineseChessReviewAnnotator.Annotation> all =
+                new ChineseChessReviewAnnotator().annotateGame(replay);
+        check("整局标注数 = 快照数-1", all.size() == replay.size() - 1 && all.size() == 2);
+        check("开局安静着判 NEUTRAL", all.get(0).grade == R_NEUTRAL);
+        check("第二着安静着判 NEUTRAL", all.get(1).grade == R_NEUTRAL);
+    }
+
+    // ====================================================================
     public static void main(String[] args) throws Exception {
         System.out.println("==== 中国象棋 AI 逻辑回归测试 ====");
         testHorseLeg();
@@ -475,6 +750,9 @@ public class ChessRegressionTest {
         testAiGeneralBoundaries();
         testAiStrengthProfile();
         testAiAvoidsThirdRepetition();
+        testEndgameLoading();
+        testReplayRecorder();
+        testReviewAnnotator();
 
         System.out.println("================================");
         System.out.println("通过=" + passed + "  失败=" + failed);
