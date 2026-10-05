@@ -25,6 +25,12 @@ object GameTestHelper {
 
     private const val TAG = "GameTestHelper"
 
+    /**
+     * 游戏大厅导航标题候选（nav_games 中文 / GameDisplayNames.NAV_TITLES_EN 英文 / legacy 短标题）。
+     * 底部导航菜单项 id 程序化分配、无资源 id，文本是唯一稳定锚点。
+     */
+    private val NAV_GAMES_TITLES = listOf("游戏大厅", "Games", "游戏")
+
     /** 目标应用上下文（用于启动 exported=false 的 Activity）*/
     private val targetContext: Context
         get() = InstrumentationRegistry.getInstrumentation().targetContext
@@ -108,25 +114,31 @@ object GameTestHelper {
      * 确保当前在游戏大厅页面。
      * 如果不在，则通过底部导航栏切换到游戏页。
      *
+     * 底部导航菜单项 id 由 BottomNavigationManager 程序化分配（nextMenuId++），
+     * 无 R.id.navigation_* 资源 id，因此 id 查找仅作兼容兜底，优先按导航标题文本定位。
+     *
      * @param device UI 设备
      */
     fun ensureGamesHall(device: UiDevice) {
-        // 点击底部导航栏的"游戏"按钮
+        // 兼容兜底：历史上曾存在固定 id（已随动态导航移除）
         val gamesNavSelector = UiSelector()
             .resourceId("$PACKAGE_NAME:id/navigation_games")
         val gamesNav = device.findObject(gamesNavSelector)
         if (gamesNav.exists()) {
             gamesNav.click()
             safeSleep(1000)
-        } else {
-            // 尝试通过文本查找
-            val textSelector = UiSelector().text("游戏")
-            val textObj = device.findObject(textSelector)
+            return
+        }
+        // 按导航标题文本查找（nav_games="游戏大厅"，英文 locale 为 "Games"，legacy 为 "游戏"）
+        for (title in NAV_GAMES_TITLES) {
+            val textObj = device.findObject(UiSelector().text(title))
             if (textObj.exists()) {
                 textObj.click()
                 safeSleep(1000)
+                return
             }
         }
+        Log.w(TAG, "未找到游戏大厅导航项，停留在当前页面")
     }
 
     /**
@@ -316,12 +328,13 @@ object GameTestHelper {
 
     /**
      * 检查是否在游戏大厅页面。
+     * 底部导航菜单项无资源 id（程序化分配），id 兜底之外按导航标题文本近似判断。
      */
     fun isOnGamesHall(device: UiDevice): Boolean {
         val gamesNavSelector = UiSelector()
             .resourceId("$PACKAGE_NAME:id/navigation_games")
-        val gamesNav = device.findObject(gamesNavSelector)
-        return gamesNav.exists()
+        if (device.findObject(gamesNavSelector).exists()) return true
+        return NAV_GAMES_TITLES.any { device.findObject(UiSelector().text(it)).exists() }
     }
 
     /**

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.UiSelector
 import com.gamecenter.app.EmulatorTestBase
+import com.gamecenter.app.R
 import com.gamecenter.app.tests.GameTestHelper
 import org.junit.Assert.assertTrue
 import org.junit.FixMethodOrder
@@ -12,18 +13,26 @@ import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 
 /**
- * 主页与通用导航模块自动化测试。
+ * 主页与通用导航模块自动化测试（批次 2c 适配游戏库新首页）。
+ *
+ * 默认首页自批次 2d 起为 GameLibraryFragment（fragment_game_library.xml：顶栏/搜索/
+ * 分类 chips/单一 RecyclerView/随机 FAB）；QA 回退构建用 -PenableHomeLibraryRevamp=false。
+ * legacy GamesFragment 专属控件（et_game_search/rv_games/btn_settings/tv_version/btn_module_store）
+ * 不复存在，各用例锚点已迁移，详见方法内注释。
+ * 注意：底部导航菜单项 id 由 BottomNavigationManager 程序化分配（nextMenuId++），
+ * 无 R.id.navigation_* 资源 id，导航相关断言一律走 nav_view / 类名 / 标题文本兜底。
  *
  * 测试范围：
  * - 应用启动与权限弹窗处理
  * - 底部导航栏各 Tab 切换
- * - 游戏大厅搜索功能
- * - 游戏分类 Tab 切换
- * - 设置按钮入口
- * - 模块商店入口
+ * - 游戏库搜索功能（含历史）
+ * - 游戏分类 Chip 切换
+ * - 设置对话框入口（含版本展示）
+ * - 溢出菜单 → 模块商店入口
+ * - 随机游戏 FAB
  *
  * @author QA Engineer (Yan Guoguan)
- * @version 1.0
+ * @version 1.1 (批次 2c：锚点迁移至 GameLibraryFragment)
  * @since 2026-06-22
  */
 @RunWith(AndroidJUnit4::class)
@@ -47,6 +56,7 @@ class HomeNavigationTest : EmulatorTestBase() {
 
     /**
      * TC-HOME-002: 验证底部导航栏存在且可见。
+     * nav_view 挂在 activity_main.xml，与新旧首页无关，查找逻辑保持不变。
      */
     @Test
     fun test_002_bottomNavVisible() {
@@ -99,6 +109,8 @@ class HomeNavigationTest : EmulatorTestBase() {
 
     /**
      * TC-HOME-003: 验证"游戏"Tab 可点击且切换成功。
+     * 批次 2c：底部导航项无资源 id，改经 GameTestHelper.ensureGamesHall（标题文本兜底）切换；
+     * 并以新首页锚点 rv_game_library 断言切换成功（legacy 的 navigation_games id 已不存在）。
      */
     @Test
     fun test_003_gamesTabClick() {
@@ -106,29 +118,42 @@ class HomeNavigationTest : EmulatorTestBase() {
         launchAppAndHandlePermissionDialog()
         safeSleep(1000)
 
-        val gamesNav = UiSelector().resourceId("${appContext.packageName}/id/navigation_games")
-        val gamesTab = device.findObject(gamesNav)
-        if (gamesNav.let { gamesTab.exists() }) {
-            gamesTab.click()
-            safeSleep(1000)
-        }
+        GameTestHelper.ensureGamesHall(device)
+        safeSleep(1000)
+
+        // 新首页锚点：游戏库 RecyclerView 可见即认为游戏 Tab 生效
+        val rvSelector = UiSelector().resourceId("${appContext.packageName}/id/rv_game_library")
+        val rvExists = device.findObject(rvSelector).waitForExists(5000)
+        Log.d(TAG, "游戏库 RecyclerView 可见: $rvExists")
+        assertTrue("游戏Tab生效后应看到游戏库列表", rvExists)
         assertTrue("点击游戏Tab后应用不应崩溃", GameTestHelper.isAppAlive(device))
     }
 
     /**
-     * TC-HOME-004: 验证游戏大厅分类 Tab 切换（全部/经典/益智/休闲）。
+     * TC-HOME-004: 验证游戏库分类 Chip 切换。
+     * 批次 2c：分类 Tab 改为 ChipGroup（chip_group_game_filters）内 Chip；
+     * "全部"文案走资源 game_library_all_filter，经典/益智/休闲与
+     * GameRegistry.getCategories 的分类名同源（该处为存量硬编码，无独立资源）。
      */
     @Test
     fun test_004_categoryTabs() {
-        Log.d(TAG, "=== TC-HOME-004: 分类Tab切换测试 ===")
+        Log.d(TAG, "=== TC-HOME-004: 分类Chip切换测试 ===")
         launchAppAndHandlePermissionDialog()
         safeSleep(1500)
 
         // 确保在游戏大厅
         GameTestHelper.ensureGamesHall(device)
 
-        // 依次点击各分类 Tab
-        val categories = listOf("全部", "经典", "益智", "休闲")
+        // 新首页锚点：分类 ChipGroup 应存在
+        val chipGroupSelector =
+            UiSelector().resourceId("${appContext.packageName}/id/chip_group_game_filters")
+        assertTrue("游戏库分类 ChipGroup 应可见", device.findObject(chipGroupSelector).exists())
+
+        // 依次点击各分类 Chip
+        val categories = listOf(
+            appContext.getString(R.string.game_library_all_filter),
+            "经典", "益智", "休闲"
+        )
         for (category in categories) {
             val clicked = GameTestHelper.clickButtonByText(device, category, 3000)
             if (clicked) {
@@ -140,7 +165,8 @@ class HomeNavigationTest : EmulatorTestBase() {
     }
 
     /**
-     * TC-HOME-005: 验证游戏大厅搜索功能。
+     * TC-HOME-005: 验证游戏库搜索功能。
+     * 批次 2c：et_game_search → et_game_library_search（fragment_game_library.xml）。
      */
     @Test
     fun test_005_searchFunction() {
@@ -150,8 +176,9 @@ class HomeNavigationTest : EmulatorTestBase() {
 
         GameTestHelper.ensureGamesHall(device)
 
-        // 查找搜索框
-        val searchSelector = UiSelector().resourceId("${appContext.packageName}/id/et_game_search")
+        // 查找搜索框（新首页搜索框）
+        val searchSelector =
+            UiSelector().resourceId("${appContext.packageName}/id/et_game_library_search")
         val searchBox = device.findObject(searchSelector)
         if (searchBox.exists()) {
             searchBox.click()
@@ -167,7 +194,9 @@ class HomeNavigationTest : EmulatorTestBase() {
     }
 
     /**
-     * TC-HOME-006: 验证设置按钮可点击。
+     * TC-HOME-006: 验证设置入口可点击。
+     * 批次 2c：legacy btn_settings（打开独立设置页）已删，新首页为顶栏
+     * btn_game_library_settings（弹出 AppSettingsDialog），返回键关闭对话框。
      */
     @Test
     fun test_006_settingsButton() {
@@ -177,8 +206,9 @@ class HomeNavigationTest : EmulatorTestBase() {
 
         GameTestHelper.ensureGamesHall(device)
 
-        // 查找设置按钮
-        val settingsSelector = UiSelector().resourceId("${appContext.packageName}/id/btn_settings")
+        // 查找设置按钮（新首页顶栏齿轮）
+        val settingsSelector =
+            UiSelector().resourceId("${appContext.packageName}/id/btn_game_library_settings")
         val settingsBtn = device.findObject(settingsSelector)
         if (settingsBtn.exists()) {
             settingsBtn.click()
@@ -191,7 +221,9 @@ class HomeNavigationTest : EmulatorTestBase() {
     }
 
     /**
-     * TC-HOME-007: 验证模块商店按钮可点击。
+     * TC-HOME-007: 验证模块商店入口可点击。
+     * 批次 2c：legacy 独立按钮 btn_module_store 不复存在，新首页走顶栏
+     * 溢出菜单（btn_game_library_overflow）→ "模块商店"项。
      */
     @Test
     fun test_007_moduleStoreButton() {
@@ -201,23 +233,38 @@ class HomeNavigationTest : EmulatorTestBase() {
 
         GameTestHelper.ensureGamesHall(device)
 
-        // 查找模块商店按钮
-        val storeSelector = UiSelector().resourceId("${appContext.packageName}/id/btn_module_store")
-        val storeBtn = device.findObject(storeSelector)
-        if (storeBtn.exists()) {
-            storeBtn.click()
-            safeSleep(2000)
-            // 确认模块商店页面已打开
-            assertTrue("模块商店打开后应用不应崩溃", GameTestHelper.isAppAlive(device))
-            // 返回大厅
-            device.pressBack()
-            safeSleep(1000)
+        // 打开溢出菜单
+        val overflowSelector =
+            UiSelector().resourceId("${appContext.packageName}/id/btn_game_library_overflow")
+        val overflowBtn = device.findObject(overflowSelector)
+        if (overflowBtn.exists()) {
+            overflowBtn.click()
+            safeSleep(800)
+
+            // 点击"模块商店"菜单项
+            val storeText = appContext.getString(R.string.module_store)
+            val storeItem = device.findObject(UiSelector().text(storeText))
+            if (storeItem.exists()) {
+                storeItem.click()
+                safeSleep(2000)
+                // 确认模块商店页面已打开
+                assertTrue("模块商店打开后应用不应崩溃", GameTestHelper.isAppAlive(device))
+                // 返回大厅
+                device.pressBack()
+                safeSleep(1000)
+            } else {
+                // 菜单项未出现，兜底关闭可能残存的 PopupMenu
+                device.pressBack()
+                safeSleep(500)
+            }
         }
         assertTrue("模块商店操作后应用不应崩溃", GameTestHelper.isAppAlive(device))
     }
 
     /**
      * TC-HOME-008: 验证底部导航栏各模块切换（如果已安装）。
+     * 批次 2c：导航项无 R.id.navigation_* 资源 id（程序化分配），改按导航标题文本
+     * （nav_browser/nav_tools/nav_ai/nav_vpn 资源）定位；未安装/未显示的项自动跳过。
      */
     @Test
     fun test_008_navModuleSwitch() {
@@ -225,24 +272,24 @@ class HomeNavigationTest : EmulatorTestBase() {
         launchAppAndHandlePermissionDialog()
         safeSleep(1500)
 
-        // 尝试点击各导航项
+        // 尝试点击各导航项（标题文本 → 资源）
         val navItems = listOf(
-            "navigation_games" to "游戏",
-            "navigation_browser" to "浏览器",
-            "navigation_tools" to "工具",
-            "navigation_ai" to "AI",
-            "navigation_vpn" to "VPN"
+            appContext.getString(R.string.nav_browser),
+            appContext.getString(R.string.nav_tools),
+            appContext.getString(R.string.nav_ai),
+            appContext.getString(R.string.nav_vpn)
         )
 
-        for ((resId, label) in navItems) {
-            val selector = UiSelector().resourceId("${appContext.packageName}/id/$resId")
-            val navItem = device.findObject(selector)
+        for (label in navItems) {
+            val navItem = device.findObject(UiSelector().text(label))
             if (navItem.exists()) {
                 Log.d(TAG, "点击导航项: $label")
                 navItem.click()
                 safeSleep(1500)
                 assertTrue("切换到'$label'后应用不应崩溃",
                     GameTestHelper.isAppAlive(device))
+                // 切回游戏大厅，保证下一项从稳定起点查找
+                GameTestHelper.ensureGamesHall(device)
             } else {
                 Log.d(TAG, "导航项 '$label' 未安装，跳过")
             }
@@ -251,6 +298,8 @@ class HomeNavigationTest : EmulatorTestBase() {
 
     /**
      * TC-HOME-009: 验证游戏卡片列表可见。
+     * 批次 2c：rv_games → rv_game_library。留存卡片（每日挑战/快览统计/今日精选等）
+     * 是 RecyclerView 内动态条目、无独立 resource id，不单独锚定，由本用例滚动浏览覆盖。
      */
     @Test
     fun test_009_gameCardsVisible() {
@@ -260,11 +309,11 @@ class HomeNavigationTest : EmulatorTestBase() {
 
         GameTestHelper.ensureGamesHall(device)
 
-        // 查找 RecyclerView
-        val rvSelector = UiSelector().resourceId("${appContext.packageName}/id/rv_games")
+        // 查找 RecyclerView（新首页游戏库列表）
+        val rvSelector = UiSelector().resourceId("${appContext.packageName}/id/rv_game_library")
         val rv = device.findObject(rvSelector)
         if (rv.exists()) {
-            // 滚动查看游戏卡片
+            // 滚动查看游戏卡片（含留存卡片区域）
             for (i in 0 until 3) {
                 val screenHeight = device.displayHeight
                 val screenWidth = device.displayWidth
@@ -281,6 +330,8 @@ class HomeNavigationTest : EmulatorTestBase() {
 
     /**
      * TC-HOME-010: 验证版本号显示。
+     * 批次 2c：新首页本身无版本展示（legacy tv_version 已随 GamesFragment 移除），
+     * 版本迁至设置对话框 tv_current_version（AppSettingsDialog），改经设置入口断言。
      */
     @Test
     fun test_010_versionDisplay() {
@@ -290,13 +341,49 @@ class HomeNavigationTest : EmulatorTestBase() {
 
         GameTestHelper.ensureGamesHall(device)
 
-        // 查找版本号 TextView
-        val versionSelector = UiSelector().resourceId("${appContext.packageName}/id/tv_version")
-        val versionTv = device.findObject(versionSelector)
-        if (versionTv.exists()) {
-            val versionText = versionTv.text
-            Log.d(TAG, "版本号: $versionText")
+        // 打开设置对话框，在其中查找版本号 TextView
+        val settingsSelector =
+            UiSelector().resourceId("${appContext.packageName}/id/btn_game_library_settings")
+        val settingsBtn = device.findObject(settingsSelector)
+        if (settingsBtn.exists()) {
+            settingsBtn.click()
+            safeSleep(1000)
+
+            val versionSelector =
+                UiSelector().resourceId("${appContext.packageName}/id/tv_current_version")
+            val versionTv = device.findObject(versionSelector)
+            if (versionTv.exists()) {
+                val versionText = versionTv.text
+                Log.d(TAG, "版本号: $versionText")
+            }
+            // 关闭设置对话框
+            device.pressBack()
+            safeSleep(500)
         }
         assertTrue("版本号检查后应用不应崩溃", GameTestHelper.isAppAlive(device))
+    }
+
+    /**
+     * TC-HOME-011: 验证随机游戏 FAB（批次 2a 新能力）可点击不崩溃。
+     * 库非空时随机启动一款游戏（返回键退出），库为空时仅 Toast 提示，两种路径均应存活。
+     */
+    @Test
+    fun test_011_randomGameFab() {
+        Log.d(TAG, "=== TC-HOME-011: 随机游戏FAB测试 ===")
+        launchAppAndHandlePermissionDialog()
+        safeSleep(1500)
+
+        GameTestHelper.ensureGamesHall(device)
+
+        val fabSelector = UiSelector().resourceId("${appContext.packageName}/id/fab_random_game")
+        val fab = device.findObject(fabSelector)
+        if (fab.exists()) {
+            fab.click()
+            safeSleep(2000)
+            // 若随机启动了游戏，返回大厅；若停留在首页（空库 Toast），返回键回退到桌面也无碍
+            device.pressBack()
+            safeSleep(1000)
+        }
+        assertTrue("随机游戏FAB操作后应用不应崩溃", GameTestHelper.isAppAlive(device))
     }
 }

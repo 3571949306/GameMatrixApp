@@ -3,6 +3,22 @@
 
 # GameMatrixApp - 版本更新日志
 
+## [批次 2c+2d：游戏库新首页默认生效 + UIAutomator 适配] - 2026-10-05
+
+### 变更
+
+- **默认首页翻转（批次 2d）**：`app/build.gradle` 的 `enableHomeLibraryRevamp` 默认值翻为 true，`HOME_LIBRARY_REVAMP` 默认开启，首页默认渲染 GameLibraryFragment（顶栏问候/搜索/分类 chips/留存卡片/随机 FAB）；QA 回退构建：`-PenableHomeLibraryRevamp=false`。该 flag 仅在 `:app` 定义（`:feature` 等模块无独立定义）。legacy GamesFragment 删除后此开关随批次 2e 一并清理。
+- **UIAutomator 适配（批次 2c）**：`HomeNavigationTest` 锚点由 legacy GamesFragment（et_game_search/rv_games/btn_settings/btn_module_store/tv_version）迁移至 GameLibraryFragment（et_game_library_search/rv_game_library/btn_game_library_settings/btn_game_library_overflow/chip_group_game_filters/fab_random_game）；版本断言迁至设置对话框 `tv_current_version`；新增随机 FAB 冒烟 TC-HOME-011。`GameTestHelper.ensureGamesHall/isOnGamesHall` 补导航标题文本兜底（底部导航菜单项 id 为程序化分配，无 `navigation_*` 资源 id）。
+- **死引用清理**：删除 `SettingsTest.kt`——其 10 条用例全部以 `am start -n .../.SettingsActivity` 为前提，该 Activity 已随批次 1 移除，属整体测死页面；androidTest 下 HomeComposeActivity/SettingsComposeActivity/BuiltInGamesHall 入口无残留引用（SplashActivity/ModuleStoreActivity 等仍在 manifest，引用有效）。
+
+### 验证与发布
+
+- `:app:testDebugUnitTest` + `:app:assembleDebugAndroidTest`：BUILD SUCCESSFUL。
+- `:app:detekt`：无新增问题。
+- `verify_positioning_guard.py` / `check_i18n.py`：PASS。
+- BuildConfig 证据：generated source 中 `HOME_LIBRARY_REVAMP = true`。
+- 实机：`adb devices` 无在线设备（曾见 emulator-5554 offline），本批未跑 `connectedDebugAndroidTest` 实机冒烟。
+
 ## [Sprint 3：定位裁剪落地（金币/游戏周报/提醒下线）] - 2026-09-25
 
 ### 变更
