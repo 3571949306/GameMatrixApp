@@ -246,3 +246,10 @@ wrongbook_module.zip
 /OPTIMIZATION_SUMMARY.md
 /implementation_guide.md
 **/README_优化说明.md
+
+# ============================================================
+# 2026-10-05：演示/巡检临时产物（功能框架落地批次 0）
+# ============================================================
+/.codex_ppt_work/
+/GameMatrixApp_项目介绍_技术展览版/
+*.inspect.ndjson
