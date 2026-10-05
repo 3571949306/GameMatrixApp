@@ -140,6 +140,11 @@
     <string name="game_td_act_egg_hit">%1$s突破防线！蛋蛋 -%2$d，剩余生命 %3$d</string>
     <string name="game_td_act_victory">胜利！蛋蛋安全了</string>
 
+    <!-- 剧情（每关开战前引子与胜利后尾声，内容来自关卡文件） -->
+    <string name="game_td_story_title">📖 关卡故事</string>
+    <string name="game_td_story_start">⚔ 出战</string>
+    <string name="game_td_story_outro_title">📖 战后余波</string>
+
     <!-- 选关 / 难度 / 塔组面板 -->
     <string name="game_td_title_level_select">选择关卡</string>
     <string name="game_td_subtitle_protect_egg">保护蛋蛋，击退怪物</string>
@@ -167,6 +172,8 @@
     <string name="game_td_stats_label_unlocked">已解锁关卡</string>
     <string name="game_td_stats_label_stars">累计星级</string>
     <string name="game_td_stats_value_fraction">%1$d/%2$d</string>
+    <string name="game_td_stats_section_times">最佳用时</string>
+    <string name="game_td_stats_value_seconds">%1$d 秒</string>
     <string name="game_td_stats_section_endless">无尽最佳</string>
     <string name="game_td_stats_value_waves">%1$d 波</string>
     <string name="game_td_stats_value_none">未挑战</string>
@@ -177,7 +184,7 @@
     <string name="game_td_stats_value_not_achieved">未达成</string>
     <string name="game_td_stats_btn_reset">清空战绩数据</string>
     <string name="game_td_stats_reset_confirm_title">清空战绩数据？</string>
-    <string name="game_td_stats_reset_confirm_body">将永久删除全部战绩：击杀、局数、星级、解锁进度与无尽最佳纪录。\n此操作不可恢复，确定继续吗？</string>
+    <string name="game_td_stats_reset_confirm_body">将永久删除全部战绩：击杀、局数、星级、各难度用时、解锁进度与无尽最佳纪录。\n此操作不可恢复，确定继续吗？</string>
     <string name="game_td_stats_reset_confirm_yes">确认清空</string>
     <string name="game_td_stats_reset_confirm_no">取消</string>
     <string name="game_td_stats_reset_done">战绩数据已清空</string>
@@ -191,6 +198,15 @@
     <string name="game_td_achv_name_ch2_cleared">中流砥柱</string>
     <string name="game_td_achv_name_ch3_cleared">风暴之王</string>
     <string name="game_td_achv_name_ch4_cleared">熔灰终章</string>
+    <string name="game_td_achv_name_ch5_cleared">余烬守望</string>
+    <string name="game_td_achv_name_ch6_cleared">常春凯旋</string>
+    <string name="game_td_achv_name_ch7_cleared">长夜破晓</string>
+    <string name="game_td_achv_name_ch8_cleared">夏夜烟火</string>
+    <string name="game_td_achv_name_ch9_cleared">秋实加冕</string>
+    <string name="game_td_achv_name_ch10_cleared">冬至长明</string>
+    <string name="game_td_achv_name_ch11_cleared">夜巡之冠</string>
+    <string name="game_td_achv_name_ch12_cleared">烽灯归营</string>
+    <string name="game_td_achv_name_ch13_cleared">雪峰终哨</string>
     <string name="game_td_achv_name_kills_100">神射手</string>
     <string name="game_td_achv_name_kills_1000">杀神</string>
     <string name="game_td_achv_name_endless_10">无尽新兵</string>
@@ -263,4 +279,10 @@
     <string name="game_td_hint_build_mode">空格可建塔 · 先从下方选择防御塔</string>
     <string name="game_td_hint_place">点击发光格放置：%1$s</string>
     <string name="game_td_hint_not_enough">金币不足：%1$s 需要 ₿%2$d</string>
+    <!-- 出战选塔时读取真实关卡与难度规则的战前情报 -->
+    <string name="game_td_brief_resources">初始金币 %1$d · 蛋蛋生命 %2$d · %3$d 路进攻</string>
+    <string name="game_td_brief_campaign">战役目标：守住全部 %1$d 波</string>
+    <string name="game_td_brief_endless">无尽挑战：开局 %1$d 波后持续强化，尽量守得更久</string>
+    <string name="game_td_brief_enemies">本关波次敌人：%1$s</string>
+    <string name="game_td_brief_opening_enemies">开局波次敌人：%1$s</string>
 </resources>

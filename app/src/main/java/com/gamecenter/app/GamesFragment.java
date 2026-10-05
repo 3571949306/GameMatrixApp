@@ -1003,9 +1003,38 @@ public class GamesFragment extends Fragment {
         if (tvProgress != null) {
             tvProgress.setText(getString(R.string.daily_challenge_progress_format, c.progress, c.target));
         }
-        // 点击卡片提示
-        cardRoot.setOnClickListener(card -> Toast.makeText(requireContext(),
-                R.string.home_daily_card_click_hint, Toast.LENGTH_SHORT).show());
+        // 点击卡片直达挑战游戏：按 challenge.gameId 在注册表中查找条目，复用游戏卡片
+        // 的统一点击入口 onGameClick（不另写第二套启动逻辑）；找不到（如解锁成就型挑战
+        // 未绑定游戏）时保留原提示 Toast 兜底
+        cardRoot.setOnClickListener(card -> {
+            GameRegistry.Entry entry = findGameEntryById(c.gameId);
+            if (entry != null) {
+                onGameClick(entry);
+            } else {
+                Toast.makeText(requireContext(),
+                        R.string.home_daily_card_click_hint, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * 包 D-2 (HOME_DAILY_CARDS): 按 id 在游戏注册表中查找条目。
+     * 与 {@link DailyChallengeManager} 生成挑战时的 GameRegistry.getCategories 同源，
+     * 天然覆盖静态 + 动态注册的全部游戏，不依赖 allEntries 的填充时序。
+     *
+     * @return 对应条目；null = id 为空或注册表中不存在
+     */
+    @Nullable
+    private GameRegistry.Entry findGameEntryById(@Nullable String gameId) {
+        if (gameId == null || gameId.isEmpty()) return null;
+        for (GameRegistry.Category cat : GameRegistry.getCategories(requireContext())) {
+            for (GameRegistry.Entry entry : cat.games) {
+                if (gameId.equals(entry.id)) {
+                    return entry;
+                }
+            }
+        }
+        return null;
     }
 
     /**

@@ -276,21 +276,41 @@ class App : Application() {
         Log.i("App", "模块系统已初始化")
 
         // 统一加载器（core:module-host）失败清理/回滚回调注入：
-        // 校验失败删除损坏文件并清理安装状态（SP），加载失败按事务策略回滚 last_good。
+        // 校验失败先尝试恢复本次更新的可验证旧版本，再清理确实无恢复能力的坏包；
+        // 加载失败只保留统一回滚后的失败状态，避免删除仍可能用于诊断的文件。
         com.gamecenter.app.modules.ModuleLoader.attachHostCleanup(
             onVerifyFailure = { manifest, file ->
                 runCatching {
+                    val rollbackSucceeded =
+                        com.gamecenter.app.BuildConfig.ENABLE_TRANSACTIONAL_INSTALL &&
+                            com.gamecenter.app.modules.ModuleManager.recoverFailedModuleLoad(this, manifest.id)
+                    if (rollbackSucceeded) {
+                        Log.w("App", "加载器校验失败已回滚: ${manifest.id}")
+                    } else {
+                        file.setWritable(true, false)
+                        if (file.exists()) file.delete()
+                        com.gamecenter.app.modules.ModuleManager.removeInstalledModulePublic(this, manifest.id)
+                        Log.w("App", "加载器校验失败且无可用回滚，已清理: ${manifest.id}")
+                    }
+                }.onFailure { error ->
+                    file.setWritable(true, false)
                     if (file.exists()) file.delete()
                     com.gamecenter.app.modules.ModuleManager.removeInstalledModulePublic(this, manifest.id)
-                    Log.w("App", "加载器校验失败已清理: ${manifest.id}")
+                    Log.e("App", "加载器校验失败回滚异常，已清理: ${manifest.id}", error)
                 }
             },
             onLoadFailureRollback = { manifest ->
                 runCatching {
-                    if (com.gamecenter.app.BuildConfig.ENABLE_TRANSACTIONAL_INSTALL) {
-                        com.gamecenter.app.modules.store.TransactionInstaller.rollback(this, manifest)
+                    val rollbackSucceeded =
+                        com.gamecenter.app.BuildConfig.ENABLE_TRANSACTIONAL_INSTALL &&
+                            com.gamecenter.app.modules.ModuleManager.recoverFailedModuleLoad(this, manifest.id)
+                    if (rollbackSucceeded) {
                         Log.w("App", "加载失败已回滚: ${manifest.id}")
+                    } else {
+                        Log.e("App", "加载失败回滚未完成: ${manifest.id}，保留失败状态")
                     }
+                }.onFailure { error ->
+                    Log.e("App", "加载失败回滚异常: ${manifest.id}，保留失败状态", error)
                 }
             }
         )
@@ -300,6 +320,16 @@ class App : Application() {
             com.gamecenter.app.modules.ModulePreDownloadManager.init(this)
         }.onFailure { e ->
             Log.w("App", "模块预下载管理器初始化失败: ${e.message}")
+        }
+
+        // 每日 20:00 定时提醒（DailyReminderScheduler）：幂等注册，重复调用安全。
+        // 宿主无 androidx.work 依赖，走 AlarmManager.setRepeating；仅宿主进程到达此处
+        // （:adb 进程已在上方提前 return）。设备重启闹钟丢失，由下次冷启动补注册。
+        runCatching {
+            // 定位裁剪（Sprint 3）：每日促活提醒下线，停用调度；Receiver 仍注册但不再 ensureScheduled。
+            // com.gamecenter.app.games.reminder.DailyReminderScheduler.ensureScheduled(this)
+        }.onFailure { e ->
+            Log.w("App", "每日提醒注册失败: ${e.message}")
         }
     }
 

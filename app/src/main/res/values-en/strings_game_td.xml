@@ -143,6 +143,11 @@
     <string name="game_td_act_egg_hit">%1$s broke through! Egg -%2$d, %3$d HP left</string>
     <string name="game_td_act_victory">Victory! The egg is safe</string>
 
+    <!-- Story (per-level intro before battle and outro after victory, from level files) -->
+    <string name="game_td_story_title">📖 Story</string>
+    <string name="game_td_story_start">⚔ Battle</string>
+    <string name="game_td_story_outro_title">📖 Aftermath</string>
+
     <!-- Level select / difficulty / deck panels -->
     <string name="game_td_title_level_select">Select Level</string>
     <string name="game_td_subtitle_protect_egg">Protect the egg, repel the monsters</string>
@@ -170,6 +175,8 @@
     <string name="game_td_stats_label_unlocked">Levels unlocked</string>
     <string name="game_td_stats_label_stars">Stars earned</string>
     <string name="game_td_stats_value_fraction">%1$d/%2$d</string>
+    <string name="game_td_stats_section_times">Best Times</string>
+    <string name="game_td_stats_value_seconds">%1$d sec</string>
     <string name="game_td_stats_section_endless">Endless Best</string>
     <string name="game_td_stats_value_waves">%1$d waves</string>
     <string name="game_td_stats_value_none">Not attempted</string>
@@ -180,7 +187,7 @@
     <string name="game_td_stats_value_not_achieved">Not yet</string>
     <string name="game_td_stats_btn_reset">Clear All Stats</string>
     <string name="game_td_stats_reset_confirm_title">Clear all stats?</string>
-    <string name="game_td_stats_reset_confirm_body">This permanently deletes all stats: kills, games played, stars, unlock progress and endless records.\nThis cannot be undone. Continue?</string>
+    <string name="game_td_stats_reset_confirm_body">This permanently deletes all stats: kills, games played, stars, per-difficulty times, unlock progress and endless records.\nThis cannot be undone. Continue?</string>
     <string name="game_td_stats_reset_confirm_yes">Clear Everything</string>
     <string name="game_td_stats_reset_confirm_no">Cancel</string>
     <string name="game_td_stats_reset_done">Stats data cleared</string>
@@ -194,6 +201,15 @@
     <string name="game_td_achv_name_ch2_cleared">Stalwart Defender</string>
     <string name="game_td_achv_name_ch3_cleared">Storm King</string>
     <string name="game_td_achv_name_ch4_cleared">Ember Finale</string>
+    <string name="game_td_achv_name_ch5_cleared">Ember Watch</string>
+    <string name="game_td_achv_name_ch6_cleared">Everlasting Spring Triumph</string>
+    <string name="game_td_achv_name_ch7_cleared">Long-Night Dawn</string>
+    <string name="game_td_achv_name_ch8_cleared">Summer Fireworks</string>
+    <string name="game_td_achv_name_ch9_cleared">Harvest Crown</string>
+    <string name="game_td_achv_name_ch10_cleared">Longest Light</string>
+    <string name="game_td_achv_name_ch11_cleared">Night-Watch Crown</string>
+    <string name="game_td_achv_name_ch12_cleared">Beacon Homecoming</string>
+    <string name="game_td_achv_name_ch13_cleared">Snowpeak Last Watch</string>
     <string name="game_td_achv_name_kills_100">Sharpshooter</string>
     <string name="game_td_achv_name_kills_1000">God of Slaughter</string>
     <string name="game_td_achv_name_endless_10">Endless Rookie</string>
@@ -267,4 +283,10 @@
     <string name="game_td_hint_build_mode">Empty cells can host towers · Pick a tower below</string>
     <string name="game_td_hint_place">Tap a glowing cell to place: %1$s</string>
     <string name="game_td_hint_not_enough">Not enough coins: %1$s costs ₿%2$d</string>
+    <!-- Battle preparation uses the actual level and selected difficulty. -->
+    <string name="game_td_brief_resources">Starting coins %1$d · Egg health %2$d · %3$d attack routes</string>
+    <string name="game_td_brief_campaign">Campaign goal: defend all %1$d waves</string>
+    <string name="game_td_brief_endless">Endless challenge: %1$d opening waves, then increasingly strong reinforcements</string>
+    <string name="game_td_brief_enemies">Enemies in this level: %1$s</string>
+    <string name="game_td_brief_opening_enemies">Enemies in the opening waves: %1$s</string>
 </resources>

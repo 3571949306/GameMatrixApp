@@ -32,6 +32,7 @@ import com.gamecenter.app.update.UpdateCheckState
 import com.gamecenter.app.update.UpdateInfo
 import com.gamecenter.app.update.UpdateViewModel
 import com.gamecenter.app.ui.NavBadgeHelper
+import com.gamecenter.app.widget.GameMatrixWidgetProvider
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -100,6 +101,23 @@ class MainActivity : AppCompatActivity() {
 
         if (permissionHelper?.isFirstLaunch == true) {
             permissionHelper?.showPermissionDialog(permissionLauncher)
+        }
+
+        // 每日 20:00 定时提醒（DailyReminderScheduler）需要通知权限（targetSdk>=33）：
+        // 首次启动路径已由 PermissionHelper 说明弹窗覆盖（requestRuntimePermissions
+        // 已含 POST_NOTIFICATIONS）；此处仅对"首次弹窗被拒/跳过/TEST_MODE"的用户做
+        // 一次兜底请求，系统最多弹两次，拒绝则静默不发（发送侧自查 areNotificationsEnabled）。
+        if (android.os.Build.VERSION.SDK_INT >= 33
+            && androidx.core.content.ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            && permissionHelper?.isFirstLaunch == false
+        ) {
+            androidx.core.app.ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                REQUEST_CODE_POST_NOTIFICATIONS
+            )
         }
 
         val navHostFragment = supportFragmentManager
@@ -279,6 +297,8 @@ class MainActivity : AppCompatActivity() {
         if (BuildConfig.NAV_BADGE_UNREAD && navView != null) {
             NavBadgeHelper.updateBadges(this, navView)
         }
+        // 桌面小组件：回到前台时刷新数据（无 widget 时零开销）
+        GameMatrixWidgetProvider.pushUpdate(this)
     }
 
     private fun applySystemBarInsets() {
@@ -596,6 +616,9 @@ class MainActivity : AppCompatActivity() {
     companion object {
         /** 移动网络提示：每进程只显示一次 */
         private val mobileNoticeShown = java.util.concurrent.atomic.AtomicBoolean(false)
+
+        /** 每日提醒：Android 13+ 通知权限兜底请求码（结果不处理，拒绝则静默不发） */
+        private const val REQUEST_CODE_POST_NOTIFICATIONS = 1003
 
         const val EXTRA_NAV_TAB = "extra_nav_tab"
 

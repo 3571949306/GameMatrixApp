@@ -16,6 +16,8 @@ import com.gamecenter.app.games.FavoriteGroupsActivity
 import com.gamecenter.app.games.StatsActivity
 import com.gamecenter.app.games.achievement.AchievementCenterActivity
 import com.gamecenter.app.games.achievement.StreakTracker
+import com.gamecenter.app.games.codebook.CodeBookActivity
+import com.gamecenter.app.games.rating.RatingStore
 import com.gamecenter.app.modules.ModuleStoreActivity
 import com.gamecenter.app.settings.AppSettingsDialog
 import com.gamecenter.app.ui.DataBackupHelper
@@ -31,6 +33,11 @@ import java.util.Locale
 class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
     private val tag = "ProfileFragment"
+
+    companion object {
+        /** Elo 棋力分 MVP 仅接入中国象棋；RatingStore 按 gameId 存取，多游戏接入为扩展点。 */
+        private const val CHESS_GAME_ID = "chinesechess"
+    }
 
     // Batch 11-2 (DATA_BACKUP_RESTORE): SAF launcher —— 必须在 Fragment 构造期注册
     private val exportDataLauncher: ActivityResultLauncher<String> =
@@ -57,12 +64,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         // BUG-002 复测修复13：XML 布局方案（NestedScrollView + 固定高度 168dp）失败。
         // 实测 fillViewport=false 时 NestedScrollView 仍把 LinearLayout 压缩到视口高度，
         // 导致 card_quick_entries 高度从 672px(168dp) 被压缩到 479px，第二行按钮被压缩到 127px。
-        // 最终方案：用代码强制设置 card_quick_entries 高度 = 168dp，绕过 XML 布局测量压缩问题。
+        // 最终方案：用代码强制设置 card_quick_entries 高度 = 248dp（三行入口），绕过 XML 布局测量压缩问题。
         val density = resources.displayMetrics.density
         val cardQuickEntries = view.findViewById<View>(R.id.card_quick_entries)
         cardQuickEntries.post {
             val params = cardQuickEntries.layoutParams
-            params.height = (168 * density).toInt()  // 168dp 转 px
+            params.height = (248 * density).toInt()  // 248dp 转 px（padding 16 + 72dp*3 + 间距 8*2）
             cardQuickEntries.layoutParams = params
         }
     }
@@ -104,6 +111,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         val usageStore = GameUsageStore(requireContext())
         view.findViewById<TextView>(R.id.tv_profile_total_games_value).text =
             usageStore.getAllTotalPlayCount().toString()
+
+        // 定位裁剪（Sprint 3）：金币/称号产品面下线，CoinWallet SP 保留不读不写展示。
+        // Elo 棋力等级分：限游戏内，MVP 仅展示中国象棋。
+        view.findViewById<TextView>(R.id.tv_profile_chess_rating).text =
+            getString(R.string.profile_chess_rating_format,
+                RatingStore.getRating(requireContext(), CHESS_GAME_ID))
     }
 
     /** 绑定收藏数量；无收藏时显示提示文案。 */
@@ -119,6 +132,15 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
     /** 绑定收藏卡片与四个快捷入口的点击事件。 */
     private fun bindQuickEntries(view: View) {
+        // 战绩卡片：进入统计（定位裁剪：不再进入金币钱包）
+        view.findViewById<View>(R.id.card_stats).setOnClickListener {
+            try {
+                startActivity(Intent(requireContext(), StatsActivity::class.java))
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message, Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // 收藏卡片：P0-2 打开收藏分组管理界面；无收藏时 Toast 提示
         view.findViewById<View>(R.id.card_favorites).setOnClickListener {
             val count = GameUsageStore(requireContext()).getFavoriteIds().size
@@ -162,6 +184,17 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         view.findViewById<View>(R.id.btn_profile_settings).setOnClickListener {
             try {
                 openSettings()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.message, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 定位裁剪：游戏周报入口已下线（btn_profile_weekly_report visibility=gone）。
+
+        // 关卡码合集本：进入后 onResume 自刷新列表（P1 工具，服务编辑器分享闭环）
+        view.findViewById<View>(R.id.btn_profile_codebook).setOnClickListener {
+            try {
+                CodeBookActivity.launch(requireContext())
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), e.message, Toast.LENGTH_SHORT).show()
             }

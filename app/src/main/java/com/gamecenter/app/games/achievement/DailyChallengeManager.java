@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.gamecenter.app.games.GameRegistry;
+import com.gamecenter.app.games.coin.CoinWallet;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -39,6 +40,19 @@ public class DailyChallengeManager {
     public static final int TYPE_WIN_ROUNDS = 1;
     /** 挑战类型：解锁 N 个新成就 */
     public static final int TYPE_UNLOCK_ACHIEVEMENTS = 2;
+
+    /**
+     * 有胜负判定的游戏 id 集合（TYPE_WIN_ROUNDS 只能从中选）。
+     * <p>来源：module-store 各模块 {@code GameUsageStore.recordWin} 调用点盘点（2026-09-23）——
+     * 共 13 个：blackjack/brotato/chinesechess/doudizhu/gomoku/minesweeper/pipeline/
+     * reaction/rock/sokoban/td/tic/whack。无尽类游戏（tetris/snake/flappy 等）终局
+     * 不产生胜利记录，"赢 N 局"挑战一旦绑定即成为永久无法完成的死任务。</p>
+     */
+    private static final java.util.Set<String> WINNABLE_GAME_IDS =
+            new java.util.HashSet<>(java.util.Arrays.asList(
+                    "blackjack", "brotato", "chinesechess", "doudizhu", "gomoku",
+                    "minesweeper", "pipeline", "reaction", "rock", "sokoban", "td",
+                    "tic", "whack"));
 
     private static final String PREF_NAME = "daily_challenge";
     private static final String KEY_DATE = "challenge_date";
@@ -115,6 +129,9 @@ public class DailyChallengeManager {
         prefs.edit().putInt(KEY_PROGRESS, newProgress).apply();
         if (newProgress >= c.target) {
             prefs.edit().putBoolean(KEY_COMPLETED, true).apply();
+            // 挑战完成发金币：completed 标记先写 SP 再发奖，天然幂等（后续调用不再进入
+            // 本分支，只发一次）；context 复用本单例构造时的 appContext 字段，零新增状态
+            new CoinWallet(appContext).grantChallengeReward();
         }
         return newProgress;
     }
@@ -130,6 +147,8 @@ public class DailyChallengeManager {
         prefs.edit().putInt(KEY_PROGRESS, newProgress).apply();
         if (newProgress >= c.target) {
             prefs.edit().putBoolean(KEY_COMPLETED, true).apply();
+            // 挑战完成发金币：与 recordGamePlayed 完成分支同规则（completed 先写后发，幂等）
+            new CoinWallet(appContext).grantChallengeReward();
         }
         return newProgress;
     }
@@ -179,8 +198,24 @@ public class DailyChallengeManager {
             editor.putString(KEY_GAME_NAME, "");
             editor.putInt(KEY_TARGET, 1 + rnd.nextInt(2)); // 1-2 个成就
         } else {
+            // 死任务修复（2026-09-23 实机发现）：TYPE_WIN_ROUNDS 只能绑定有胜负判定的游戏
+            //（见 WINNABLE_GAME_IDS）。此前随机绑定过俄罗斯方块（tetris），该游戏终局无
+            // recordWin 调用，"赢 3 局"挑战永久无法完成。
+            List<GameRegistry.Entry> candidates = allGames;
+            if (type == TYPE_WIN_ROUNDS) {
+                List<GameRegistry.Entry> winnable = new java.util.ArrayList<>();
+                for (GameRegistry.Entry g : allGames) {
+                    if (WINNABLE_GAME_IDS.contains(g.id)) winnable.add(g);
+                }
+                if (winnable.isEmpty()) {
+                    // 极端情况：可胜利游戏均未注册，降级为"玩 N 局"，避免生成死任务
+                    type = TYPE_PLAY_ROUNDS;
+                } else {
+                    candidates = winnable;
+                }
+            }
             // 优先推荐用户最近玩过的游戏，提升相关性
-            GameRegistry.Entry chosen = pickPreferredGame(allGames, rnd);
+            GameRegistry.Entry chosen = pickPreferredGame(candidates, rnd);
             editor.putInt(KEY_TYPE, type);
             editor.putString(KEY_GAME_ID, chosen.id);
             editor.putString(KEY_GAME_NAME, chosen.name);

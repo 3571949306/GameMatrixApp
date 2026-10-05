@@ -9,6 +9,10 @@ import androidx.annotation.NonNull;
 import com.gamecenter.app.database.AppDatabase;
 import com.gamecenter.app.database.dao.GameUsageDao;
 import com.gamecenter.app.database.entity.GameUsageEntity;
+import com.gamecenter.app.games.achievement.AchievementBridge;
+import com.gamecenter.app.games.achievement.DailyChallengeManager;
+import com.gamecenter.app.games.achievement.StreakTracker;
+import com.gamecenter.app.games.coin.CoinWallet;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,11 +31,19 @@ public final class GameUsageStore {
 
     private final SharedPreferences prefs;
     private final GameUsageDao gameUsageDao;
+    // 金币经济：appContext 供 StreakTracker 单例读取连胜天数（applicationContext，无泄漏风险）
+    private final Context appContext;
+    // 金币经济：对局终点的金币入账门面（内部仅读写 SP，无异常风险，不影响原记账流）
+    private final CoinWallet coinWallet;
+    // 成就桥：按 game_configs.json 统一驱动 27 个模块的成就解锁（桥内部全量 try-catch，不影响本类记账流）
+    private final AchievementBridge achievementBridge;
 
     public GameUsageStore(Context context) {
-        prefs = context.getApplicationContext()
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        gameUsageDao = AppDatabase.getDatabase(context.getApplicationContext()).gameUsageDao();
+        appContext = context.getApplicationContext();
+        prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        gameUsageDao = AppDatabase.getDatabase(appContext).gameUsageDao();
+        coinWallet = new CoinWallet(appContext);
+        achievementBridge = AchievementBridge.getInstance(appContext);
     }
 
     /**
@@ -59,11 +71,37 @@ public final class GameUsageStore {
     public void recordWin(String gameId) {
         ensureRowExists(gameId);
         gameUsageDao.incrementWinSync(gameId);
+        // 金币经济：胜利入账（按连胜天数加成，CoinWallet 内部保证稳定，不影响原对局统计）
+        int streak = currentStreakForCoins();
+        coinWallet.recordGameResult(true, streak);
+        // 每日挑战：胜利经全平台统一入口推进 WIN 型每日挑战（此前全仓库仅在游戏启动时
+        // 以 won=false 记录，TYPE_WIN_ROUNDS 挑战永远无法完成）；失败不挂——失败不推进
+        // 任何挑战类型，TYPE_PLAY_ROUNDS 的推进由启动时的记录负责
+        DailyChallengeManager.getInstance(appContext).recordGamePlayed(gameId, true);
+        // 成就桥：按 game_configs.json 统一驱动 27 个模块的 WIN_COUNT/STREAK 型成就解锁
+        // （totalWins 取 incrementWinSync 之后的最新 Room 值；streak 复用上方金币逻辑的连胜天数）
+        achievementBridge.onGameWin(gameId, getWinCount(gameId), streak);
     }
 
     public void recordLoss(String gameId) {
         ensureRowExists(gameId);
         gameUsageDao.incrementLossSync(gameId);
+        // 金币经济：完成对局的安慰金币
+        coinWallet.recordGameResult(false, 0);
+    }
+
+    /**
+     * 金币胜场奖励使用的当前每日活跃连胜天数。
+     * <p>读取 {@link StreakTracker} 的既有统计（单例 + SP 读取，开销极小）；
+     * 读取异常时返回 0（宁缺勿错：只损失奖励加成，不影响任何记账）。</p>
+     */
+    private int currentStreakForCoins() {
+        try {
+            return StreakTracker.getInstance(appContext).getCurrentStreak();
+        } catch (Exception e) {
+            Log.w("GameUsageStore", "读取连胜天数失败，金币奖励按无加成处理", e);
+            return 0;
+        }
     }
 
     public void recordPlayTime(String gameId, long durationMs) {
@@ -82,6 +120,9 @@ public final class GameUsageStore {
         ensureRowExists(gameId);
         // updateHighScoreSync 仅在 highScore < score 时更新（SQL 内置条件）
         gameUsageDao.updateHighScoreSync(gameId, (long) score);
+        // 成就桥：按 game_configs.json 统一驱动 27 个模块的 SCORE 型成就解锁
+        // （阈值判定由 AchievementManager.checkAndUnlock 内置完成，桥不做二次过滤）
+        achievementBridge.onGameScore(gameId, score);
     }
 
     public int getHighScore(String gameId) {

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 游戏周报页：周期标题 + 四统计卡（本周时长/活跃天数/全期对局胜率/金币收支）
+     + 最常游玩卡（全期口径） + 每日时长迷你条形（内容区 ScrollView 纵向滚动） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/eye_care_bg">
+
+    <!-- 顶部标题栏（仿金币钱包/成就中心样式） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/gm_spacing_4"
+        android:background="@color/eye_care_card"
+        android:elevation="2dp">
+
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/module_back"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="@dimen/gm_spacing_1" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/gm_spacing_3"
+            android:text="@string/weekly_report_title"
+            android:textSize="20sp"
+            android:textColor="@color/eye_care_text_primary"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/gm_spacing_4">
+
+            <!-- ===== 周期标题（近 7 日滚动窗口，代码填 MM-dd） ===== -->
+            <TextView
+                android:id="@+id/tv_weekly_period"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/eye_care_text_primary"
+                tools:text="本周游戏周报（09-18 ~ 09-24）" />
+
+            <!-- ===== 统计卡第一行：本周时长 / 活跃天数 ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:weightSum="2">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="@dimen/gm_spacing_1"
+                    android:orientation="vertical"
+                    android:padding="@dimen/gm_spacing_4"
+                    android:background="@color/eye_care_card"
+                    android:elevation="1dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/weekly_report_playtime_label"
+                        android:textSize="12sp"
+                        android:textColor="@color/eye_care_text_secondary" />
+
+                    <TextView
+                        android:id="@+id/tv_weekly_playtime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/gm_spacing_1"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brand_primary"
+                        tools:text="3 小时 24 分" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
+                    android:orientation="vertical"
+                    android:padding="@dimen/gm_spacing_4"
+                    android:background="@color/eye_care_card"
+                    android:elevation="1dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/weekly_report_active_days_label"
+                        android:textSize="12sp"
+                        android:textColor="@color/eye_care_text_secondary" />
+
+                    <TextView
+                        android:id="@+id/tv_weekly_active_days"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/gm_spacing_1"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brand_primary"
+                        tools:text="4/7" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ===== 统计卡第二行：全期对局（含全期胜率副行）/ 金币收支（本周） ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:weightSum="2">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="@dimen/gm_spacing_1"
+                    android:orientation="vertical"
+                    android:padding="@dimen/gm_spacing_4"
+                    android:background="@color/eye_care_card"
+                    android:elevation="1dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/weekly_report_total_games_label"
+                        android:textSize="12sp"
+                        android:textColor="@color/eye_care_text_secondary" />
+
+                    <TextView
+                        android:id="@+id/tv_weekly_total_games"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/gm_spacing_1"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brand_primary"
+                        tools:text="128 局" />
+
+                    <TextView
+                        android:id="@+id/tv_weekly_win_rate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp"
+                        android:textColor="@color/eye_care_text_secondary"
+                        tools:text="全期胜率 62%（胜负 45/27）" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/gm_spacing_1"
+                    android:orientation="vertical"
+                    android:padding="@dimen/gm_spacing_4"
+                    android:background="@color/eye_care_card"
+                    android:elevation="1dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/weekly_report_coin_label"
+                        android:textSize="12sp"
+                        android:textColor="@color/eye_care_text_secondary" />
+
+                    <TextView
+                        android:id="@+id/tv_weekly_coins"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/gm_spacing_1"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brand_primary"
+                        tools:text="+120 / -50" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ===== 最常游玩卡（全期口径：按日时长未按游戏拆分，无法精确到本周） ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/weekly_report_favorite_title"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/eye_care_text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/weekly_report_favorite_note"
+                    android:textSize="11sp"
+                    android:textColor="@color/eye_care_text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_weekly_favorite_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/eye_care_text_primary"
+                    tools:text="中国象棋" />
+
+                <TextView
+                    android:id="@+id/tv_weekly_favorite_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/eye_care_text_secondary"
+                    tools:text="12 小时 30 分" />
+            </LinearLayout>
+
+            <!-- ===== 每日时长卡（近 7 日迷你条形，代码填 7 格；全零显示占位文案） ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/gm_spacing_2"
+                android:padding="@dimen/gm_spacing_4"
+                android:background="@color/eye_care_card"
+                android:elevation="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/weekly_report_daily_title"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/eye_care_text_primary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/weekly_report_daily_note"
+                        android:textSize="11sp"
+                        android:textColor="@color/eye_care_text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layout_weekly_daily"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/tv_weekly_daily_empty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/gm_spacing_2"
+                    android:text="@string/weekly_report_daily_empty"
+                    android:textSize="12sp"
+                    android:textColor="@color/eye_care_text_secondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

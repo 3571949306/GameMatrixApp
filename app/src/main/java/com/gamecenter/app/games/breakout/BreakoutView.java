@@ -128,6 +128,7 @@ public class BreakoutView extends View {
 
     private final Random random = new Random();
     private OnGameListener listener;
+    private Runnable onRequestRestartListener;
 
     /** 设备密度（px = dp * density），用于把画布绘制的"绝对像素"尺寸换算成与屏幕匹配的 dp 视觉尺寸 */
     private float density = 1f;
@@ -161,6 +162,10 @@ public class BreakoutView extends View {
 
     public void setOnGameListener(OnGameListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnRequestRestartListener(Runnable listener) {
+        onRequestRestartListener = listener;
     }
 
     // ==================== 游戏控制 ====================
@@ -284,6 +289,7 @@ public class BreakoutView extends View {
                 b.y = paddleY - ballRadius - 2;
             }
         }
+        layoutBricks();
         invalidate();
     }
 
@@ -309,33 +315,42 @@ public class BreakoutView extends View {
         brickHp.clear();
         brickMaxHp.clear();
         brickAlive.clear();
-        rowPaints.clear();
-
-        float gap = Math.max(4, viewWidth * 0.014f);
-        float brickW = (viewWidth - (BRICK_COLS + 1) * gap) / BRICK_COLS;
-        float brickH = Math.max(24, viewHeight * 0.03f);
-        float top = Math.max(80, viewHeight * 0.09f);
 
         int maxHp = Math.min(1 + (level - 1) / 2, 3);
 
         for (int r = 0; r < brickRows; r++) {
             int baseColor = ROW_COLORS[r % ROW_COLORS.length];
-            // 渐变：顶部更亮
-            Paint gp = new Paint(Paint.ANTI_ALIAS_FLAG);
-            int light = lighten(baseColor, 0.35f);
-            gp.setShader(new LinearGradient(0, top + r * (brickH + gap), 0,
-                    top + r * (brickH + gap) + brickH, light, baseColor, Shader.TileMode.CLAMP));
-            rowPaints.add(gp);
-
             for (int c = 0; c < BRICK_COLS; c++) {
-                float left = gap + c * (brickW + gap);
-                float t = top + r * (brickH + gap);
-                bricks.add(new RectF(left, t, left + brickW, t + brickH));
+                bricks.add(new RectF());
                 brickColors.add(baseColor);
                 int hp = Math.min(maxHp, 1 + (brickRows - 1 - r) / 2);
                 brickHp.add(hp);
                 brickMaxHp.add(hp);
                 brickAlive.add(true);
+            }
+        }
+        layoutBricks();
+    }
+
+    /** 只更新已有砖块与渐变的几何，不重置耐久、存活状态或本局进度。 */
+    private void layoutBricks() {
+        float gap = Math.max(4, viewWidth * 0.014f);
+        float brickW = (viewWidth - (BRICK_COLS + 1) * gap) / BRICK_COLS;
+        float brickH = Math.max(24, viewHeight * 0.03f);
+        float top = Math.max(80, viewHeight * 0.09f);
+        rowPaints.clear();
+        for (int i = 0; i < bricks.size(); i++) {
+            int row = i / BRICK_COLS;
+            int column = i % BRICK_COLS;
+            float left = gap + column * (brickW + gap);
+            float brickTop = top + row * (brickH + gap);
+            bricks.get(i).set(left, brickTop, left + brickW, brickTop + brickH);
+            if (column == 0) {
+                int baseColor = brickColors.get(i);
+                Paint gradient = new Paint(Paint.ANTI_ALIAS_FLAG);
+                gradient.setShader(new LinearGradient(0, brickTop, 0, brickTop + brickH,
+                        lighten(baseColor, 0.35f), baseColor, Shader.TileMode.CLAMP));
+                rowPaints.add(gradient);
             }
         }
     }
@@ -802,7 +817,8 @@ public class BreakoutView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         if (state == State.GAME_OVER) {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                startGame(1);
+                if (onRequestRestartListener != null) onRequestRestartListener.run();
+                else startGame(1);
             }
             return true;
         }
@@ -811,13 +827,11 @@ public class BreakoutView extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (state == State.READY) {
-                    launchBalls();
-                }
                 paddleX = event.getX() - paddleWidth / 2f;
                 paddleX = Math.max(0, Math.min(paddleX, viewWidth - paddleWidth));
                 if (state == State.READY) {
                     for (Ball b : balls) { b.x = paddleX + paddleWidth / 2f; }
+                    launchBalls();
                 }
                 invalidate();
                 break;
