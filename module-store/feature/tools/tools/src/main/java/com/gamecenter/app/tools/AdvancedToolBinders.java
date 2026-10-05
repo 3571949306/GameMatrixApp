@@ -30,15 +30,12 @@ import android.widget.Toast;
 import com.gamecenter.app.BuildConfig;
 import com.gamecenter.app.R;
 import com.google.android.material.button.MaterialButton;
-import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.MultiFormatReader;
 import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.Result;
-import com.google.zxing.common.BitMatrix;
 import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.qrcode.QRCodeWriter;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -95,9 +92,6 @@ public final class AdvancedToolBinders {
 
     // 日志标签，用于在 Logcat 中筛选本类的日志输出
     private static final String TAG = "AdvancedToolBinders";
-
-    /** 二维码生成的默认尺寸（像素），720px 在清晰度和生成速度间取得平衡 */
-    private static final int QR_SIZE = 720;
 
     // 私有构造函数：防止外部 new AdvancedToolBinders()，因为所有方法都是静态的
     private AdvancedToolBinders() {
@@ -366,6 +360,9 @@ public final class AdvancedToolBinders {
      *   <li>剪贴板生成：读取剪贴板内容直接生成二维码</li>
      *   <li>WiFi 码：按 "SSID,密码,加密方式" 格式生成 WiFi 连接二维码</li>
      *   <li>名片码：按 "姓名,电话,邮箱" 格式生成 vCard 二维码</li>
+     *   <li>美化/历史/批量（增强）：{@link QrPlusController} 纯代码构建样式面板，
+     *       支持前景/背景色、中心 Logo（自动容错 H）、标题文字、容错级别、批量生码、
+     *       生码历史、保存到相册与分享</li>
      * </ul>
      *
      * @param context            上下文
@@ -377,9 +374,12 @@ public final class AdvancedToolBinders {
         TextView result = contentView.findViewById(R.id.tv_qr_plus_result);
         ImageView preview = contentView.findViewById(R.id.iv_qr_plus);
 
+        // 美化/历史/批量增强控制器：接管各生成入口的渲染逻辑（替代原 renderQr）
+        QrPlusController controller = new QrPlusController(context, contentView, input, result, preview);
+
         View generate = contentView.findViewById(R.id.btn_qr_plus_generate);
         if (generate != null) {
-            generate.setOnClickListener(v -> renderQr(context, preview, result, readInput(input)));
+            generate.setOnClickListener(v -> controller.render(readInput(input)));
         }
 
         View decode = contentView.findViewById(R.id.btn_qr_plus_decode_image);
@@ -393,7 +393,7 @@ public final class AdvancedToolBinders {
             clipboard.setOnClickListener(v -> {
                 String text = readClipboard(context);
                 if (input != null) input.setText(text);
-                renderQr(context, preview, result, text);
+                controller.render(text);
             });
         }
 
@@ -409,9 +409,8 @@ public final class AdvancedToolBinders {
                 // 若未指定加密方式或为空，默认使用 WPA
                 String auth = parts.length >= 3 && !parts[2].trim().isEmpty() ? parts[2].trim() : "WPA";
                 // 按照 WiFi 二维码标准格式编码，特殊字符需要转义
-                String qr = "WIFI:T:" + escapeWifi(auth) + ";S:" + escapeWifi(parts[0].trim())
-                        + ";P:" + escapeWifi(parts[1].trim()) + ";;";
-                renderQr(context, preview, result, qr);
+                String qr = QrPayloads.buildWifi(parts[0].trim(), parts[1].trim(), auth);
+                controller.render(qr);
             });
         }
 
@@ -426,11 +425,8 @@ public final class AdvancedToolBinders {
                 }
                 String email = parts.length >= 3 ? parts[2].trim() : "";
                 // 按照 vCard 3.0 标准格式编码
-                String qr = "BEGIN:VCARD\nVERSION:3.0\nFN:" + parts[0].trim()
-                        + "\nTEL:" + parts[1].trim()
-                        + (email.isEmpty() ? "" : "\nEMAIL:" + email)
-                        + "\nEND:VCARD";
-                renderQr(context, preview, result, qr);
+                String qr = QrPayloads.buildVCard(parts[0].trim(), parts[1].trim(), email);
+                controller.render(qr);
             });
         }
     }
@@ -456,7 +452,7 @@ public final class AdvancedToolBinders {
                 Bitmap bitmap = BitmapFactory.decodeStream(input);
                 text = decodeQr(bitmap);
             } catch (Exception e) {
-                text = "识别失败: " + e.getMessage();
+                text = context.getString(R.string.tool_qr_plus_decode_failed_format, e.getMessage());
             }
             postText(contentView, resultView, text);
         });
@@ -986,56 +982,6 @@ public final class AdvancedToolBinders {
     }
 
     /**
-     * 渲染二维码并显示在 ImageView 中。
-     * <p>
-     * 将输入文本通过 ZXing 库编码为二维码 Bitmap，设置到预览 ImageView 上，
-     * 同时在结果文本框中显示原始文本内容。
-     *
-     * @param context 上下文，用于显示 Toast 提示
-     * @param preview 二维码预览 ImageView
-     * @param result  结果文本框
-     * @param text    要编码为二维码的文本内容
-     */
-    private static void renderQr(Context context, ImageView preview, TextView result, String text) {
-        if (text == null || text.trim().isEmpty()) {
-            Toast.makeText(context, R.string.tool_input_qr_content, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            Bitmap bitmap = createQr(text);
-            if (preview != null) {
-                preview.setImageBitmap(bitmap);
-                preview.setVisibility(View.VISIBLE);
-            }
-            setText(result, text);
-        } catch (Exception e) {
-            setText(result, context.getString(R.string.tool_diag_qr_failed_format, e.getMessage()));
-        }
-    }
-
-    /**
-     * 使用 ZXing 库将文本编码为二维码 Bitmap。
-     * <p>
-     * 生成 QR_SIZE × QR_SIZE 像素的二维码图片，黑色模块在白色背景上。
-     *
-     * @param text 要编码的文本
-     * @return 二维码 Bitmap
-     * @throws Exception 编码失败时抛出异常
-     */
-    private static Bitmap createQr(String text) throws Exception {
-        BitMatrix matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, QR_SIZE, QR_SIZE);
-        int[] pixels = new int[QR_SIZE * QR_SIZE];
-        for (int y = 0; y < QR_SIZE; y++) {
-            int offset = y * QR_SIZE;
-            for (int x = 0; x < QR_SIZE; x++) {
-                // BitMatrix 中 true 表示黑色模块，false 表示白色背景
-                pixels[offset + x] = matrix.get(x, y) ? Color.BLACK : Color.WHITE;
-            }
-        }
-        return Bitmap.createBitmap(pixels, QR_SIZE, QR_SIZE, Bitmap.Config.ARGB_8888);
-    }
-
-    /**
      * 使用 ZXing 库从 Bitmap 中识别二维码内容。
      * <p>
      * 先将图片缩放到合理尺寸（最大边 1200px），再转为灰度二值化图像进行解码。
@@ -1081,21 +1027,6 @@ public final class AdvancedToolBinders {
         // Math.max(1, ...) 确保缩放后宽高至少为 1 像素
         return Bitmap.createScaledBitmap(bitmap, Math.max(1, Math.round(width * scale)),
                 Math.max(1, Math.round(height * scale)), true);
-    }
-
-    /**
-     * 转义 WiFi 二维码中的特殊字符。
-     * <p>
-     * 按照 WiFi QR Code 规范，反斜杠、分号、逗号、冒号需要用反斜杠转义。
-     *
-     * @param value 原始字符串
-     * @return 转义后的字符串
-     */
-    private static String escapeWifi(String value) {
-        return value.replace("\\", "\\\\")
-                .replace(";", "\\;")
-                .replace(",", "\\,")
-                .replace(":", "\\:");
     }
 
     /**
