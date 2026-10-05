@@ -4,8 +4,11 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -31,7 +34,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.LooperMode;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -53,7 +58,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -148,6 +155,36 @@ public class TdUiRegressionTest {
     }
 
     // ===== 绘制热路径文案缓存：构造/setter 期解析一次，结果与直接 getString 逐字符一致 =====
+
+    @Test
+    public void multipleEntrancesRenderNumbersMatchingWavePreviewAndResetOnRebind() {
+        BannerHarness harness = newTdView();
+        int[][] upper = {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7},
+                {1, 7}, {2, 7}, {3, 7}, {4, 7}};
+        int[][] lower = {{4, 0}, {4, 1}, {4, 2}, {4, 3}, {4, 4}, {4, 5}, {4, 6}, {4, 7}};
+        List<TdGame.Wave> waves = java.util.Collections.singletonList(
+                new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f, 1f, 1f));
+        final List<String> drawnText = new ArrayList<>();
+        Canvas canvas = new Canvas() {
+            @Override public void drawText(String text, float x, float y, Paint paint) {
+                drawnText.add(text);
+            }
+        };
+        harness.view.layout(0, 0, 960, 720);
+        harness.view.bind(new TdGame(8, 5, new int[][][] {upper, lower}, 4, 7, 240, 5, waves));
+        harness.view.onDraw(canvas);
+        assertTrue("Entrance one must be distinguishable from entrance two", drawnText.contains("1"));
+        assertTrue("The second route must have its own visible marker", drawnText.contains("2"));
+        assertFalse("Two entrances must not share an ambiguous generic sign",
+                drawnText.contains(RecordingResources.stub(R.string.game_td_sign_entrance)));
+
+        drawnText.clear();
+        harness.view.bind(new TdGame(8, 5, upper, 4, 7, 240, 5, waves));
+        harness.view.onDraw(canvas);
+        assertTrue("Returning to a single-route level must restore its localized entrance sign",
+                drawnText.contains(RecordingResources.stub(R.string.game_td_sign_entrance)));
+        assertFalse("Rebinding cannot retain an obsolete second entrance label", drawnText.contains("2"));
+    }
 
     @Test
     public void drawTextCachesMatchDirectLookupsAfterConstruction() throws Exception {
@@ -276,6 +313,238 @@ public class TdUiRegressionTest {
         assertTrue("未解锁成就行必须显示未达成状态（game_td_stats_value_not_achieved）",
                 hasTextViewWithText(ch4Row,
                         RecordingResources.stub(R.string.game_td_stats_value_not_achieved)));
+    }
+
+    @Test
+    public void statsResetShowsSuccessNoticeInsideRebuiltPanel() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "stats-reset-host").commitNow();
+
+        FrameLayout overlayRoot = new FrameLayout(activity);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.addKills(12);
+        setPrivateField(fragment, "overlayRoot", overlayRoot);
+        setPrivateField(fragment, "save", save);
+
+        invokePrivateMethod(fragment, "showStatsPanel");
+        TextView reset = findViewByStubText(overlayRoot, R.string.game_td_stats_btn_reset);
+        assertNotNull("战绩面板必须包含清空按钮", reset);
+        reset.performClick();
+
+        TextView confirm = findViewByStubText(overlayRoot,
+                R.string.game_td_stats_reset_confirm_yes);
+        assertNotNull("清空操作必须先显示二次确认按钮", confirm);
+        confirm.performClick();
+
+        assertEquals("清空确认后数据必须归零", 0, save.getTotalKills());
+        assertNotNull("清空成功提示必须位于重建后的战绩浮层内，而非被遮挡的 HUD 消息条",
+                findViewByStubText(overlayRoot, R.string.game_td_stats_reset_done));
+        assertNotNull("清空成功提示必须挂在战绩面板通知位",
+                findTagged(overlayRoot, "td_stats_notice"));
+    }
+
+    // ===== 塔组开局剧情：走真实按钮回调，防止 startLevel 后清浮层误删刚创建的故事 =====
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    public void deckStartKeepsStoryVisibleUntilPlayerContinuesToBattle() throws Exception {
+        FragmentActivity activity = Robolectric.setupActivity(PanelHostActivity.class);
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "story-start-host").commitNow();
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        setPrivateField(fragment, "save", save);
+
+        // 复用生产 UI 构造，保留 startLevel 消费的真实 HUD/棋盘/开战按钮，
+        // 仅由 StatsHostFragment 绕过 ModuleManager 的宿主资源装载。
+        ViewGroup ui = (ViewGroup) invokePrivateMethod(fragment, "buildUi", new Class<?>[0]);
+        ((ViewGroup) fragment.requireView()).addView(ui);
+        try {
+            invokePrivateMethod(fragment, "showDeckSelect",
+                    new Class<?>[] {int.class, TdGame.Difficulty.class, boolean.class},
+                    0, TdGame.Difficulty.NORMAL, false);
+            TextView deckStart = findViewByStubText(ui, R.string.game_td_btn_start_level);
+            assertNotNull("塔组面板必须提供真实开局按钮", deckStart);
+            assertTrue(deckStart.performClick());
+
+            TextView intro = (TextView) findTagged(ui, "td_story_intro");
+            assertNotNull("塔组开局回调返回后，剧情不得被尾随 clearOverlay 删除", intro);
+            String levelId = TdLevels.levelIds().get(0);
+            assertFalse("前置：生产首关必须有故事", TdLevels.levelStoryIntro(levelId).isEmpty());
+            assertEquals("故事正文必须接入当前关卡资产", TdLevels.levelStoryIntro(levelId),
+                    intro.getText().toString());
+            assertEquals("一次开局只计一局", 1, save.getPlayCount());
+
+            Field gameField = TdModuleFragment.class.getDeclaredField("game");
+            gameField.setAccessible(true);
+            TdGame game = (TdGame) gameField.get(fragment);
+            assertNotNull(game);
+            assertEquals(TdGame.State.PREPARING, game.getState());
+            invokePrivateMethod(fragment, "tickOnce");
+            assertEquals("阅读剧情期间不得推进战斗时间", 0L, game.getElapsedTicksForDisplay());
+            assertNotNull("剧情只能由玩家主动关闭", findTagged(ui, "td_story_intro"));
+
+            TextView storyStart = findViewByStubText(ui, R.string.game_td_story_start);
+            assertNotNull("剧情必须提供出战按钮", storyStart);
+            assertTrue(storyStart.performClick());
+            assertNull("点击出战后剧情必须关闭", findTagged(ui, "td_story_intro"));
+            assertEquals("关闭剧情后仍允许先布防", TdGame.State.PREPARING, game.getState());
+
+            TextView fight = findViewByStubText(ui, R.string.game_td_btn_fight);
+            assertNotNull("剧情关闭后必须保留真实开战按钮", fight);
+            assertTrue(fight.performClick());
+            assertEquals(TdGame.State.RUNNING, game.getState());
+            long elapsedBeforeTick = game.getElapsedTicksForDisplay();
+            invokePrivateMethod(fragment, "tickOnce");
+            assertEquals("出战后不能残留阻断战斗的覆盖层或暂停状态",
+                    elapsedBeforeTick + 1L, game.getElapsedTicksForDisplay());
+        } finally {
+            fragment.onPause(); // startLevel/tickOnce 排入的循环不能泄漏到其他测试。
+        }
+    }
+
+    // ===== 跨局合成选择：旧局源塔不得把新局普通选塔变成一次消费塔的合成 =====
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    public void pendingMergeDoesNotConsumeNewTowersAfterSettlementRetry() throws Exception {
+        assertPendingMergeDoesNotCrossNewGame(true);
+    }
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    public void pendingMergeDoesNotConsumeNewTowersAfterReturningThroughLevelSelect() throws Exception {
+        assertPendingMergeDoesNotCrossNewGame(false);
+    }
+
+    private void assertPendingMergeDoesNotCrossNewGame(boolean retryAfterLoss) throws Exception {
+        ActivityController<PanelHostActivity> controller =
+                Robolectric.buildActivity(PanelHostActivity.class).setup();
+        PanelHostActivity activity = controller.get();
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "merge-session-host").commitNow();
+        setPrivateField(fragment, "save", new TdSaveManager(new MemoryPrefs()));
+        ViewGroup ui = (ViewGroup) invokePrivateMethod(fragment, "buildUi", new Class<?>[0]);
+        ((ViewGroup) fragment.requireView()).addView(ui);
+        try {
+            invokePrivateMethod(fragment, "showDeckSelect",
+                    new Class<?>[] {int.class, TdGame.Difficulty.class, boolean.class},
+                    0, TdGame.Difficulty.NORMAL, false);
+            clickMergeFlowButton(ui, R.string.game_td_btn_start_level);
+            clickMergeFlowButton(ui, R.string.game_td_story_start);
+            TdGame oldGame = (TdGame) readFragmentField(fragment, "game");
+            TdView board = (TdView) readFragmentField(fragment, "tdView");
+
+            // SUN is unlocked in the real first-level deck. It cannot kill enemies, so the
+            // retry branch can reach a real production loss without forcing engine state.
+            selectSunCardForMergeFlow(ui);
+            tapBoardCellForMergeFlow(board, 1, 0);
+            TdGame.Tower oldSource = oldGame.getTowerAt(1, 0);
+            assertNotNull("真实塔牌和棋盘触摸必须建出源塔", oldSource);
+            assertEquals(TowerType.SUN, oldSource.type);
+            tapBoardCellForMergeFlow(board, 1, 0);
+            assertSame(oldSource, board.getHoverTower());
+            assertTrue(((Button) readFragmentField(fragment, "btnUpgrade")).performClick());
+            assertSame("前置：真实合成按钮必须选中旧局源塔", oldSource,
+                    readFragmentField(fragment, "mergeSource"));
+
+            if (retryAfterLoss) {
+                clickMergeFlowButton(ui, R.string.game_td_btn_fight);
+                driveToEnd(oldGame);
+                assertEquals("仅太阳花布防必须经真实引擎到达败局", TdGame.State.LOST,
+                        oldGame.getState());
+                invokePrivateMethod(fragment, "onGameEnded");
+                assertNotNull(findViewByStubText(ui, R.string.game_td_result_lose));
+                clickMergeFlowButton(ui, R.string.game_td_btn_retry);
+            } else {
+                clickMergeFlowButton(ui, R.string.game_td_btn_levels);
+                ViewGroup firstCard = (ViewGroup) findTagged(ui,
+                        "td_level_card:" + TdLevels.levelIds().get(0));
+                assertNotNull("退出旧局后必须出现真实首关卡片", firstCard);
+                clickMergeFlowButton(firstCard, R.string.game_td_btn_play);
+                clickMergeFlowButton(ui, R.string.game_td_difficulty_normal);
+                clickMergeFlowButton(ui, R.string.game_td_btn_start_level);
+            }
+            clickMergeFlowButton(ui, R.string.game_td_story_start);
+            TdGame newGame = (TdGame) readFragmentField(fragment, "game");
+            assertNotSame("导航必须创建新局，不能继续使用旧引擎", oldGame, newGame);
+            assertEquals(TdGame.State.PREPARING, newGame.getState());
+            assertEquals(0, newGame.getTowers().size());
+
+            // Reuse the old source coordinates in the new game. No merge was requested in
+            // this game: both placements and the subsequent selection use real UI callbacks.
+            selectSunCardForMergeFlow(ui);
+            tapBoardCellForMergeFlow(board, 1, 0);
+            tapBoardCellForMergeFlow(board, 1, 1);
+            TdGame.Tower first = newGame.getTowerAt(1, 0);
+            TdGame.Tower target = newGame.getTowerAt(1, 1);
+            assertNotNull(first);
+            assertNotNull(target);
+            assertEquals(2, newGame.getTowers().size());
+            assertEquals(1, target.level);
+            int coinBeforeSelection = newGame.getCoin();
+
+            tapBoardCellForMergeFlow(board, 1, 1);
+
+            assertSame("新局普通选塔不得消费旧源坐标上的新塔", first, newGame.getTowerAt(1, 0));
+            assertSame(target, newGame.getTowerAt(1, 1));
+            assertEquals("没有发起新合成时两座塔都必须保留", 2, newGame.getTowers().size());
+            assertEquals("普通选中不能把目标升级", 1, target.level);
+            assertEquals("普通选中不能改变金币", coinBeforeSelection, newGame.getCoin());
+            assertSame("棋盘必须正常选中目标塔", target, board.getHoverTower());
+            assertEquals("正常选塔必须显示操作栏", View.VISIBLE,
+                    ((View) readFragmentField(fragment, "towerOpsBar")).getVisibility());
+        } finally {
+            controller.pause().stop().destroy();
+        }
+    }
+
+    private static void clickMergeFlowButton(ViewGroup root, int resourceId) {
+        TextView button = findViewByStubText(root, resourceId);
+        assertNotNull("合成跨局流程缺少按钮资源 " + resourceId, button);
+        assertTrue("必须点击生产 Button", button instanceof Button);
+        assertTrue("必须执行生产点击回调", button.performClick());
+    }
+
+    private static void selectSunCardForMergeFlow(ViewGroup root) {
+        TextView name = findViewByStubText(root, R.string.game_td_tower_sun);
+        assertNotNull("真实塔栏必须有已解锁的太阳花", name);
+        View card = (View) name.getParent();
+        assertEquals(View.VISIBLE, card.getVisibility());
+        assertTrue("必须通过生产塔牌点击选择类型", card.performClick());
+    }
+
+    private static void tapBoardCellForMergeFlow(TdView board, int row, int col) throws Exception {
+        board.layout(0, 0, 720, 720);
+        Field cellSize = TdView.class.getDeclaredField("cellSize");
+        Field originX = TdView.class.getDeclaredField("originX");
+        Field originY = TdView.class.getDeclaredField("originY");
+        cellSize.setAccessible(true);
+        originX.setAccessible(true);
+        originY.setAccessible(true);
+        float size = cellSize.getFloat(board);
+        assertTrue("生产布局必须计算出可触摸棋盘", size > 0f);
+        float x = originX.getFloat(board) + (col + .5f) * size;
+        float y = originY.getFloat(board) + (row + .5f) * size;
+        assertArrayEquals("触摸坐标必须来自当前棋盘几何", new int[] {row, col}, board.cellAt(x, y));
+        MotionEvent down = MotionEvent.obtain(0L, 0L, MotionEvent.ACTION_DOWN, x, y, 0);
+        MotionEvent up = MotionEvent.obtain(0L, 16L, MotionEvent.ACTION_UP, x, y, 0);
+        try {
+            assertTrue(board.onTouchEvent(down));
+            assertTrue(board.onTouchEvent(up));
+        } finally {
+            down.recycle();
+            up.recycle();
+        }
+    }
+
+    private static Object readFragmentField(TdModuleFragment fragment, String name) throws Exception {
+        Field field = TdModuleFragment.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(fragment);
     }
 
     // ===== 结算面板成就行（回归：成就提示曾走 tvMsg 弹条，弹出瞬间被 0xE6 结算浮层覆盖不可读） =====
@@ -773,6 +1042,139 @@ public class TdUiRegressionTest {
         assertTrue("毒泡泡特性行必须非空（game_td_codex_trait_tower_poison）",
                 hasTextViewWithText(poisonSection,
                         RecordingResources.stub(R.string.game_td_codex_trait_tower_poison)));
+    }
+
+    // ===== 真实选塔的目标模式：狙击固定强敌，普通攻击塔仍可循环 =====
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    public void sniperTowerOpsShowsFixedStrongTargetAndRejectsUserCycling() throws Exception {
+        assertTargetModeControlsThroughRealSelection(true);
+    }
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    public void ordinaryTowerOpsRestoresTargetCyclingAfterSelectingSniper() throws Exception {
+        assertTargetModeControlsThroughRealSelection(false);
+    }
+
+    private void assertTargetModeControlsThroughRealSelection(boolean verifySniper) throws Exception {
+        ActivityController<PanelHostActivity> controller =
+                Robolectric.buildActivity(PanelHostActivity.class).setup();
+        PanelHostActivity activity = controller.get();
+        StatsHostFragment fragment = new StatsHostFragment();
+        activity.getSupportFragmentManager().beginTransaction()
+                .add(android.R.id.content, fragment, "target-mode-host").commitNow();
+        try {
+            // A saved three-level completion unlocks the actual fourth-level sniper card.
+            // The live game still uses production NORMAL resources, deck selection and taps.
+            TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+            for (int level = 0; level < 3; level++) save.recordWin(TdLevels.levelIds().get(level));
+            assertEquals(4, save.getUnlockedLevelCount());
+            setPrivateField(fragment, "save", save);
+            ViewGroup ui = (ViewGroup) invokePrivateMethod(fragment, "buildUi", new Class<?>[0]);
+            ((ViewGroup) fragment.requireView()).addView(ui);
+            invokePrivateMethod(fragment, "showDeckSelect",
+                    new Class<?>[] {int.class, TdGame.Difficulty.class, boolean.class},
+                    3, TdGame.Difficulty.NORMAL, false);
+            View deckSniper = findTargetModeCardByDescription(ui, RecordingResources.stub(
+                    R.string.game_td_cd_unselected, RecordingResources.stub(R.string.game_td_tower_sniper)));
+            assertNotNull("The unlocked sniper must be selectable in the real deck", deckSniper);
+            assertTrue(deckSniper.isEnabled());
+            assertTrue(deckSniper.performClick());
+            clickMergeFlowButton(ui, R.string.game_td_btn_start_level);
+            clickMergeFlowButton(ui, R.string.game_td_story_start);
+            TdGame game = (TdGame) readFragmentField(fragment, "game");
+            TdView board = (TdView) readFragmentField(fragment, "tdView");
+            assertEquals(TdGame.State.PREPARING, game.getState());
+            assertEquals(TdGame.Difficulty.NORMAL, game.getDifficulty());
+            int coinBefore = game.getCoin();
+            assertTrue("The real fourth-level budget must cover these two towers",
+                    coinBefore >= TowerType.SNIPER.baseCost + TowerType.BOTTLE.baseCost);
+            List<int[]> cells = new ArrayList<>();
+            for (int row = 0; row < game.getRows() && cells.size() < 2; row++) {
+                for (int col = 0; col < game.getCols() && cells.size() < 2; col++) {
+                    if (!game.isPathCell(row, col) && !game.isEggCell(row, col)) {
+                        cells.add(new int[]{row, col});
+                    }
+                }
+            }
+            assertEquals(2, cells.size());
+            TowerType[] types = {TowerType.SNIPER, TowerType.BOTTLE};
+            for (int index = 0; index < types.length; index++) {
+                View paletteCard = ui.findViewWithTag(types[index]);
+                assertNotNull("The active deck must expose the real palette card", paletteCard);
+                assertEquals(View.VISIBLE, paletteCard.getVisibility());
+                assertTrue(paletteCard.performClick());
+                tapBoardCellForMergeFlow(board, cells.get(index)[0], cells.get(index)[1]);
+                assertNotNull(game.getTowerAt(cells.get(index)[0], cells.get(index)[1]));
+                assertEquals(types[index], game.getTowerAt(cells.get(index)[0], cells.get(index)[1]).type);
+            }
+            assertEquals(coinBefore - TowerType.SNIPER.baseCost - TowerType.BOTTLE.baseCost, game.getCoin());
+            TdGame.Tower sniper = game.getTowerAt(cells.get(0)[0], cells.get(0)[1]);
+            TdGame.Tower bottle = game.getTowerAt(cells.get(1)[0], cells.get(1)[1]);
+            tapBoardCellForMergeFlow(board, sniper.row, sniper.col);
+            assertSame("Tower operations must be reached through actual board selection", sniper, board.getHoverTower());
+            assertEquals(View.VISIBLE, ((View) readFragmentField(fragment, "towerOpsBar")).getVisibility());
+            Button target = (Button) readFragmentField(fragment, "btnTarget");
+
+            if (verifySniper) {
+                String strongText = RecordingResources.stub(R.string.game_td_btn_target_mode,
+                        RecordingResources.stub(R.string.game_td_target_strong));
+                assertEquals("Sniper UI must report the STRONG rule actually used by acquireTarget",
+                        strongText, target.getText().toString());
+                assertFalse("A fixed-target sniper must not offer a misleading target-mode switch", target.isEnabled());
+                TdGame.TargetMode before = sniper.targetMode;
+                // Disabled user input must not become a mode change. performClick would
+                // bypass Android's enabled-state handling, so send actual touch events here.
+                target.layout(0, 0, 240, 80);
+                MotionEvent down = MotionEvent.obtain(0L, 0L, MotionEvent.ACTION_DOWN, 120f, 40f, 0);
+                MotionEvent up = MotionEvent.obtain(0L, 16L, MotionEvent.ACTION_UP, 120f, 40f, 0);
+                try {
+                    target.dispatchTouchEvent(down);
+                    target.dispatchTouchEvent(up);
+                } finally {
+                    down.recycle();
+                    up.recycle();
+                }
+                assertEquals("Touching the disabled control cannot mutate the sniper's stored mode", before, sniper.targetMode);
+                assertEquals(strongText, target.getText().toString());
+            } else {
+                tapBoardCellForMergeFlow(board, bottle.row, bottle.col);
+                assertSame(bottle, board.getHoverTower());
+                assertTrue("Selecting an ordinary tower after a sniper must restore mode switching", target.isEnabled());
+                assertEquals(TdGame.TargetMode.FIRST, bottle.targetMode);
+                assertEquals(RecordingResources.stub(R.string.game_td_btn_target_mode,
+                        RecordingResources.stub(R.string.game_td_target_first)), target.getText().toString());
+                TdGame.TargetMode[] modes = {TdGame.TargetMode.STRONG, TdGame.TargetMode.WEAK, TdGame.TargetMode.FIRST};
+                int[] names = {R.string.game_td_target_strong, R.string.game_td_target_weak, R.string.game_td_target_first};
+                for (int index = 0; index < modes.length; index++) {
+                    assertTrue("The real target Button must remain enabled for an ordinary tower", target.isEnabled());
+                    assertTrue(target.performClick());
+                    assertEquals("The ordinary tower's engine mode must cycle", modes[index], bottle.targetMode);
+                    assertEquals("The operation bar must report each actual selected mode",
+                            RecordingResources.stub(R.string.game_td_btn_target_mode, RecordingResources.stub(names[index])),
+                            target.getText().toString());
+                }
+            }
+            assertEquals("Selecting a target mode cannot change tower count", 2, game.getTowers().size());
+            assertEquals("Selecting a target mode cannot spend coins",
+                    coinBefore - TowerType.SNIPER.baseCost - TowerType.BOTTLE.baseCost, game.getCoin());
+        } finally {
+            controller.pause().stop().destroy();
+        }
+    }
+
+    private static View findTargetModeCardByDescription(View root, String description) {
+        if (description.contentEquals(root.getContentDescription() == null ? "" : root.getContentDescription())) return root;
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int index = 0; index < group.getChildCount(); index++) {
+                View found = findTargetModeCardByDescription(group.getChildAt(index), description);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     // ===== 塔升级预览（showTowerOps）：下一级数值 / 满级 / 增幅加成注记 / 经济与光环塔专属口径 =====

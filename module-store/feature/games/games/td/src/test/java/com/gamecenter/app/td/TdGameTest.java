@@ -25,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * TdGame 引擎确定性测试 — 无 Android 依赖，验证状态与不变量。
@@ -287,6 +288,55 @@ public class TdGameTest {
         g.tick();
         TdGame.Monster fly = g.getMonsters().get(0);
         assertEquals("狙击塔不应误伤飞行兵", fly.maxHp, fly.hp, .0001f);
+    }
+
+    @Test
+    public void mineAreaAndBurnRespectAntiAirFilter() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}};
+        java.util.List<TdGame.Wave> waves = new java.util.ArrayList<>();
+        waves.add(new TdGame.Wave(new MonsterType[] {MonsterType.NORMAL, MonsterType.FLY},
+                0, 2, 0f, 0f, 1f, 1f));
+        TdGame g = new TdGame(6, 2, path, 0, 5, 1000, 10, waves);
+        TdGame.Tower mine = g.placeTower(TowerType.MINE, 1, 0);
+        assertNotNull(mine);
+        mine.level = 3;
+        assertTrue(g.startNextWaveEarly());
+        g.tick();
+
+        TdGame.Monster normal = null;
+        TdGame.Monster fly = null;
+        for (TdGame.Monster monster : g.getMonsters()) {
+            if (monster.type == MonsterType.NORMAL) normal = monster;
+            if (monster.type == MonsterType.FLY) fly = monster;
+        }
+        assertNotNull(normal);
+        assertNotNull(fly);
+        assertTrue("地雷应能命中范围内的地面目标", normal.dead);
+        assertFalse("地雷爆炸不得绕过对空规则误伤飞行目标", fly.dead);
+        assertEquals("地雷爆炸不得扣除飞行目标生命", fly.maxHp, fly.hp, .0001f);
+        assertEquals("满级地雷应留下燃烧区", 1, g.getBurnZones().size());
+
+        g.tick();
+        assertEquals("地雷燃烧区同样不得伤害飞行目标", fly.maxHp, fly.hp, .0001f);
+    }
+
+    @Test
+    public void waveRejectsNonFiniteNumericValues() {
+        try {
+            new TdGame.Wave(MonsterType.NORMAL, 1, Float.POSITIVE_INFINITY,
+                    0f, 1f, 1f);
+            fail("波次间隔不能接受无穷值");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+
+        try {
+            new TdGame.Wave(MonsterType.NORMAL, 1, 1f, 0f,
+                    Float.POSITIVE_INFINITY, 1f);
+            fail("波次血量倍率不能接受无穷值");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
     }
 
     @Test
@@ -1107,6 +1157,26 @@ public class TdGameTest {
     }
 
     @Test
+    public void eggOverkill_clampsHpAndLostToRemaining() {
+        int[][] path = new int[][] {{0, 0}, {0, 1}, {0, 2}, {0, 3}};
+        java.util.List<TdGame.Wave> bossWave = new java.util.ArrayList<>();
+        bossWave.add(new TdGame.Wave(MonsterType.BOSS, 1, 0f, 0f, .01f, 1f));
+        TdGame game = new TdGame(4, 1, path, 0, 3, 200, 2, bossWave);
+        game.startNextWaveEarly();
+        for (int i = 0; i < 60 * 10 && !game.isEnded(); i++) game.tick();
+        assertEquals("超额伤害不得打出负血", 0, game.getMascotHp());
+        assertEquals("丢失统计只计有效伤害", 2, game.getMascotHpLost());
+        assertEquals(TdGame.State.LOST, game.getState());
+        assertEquals(TdGame.ActionMsg.EGG_HIT, game.getLastActionMsg());
+        Object[] args = game.getLastActionArgs();
+        assertEquals(3, args.length);
+        assertEquals("受击消息剩余生命不得为负", 0, ((Integer) args[2]).intValue());
+        game.tick();
+        assertEquals(0, game.getMascotHp());
+        assertEquals(2, game.getMascotHpLost());
+    }
+
+    @Test
     public void healer_restoresNearbyDamagedAlly_withoutOverhealing() {
         int[][] path = new int[][] {
                 {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}
@@ -1357,6 +1427,20 @@ public class TdGameTest {
                 * TdEndlessWaveFactory.createWave(2, TdGame.Difficulty.HARD, 1).hpMul
                 * TdGame.Difficulty.HARD.hpMul;
         assertEquals("难度只在引擎侧合成一次，工厂不重复叠加", expected, monster.maxHp, 0.01f);
+    }
+
+    @Test
+    public void applyDifficulty_isIgnoredAfterBattleStarts() {
+        TdGame g = minimalGame(1, 100, TdGame.Mode.CAMPAIGN);
+        g.applyDifficulty(TdGame.Difficulty.EASY);
+        assertEquals(TdGame.Difficulty.EASY, g.getDifficulty());
+        int coinAtStart = g.getCoin();
+        assertTrue(g.startNextWaveEarly());
+
+        g.applyDifficulty(TdGame.Difficulty.HARD);
+
+        assertEquals("开战后不能切换难度", TdGame.Difficulty.EASY, g.getDifficulty());
+        assertEquals("开战后切换难度不得改写金币", coinAtStart, g.getCoin());
     }
 
     @Test

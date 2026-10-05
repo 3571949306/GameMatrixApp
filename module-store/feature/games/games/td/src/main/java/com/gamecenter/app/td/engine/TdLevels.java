@@ -178,6 +178,20 @@ public final class TdLevels {
         return preferSourceText() ? definition.subtitle : definition.subtitleEn;
     }
 
+    /** 开战前故事；无剧情时返回空串，调用方不弹故事面板。 */
+    public static String levelStoryIntro(String id) {
+        TdLevelDefinition definition = id == null ? null : requireCatalog().byId.get(canonicalId(id));
+        if (definition == null) return "";
+        return preferSourceText() ? definition.storyIntro : definition.storyIntroEn;
+    }
+
+    /** 胜利后尾声；无剧情时返回空串，结算面板不加故事行。 */
+    public static String levelStoryOutro(String id) {
+        TdLevelDefinition definition = id == null ? null : requireCatalog().byId.get(canonicalId(id));
+        if (definition == null) return "";
+        return preferSourceText() ? definition.storyOutro : definition.storyOutroEn;
+    }
+
     /**
      * Chinese is the authoritative source text. Only explicit English locales read the
      * translated fields, so a third language (ja, ...) falls back to the source text exactly

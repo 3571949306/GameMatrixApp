@@ -1,0 +1,2480 @@
+{
+  "schema": 1,
+  "id": "chapter_main_08",
+  "name": "番外章·夏潮彼岸",
+  "levels": [
+    {
+      "id": "main_056",
+      "order": 56,
+      "name": "沙洲晨雾",
+      "subtitle": "海雾倒卷双径 · 夏之岸初醒",
+      "name_en": "Morning Mist on the Sandbar",
+      "subtitle_en": "Sea fog rolls up both lanes · The summer shore stirs",
+      "theme": "VALLEY",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        0,
+        0
+      ],
+      "startCoin": 320,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        [
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "NORMAL"
+          ],
+          "route": 0,
+          "count": 45,
+          "interval": 0.66,
+          "delay": 1.0,
+          "hpMul": 1.64,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "HEALER",
+            "SPLITTER"
+          ],
+          "route": 1,
+          "count": 50,
+          "interval": 0.62,
+          "delay": 3.0,
+          "hpMul": 1.64,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 50,
+          "interval": 0.64,
+          "delay": 14.0,
+          "hpMul": 1.66,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "SHIELD",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 45,
+          "interval": 0.66,
+          "delay": 24.0,
+          "hpMul": 1.66,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 50,
+          "interval": 0.62,
+          "delay": 35.0,
+          "hpMul": 1.68,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 14,
+          "interval": 1.5,
+          "delay": 46.0,
+          "hpMul": 1.5,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "长夜松手之后，泉水顺着地脉一路向南，涌进了夏天的海岸。沙洲上的守灵没有迎接来客，只留下一片倒卷上岸的晨雾和两条雾失方向的径。艾吉提着上两季赢来的灯走进雾里——夏之岸的第一句问候，得自己挣。",
+      "story_intro_en": "After the long night let go, the spring ran south through the ley-lines and flooded into the summer shore. The sandbar warden sent no welcome — only sea fog rolling inland and two lanes losing their bearings. Eggy walked into the mist carrying lamps earned in the last two seasons; the shore's first greeting would have to be won.",
+      "story_outro": "晨雾在正午前溃退，沙洲露出一枚巨大的螺号。守灵的声音从壳里传出来：沿着潮汐走，潮镜在下一个弯口等你们。",
+      "story_outro_en": "The mist broke before noon and left one huge conch on the sand. The warden's voice came out of the shell: follow the tide — the mirror waits at the next bend."
+    },
+    {
+      "id": "main_057",
+      "order": 57,
+      "name": "回潮之镜",
+      "subtitle": "潮水两度回头 · 双廓长试新阵",
+      "name_en": "Tideturn Hollow",
+      "subtitle_en": "The tide turns back twice · Long galleries test a new formation",
+      "theme": "CRYSTAL",
+      "rows": 10,
+      "cols": 12,
+      "egg": [
+        0,
+        0
+      ],
+      "startCoin": 330,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        [
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            0,
+            10
+          ],
+          [
+            0,
+            9
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SUMMONER",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 76,
+          "interval": 0.66,
+          "delay": 1.0,
+          "hpMul": 1.7,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "NORMAL"
+          ],
+          "route": 1,
+          "count": 92,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 1.7,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "TANK",
+            "RESISTANT"
+          ],
+          "route": 0,
+          "count": 76,
+          "interval": 0.65,
+          "delay": 14.0,
+          "hpMul": 1.72,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "HEALER"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.66,
+          "delay": 24.0,
+          "hpMul": 1.72,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "SHIELD"
+          ],
+          "route": 0,
+          "count": 84,
+          "interval": 0.62,
+          "delay": 35.0,
+          "hpMul": 1.74,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "FLY",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 84,
+          "interval": 0.62,
+          "delay": 45.0,
+          "hpMul": 1.72,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "BOSS",
+            "SUMMONER"
+          ],
+          "route": 0,
+          "count": 31,
+          "interval": 1.5,
+          "delay": 56.0,
+          "hpMul": 1.5,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "潮镜是一湾会自己回头的海：涨潮时两条长廓同时没水，退潮时塔阵又露出沙痕。海之守灵立下规矩——蛋要在两次回头之间不破，潮才肯为村庄让路。艾吉把阵脚扎在了潮线之上。",
+      "story_intro_en": "Tideturn Hollow is a bay that walks back on itself: at flood both long galleries go under, at ebb the turret line resurfaces on the sand. The sea warden set the rule — the egg must survive between two turnings of the tide, and only then does the water yield the road. Eggy anchored the formation above the tideline.",
+      "story_outro": "第二次回头之后，海真的让开了：一条发亮的沙路直抵蟹壳群岛。螺号在艾吉背上震了震——下一站，硬碰硬。",
+      "story_outro_en": "After the second turning the sea genuinely parted: a shining sand-road ran straight to the Crabshell Isles. The conch on Eggy's back hummed once — next stop, shell against cannon."
+    },
+    {
+      "id": "main_058",
+      "order": 58,
+      "name": "蟹壳军团",
+      "subtitle": "重甲与护盾叠进 · 双径硬碰硬",
+      "name_en": "Legion of Crabshells",
+      "subtitle_en": "Heavy shells advance in shield lockstep · Cannon meets shell on both lanes",
+      "theme": "BRAMBLE",
+      "rows": 10,
+      "cols": 10,
+      "egg": [
+        0,
+        0
+      ],
+      "startCoin": 342,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        [
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "SHIELD",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 24,
+          "interval": 0.64,
+          "delay": 1.0,
+          "hpMul": 1.78,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "NORMAL"
+          ],
+          "route": 1,
+          "count": 27,
+          "interval": 0.6,
+          "delay": 3.0,
+          "hpMul": 1.76,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SHIELD_GENERATOR",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.66,
+          "delay": 14.0,
+          "hpMul": 1.8,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "SHIELD"
+          ],
+          "route": 1,
+          "count": 24,
+          "interval": 0.62,
+          "delay": 24.0,
+          "hpMul": 1.78,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "TANK",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 22,
+          "interval": 0.65,
+          "delay": 35.0,
+          "hpMul": 1.8,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 22,
+          "interval": 0.66,
+          "delay": 45.0,
+          "hpMul": 1.8,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "SHIELD"
+          ],
+          "route": 0,
+          "count": 9,
+          "interval": 1.5,
+          "delay": 56.0,
+          "hpMul": 1.5,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "蟹壳群岛的军团长不信潮镜的传言：村庄的塔不过是运气好。它把护盾队、抗术者与重甲排成叠进的方阵，从两条径同时碾过浅滩。螺号这一次没有劝架的意思——它在数节拍，等军团长学会弹簧舞。",
+      "story_intro_en": "The legion commander of the Crabshell Isles scoffed at the tideturn rumours: the village towers were merely lucky. It filed shield ranks, resisters and heavy shells into a lockstep legion and ground ashore on both lanes at once. The conch had no mind to mediate this time — it kept the beat, waiting for the commander to learn the spring dance.",
+      "story_outro": "军团长的钳子磕在塔阵上，像敲一面认输的锣。群岛让出航道，蟹壳成了村庄塔基最硬的填料。",
+      "story_outro_en": "The commander's claw rang against the turrets like a gong of surrender. The isles yielded the channel, and crabshell became the hardest ballast beneath the village foundations."
+    },
+    {
+      "id": "main_059",
+      "order": 59,
+      "name": "夏雷急雨",
+      "subtitle": "飞兵掠过三径雨幕 · 空地齐鸣",
+      "name_en": "Summer Squall Trifork",
+      "subtitle_en": "Flyers shear the rain curtain over three roads · Land and air sound as one",
+      "theme": "VALLEY",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 356,
+      "mascotHp": 6,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "FLY",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 1.0,
+          "hpMul": 1.82,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "RAGER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.64,
+          "delay": 4.0,
+          "hpMul": 1.84,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "FLY"
+          ],
+          "route": 2,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 10.0,
+          "hpMul": 1.82,
+          "speedMul": 1.1
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "SHIELD_GENERATOR"
+          ],
+          "route": 0,
+          "count": 76,
+          "interval": 0.65,
+          "delay": 19.0,
+          "hpMul": 1.84,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "CHARGER",
+            "TANK"
+          ],
+          "route": 1,
+          "count": 76,
+          "interval": 0.64,
+          "delay": 28.0,
+          "hpMul": 1.86,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RAGER",
+            "FLY"
+          ],
+          "route": 2,
+          "count": 84,
+          "interval": 0.6,
+          "delay": 37.0,
+          "hpMul": 1.84,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "BOSS",
+            "FLY"
+          ],
+          "route": 0,
+          "count": 31,
+          "interval": 1.4,
+          "delay": 48.0,
+          "hpMul": 1.54,
+          "speedMul": 1.05
+        }
+      ],
+      "story_intro": "夏天的雨说来就来：夏雷守灵把三径泡成雨幕，让飞兵贴着雨脚走，让重甲踩着雷点进。这是番外以来第一次，塔要在听不见炮声的雨里学会空地并守。艾吉把伞收了起来——雨里的村庄，不需要伞。",
+      "story_intro_en": "Summer rain arrives the moment it is spoken of: the squall warden drowned the three roads in a curtain, runners hugging the hem of the rain, heavy shells stepping to the thunder. For the first time across all side stories, the towers must learn joint land-and-air defence in a storm that swallows every report. Eggy folded the umbrella — the village in the rain needs none.",
+      "story_outro": "雨收在最后一声雷里。夏雷守灵把雷槌别在云上作别：再往岸的尽头去，烟花已经装填完毕。",
+      "story_outro_en": "The rain packed itself into the last clap of thunder. The squall warden lodged its hammer in a cloud as a farewell: go on to the end of the shore — the fireworks are already loaded."
+    },
+    {
+      "id": "main_060",
+      "order": 60,
+      "name": "夏夜烟火",
+      "subtitle": "三海之影齐至 · 三径共此长明",
+      "name_en": "Fireworks over the Night Shore",
+      "subtitle_en": "Shades of three seas converge · Three roads share one endless flare",
+      "theme": "GARDEN",
+      "rows": 12,
+      "cols": 12,
+      "egg": [
+        6,
+        6
+      ],
+      "startCoin": 370,
+      "mascotHp": 7,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            0,
+            7
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "waves": [
+        {
+          "types": [
+            "TANK",
+            "HEALER"
+          ],
+          "route": 0,
+          "count": 66,
+          "interval": 0.62,
+          "delay": 1.0,
+          "hpMul": 1.92,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "SPLITTER",
+            "SHIELD"
+          ],
+          "route": 1,
+          "count": 72,
+          "interval": 0.6,
+          "delay": 4.0,
+          "hpMul": 1.92,
+          "speedMul": 1.05
+        },
+        {
+          "types": [
+            "SUMMONER",
+            "RAGER"
+          ],
+          "route": 2,
+          "count": 66,
+          "interval": 0.64,
+          "delay": 10.0,
+          "hpMul": 1.94,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "RESISTANT",
+            "TANK"
+          ],
+          "route": 0,
+          "count": 66,
+          "interval": 0.62,
+          "delay": 19.0,
+          "hpMul": 1.96,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "FLY",
+            "CHARGER"
+          ],
+          "route": 1,
+          "count": 79,
+          "interval": 0.6,
+          "delay": 28.0,
+          "hpMul": 1.92,
+          "speedMul": 1.15
+        },
+        {
+          "types": [
+            "HEALER",
+            "TANK"
+          ],
+          "route": 2,
+          "count": 66,
+          "interval": 0.62,
+          "delay": 37.0,
+          "hpMul": 1.96,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "RAGER"
+          ],
+          "route": 0,
+          "count": 7,
+          "interval": 1.0,
+          "delay": 48.0,
+          "hpMul": 1.56,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "SPLITTER"
+          ],
+          "route": 1,
+          "count": 7,
+          "interval": 1.0,
+          "delay": 52.0,
+          "hpMul": 1.56,
+          "speedMul": 1.0
+        },
+        {
+          "types": [
+            "BOSS",
+            "RESISTANT"
+          ],
+          "route": 2,
+          "count": 7,
+          "interval": 1.0,
+          "delay": 56.0,
+          "hpMul": 1.56,
+          "speedMul": 1.0
+        }
+      ],
+      "story_intro": "岸的尽头有一座不夜岬：夏之守灵倾三海之影——沙洲、潮镜与雷屿各遣一尊，分踏三径，赴一场烟花之礼。规矩很简单：若塔阵能让蛋在烟火下亮到天明，夏便许给村庄一半的海岸。这是季轮的盛夏之约，也是长夜之后，光明自己给自己出的考题。",
+      "story_intro_en": "At the shore's end lies the Sleepless Cape: the summer warden summoned the shades of three seas — sandbar, tidemirror and thunderisle each sent one lord, treading three roads toward the fireworks rite. The terms were simple: if the turret line keeps the egg lit beneath the bursts until dawn, summer grants the village half its coast. The midsummer tryst of the season round — and, ever since the long night, light examining itself.",
+      "story_outro": "天明时，半条海岸亮着未熄的余火，像村庄新长的灯链。夏答应了，蝉替它盖了章。而秋风的请柬，已经在浪沫里翻了个身。",
+      "story_outro_en": "By dawn half the coast still glowed with unspent embers — a fresh chain of lamps the village had grown. Summer agreed; the cicadas stamped its seal. And in the sea foam, an invitation from the autumn wind had already turned over."
+    }
+  ]
+}

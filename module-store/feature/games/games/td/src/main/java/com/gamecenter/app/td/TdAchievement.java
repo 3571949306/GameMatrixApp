@@ -7,7 +7,7 @@ import java.util.List;
  * 塔防「保卫蛋蛋」成就定义（纯数据枚举，无 Android 依赖，JVM 可测）。
  *
  * <p>条件全部可从既有游戏事件判定：通关（recordWin）、累计击杀（addKills）、
- * 无尽最佳波数（recordEndlessWaves）、双难度全清（setEasyCleared/setHardCleared）。
+ * 无尽最佳波数（recordEndlessWaves）、简单与困难均通关（setEasyCleared/setHardCleared）。
  * 每个成就持久化为独立布尔键（{@link #saveKey}，td_achv_ 前缀，沿用模块 td_ 键约定），
  * 只增不减：解锁后不随任何状态回退而撤销，clearAll 一并清除。
  *
@@ -31,6 +31,24 @@ public enum TdAchievement {
     CHAPTER3_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch3_cleared", "main_025", 0),
     /** 熔灰终章：通关 main_035（第 4 章终关） */
     CHAPTER4_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch4_cleared", "main_035", 0),
+    /** 余烬守望：通关 main_045（第 5 章终关） */
+    CHAPTER5_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch5_cleared", "main_045", 0),
+    /** 常春凯旋：通关 main_050（第 6 章「常青之春」终关） */
+    CHAPTER6_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch6_cleared", "main_050", 0),
+    /** 长夜破晓：通关 main_055（第 7 章「未醒之谷」终关） */
+    CHAPTER7_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch7_cleared", "main_055", 0),
+    /** 夏夜烟火：通关 main_060（第 8 章「夏潮彼岸」终关） */
+    CHAPTER8_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch8_cleared", "main_060", 0),
+    /** 秋实加冕：通关 main_065（第 9 章「秋实之夜」终关） */
+    CHAPTER9_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch9_cleared", "main_065", 0),
+    /** 冬至长明：通关 main_070（第 10 章「冬至长明」终关） */
+    CHAPTER10_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch10_cleared", "main_070", 0),
+    /** 夜巡之冠：通关 main_075（第 11 章「夜巡试炼」终关） */
+    CHAPTER11_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch11_cleared", "main_075", 0),
+    /** 烽灯归营：通关 main_080（第 12 章「烽灯连营」终关） */
+    CHAPTER12_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch12_cleared", "main_080", 0),
+    /** 雪峰终哨：通关 main_085（第 13 章「雪峰终哨」终关，全战役收束） */
+    CHAPTER13_CLEARED(Kind.CAMPAIGN_CLEAR, "td_achv_ch13_cleared", "main_085", 0),
     /** 神射手：累计击杀 ≥ 100 */
     KILLS_100(Kind.TOTAL_KILLS, "td_achv_kills_100", null, 100),
     /** 杀神：累计击杀 ≥ 1000 */
@@ -80,7 +98,7 @@ public enum TdAchievement {
         return matchingThreshold(Kind.ENDLESS_WAVES, bestWavesAnyDifficulty);
     }
 
-    /** 难度全清事件应触发的成就（纯函数，JVM 可测）：简单与困难都通关才算。 */
+    /** 双难度通关事件应触发的成就（纯函数，JVM 可测）：简单与困难都通关才算。 */
     static List<TdAchievement> matchingDualClear(boolean easyCleared, boolean hardCleared) {
         List<TdAchievement> out = new ArrayList<>();
         if (easyCleared && hardCleared) {

@@ -99,8 +99,9 @@ public class TdGame {
                 if (monsterType == null) throw new IllegalArgumentException("wave monster type is null");
             }
             if (routeIndex < 0 || count <= 0 || intervalSec < 0f || startDelaySec < 0f
-                    || hpMul <= 0f || speedMul <= 0f || Float.isNaN(intervalSec)
-                    || Float.isNaN(startDelaySec) || Float.isNaN(hpMul) || Float.isNaN(speedMul)) {
+                    || hpMul <= 0f || speedMul <= 0f || !Float.isFinite(intervalSec)
+                    || !Float.isFinite(startDelaySec) || !Float.isFinite(hpMul)
+                    || !Float.isFinite(speedMul)) {
                 throw new IllegalArgumentException("invalid wave values");
             }
             this.composition = composition.clone();
@@ -482,10 +483,9 @@ public class TdGame {
 
     /** 应用难度：初始金币 × 难度倍率（仅 PREPARING 阶段生效）。 */
     public void applyDifficulty(Difficulty d) {
+        if (state != State.PREPARING) return;
         this.difficulty = d != null ? d : Difficulty.NORMAL;
-        if (state == State.PREPARING) {
-            coin = Math.round(startCoin * difficulty.coinMul);
-        }
+        coin = Math.round(startCoin * difficulty.coinMul);
     }
     public Mode getMode() { return mode; }
 
@@ -931,7 +931,8 @@ public class TdGame {
         for (BurnZone zone : burnZones) {
             zone.secondsLeft -= FIXED_DT;
             for (Monster monster : monsters) {
-                if (!monster.dead && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
+                if (!monster.dead && canHit(TowerType.MINE, monster)
+                        && dist(zone.x, zone.y, monster.x, monster.y) <= zone.radius) {
                     takeDamage(monster, TowerType.MINE_BURN_DPS * FIXED_DT, DamageKind.BURN);
                 }
             }
@@ -1059,8 +1060,10 @@ public class TdGame {
     private void reachEgg(Monster m) {
         m.dead = true;
         int damage = m.type.leakDamage;
-        mascotHp -= damage;
-        mascotHpLost += damage;
+        int hpBefore = Math.max(mascotHp, 0);
+        int effective = Math.min(damage, hpBefore);
+        mascotHp = hpBefore - effective;
+        mascotHpLost += effective;
         eggHitTimer = 0.6f;
         lastActionTone = "err";
         succeed(ActionMsg.EGG_HIT, m.type, damage, mascotHp);
@@ -1180,7 +1183,7 @@ public class TdGame {
             case FAN: {
                 // 周围溅射
                 for (Monster m : monsters) {
-                    if (m.dead) continue;
+                    if (!canHit(t.type, m)) continue;
                     float d = dist(m.x, m.y, tx, ty);
                     if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 }
@@ -1193,7 +1196,7 @@ public class TdGame {
                 target.dotTimer = TowerType.POISON_SEC * poisonEffect;
                 takeDamage(target, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 for (Monster m : monsters) {
-                    if (m.dead || m == target) continue;
+                    if (!canHit(t.type, m) || m == target) continue;
                     float d = dist(m.x, m.y, tx, ty);
                     if (d <= TowerType.AOE_RADIUS * 0.8f) {
                         m.dotDps = TowerType.POISON_DPS * 0.5f;
@@ -1205,7 +1208,7 @@ public class TdGame {
             }
             case ROCKET: {
                 for (Monster m : monsters) {
-                    if (m.dead) continue;
+                    if (!canHit(t.type, m)) continue;
                     float d = dist(m.x, m.y, tx, ty);
                     if (d <= TowerType.AOE_RADIUS) takeDamage(m, dmg * t.type.directHitMultiplier, DamageKind.DIRECT);
                 }
@@ -1220,7 +1223,8 @@ public class TdGame {
             case MINE: {
                 float radius = t.type.mineBlastRadiusAt(t.level);
                 for (Monster monster : monsters) {
-                    if (!monster.dead && dist(monster.x, monster.y, tx, ty) <= radius) {
+                    if (!monster.dead && canHit(t.type, monster)
+                            && dist(monster.x, monster.y, tx, ty) <= radius) {
                         takeDamage(monster, dmg, DamageKind.DIRECT);
                     }
                 }
@@ -1249,7 +1253,7 @@ public class TdGame {
             Monster next = null;
             float bestDistance = Float.MAX_VALUE;
             for (Monster candidate : monsters) {
-                if (candidate.dead || hit.contains(candidate)) continue;
+                if (!canHit(tower.type, candidate) || hit.contains(candidate)) continue;
                 float distance = dist(previous.x, previous.y, candidate.x, candidate.y);
                 if (distance <= TowerType.LIGHTNING_CHAIN_RANGE && distance < bestDistance) {
                     bestDistance = distance;
@@ -1270,8 +1274,7 @@ public class TdGame {
         float bestScore = -Float.MAX_VALUE;
         float cx = t.col + 0.5f, cy = t.row + 0.5f;
         for (Monster m : monsters) {
-            if (m.dead) continue;
-            if (m.type.fly && !t.type.canAir) continue;
+            if (!canHit(t.type, m)) continue;
             float d = dist(m.x, m.y, cx, cy);
             if (d > effectiveRangeAt(t)) continue;
             // 狙击塔固定优先关键强敌，避免玩家忘记切目标模式时退化成昂贵瓶子炮。
@@ -1283,6 +1286,12 @@ public class TdGame {
             }
         }
         return best;
+    }
+
+    /** All damage paths share the same air-target rule, including area effects. */
+    private static boolean canHit(TowerType towerType, Monster monster) {
+        return towerType != null && monster != null && !monster.dead
+                && (!monster.type.fly || towerType.canAir);
     }
 
     private static float targetScore(TargetMode mode, Monster monster) {

@@ -271,6 +271,159 @@ public class TdSaveManagerTest {
         assertEquals("重置后全战役星级求和必须为 0", 0, TdSaveManager.sumBestStars(stars));
     }
 
+    @Test public void legacyMixedDifficultyTimeDoesNotBecomeNormalTimeOrBlockFirstNormalWin() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_time_main_001", 60); // Older versions mixed all difficulties in this key.
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        for (TdGame.Difficulty difficulty : TdGame.Difficulty.values()) {
+            assertEquals("An unclassified legacy time cannot prove a difficulty record",
+                    0, save.getBestTimeSec("main_001", difficulty));
+        }
+        save.recordCampaignWin("main_001", TdGame.Difficulty.NORMAL, 90);
+
+        assertEquals("The first verified normal win must be recorded even when slower than legacy",
+                90, save.getBestTimeSec("main_001", TdGame.Difficulty.NORMAL));
+        assertEquals(90, prefs.getInt("td_time_normal_main_001", 0));
+        assertEquals(90, save.getBestCampaignTimeSec(TdGame.Difficulty.NORMAL));
+        assertEquals("Keep the historical all-difficulty best for legacy readers", 60,
+                save.getBestTimeSec("main_001"));
+    }
+
+    @Test public void legacyMixedDifficultyTimesDoNotCompleteNormalCampaign() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        for (String id : TdLevels.levelIds()) prefs.data.put("td_time_" + id, 60);
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        assertFalse("Old mixed times are not evidence of clearing normal difficulty",
+                save.isDifficultyCleared(TdGame.Difficulty.NORMAL));
+        assertEquals(0, save.getBestCampaignTimeSec(TdGame.Difficulty.NORMAL));
+        for (String id : TdLevels.levelIds()) {
+            save.recordCampaignWin(id, TdGame.Difficulty.NORMAL, 90);
+        }
+        assertTrue(save.isDifficultyCleared(TdGame.Difficulty.NORMAL));
+        assertFalse(save.isDifficultyCleared(TdGame.Difficulty.EASY));
+        assertFalse(save.isDifficultyCleared(TdGame.Difficulty.HARD));
+    }
+
+    @Test public void legacySingleLevelClearFlagsDoNotCompleteCampaign() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        // Older versions set these aggregate flags after any one level, not the full campaign.
+        prefs.data.put("td_easy_done", Boolean.TRUE);
+        prefs.data.put("td_hard_done", Boolean.TRUE);
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        assertFalse("An old easy flag cannot prove every campaign level was cleared",
+                save.isEasyCleared());
+        assertFalse("An old hard flag cannot prove every campaign level was cleared",
+                save.isHardCleared());
+
+        save.recordCampaignWin("main_001", TdGame.Difficulty.EASY, 60);
+        save.recordCampaignWin("main_001", TdGame.Difficulty.HARD, 90);
+        assertFalse("A verified first easy win must not turn an incomplete campaign into complete",
+                save.isEasyCleared());
+        assertFalse("A verified first hard win must not turn an incomplete campaign into complete",
+                save.isHardCleared());
+    }
+
+    @Test public void legacySingleLevelClearFlagsDoNotBackfillDualCrown() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_easy_done", Boolean.TRUE);
+        prefs.data.put("td_hard_done", Boolean.TRUE);
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        save.syncAchievementsFromState();
+        assertFalse("Opening stats must not award dual crown from two ambiguous legacy flags",
+                save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertFalse(save.drainNewlyUnlockedAchievements().contains(TdAchievement.DUAL_CROWN));
+
+        save.recordCampaignWin("main_001", TdGame.Difficulty.EASY, 60);
+        save.recordCampaignWin("main_001", TdGame.Difficulty.HARD, 90);
+        save.syncAchievementsFromState();
+        assertFalse("The first verified win of each difficulty still cannot award dual crown",
+                save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertFalse(save.drainNewlyUnlockedAchievements().contains(TdAchievement.DUAL_CROWN));
+    }
+
+    @Test public void legacyUnlockedDualCrownIsPreservedWithoutBeingAwardedAgain() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        MemoryPrefs prefs = new MemoryPrefs();
+        prefs.data.put("td_easy_done", Boolean.TRUE);
+        prefs.data.put("td_hard_done", Boolean.TRUE);
+        prefs.data.put(TdAchievement.DUAL_CROWN.saveKey, Boolean.TRUE);
+        TdSaveManager save = new TdSaveManager(prefs);
+
+        save.syncAchievementsFromState();
+        assertTrue("Migration must preserve an achievement already earned in an older version",
+                save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertTrue("An existing achievement must not be queued as newly unlocked",
+                save.drainNewlyUnlockedAchievements().isEmpty());
+        assertFalse("Keeping a historical achievement does not prove current easy completion",
+                save.isEasyCleared());
+        assertFalse("Keeping a historical achievement does not prove current hard completion",
+                save.isHardCleared());
+
+        save.recordCampaignWin("main_001", TdGame.Difficulty.EASY, 60);
+        save.recordCampaignWin("main_001", TdGame.Difficulty.HARD, 90);
+        assertTrue(save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertFalse("Recording new wins must not repeat the historical dual crown notification",
+                save.drainNewlyUnlockedAchievements().contains(TdAchievement.DUAL_CROWN));
+        TdSaveManager reloaded = new TdSaveManager(prefs);
+        reloaded.syncAchievementsFromState();
+        assertTrue("The historical dual crown must remain persisted after reopening the save",
+                reloaded.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertFalse(reloaded.drainNewlyUnlockedAchievements().contains(TdAchievement.DUAL_CROWN));
+    }
+
+    @Test public void bestTimesAreIsolatedByDifficulty() {
+        assertEquals("td_time_easy_main_001",
+                TdSaveManager.bestTimeKey("main_001", TdGame.Difficulty.EASY));
+        assertEquals("td_time_hard_main_001",
+                TdSaveManager.bestTimeKey("main_001", TdGame.Difficulty.HARD));
+        assertNull(TdSaveManager.bestTimeKey("bad", TdGame.Difficulty.EASY));
+
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+        save.setBestTimeSec("main_001", TdGame.Difficulty.EASY, 90);
+        save.setBestTimeSec("main_001", TdGame.Difficulty.HARD, 120);
+        save.setBestTimeSec("main_001", TdGame.Difficulty.EASY, 100);
+
+        assertEquals("简单成绩不能被困难成绩覆盖", 90,
+                save.getBestTimeSec("main_001", TdGame.Difficulty.EASY));
+        assertEquals("困难成绩必须独立保存", 120,
+                save.getBestTimeSec("main_001", TdGame.Difficulty.HARD));
+        save.setBestTimeSec("main_001", TdGame.Difficulty.HARD, 80);
+        assertEquals(80, save.getBestTimeSec("main_001", TdGame.Difficulty.HARD));
+    }
+
+    @Test public void difficultyClearRequiresEveryCampaignLevel() {
+        TdLevels.installForTesting(TdLevelJsonParser.parseChapter(fakeChapterJson()).levels);
+        TdSaveManager save = new TdSaveManager(new MemoryPrefs());
+
+        for (int i = 0; i < 4; i++) {
+            save.recordCampaignWin(String.format(java.util.Locale.US, "main_%03d", i + 1),
+                    TdGame.Difficulty.EASY, 100 + i);
+            assertFalse("未完成整章前不能标记简单难度完成", save.isEasyCleared());
+        }
+        save.recordCampaignWin("main_005", TdGame.Difficulty.EASY, 104);
+        assertTrue("简单难度必须完成全部战役关卡后才算完成", save.isEasyCleared());
+        assertFalse("困难难度尚未完成时不得触发双冠", save.isHardCleared());
+        assertFalse(save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+
+        for (int i = 0; i < 5; i++) {
+            save.recordCampaignWin(String.format(java.util.Locale.US, "main_%03d", i + 1),
+                    TdGame.Difficulty.HARD, 200 + i);
+        }
+        assertTrue("困难难度必须完成全部战役关卡后才算完成", save.isHardCleared());
+        assertTrue("两种难度都完成整章后才能获得双冠", save.isAchievementUnlocked(TdAchievement.DUAL_CROWN));
+        assertEquals("战役最佳时间按难度读取最小值", 100,
+                save.getBestCampaignTimeSec(TdGame.Difficulty.EASY));
+        assertEquals(200, save.getBestCampaignTimeSec(TdGame.Difficulty.HARD));
+    }
+
     /**
      * 回归测试：clearAll 不得解除迁移守卫。
      * ModuleScopedPreferences.migrateFrom 从不删除旧扁平 td_save，且每次 onCreateView
@@ -360,6 +513,9 @@ public class TdSaveManagerTest {
         TdSaveManager ch4 = new TdSaveManager(new MemoryPrefs());
         ch4.recordWin("main_035");
         assertTrue(ch4.isAchievementUnlocked(TdAchievement.CHAPTER4_CLEARED));
+        TdSaveManager ch5 = new TdSaveManager(new MemoryPrefs());
+        ch5.recordWin("main_045");
+        assertTrue(ch5.isAchievementUnlocked(TdAchievement.CHAPTER5_CLEARED));
     }
 
     /** 旧索引签名 recordWin(int) 同样走写入点成就检测（main_001 / main_005 均在可回溯范围内）。 */

@@ -30,6 +30,7 @@ public class TdSaveManager {
     private static final String KEY_UNLOCKED = "td_unlocked_levels";
     private static final String KEY_KILLS_PREFIX = "td_kills_";
     private static final String KEY_BEST_TIME_PREFIX = "td_time_";
+    private static final String KEY_DIFFICULTY_CLEAR_PREFIX = "td_campaign_clear_";
     private static final String KEY_PLAY_COUNT = "td_play_count";
     private static final String KEY_EASY_DONE = "td_easy_done";
     private static final String KEY_HARD_DONE = "td_hard_done";
@@ -251,18 +252,138 @@ public class TdSaveManager {
         }
     }
 
-    /** 简单难度是否通关过（用于成就显示） */
-    public boolean isEasyCleared() { return prefs.getBoolean(KEY_EASY_DONE, false); }
+    /** Stable per-difficulty best-time key; null inputs are rejected defensively. */
+    static String bestTimeKey(String levelId, TdGame.Difficulty difficulty) {
+        String id = checkedLevelId(levelId);
+        if (id == null || difficulty == null) return null;
+        return KEY_BEST_TIME_PREFIX
+                + difficulty.name().toLowerCase(java.util.Locale.US) + "_" + id;
+    }
+
+    /** 某关某难度最佳战绩秒数；旧键混合了所有难度，不能用于推断某个难度。 */
+    public int getBestTimeSec(String levelId, TdGame.Difficulty difficulty) {
+        String key = bestTimeKey(levelId, difficulty);
+        if (key == null) return 0;
+        return Math.max(0, prefs.getInt(key, 0));
+    }
+
+    /** 写入某关某难度最佳战绩；普通难度可刷新旧总记录，但不能覆盖更快的历史成绩。 */
+    public void setBestTimeSec(String levelId, TdGame.Difficulty difficulty, int sec) {
+        String key = bestTimeKey(levelId, difficulty);
+        if (key == null || sec <= 0) return;
+        int cur = getBestTimeSec(levelId, difficulty);
+        if (cur != 0 && sec >= cur) return;
+        SharedPreferences.Editor editor = prefs.edit().putInt(key, sec);
+        int legacyBest = getBestTimeSec(levelId);
+        if (difficulty == TdGame.Difficulty.NORMAL && (legacyBest <= 0 || sec < legacyBest)) {
+            editor.putInt(KEY_BEST_TIME_PREFIX + checkedLevelId(levelId), sec);
+        }
+        editor.apply();
+    }
+
+    /**
+     * 记录战役某难度的一次胜利，并以每关标记计算全章难度完成状态。
+     * 星级仍由 UI 单独写入；本方法是难度成绩和双冠成就的唯一写入点。
+     */
+    public void recordCampaignWin(String levelId, TdGame.Difficulty difficulty, int elapsedSec) {
+        String id = checkedLevelId(levelId);
+        if (id == null || difficulty == null) return;
+        recordWin(id);
+        setBestTimeSec(id, difficulty, elapsedSec);
+        String clearKey = difficultyLevelClearKey(id, difficulty);
+        if (clearKey != null) prefs.edit().putBoolean(clearKey, true).apply();
+        refreshDifficultyClearState(difficulty);
+    }
+
+    /** 按难度读取战役全章完成状态；没有 catalog 时回退旧状态键。 */
+    public boolean isDifficultyCleared(TdGame.Difficulty difficulty) {
+        if (difficulty == null) return false;
+        String legacyKey = difficultyLegacyClearKey(difficulty);
+        try {
+            List<String> ids = TdLevels.levelIds();
+            if (ids.isEmpty()) return prefs.getBoolean(legacyKey, false);
+            boolean allCleared = true;
+            for (String id : ids) {
+                String clearKey = difficultyLevelClearKey(id, difficulty);
+                boolean cleared = clearKey != null && prefs.getBoolean(clearKey, false);
+                // Only a time recorded with an explicit difficulty proves that difficulty.
+                if (!cleared && getBestTimeSec(id, difficulty) > 0) cleared = true;
+                allCleared &= cleared;
+            }
+            // Older versions set the aggregate flag after any single win. With a catalog,
+            // require evidence for every level; previously awarded achievements stay intact.
+            return allCleared;
+        } catch (IllegalStateException catalogMissing) {
+            return prefs.getBoolean(legacyKey, false);
+        }
+    }
+
+    /** 当前 catalog 下某难度已记录的最快关卡用时（0 表示没有记录）。 */
+    public int getBestCampaignTimeSec(TdGame.Difficulty difficulty) {
+        if (difficulty == null) return 0;
+        int best = 0;
+        try {
+            for (String id : TdLevels.levelIds()) {
+                int time = getBestTimeSec(id, difficulty);
+                if (time > 0 && (best == 0 || time < best)) best = time;
+            }
+        } catch (IllegalStateException catalogMissing) {
+            return 0;
+        }
+        return best;
+    }
+
+    /** 简单难度是否已完成整章（旧状态键仅作无 catalog 回退）。 */
+    public boolean isEasyCleared() { return isDifficultyCleared(TdGame.Difficulty.EASY); }
     public void setEasyCleared(boolean v) {
-        prefs.edit().putBoolean(KEY_EASY_DONE, v).apply();
+        setDifficultyCleared(TdGame.Difficulty.EASY, v);
+    }
+
+    /** 困难难度是否已完成整章（旧状态键仅作无 catalog 回退）。 */
+    public boolean isHardCleared() { return isDifficultyCleared(TdGame.Difficulty.HARD); }
+    public void setHardCleared(boolean v) {
+        setDifficultyCleared(TdGame.Difficulty.HARD, v);
+    }
+
+    private void setDifficultyCleared(TdGame.Difficulty difficulty, boolean cleared) {
+        SharedPreferences.Editor editor = prefs.edit()
+                .putBoolean(difficultyLegacyClearKey(difficulty), cleared);
+        try {
+            if (cleared) {
+                for (String id : TdLevels.levelIds()) {
+                    String key = difficultyLevelClearKey(id, difficulty);
+                    if (key != null) editor.putBoolean(key, true);
+                }
+            } else {
+                for (String id : TdLevels.levelIds()) {
+                    String key = difficultyLevelClearKey(id, difficulty);
+                    if (key != null) editor.remove(key);
+                }
+            }
+        } catch (IllegalStateException catalogMissing) {
+            // The legacy aggregate key remains usable until the catalog is available.
+        }
+        editor.apply();
         unlockAchievements(TdAchievement.matchingDualClear(isEasyCleared(), isHardCleared()));
     }
 
-    /** 困难难度是否通关过 */
-    public boolean isHardCleared() { return prefs.getBoolean(KEY_HARD_DONE, false); }
-    public void setHardCleared(boolean v) {
-        prefs.edit().putBoolean(KEY_HARD_DONE, v).apply();
+    private void refreshDifficultyClearState(TdGame.Difficulty difficulty) {
+        boolean cleared = isDifficultyCleared(difficulty);
+        prefs.edit().putBoolean(difficultyLegacyClearKey(difficulty), cleared).apply();
         unlockAchievements(TdAchievement.matchingDualClear(isEasyCleared(), isHardCleared()));
+    }
+
+    private static String difficultyLevelClearKey(String levelId, TdGame.Difficulty difficulty) {
+        String id = checkedLevelId(levelId);
+        if (id == null || difficulty == null) return null;
+        return KEY_DIFFICULTY_CLEAR_PREFIX
+                + difficulty.name().toLowerCase(java.util.Locale.US) + "_" + id;
+    }
+
+    private static String difficultyLegacyClearKey(TdGame.Difficulty difficulty) {
+        if (difficulty == TdGame.Difficulty.EASY) return KEY_EASY_DONE;
+        if (difficulty == TdGame.Difficulty.HARD) return KEY_HARD_DONE;
+        return "td_normal_done";
     }
 
     // ===== 无尽模式最佳波数（阶段 1：引擎与存档） =====

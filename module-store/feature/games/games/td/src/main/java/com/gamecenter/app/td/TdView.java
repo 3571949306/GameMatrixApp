@@ -111,6 +111,7 @@ public class TdView extends View {
     // 切换语言会触发 Activity/View 重建并重新走构造，极端场景（不重建仅切 locale）
     // 下旧文案最多保留到下次 setSelectedType，可接受。
     private String signEntranceText;
+    private String[] routeEntranceLabels = new String[0];
     private String hintBuildModeText;
     private String dragMergeText;
     private String overlayWinText;
@@ -225,6 +226,13 @@ public class TdView extends View {
 
     public void bind(TdGame game) {
         this.game = game;
+        int routeCount = game == null ? 0 : game.getPaths().length;
+        routeEntranceLabels = new String[routeCount];
+        for (int route = 0; route < routeCount; route++) {
+            // Match the one-based route number shown in the next-wave preview. Resolve
+            // once per map so the draw loop does not allocate labels every frame.
+            routeEntranceLabels[route] = routeCount == 1 ? signEntranceText : String.valueOf(route + 1);
+        }
         particles.clear();
         towerVisualStartTimes.clear();
         animationTimeMs = SystemClock.uptimeMillis();
@@ -803,7 +811,7 @@ public class TdView extends View {
         textPaint.setTextSize(cellSize * 0.26f);
         textPaint.setColor(0xFF6D4C41);
         textPaint.setFakeBoldText(true);
-        canvas.drawText(signEntranceText,
+        canvas.drawText(routeEntranceLabels[routeIndex],
                 ex, ey + cellSize * 0.03f, textPaint);
         textPaint.setFakeBoldText(false);
         textPaint.setColor(C_TEXT);

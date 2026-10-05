@@ -119,6 +119,39 @@ public class TdLevelJsonParserTest {
             "{\"schema\":1,\"contentVersion\":7,\"gameId\":\"td\",\"chapters\":["
                     + "{\"id\":\"chapter_demo\",\"file\":\"chapters/chapter_demo.json\",\"levelCount\":1";
 
+    @Test public void parsesOptionalStoryFields() {
+        String withStory = CHAPTER.replace("\"mascotHp\":5",
+                "\"mascotHp\":5,\"story_intro\":\"开战前\",\"story_intro_en\":\"Before\","
+                        + "\"story_outro\":\"打赢了\",\"story_outro_en\":\"Won\"");
+        TdLevelDefinition level = TdLevelJsonParser.parseChapter(withStory).levels.get(0);
+        assertEquals("开战前", level.storyIntro);
+        assertEquals("Before", level.storyIntroEn);
+        assertEquals("打赢了", level.storyOutro);
+        assertEquals("Won", level.storyOutroEn);
+    }
+
+    @Test public void missingStoryFieldsDefaultToEmpty() {
+        TdLevelDefinition level = TdLevelJsonParser.parseChapter(CHAPTER).levels.get(0);
+        assertEquals("", level.storyIntro);
+        assertEquals("", level.storyIntroEn);
+        assertEquals("", level.storyOutro);
+        assertEquals("", level.storyOutroEn);
+    }
+
+    @Test public void missingEnglishStoryFallsBackToSourceText() {
+        String withStory = CHAPTER.replace("\"mascotHp\":5",
+                "\"mascotHp\":5,\"story_intro\":\"开战前\",\"story_outro\":\"打赢了\"");
+        TdLevelDefinition level = TdLevelJsonParser.parseChapter(withStory).levels.get(0);
+        assertEquals("开战前", level.storyIntroEn);
+        assertEquals("打赢了", level.storyOutroEn);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void rejectsNonStringStoryField() {
+        TdLevelJsonParser.parseChapter(CHAPTER.replace("\"mascotHp\":5",
+                "\"mascotHp\":5,\"story_intro\":1"));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsUnknownField() {
         TdLevelJsonParser.parseChapter(CHAPTER.replace("\"mascotHp\":5", "\"mascotHp\":5,\"oops\":1"));

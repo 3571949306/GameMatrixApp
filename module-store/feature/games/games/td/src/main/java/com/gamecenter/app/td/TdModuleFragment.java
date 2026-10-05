@@ -108,7 +108,6 @@ public class TdModuleFragment extends Fragment {
     public View onCreateView(@NonNull android.view.LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        save = new TdSaveManager(requireContext().getApplicationContext());
         try {
             moduleResources = ModuleManager.INSTANCE.getModuleResources("td");
             if (moduleResources == null) {
@@ -117,6 +116,8 @@ public class TdModuleFragment extends Fragment {
             // 关卡数据是模块资产真源。加载器会先完成 schema、路径、波次和枚举校验，
             // 绝不回退到陈旧 Java 关卡，避免内容版本与 UI/存档悄悄错配。
             TdLevels.initialize(moduleResources.getAssetManager());
+            // 存档的历史解锁清洗依赖已加载的 campaign catalog；必须在上面初始化之后构造。
+            save = new TdSaveManager(requireContext().getApplicationContext());
         } catch (RuntimeException contentFailure) {
             return buildCampaignUnavailableView();
         }
@@ -233,10 +234,13 @@ public class TdModuleFragment extends Fragment {
             @Override public void onTowerSelected(int row, int col) {
                 if (game == null) return;
                 TdGame.Tower tapped = game.getTowerAt(row, col);
-                if (mergeSource != null) {
-                    game.mergeTowers(mergeSource.row, mergeSource.col, row, col);
+                TdGame.Tower source = mergeSource;
+                mergeSource = null;
+                // A sold/consumed tower or a tower from another session cannot authorize
+                // merging a replacement that happens to occupy its former coordinates.
+                if (source != null && game.getTowerAt(source.row, source.col) == source) {
+                    game.mergeTowers(source.row, source.col, row, col);
                     showEngineMsg();
-                    mergeSource = null;
                     hideTowerOps();
                 } else {
                     showTowerOps(tapped);
@@ -660,9 +664,10 @@ public class TdModuleFragment extends Fragment {
         btnUpgrade.setText(t.level >= 3 ? getString(R.string.game_td_btn_merge_max)
                 : getString(R.string.game_td_btn_merge_to, t.level + 1));
         btnUpgrade.setEnabled(t.level < 3);
-        btnTarget.setEnabled(t.type != TowerType.SUN);
+        btnTarget.setEnabled(t.type != TowerType.SUN && t.type != TowerType.SNIPER);
         btnTarget.setText(t.type == TowerType.SUN ? getString(R.string.game_td_btn_target_economy)
-                : getString(R.string.game_td_btn_target_mode, targetModeName(t.targetMode)));
+                : getString(R.string.game_td_btn_target_mode, targetModeName(
+                        t.type == TowerType.SNIPER ? TdGame.TargetMode.STRONG : t.targetMode)));
         refreshUpgradePreview(t);
     }
 
@@ -730,6 +735,7 @@ public class TdModuleFragment extends Fragment {
 
     /** 主入口：进入选关面板 */
     public void showLevelSelect() {
+        mergeSource = null;
         if (game != null && !game.isEnded()) {
             recordAbandonedKills();
             gameSession++;
@@ -1054,6 +1060,8 @@ public class TdModuleFragment extends Fragment {
 
         LinearLayout grid = new LinearLayout(requireContext());
         grid.setOrientation(LinearLayout.VERTICAL);
+        addBattleBriefing(grid, levelIdx, difficulty,
+                endless ? TdGame.Mode.ENDLESS : TdGame.Mode.CAMPAIGN);
         for (int start = 0; start < TowerType.values().length; start += 2) {
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
@@ -1105,7 +1113,10 @@ public class TdModuleFragment extends Fragment {
             grid.addView(row, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
         }
-        panel.addView(grid, new LinearLayout.LayoutParams(
+        ScrollView deckScroll = new ScrollView(requireContext());
+        deckScroll.setTag("td_deck_scroll");
+        deckScroll.addView(grid);
+        panel.addView(deckScroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         Button start = ctrlButton(requireContext(), getString(R.string.game_td_btn_start_level));
@@ -1117,15 +1128,54 @@ public class TdModuleFragment extends Fragment {
             }
             activeDeck.clear();
             activeDeck.addAll(draft);
-            save.recordPlay();
+            // 先关闭塔组面板；startLevel 可能创建剧情浮层，开局后不能再次清除。
+            clearOverlay();
             startLevel(levelIdx, difficulty,
                     endless ? TdGame.Mode.ENDLESS : TdGame.Mode.CAMPAIGN);
-            clearOverlay();
         });
         panel.addView(start, new LinearLayout.LayoutParams(dp(220), dp(44)));
         ((LinearLayout.LayoutParams) start.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
         overlayRoot.addView(panel, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /** Preview uses the real level factory/difficulty rules without replacing the live session. */
+    private void addBattleBriefing(LinearLayout parent, int levelIdx,
+                                   TdGame.Difficulty difficulty, TdGame.Mode mode) {
+        String levelId = TdLevels.levelIds().get(levelIdx);
+        TdGame preview = TdLevels.buildLevel(levelId, mode);
+        preview.applyDifficulty(difficulty);
+        TextView summary = new TextView(requireContext());
+        summary.setTag("td_battle_brief_summary");
+        summary.setText(TdLevels.levelDisplayName(levelIdx, levelId) + "\n"
+                + getString(R.string.game_td_brief_resources, preview.getCoin(),
+                        preview.getMascotHp(), preview.getPaths().length) + "\n"
+                + getString(mode == TdGame.Mode.ENDLESS ? R.string.game_td_brief_endless
+                        : R.string.game_td_brief_campaign, preview.getTotalWaves()));
+        summary.setTextSize(13);
+        summary.setTextColor(0xFFFFF8E1);
+        summary.setPadding(dp(8), dp(8), dp(8), dp(4));
+        parent.addView(summary, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        Set<MonsterType> types = new LinkedHashSet<>();
+        for (TdGame.Wave wave : preview.getWaves()) {
+            java.util.Collections.addAll(types, wave.compositionTypes());
+        }
+        StringBuilder names = new StringBuilder();
+        for (MonsterType type : types) {
+            if (names.length() > 0) names.append(" · ");
+            names.append(monsterName(type));
+        }
+        TextView enemies = new TextView(requireContext());
+        enemies.setTag("td_battle_brief_enemies");
+        enemies.setText(getString(mode == TdGame.Mode.ENDLESS ? R.string.game_td_brief_opening_enemies
+                : R.string.game_td_brief_enemies, names.toString()));
+        enemies.setTextSize(12);
+        enemies.setTextColor(0xFFB3E5FC);
+        enemies.setPadding(dp(8), 0, dp(8), dp(12));
+        parent.addView(enemies, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     private String deckCountText(int selectedCount, int availableCount) {
@@ -1158,6 +1208,11 @@ public class TdModuleFragment extends Fragment {
 
     /** 主入口：战绩/成就浮层。打开时对局处于覆盖层暂停态，无并发写存档问题。 */
     private void showStatsPanel() {
+        showStatsPanel(null);
+    }
+
+    /** Builds the stats panel and optionally shows a visible one-shot notice below its title. */
+    private void showStatsPanel(@Nullable String notice) {
         clearOverlay();
         Context ctx = requireContext();
         // 成就补漏：成就系统上线前的老存档（已通关/已累计但未落章）在此幂等补齐；
@@ -1177,6 +1232,17 @@ public class TdModuleFragment extends Fragment {
         panel.addView(title, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
 
+        if (notice != null && !notice.isEmpty()) {
+            TextView noticeView = new TextView(ctx);
+            noticeView.setText(notice);
+            noticeView.setTextSize(13);
+            noticeView.setTextColor(0xFF9CFFB0);
+            noticeView.setGravity(Gravity.CENTER);
+            noticeView.setTag("td_stats_notice");
+            panel.addView(noticeView, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(30)));
+        }
+
         int levelCount = TdLevels.levelIds().size();
         int[] campaignStars = new int[levelCount];
         for (int i = 0; i < levelCount; i++) {
@@ -1190,7 +1256,7 @@ public class TdModuleFragment extends Fragment {
         addStatsRow(panel, getString(R.string.game_td_stats_label_play_count),
                 String.valueOf(save.getPlayCount()), 0xFFFFF8E1);
 
-        // 战役进度：已解锁关数/25、累计星级/75
+        // 战役进度：已解锁关数/总关数、累计星级/总星数
         addStatsSection(panel, getString(R.string.game_td_stats_section_campaign));
         // 分子钳制到 levelCount：历史存档可能残留越界 unlocked（recordWin 已在
         // TdSaveManager 端硬上限钳制，此处为防御旧脏数据的纵深兜底）。
@@ -1202,6 +1268,16 @@ public class TdModuleFragment extends Fragment {
                         TdSaveManager.sumBestStars(campaignStars), levelCount * MAX_STARS_PER_LEVEL),
                 0xFFFFD54F);
 
+        // 战役最佳用时按难度隔离；0 表示该难度尚未记录胜局。
+        addStatsSection(panel, getString(R.string.game_td_stats_section_times));
+        for (TdGame.Difficulty d : TdGame.Difficulty.values()) {
+            int seconds = save.getBestCampaignTimeSec(d);
+            addStatsRow(panel, difficultyName(d),
+                    seconds > 0 ? getString(R.string.game_td_stats_value_seconds, seconds)
+                            : getString(R.string.game_td_stats_value_none),
+                    seconds > 0 ? 0xFF9CFFB0 : 0xFF78909C);
+        }
+
         // 无尽最佳：各难度一行，0 = 未挑战
         addStatsSection(panel, getString(R.string.game_td_stats_section_endless));
         for (TdGame.Difficulty d : TdGame.Difficulty.values()) {
@@ -1212,7 +1288,7 @@ public class TdModuleFragment extends Fragment {
                     waves > 0 ? 0xFF9CFFB0 : 0xFF78909C);
         }
 
-        // 难度成就：简单/困难全清标记
+        // 难度成就：简单/困难通关标记
         addStatsSection(panel, getString(R.string.game_td_stats_section_achievements));
         addStatsRow(panel, getString(R.string.game_td_stats_label_cleared_easy),
                 getString(save.isEasyCleared() ? R.string.game_td_stats_value_achieved
@@ -1357,8 +1433,8 @@ public class TdModuleFragment extends Fragment {
         confirm.setTextColor(0xFFFFFFFF);
         confirm.setOnClickListener(v -> {
             save.clearAll();
-            showStatsPanel(); // clearOverlay 后按当前（已清空的）存档重建，面板自动变全零
-            showMsg(getString(R.string.game_td_stats_reset_done), "ok");
+            // HUD 消息条位于全屏浮层下方；把确认结果放入重建后的面板，确保用户可见。
+            showStatsPanel(getString(R.string.game_td_stats_reset_done));
         });
         panel.addView(confirm, new LinearLayout.LayoutParams(dp(200), dp(42)));
         ((LinearLayout.LayoutParams) confirm.getLayoutParams()).topMargin = dp(16);
@@ -1652,6 +1728,7 @@ public class TdModuleFragment extends Fragment {
      * 与战役共用 applyDifficulty 的金币倍率链），仅波次耗尽后由工厂无限合成。
      */
     private void startLevel(int idx, TdGame.Difficulty diff, TdGame.Mode mode) {
+        mergeSource = null;
         gameSession++;
         paused = false;
         gameEnded = false;
@@ -1662,6 +1739,9 @@ public class TdModuleFragment extends Fragment {
         btnNextWave.setText(getString(R.string.game_td_btn_fight));
         game = TdLevels.buildLevel(TdLevels.levelIds().get(idx), selectedMode);
         game.applyDifficulty(diff);
+        // Every newly created session counts once, including settlement retry/next level.
+        // Opening a menu or dismissing this session's story does not create another game.
+        save.recordPlay();
         tdView.bind(game);
         tdView.setSelectedType(null);
         selectedType = null;
@@ -1674,6 +1754,72 @@ public class TdModuleFragment extends Fragment {
         showMsg(getString(R.string.game_td_msg_preparing), "info");
         mainHandler.removeCallbacks(tickLoop);
         mainHandler.post(tickLoop);
+        // 剧情模式：战役开局且本关有引子故事时弹故事面板；面板打开期间 tick 自动暂停，
+        // 玩家点「出战」后关闭面板进入布防。无尽模式不讲故事，重玩同关再看一遍可直接出战。
+        if (selectedMode == TdGame.Mode.CAMPAIGN) {
+            String storyLevelId = TdLevels.levelIds().get(idx);
+            String story = TdLevels.levelStoryIntro(storyLevelId);
+            if (story != null && !story.isEmpty()) {
+                showStoryIntro(storyLevelId, story);
+            }
+        }
+    }
+
+    /**
+     * 开战前故事面板：标题 + 关名 + 故事正文 + 出战按钮。打开即暂停战斗
+     * （tickOnce 检测到 overlay 有子视图会自动停怪），点出战关闭后面板继续布防。
+     */
+    private void showStoryIntro(String levelId, String story) {
+        clearOverlay();
+        LinearLayout panel = new LinearLayout(requireContext());
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setBackgroundColor(0xE61E2A1F);
+        panel.setPadding(dp(24), dp(30), dp(24), dp(20));
+
+        TextView title = new TextView(requireContext());
+        title.setText(getString(R.string.game_td_story_title));
+        title.setTextSize(20);
+        title.setTextColor(0xFFFFC107);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+
+        TextView name = new TextView(requireContext());
+        name.setText(TdLevels.levelDisplayName(selectedLevelIdx, levelId));
+        name.setTextSize(16);
+        name.setTextColor(0xFFFFF8E1);
+        name.setTypeface(Typeface.DEFAULT_BOLD);
+        name.setGravity(Gravity.CENTER);
+        panel.addView(name, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36)));
+
+        ScrollView scroll = new ScrollView(requireContext());
+        TextView body = new TextView(requireContext());
+        body.setTag("td_story_intro");
+        body.setText(story);
+        body.setTextSize(15);
+        body.setTextColor(0xFFDCEDC8);
+        body.setGravity(Gravity.CENTER);
+        body.setLineSpacing(dp(4), 1f);
+        scroll.addView(body);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(180));
+        scrollParams.topMargin = dp(8);
+        panel.addView(scroll, scrollParams);
+
+        Button start = ctrlButton(requireContext(), getString(R.string.game_td_story_start));
+        GradientDrawable gb = new GradientDrawable();
+        gb.setColor(0xFF2E9E4F);
+        gb.setCornerRadius(dp(10));
+        start.setBackground(gb);
+        start.setTextColor(0xFFFFFFFF);
+        start.setOnClickListener(v -> clearOverlay());
+        panel.addView(start, new LinearLayout.LayoutParams(dp(160), dp(44)));
+        ((LinearLayout.LayoutParams) start.getLayoutParams()).topMargin = dp(14);
+        ((LinearLayout.LayoutParams) start.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+
+        overlayRoot.addView(panel, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     private void restartLevel(int idx) {
@@ -1721,13 +1867,10 @@ public class TdModuleFragment extends Fragment {
             int stars = game.starsEarned();
             int unlockedBefore = save.getUnlockedLevelCount();
             String levelId = TdLevels.levelIds().get(selectedLevelIdx);
-            save.recordWin(levelId);
+            save.recordCampaignWin(levelId, game.getDifficulty(), (int) game.getElapsedSeconds());
             List<TowerType> newlyUnlocked = TdTowerProgression.newlyUnlockedBetween(
                     unlockedBefore, save.getUnlockedLevelCount());
             save.setBestStars(levelId, stars);
-            save.setBestTimeSec(levelId, (int) game.getElapsedSeconds());
-            if (game.getDifficulty() == TdGame.Difficulty.EASY) save.setEasyCleared(true);
-            if (game.getDifficulty() == TdGame.Difficulty.HARD) save.setHardCleared(true);
             String resultStats = getString(R.string.game_td_result_stats,
                     game.getMonstersKilled(), (int) game.getElapsedSeconds());
             if (!newlyUnlocked.isEmpty()) {
@@ -1810,6 +1953,15 @@ public class TdModuleFragment extends Fragment {
             case CHAPTER2_CLEARED: return getString(R.string.game_td_achv_name_ch2_cleared);
             case CHAPTER3_CLEARED: return getString(R.string.game_td_achv_name_ch3_cleared);
             case CHAPTER4_CLEARED: return getString(R.string.game_td_achv_name_ch4_cleared);
+            case CHAPTER5_CLEARED: return getString(R.string.game_td_achv_name_ch5_cleared);
+            case CHAPTER6_CLEARED: return getString(R.string.game_td_achv_name_ch6_cleared);
+            case CHAPTER7_CLEARED: return getString(R.string.game_td_achv_name_ch7_cleared);
+            case CHAPTER8_CLEARED: return getString(R.string.game_td_achv_name_ch8_cleared);
+            case CHAPTER9_CLEARED: return getString(R.string.game_td_achv_name_ch9_cleared);
+            case CHAPTER10_CLEARED: return getString(R.string.game_td_achv_name_ch10_cleared);
+            case CHAPTER11_CLEARED: return getString(R.string.game_td_achv_name_ch11_cleared);
+            case CHAPTER12_CLEARED: return getString(R.string.game_td_achv_name_ch12_cleared);
+            case CHAPTER13_CLEARED: return getString(R.string.game_td_achv_name_ch13_cleared);
             case KILLS_100: return getString(R.string.game_td_achv_name_kills_100);
             case KILLS_1000: return getString(R.string.game_td_achv_name_kills_1000);
             case ENDLESS_10: return getString(R.string.game_td_achv_name_endless_10);
@@ -1867,7 +2019,31 @@ public class TdModuleFragment extends Fragment {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
+        // 胜利尾声：战役胜利且本关有尾声故事时在结算面板加一段余波，供回归测试定位。
         boolean won = game.getState() == TdGame.State.WON;
+        if (won && selectedMode == TdGame.Mode.CAMPAIGN
+                && selectedLevelIdx >= 0 && selectedLevelIdx < TdLevels.levelIds().size()) {
+            String outro = TdLevels.levelStoryOutro(TdLevels.levelIds().get(selectedLevelIdx));
+            if (outro != null && !outro.isEmpty()) {
+                TextView outroTitle = new TextView(requireContext());
+                outroTitle.setText(getString(R.string.game_td_story_outro_title));
+                outroTitle.setTextSize(13);
+                outroTitle.setTextColor(0xFFFFC107);
+                outroTitle.setTypeface(Typeface.DEFAULT_BOLD);
+                outroTitle.setGravity(Gravity.CENTER);
+                panel.addView(outroTitle, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                TextView outroBody = new TextView(requireContext());
+                outroBody.setTag("td_story_outro");
+                outroBody.setText(outro);
+                outroBody.setTextSize(13);
+                outroBody.setTextColor(0xFFDCEDC8);
+                outroBody.setGravity(Gravity.CENTER);
+                outroBody.setMaxLines(4);
+                panel.addView(outroBody, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+        }
         if (won && selectedLevelIdx + 1 < TdLevels.levelIds().size()) {
             Button next = ctrlButton(requireContext(), getString(R.string.game_td_btn_next_level));
             GradientDrawable gb = new GradientDrawable();
@@ -1877,8 +2053,8 @@ public class TdModuleFragment extends Fragment {
             next.setTextColor(0xFFFFFFFF);
             final int nIdx = selectedLevelIdx + 1;
             next.setOnClickListener(v -> {
-                clearOverlay();
-                startLevel(nIdx, game.getDifficulty());
+                TdGame.Difficulty difficulty = game.getDifficulty();
+                showDeckSelect(nIdx, difficulty);
             });
             panel.addView(next, new LinearLayout.LayoutParams(dp(160), dp(44)));
             ((LinearLayout.LayoutParams) next.getLayoutParams()).topMargin = dp(10);
@@ -2087,10 +2263,6 @@ public class TdModuleFragment extends Fragment {
         String compositionText = composition.size() > 1
                 ? getString(R.string.game_td_wave_mixed, names.toString())
                 : names.toString();
-        for (int i = 0; i < composition.size(); i++) {
-            if (i > 0) names.append('+');
-            names.append(monsterName(composition.get(i)));
-        }
         return getString(R.string.game_td_hud_preview_route, route + 1, compositionText, nextCount);
     }
 
@@ -2292,6 +2464,7 @@ public class TdModuleFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        mergeSource = null;
         // 退出大厅（宿主确认框→finish）与回退栈替换不走 showLevelSelect，销毁即放弃局：
         // 击杀先行入账。killsRecordedForSession 防与选关路径双计（先选关后销毁），
         // gameEnded 闸跳过已结算局。

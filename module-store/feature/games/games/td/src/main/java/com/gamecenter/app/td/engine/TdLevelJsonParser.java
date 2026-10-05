@@ -97,7 +97,8 @@ public final class TdLevelJsonParser {
         exactOptional(value,
                 new String[]{"id", "order", "name", "subtitle", "theme", "rows", "cols", "egg",
                         "startCoin", "mascotHp", "routes", "waves"},
-                "name_en", "subtitle_en");
+                "name_en", "subtitle_en",
+                "story_intro", "story_intro_en", "story_outro", "story_outro_en");
         String levelId = id(value, "id");
         int order = requiredInt(value, "order", 1, 9999);
         String name = requiredString(value, "name", 1, 64);
@@ -106,6 +107,12 @@ public final class TdLevelJsonParser {
         // fields are optional so a chapter without them still loads (with a logged warning).
         String nameEn = optionalDisplayString(value, levelId, "name_en", name, 1, 64);
         String subtitleEn = optionalDisplayString(value, levelId, "subtitle_en", subtitle, 0, 120);
+        String storyIntro = optionalStoryString(value, "story_intro", 0, 800);
+        String storyIntroEn = optionalStoryString(value, "story_intro_en", 0, 800);
+        if (storyIntroEn.isEmpty()) storyIntroEn = storyIntro;
+        String storyOutro = optionalStoryString(value, "story_outro", 0, 800);
+        String storyOutroEn = optionalStoryString(value, "story_outro_en", 0, 800);
+        if (storyOutroEn.isEmpty()) storyOutroEn = storyOutro;
         TdLevelDefinition.Theme theme;
         try {
             theme = TdLevelDefinition.Theme.valueOf(requiredString(value, "theme", 3, 16)
@@ -121,7 +128,8 @@ public final class TdLevelJsonParser {
         List<int[][]> routes = routes(requiredArray(value, "routes", 1, 8), rows, cols, eggRow, eggCol);
         requireBuildableArea(routes, rows, cols);
         List<TdLevelDefinition.Wave> waves = waves(requiredArray(value, "waves", 1, 100), routes.size());
-        return new TdLevelDefinition(levelId, order, name, subtitle, nameEn, subtitleEn, theme,
+        return new TdLevelDefinition(levelId, order, name, subtitle, nameEn, subtitleEn,
+                storyIntro, storyIntroEn, storyOutro, storyOutroEn, theme,
                 rows, cols, eggRow, eggCol,
                 requiredInt(value, "startCoin", 0, 100000),
                 requiredInt(value, "mascotHp", 1, 100), routes, waves);
@@ -213,6 +221,16 @@ public final class TdLevelJsonParser {
         Set<String> allowed = new HashSet<>(requiredSet);
         Collections.addAll(allowed, optional);
         if (!allowed.containsAll(keys)) throw bad("unknown or missing field");
+    }
+
+    /**
+     * Reads an optional story field. Missing means no story (""); a present value must be a
+     * string within bounds (empty string explicitly clears the story). No QA warning: most
+     * legacy levels simply have no story yet.
+     */
+    private static String optionalStoryString(Map<String, Object> value, String key, int min, int max) {
+        if (!value.containsKey(key)) return "";
+        return string(value.get(key), key, min, max);
     }
 
     /**
