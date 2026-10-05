@@ -18,7 +18,37 @@ data class GameHomeStrings(
     val allFilter: String,
     /** 定位分区叙事（可选，空则不渲染）：经典游戏是入口，工具与学习是留存 */
     val positioningTitle: String = "",
+    /** 继续行时间模板（可选，空则直接显示相对时间）：“上次游玩：%1$s” */
+    val resumeTimeFormat: String = "",
 )
+
+/**
+ * 留存卡片纯值包（批次 2a）：数据获取与文案格式化都在 ViewModel/Repository 完成，
+ * StateBuilder 只收纯值做行编排；成员为 null = 数据不可得，静默降级不渲染对应卡片。
+ */
+data class GameHomeRetentionCards(
+    val healthReminderText: String? = null,
+    val quickStats: GameHomeItem.QuickStatsRow? = null,
+    val dailyChallenge: GameHomeItem.DailyChallengeCard? = null,
+    val streakSummary: GameHomeItem.StreakSummaryCard? = null,
+)
+
+/** 顶栏时段问候（批次 2a）：口径与 legacy GamesFragment.updateGreeting 一致。 */
+object GameHomeGreeting {
+    enum class Period { MORNING, AFTERNOON, EVENING }
+
+    /** 5-11 早上好，12-17 下午好，其余（18-4）晚上好。 */
+    fun periodFor(hourOfDay: Int): Period = when (hourOfDay) {
+        in MORNING_START..MORNING_END -> Period.MORNING
+        in AFTERNOON_START..AFTERNOON_END -> Period.AFTERNOON
+        else -> Period.EVENING
+    }
+
+    private const val MORNING_START = 5
+    private const val MORNING_END = 11
+    private const val AFTERNOON_START = 12
+    private const val AFTERNOON_END = 17
+}
 
 /** 页面筛选状态（SavedStateHandle 持久化）。 */
 data class GameHomeFilters(
@@ -49,7 +79,9 @@ data class GameHomeUiState(
  * - 无最近记录 → 不渲染继续/最近，直接全部游戏；
  * - 继续玩 = 最近第一条可恢复；最近行最多 3 条（展开 8 条），不含继续那条；
  * - 搜索中隐藏继续/最近；分类与收藏筛选继续生效；
- * - 搜索无结果 → “未找到相关游戏 + 清除搜索”；收藏空 → 专属空状态。
+ * - 搜索无结果 → “未找到相关游戏 + 清除搜索”；收藏空 → 专属空状态；
+ * - 留存卡片（批次 2a：快览统计/每日挑战/连胜概览）只出现在非搜索态，
+ *   顺序为健康提醒之后、继续之前；成员为 null 时静默降级不渲染。
  */
 object GameHomeStateBuilder {
 
@@ -64,7 +96,7 @@ object GameHomeStateBuilder {
         categories: List<Pair<String, String>>,
         filters: GameHomeFilters,
         strings: GameHomeStrings,
-        healthReminderText: String? = null,
+        retention: GameHomeRetentionCards = GameHomeRetentionCards(),
     ): GameHomeUiState {
         val byId = allEntries.associateBy { it.id }
         if (allEntries.isEmpty()) {
@@ -117,37 +149,12 @@ object GameHomeStateBuilder {
                 },)
         }
 
-        // 4. 非搜索态：健康提醒 → 继续 → 最近 → 全部游戏
-        healthReminderText?.let { items.add(GameHomeItem.HealthReminder(it)) }
-
-        val validRecent = recentIds.mapNotNull(byId::get).filter { e ->
-            // 失效 ID 已被 byId 过滤；收藏筛选/搜索不影响“继续与最近”真源展示
-            filters.categoryKey == null || e.categoryKey == filters.categoryKey
-        }
-        if (validRecent.isNotEmpty()) {
-            val resume = validRecent.first()
-            items.add(
-                GameHomeItem.ContinueRow(
-                    resume,
-                    lastPlayedTextById[resume.id] ?: ""
-                )
-            )
-            val rest = validRecent.drop(1)
-            if (rest.isNotEmpty()) {
-                val limit = if (filters.recentExpanded) RECENT_EXPANDED_COUNT else RECENT_COLLAPSED_COUNT
-                val visibleRest = rest.take(limit)
-                items.add(
-                    GameHomeItem.SectionHeader(
-                        strings.recentTitle,
-                        expandable = true,
-                        expanded = filters.recentExpanded
-                    )
-                )
-                visibleRest.forEach { e ->
-                    items.add(GameHomeItem.RecentRow(e, lastPlayedTextById[e.id] ?: ""))
-                }
-            }
-        }
+        // 4. 非搜索态：健康提醒 → 快览统计 → 每日挑战 → 连胜概览 → 继续 → 最近 → 全部游戏
+        retention.healthReminderText?.let { items.add(GameHomeItem.HealthReminder(it)) }
+        retention.quickStats?.let { items.add(it) }
+        retention.dailyChallenge?.let { items.add(it) }
+        retention.streakSummary?.let { items.add(it) }
+        addContinueAndRecent(items, byId, recentIds, filters, strings, lastPlayedTextById)
 
         // 5. 全部游戏（含收藏空状态）；前置定位分区叙事（可选）
         if (strings.positioningTitle.isNotBlank()) {
@@ -173,4 +180,50 @@ object GameHomeStateBuilder {
                     GameHomeUiState.CategoryUi(it.first, it.second, it.first == filters.categoryKey)
                 },)
     }
+
+    /**
+     * 继续与最近装配（批次 2a 自 build 抽出）：继续玩 = 最近第一条可恢复；
+     * 最近行最多 3 条（展开 8 条），不含继续那条。
+     */
+    private fun addContinueAndRecent(
+        items: MutableList<GameHomeItem>,
+        byId: Map<String, GameRegistry.Entry>,
+        recentIds: List<String>,
+        filters: GameHomeFilters,
+        strings: GameHomeStrings,
+        lastPlayedTextById: Map<String, String>,
+    ) {
+        val validRecent = recentIds.mapNotNull(byId::get).filter { e ->
+            // 失效 ID 已被 byId 过滤；收藏筛选/搜索不影响“继续与最近”真源展示
+            filters.categoryKey == null || e.categoryKey == filters.categoryKey
+        }
+        if (validRecent.isEmpty()) return
+        val resume = validRecent.first()
+        items.add(
+            GameHomeItem.ContinueRow(
+                resume,
+                continueMetaText(strings.resumeTimeFormat, lastPlayedTextById[resume.id] ?: "")
+            )
+        )
+        val rest = validRecent.drop(1)
+        if (rest.isEmpty()) return
+        val limit = if (filters.recentExpanded) RECENT_EXPANDED_COUNT else RECENT_COLLAPSED_COUNT
+        items.add(
+            GameHomeItem.SectionHeader(
+                strings.recentTitle,
+                expandable = true,
+                expanded = filters.recentExpanded
+            )
+        )
+        rest.take(limit).forEach { e ->
+            items.add(GameHomeItem.RecentRow(e, lastPlayedTextById[e.id] ?: ""))
+        }
+    }
+
+    /**
+     * 继续行时间文案（批次 2a）：有模板（“上次游玩：%1$s”）且相对时间非空时套模板，
+     * 否则维持原样（相对时间直接展示），保证旧调用方零破坏。
+     */
+    private fun continueMetaText(format: String, relativeSpan: String): String =
+        if (format.isNotBlank() && relativeSpan.isNotBlank()) format.format(relativeSpan) else relativeSpan
 }

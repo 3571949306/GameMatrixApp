@@ -32,6 +32,31 @@ sealed class GameHomeItem {
         val lastPlayedText: String
     }
 
+    /** 快览统计行（批次 2a）：今日时长/连胜/成就三格，值由 ViewModel 用资源格式化。 */
+    data class QuickStatsRow(
+        val playtimeText: String,
+        val streakText: String,
+        val achievementsText: String,
+    ) : GameHomeItem()
+
+    /**
+     * 每日挑战卡（批次 2a）：今日目标 + 进度条，点击直达挑战游戏。
+     * entry 为 null（如解锁成就型挑战未绑定游戏）时由 Fragment 提示兜底。
+     */
+    data class DailyChallengeCard(
+        val entry: GameRegistry.Entry?,
+        val title: String,
+        val gameName: String,
+        val progressText: String,
+        val progressPercent: Int,
+    ) : GameHomeItem()
+
+    /** 连胜概览卡（批次 2a）：当前连胜/最佳连胜（StreakTracker）。 */
+    data class StreakSummaryCard(
+        val currentDaysText: String,
+        val bestDaysText: String,
+    ) : GameHomeItem()
+
     /** 空状态（附可选操作文案；action 为空表示无操作）。 */
     data class EmptyState(val message: String, val action: String? = null) : GameHomeItem()
 

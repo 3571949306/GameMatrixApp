@@ -1,6 +1,7 @@
 package com.gamecenter.app.home
 
 import android.app.Application
+import android.content.res.Resources
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -15,6 +16,8 @@ import kotlinx.coroutines.launch
  * 游戏库主页状态层（计划 §6.5）：
  * - 筛选状态经 SavedStateHandle 跨 Activity 重建恢复；
  * - 真源快照在后台线程获取，加载代次防止旧回调写入新页面；
+ * - 留存卡片（批次 2a）取数在 Repository/后台，文案格式化经 [GameHomeCardTexts]，
+ *   纯值交给 [GameHomeStateBuilder] 编排；
  * - 不持有 Activity/View/短生命周期 Context。
  */
 class GameHomeViewModel(
@@ -27,6 +30,7 @@ class GameHomeViewModel(
         private const val KEY_CATEGORY = "category"
         private const val KEY_FAVORITES_ONLY = "favorites_only"
         private const val KEY_RECENT_EXPANDED = "recent_expanded"
+        private const val MILLIS_PER_MINUTE = 60_000L
     }
 
     private val repository = GameHomeRepository(application)
@@ -85,18 +89,7 @@ class GameHomeViewModel(
             val snapshot = repository.snapshot()
             viewModelScope.launch(kotlinx.coroutines.Dispatchers.Main) {
                 if (gen != generation) return@launch // 代次失效
-                val strings = homeStrings()
-                val health = healthReminderText((snapshot.todayPlayTimeMs / 60_000L).toInt())
-                _uiState.value = GameHomeStateBuilder.build(
-                    allEntries = snapshot.entries,
-                    recentIds = snapshot.recentIds,
-                    categories = snapshot.categories,
-                    lastPlayedTextById = snapshot.lastPlayedTextById,
-                    favoriteIds = snapshot.favoriteIds,
-                    filters = filtersNow,
-                    strings = strings,
-                    healthReminderText = health,
-                )
+                _uiState.value = buildUiState(snapshot, filtersNow)
             }
         }
     }
@@ -105,8 +98,46 @@ class GameHomeViewModel(
     fun preferredMirrorBase(): String? =
         DownloadSourceSelector.preferredMirrorBases(getApplication()).firstOrNull()
 
-    private fun homeStrings(): GameHomeStrings {
+    // ===== 内部：纯值装配 =====
+
+    /** 快照 + 筛选 → 页面状态；快照已在后台取好，此处只做文案格式化与行编排。 */
+    private fun buildUiState(
+        snapshot: GameHomeRepository.Snapshot,
+        filters: GameHomeFilters,
+    ): GameHomeUiState {
         val res = getApplication<Application>().resources
+        val lastPlayedTextById = snapshot.lastPlayedAtById.mapValues { (_, at) ->
+            GameHomeCardTexts.relativeTime(res, at)
+        }
+        val cards = GameHomeRetentionCards(
+            healthReminderText = healthReminderText(
+                res, (snapshot.todayPlayTimeMs / MILLIS_PER_MINUTE).toInt()
+            ),
+            quickStats = GameHomeCardTexts.quickStats(res, snapshot),
+            dailyChallenge = snapshot.todayChallenge?.let { challenge ->
+                GameHomeCardTexts.dailyChallenge(
+                    res,
+                    challenge,
+                    snapshot.entries.firstOrNull { it.id == challenge.gameId },
+                )
+            },
+            streakSummary = GameHomeCardTexts.streakSummary(
+                res, snapshot.streakDays, snapshot.bestStreakDays
+            ),
+        )
+        return GameHomeStateBuilder.build(
+            allEntries = snapshot.entries,
+            recentIds = snapshot.recentIds,
+            lastPlayedTextById = lastPlayedTextById,
+            favoriteIds = snapshot.favoriteIds,
+            categories = snapshot.categories,
+            filters = filters,
+            strings = homeStrings(res),
+            retention = cards,
+        )
+    }
+
+    private fun homeStrings(res: Resources): GameHomeStrings {
         return GameHomeStrings(
             continueTitle = res.getString(com.gamecenter.app.R.string.game_library_continue),
             recentTitle = res.getString(com.gamecenter.app.R.string.game_library_recent),
@@ -121,15 +152,15 @@ class GameHomeViewModel(
             collapse = res.getString(com.gamecenter.app.R.string.game_library_collapse),
             allFilter = res.getString(com.gamecenter.app.R.string.game_library_all_filter),
             positioningTitle = res.getString(com.gamecenter.app.R.string.home_positioning_sections),
+            resumeTimeFormat = res.getString(com.gamecenter.app.R.string.home_resume_game_time_format),
         )
     }
 
     /** 健康提醒（Batch 11-3 语义）：今日时长达 MILD/SEVERE 档位时给出低强调提示。 */
-    private fun healthReminderText(todayMinutes: Int): String? {
+    private fun healthReminderText(res: Resources, todayMinutes: Int): String? {
         val level = com.gamecenter.app.ui.PlaytimeReminderHelper.Level.entries
             .firstOrNull { it.minutesThreshold in 1..todayMinutes && todayMinutes >= it.minutesThreshold }
             ?: return null
-        val res = getApplication<Application>().resources
         val title = res.getString(com.gamecenter.app.R.string.playtime_reminder_title)
         val today = res.getString(
             com.gamecenter.app.R.string.playtime_reminder_today_format,

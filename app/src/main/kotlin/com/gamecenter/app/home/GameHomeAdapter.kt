@@ -29,6 +29,9 @@ class GameHomeAdapter(
         fun onTileLongPress(entry: GameRegistry.Entry, anchor: View)
         fun onEmptyAction()
         fun onToggleRecentExpanded()
+
+        /** 每日挑战卡点击：entry 非空直达游戏，null（未绑定游戏）由页面提示兜底。 */
+        fun onDailyChallengeClick(entry: GameRegistry.Entry?)
     }
 
     private var palette: GameHomeThemeResolver.GameHomePalette? = null
@@ -41,6 +44,9 @@ class GameHomeAdapter(
         const val TYPE_RECENT = 3
         const val TYPE_EMPTY = 4
         const val TYPE_TILE = 5
+        const val TYPE_QUICK_STATS = 6
+        const val TYPE_DAILY_CHALLENGE = 7
+        const val TYPE_STREAK_SUMMARY = 8
     }
 
     fun setPalette(p: GameHomeThemeResolver.GameHomePalette) {
@@ -61,6 +67,9 @@ class GameHomeAdapter(
         is GameHomeItem.RecentRow -> TYPE_RECENT
         is GameHomeItem.EmptyState -> TYPE_EMPTY
         is GameHomeItem.GameTile -> TYPE_TILE
+        is GameHomeItem.QuickStatsRow -> TYPE_QUICK_STATS
+        is GameHomeItem.DailyChallengeCard -> TYPE_DAILY_CHALLENGE
+        is GameHomeItem.StreakSummaryCard -> TYPE_STREAK_SUMMARY
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -68,6 +77,12 @@ class GameHomeAdapter(
         return when (viewType) {
             TYPE_CONTINUE, TYPE_RECENT -> RowVH(inf.inflate(R.layout.item_game_home_row, parent, false))
             TYPE_TILE -> TileVH(inf.inflate(R.layout.item_game_library_tile, parent, false))
+            TYPE_QUICK_STATS ->
+                QuickStatsVH(inf.inflate(R.layout.item_game_home_quick_stats, parent, false))
+            TYPE_DAILY_CHALLENGE ->
+                DailyChallengeVH(inf.inflate(R.layout.item_game_home_daily_challenge, parent, false))
+            TYPE_STREAK_SUMMARY ->
+                StreakSummaryVH(inf.inflate(R.layout.item_game_home_streak_summary, parent, false))
             else -> TextVH(inf.inflate(R.layout.item_game_home_text, parent, false))
         }
     }
@@ -79,6 +94,9 @@ class GameHomeAdapter(
             is RowVH -> bindRow(vh, item as GameHomeItem.EntryRow, item is GameHomeItem.ContinueRow, p)
             is TileVH -> bindTile(vh, item as GameHomeItem.GameTile, p)
             is TextVH -> bindText(vh, item, p)
+            is QuickStatsVH -> bindQuickStats(vh, item as GameHomeItem.QuickStatsRow, p)
+            is DailyChallengeVH -> bindDailyChallenge(vh, item as GameHomeItem.DailyChallengeCard, p)
+            is StreakSummaryVH -> bindStreakSummary(vh, item as GameHomeItem.StreakSummaryCard, p)
         }
     }
 
@@ -163,6 +181,66 @@ class GameHomeAdapter(
         }
     }
 
+    /** 快览统计行（批次 2a）：数值主色、标签次色，卡片底色跟 Resolver。 */
+    private fun bindQuickStats(
+        vh: QuickStatsVH,
+        item: GameHomeItem.QuickStatsRow,
+        p: GameHomeThemeResolver.GameHomePalette?
+    ) {
+        applyCardPalette(vh.itemView, p)
+        vh.playtime.text = item.playtimeText
+        vh.streak.text = item.streakText
+        vh.achievements.text = item.achievementsText
+        vh.values().forEach { it.setTextColor(p?.onSurface ?: it.currentTextColor) }
+        vh.labels().forEach { it.setTextColor(p?.onSurfaceVariant ?: it.currentTextColor) }
+        vh.itemView.setOnClickListener(null)
+    }
+
+    /** 每日挑战卡（批次 2a）：进度条主色，点击直达挑战游戏（或提示兜底）。 */
+    private fun bindDailyChallenge(
+        vh: DailyChallengeVH,
+        item: GameHomeItem.DailyChallengeCard,
+        p: GameHomeThemeResolver.GameHomePalette?
+    ) {
+        applyCardPalette(vh.itemView, p)
+        vh.title.text = item.title
+        vh.title.setTextColor(p?.onSurface ?: vh.title.currentTextColor)
+        vh.status.setTextColor(p?.onSurfaceVariant ?: vh.status.currentTextColor)
+        vh.desc.text = item.gameName
+        vh.desc.setTextColor(p?.onSurface ?: vh.desc.currentTextColor)
+        vh.progress.progress = item.progressPercent
+        p?.let {
+            vh.progress.progressTintList = android.content.res.ColorStateList.valueOf(it.primary)
+            vh.progress.progressBackgroundTintList =
+                android.content.res.ColorStateList.valueOf(it.surfaceVariant)
+            vh.icon.setColorFilter(it.primary)
+        }
+        vh.progressText.text = item.progressText
+        vh.progressText.setTextColor(p?.onSurfaceVariant ?: vh.progressText.currentTextColor)
+        vh.itemView.setOnClickListener { callbacks.onDailyChallengeClick(item.entry) }
+    }
+
+    /** 连胜概览卡（批次 2a）：当前/最佳两列，静态展示无点击。 */
+    private fun bindStreakSummary(
+        vh: StreakSummaryVH,
+        item: GameHomeItem.StreakSummaryCard,
+        p: GameHomeThemeResolver.GameHomePalette?
+    ) {
+        applyCardPalette(vh.itemView, p)
+        vh.current.text = item.currentDaysText
+        vh.best.text = item.bestDaysText
+        vh.values().forEach { it.setTextColor(p?.onSurface ?: it.currentTextColor) }
+        vh.labels().forEach { it.setTextColor(p?.onSurfaceVariant ?: it.currentTextColor) }
+        p?.let { vh.icon.setColorFilter(it.primary) }
+        vh.itemView.setOnClickListener(null)
+    }
+
+    /** 卡片底色跟 Resolver（palette 缺省时保留主题默认色）。 */
+    private fun applyCardPalette(card: View, p: GameHomeThemeResolver.GameHomePalette?) {
+        val materialCard = card as? com.google.android.material.card.MaterialCardView ?: return
+        p?.let { materialCard.setCardBackgroundColor(it.surface) }
+    }
+
     class TextVH(v: View) : RecyclerView.ViewHolder(v) {
         val primary: TextView = v.findViewById(R.id.tv_text_row_primary)
         val action: TextView = v.findViewById(R.id.tv_text_row_action)
@@ -180,6 +258,41 @@ class GameHomeAdapter(
         val name: TextView = v.findViewById(R.id.tv_tile_name)
     }
 
+    /** 快览统计行（批次 2a）：三格数值 + 三格标签。 */
+    class QuickStatsVH(v: View) : RecyclerView.ViewHolder(v) {
+        val playtime: TextView = v.findViewById(R.id.tv_stat_playtime_value)
+        val streak: TextView = v.findViewById(R.id.tv_stat_streak_value)
+        val achievements: TextView = v.findViewById(R.id.tv_stat_achievements_value)
+        private val playtimeLabel: TextView = v.findViewById(R.id.tv_stat_playtime_label)
+        private val streakLabel: TextView = v.findViewById(R.id.tv_stat_streak_label)
+        private val achievementsLabel: TextView = v.findViewById(R.id.tv_stat_achievements_label)
+
+        fun values() = listOf(playtime, streak, achievements)
+        fun labels() = listOf(playtimeLabel, streakLabel, achievementsLabel)
+    }
+
+    /** 每日挑战卡（批次 2a）：状态 + 游戏名 + 进度条 + 进度文案。 */
+    class DailyChallengeVH(v: View) : RecyclerView.ViewHolder(v) {
+        val icon: ImageView = v.findViewById(R.id.iv_daily_challenge_icon)
+        val title: TextView = v.findViewById(R.id.tv_daily_challenge_title)
+        val status: TextView = v.findViewById(R.id.tv_daily_challenge_status)
+        val desc: TextView = v.findViewById(R.id.tv_daily_challenge_desc)
+        val progress: android.widget.ProgressBar = v.findViewById(R.id.progress_daily_challenge)
+        val progressText: TextView = v.findViewById(R.id.tv_daily_challenge_progress)
+    }
+
+    /** 连胜概览卡（批次 2a）：当前/最佳两列。 */
+    class StreakSummaryVH(v: View) : RecyclerView.ViewHolder(v) {
+        val icon: ImageView = v.findViewById(R.id.iv_streak_summary_icon)
+        val current: TextView = v.findViewById(R.id.tv_streak_current_value)
+        val best: TextView = v.findViewById(R.id.tv_streak_best_value)
+        private val currentLabel: TextView = v.findViewById(R.id.tv_streak_current_label)
+        private val bestLabel: TextView = v.findViewById(R.id.tv_streak_best_label)
+
+        fun values() = listOf(current, best)
+        fun labels() = listOf(currentLabel, bestLabel)
+    }
+
     internal object DIFF : DiffUtil.ItemCallback<GameHomeItem>() {
         override fun areItemsTheSame(old: GameHomeItem, new: GameHomeItem): Boolean =
             stableId(old) == stableId(new)
@@ -193,6 +306,9 @@ class GameHomeAdapter(
             is GameHomeItem.RecentRow -> "r:${item.entry.id}"
             is GameHomeItem.EmptyState -> "e:${item.message}:${item.action ?: ""}"
             is GameHomeItem.GameTile -> "t:${item.entry.id}"
+            is GameHomeItem.QuickStatsRow -> "q:quick-stats"
+            is GameHomeItem.DailyChallengeCard -> "d:daily-challenge"
+            is GameHomeItem.StreakSummaryCard -> "k:streak-summary"
         }
     }
 }

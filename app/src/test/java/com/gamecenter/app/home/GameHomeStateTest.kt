@@ -204,10 +204,181 @@ class GameHomeStateTest {
             lastPlayedTextById = mapOf("a" to "5 分钟前"), favoriteIds = emptySet(),
             categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
-            healthReminderText = "已连续游玩 60 分钟，注意休息",
+            retention = GameHomeRetentionCards(healthReminderText = "已连续游玩 60 分钟，注意休息"),
         )
         val first = state.items.first()
         assertTrue(first is GameHomeItem.HealthReminder)
         assertTrue(state.items[1] is GameHomeItem.ContinueRow)
+    }
+
+    // ===== 批次 2a：留存卡片 =====
+
+    private fun quickStats() = GameHomeItem.QuickStatsRow("12 分钟", "连3天", "5")
+
+    private fun dailyChallenge() = GameHomeItem.DailyChallengeCard(
+        entry = entry("a"), title = "每日挑战", gameName = "a",
+        progressText = "进度：1 / 3", progressPercent = 33,
+    )
+
+    private fun streakSummary() = GameHomeItem.StreakSummaryCard("3 天", "7 天")
+
+    @Test
+    fun `留存卡片按顺序渲染在健康提醒之后继续之前`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = listOf("a"),
+            lastPlayedTextById = mapOf("a" to "5 分钟前"), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(
+                healthReminderText = "休息提醒",
+                quickStats = quickStats(),
+                dailyChallenge = dailyChallenge(),
+                streakSummary = streakSummary(),
+            ),
+        )
+        val kinds = state.items.map { it::class.simpleName }
+        assertEquals(
+            listOf(
+                "HealthReminder", "QuickStatsRow", "DailyChallengeCard", "StreakSummaryCard",
+                "ContinueRow", "SectionHeader", "GameTile"
+            ),
+            kinds
+        )
+    }
+
+    @Test
+    fun `留存卡片缺省时静默降级_不渲染占位`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = listOf("a"),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+        )
+        assertTrue(state.items.none {
+            it is GameHomeItem.QuickStatsRow ||
+                it is GameHomeItem.DailyChallengeCard ||
+                it is GameHomeItem.StreakSummaryCard
+        })
+    }
+
+    @Test
+    fun `部分卡片缺数据_只渲染可用的卡片`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(
+                dailyChallenge = dailyChallenge() // 快览/连胜不可得 → 静默降级
+            ),
+        )
+        assertEquals(1, state.items.count { it is GameHomeItem.DailyChallengeCard })
+        assertTrue(state.items.none { it is GameHomeItem.QuickStatsRow })
+        assertTrue(state.items.none { it is GameHomeItem.StreakSummaryCard })
+        // 无最近记录：卡片之后直接进全部游戏
+        assertTrue(state.items.none { it is GameHomeItem.ContinueRow })
+    }
+
+    @Test
+    fun `搜索时隐藏留存卡片`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(query = "a"), strings = strings,
+            retention = GameHomeRetentionCards(
+                quickStats = quickStats(),
+                dailyChallenge = dailyChallenge(),
+                streakSummary = streakSummary(),
+            ),
+        )
+        assertTrue(state.items.none {
+            it is GameHomeItem.QuickStatsRow ||
+                it is GameHomeItem.DailyChallengeCard ||
+                it is GameHomeItem.StreakSummaryCard
+        })
+    }
+
+    @Test
+    fun `空库时不渲染留存卡片`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = emptyList(), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(
+                quickStats = quickStats(),
+                dailyChallenge = dailyChallenge(),
+                streakSummary = streakSummary(),
+            ),
+        )
+        assertEquals(1, state.items.size)
+        assertTrue(state.items[0] is GameHomeItem.EmptyState)
+    }
+
+    @Test
+    fun `定位叙事标题渲染在全部游戏之前`() {
+        val localized = strings.copy(positioningTitle = "经典游戏是入口，工具与学习是留存")
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = localized,
+        )
+        val headers = state.items.filterIsInstance<GameHomeItem.SectionHeader>()
+        assertEquals("经典游戏是入口，工具与学习是留存", headers[0].title)
+        assertEquals("全部游戏", headers[1].title)
+    }
+
+    @Test
+    fun `定位叙事为空时不渲染`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+        )
+        assertTrue(state.items.none {
+            it is GameHomeItem.SectionHeader && it.title == "经典游戏是入口，工具与学习是留存"
+        })
+    }
+
+    @Test
+    fun `继续行时间文案套用上次游玩模板`() {
+        val localized = strings.copy(resumeTimeFormat = "上次游玩：%1\$s")
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = listOf("a"),
+            lastPlayedTextById = mapOf("a" to "5 分钟前"), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = localized,
+        )
+        val continueRow = state.items.filterIsInstance<GameHomeItem.ContinueRow>().single()
+        assertEquals("上次游玩：5 分钟前", continueRow.lastPlayedText)
+    }
+
+    @Test
+    fun `继续行模板存在但相对时间为空时不套模板`() {
+        val localized = strings.copy(resumeTimeFormat = "上次游玩：%1\$s")
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = listOf("a"),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = localized,
+        )
+        val continueRow = state.items.filterIsInstance<GameHomeItem.ContinueRow>().single()
+        assertEquals("", continueRow.lastPlayedText)
+    }
+
+    @Test
+    fun `最近行时间文案不套用继续模板`() {
+        val localized = strings.copy(resumeTimeFormat = "上次游玩：%1\$s")
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a"), entry("b")), recentIds = listOf("a", "b"),
+            lastPlayedTextById = mapOf("b" to "3 小时前"), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = localized,
+        )
+        val recentRow = state.items.filterIsInstance<GameHomeItem.RecentRow>().single()
+        assertEquals("3 小时前", recentRow.lastPlayedText)
     }
 }

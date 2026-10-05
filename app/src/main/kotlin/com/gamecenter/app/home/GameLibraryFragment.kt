@@ -32,10 +32,12 @@ import com.gamecenter.app.ui.GameLongPressMenu
 import com.gamecenter.app.ui.SearchHistoryManager
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlin.random.Random
 
 /**
  * 游戏库主页（docs/游戏中心主页面重做执行计划_2026-08-30.md）：
- * 顶栏（标题/设置/溢出）→ 搜索（含历史）→ 筛选 → 单一 RecyclerView（继续/最近/全部游戏）。
+ * 顶栏（问候/标题/设置/溢出）→ 搜索（含历史）→ 筛选 → 单一 RecyclerView（留存卡片/继续/最近/全部游戏）。
  * 数据经 GameHomeViewModel（真源聚合），颜色经 GameHomeThemeResolver（用户 Scheme）。
  */
 class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
@@ -45,6 +47,7 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
     private var layoutManager: GridLayoutManager? = null
 
     private lateinit var root: View
+    private lateinit var greetingView: TextView
     private lateinit var searchInput: EditText
     private lateinit var chipGroup: ChipGroup
     private lateinit var searchHistorySection: View
@@ -53,6 +56,21 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     /** 程序化 setText 时抑制 TextWatcher 回环（filters observer ↔ setQuery） */
     private var suppressSearchWatcher = false
+
+    /** 上次随机游戏点击时间戳（防抖，避免快速连点启动多个 Activity）。 */
+    private var lastRandomGameClickTime = 0L
+
+    /**
+     * 出厂预装安装完成监听（批次 2a，对齐 legacy GamesFragment）：预装提取/安装是重 IO，
+     * 可能晚于本 Fragment 首次 onResume，完成后 ModuleManager 通知本监听器刷新游戏库。
+     * 用字段持有实例保证注册/注销传入同一引用。
+     */
+    private val onBundledInstallCompleted = Runnable {
+        if (!isAdded()) return@Runnable
+        com.gamecenter.app.modules.ModuleManager
+            .registerInstalledGameModules(requireContext())
+        viewModel.refresh()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -65,11 +83,18 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        greetingView = view.findViewById(R.id.tv_game_library_greeting)
         searchInput = view.findViewById(R.id.et_game_library_search)
         chipGroup = view.findViewById(R.id.chip_group_game_filters)
         searchHistorySection = view.findViewById(R.id.search_history_section)
         searchHistoryChips = view.findViewById(R.id.chip_group_search_history)
         recyclerView = view.findViewById(R.id.rv_game_library)
+
+        updateGreeting()
+        initRandomFab(view)
+        // 冒烟缺陷修复（对齐 legacy）：监听出厂预装安装完成事件，完成后自动刷新游戏库
+        com.gamecenter.app.modules.ModuleManager
+            .addBundledInstallListener(onBundledInstallCompleted)
 
         adapter = GameHomeAdapter(
             iconLoader = ::loadIcon,
@@ -144,6 +169,21 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         layoutManager?.spanCount = currentSpanCount()
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateGreeting() // 跨时段停留后回来刷新问候口径
+        // §4.2：模块安装返回后先注册已安装模块，再刷新游戏库
+        com.gamecenter.app.modules.ModuleManager
+            .registerInstalledGameModules(requireContext())
+        viewModel.refresh() // 筛选与滚动由 ViewModel/SavedState 恢复
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        com.gamecenter.app.modules.ModuleManager
+            .removeBundledInstallListener(onBundledInstallCompleted)
+    }
+
     /** 自适应列数（Gap 1）：宽度 + fontScale 由 LayoutPolicy 统一决策。 */
     private fun currentSpanCount(): Int = GameHomeLayoutPolicy.spanCount(
         (resources.displayMetrics.widthPixels / resources.displayMetrics.density).toInt(),
@@ -175,14 +215,6 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
             }
             searchHistoryChips.addView(chip)
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // §4.2：模块安装返回后先注册已安装模块，再刷新游戏库
-        com.gamecenter.app.modules.ModuleManager
-            .registerInstalledGameModules(requireContext())
-        viewModel.refresh() // 筛选与滚动由 ViewModel/SavedState 恢复
     }
 
     // ===== GameHomeAdapter.Callbacks =====
@@ -227,6 +259,16 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     override fun onToggleRecentExpanded() = viewModel.toggleRecentExpanded()
 
+    override fun onDailyChallengeClick(entry: GameRegistry.Entry?) {
+        if (entry != null) {
+            launchGame(entry)
+        } else {
+            // 解锁成就型挑战未绑定游戏时保留提示兜底（与 legacy bindDailyChallengeCard 一致）
+            Toast.makeText(requireContext(), R.string.home_daily_card_click_hint, Toast.LENGTH_SHORT)
+                .show()
+        }
+    }
+
     // ===== 内部 =====
 
     /** 统一启动入口（数据推进链与旧 GamesFragment 完全一致）。 */
@@ -243,6 +285,56 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
                 Toast.LENGTH_SHORT
             ).show()
         }
+    }
+
+    /** 随机游戏 FAB（批次 2a，对齐 legacy Batch 10-3）：防抖 + 从当前过滤结果随机启动。 */
+    private fun initRandomFab(view: View) {
+        val fab = view.findViewById<FloatingActionButton>(R.id.fab_random_game)
+        fab.setOnClickListener { launchRandomGame() }
+        fab.setOnLongClickListener {
+            Toast.makeText(requireContext(), R.string.random_game_fab_desc, Toast.LENGTH_SHORT).show()
+            true
+        }
+    }
+
+    /** 防抖间隔（毫秒）：两次点击间隔少于此值则忽略（与 legacy RANDOM_GAME_DEBOUNCE_MS 一致）。 */
+    private companion object {
+        const val RANDOM_GAME_DEBOUNCE_MS = 800L
+    }
+
+    /** 从当前过滤结果（可见 GameTile）随机抽取一款启动；空则提示。 */
+    private fun launchRandomGame() {
+        val now = System.currentTimeMillis()
+        if (now - lastRandomGameClickTime < RANDOM_GAME_DEBOUNCE_MS) return
+        lastRandomGameClickTime = now
+
+        val state = viewModel.uiState.value ?: return
+        val candidates = state.items.filterIsInstance<GameHomeItem.GameTile>().map { it.entry }
+        if (candidates.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.random_game_no_available, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val entry = candidates[Random.nextInt(candidates.size)]
+        Toast.makeText(
+            requireContext(),
+            getString(
+                R.string.random_game_launched_format,
+                GameDisplayNames.gameName(requireContext(), entry)
+            ),
+            Toast.LENGTH_SHORT
+        ).show()
+        launchGame(entry)
+    }
+
+    /** 顶栏时段问候（批次 2a）：口径与 legacy updateGreeting 一致（5-11 早 / 12-17 午 / 其余晚）。 */
+    private fun updateGreeting() {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val resId = when (GameHomeGreeting.periodFor(hour)) {
+            GameHomeGreeting.Period.MORNING -> R.string.home_top_bar_greeting_morning
+            GameHomeGreeting.Period.AFTERNOON -> R.string.home_top_bar_greeting_afternoon
+            GameHomeGreeting.Period.EVENING -> R.string.home_top_bar_greeting_evening
+        }
+        greetingView.setText(resId)
     }
 
     private fun renderChips(state: GameHomeUiState) {
@@ -299,7 +391,12 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         val p = currentPalette() ?: return
         root.setBackgroundColor(p.background)
         root.findViewById<TextView>(R.id.tv_game_library_title)?.setTextColor(p.onSurface)
+        root.findViewById<TextView>(R.id.tv_game_library_greeting)?.setTextColor(p.onSurfaceVariant)
         root.findViewById<View>(R.id.game_library_toolbar)?.setBackgroundColor(p.surface)
+        root.findViewById<FloatingActionButton>(R.id.fab_random_game)?.let { fab ->
+            fab.backgroundTintList = android.content.res.ColorStateList.valueOf(p.primary)
+            fab.imageTintList = android.content.res.ColorStateList.valueOf(p.onPrimary)
+        }
         searchInput.setBackgroundColor(p.surfaceVariant)
         searchInput.setTextColor(p.onSurface)
         searchInput.setHintTextColor(p.onSurfaceVariant)

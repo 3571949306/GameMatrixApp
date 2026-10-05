@@ -2009,6 +2009,12 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
     <string name="home_top_bar_greeting_morning">Good morning</string>
     <string name="home_top_bar_greeting_afternoon">Good afternoon</string>
     <string name="home_top_bar_greeting_evening">Good evening</string>
+    <!-- Batch 2a: game library retention cards (relative time / seconds) -->
+    <string name="home_time_just_now">"Just now"</string>
+    <string name="home_time_minutes_ago">"%1$d min ago"</string>
+    <string name="home_time_hours_ago">"%1$d hr ago"</string>
+    <string name="home_time_days_ago">"%1$d days ago"</string>
+    <string name="home_stats_playtime_seconds_format">"%1$d s"</string>
     <string name="home_top_bar_subtitle">Welcome back to Game Center</string>
     <string name="home_top_notification">Notifications</string>
     <string name="home_top_avatar">Profile</string>

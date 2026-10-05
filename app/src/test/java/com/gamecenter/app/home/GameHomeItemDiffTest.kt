@@ -49,4 +49,46 @@ class GameHomeItemDiffTest {
         assertFalse(diff.areItemsTheSame(a, b))
         assertFalse(diff.areContentsTheSame(a, b))
     }
+
+    // ===== 批次 2a：留存卡片稳定 ID =====
+
+    @Test
+    fun `留存卡片各自是单例稳定ID_互相不是同一项`() {
+        val stats = GameHomeItem.QuickStatsRow("12 分钟", "连3天", "5")
+        val challenge = GameHomeItem.DailyChallengeCard(
+            entry = tile("g1").entry, title = "每日挑战", gameName = "g1",
+            progressText = "进度：1 / 3", progressPercent = 33,
+        )
+        val streak = GameHomeItem.StreakSummaryCard("3 天", "7 天")
+        assertTrue(diff.areItemsTheSame(stats, GameHomeItem.QuickStatsRow("0", "0", "0")))
+        assertTrue(diff.areItemsTheSame(challenge, challenge.copy(progressPercent = 100)))
+        assertTrue(diff.areItemsTheSame(streak, GameHomeItem.StreakSummaryCard("0 天", "0 天")))
+        assertFalse(diff.areItemsTheSame(stats, challenge))
+        assertFalse(diff.areItemsTheSame(challenge, streak))
+    }
+
+    @Test
+    fun `快览统计数值变化_内容不同`() {
+        val a = GameHomeItem.QuickStatsRow("12 分钟", "连3天", "5")
+        val b = GameHomeItem.QuickStatsRow("13 分钟", "连3天", "5")
+        assertFalse(diff.areContentsTheSame(a, b))
+    }
+
+    @Test
+    fun `每日挑战进度变化_内容不同`() {
+        val a = GameHomeItem.DailyChallengeCard(
+            entry = null, title = "每日挑战", gameName = "g1",
+            progressText = "进度：1 / 3", progressPercent = 33,
+        )
+        val b = a.copy(progressText = "进度：2 / 3", progressPercent = 66)
+        assertFalse(diff.areContentsTheSame(a, b))
+    }
+
+    @Test
+    fun `连胜概览数值变化_内容不同`() {
+        val a = GameHomeItem.StreakSummaryCard("3 天", "7 天")
+        val b = GameHomeItem.StreakSummaryCard("4 天", "7 天")
+        assertTrue(diff.areItemsTheSame(a, b))
+        assertFalse(diff.areContentsTheSame(a, b))
+    }
 }

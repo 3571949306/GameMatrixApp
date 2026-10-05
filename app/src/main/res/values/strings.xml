@@ -2101,6 +2101,12 @@
     <string name="home_top_bar_greeting_morning">早上好</string>
     <string name="home_top_bar_greeting_afternoon">下午好</string>
     <string name="home_top_bar_greeting_evening">晚上好</string>
+    <!-- 批次 2a：游戏库主页留存卡片（相对时间 / 秒数）文案 -->
+    <string name="home_time_just_now">刚刚</string>
+    <string name="home_time_minutes_ago">%1$d 分钟前</string>
+    <string name="home_time_hours_ago">%1$d 小时前</string>
+    <string name="home_time_days_ago">%1$d 天前</string>
+    <string name="home_stats_playtime_seconds_format">%1$d 秒</string>
     <string name="home_top_bar_subtitle">欢迎回到游戏中心</string>
     <string name="home_top_notification">通知</string>
     <string name="home_top_avatar">个人中心</string>
