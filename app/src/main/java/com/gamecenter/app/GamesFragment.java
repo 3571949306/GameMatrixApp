@@ -1351,8 +1351,6 @@ public class GamesFragment extends Fragment {
                 if (BuildConfig.ENABLE_WRONGBOOK) {
                     popup.getMenu().add(0, 7, 0, R.string.nav_wrongbook);
                 }
-                // Compose 首页重写试点入口（与 GamesFragment XML 版并存）
-                popup.getMenu().add(0, 6, 0, R.string.home_compose_preview);
                 popup.setOnMenuItemClickListener(item -> {
                     int id = item.getItemId();
                     if (id == R.id.adb_entry_menu) {
@@ -1398,17 +1396,6 @@ public class GamesFragment extends Fragment {
                         } catch (Exception e) {
                             Log.e(TAG, "打开成就中心失败", e);
                             Toast.makeText(requireContext(), R.string.error_achievement_not_found, Toast.LENGTH_SHORT).show();
-                        }
-                        return true;
-                    } else if (id == 6) {
-                        // Compose 首页重写试点入口
-                        try {
-                            startActivity(new Intent(requireContext(),
-                                    com.gamecenter.app.home.HomeComposeActivity.class));
-                        } catch (Exception e) {
-                            Log.e(TAG, "打开 Compose 首页失败", e);
-                            Toast.makeText(requireContext(),
-                                    R.string.home_compose_preview_open_failed, Toast.LENGTH_SHORT).show();
                         }
                         return true;
                     } else if (id == 7) {
@@ -1483,19 +1470,6 @@ public class GamesFragment extends Fragment {
                 } catch (Exception e) {
                     Log.e(TAG, "打开设置失败", e);
                     Toast.makeText(requireContext(), "设置页面打开失败", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        View btnStore = v.findViewById(R.id.btn_module_store);
-        if (btnStore != null) {
-            btnStore.setOnClickListener(btn -> {
-                try {
-                    Intent intent = new Intent(requireContext(), ModuleStoreActivity.class);
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Log.e(TAG, "启动模块商店失败", e);
-                    Toast.makeText(requireContext(), R.string.hall_module_store_not_found, Toast.LENGTH_SHORT).show();
                 }
             });
         }

@@ -406,10 +406,7 @@
     <!-- ===== 模块商店本地化补全（Batch 19） ===== -->
     <string name="module_search_hint">搜索模块/游戏</string>
     <string name="module_update_all">一键更新</string>
-    <!-- Compose 首页试点（HomeComposeActivity） -->
     <string name="search_hint">搜索游戏</string>
-    <string name="home_compose_preview">Compose 首页预览</string>
-    <string name="home_compose_preview_open_failed">打开 Compose 首页失败</string>
     <string name="module_update_all_count">一键更新 (%1$d)</string>
     <string name="module_retry">重试</string>
     <string name="module_builtin">内置</string>
@@ -2808,7 +2805,7 @@
     <!-- DynamicGameActivity -->
     <string name="dynamic_game_not_installed">游戏未安装，正在前往模块商店…</string>
 
-    <!-- SettingsActivity 通用 -->
+    <!-- 设置页通用 -->
     <string name="settings_stats_unavailable">战绩功能暂不可用</string>
     <string name="settings_clear_cache_title">清除缓存</string>
     <string name="settings_clear_cache_msg">确定要清除所有缓存数据吗？</string>

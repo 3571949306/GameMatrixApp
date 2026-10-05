@@ -8,10 +8,9 @@ class GamesHallDestinationPolicyTest {
 
     private fun resolve(
         dynamic: Boolean,
-        library: Boolean,
-        legacyV2Chain: Boolean = true
+        library: Boolean
     ) = GamesHallDestinationFactory.resolve(
-        GamesHallDestinationFactory.Options(dynamic, library, legacyV2Chain)
+        GamesHallDestinationFactory.Options(dynamic, library)
     )
 
     @Test
@@ -43,17 +42,11 @@ class GamesHallDestinationPolicyTest {
     }
 
     @Test
-    fun `LEGACY分支受legacyV2Chain控制`() {
+    fun `LEGACY分支固定返回GamesFragment`() {
         assertEquals(
             "com.gamecenter.app.GamesFragment",
             GamesHallDestinationFactory.createFragment(
-                GamesHallDestinationFactory.Options(false, false, legacyV2Chain = true)
-            )::class.java.name
-        )
-        assertEquals(
-            "com.gamecenter.app.features.BuiltInGamesHallFragment",
-            GamesHallDestinationFactory.createFragment(
-                GamesHallDestinationFactory.Options(false, false, legacyV2Chain = false)
+                GamesHallDestinationFactory.Options(false, false)
             )::class.java.name
         )
     }

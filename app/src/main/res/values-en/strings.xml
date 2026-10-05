@@ -3000,8 +3000,6 @@ You are currently on version code %3$d, the previous stable release is %4$s</str
 
     <!-- Main app strings added by the current feature set -->
     <string name="search_hint">Search games</string>
-    <string name="home_compose_preview">Compose home preview</string>
-    <string name="home_compose_preview_open_failed">Failed to open Compose home</string>
     <string name="module_detail_rating_title">User rating</string>
     <string name="module_detail_rating_hint">Tap a star to rate this module</string>
     <string name="module_detail_rating_done">You rated it: %1$d stars</string>

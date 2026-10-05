@@ -3,7 +3,6 @@ package com.gamecenter.app.features
 import android.content.Context
 import androidx.fragment.app.Fragment
 import com.gamecenter.app.BuildConfig
-import com.gamecenter.app.GamesFragment
 import com.gamecenter.app.core.common.FeatureModule
 import com.gamecenter.app.core.common.ModuleInterface
 import com.gamecenter.app.core.common.ModuleNavigationContribution
@@ -34,15 +33,12 @@ class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
     override fun isRunning(): Boolean = running
 
     override fun createFragment(context: Context): Fragment {
-        // 入口优先级单一真源：动态大厅 > 游戏库主页 > 旧链（GamesFragment/BuiltInGamesHallFragment
-        // 的历史分支保持不变，仅在 LEGACY_GAMES 内部按原开关选择）
-        // G1 单一真源：入口优先级与创建全部收敛到工厂；
-        // LEGACY 分支内部按原开关选择 V2 布局链或纯代码 UI 链
+        // G1 单一真源：入口优先级与 Fragment 创建全部收敛到工厂，
+        // FeatureModule 入口与导航贡献点共用同一选路结果
         return GamesHallDestinationFactory.createFragment(
             GamesHallDestinationFactory.Options(
                 dynamicGamesHall = BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL,
-                libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP,
-                legacyV2Chain = BuildConfig.HOME_REVAMP_V2 || BuildConfig.HOME_IMMERSIVE_REVAMP
+                libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP
             )
         )
     }
@@ -58,13 +54,13 @@ class BuiltInGamesHallModuleEntryPoint : ModuleInterface, FeatureModule {
         override fun getOrder(): Int = 10
         override fun getSlot(): NavigationSlot = NavigationSlot.BOTTOM_NAV
         override fun createFragment(context: Context): Fragment {
-            return if (BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL) {
-                DynamicGamesHallFragment()
-            } else if (BuildConfig.HOME_REVAMP_V2 || BuildConfig.HOME_IMMERSIVE_REVAMP) {
-                GamesFragment()
-            } else {
-                BuiltInGamesHallFragment()
-            }
+            // G1 单一真源：禁止在调用点复制优先级判断，一律走工厂
+            return GamesHallDestinationFactory.createFragment(
+                GamesHallDestinationFactory.Options(
+                    dynamicGamesHall = BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL,
+                    libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP
+                )
+            )
         }
     }
 }

@@ -3358,60 +3358,10 @@
             column="27"/>
     </issue>
 
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `SharedPreferences.edit` instead?"
-        errorLine1="                    prefs.edit().putInt(&quot;app_language&quot;, idx).apply()"
-        errorLine2="                    ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/settings/SettingsComposeActivity.kt"
-            line="76"
-            column="21"/>
-    </issue>
 
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `SharedPreferences.edit` instead?"
-        errorLine1="                prefs.edit().putInt(&quot;night_mode&quot;, mode.storageValue).apply()"
-        errorLine2="                ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/settings/SettingsComposeActivity.kt"
-            line="84"
-            column="17"/>
-    </issue>
 
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `SharedPreferences.edit` instead?"
-        errorLine1="                prefs.edit().putBoolean(&quot;dynamic_color_enabled&quot;, enabled).apply()"
-        errorLine2="                ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/settings/SettingsComposeActivity.kt"
-            line="94"
-            column="17"/>
-    </issue>
 
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `SharedPreferences.edit` instead?"
-        errorLine1="                prefs.edit().putBoolean(&quot;sound_enabled&quot;, enabled).apply()"
-        errorLine2="                ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/settings/SettingsComposeActivity.kt"
-            line="99"
-            column="17"/>
-    </issue>
 
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `SharedPreferences.edit` instead?"
-        errorLine1="                prefs.edit().putBoolean(&quot;vibration_enabled&quot;, enabled).apply()"
-        errorLine2="                ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/settings/SettingsComposeActivity.kt"
-            line="103"
-            column="17"/>
-    </issue>
 
     <issue
         id="ClickableViewAccessibility"
@@ -4425,27 +4375,7 @@
             column="25"/>
     </issue>
 
-    <issue
-        id="SetTextI18n"
-        message="Do not concatenate text displayed with `setText`. Use resource string with placeholders."
-        errorLine1="            if (tv != null) tv.setText(&quot;v&quot; + info.versionName + &quot; (&quot; + info.versionCode + &quot;)&quot;);"
-        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/SettingsActivity.java"
-            line="120"
-            column="40"/>
-    </issue>
 
-    <issue
-        id="SetTextI18n"
-        message="Do not concatenate text displayed with `setText`. Use resource string with placeholders."
-        errorLine1="            if (tv != null) tv.setText(count + &quot; 个&quot;);"
-        errorLine2="                                       ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/gamecenter/app/SettingsActivity.java"
-            line="135"
-            column="40"/>
-    </issue>
 
     <issue
         id="SetTextI18n"

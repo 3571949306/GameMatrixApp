@@ -23,18 +23,6 @@
     <ID>LongMethod:ModuleDownloader.kt$ModuleDownloader$private suspend fun performDownload( moduleInfo: ModuleInfo, existingDownloadedSize: Long, onProgress: suspend (DownloadProgress) -&gt; Unit ): DownloadResult</ID>
     <ID>LongMethod:ModuleStoreActivity.kt$ModuleStoreActivity$private fun openModule(module: ModuleManifest)</ID>
     <ID>LoopWithTooManyJumpStatements:ModuleDownloader.kt$ModuleDownloader$for</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$12</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$12f</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$148</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$16</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$16f</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$20f</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$224</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$33</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$4</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$48</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$8</ID>
-    <ID>MagicNumber:BuiltInGamesHallFragment.kt$BuiltInGamesHallFragment$97</ID>
     <ID>MagicNumber:CrashDetector.kt$CrashDetector$3000L</ID>
     <ID>MagicNumber:ModuleAdapter.kt$ModuleAdapter$1024</ID>
     <ID>MagicNumber:ModuleAdapter.kt$ModuleAdapter$1024.0</ID>

@@ -203,8 +203,7 @@ class BottomNavigationManager(
                     GamesHallDestinationFactory.createFragment(
                         GamesHallDestinationFactory.Options(
                             dynamicGamesHall = BuildConfig.ENABLE_P4_DYNAMIC_GAMES_HALL,
-                            libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP,
-                            legacyV2Chain = true
+                            libraryRevamp = BuildConfig.HOME_LIBRARY_REVAMP
                         )
                     )
                 BottomNavigationCatalog.DestinationKind.TOOLS -> com.gamecenter.app.features.DynamicToolsFragment()
