@@ -91,4 +91,58 @@ class GameHomeItemDiffTest {
         assertTrue(diff.areItemsTheSame(a, b))
         assertFalse(diff.areContentsTheSame(a, b))
     }
+
+    // ===== 批次 2b：最近成就横幅 / 今日精选 稳定 ID =====
+
+    @Test
+    fun `最近成就横幅是单例稳定ID_与其他行不是同一项`() {
+        val banner = GameHomeItem.RecentAchievementBanner("连胜大师", "连续胜利 10 次")
+        assertTrue(diff.areItemsTheSame(banner, GameHomeItem.RecentAchievementBanner("x", "")))
+        assertFalse(diff.areItemsTheSame(banner, tile("g1")))
+        assertFalse(diff.areItemsTheSame(banner, GameHomeItem.StreakSummaryCard("3 天", "7 天")))
+    }
+
+    @Test
+    fun `最近成就横幅文案变化_内容不同`() {
+        val a = GameHomeItem.RecentAchievementBanner("连胜大师", "连续胜利 10 次")
+        val b = GameHomeItem.RecentAchievementBanner("贪吃蛇新手", "初次通关")
+        assertTrue(diff.areItemsTheSame(a, b))
+        assertFalse(diff.areContentsTheSame(a, b))
+    }
+
+    @Test
+    fun `今日精选是单例稳定ID_与其他行不是同一项`() {
+        val featured = GameHomeItem.TodayFeaturedCard(tile("g1").entry, "经典打砖块")
+        assertTrue(
+            diff.areItemsTheSame(featured, GameHomeItem.TodayFeaturedCard(tile("g2").entry, ""))
+        )
+        assertFalse(diff.areItemsTheSame(featured, tile("g1")))
+        assertFalse(diff.areItemsTheSame(featured, GameHomeItem.RecentAchievementBanner("x", "")))
+    }
+
+    @Test
+    fun `今日精选描述变化_内容不同`() {
+        val a = GameHomeItem.TodayFeaturedCard(tile("g1").entry, "经典打砖块")
+        val b = GameHomeItem.TodayFeaturedCard(tile("g1").entry, "另一种描述")
+        assertTrue(diff.areItemsTheSame(a, b))
+        assertFalse(diff.areContentsTheSame(a, b))
+    }
+
+    @Test
+    fun `时长提醒档位变化_内容不同`() {
+        val mild = GameHomeItem.HealthReminder("今日已游玩 73 分钟", "建议起身活动 5 分钟")
+        val severe = GameHomeItem.HealthReminder(
+            "今日已游玩 130 分钟", "长时间游戏可能影响视力", severe = true
+        )
+        assertTrue(diff.areItemsTheSame(mild, severe))
+        assertFalse(diff.areContentsTheSame(mild, severe))
+    }
+
+    @Test
+    fun `展开标题收起文案变化_内容不同`() {
+        val a = GameHomeItem.SectionHeader("最近玩过", expandable = true, expanded = true, collapseText = "收起")
+        val b = GameHomeItem.SectionHeader("最近玩过", expandable = true, expanded = true, collapseText = "Collapse")
+        assertTrue(diff.areItemsTheSame(a, b))
+        assertFalse(diff.areContentsTheSame(a, b))
+    }
 }

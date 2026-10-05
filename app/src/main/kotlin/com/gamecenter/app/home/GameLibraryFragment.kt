@@ -40,6 +40,8 @@ import kotlin.random.Random
  * 顶栏（问候/标题/设置/溢出）→ 搜索（含历史）→ 筛选 → 单一 RecyclerView（留存卡片/继续/最近/全部游戏）。
  * 数据经 GameHomeViewModel（真源聚合），颜色经 GameHomeThemeResolver（用户 Scheme）。
  */
+// TooManyFunctions：公开成员几乎全部来自生命周期与 GameHomeAdapter.Callbacks 接口实现（批次 2a/2b 契约），无可删减
+@Suppress("TooManyFunctions")
 class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     private val viewModel: GameHomeViewModel by viewModels()
@@ -269,6 +271,20 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         }
     }
 
+    override fun onTodayFeaturedClick(entry: GameRegistry.Entry) = launchGame(entry)
+
+    override fun onPlaytimeReminderDismiss() {
+        // 会话级 dismiss（PlaytimeReminderHelper 内存 flag，重启后重新评估，与 legacy 一致）
+        com.gamecenter.app.ui.PlaytimeReminderHelper.dismissForSession()
+        viewModel.refresh()
+    }
+
+    override fun onRecentAchievementDismiss() {
+        // 当日不再显示（沿用 legacy RecentAchievementHelper 的 SP dismiss 日期键）
+        com.gamecenter.app.ui.RecentAchievementHelper.dismissForSession(requireContext())
+        viewModel.refresh()
+    }
+
     // ===== 内部 =====
 
     /** 统一启动入口（数据推进链与旧 GamesFragment 完全一致）。 */
@@ -300,6 +316,9 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
     /** 防抖间隔（毫秒）：两次点击间隔少于此值则忽略（与 legacy RANDOM_GAME_DEBOUNCE_MS 一致）。 */
     private companion object {
         const val RANDOM_GAME_DEBOUNCE_MS = 800L
+
+        /** ADB 工作台菜单项排序（批次 2b：排在既有四项之后）。 */
+        private const val MENU_ORDER_ADB = 4
     }
 
     /** 从当前过滤结果（可见 GameTile）随机抽取一款启动；空则提示。 */
@@ -410,6 +429,8 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
         popup.menu.add(0, 2, 1, getString(R.string.game_statistics))
         popup.menu.add(0, 3, 2, getString(R.string.profile_my_achievements))
         popup.menu.add(0, 4, 3, getString(R.string.nav_wrongbook))
+        // 批次 2b：对照 legacy 头像菜单（GamesFragment.initAvatarMenu）补齐 ADB 工作台入口
+        popup.menu.add(0, R.id.adb_entry_menu, MENU_ORDER_ADB, getString(R.string.adb_entry_title))
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> startActivity(
@@ -422,10 +443,29 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
                     android.content.Intent(requireContext(), AchievementCenterActivity::class.java)
                 )
                 4 -> (activity as? MainActivity)?.openModuleFromMenu("wrongbook")
+                R.id.adb_entry_menu -> openAdbWorkbench()
             }
             true
         }
         popup.show()
+    }
+
+    /** ADB 工作台入口（批次 2b，链路照抄 legacy：AdbWorkbenchLauncher + SOURCE_HALL）。 */
+    private fun openAdbWorkbench() {
+        try {
+            com.gamecenter.app.core.common.AdbWorkbenchLauncher.launch(
+                requireContext(),
+                com.gamecenter.app.core.common.AdbWorkbenchLauncher.SOURCE_HALL
+            )
+        } catch (e: android.content.ActivityNotFoundException) {
+            android.util.Log.w("GameLibraryFragment", "打开 ADB 工作台失败", e)
+            Toast.makeText(requireContext(), R.string.adb_entry_unavailable, Toast.LENGTH_SHORT)
+                .show()
+        } catch (e: SecurityException) {
+            android.util.Log.w("GameLibraryFragment", "打开 ADB 工作台失败", e)
+            Toast.makeText(requireContext(), R.string.adb_entry_unavailable, Toast.LENGTH_SHORT)
+                .show()
+        }
     }
 
     private fun loadIcon(entry: GameRegistry.Entry) = runCatching {

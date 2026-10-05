@@ -204,7 +204,9 @@ class GameHomeStateTest {
             lastPlayedTextById = mapOf("a" to "5 分钟前"), favoriteIds = emptySet(),
             categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
-            retention = GameHomeRetentionCards(healthReminderText = "已连续游玩 60 分钟，注意休息"),
+            retention = GameHomeRetentionCards(
+                playtimeReminder = GameHomeItem.HealthReminder("已连续游玩 60 分钟，注意休息"),
+            ),
         )
         val first = state.items.first()
         assertTrue(first is GameHomeItem.HealthReminder)
@@ -222,6 +224,12 @@ class GameHomeStateTest {
 
     private fun streakSummary() = GameHomeItem.StreakSummaryCard("3 天", "7 天")
 
+    // ===== 批次 2b：最近成就横幅 / 今日精选 =====
+
+    private fun recentAchievement() = GameHomeItem.RecentAchievementBanner("连胜大师", "连续胜利 10 次")
+
+    private fun todayFeatured() = GameHomeItem.TodayFeaturedCard(entry("f"), "f 的描述")
+
     @Test
     fun `留存卡片按顺序渲染在健康提醒之后继续之前`() {
         val state = GameHomeStateBuilder.build(
@@ -230,16 +238,19 @@ class GameHomeStateTest {
             categories = emptyList(),
             filters = GameHomeFilters(), strings = strings,
             retention = GameHomeRetentionCards(
-                healthReminderText = "休息提醒",
+                playtimeReminder = GameHomeItem.HealthReminder("今日已游玩 73 分钟"),
                 quickStats = quickStats(),
                 dailyChallenge = dailyChallenge(),
                 streakSummary = streakSummary(),
+                recentAchievement = recentAchievement(),
+                todayFeatured = todayFeatured(),
             ),
         )
         val kinds = state.items.map { it::class.simpleName }
         assertEquals(
             listOf(
                 "HealthReminder", "QuickStatsRow", "DailyChallengeCard", "StreakSummaryCard",
+                "RecentAchievementBanner", "TodayFeaturedCard",
                 "ContinueRow", "SectionHeader", "GameTile"
             ),
             kinds
@@ -257,7 +268,9 @@ class GameHomeStateTest {
         assertTrue(state.items.none {
             it is GameHomeItem.QuickStatsRow ||
                 it is GameHomeItem.DailyChallengeCard ||
-                it is GameHomeItem.StreakSummaryCard
+                it is GameHomeItem.StreakSummaryCard ||
+                it is GameHomeItem.RecentAchievementBanner ||
+                it is GameHomeItem.TodayFeaturedCard
         })
     }
 
@@ -290,12 +303,16 @@ class GameHomeStateTest {
                 quickStats = quickStats(),
                 dailyChallenge = dailyChallenge(),
                 streakSummary = streakSummary(),
+                recentAchievement = recentAchievement(),
+                todayFeatured = todayFeatured(),
             ),
         )
         assertTrue(state.items.none {
             it is GameHomeItem.QuickStatsRow ||
                 it is GameHomeItem.DailyChallengeCard ||
-                it is GameHomeItem.StreakSummaryCard
+                it is GameHomeItem.StreakSummaryCard ||
+                it is GameHomeItem.RecentAchievementBanner ||
+                it is GameHomeItem.TodayFeaturedCard
         })
     }
 
@@ -380,5 +397,108 @@ class GameHomeStateTest {
         )
         val recentRow = state.items.filterIsInstance<GameHomeItem.RecentRow>().single()
         assertEquals("3 小时前", recentRow.lastPlayedText)
+    }
+
+    // ===== 批次 2b：最近成就横幅 / 今日精选 / 收起文案 =====
+
+    @Test
+    fun `最近成就横幅与今日精选缺数据时静默降级_其余卡片照常渲染`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(
+                quickStats = quickStats(),
+                dailyChallenge = dailyChallenge(),
+                streakSummary = streakSummary(),
+            ),
+        )
+        assertTrue(state.items.none { it is GameHomeItem.RecentAchievementBanner })
+        assertTrue(state.items.none { it is GameHomeItem.TodayFeaturedCard })
+        assertEquals(1, state.items.count { it is GameHomeItem.QuickStatsRow })
+    }
+
+    @Test
+    fun `最近成就横幅当日dismiss后置空则不渲染`() {
+        // dismiss 由 Repository 读取 RecentAchievementHelper 的 SP 日期后置 null，
+        // StateBuilder 只保证 null 时不出现横幅
+        val dismissed = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(recentAchievement = null),
+        )
+        assertTrue(dismissed.items.none { it is GameHomeItem.RecentAchievementBanner })
+        val shown = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(recentAchievement = recentAchievement()),
+        )
+        assertEquals("连胜大师", shown.items.filterIsInstance<GameHomeItem.RecentAchievementBanner>()
+            .single().name)
+    }
+
+    @Test
+    fun `今日精选点击直达的数据随行透传`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(todayFeatured = todayFeatured()),
+        )
+        val featured = state.items.filterIsInstance<GameHomeItem.TodayFeaturedCard>().single()
+        assertEquals("f", featured.entry.id)
+        assertEquals("f 的描述", featured.desc)
+    }
+
+    @Test
+    fun `时长提醒SEVERE档纯值随行透传`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+            retention = GameHomeRetentionCards(
+                playtimeReminder = GameHomeItem.HealthReminder(
+                    text = "今日已游玩 130 分钟", desc = "长时间游戏可能影响视力", severe = true
+                ),
+            ),
+        )
+        val reminder = state.items.filterIsInstance<GameHomeItem.HealthReminder>().single()
+        assertTrue(reminder.severe)
+        assertEquals("今日已游玩 130 分钟", reminder.text)
+        assertEquals("长时间游戏可能影响视力", reminder.desc)
+    }
+
+    @Test
+    fun `可展开标题携带收起文案`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a"), entry("b")), recentIds = listOf("a", "b"),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(recentExpanded = true), strings = strings,
+        )
+        val header = state.items.filterIsInstance<GameHomeItem.SectionHeader>()
+            .first { it.expandable }
+        assertTrue(header.expanded)
+        assertEquals("收起", header.collapseText)
+    }
+
+    @Test
+    fun `不可展开标题不带收起文案`() {
+        val state = GameHomeStateBuilder.build(
+            allEntries = listOf(entry("a")), recentIds = emptyList(),
+            lastPlayedTextById = emptyMap(), favoriteIds = emptySet(),
+            categories = emptyList(),
+            filters = GameHomeFilters(), strings = strings,
+        )
+        val headers = state.items.filterIsInstance<GameHomeItem.SectionHeader>()
+        assertTrue(headers.none { it.expandable })
+        assertTrue(headers.all { it.collapseText.isEmpty() })
     }
 }

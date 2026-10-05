@@ -32,6 +32,15 @@ class GameHomeAdapter(
 
         /** 每日挑战卡点击：entry 非空直达游戏，null（未绑定游戏）由页面提示兜底。 */
         fun onDailyChallengeClick(entry: GameRegistry.Entry?)
+
+        /** 今日精选卡点击（批次 2b）：直达推荐游戏。 */
+        fun onTodayFeaturedClick(entry: GameRegistry.Entry)
+
+        /** 时长提醒卡“知道了”（批次 2b）：会话级 dismiss 后刷新。 */
+        fun onPlaytimeReminderDismiss()
+
+        /** 最近成就横幅关闭（批次 2b）：当日不再显示后刷新。 */
+        fun onRecentAchievementDismiss()
     }
 
     private var palette: GameHomeThemeResolver.GameHomePalette? = null
@@ -47,6 +56,8 @@ class GameHomeAdapter(
         const val TYPE_QUICK_STATS = 6
         const val TYPE_DAILY_CHALLENGE = 7
         const val TYPE_STREAK_SUMMARY = 8
+        const val TYPE_RECENT_ACHIEVEMENT = 9
+        const val TYPE_TODAY_FEATURED = 10
     }
 
     fun setPalette(p: GameHomeThemeResolver.GameHomePalette) {
@@ -70,6 +81,8 @@ class GameHomeAdapter(
         is GameHomeItem.QuickStatsRow -> TYPE_QUICK_STATS
         is GameHomeItem.DailyChallengeCard -> TYPE_DAILY_CHALLENGE
         is GameHomeItem.StreakSummaryCard -> TYPE_STREAK_SUMMARY
+        is GameHomeItem.RecentAchievementBanner -> TYPE_RECENT_ACHIEVEMENT
+        is GameHomeItem.TodayFeaturedCard -> TYPE_TODAY_FEATURED
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -83,6 +96,16 @@ class GameHomeAdapter(
                 DailyChallengeVH(inf.inflate(R.layout.item_game_home_daily_challenge, parent, false))
             TYPE_STREAK_SUMMARY ->
                 StreakSummaryVH(inf.inflate(R.layout.item_game_home_streak_summary, parent, false))
+            TYPE_RECENT_ACHIEVEMENT ->
+                RecentAchievementVH(
+                    inf.inflate(R.layout.item_game_home_recent_achievement, parent, false)
+                )
+            TYPE_TODAY_FEATURED ->
+                TodayFeaturedVH(inf.inflate(R.layout.item_game_home_today_featured, parent, false))
+            TYPE_HEALTH ->
+                PlaytimeReminderVH(
+                    inf.inflate(R.layout.item_game_home_playtime_reminder, parent, false)
+                )
             else -> TextVH(inf.inflate(R.layout.item_game_home_text, parent, false))
         }
     }
@@ -97,6 +120,12 @@ class GameHomeAdapter(
             is QuickStatsVH -> bindQuickStats(vh, item as GameHomeItem.QuickStatsRow, p)
             is DailyChallengeVH -> bindDailyChallenge(vh, item as GameHomeItem.DailyChallengeCard, p)
             is StreakSummaryVH -> bindStreakSummary(vh, item as GameHomeItem.StreakSummaryCard, p)
+            is PlaytimeReminderVH ->
+                bindPlaytimeReminder(vh, item as GameHomeItem.HealthReminder)
+            is RecentAchievementVH ->
+                bindRecentAchievement(vh, item as GameHomeItem.RecentAchievementBanner)
+            is TodayFeaturedVH ->
+                bindTodayFeatured(vh, item as GameHomeItem.TodayFeaturedCard, p)
         }
     }
 
@@ -113,19 +142,12 @@ class GameHomeAdapter(
                 vh.action.visibility = View.GONE
                 vh.primary.contentDescription = item.title
                 if (item.expandable) {
-                    vh.action.text = if (item.expanded) "收起" else ""
+                    // 批次 2b：展开态“收起”文案走 StateBuilder 注入的资源（GameHomeStrings.collapse）
+                    vh.action.text = if (item.expanded) item.collapseText else ""
                     vh.itemView.setOnClickListener { callbacks.onToggleRecentExpanded() }
                 } else {
                     vh.itemView.setOnClickListener(null)
                 }
-            }
-            is GameHomeItem.HealthReminder -> {
-                vh.primary.text = item.text
-                vh.primary.textSize = 13f
-                vh.primary.setTypeface(vh.primary.typeface, android.graphics.Typeface.NORMAL)
-                vh.primary.setTextColor(onSurfaceVariant)
-                vh.action.visibility = View.GONE
-                vh.itemView.setOnClickListener(null)
             }
             is GameHomeItem.EmptyState -> {
                 vh.primary.text = item.message
@@ -241,6 +263,51 @@ class GameHomeAdapter(
         p?.let { materialCard.setCardBackgroundColor(it.surface) }
     }
 
+    /**
+     * 今日时长提醒卡（批次 2b，对齐 legacy Batch 11-3）：MILD/SEVERE 渐变分档，
+     * 文案白色（渐变底固定视觉，与 legacy 一致），“知道了”走会话 dismiss 回调。
+     */
+    private fun bindPlaytimeReminder(vh: PlaytimeReminderVH, item: GameHomeItem.HealthReminder) {
+        vh.itemView.setBackgroundResource(
+            if (item.severe) R.drawable.bg_playtime_reminder_gradient_severe
+            else R.drawable.bg_playtime_reminder_gradient_mild
+        )
+        vh.today.text = item.text
+        vh.desc.text = item.desc
+        vh.desc.visibility = if (item.desc.isEmpty()) View.GONE else View.VISIBLE
+        vh.dismiss.setOnClickListener { callbacks.onPlaytimeReminderDismiss() }
+    }
+
+    /** 最近解锁成就横幅（批次 2b，对齐 legacy Batch 12-2）：金黄渐变 + 白字，仅关闭可点。 */
+    private fun bindRecentAchievement(
+        vh: RecentAchievementVH,
+        item: GameHomeItem.RecentAchievementBanner
+    ) {
+        vh.name.text = item.name
+        vh.desc.text = item.desc
+        vh.desc.visibility = if (item.desc.isEmpty()) View.GONE else View.VISIBLE
+        vh.dismiss.setOnClickListener { callbacks.onRecentAchievementDismiss() }
+        vh.itemView.setOnClickListener(null)
+    }
+
+    /** 今日精选推荐卡（批次 2b）：底色跟 Resolver，整卡点击直达推荐游戏。 */
+    private fun bindTodayFeatured(
+        vh: TodayFeaturedVH,
+        item: GameHomeItem.TodayFeaturedCard,
+        p: GameHomeThemeResolver.GameHomePalette?
+    ) {
+        applyCardPalette(vh.itemView, p)
+        vh.icon.setImageDrawable(iconLoader(item.entry))
+        vh.name.text = nameLoader(item.entry)
+        vh.name.setTextColor(p?.onSurface ?: vh.name.currentTextColor)
+        vh.title.setTextColor(p?.onSurfaceVariant ?: vh.title.currentTextColor)
+        vh.cta.setTextColor(p?.primary ?: vh.cta.currentTextColor)
+        vh.desc.text = item.desc
+        vh.desc.setTextColor(p?.onSurfaceVariant ?: vh.desc.currentTextColor)
+        vh.desc.visibility = if (item.desc.isEmpty()) View.GONE else View.VISIBLE
+        vh.itemView.setOnClickListener { callbacks.onTodayFeaturedClick(item.entry) }
+    }
+
     class TextVH(v: View) : RecyclerView.ViewHolder(v) {
         val primary: TextView = v.findViewById(R.id.tv_text_row_primary)
         val action: TextView = v.findViewById(R.id.tv_text_row_action)
@@ -293,6 +360,29 @@ class GameHomeAdapter(
         fun labels() = listOf(currentLabel, bestLabel)
     }
 
+    /** 今日时长提醒卡（批次 2b）：分档渐变底 + 今日分钟数 + 档位建议 + 知道了。 */
+    class PlaytimeReminderVH(v: View) : RecyclerView.ViewHolder(v) {
+        val today: TextView = v.findViewById(R.id.tv_playtime_reminder_today)
+        val desc: TextView = v.findViewById(R.id.tv_playtime_reminder_desc)
+        val dismiss: TextView = v.findViewById(R.id.btn_playtime_reminder_dismiss)
+    }
+
+    /** 最近解锁成就横幅（批次 2b）：成就名 + 描述 + 关闭。 */
+    class RecentAchievementVH(v: View) : RecyclerView.ViewHolder(v) {
+        val name: TextView = v.findViewById(R.id.tv_recent_achievement_name)
+        val desc: TextView = v.findViewById(R.id.tv_recent_achievement_desc)
+        val dismiss: View = v.findViewById(R.id.btn_recent_achievement_dismiss)
+    }
+
+    /** 今日精选推荐卡（批次 2b）：推荐语标题 + 游戏名 + 描述 + 立即挑战。 */
+    class TodayFeaturedVH(v: View) : RecyclerView.ViewHolder(v) {
+        val icon: ImageView = v.findViewById(R.id.iv_today_featured_icon)
+        val title: TextView = v.findViewById(R.id.tv_today_featured_title)
+        val name: TextView = v.findViewById(R.id.tv_today_featured_name)
+        val desc: TextView = v.findViewById(R.id.tv_today_featured_desc)
+        val cta: TextView = v.findViewById(R.id.tv_today_featured_cta)
+    }
+
     internal object DIFF : DiffUtil.ItemCallback<GameHomeItem>() {
         override fun areItemsTheSame(old: GameHomeItem, new: GameHomeItem): Boolean =
             stableId(old) == stableId(new)
@@ -309,6 +399,8 @@ class GameHomeAdapter(
             is GameHomeItem.QuickStatsRow -> "q:quick-stats"
             is GameHomeItem.DailyChallengeCard -> "d:daily-challenge"
             is GameHomeItem.StreakSummaryCard -> "k:streak-summary"
+            is GameHomeItem.RecentAchievementBanner -> "a:recent-achievement"
+            is GameHomeItem.TodayFeaturedCard -> "f:today-featured"
         }
     }
 }

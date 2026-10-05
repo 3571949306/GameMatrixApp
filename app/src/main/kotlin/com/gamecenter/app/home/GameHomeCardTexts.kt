@@ -4,6 +4,7 @@ import android.content.res.Resources
 import com.gamecenter.app.R
 import com.gamecenter.app.games.GameRegistry
 import com.gamecenter.app.games.achievement.DailyChallengeManager
+import com.gamecenter.app.ui.PlaytimeReminderHelper
 
 /**
  * 留存卡片文案格式化（批次 2a）：只做「纯值 → 本地化文案」转换，无状态、无 IO。
@@ -93,4 +94,26 @@ object GameHomeCardTexts {
         currentDaysText = res.getString(R.string.daily_checkin_unit_days, currentDays),
         bestDaysText = res.getString(R.string.daily_checkin_unit_days, bestDays),
     )
+
+    /**
+     * 今日时长提醒卡（批次 2b 升级为 legacy Batch 11-3 卡片视觉）：
+     * NONE → null（不渲染）；MILD/SEVERE → 今日分钟数 + 对应档位建议文案。
+     * 档位判定（含会话 dismiss）由 [com.gamecenter.app.ui.PlaytimeReminderHelper.evaluate]
+     * 在 Repository 后台完成，本函数只做纯值格式化。
+     */
+    fun playtimeReminder(
+        res: Resources,
+        level: PlaytimeReminderHelper.Level,
+        todayMinutes: Int,
+    ): GameHomeItem.HealthReminder? {
+        if (level == PlaytimeReminderHelper.Level.NONE) return null
+        val severe = level == PlaytimeReminderHelper.Level.SEVERE
+        return GameHomeItem.HealthReminder(
+            text = res.getString(R.string.playtime_reminder_today_format, "$todayMinutes"),
+            desc = res.getString(
+                if (severe) R.string.playtime_reminder_desc_120 else R.string.playtime_reminder_desc_60
+            ),
+            severe = severe,
+        )
+    }
 }

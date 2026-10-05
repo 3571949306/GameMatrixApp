@@ -23,14 +23,19 @@ data class GameHomeStrings(
 )
 
 /**
- * 留存卡片纯值包（批次 2a）：数据获取与文案格式化都在 ViewModel/Repository 完成，
+ * 留存卡片纯值包（批次 2a + 2b 增量）：数据获取与文案格式化都在 ViewModel/Repository 完成，
  * StateBuilder 只收纯值做行编排；成员为 null = 数据不可得，静默降级不渲染对应卡片。
  */
 data class GameHomeRetentionCards(
-    val healthReminderText: String? = null,
+    /** 今日时长提醒卡（批次 2b 起为分档卡片；NONE/已 dismiss 由 ViewModel 判定后置 null）。 */
+    val playtimeReminder: GameHomeItem.HealthReminder? = null,
     val quickStats: GameHomeItem.QuickStatsRow? = null,
     val dailyChallenge: GameHomeItem.DailyChallengeCard? = null,
     val streakSummary: GameHomeItem.StreakSummaryCard? = null,
+    /** 最近解锁成就横幅（批次 2b）：当日已 dismiss 或无数据时为 null。 */
+    val recentAchievement: GameHomeItem.RecentAchievementBanner? = null,
+    /** 今日精选推荐（批次 2b，HeroBanner 决策 b 方案）：无推荐结果时为 null。 */
+    val todayFeatured: GameHomeItem.TodayFeaturedCard? = null,
 )
 
 /** 顶栏时段问候（批次 2a）：口径与 legacy GamesFragment.updateGreeting 一致。 */
@@ -80,8 +85,8 @@ data class GameHomeUiState(
  * - 继续玩 = 最近第一条可恢复；最近行最多 3 条（展开 8 条），不含继续那条；
  * - 搜索中隐藏继续/最近；分类与收藏筛选继续生效；
  * - 搜索无结果 → “未找到相关游戏 + 清除搜索”；收藏空 → 专属空状态；
- * - 留存卡片（批次 2a：快览统计/每日挑战/连胜概览）只出现在非搜索态，
- *   顺序为健康提醒之后、继续之前；成员为 null 时静默降级不渲染。
+ * - 留存卡片（批次 2a：快览统计/每日挑战/连胜概览；批次 2b：时长提醒分档卡/
+ *   最近成就横幅/今日精选）只出现在非搜索态，顺序为继续之前；成员为 null 时静默降级不渲染。
  */
 object GameHomeStateBuilder {
 
@@ -149,11 +154,14 @@ object GameHomeStateBuilder {
                 },)
         }
 
-        // 4. 非搜索态：健康提醒 → 快览统计 → 每日挑战 → 连胜概览 → 继续 → 最近 → 全部游戏
-        retention.healthReminderText?.let { items.add(GameHomeItem.HealthReminder(it)) }
+        // 4. 非搜索态：时长提醒 → 快览统计 → 每日挑战 → 连胜概览 → 最近成就 → 今日精选
+        //    → 继续 → 最近 → 全部游戏（批次 2b 顺序）
+        retention.playtimeReminder?.let { items.add(it) }
         retention.quickStats?.let { items.add(it) }
         retention.dailyChallenge?.let { items.add(it) }
         retention.streakSummary?.let { items.add(it) }
+        retention.recentAchievement?.let { items.add(it) }
+        retention.todayFeatured?.let { items.add(it) }
         addContinueAndRecent(items, byId, recentIds, filters, strings, lastPlayedTextById)
 
         // 5. 全部游戏（含收藏空状态）；前置定位分区叙事（可选）
@@ -212,7 +220,8 @@ object GameHomeStateBuilder {
             GameHomeItem.SectionHeader(
                 strings.recentTitle,
                 expandable = true,
-                expanded = filters.recentExpanded
+                expanded = filters.recentExpanded,
+                collapseText = strings.collapse
             )
         )
         rest.take(limit).forEach { e ->

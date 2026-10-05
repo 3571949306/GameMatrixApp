@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 通用文字行：区块标题 / 健康提醒 / 空状态（Phase 4 复用，按用途设置样式） -->
+<!-- 通用文字行：区块标题 / 空状态（Phase 4 复用，按用途设置样式；健康提醒已升级为独立卡片） -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"

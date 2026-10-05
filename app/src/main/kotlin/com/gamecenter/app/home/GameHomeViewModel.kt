@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
  * 游戏库主页状态层（计划 §6.5）：
  * - 筛选状态经 SavedStateHandle 跨 Activity 重建恢复；
  * - 真源快照在后台线程获取，加载代次防止旧回调写入新页面；
- * - 留存卡片（批次 2a）取数在 Repository/后台，文案格式化经 [GameHomeCardTexts]，
+ * - 留存卡片（批次 2a/2b）取数在 Repository/后台，文案格式化经 [GameHomeCardTexts]，
  *   纯值交给 [GameHomeStateBuilder] 编排；
  * - 不持有 Activity/View/短生命周期 Context。
  */
@@ -110,8 +110,10 @@ class GameHomeViewModel(
             GameHomeCardTexts.relativeTime(res, at)
         }
         val cards = GameHomeRetentionCards(
-            healthReminderText = healthReminderText(
-                res, (snapshot.todayPlayTimeMs / MILLIS_PER_MINUTE).toInt()
+            playtimeReminder = GameHomeCardTexts.playtimeReminder(
+                res,
+                snapshot.reminderLevel,
+                (snapshot.todayPlayTimeMs / MILLIS_PER_MINUTE).toInt()
             ),
             quickStats = GameHomeCardTexts.quickStats(res, snapshot),
             dailyChallenge = snapshot.todayChallenge?.let { challenge ->
@@ -124,6 +126,20 @@ class GameHomeViewModel(
             streakSummary = GameHomeCardTexts.streakSummary(
                 res, snapshot.streakDays, snapshot.bestStreakDays
             ),
+            recentAchievement = snapshot.recentAchievement?.let { recent ->
+                GameHomeItem.RecentAchievementBanner(
+                    name = com.gamecenter.app.ui.RecentAchievementHelper
+                        .resolveTitle(getApplication(), recent.id),
+                    desc = com.gamecenter.app.ui.RecentAchievementHelper
+                        .resolveDescription(getApplication(), recent.id),
+                )
+            },
+            todayFeatured = snapshot.todayFeaturedEntry?.let { featured ->
+                GameHomeItem.TodayFeaturedCard(
+                    entry = featured,
+                    desc = featured.desc.ifEmpty { featured.category },
+                )
+            },
         )
         return GameHomeStateBuilder.build(
             allEntries = snapshot.entries,
@@ -154,18 +170,5 @@ class GameHomeViewModel(
             positioningTitle = res.getString(com.gamecenter.app.R.string.home_positioning_sections),
             resumeTimeFormat = res.getString(com.gamecenter.app.R.string.home_resume_game_time_format),
         )
-    }
-
-    /** 健康提醒（Batch 11-3 语义）：今日时长达 MILD/SEVERE 档位时给出低强调提示。 */
-    private fun healthReminderText(res: Resources, todayMinutes: Int): String? {
-        val level = com.gamecenter.app.ui.PlaytimeReminderHelper.Level.entries
-            .firstOrNull { it.minutesThreshold in 1..todayMinutes && todayMinutes >= it.minutesThreshold }
-            ?: return null
-        val title = res.getString(com.gamecenter.app.R.string.playtime_reminder_title)
-        val today = res.getString(
-            com.gamecenter.app.R.string.playtime_reminder_today_format,
-            "$todayMinutes"
-        )
-        return "$title · $today"
     }
 }

@@ -28,21 +28,27 @@ object RecentAchievementHelper {
     @JvmStatic
     fun getRecentAsync(context: Context, callback: (RecentAchievement?) -> Unit) {
         AppExecutors.io().execute {
-            try {
-                val dao = com.gamecenter.app.database.AppDatabase.getDatabase(context.applicationContext).achievementDao()
-                val unlocked = dao.getUnlockedSync()
-                val result = if (unlocked.isEmpty()) {
-                    null
-                } else {
-                    val best = unlocked.maxByOrNull { it.unlockedAt }
-                    if (best == null || best.unlockedAt <= 0L) null
-                    else RecentAchievement(best.achievementId, best.unlockedAt)
-                }
-                AppExecutors.runOnMain { callback(result) }
-            } catch (e: Exception) {
-                android.util.Log.w("RecentAchievementHelper", "查询最近成就失败", e)
-                AppExecutors.runOnMain { callback(null) }
-            }
+            val result = getRecentSync(context)
+            AppExecutors.runOnMain { callback(result) }
+        }
+    }
+
+    /**
+     * 同步获取最近解锁的成就（Room 同步查询，只能在后台线程调用；
+     * 批次 2b 抽出为公共 API 供 GameHomeRepository 后台 executor 复用，单一真相源）。
+     * 若无任何已解锁成就或查询失败，返回 null。
+     */
+    @JvmStatic
+    fun getRecentSync(context: Context): RecentAchievement? {
+        return try {
+            val dao = com.gamecenter.app.database.AppDatabase.getDatabase(context.applicationContext).achievementDao()
+            val unlocked = dao.getUnlockedSync()
+            val best = unlocked.maxByOrNull { it.unlockedAt }
+            if (best == null || best.unlockedAt <= 0L) null
+            else RecentAchievement(best.achievementId, best.unlockedAt)
+        } catch (e: Exception) {
+            android.util.Log.w("RecentAchievementHelper", "查询最近成就失败", e)
+            null
         }
     }
 
@@ -52,18 +58,8 @@ object RecentAchievementHelper {
     @Deprecated("同步版本在主线程执行 Room 查询会导致 ANR/崩溃，请使用 getRecentAsync", ReplaceWith("getRecentAsync(context) { result -> /* handle result */ }"))
     @JvmStatic
     fun getRecent(context: Context): RecentAchievement? {
-        // 仅保留用于兼容旧调用，实际应迁移到 getRecentAsync
-        try {
-            val dao = com.gamecenter.app.database.AppDatabase.getDatabase(context).achievementDao()
-            val unlocked = dao.getUnlockedSync()
-            if (unlocked.isEmpty()) return null
-            val best = unlocked.maxByOrNull { it.unlockedAt }
-            if (best == null || best.unlockedAt <= 0L) return null
-            return RecentAchievement(best.achievementId, best.unlockedAt)
-        } catch (e: Exception) {
-            android.util.Log.w("RecentAchievementHelper", "查询最近成就失败", e)
-            return null
-        }
+        // 仅保留用于兼容旧调用；查询逻辑统一收敛到 getRecentSync
+        return getRecentSync(context)
     }
 
     /**
