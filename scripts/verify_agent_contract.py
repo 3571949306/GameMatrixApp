@@ -27,6 +27,26 @@ def require(text: str, pattern: str, message: str) -> None:
         raise AssertionError(message)
 
 
+def ci_unit_test_tasks(workflow_text: str) -> set:
+    """Gradle unit-test tasks the CI unit-test step actually runs."""
+    return set(re.findall(r"[\w:.-]*:testDebugUnitTest", workflow_text))
+
+
+def local_unit_test_tasks() -> set:
+    """Gradle unit-test tasks for every module that owns JVM/Robolectric test sources."""
+    tasks = set()
+    for depth in range(1, 7):
+        for test_dir in ROOT.glob("/".join(["*"] * depth) + "/src/test"):
+            relative = test_dir.relative_to(ROOT).as_posix()
+            if "/build/" in f"/{relative}":
+                continue
+            if not (list(test_dir.rglob("*.java")) or list(test_dir.rglob("*.kt"))):
+                continue
+            module_path = relative[: -len("/src/test")]
+            tasks.add(":" + module_path.replace("/", ":") + ":testDebugUnitTest")
+    return tasks
+
+
 def main() -> int:
     try:
         read(ROOT / "AGENTS.md")
@@ -152,6 +172,11 @@ def main() -> int:
                 "explicit Release preinstalled-module lifecycle task is missing")
         require(ci_workflow, r"verify_protected_assets\.py snapshot.*?verify_protected_assets\.py verify",
                 "CI must snapshot and verify protected release assets around tests")
+        never_run = sorted(local_unit_test_tasks() - ci_unit_test_tasks(ci_workflow))
+        if never_run:
+            raise AssertionError(
+                "modules own src/test sources but CI never runs them (dead tests, BL-008); "
+                "add them to the \"Run unit tests\" step: " + ", ".join(never_run))
     except (AssertionError, ValueError) as exc:
         print(f"AGENT CONTRACT: FAIL\n- {exc}", file=sys.stderr)
         return 1

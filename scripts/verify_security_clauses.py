@@ -10,6 +10,7 @@ verify_security_clauses.py — AGENTS.md 安全条款机器检查（质量提升
   3. §8.3  发布证书钉扎（ModuleSignatureVerifier + release_signer.cer）存在
   4. §8.4  资源加载降级路径（MODULE_RESOURCE_FALLBACK）存在
   5. §8.5  目录签名默认开启（enableCatalogSignature 默认 true + TRUSTED 门控）
+  6. §9.1  peer token 禁止明文降级写入（加密不可用必须 fail-closed，BL-064）
 
 任一检查失败 → exit 1。
 """
@@ -104,6 +105,20 @@ def main() -> int:
         r = repo_kt.read_text(encoding="utf-8", errors="ignore")
         check("§8.5 目录验签接入（ENABLE_CATALOG_SIGNATURE + forceVerify）",
               "ENABLE_CATALOG_SIGNATURE" in r and "CATALOG_SIGNATURE_TRUSTED" in r)
+
+    # 6. §9.1 peer token 禁止明文降级写入（BL-064）：
+    #    getEncryptedPrefs 加密失败必须返回 null；savePeerToken 写令牌前必须判空 fail-closed。
+    #    历史缺陷：降级返回明文 prefs，令牌先写明文、再被同文件的迁移 clear 抹掉——
+    #    既把凭据落盘明文又静默丢失会话。
+    p2p_rel = "core/network/src/main/java/com/gamecenter/app/network/RemoteP2PUtil.java"
+    p2p = REPO / p2p_rel
+    m_get = re.search(r"getEncryptedPrefs\(Context[\s\S]*?\n    \}", p2p.read_text(encoding="utf-8", errors="ignore")) if p2p.exists() else None
+    check("§9.1 getEncryptedPrefs 失败返回 null（禁止降级明文实例）",
+          bool(m_get) and "return null;" in m_get.group(0)
+          and "getSharedPreferences(prefsName" not in m_get.group(0))
+    m_save = re.search(r"savePeerToken\(Context[\s\S]*?\n    \}", p2p.read_text(encoding="utf-8", errors="ignore")) if p2p.exists() else None
+    check("§9.1 savePeerToken 加密不可用时 fail-closed（先判空再写令牌）",
+          bool(m_save) and re.search(r"encPrefs\s*==\s*null", m_save.group(0)) is not None)
 
     print("-" * 64)
     if FAILS:

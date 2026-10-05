@@ -56,6 +56,10 @@ jobs:
       - name: Run Local Unit Tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
+      - name: Summarize failed JVM tests
+        if: failure()
+        run: python scripts/summarize_test_failures.py
+
       - name: Assemble Debug APK and Dynamic Modules
         run: |
           ./gradlew :module-store:feature:tools:wrongbook:assembleDebug
