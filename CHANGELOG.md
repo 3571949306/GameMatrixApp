@@ -3,6 +3,26 @@
 
 # GameMatrixApp - 版本更新日志
 
+## [批次 4：自适应难度推荐二选一收敛（AdaptiveAdvisor 唯一引擎）] - 2026-10-05
+
+### 变更
+
+- **按胜率荐难度收敛为单一引擎**：删除宿主 `games/DifficultyRecommender`（0.30/0.70 阈值、3 局起荐），启动链 `GameLauncherHelper` 改调 `games/adaptive/AdaptiveAdvisor`（≤0.40 降 / ≥0.60 升、5 局起荐、CI 守卫 `verify_adaptive.py` 覆盖），与 chinesechess 游戏内"·荐"徽标同口径。保留"只提示不自动切难度"语义：启动难度按推荐档预选，游戏内难度选择仍由用户决定。
+- **口径差异（预期行为变化）**：旧引擎 3 局即可荐、中性带 0.3-0.7；新引擎 5 局起荐、中性带收窄至 0.4-0.6 且边界含等号（≤0.40 降 / ≥0.60 升）。表现为：3-4 局的轻度战绩不再触发推荐；胜率 0.40/0.60 边际值的升降判定更灵敏。样本不足与中性带一律维持默认档、Toast 静默。
+- **新增便捷方法（未改既有签名）**：`AdaptiveAdvisor.recommendedIndex(int winCount, int lossCount, int defaultIndex, int levelCount)` —— 0 基索引便捷形式，供无"用户当前档"概念、以默认推荐档（`DifficultyLevel.recommended` 标记档）为锚点的启动链复用同一阈值口径。`advise`/`recommendedTier` 签名未动，chinesechess 模块 compileOnly 依赖不受影响。
+- 启动 Toast 文案沿用既有 `diff_rec_toast_easier` / `diff_rec_toast_harder` 资源（中英双语，未新增硬编码）。
+- `AdaptiveRegressionTest` 新增 T8 共 18 条用例覆盖 `recommendedIndex`（默认档锚点/越界钳制/空表/单档/两档）；`scripts/verify_adaptive.py` 零改动自动纳入。
+- 历史计划文档中的类名引用同步改为 `AdaptiveAdvisor`（`EXECUTION_PLAN_2026H2`、`EXECUTION_PLAN_2026H2_TASKS`、`模块热更改造计划_2026-08-29` 文件清单），全仓 grep 零残留。
+
+### 验证与发布
+
+- `python scripts/verify_adaptive.py`：ADAPTIVE_TEST_RESULT=PASS（82/82，含新 T8）。
+- `:app:testDebugUnitTest`：BUILD SUCCESSFUL。
+- `python scripts/verify_positioning_guard.py`：PASS；`python scripts/check_i18n.py`：PASS。
+- `python scripts/verify_agent_contract.py`：PASS；`:app:detekt`：BUILD SUCCESSFUL（无违规；本次 diff 纯 Java，无 Kotlin 改动）。
+- `:module-store:feature:games:games:chinesechess:compileDebugJavaWithJavac`：BUILD SUCCESSFUL（等价验证：模块对 AdaptiveAdvisor 的引用未破坏；`compileReleaseJavaWithJavac` 本地未跑——release 任务名触发 `:app` 生产构建门禁，要求配置 catalog Ed25519 公钥，本地开发环境未配置，属预期拦截而非编译失败）。
+- 代码/测试/verify 脚本/detekt baseline 中 grep `DifficultyRecommender` 零残留（仅本条目作为删除记录提及该类名）。
+
 ## [批次 2c+2d：游戏库新首页默认生效 + UIAutomator 适配] - 2026-10-05
 
 ### 变更

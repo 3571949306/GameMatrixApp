@@ -4,14 +4,16 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.gamecenter.app.DynamicGameActivity;
-import com.gamecenter.app.games.DifficultyRecommender;
+import com.gamecenter.app.R;
 import com.gamecenter.app.games.GameRegistry;
 import com.gamecenter.app.games.GameUsageStore;
+import com.gamecenter.app.games.adaptive.AdaptiveAdvisor;
 import com.gamecenter.app.games.model.DifficultyLevel;
 
 import java.util.ArrayList;
@@ -65,15 +67,20 @@ public class GameLauncherHelper {
             return false;
         }
 
-        // P1-4 (DIFFICULTY_RECOMMENDER): 需要难度选择的游戏，根据胜率推荐难度
+        // P1-4: 需要难度选择的游戏，按 AdaptiveAdvisor 统一口径（≥5 局起荐、0.4-0.6 中性带）
+        // 在默认推荐档基础上给出启动难度；与游戏内"荐"徽标同一引擎，仅提示不改用户选择。
         int difficultyIndex = 0;
         if (needsDifficultySelection(gameId)) {
             List<DifficultyLevel> levels = getChessDifficultyLevels();
-            GameUsageStore store = new GameUsageStore(context);
-            difficultyIndex = DifficultyRecommender.recommendDifficultyIndex(
-                    store, gameId, levels);
-            DifficultyRecommender.showRecommendToastIfAny(
-                    context, store, gameId, levels, difficultyIndex);
+            if (!levels.isEmpty()) {
+                GameUsageStore store = new GameUsageStore(context);
+                int defaultIdx = indexOfRecommendedLevel(levels);
+                int win = store.getWinCount(gameId);
+                int loss = store.getLossCount(gameId);
+                difficultyIndex = AdaptiveAdvisor.recommendedIndex(
+                        win, loss, defaultIdx, levels.size());
+                showRecommendToastIfAny(context, levels, defaultIdx, difficultyIndex);
+            }
         }
 
         // 直接启动游戏，难度选择由游戏内部处理
@@ -175,5 +182,38 @@ public class GameLauncherHelper {
             default:
                 return false;
         }
+    }
+
+    /**
+     * 返回默认推荐难度索引（{@link DifficultyLevel#recommended} 标记档，缺省第 0 档）。
+     * <p>原 P1-4 启动推荐器的默认档定位逻辑收编至此，锚点语义保持不变。</p>
+     */
+    private static int indexOfRecommendedLevel(@NonNull List<DifficultyLevel> levels) {
+        for (int i = 0; i < levels.size(); i++) {
+            if (levels.get(i).recommended) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 启动推荐 Toast：推荐档偏离默认档时提示方向，文案沿用既有 strings 资源。
+     * <p>AdaptiveAdvisor 样本不足（&lt;5 局）或处于中性带（0.4-0.6）时返回 KEEP，
+     * 推荐档==默认档，天然静默，与旧实现"数据不足不提示"口径一致。</p>
+     */
+    private static void showRecommendToastIfAny(@NonNull Context context,
+                                                @NonNull List<DifficultyLevel> levels,
+                                                int defaultIdx,
+                                                int recommendedIdx) {
+        if (recommendedIdx == defaultIdx
+                || recommendedIdx < 0 || recommendedIdx >= levels.size()) {
+            return;
+        }
+        String diffName = levels.get(recommendedIdx).name;
+        int messageRes = recommendedIdx < defaultIdx
+                ? R.string.diff_rec_toast_easier
+                : R.string.diff_rec_toast_harder;
+        Toast.makeText(context, context.getString(messageRes, diffName), Toast.LENGTH_LONG).show();
     }
 }

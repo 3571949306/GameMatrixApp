@@ -77,4 +77,24 @@ public final class AdaptiveAdvisor {
                 return tier;
         }
     }
+
+    /**
+     * 推荐难度索引（0 基，面向"易→难"有序难度列表的便捷形式）。
+     *
+     * <p>等价于以 {@code defaultIndex + 1} 为当前档、{@code levelCount} 为档位上限调用
+     * {@link #recommendedTier}，再把结果换算回 0 基索引。供无"用户当前档"概念、
+     * 以默认推荐档（如 {@code recommended} 标记档）为锚点的调用方（如启动链）
+     * 复用同一套阈值与最小样本量口径。</p>
+     *
+     * @param winCount     近期胜场数
+     * @param lossCount    近期负场数
+     * @param defaultIndex 默认难度索引（0 基，越界钳到边界内）
+     * @param levelCount   难度档总数（&lt;1 时按单档处理）
+     * @return 推荐难度索引，恒在 0..max(1, levelCount)-1 内
+     */
+    public static int recommendedIndex(int winCount, int lossCount, int defaultIndex, int levelCount) {
+        int upper = Math.max(1, levelCount);
+        int idx = Math.max(0, Math.min(defaultIndex, upper - 1));
+        return recommendedTier(winCount, lossCount, idx + 1, upper) - 1;
+    }
 }

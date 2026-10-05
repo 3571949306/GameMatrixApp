@@ -12,7 +12,8 @@ import com.gamecenter.app.games.adaptive.AdaptiveAdvisor.Advice;
  *   <li>中性胜率（50%）：KEEP；</li>
  *   <li>极端全败（0%）/全胜（100%）：DOWN / UP；</li>
  *   <li>currentTier 越界入参（0、99）：钳到边界内判定，不抛异常；</li>
- *   <li>{@code recommendedTier} 便捷形式边界（顶格/下限/单档/两档）。</li>
+ *   <li>{@code recommendedTier} 便捷形式边界（顶格/下限/单档/两档）；</li>
+ *   <li>{@code recommendedIndex} 0 基索引便捷形式（默认档锚点/越界钳制/空表/单档）。</li>
  * </ul>
  *
  * <p>运行：见 scripts/verify_adaptive.py。</p>
@@ -181,6 +182,36 @@ public class AdaptiveRegressionTest {
     }
 
     // ====================================================================
+    // 8. recommendedIndex（0 基索引便捷形式，启动链锚定默认推荐档）
+    // ====================================================================
+    static void testRecommendedIndex() {
+        System.out.println("[T8] recommendedIndex 边界");
+        check("样本不足 (0,0) 默认索引1 保持1", AdaptiveAdvisor.recommendedIndex(0, 0, 1, 3) == 1);
+        check("样本不足 (3,1) 默认索引2 保持2", AdaptiveAdvisor.recommendedIndex(3, 1, 2, 3) == 2);
+
+        check("高胜率 (7,3) 默认1/3 升至2", AdaptiveAdvisor.recommendedIndex(7, 3, 1, 3) == 2);
+        check("高胜率 (7,3) 默认2/3 顶格钳2", AdaptiveAdvisor.recommendedIndex(7, 3, 2, 3) == 2);
+        check("高胜率 (7,3) 默认0/3 升至1", AdaptiveAdvisor.recommendedIndex(7, 3, 0, 3) == 1);
+
+        check("低胜率 (2,8) 默认1/3 降至0", AdaptiveAdvisor.recommendedIndex(2, 8, 1, 3) == 0);
+        check("低胜率 (2,8) 默认0/3 下限钳0", AdaptiveAdvisor.recommendedIndex(2, 8, 0, 3) == 0);
+        check("低胜率 (2,8) 默认2/3 降至1", AdaptiveAdvisor.recommendedIndex(2, 8, 2, 3) == 1);
+
+        check("中性 (5,5) 默认1/3 保持1", AdaptiveAdvisor.recommendedIndex(5, 5, 1, 3) == 1);
+        check("中性 (5,5) 默认0/3 保持0", AdaptiveAdvisor.recommendedIndex(5, 5, 0, 3) == 0);
+
+        check("默认索引越界 99 钳顶档后 KEEP", AdaptiveAdvisor.recommendedIndex(7, 3, 99, 3) == 2);
+        check("默认索引越界 -1 钳0 后 KEEP", AdaptiveAdvisor.recommendedIndex(2, 8, -1, 3) == 0);
+        check("默认索引越界 99 低胜率钳顶档后降", AdaptiveAdvisor.recommendedIndex(2, 8, 99, 3) == 1);
+
+        check("空表 levelCount=0 返回0", AdaptiveAdvisor.recommendedIndex(7, 3, 0, 0) == 0);
+        check("单档 levelCount=1 全胜仍为0", AdaptiveAdvisor.recommendedIndex(10, 0, 0, 1) == 0);
+        check("单档 levelCount=1 全败仍为0", AdaptiveAdvisor.recommendedIndex(0, 10, 0, 1) == 0);
+        check("两档 levelCount=2 低档全胜升至1", AdaptiveAdvisor.recommendedIndex(10, 0, 0, 2) == 1);
+        check("两档 levelCount=2 高档全败降至0", AdaptiveAdvisor.recommendedIndex(0, 10, 1, 2) == 0);
+    }
+
+    // ====================================================================
     public static void main(String[] args) {
         System.out.println("==== AI 难度自适应推荐回归测试 ====");
         testInsufficientSample();
@@ -190,6 +221,7 @@ public class AdaptiveRegressionTest {
         testExtremeRecords();
         testTierClamping();
         testRecommendedTierBounds();
+        testRecommendedIndex();
         System.out.println("=================================");
         System.out.println("通过=" + passed + "  失败=" + failed);
         if (failed == 0) {
