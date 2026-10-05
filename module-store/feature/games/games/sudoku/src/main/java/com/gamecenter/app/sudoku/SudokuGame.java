@@ -22,6 +22,9 @@ public class SudokuGame {
     public static final int[] HOLE_COUNTS = {30, 40, 50, 60};
     public static final String[] DIFFICULTY_NAMES = {"简单", "中等", "困难", "专家"};
 
+    /** 自定义谜题难度标记（区分内置难度档）。 */
+    public static final int CUSTOM_PUZZLE = -1;
+
     private static final int ALL_DIGITS_MASK = 0x3FE;
     private static final int UNIQUE_SOLUTION_LIMIT = 2;
     private static final int SOLVER_NODE_LIMIT = 100_000;
@@ -167,6 +170,11 @@ public class SudokuGame {
         return currentDifficultyIndex;
     }
 
+    /** 当前是否为自定义谜题。 */
+    public boolean isCustomPuzzle() {
+        return currentDifficultyIndex == CUSTOM_PUZZLE;
+    }
+
     public String getCurrentDifficultyName() {
         return DIFFICULTY_NAMES[currentDifficultyIndex];
     }
@@ -250,6 +258,58 @@ public class SudokuGame {
         }
         undoStack.clear();
         redoStack.clear();
+    }
+
+    /**
+     * 校验自定义谜题并返回唯一解。
+     *
+     * <p>流程：结构校验（9x9、值域 0-9）→ 初始给定无冲突 → 恰一解
+     * （countSolutions limit=2）→ 回溯求出唯一解。任一步失败即返回 null，
+     * 拒绝无副作用，不会修改实例状态。</p>
+     *
+     * @param grid 待校验的 9x9 盘面，0 表示空格
+     * @return 唯一解的完整盘面；任一校验失败返回 null
+     */
+    public int[][] validateCustomPuzzle(int[][] grid) {
+        if (!isCustomPuzzleShape(grid)) return null;
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                int value = grid[r][c];
+                if (value != 0 && !isValidPlacement(grid, r, c, value)) return null;
+            }
+        }
+        if (countSolutions(grid, UNIQUE_SOLUTION_LIMIT, SOLVER_NODE_LIMIT) != 1) return null;
+        return solveOne(grid);
+    }
+
+    /**
+     * 装载自定义谜题开局：validateCustomPuzzle 通过后 given/board=puzzle 副本、
+     * solution=唯一解，并按 startNewGame 同样的初始化路径清空 notes/撤销/提示等对局状态。
+     *
+     * @param puzzle 待装载的 9x9 谜题，0 表示空格
+     * @return true 装载成功；false 校验拒绝（实例状态不变）
+     */
+    public boolean loadCustomPuzzle(int[][] puzzle) {
+        int[][] uniqueSolution = validateCustomPuzzle(puzzle);
+        if (uniqueSolution == null) return false;
+        currentDifficultyIndex = CUSTOM_PUZZLE;
+        seed = 0L;
+        solution = uniqueSolution;
+        board = copy(puzzle);
+        given = new boolean[GRID_SIZE][GRID_SIZE];
+        hinted = new boolean[GRID_SIZE][GRID_SIZE];
+        notes = new int[GRID_SIZE][GRID_SIZE];
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                given[r][c] = board[r][c] != 0;
+            }
+        }
+        hintsUsed = 0;
+        mistakes = 0;
+        started = true;
+        undoStack.clear();
+        redoStack.clear();
+        return true;
     }
 
     /**
@@ -577,6 +637,32 @@ public class SudokuGame {
         return false;
     }
 
+    /** 求出盘面的一组完整解；无解或触达节点上限返回 null。仅在 countSolutions 确认恰一解后调用。 */
+    private int[][] solveOne(int[][] grid) {
+        int[][] result = copy(grid);
+        SearchBudget budget = new SearchBudget(SOLVER_NODE_LIMIT);
+        return fillSolution(result, budget) ? result : null;
+    }
+
+    private boolean fillSolution(int[][] grid, SearchBudget budget) {
+        if (budget.aborted) return false;
+        if (++budget.nodes > budget.nodeLimit) {
+            budget.aborted = true;
+            return false;
+        }
+        int[] best = findBestEmptyCell(grid);
+        if (best[0] == -1) return true;
+        int mask = candidateMask(grid, best[0], best[1]);
+        while (mask != 0) {
+            int bit = mask & -mask;
+            mask -= bit;
+            grid[best[0]][best[1]] = Integer.numberOfTrailingZeros(bit);
+            if (fillSolution(grid, budget)) return true;
+            grid[best[0]][best[1]] = 0;
+        }
+        return false;
+    }
+
     private int[] findBestEmptyCell(int[][] grid) {
         int bestRow = -1;
         int bestCol = -1;
@@ -743,6 +829,18 @@ public class SudokuGame {
     private static boolean isMatrixShape(int[][] matrix) {
         if (matrix == null || matrix.length != GRID_SIZE) return false;
         for (int[] row : matrix) if (row == null || row.length != GRID_SIZE) return false;
+        return true;
+    }
+
+    /** 自定义谜题的结构与值域校验：9x9 且每格在 0-9 之间。 */
+    private static boolean isCustomPuzzleShape(int[][] grid) {
+        if (!isMatrixShape(grid)) return false;
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                int value = grid[r][c];
+                if (value < 0 || value > GRID_SIZE) return false;
+            }
+        }
         return true;
     }
 

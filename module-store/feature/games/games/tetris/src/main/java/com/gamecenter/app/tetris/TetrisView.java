@@ -126,7 +126,7 @@ public class TetrisView extends View {
     // Value: kick 测试偏移序列，按顺序尝试，第一次合法即采用
     // J/L/S/T/Z 用同一套；I 用单独一套
 
-    /** J/L/S/T/Z 的 SRS kick 偏移。状态索引：from * 4 + to。 */
+    /** J/L/S/T/Z 的 kick 偏移，按下方标注的八个相邻转向存储。 */
     private static final int[][][] JLSTZ_KICKS = {
             // 0 → R（0 → 1）
             {{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}},
@@ -670,8 +670,12 @@ public class TetrisView extends View {
     }
 
     /** 移动（不带分数） */
+    private boolean canControlPiece() {
+        return running && !gameOver && !paused && currentPiece >= 0 && lineAnims.isEmpty();
+    }
+
     private boolean tryMove(int dx, int dy) {
-        if (!running || gameOver || paused) return false;
+        if (!canControlPiece()) return false;
         int nx = pieceX + dx;
         int ny = pieceY + dy;
         if (isValidPosition(currentPiece, currentRotation, nx, ny)) {
@@ -688,7 +692,7 @@ public class TetrisView extends View {
 
     /** 软降：移动一格 + 加 1 分 */
     public boolean softDrop() {
-        if (!running || gameOver || paused) return false;
+        if (!canControlPiece()) return false;
         if (tryMove(0, 1)) {
             score += SOFT_DROP_POINT_PER_CELL;
             notifyScore();
@@ -701,7 +705,8 @@ public class TetrisView extends View {
     /** 重力下落 tick（自动调用） */
     private void gravityTick() {
         if (!running || gameOver || paused) return;
-        if (!softDrop()) {
+        // 自动重力只移动方块，手动软降的奖励和音效由 softDrop 保留。
+        if (lineAnims.isEmpty() && !tryMove(0, 1)) {
             // 已触底
             lockAndAdvance();
         }
@@ -710,7 +715,7 @@ public class TetrisView extends View {
 
     /** 硬降：直落到底 + 加 2 分/格 */
     public void hardDrop() {
-        if (!running || gameOver || paused) return;
+        if (!canControlPiece()) return;
         int cells = 0;
         while (isValidPosition(currentPiece, currentRotation, pieceX, pieceY + 1)) {
             pieceY++;
@@ -729,57 +734,41 @@ public class TetrisView extends View {
 
     /** 旋转：触发 SRS wall kick */
     public void rotate() {
-        if (!running || gameOver || paused) return;
+        if (!canControlPiece()) return;
         int from = currentRotation;
         int to = (from + 1) % 4;
-        rotateInternal(from, to, false);
+        rotateInternal(from, to);
         if (sfxListener != null) sfxListener.onSfx("rotate");
     }
 
     /** 逆时针旋转（备用） */
     public void rotateCCW() {
-        if (!running || gameOver || paused) return;
+        if (!canControlPiece()) return;
         int from = currentRotation;
         int to = (from + 3) % 4;
-        rotateInternal(from, to, true);
+        rotateInternal(from, to);
     }
 
-    private void rotateInternal(int from, int to, boolean ccw) {
+    private void rotateInternal(int from, int to) {
         lastPieceBeforeRotation = currentPiece;
         lastRotationBeforeRotation = currentRotation;
         lastXBeforeRotation = pieceX;
         lastYBeforeRotation = pieceY;
 
-        int[][] kicks;
-        if (currentPiece == PIECE_I) {
-            kicks = I_KICKS[from * 2 + (ccw ? (from + 3) % 4 : to)];
-            // 把 ccw 映射到物理 SRS 表（这里简化：只支持顺时针 SRS；CCW 使用镜像偏移）
-            if (ccw) {
-                // 简化：CCW 用 from 的 to 逆转版本—— for simplicity we use same table
-                int[][] reverse;
-                if (to == 0 && from == 1) reverse = new int[][]{{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}};
-                else if (to == 1 && from == 0) reverse = new int[][]{{0,0}, {1,0}, {1,-1}, {0,2}, {1,2}};
-                else if (to == 1 && from == 2) reverse = new int[][]{{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}};
-                else if (to == 2 && from == 1) reverse = new int[][]{{0,0}, {1,0}, {1,-1}, {0,2}, {1,2}};
-                else if (to == 2 && from == 3) reverse = new int[][]{{0,0}, {1,0}, {1,1}, {0,-2}, {1,-2}};
-                else if (to == 3 && from == 2) reverse = new int[][]{{0,0}, {-1,0}, {-1,-1}, {0,2}, {-1,2}};
-                else if (to == 0 && from == 3) reverse = new int[][]{{0,0}, {-1,0}, {-1,-1}, {0,2}, {-1,2}};
-                else /*0->3*/ reverse = new int[][]{{0,0}, {1,0}, {1,1}, {0,-2}, {1,-2}};
-                kicks = reverse;
-            }
-        } else {
-            kicks = JLSTZ_KICKS[from * 2 + (ccw ? (from + 3) % 4 : to)];
-            if (ccw) {
-                if (to == 0 && from == 1) kicks = new int[][]{{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}};
-                else if (to == 1 && from == 0) kicks = new int[][]{{0,0}, {1,0}, {1,-1}, {0,2}, {1,2}};
-                else if (to == 1 && from == 2) kicks = new int[][]{{0,0}, {-1,0}, {-1,1}, {0,-2}, {-1,-2}};
-                else if (to == 2 && from == 1) kicks = new int[][]{{0,0}, {1,0}, {1,-1}, {0,2}, {1,2}};
-                else if (to == 2 && from == 3) kicks = new int[][]{{0,0}, {1,0}, {1,1}, {0,-2}, {1,-2}};
-                else if (to == 3 && from == 2) kicks = new int[][]{{0,0}, {-1,0}, {-1,-1}, {0,2}, {-1,2}};
-                else if (to == 0 && from == 3) kicks = new int[][]{{0,0}, {-1,0}, {-1,-1}, {0,2}, {-1,2}};
-                else /*0->3*/ kicks = new int[][]{{0,0}, {1,0}, {1,1}, {0,-2}, {1,-2}};
-            }
+        // 两个方向共享同一张八转向表，I 块保留自己的偏移与候选顺序。
+        int kickIndex;
+        switch (from * 4 + to) {
+            case 1:  kickIndex = 0; break; // 0 -> 1
+            case 4:  kickIndex = 1; break; // 1 -> 0
+            case 6:  kickIndex = 2; break; // 1 -> 2
+            case 9:  kickIndex = 3; break; // 2 -> 1
+            case 11: kickIndex = 4; break; // 2 -> 3
+            case 14: kickIndex = 5; break; // 3 -> 2
+            case 12: kickIndex = 6; break; // 3 -> 0
+            case 3:  kickIndex = 7; break; // 0 -> 3
+            default: throw new IllegalArgumentException("Non-adjacent rotation: " + from + " -> " + to);
         }
+        int[][] kicks = (currentPiece == PIECE_I ? I_KICKS : JLSTZ_KICKS)[kickIndex];
         for (int[] k : kicks) {
             int nx = pieceX + k[0];
             int ny = pieceY + k[1];
@@ -797,7 +786,7 @@ public class TetrisView extends View {
 
     /** Hold 槽：把当前方块存到 / 取出到 Hold */
     public void hold() {
-        if (!running || gameOver || paused) return;
+        if (!canControlPiece()) return;
         if (holdUsedThisTurn) return;
         int prev = currentPiece;
         if (holdPiece < 0) {
@@ -813,12 +802,13 @@ public class TetrisView extends View {
             int[][] shape = TETROMINOES[currentPiece][0];
             pieceX = (COLS - shape[0].length) / 2;
             pieceY = SPAWN_ROW;
-            holdUsedThisTurn = true;
             lastMoveWasRotation = 0;
             if (!isValidPosition(currentPiece, currentRotation, pieceX, pieceY)) {
                 onGameOver();
             }
         }
+        // 空槽会调用 spawnPiece；它的回合重置不能再放开本次暂存。
+        holdUsedThisTurn = true;
         if (sfxListener != null) sfxListener.onSfx("hold");
         invalidate();
     }
@@ -969,7 +959,7 @@ public class TetrisView extends View {
             }
 
             // Perfect Clear
-            boolean perfectClear = isBoardEmpty();
+            boolean perfectClear = isBoardEmptyAfterClearing(fullRows);
             if (perfectClear) {
                 if (actionEventListener != null) {
                     actionEventListener.onAction("Perfect Clear!");
@@ -980,7 +970,8 @@ public class TetrisView extends View {
             score += gained;
 
             // 入队得分 pop-up（仅显示动作名 + score）
-            String popLabel = (b2b ? "B2B " : "") + actionName + " +" + gained;
+            String popLabel = (b2b ? "B2B " : "")
+                    + (perfectClear ? "Perfect Clear!" : actionName) + " +" + gained;
             scorePops.add(new ScorePop(popLabel, linesCleared, SystemClock.uptimeMillis()));
 
             if (actionEventListener != null) {
@@ -1018,8 +1009,9 @@ public class TetrisView extends View {
         if (pieceLockListener != null) pieceLockListener.onPieceLocked();
     }
 
-    private boolean isBoardEmpty() {
+    private boolean isBoardEmptyAfterClearing(List<Integer> clearedRows) {
         for (int r = 0; r < ROWS; r++) {
+            if (clearedRows.contains(r)) continue;
             for (int c = 0; c < COLS; c++) {
                 if (grid[r][c] != 0) return false;
             }
@@ -1032,26 +1024,19 @@ public class TetrisView extends View {
         if (lineAnims.isEmpty()) return;
         LineClearAnim anim = lineAnims.remove(0);
         List<Integer> rows = anim.fullRows;
-        // 先清空所有满行（设为 -1 sentinel），再下移
-        for (int r : rows) {
-            Arrays.fill(grid[r], 0);
-        }
-        // 从大到小删除
-        int shiftDown = 0;
+        // 自下而上复制保留行；删除行不能占用目标行，也不能清掉自复制的行。
         boolean[] remove = new boolean[ROWS];
         for (int r : rows) remove[r] = true;
         int writeRow = ROWS - 1;
         for (int r = ROWS - 1; r >= 0; r--) {
-            if (remove[r]) {
-                shiftDown++;
-            } else if (shiftDown > 0) {
+            if (remove[r]) continue;
+            if (writeRow != r) {
                 System.arraycopy(grid[r], 0, grid[writeRow], 0, COLS);
-                Arrays.fill(grid[r], 0);
             }
             writeRow--;
         }
         // 重置顶部空行
-        for (int i = 0; i < shiftDown; i++) Arrays.fill(grid[i], 0);
+        for (int r = writeRow; r >= 0; r--) Arrays.fill(grid[r], 0);
         // spawn next piece
         spawnPiece();
     }
@@ -1066,7 +1051,7 @@ public class TetrisView extends View {
         }
 
         // 更新 line clear animation（处理满行 flash + 重力）
-        if (lineAnimRemainingMs > 0 && !lineAnims.isEmpty()) {
+        if (!paused && lineAnimRemainingMs > 0 && !lineAnims.isEmpty()) {
             long elapsed = LINE_FLASH_MS + LINE_GRAVITY_MS - lineAnimRemainingMs;
             if (elapsed >= LINE_FLASH_MS) {
                 // 进入重力阶段：每帧把满行 hide
@@ -1081,7 +1066,7 @@ public class TetrisView extends View {
                 lineAnimRemainingMs = 0;
                 lineAnimGravityOffset = 0;
             }
-        } else {
+        } else if (lineAnims.isEmpty()) {
             lineAnimGravityOffset = 0;
         }
 
@@ -1319,8 +1304,8 @@ public class TetrisView extends View {
         float boardLeft;
         float boardTop;
         if (portrait) {
-            // 顶部预留 120dp：40dp 功能按钮行 + 72dp HOLD/NEXT 条
-            float topBar = dp(120);
+            // 容纳 48dp 功能按钮行与 HOLD/NEXT，并给预览描边和网格留出间距。
+            float topBar = dp(132);
             float bottomBar = dp(64) + ctrlH; // 数据条 + 控制条
             float availH = viewHeight - topBar - bottomBar;
             float availW = viewWidth - dp(16);
@@ -1385,15 +1370,21 @@ public class TetrisView extends View {
         }
 
         // 当前方块 + ghost
-        if (currentPiece >= 0 && !gameOver && !awaitingDifficulty) {
+        if (currentPiece >= 0 && !gameOver && !awaitingDifficulty && lineAnims.isEmpty()) {
+            int[][] shape = TETROMINOES[currentPiece][currentRotation];
             // ghost（落点预览）
             int ghostY = ghostDropY();
             if (ghostEnabled && ghostY != pieceY) {
-                drawGhost(canvas, boardLeft + pieceX * cellSize, boardTop + ghostY * cellSize,
-                        cellSize, TETROMINO_COLORS[currentPiece]);
+                for (int r = 0; r < shape.length; r++) {
+                    for (int c = 0; c < shape[r].length; c++) {
+                        if (shape[r][c] == 0 || ghostY + r < 0) continue;
+                        drawGhost(canvas, boardLeft + (pieceX + c) * cellSize,
+                                boardTop + (ghostY + r) * cellSize,
+                                cellSize, TETROMINO_COLORS[currentPiece]);
+                    }
+                }
             }
             // 当前方块
-            int[][] shape = TETROMINOES[currentPiece][currentRotation];
             for (int r = 0; r < shape.length; r++) {
                 for (int c = 0; c < shape[r].length; c++) {
                     if (shape[r][c] == 0) continue;
@@ -1518,7 +1509,7 @@ public class TetrisView extends View {
         paintBlock.setColor(0x30000000);
         canvas.drawRoundRect(new RectF(holdX, holdY, holdX + holdBoxSize, holdY + holdBoxSize),
                 dp(8), dp(8), paintBlock);
-        if (holdPiece >= 0 && !holdUsedThisTurn) {
+        if (holdPiece >= 0) {
             drawMiniPiece(canvas, holdPiece, holdX, holdY, holdBoxSize);
         }
 
@@ -1612,7 +1603,7 @@ public class TetrisView extends View {
         paintBlock.setColor(0x30000000);
         canvas.drawRoundRect(new RectF(holdX, holdY, holdX + boxSize, holdY + boxSize),
                 dp(6), dp(6), paintBlock);
-        if (holdPiece >= 0 && !holdUsedThisTurn) {
+        if (holdPiece >= 0) {
             drawMiniPiece(canvas, holdPiece, holdX, holdY, boxSize);
         }
 

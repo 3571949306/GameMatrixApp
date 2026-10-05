@@ -84,7 +84,10 @@ public class SnakeGame {
         }
 
         Point newHead = new Point(newX, newY);
-        for (Point segment : snake) {
+        boolean grows = newHead.equals(food.x, food.y);
+        int retainedSegments = snake.size() - (grows ? 0 : 1);
+        for (int i = 0; i < retainedSegments; i++) {
+            Point segment = snake.get(i);
             if (segment.equals(newHead.x, newHead.y)) {
                 onGameOver();
                 return TICK_DIED;
@@ -93,7 +96,7 @@ public class SnakeGame {
 
         snake.add(0, newHead);
 
-        if (newHead.equals(food.x, food.y)) {
+        if (grows) {
             score += 10;
             spawnFood();
             return TICK_ATE;

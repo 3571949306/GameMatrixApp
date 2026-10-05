@@ -1,0 +1,444 @@
+{
+  "schema": 1,
+  "gameId": "brotato",
+  "id": "brotato_waves_v1",
+  "totalWaves": 20,
+  "levels": [
+    {
+      "wave": 1,
+      "spawnCount": 10,
+      "spawnIntervalMs": 900,
+      "composition": [
+        {
+          "kind": "swarm",
+          "weight": 6
+        },
+        {
+          "kind": "grunt",
+          "weight": 3
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 2,
+      "spawnCount": 12,
+      "spawnIntervalMs": 850,
+      "composition": [
+        {
+          "kind": "swarm",
+          "weight": 5
+        },
+        {
+          "kind": "grunt",
+          "weight": 4
+        },
+        {
+          "kind": "runner",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 3,
+      "spawnCount": 14,
+      "spawnIntervalMs": 800,
+      "composition": [
+        {
+          "kind": "grunt",
+          "weight": 5
+        },
+        {
+          "kind": "runner",
+          "weight": 3
+        },
+        {
+          "kind": "zigzag",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 4,
+      "spawnCount": 16,
+      "spawnIntervalMs": 780,
+      "composition": [
+        {
+          "kind": "swarm",
+          "weight": 4
+        },
+        {
+          "kind": "zigzag",
+          "weight": 3
+        },
+        {
+          "kind": "splitter",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 5,
+      "spawnCount": 12,
+      "spawnIntervalMs": 800,
+      "composition": [
+        {
+          "kind": "grunt",
+          "weight": 4
+        },
+        {
+          "kind": "runner",
+          "weight": 3
+        }
+      ],
+      "bossGroup": {
+        "kind": "boss",
+        "count": 1,
+        "intervalMs": 1500,
+        "delayMs": 2500
+      }
+    },
+    {
+      "wave": 6,
+      "spawnCount": 20,
+      "spawnIntervalMs": 720,
+      "composition": [
+        {
+          "kind": "swarm",
+          "weight": 4
+        },
+        {
+          "kind": "splitter",
+          "weight": 3
+        },
+        {
+          "kind": "zigzag",
+          "weight": 3
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 7,
+      "spawnCount": 30,
+      "spawnIntervalMs": 640,
+      "composition": [
+        {
+          "kind": "runner",
+          "weight": 4
+        },
+        {
+          "kind": "grunt",
+          "weight": 4
+        },
+        {
+          "kind": "zigzag",
+          "weight": 3
+        },
+        {
+          "kind": "splitter",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 8,
+      "spawnCount": 22,
+      "spawnIntervalMs": 680,
+      "composition": [
+        {
+          "kind": "tank",
+          "weight": 2
+        },
+        {
+          "kind": "splitter",
+          "weight": 4
+        },
+        {
+          "kind": "swarm",
+          "weight": 4
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 9,
+      "spawnCount": 28,
+      "spawnIntervalMs": 620,
+      "composition": [
+        {
+          "kind": "zigzag",
+          "weight": 4
+        },
+        {
+          "kind": "runner",
+          "weight": 4
+        },
+        {
+          "kind": "grunt",
+          "weight": 3
+        },
+        {
+          "kind": "splitter",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 10,
+      "spawnCount": 16,
+      "spawnIntervalMs": 700,
+      "composition": [
+        {
+          "kind": "tank",
+          "weight": 3
+        },
+        {
+          "kind": "splitter",
+          "weight": 3
+        }
+      ],
+      "bossGroup": {
+        "kind": "boss",
+        "count": 2,
+        "intervalMs": 2200,
+        "delayMs": 3000
+      }
+    },
+    {
+      "wave": 11,
+      "spawnCount": 30,
+      "spawnIntervalMs": 580,
+      "composition": [
+        {
+          "kind": "runner",
+          "weight": 4
+        },
+        {
+          "kind": "grunt",
+          "weight": 4
+        },
+        {
+          "kind": "zigzag",
+          "weight": 3
+        },
+        {
+          "kind": "tank",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 12,
+      "spawnCount": 22,
+      "spawnIntervalMs": 600,
+      "composition": [
+        {
+          "kind": "splitter",
+          "weight": 5
+        },
+        {
+          "kind": "tank",
+          "weight": 3
+        },
+        {
+          "kind": "grunt",
+          "weight": 3
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 13,
+      "spawnCount": 26,
+      "spawnIntervalMs": 570,
+      "composition": [
+        {
+          "kind": "zigzag",
+          "weight": 5
+        },
+        {
+          "kind": "runner",
+          "weight": 4
+        },
+        {
+          "kind": "splitter",
+          "weight": 4
+        },
+        {
+          "kind": "tank",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 14,
+      "spawnCount": 28,
+      "spawnIntervalMs": 540,
+      "composition": [
+        {
+          "kind": "tank",
+          "weight": 4
+        },
+        {
+          "kind": "splitter",
+          "weight": 3
+        },
+        {
+          "kind": "runner",
+          "weight": 4
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 15,
+      "spawnCount": 24,
+      "spawnIntervalMs": 600,
+      "composition": [
+        {
+          "kind": "splitter",
+          "weight": 5
+        },
+        {
+          "kind": "zigzag",
+          "weight": 4
+        },
+        {
+          "kind": "tank",
+          "weight": 2
+        }
+      ],
+      "bossGroup": {
+        "kind": "boss",
+        "count": 3,
+        "intervalMs": 2000,
+        "delayMs": 3500
+      }
+    },
+    {
+      "wave": 16,
+      "spawnCount": 36,
+      "spawnIntervalMs": 480,
+      "composition": [
+        {
+          "kind": "runner",
+          "weight": 5
+        },
+        {
+          "kind": "grunt",
+          "weight": 4
+        },
+        {
+          "kind": "swarm",
+          "weight": 4
+        },
+        {
+          "kind": "zigzag",
+          "weight": 3
+        },
+        {
+          "kind": "tank",
+          "weight": 2
+        },
+        {
+          "kind": "splitter",
+          "weight": 2
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 17,
+      "spawnCount": 30,
+      "spawnIntervalMs": 500,
+      "composition": [
+        {
+          "kind": "tank",
+          "weight": 5
+        },
+        {
+          "kind": "splitter",
+          "weight": 5
+        },
+        {
+          "kind": "zigzag",
+          "weight": 4
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 18,
+      "spawnCount": 36,
+      "spawnIntervalMs": 450,
+      "composition": [
+        {
+          "kind": "zigzag",
+          "weight": 6
+        },
+        {
+          "kind": "runner",
+          "weight": 5
+        },
+        {
+          "kind": "tank",
+          "weight": 4
+        },
+        {
+          "kind": "splitter",
+          "weight": 3
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 19,
+      "spawnCount": 36,
+      "spawnIntervalMs": 450,
+      "composition": [
+        {
+          "kind": "splitter",
+          "weight": 6
+        },
+        {
+          "kind": "tank",
+          "weight": 5
+        },
+        {
+          "kind": "swarm",
+          "weight": 5
+        }
+      ],
+      "bossGroup": null
+    },
+    {
+      "wave": 20,
+      "spawnCount": 24,
+      "spawnIntervalMs": 520,
+      "composition": [
+        {
+          "kind": "tank",
+          "weight": 6
+        },
+        {
+          "kind": "splitter",
+          "weight": 5
+        }
+      ],
+      "bossGroup": {
+        "kind": "boss",
+        "count": 5,
+        "intervalMs": 1800,
+        "delayMs": 2600
+      }
+    }
+  ]
+}

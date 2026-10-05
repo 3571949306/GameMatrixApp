@@ -64,6 +64,7 @@ public class MinesweeperView extends View {
     public interface OnGameWinListener { void onGameWin(long elapsedSeconds); }
     public interface OnGameLoseListener { void onGameLose(); }
     public interface OnCellRevealedListener { void onCellRevealed(int revealedCount); }
+    public interface OnFlagCountChangedListener { void onFlagCountChanged(int flaggedCount); }
 
     // ==================== 游戏状态 ====================
 
@@ -78,6 +79,7 @@ public class MinesweeperView extends View {
     private boolean[][] revealed;   // 是否已翻开
 
     private boolean gameStarted = false;
+    private boolean gamePaused = false;
     private boolean gameOver = false;
     private boolean gameWon = false;
     private boolean firstClick = true;
@@ -89,9 +91,14 @@ public class MinesweeperView extends View {
 
     private final Random random = new Random();
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private long pressStartTime = 0;
     private int pressRow = -1, pressCol = -1;
     private boolean isLongPress = false;
+    private final Runnable longPressRunnable = () -> {
+        if (!gameStarted || gamePaused || gameOver
+                || pressRow < 0 || pressRow >= rows || pressCol < 0 || pressCol >= cols) return;
+        isLongPress = true;
+        toggleFlag(pressRow, pressCol);
+    };
 
     // ==================== 绘制工具 ====================
 
@@ -107,6 +114,7 @@ public class MinesweeperView extends View {
     private OnGameWinListener winListener;
     private OnGameLoseListener loseListener;
     private OnCellRevealedListener cellRevealedListener;
+    private OnFlagCountChangedListener flagCountChangedListener;
 
     // ==================== 构造函数 ====================
 
@@ -132,12 +140,14 @@ public class MinesweeperView extends View {
     public void setOnGameWinListener(OnGameWinListener l) { this.winListener = l; }
     public void setOnGameLoseListener(OnGameLoseListener l) { this.loseListener = l; }
     public void setOnCellRevealedListener(OnCellRevealedListener l) { this.cellRevealedListener = l; }
+    public void setOnFlagCountChangedListener(OnFlagCountChangedListener l) { this.flagCountChangedListener = l; }
 
     /**
      * 设置难度
      * @param level 1=简单, 2=普通, 3=困难
      */
     public void setDifficulty(int level) {
+        cancelPress();
         this.difficulty = Math.max(1, Math.min(3, level));
         switch (difficulty) {
             case DIFF_EASY:   rows = 9;  cols = 9;  mineCount = 10; break;
@@ -155,23 +165,34 @@ public class MinesweeperView extends View {
     // ==================== 游戏控制 ====================
 
     public void startGame() {
+        cancelPress();
         mines = new boolean[rows][cols];
         adjacentCount = new int[rows][cols];
         cellState = new int[rows][cols];
         revealed = new boolean[rows][cols];
         gameStarted = true;
+        gamePaused = false;
         gameOver = false;
         gameWon = false;
         firstClick = true;
         revealedCount = 0;
         flaggedCount = 0;
         startTime = 0;
+        if (flagCountChangedListener != null) flagCountChangedListener.onFlagCountChanged(flaggedCount);
         invalidate();
     }
 
-    public void pauseGame() { /* 事件驱动 */ }
-    public void resumeGame() { /* 事件驱动 */ }
-    public void stopGame() { gameStarted = false; }
+    public void pauseGame() {
+        gamePaused = true;
+        cancelPress();
+    }
+
+    public void resumeGame() { gamePaused = false; }
+
+    public void stopGame() {
+        gameStarted = false;
+        cancelPress();
+    }
 
     // ==================== 逻辑 ====================
 
@@ -323,44 +344,62 @@ public class MinesweeperView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (gameOver || !gameStarted) return true;
+        int action = event.getActionMasked();
+        // 终止事件不依赖落点；多指介入也终止当前单格手势。
+        if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_POINTER_DOWN
+                || action == MotionEvent.ACTION_POINTER_UP) {
+            cancelPress();
+            return true;
+        }
+        if (action == MotionEvent.ACTION_DOWN) cancelPress();
+        if (gameOver || !gameStarted || gamePaused || getWidth() <= 0 || getHeight() <= 0) {
+            cancelPress();
+            return true;
+        }
 
         float cellSize = Math.min((float) getWidth() / cols, (float) getHeight() / rows);
         float offsetX = (getWidth() - cellSize * cols) / 2f;
         float offsetY = (getHeight() - cellSize * rows) / 2f;
+        float gridX = event.getX() - offsetX;
+        float gridY = event.getY() - offsetY;
+        // 先判断浮点边界，避免棋盘上方/左方的小负数被 int 截断为第 0 格。
+        if (gridX < 0 || gridY < 0 || gridX >= cellSize * cols || gridY >= cellSize * rows) {
+            cancelPress();
+            return true;
+        }
 
-        int col = (int) ((event.getX() - offsetX) / cellSize);
-        int row = (int) ((event.getY() - offsetY) / cellSize);
+        int col = (int) (gridX / cellSize);
+        int row = (int) (gridY / cellSize);
+        if (row >= rows || col >= cols) {
+            cancelPress();
+            return true;
+        }
 
-        if (row < 0 || row >= rows || col < 0 || col >= cols) return true;
-
-        switch (event.getAction()) {
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
-                pressStartTime = System.currentTimeMillis();
                 pressRow = row;
                 pressCol = col;
-                isLongPress = false;
-                // 设置长按检测
-                handler.postDelayed(() -> {
-                    if (pressRow == row && pressCol == col && !gameOver) {
-                        isLongPress = true;
-                        toggleFlag(row, col);
-                    }
-                }, 500);
+                handler.postDelayed(longPressRunnable, 500);
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                if (pressRow != row || pressCol != col) cancelPress();
                 break;
 
             case MotionEvent.ACTION_UP:
-                handler.removeCallbacksAndMessages(null);
-                if (!isLongPress && pressRow == row && pressCol == col) {
-                    handleCellClick(row, col);
-                }
-                break;
-
-            case MotionEvent.ACTION_CANCEL:
-                handler.removeCallbacksAndMessages(null);
+                boolean shouldReveal = !isLongPress && pressRow == row && pressCol == col;
+                cancelPress();
+                if (shouldReveal) handleCellClick(row, col);
                 break;
         }
         return true;
+    }
+
+    private void cancelPress() {
+        handler.removeCallbacks(longPressRunnable);
+        pressRow = -1;
+        pressCol = -1;
+        isLongPress = false;
     }
 
     private void handleCellClick(int r, int c) {
@@ -392,12 +431,13 @@ public class MinesweeperView extends View {
             cellState[r][c] = STATE_FLAGGED;
             flaggedCount++;
         }
+        if (flagCountChangedListener != null) flagCountChangedListener.onFlagCountChanged(flaggedCount);
         invalidate();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        handler.removeCallbacksAndMessages(null);
+        cancelPress();
     }
 }

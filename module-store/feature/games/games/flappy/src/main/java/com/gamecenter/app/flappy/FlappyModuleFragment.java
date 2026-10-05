@@ -122,18 +122,21 @@ public class FlappyModuleFragment extends Fragment {
         btnEasy = new Button(ctx);
         btnEasy.setText(getString(R.string.game_diff_easy));
         btnEasy.setTextSize(12);
+        btnEasy.setMinHeight((int) Math.ceil(48 * dp));
         btnEasy.setOnClickListener(v -> setDifficulty(0.3f));
         diffBar.addView(btnEasy);
 
         btnNormal = new Button(ctx);
         btnNormal.setText(getString(R.string.game_diff_normal));
         btnNormal.setTextSize(12);
+        btnNormal.setMinHeight((int) Math.ceil(48 * dp));
         btnNormal.setOnClickListener(v -> setDifficulty(0.5f));
         diffBar.addView(btnNormal);
 
         btnHard = new Button(ctx);
         btnHard.setText(getString(R.string.game_diff_hard));
         btnHard.setTextSize(12);
+        btnHard.setMinHeight((int) Math.ceil(48 * dp));
         btnHard.setOnClickListener(v -> setDifficulty(0.8f));
         diffBar.addView(btnHard);
         root.addView(diffBar);
@@ -173,6 +176,7 @@ public class FlappyModuleFragment extends Fragment {
         // 重新开始按钮
         btnRestart = new Button(ctx);
         btnRestart.setText(getString(R.string.game_btn_restart));
+        btnRestart.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams restartLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         restartLp.topMargin = (int) (8 * dp);
@@ -199,6 +203,7 @@ public class FlappyModuleFragment extends Fragment {
     private void startGame() {
         if (flappyView == null) return;
         flappyView.startGame();
+        tvScore.setText(getString(R.string.game_score_alt_format, 0));
         handler.removeCallbacks(gameLoop);
         handler.post(gameLoop);
     }
@@ -250,6 +255,7 @@ public class FlappyModuleFragment extends Fragment {
         super.onResume();
         if (flappyView != null && flappyView.isGameRunning()) {
             flappyView.resumeGame();
+            handler.removeCallbacks(gameLoop);
             handler.post(gameLoop);
         }
     }

@@ -21,15 +21,15 @@ import androidx.annotation.Nullable;
  */
 public class SokobanView extends View {
 
-    /** 地图元素类型 */
-    public static final int EMPTY = 0;
-    public static final int WALL = 1;
-    public static final int FLOOR = 2;
-    public static final int TARGET = 3;
-    public static final int BOX = 4;
-    public static final int BOX_ON_TARGET = 5;
-    public static final int PLAYER = 6;
-    public static final int PLAYER_ON_TARGET = 7;
+    /** 地图元素类型（真源在 {@link SokobanGame}，此处转发保持旧引用兼容） */
+    public static final int EMPTY = SokobanGame.EMPTY;
+    public static final int WALL = SokobanGame.WALL;
+    public static final int FLOOR = SokobanGame.FLOOR;
+    public static final int TARGET = SokobanGame.TARGET;
+    public static final int BOX = SokobanGame.BOX;
+    public static final int BOX_ON_TARGET = SokobanGame.BOX_ON_TARGET;
+    public static final int PLAYER = SokobanGame.PLAYER;
+    public static final int PLAYER_ON_TARGET = SokobanGame.PLAYER_ON_TARGET;
 
     private static final int COLOR_BG = Color.parseColor("#F5F0E8");
     private static final int COLOR_WALL = Color.parseColor("#5B8A72");
@@ -116,12 +116,15 @@ public class SokobanView extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
+        int desiredHeight = width;
         if (mapRows > 0 && mapCols > 0) {
             int height = (int) (width * ((float) mapRows / mapCols));
-            setMeasuredDimension(width, Math.min(height, width));
-        } else {
-            setMeasuredDimension(width, width);
+            desiredHeight = Math.min(height, width);
         }
+        // Weighted parents give the board an exact remainder after reserving controls.
+        // Respect that allocation, and also cap WRAP_CONTENT boards at an AT_MOST limit.
+        setMeasuredDimension(resolveSize(width, widthMeasureSpec),
+                resolveSize(desiredHeight, heightMeasureSpec));
     }
 
     @Override

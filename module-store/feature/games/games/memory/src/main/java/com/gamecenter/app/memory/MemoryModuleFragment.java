@@ -40,7 +40,11 @@ public class MemoryModuleFragment extends Fragment {
 
     private static final String[] CARD_SYMBOLS = {"🍎", "🍊", "🍋", "🍇", "🍓", "🍒", "🥝", "🍑", "🍌", "🥑", "🌽", "🥕"};
 
-    // 网格参数（由难度设置）
+    // 难度选择在下一局开始时生效，不改变当前牌组和配对目标。
+    private int baseGridRows = 4;
+    private int baseGridCols = 4;
+
+    // 当前局网格参数
     private int gridRows = 4;
     private int gridCols = 4;
     private int totalCards = 16;
@@ -112,6 +116,7 @@ public class MemoryModuleFragment extends Fragment {
         btnEasy = new Button(ctx);
         btnEasy.setText(getString(R.string.game_match_easy));
         btnEasy.setTextSize(12f);
+        btnEasy.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams easyLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         easyLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
         btnEasy.setLayoutParams(easyLp);
@@ -120,6 +125,7 @@ public class MemoryModuleFragment extends Fragment {
         btnNormal = new Button(ctx);
         btnNormal.setText(getString(R.string.game_match_normal));
         btnNormal.setTextSize(12f);
+        btnNormal.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams normalLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         normalLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
         btnNormal.setLayoutParams(normalLp);
@@ -128,6 +134,7 @@ public class MemoryModuleFragment extends Fragment {
         btnHard = new Button(ctx);
         btnHard.setText(getString(R.string.game_match_hard));
         btnHard.setTextSize(12f);
+        btnHard.setMinHeight((int) Math.ceil(48 * dp));
         LinearLayout.LayoutParams hardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         hardLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
         btnHard.setLayoutParams(hardLp);
@@ -162,6 +169,7 @@ public class MemoryModuleFragment extends Fragment {
 
         btnStart = new Button(ctx);
         btnStart.setText(getString(R.string.game_btn_start));
+        btnStart.setMinHeight((int) Math.ceil(48 * dp));
         btnStart.setBackgroundColor(0xFF1976D2);
         btnStart.setTextColor(Color.WHITE);
         LinearLayout.LayoutParams startLp = new LinearLayout.LayoutParams(
@@ -189,14 +197,19 @@ public class MemoryModuleFragment extends Fragment {
     }
 
     private void setDifficulty(int rows, int cols) {
-        gridRows = rows;
-        gridCols = cols;
-        totalCards = gridRows * gridCols;
-        pairCount = totalCards / 2;
-        tvStatus.setText(String.format("难度已设为 %dx%d（%d 对），点击开始", gridRows, gridCols, pairCount));
+        baseGridRows = rows;
+        baseGridCols = cols;
+        tvStatus.setText(String.format(gameActive
+                ? "难度已设为 %dx%d（%d 对），下一局生效"
+                : "难度已设为 %dx%d（%d 对），点击开始", rows, cols, rows * cols / 2));
     }
 
     private void startNewGame() {
+        gridRows = baseGridRows;
+        gridCols = baseGridCols;
+        totalCards = gridRows * gridCols;
+        pairCount = totalCards / 2;
+
         btnStart.setVisibility(View.GONE);
         gameActive = true;
 

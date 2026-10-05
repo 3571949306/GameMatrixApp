@@ -75,6 +75,12 @@ public class PipelineModuleFragment extends Fragment {
         tvStatus.setPadding(0, (int) (8 * dp), 0, (int) (8 * dp));
         tvStatus.setText("旋转管道，将起点连接到终点");
 
+        TextView tvRouteHint = new TextView(ctx);
+        tvRouteHint.setGravity(Gravity.CENTER);
+        tvRouteHint.setTextSize(14f);
+        tvRouteHint.setTextColor(colorStats);
+        tvRouteHint.setText("左上起点 → 右下终点");
+
         // 统计
         tvStats = new TextView(ctx);
         tvStats.setGravity(Gravity.CENTER);
@@ -96,12 +102,14 @@ public class PipelineModuleFragment extends Fragment {
         btnStart.setText("开始");
         btnStart.setBackgroundColor(colorBtnStart);
         btnStart.setTextColor(Color.WHITE);
+        ensureMinimumTouchSize(btnStart);
         btnStart.setOnClickListener(v -> startNewGame());
 
         btnCheck = new Button(ctx);
         btnCheck.setText("检查连接");
         btnCheck.setBackgroundColor(colorBtnCheck);
         btnCheck.setTextColor(Color.WHITE);
+        ensureMinimumTouchSize(btnCheck);
         btnCheck.setVisibility(View.GONE);
         btnCheck.setOnClickListener(v -> checkConnection());
 
@@ -109,6 +117,7 @@ public class PipelineModuleFragment extends Fragment {
         buttonArea.addView(btnCheck);
 
         root.addView(tvStatus);
+        root.addView(tvRouteHint);
         root.addView(tvStats);
         root.addView(gridLayout);
         root.addView(buttonArea);
@@ -172,6 +181,7 @@ public class PipelineModuleFragment extends Fragment {
             params.setMargins(2, 2, 2, 2);
             btn.setLayoutParams(params);
             btn.setTextSize(18f);
+            ensureMinimumTouchSize(btn);
             btn.setOnClickListener(v -> onPipeClick(index));
 
             if (game.getPipeType(row, col) != PipelineGame.PIPE_NONE) {
@@ -195,6 +205,7 @@ public class PipelineModuleFragment extends Fragment {
         int col = index % gridSize;
         game.rotatePipe(row, col);
         updatePipeDisplay();
+        tvStatus.setText("第 " + game.getCurrentLevel() + " 关");
         updateStatsDisplay();
     }
 
@@ -203,7 +214,15 @@ public class PipelineModuleFragment extends Fragment {
         for (int r = 0; r < gridSize; r++) {
             for (int c = 0; c < gridSize; c++) {
                 int index = r * gridSize + c;
-                pipeButtons[index].setText(game.getPipeChar(r, c));
+                String pipe = game.getPipeChar(r, c);
+                pipeButtons[index].setText(pipe);
+                String role = r == 0 && c == 0 ? "起点，"
+                        : r == gridSize - 1 && c == gridSize - 1 ? "终点，" : "";
+                pipeButtons[index].setContentDescription(role + "第 " + (r + 1) + " 行第 " + (c + 1)
+                        + " 列，" + (pipe.isEmpty() ? "空格" : "管道 " + pipe));
+                // 新棋盘或任意旋转都会使上一次检查结果失效。
+                pipeButtons[index].setBackgroundColor(game.getPipeType(r, c) == PipelineGame.PIPE_NONE
+                        ? colorPipeEmpty : colorPipe);
             }
         }
     }
@@ -212,20 +231,18 @@ public class PipelineModuleFragment extends Fragment {
         if (!game.isGameActive()) return;
         int gridSize = game.getGridSize();
 
+        for (int r = 0; r < gridSize; r++) {
+            for (int c = 0; c < gridSize; c++) {
+                if (game.getPipeType(r, c) != PipelineGame.PIPE_NONE) {
+                    pipeButtons[r * gridSize + c].setBackgroundColor(
+                            game.isPipeCorrect(r, c) ? colorPipeCorrect : colorPipeError);
+                }
+            }
+        }
         if (game.isAllCorrect()) {
             onLevelComplete();
         } else {
             tvStatus.setText("管道未连通，请继续调整");
-            for (int r = 0; r < gridSize; r++) {
-                for (int c = 0; c < gridSize; c++) {
-                    int index = r * gridSize + c;
-                    if (game.getPipeType(r, c) != PipelineGame.PIPE_NONE
-                            && game.getPipeType(r, c) != PipelineGame.PIPE_CROSS) {
-                        pipeButtons[index].setBackgroundColor(
-                                game.isPipeCorrect(r, c) ? colorPipeCorrect : colorPipeError);
-                    }
-                }
-            }
         }
     }
 
@@ -246,6 +263,14 @@ public class PipelineModuleFragment extends Fragment {
 
     private void updateStatsDisplay() {
         tvStats.setText("关卡 " + game.getCurrentLevel() + " | 步数 " + game.getMoveCount());
+    }
+
+    private void ensureMinimumTouchSize(Button button) {
+        int size = (int) Math.ceil(48 * button.getResources().getDisplayMetrics().density);
+        button.setMinWidth(size);
+        button.setMinimumWidth(size);
+        button.setMinHeight(size);
+        button.setMinimumHeight(size);
     }
 
     private boolean isNightMode() {

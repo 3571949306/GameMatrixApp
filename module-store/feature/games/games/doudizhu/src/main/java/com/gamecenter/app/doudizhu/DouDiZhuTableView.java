@@ -27,6 +27,7 @@ import com.gamecenter.app.doudizhu.model.CardType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -578,7 +579,10 @@ public class DouDiZhuTableView extends View {
         }
 
         // 尝试从 drawable 资源加载
-        int resId = getResources().getIdentifier(resName, "drawable", getContext().getPackageName());
+        // 注：Card.getResName() 会产出大写（如 poker_s_A），而 Android 资源名只允许
+        // lowercase a-z / 0-9 / 下划线，故资源文件统一小写，查找时在此处归一化。
+        int resId = getResources().getIdentifier(
+                resName.toLowerCase(Locale.ROOT), "drawable", getContext().getPackageName());
         if (resId != 0) {
             Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
             if (bitmap != null) {
