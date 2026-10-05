@@ -1112,30 +1112,22 @@ task bundlePreinstalledModules() {
         dependsOn ':module-store:feature:tools:tools:assembleRelease'
         dependsOn ':module-store:feature:tools:vpn:assembleRelease'
         // 游戏模块仍需构建以刷新 catalog.json/modules.json 的 sha256/fileSize 元数据
+        // 2026-10-05 批次 3：tic/whack/reaction/rock/dice/guess/tiles/blackjack/plane/checkers
+        // 十个 demo 游戏摘出预装目录（源码与 settings.gradle 注册保留，可逆）。
         dependsOn ':module-store:feature:games:games:chinesechess:assembleRelease'
         dependsOn ':module-store:feature:games:games:game2048:assembleRelease'
         dependsOn ':module-store:feature:games:games:klotski:assembleRelease'
         dependsOn ':module-store:feature:games:games:snake:assembleRelease'
-        dependsOn ':module-store:feature:games:games:tic:assembleRelease'
-        dependsOn ':module-store:feature:games:games:whack:assembleRelease'
-        dependsOn ':module-store:feature:games:games:reaction:assembleRelease'
-        dependsOn ':module-store:feature:games:games:rock:assembleRelease'
-        dependsOn ':module-store:feature:games:games:dice:assembleRelease'
-        dependsOn ':module-store:feature:games:games:guess:assembleRelease'
-        dependsOn ':module-store:feature:games:games:tiles:assembleRelease'
         dependsOn ':module-store:feature:games:games:memory:assembleRelease'
         dependsOn ':module-store:feature:games:games:match:assembleRelease'
-        dependsOn ':module-store:feature:games:games:blackjack:assembleRelease'
         dependsOn ':module-store:feature:games:games:flappy:assembleRelease'
         dependsOn ':module-store:feature:games:games:brotato:assembleRelease'
-        dependsOn ':module-store:feature:games:games:plane:assembleRelease'
         dependsOn ':module-store:feature:games:games:pipeline:assembleRelease'
         dependsOn ':module-store:feature:games:games:sokoban:assembleRelease'
         dependsOn ':module-store:feature:games:games:minesweeper:assembleRelease'
         dependsOn ':module-store:feature:games:games:tetris:assembleRelease'
         dependsOn ':module-store:feature:games:games:sudoku:assembleRelease'
         dependsOn ':module-store:feature:games:games:go:assembleRelease'
-        dependsOn ':module-store:feature:games:games:checkers:assembleRelease'
         dependsOn ':module-store:feature:games:games:gomoku:assembleRelease'
         dependsOn ':module-store:feature:games:games:doudizhu:assembleRelease'
         dependsOn ':module-store:feature:games:games:td:assembleRelease'
@@ -1150,30 +1142,22 @@ task bundlePreinstalledModules() {
         [':module-store:feature:tools:tools', 'tools-release.apk', 'feature_tools_v100.apk', 'tools', true],
         [':module-store:feature:tools:vpn', 'vpn-release.apk', 'vpn-release.apk', 'vpn', true],
         // 游戏模块：全部预装
+        // 2026-10-05 批次 3：tic/whack/reaction/rock/dice/guess/tiles/blackjack/plane/checkers
+        // 十个 demo 游戏摘出预装目录（与 catalog.json/modules.json 同步删除，verify_preinstalled_modules 双向一致）。
         [':module-store:feature:games:games:chinesechess', 'chinesechess-release.apk', 'game_chinesechess_v300.apk', 'chinesechess', true],
         [':module-store:feature:games:games:game2048', 'game2048-release.apk', 'game_2048_v100.apk', 'game_2048', true],
         [':module-store:feature:games:games:klotski', 'klotski-release.apk', 'game_klotski_v100.apk', 'klotski', true],
         [':module-store:feature:games:games:snake', 'snake-release.apk', 'game_snake_v100.apk', 'snake', true],
-        [':module-store:feature:games:games:tic', 'tic-release.apk', 'game_tic_v100.apk', 'tic', true],
-        [':module-store:feature:games:games:whack', 'whack-release.apk', 'game_whack_v100.apk', 'whack', true],
-        [':module-store:feature:games:games:reaction', 'reaction-release.apk', 'game_reaction_v100.apk', 'reaction', true],
-        [':module-store:feature:games:games:rock', 'rock-release.apk', 'game_rock_v100.apk', 'rock', true],
-        [':module-store:feature:games:games:dice', 'dice-release.apk', 'game_dice_v100.apk', 'dice', true],
-        [':module-store:feature:games:games:guess', 'guess-release.apk', 'game_guess_v100.apk', 'guess', true],
-        [':module-store:feature:games:games:tiles', 'tiles-release.apk', 'game_tiles_v100.apk', 'tiles', true],
         [':module-store:feature:games:games:memory', 'memory-release.apk', 'game_memory_v100.apk', 'memory', true],
         [':module-store:feature:games:games:match', 'match-release.apk', 'game_match_v100.apk', 'match', true],
-        [':module-store:feature:games:games:blackjack', 'blackjack-release.apk', 'game_blackjack_v100.apk', 'blackjack', true],
         [':module-store:feature:games:games:flappy', 'flappy-release.apk', 'game_flappy_v100.apk', 'flappy', true],
         [':module-store:feature:games:games:brotato', 'brotato-release.apk', 'game_brotato_v100.apk', 'brotato', true],
-        [':module-store:feature:games:games:plane', 'plane-release.apk', 'game_plane_v100.apk', 'plane', true],
         [':module-store:feature:games:games:pipeline', 'pipeline-release.apk', 'game_pipeline_v100.apk', 'pipeline', true],
         [':module-store:feature:games:games:sokoban', 'sokoban-release.apk', 'game_sokoban_v100.apk', 'sokoban', true],
         [':module-store:feature:games:games:minesweeper', 'minesweeper-release.apk', 'game_minesweeper_v100.apk', 'minesweeper', true],
         [':module-store:feature:games:games:tetris', 'tetris-release.apk', 'game_tetris_v100.apk', 'tetris', true],
         [':module-store:feature:games:games:sudoku', 'sudoku-release.apk', 'game_sudoku_v100.apk', 'sudoku', true],
         [':module-store:feature:games:games:go', 'go-release.apk', 'game_go_v100.apk', 'go', true],
-        [':module-store:feature:games:games:checkers', 'checkers-release.apk', 'game_checkers_v100.apk', 'checkers', true],
         [':module-store:feature:games:games:gomoku', 'gomoku-release.apk', 'game_gomoku_v100.apk', 'gomoku', true],
         [':module-store:feature:games:games:doudizhu', 'doudizhu-release.apk', 'game_doudizhu_v100.apk', 'doudizhu', true],
         [':module-store:feature:games:games:td', 'td-release.apk', 'game_td_v100.apk', 'td', true]

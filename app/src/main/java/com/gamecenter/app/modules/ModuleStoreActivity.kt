@@ -837,12 +837,17 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
             diagFile.writeText(diag)
         } catch (_: Exception) { }
 
+        // 清单级隐藏开关（批次 3）：enabled=false 的模块不进商店网格 —— 分类 tab、
+        // 全局搜索与筛选对话框路径在此统一拦截，详情/安装按钮随之不可达；
+        // 已安装模块的管理（查看/卸载）仍走"已安装模块"页。
+        val visibleModules = filterHiddenStoreModules(finalFiltered)
+
         adapter.installedVersions = installedVersions
         adapter.updateInstalledIds(installedIds)
-        adapter.updateModules(finalFiltered)
+        adapter.updateModules(visibleModules)
         // NEW-001 修复：空列表时同时隐藏 RecyclerView 显示 emptyContainer，避免两者在 FrameLayout 中层叠
         // 造成"列表区域看似空白但 emptyContainer 又被 RecyclerView 遮挡"的视觉异常。
-        if (finalFiltered.isEmpty()) {
+        if (visibleModules.isEmpty()) {
             recyclerView.visibility = View.GONE
             emptyContainer.visibility = View.VISIBLE
         } else {
@@ -1272,9 +1277,9 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         val items: List<HeroBannerItem> = if (!remoteBanners.isNullOrEmpty()) {
             val moduleById = allModules.associateBy { it.id }
             remoteBanners.mapNotNull { banner ->
-                // moduleId 无效时跳过（不崩溃）
+                // moduleId 无效时跳过（不崩溃）；enabled=false 的模块同样不给直达位
                 val module = moduleById[banner.moduleId]
-                if (module != null) HeroBannerItem(module = module, banner = banner) else null
+                if (module != null && module.enabled) HeroBannerItem(module = module, banner = banner) else null
             }.take(HERO_MAX_ITEMS)
         } else {
             // 兜底：动态计算
@@ -1336,6 +1341,7 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
     /** 兜底动态计算 Hero Banner 候选模块（当远程 Banner 配置缺失或全部无效时使用） */
     private fun computeDynamicHeroItems(): List<ModuleManifest> {
         val candidates = allModules.filter { !it.isBaseFramework && it.storeCategory != "vpn" }
+            .filter { it.enabled }
         if (candidates.isEmpty()) return emptyList()
 
         // MODULE_STORE_PERF_OPT: 使用缓存避免 N+1 IO
@@ -1636,3 +1642,11 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
         Toast.makeText(this, R.string.module_load_failed, Toast.LENGTH_SHORT).show()
     }
 }
+
+/**
+ * 清单级隐藏开关（批次 3）：清单/目录可将单个模块标记 enabled=false（服务器目录可配置）。
+ * 商店网格、搜索与 hero 直达位统一跳过该类模块，返回值保持入参顺序。
+ * 独立成纯函数以便单元测试（ModuleStoreEnabledFilterTest）。
+ */
+internal fun filterHiddenStoreModules(modules: List<ModuleManifest>): List<ModuleManifest> =
+    modules.filter { it.enabled }

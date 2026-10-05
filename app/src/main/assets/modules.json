@@ -1,8 +1,8 @@
 {
  "schemaVersion": 2,
- "catalogVersion": 17,
- "version": 38,
- "generatedAt": "2026-08-30T13:41:31Z",
+ "catalogVersion": 18,
+ "version": 39,
+ "generatedAt": "2026-10-05T07:48:49Z",
  "modules": [
   {
    "id": "games_hall",
@@ -108,8 +108,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.modules.ToolsModuleEntryPoint",
    "fileName": "feature_tools_v100.apk",
-   "fileSize": 800788,
-   "sha256": "c745576f4bac6c2d90d75d1e6038aab6c2af5f1b8559f46c5f5337c7c3dd4d15",
+   "fileSize": 800780,
+   "sha256": "7aeed01f18786db1992cccb9bb06ee2dde72f94c8b619cbd7e01fb24c8dd3e95",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/feature_tools_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -135,9 +135,9 @@
    "dependencies": [],
    "package": {
     "fileName": "feature_tools_v100.apk",
-    "fileSize": 800788,
+    "fileSize": 800780,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/feature_tools_v100.apk",
-    "sha256": "c745576f4bac6c2d90d75d1e6038aab6c2af5f1b8559f46c5f5337c7c3dd4d15"
+    "sha256": "7aeed01f18786db1992cccb9bb06ee2dde72f94c8b619cbd7e01fb24c8dd3e95"
    },
    "details": {
     "valueDescription": "提供设备诊断、二维码、电池信息、传感器测试等实用工具集合。",
@@ -173,8 +173,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.modules.AiModuleEntryPoint",
    "fileName": "feature_ai_v100.apk",
-   "fileSize": 1205138,
-   "sha256": "bbdabc36a5d1cafd8198d8954cd6bfb1e03e0646584e6f2ab7faa3e20eca5e34",
+   "fileSize": 1205137,
+   "sha256": "4b82eee9f2146ae4a87f91e2d1af247692706a5f75bc7d46f36cc867fd236347",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/feature_ai_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -200,9 +200,9 @@
    "dependencies": [],
    "package": {
     "fileName": "feature_ai_v100.apk",
-    "fileSize": 1205138,
+    "fileSize": 1205137,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/feature_ai_v100.apk",
-    "sha256": "bbdabc36a5d1cafd8198d8954cd6bfb1e03e0646584e6f2ab7faa3e20eca5e34"
+    "sha256": "4b82eee9f2146ae4a87f91e2d1af247692706a5f75bc7d46f36cc867fd236347"
    },
    "details": {
     "valueDescription": "AI 对话助手，支持文本创作、问答、工具调用与上下文记忆。",
@@ -241,8 +241,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.wrongbook.WrongBookModuleEntryPoint",
    "fileName": "feature_wrongbook_v100.apk",
-   "fileSize": 6269969,
-   "sha256": "a47c2484986c81ebd82e261cc106a526edbacc14cf542b91eb1f4374ca7a6237",
+   "fileSize": 6269966,
+   "sha256": "8a74a04fde0dceb50d0a4c9929c5440d1b3cc8923ca75ecc99671bb31ca163a4",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/feature_wrongbook_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -268,9 +268,9 @@
    "dependencies": [],
    "package": {
     "fileName": "feature_wrongbook_v100.apk",
-    "fileSize": 6269969,
+    "fileSize": 6269966,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/feature_wrongbook_v100.apk",
-    "sha256": "a47c2484986c81ebd82e261cc106a526edbacc14cf542b91eb1f4374ca7a6237"
+    "sha256": "8a74a04fde0dceb50d0a4c9929c5440d1b3cc8923ca75ecc99671bb31ca163a4"
    },
    "details": {
     "valueDescription": "基于 AI 的错题整理与复习工具，支持拍照识题、AI 分析与艾宾浩斯复习计划。",
@@ -310,8 +310,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.vpn.VpnModuleEntryPoint",
    "fileName": "vpn-release.apk",
-   "fileSize": 1134488,
-   "sha256": "cc2ffd83a086562e52d7f89ac3cd89773d11d6eaabbb080b7e7dc31a682c30c9",
+   "fileSize": 1134483,
+   "sha256": "f255e9e371ec9338047c94838630928f3f20fd52fd3e87d8419c6e4f08298fb0",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/vpn-release.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -338,9 +338,9 @@
    "serviceType": "vpn",
    "package": {
     "fileName": "vpn-release.apk",
-    "fileSize": 1134488,
+    "fileSize": 1134483,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/vpn-release.apk",
-    "sha256": "cc2ffd83a086562e52d7f89ac3cd89773d11d6eaabbb080b7e7dc31a682c30c9"
+    "sha256": "f255e9e371ec9338047c94838630928f3f20fd52fd3e87d8419c6e4f08298fb0"
    },
    "details": {
     "valueDescription": "提供远程代理连接能力，支持配置管理与连接状态控制。",
@@ -378,8 +378,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.gomoku.GomokuModuleEntryPoint",
    "fileName": "game_gomoku_v100.apk",
-   "fileSize": 711384,
-   "sha256": "6df2d4f64624ec6d2b99778aa239329d4059ff318e48c61e007749f62c073c88",
+   "fileSize": 711385,
+   "sha256": "9be976398312c8273c77deace2953ae74ab642e0a3dc14e09d445cab027fc904",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_gomoku_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -405,9 +405,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_gomoku_v100.apk",
-    "fileSize": 711384,
+    "fileSize": 711385,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_gomoku_v100.apk",
-    "sha256": "6df2d4f64624ec6d2b99778aa239329d4059ff318e48c61e007749f62c073c88"
+    "sha256": "9be976398312c8273c77deace2953ae74ab642e0a3dc14e09d445cab027fc904"
    }
   },
   {
@@ -419,7 +419,7 @@
    "entryClass": "com.gamecenter.app.chinesechess.ChineseChessModuleEntryPoint",
    "fileName": "game_chinesechess_v300.apk",
    "fileSize": 756081,
-   "sha256": "77d4ae2ecbd5936ca2be9fd95534a5be0c6538c234c89a0a696c283ecd471520",
+   "sha256": "df75b1304dc87266323e7bbfa07aa20b3bdf23d35b9d4bfd31e05c2a4967f24a",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_chinesechess_v300.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -447,7 +447,7 @@
     "fileName": "game_chinesechess_v300.apk",
     "fileSize": 756081,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_chinesechess_v300.apk",
-    "sha256": "77d4ae2ecbd5936ca2be9fd95534a5be0c6538c234c89a0a696c283ecd471520"
+    "sha256": "df75b1304dc87266323e7bbfa07aa20b3bdf23d35b9d4bfd31e05c2a4967f24a"
    }
   },
   {
@@ -458,8 +458,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.go.GoModuleEntryPoint",
    "fileName": "game_go_v100.apk",
-   "fileSize": 715436,
-   "sha256": "39917ad7a4cb7718073f6d7c4e4737e96be12324fde10c0efb568a473fe9bb37",
+   "fileSize": 715438,
+   "sha256": "190ec7b3cac3bec288a4214cc4d21eabf2042c887be521442a74d4589a19fb93",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_go_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -485,9 +485,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_go_v100.apk",
-    "fileSize": 715436,
+    "fileSize": 715438,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_go_v100.apk",
-    "sha256": "39917ad7a4cb7718073f6d7c4e4737e96be12324fde10c0efb568a473fe9bb37"
+    "sha256": "190ec7b3cac3bec288a4214cc4d21eabf2042c887be521442a74d4589a19fb93"
    }
   },
   {
@@ -498,8 +498,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.doudizhu.DoudizhuModuleEntryPoint",
    "fileName": "game_doudizhu_v100.apk",
-   "fileSize": 11181924,
-   "sha256": "a14facd7db53edd6ebdd8dd491566bc32ac9a322f5f85893e462ee51b0a6747b",
+   "fileSize": 11181923,
+   "sha256": "d944acade39a353e8b5b161447922fc602c33d897abef948df1c152916e784ca",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_doudizhu_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -525,169 +525,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_doudizhu_v100.apk",
-    "fileSize": 11181924,
+    "fileSize": 11181923,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_doudizhu_v100.apk",
-    "sha256": "a14facd7db53edd6ebdd8dd491566bc32ac9a322f5f85893e462ee51b0a6747b"
-   }
-  },
-  {
-   "id": "blackjack",
-   "name": "21点",
-   "description": "内置 21 点游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.blackjack.BlackjackModuleEntryPoint",
-   "fileName": "game_blackjack_v100.apk",
-   "fileSize": 693240,
-   "sha256": "bbd46ab7e904ad01d3361a8afdb23e4836c22133820c344b47541835126fd8a4",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_blackjack_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "com.gamecenter.app.games.blackjack.BlackjackActivity",
-   "gameId": "blackjack",
-   "gameCategory": "classics",
-   "gameDesc": "经典 21 点游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 100,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_blackjack_v100.apk",
-    "fileSize": 693240,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_blackjack_v100.apk",
-    "sha256": "bbd46ab7e904ad01d3361a8afdb23e4836c22133820c344b47541835126fd8a4"
-   }
-  },
-  {
-   "id": "checkers",
-   "name": "跳棋",
-   "description": "内置跳棋游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.checkers.CheckersModuleEntryPoint",
-   "fileName": "game_checkers_v100.apk",
-   "fileSize": 698069,
-   "sha256": "01c64a7c1fef0b625fe1bc5926bda8be498889110e3b9a1462eab8bdc97a123a",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_checkers_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "com.gamecenter.app.games.checkers.CheckersActivity",
-   "gameId": "checkers",
-   "gameCategory": "classics",
-   "gameDesc": "经典跳棋游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 100,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_checkers_v100.apk",
-    "fileSize": 698069,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_checkers_v100.apk",
-    "sha256": "01c64a7c1fef0b625fe1bc5926bda8be498889110e3b9a1462eab8bdc97a123a"
-   }
-  },
-  {
-   "id": "dice",
-   "name": "骰子",
-   "description": "内置骰子游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.dice.DiceModuleEntryPoint",
-   "fileName": "game_dice_v100.apk",
-   "fileSize": 692130,
-   "sha256": "c9a97e8c4f470fb72247ad3ad2903eb8ecd0d86cb225bfd2a09a091460c0b36d",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_dice_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "dice",
-   "gameCategory": "classics",
-   "gameDesc": "骰子游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_dice_v100.apk",
-    "fileSize": 692130,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_dice_v100.apk",
-    "sha256": "c9a97e8c4f470fb72247ad3ad2903eb8ecd0d86cb225bfd2a09a091460c0b36d"
-   }
-  },
-  {
-   "id": "rock",
-   "name": "石头剪刀布",
-   "description": "内置石头剪刀布游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.rock.RockModuleEntryPoint",
-   "fileName": "game_rock_v100.apk",
-   "fileSize": 692007,
-   "sha256": "95f13731aad8c794915d0f509a87be4e18c0acf4303e51e0cfdee6ac7bb7838c",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_rock_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "rock",
-   "gameCategory": "classics",
-   "gameDesc": "石头剪刀布游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_rock_v100.apk",
-    "fileSize": 692007,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_rock_v100.apk",
-    "sha256": "95f13731aad8c794915d0f509a87be4e18c0acf4303e51e0cfdee6ac7bb7838c"
+    "sha256": "d944acade39a353e8b5b161447922fc602c33d897abef948df1c152916e784ca"
    }
   },
   {
@@ -698,8 +538,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.game2048.Game2048ModuleEntryPoint",
    "fileName": "game_2048_v100.apk",
-   "fileSize": 694698,
-   "sha256": "857ee9d7bf51301178f4ed6b4c6960fdcec5c652d693cb0540769b57e4dd3c6f",
+   "fileSize": 694689,
+   "sha256": "637b81911eea1cdf7febfab0c20c80d5e02466f32acb703b718991ddcb2718ac",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_2048_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -725,9 +565,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_2048_v100.apk",
-    "fileSize": 694698,
+    "fileSize": 694689,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_2048_v100.apk",
-    "sha256": "857ee9d7bf51301178f4ed6b4c6960fdcec5c652d693cb0540769b57e4dd3c6f"
+    "sha256": "637b81911eea1cdf7febfab0c20c80d5e02466f32acb703b718991ddcb2718ac"
    }
   },
   {
@@ -738,8 +578,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.sudoku.SudokuModuleEntryPoint",
    "fileName": "game_sudoku_v100.apk",
-   "fileSize": 723763,
-   "sha256": "5e3428682c0647c7622ae186ba9622595326da88b5f55486dc0af5a867668dd7",
+   "fileSize": 723761,
+   "sha256": "ffef8566d6033420e4c2652063223380283ecf8214a5acbdb4a2f547ac19f3bd",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_sudoku_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -765,9 +605,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_sudoku_v100.apk",
-    "fileSize": 723763,
+    "fileSize": 723761,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_sudoku_v100.apk",
-    "sha256": "5e3428682c0647c7622ae186ba9622595326da88b5f55486dc0af5a867668dd7"
+    "sha256": "ffef8566d6033420e4c2652063223380283ecf8214a5acbdb4a2f547ac19f3bd"
    }
   },
   {
@@ -778,8 +618,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.klotski.KlotskiModuleEntryPoint",
    "fileName": "game_klotski_v100.apk",
-   "fileSize": 711082,
-   "sha256": "707a77b853b5b36c322ac455ad1d11360a9fa33310c6a80eb6e8a1511ba799de",
+   "fileSize": 711080,
+   "sha256": "b81acd65214e575c6419efad63d90af018432db0b22f4a625086e59259472e0b",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_klotski_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -805,9 +645,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_klotski_v100.apk",
-    "fileSize": 711082,
+    "fileSize": 711080,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_klotski_v100.apk",
-    "sha256": "707a77b853b5b36c322ac455ad1d11360a9fa33310c6a80eb6e8a1511ba799de"
+    "sha256": "b81acd65214e575c6419efad63d90af018432db0b22f4a625086e59259472e0b"
    }
   },
   {
@@ -818,8 +658,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.sokoban.SokobanModuleEntryPoint",
    "fileName": "game_sokoban_v100.apk",
-   "fileSize": 718510,
-   "sha256": "6f59a0e13122d7160dba3a46bbd8377299c084d3bc57640c69fbf4c57aafddc2",
+   "fileSize": 718503,
+   "sha256": "5a60d72d494f9c7dd701eb35cc2c87f1aba78edb813d84826514c47b7aeb4e81",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_sokoban_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -845,9 +685,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_sokoban_v100.apk",
-    "fileSize": 718510,
+    "fileSize": 718503,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_sokoban_v100.apk",
-    "sha256": "6f59a0e13122d7160dba3a46bbd8377299c084d3bc57640c69fbf4c57aafddc2"
+    "sha256": "5a60d72d494f9c7dd701eb35cc2c87f1aba78edb813d84826514c47b7aeb4e81"
    }
   },
   {
@@ -858,8 +698,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.pipeline.PipelineModuleEntryPoint",
    "fileName": "game_pipeline_v100.apk",
-   "fileSize": 694587,
-   "sha256": "21d007ec64164a19d9150ba33ea23c36ddd2bb4d30556d7b737a46bac0f27551",
+   "fileSize": 694581,
+   "sha256": "7d0c898f55b3bdcb65f188da7aa3c482cf50e4f9dc50a63e4ae46de7a2ebdf0b",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_pipeline_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -885,9 +725,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_pipeline_v100.apk",
-    "fileSize": 694587,
+    "fileSize": 694581,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_pipeline_v100.apk",
-    "sha256": "21d007ec64164a19d9150ba33ea23c36ddd2bb4d30556d7b737a46bac0f27551"
+    "sha256": "7d0c898f55b3bdcb65f188da7aa3c482cf50e4f9dc50a63e4ae46de7a2ebdf0b"
    }
   },
   {
@@ -898,8 +738,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.minesweeper.MinesweeperModuleEntryPoint",
    "fileName": "game_minesweeper_v100.apk",
-   "fileSize": 697747,
-   "sha256": "0743cb73afbeece6d66374c807513ff3dcfb2466baca4b8d1df8ca71f30c1fec",
+   "fileSize": 697752,
+   "sha256": "56c8df627cb576c28abe001fff0c3eed24626070a9753e201cecae1c347f9d34",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_minesweeper_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -925,9 +765,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_minesweeper_v100.apk",
-    "fileSize": 697747,
+    "fileSize": 697752,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_minesweeper_v100.apk",
-    "sha256": "0743cb73afbeece6d66374c807513ff3dcfb2466baca4b8d1df8ca71f30c1fec"
+    "sha256": "56c8df627cb576c28abe001fff0c3eed24626070a9753e201cecae1c347f9d34"
    }
   },
   {
@@ -938,8 +778,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.match.MatchModuleEntryPoint",
    "fileName": "game_match_v100.apk",
-   "fileSize": 695960,
-   "sha256": "763396b35988e160d7986143fc51ec9bd9031a8632894322163d665468e1910f",
+   "fileSize": 695961,
+   "sha256": "f49abe69c06d7dc9c8528d16ab023ffb0732e928a8ec98de0da057eb7ab132ca",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_match_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -965,9 +805,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_match_v100.apk",
-    "fileSize": 695960,
+    "fileSize": 695961,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_match_v100.apk",
-    "sha256": "763396b35988e160d7986143fc51ec9bd9031a8632894322163d665468e1910f"
+    "sha256": "f49abe69c06d7dc9c8528d16ab023ffb0732e928a8ec98de0da057eb7ab132ca"
    }
   },
   {
@@ -978,8 +818,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.memory.MemoryModuleEntryPoint",
    "fileName": "game_memory_v100.apk",
-   "fileSize": 693975,
-   "sha256": "7e22a14b445e933485dca008bc2a02ed473440ffbd4bad73be53384030511cfc",
+   "fileSize": 693979,
+   "sha256": "bc814b667ab5736b824b8b8f46fe3138aa4877633aa1ed07749b1ebe47ea51f0",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_memory_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -1005,9 +845,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_memory_v100.apk",
-    "fileSize": 693975,
+    "fileSize": 693979,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_memory_v100.apk",
-    "sha256": "7e22a14b445e933485dca008bc2a02ed473440ffbd4bad73be53384030511cfc"
+    "sha256": "bc814b667ab5736b824b8b8f46fe3138aa4877633aa1ed07749b1ebe47ea51f0"
    }
   },
   {
@@ -1045,46 +885,6 @@
    "dependencies": []
   },
   {
-   "id": "tiles",
-   "name": "数字华容道",
-   "description": "内置滑块拼图游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.tiles.TilesModuleEntryPoint",
-   "fileName": "game_tiles_v100.apk",
-   "fileSize": 692983,
-   "sha256": "b4b75d1a3242e73a37b0c39af14ae3c32c42cdb9fdf1c85de3785478d23a110a",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_tiles_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "tiles",
-   "gameCategory": "puzzle",
-   "gameDesc": "滑块拼图游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_tiles_v100.apk",
-    "fileSize": 692983,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_tiles_v100.apk",
-    "sha256": "b4b75d1a3242e73a37b0c39af14ae3c32c42cdb9fdf1c85de3785478d23a110a"
-   }
-  },
-  {
    "id": "tetris",
    "name": "俄罗斯方块",
    "description": "内置俄罗斯方块游戏。",
@@ -1092,8 +892,8 @@
    "versionCode": 103,
    "entryClass": "com.gamecenter.app.tetris.TetrisModuleEntryPoint",
    "fileName": "game_tetris_v100.apk",
-   "fileSize": 711168,
-   "sha256": "acebe444b7d1a861206ac5d0009ec73e2074d349a5fa73c442ae20747d60f9a3",
+   "fileSize": 711169,
+   "sha256": "7dd76ff04fa57daff52c10a878c215a7811964f297abac677036ecfc003660fb",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_tetris_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -1119,9 +919,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_tetris_v100.apk",
-    "fileSize": 711168,
+    "fileSize": 711169,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_tetris_v100.apk",
-    "sha256": "acebe444b7d1a861206ac5d0009ec73e2074d349a5fa73c442ae20747d60f9a3"
+    "sha256": "7dd76ff04fa57daff52c10a878c215a7811964f297abac677036ecfc003660fb"
    }
   },
   {
@@ -1132,8 +932,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.snake.SnakeModuleEntryPoint",
    "fileName": "game_snake_v100.apk",
-   "fileSize": 695785,
-   "sha256": "d600e149c7ead5ffa04b4fe3c2b1b0e15158764583286a07d59163abeaf1d081",
+   "fileSize": 695789,
+   "sha256": "0c0bc1a7f7227d2bebeaced505a6625a6baa93d25f3d4f3ca71082a9408e7526",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_snake_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -1159,9 +959,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_snake_v100.apk",
-    "fileSize": 695785,
+    "fileSize": 695789,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_snake_v100.apk",
-    "sha256": "d600e149c7ead5ffa04b4fe3c2b1b0e15158764583286a07d59163abeaf1d081"
+    "sha256": "0c0bc1a7f7227d2bebeaced505a6625a6baa93d25f3d4f3ca71082a9408e7526"
    }
   },
   {
@@ -1172,8 +972,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.flappy.FlappyModuleEntryPoint",
    "fileName": "game_flappy_v100.apk",
-   "fileSize": 695934,
-   "sha256": "563087ab5f67e88ccd1bc2fc9690fa18dcdf3a441b7fccaa1b019ed29a2d3936",
+   "fileSize": 695939,
+   "sha256": "05a5d4e29429e4a15d3ee69dc0e1152069f221cb1fa2410012e0d1e9d5605d57",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_flappy_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -1199,9 +999,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_flappy_v100.apk",
-    "fileSize": 695934,
+    "fileSize": 695939,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_flappy_v100.apk",
-    "sha256": "563087ab5f67e88ccd1bc2fc9690fa18dcdf3a441b7fccaa1b019ed29a2d3936"
+    "sha256": "05a5d4e29429e4a15d3ee69dc0e1152069f221cb1fa2410012e0d1e9d5605d57"
    }
   },
   {
@@ -1212,8 +1012,8 @@
    "versionCode": 100,
    "entryClass": "com.gamecenter.app.brotato.BrotatoModuleEntryPoint",
    "fileName": "game_brotato_v100.apk",
-   "fileSize": 720605,
-   "sha256": "2731b63785cabcb0214b8b28c58be82fc9bc2ac858e39c1a42fa68c740ce52cf",
+   "fileSize": 720607,
+   "sha256": "6fa81b56878a1669072eaee4fc122fed533b9c1877c59ee564f737d0532a26e5",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_brotato_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -1239,209 +1039,9 @@
    "dependencies": [],
    "package": {
     "fileName": "game_brotato_v100.apk",
-    "fileSize": 720605,
+    "fileSize": 720607,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_brotato_v100.apk",
-    "sha256": "2731b63785cabcb0214b8b28c58be82fc9bc2ac858e39c1a42fa68c740ce52cf"
-   }
-  },
-  {
-   "id": "plane",
-   "name": "飞机大战",
-   "description": "内置飞机射击游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.plane.PlaneModuleEntryPoint",
-   "fileName": "game_plane_v100.apk",
-   "fileSize": 696276,
-   "sha256": "4e8e8b597adc492b0605b627c3fb8824b64d895197d97d5cdf360879e3d89bea",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_plane_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "plane",
-   "gameCategory": "casual",
-   "gameDesc": "飞机射击游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_plane_v100.apk",
-    "fileSize": 696276,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_plane_v100.apk",
-    "sha256": "4e8e8b597adc492b0605b627c3fb8824b64d895197d97d5cdf360879e3d89bea"
-   }
-  },
-  {
-   "id": "reaction",
-   "name": "反应力测试",
-   "description": "内置反应力测试。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.reaction.ReactionModuleEntryPoint",
-   "fileName": "game_reaction_v100.apk",
-   "fileSize": 692565,
-   "sha256": "e94823f340da637050bd19666d615849a4e7c8135c9b51d943cefd1556c1efa1",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_reaction_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "reaction",
-   "gameCategory": "casual",
-   "gameDesc": "反应速度测试",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_reaction_v100.apk",
-    "fileSize": 692565,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_reaction_v100.apk",
-    "sha256": "e94823f340da637050bd19666d615849a4e7c8135c9b51d943cefd1556c1efa1"
-   }
-  },
-  {
-   "id": "guess",
-   "name": "猜数字",
-   "description": "内置猜数字游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.guess.GuessModuleEntryPoint",
-   "fileName": "game_guess_v100.apk",
-   "fileSize": 692518,
-   "sha256": "d08957575db042788ecdd6333e746efa3f6a8784a4b175740b403d906f5d283a",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_guess_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "guess",
-   "gameCategory": "casual",
-   "gameDesc": "猜数字游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_guess_v100.apk",
-    "fileSize": 692518,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_guess_v100.apk",
-    "sha256": "d08957575db042788ecdd6333e746efa3f6a8784a4b175740b403d906f5d283a"
-   }
-  },
-  {
-   "id": "tic",
-   "name": "井字棋",
-   "description": "内置井字棋游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.tic.TicTacToeModuleEntryPoint",
-   "fileName": "game_tic_v100.apk",
-   "fileSize": 697027,
-   "sha256": "13813422e4a1b9b94facd1a2d128f17148faf8692a279d6d3d3933fdae17ce78",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_tic_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "tic",
-   "gameCategory": "casual",
-   "gameDesc": "经典井字棋游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_tic_v100.apk",
-    "fileSize": 697027,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_tic_v100.apk",
-    "sha256": "13813422e4a1b9b94facd1a2d128f17148faf8692a279d6d3d3933fdae17ce78"
-   }
-  },
-  {
-   "id": "whack",
-   "name": "打地鼠",
-   "description": "内置打地鼠游戏。",
-   "versionName": "1.0.0",
-   "versionCode": 100,
-   "entryClass": "com.gamecenter.app.whack.WhackModuleEntryPoint",
-   "fileName": "game_whack_v100.apk",
-   "fileSize": 693210,
-   "sha256": "7429fdb6f935c0843c141d141de8b8456d9cf8342d465241e6c4f09d880abe86",
-   "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_whack_v100.apk",
-   "fallbackUrl": "",
-   "githubUrl": "",
-   "iconUrl": "",
-   "category": "game",
-   "minAppVersion": 492,
-   "minAppVersionCode": 492,
-   "depends": [],
-   "type": "game",
-   "activityClass": "",
-   "gameId": "whack",
-   "gameCategory": "casual",
-   "gameDesc": "打地鼠游戏",
-   "builtIn": false,
-   "required": false,
-   "storeCategory": "entertainment_versus",
-   "isBaseFramework": false,
-   "builtInVersionCode": 0,
-   "runtimeType": "android",
-   "deliveryType": "apk",
-   "minHostVersionCode": 492,
-   "maxHostVersionCode": 0,
-   "dependencies": [],
-   "package": {
-    "fileName": "game_whack_v100.apk",
-    "fileSize": 693210,
-    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_whack_v100.apk",
-    "sha256": "7429fdb6f935c0843c141d141de8b8456d9cf8342d465241e6c4f09d880abe86"
+    "sha256": "6fa81b56878a1669072eaee4fc122fed533b9c1877c59ee564f737d0532a26e5"
    }
   },
   {
@@ -1453,7 +1053,7 @@
    "entryClass": "com.gamecenter.app.td.TdModuleEntryPoint",
    "fileName": "game_td_v100.apk",
    "fileSize": 5721625,
-   "sha256": "ede1d37e5dfd01fdf7c36aedc33a823531749eeed3b02cb66376363058e7ff0b",
+   "sha256": "670b67dfc8a8776f22d3237158f46dac5280e9e9917568f25aba3710396d7bb8",
    "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_td_v100.apk",
    "fallbackUrl": "",
    "githubUrl": "",
@@ -1481,7 +1081,7 @@
     "fileName": "game_td_v100.apk",
     "fileSize": 5721625,
     "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_td_v100.apk",
-    "sha256": "ede1d37e5dfd01fdf7c36aedc33a823531749eeed3b02cb66376363058e7ff0b"
+    "sha256": "670b67dfc8a8776f22d3237158f46dac5280e9e9917568f25aba3710396d7bb8"
    }
   }
  ]

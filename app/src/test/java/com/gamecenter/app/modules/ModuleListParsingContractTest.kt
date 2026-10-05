@@ -70,7 +70,9 @@ class ModuleListParsingContractTest {
         val f = File("src/main/assets/modules.json")
         assertTrue("modules.json 未找到: ${f.absolutePath}", f.exists())
         val list = ModuleManager.parseModulesArray(f.readText(Charsets.UTF_8))
-        assertTrue("真实清单解析数异常偏低: ${list.size}", list.size >= 30)
+        // 2026-10-05 批次 3：十个 demo 游戏摘出预装目录，出货清单 34 -> 24 条；
+        // 阈值同步下调，仍守卫"真实清单大面积缺条目/格式回潮"。
+        assertTrue("真实清单解析数异常偏低: ${list.size}", list.size >= 24)
         assertTrue("games_hall 必须可解析", list.any { it.id == "games_hall" })
         assertTrue(list.all { it.id.isNotEmpty() })
         assertTrue(list.all { it.versionCode >= 1 })

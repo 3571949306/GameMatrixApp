@@ -1499,8 +1499,8 @@ object ModuleManager {
                 versionName = "1.0.0", versionCode = 100,
                 entryClass = "com.gamecenter.app.vpn.VpnModuleEntryPoint",
                 fileName = "vpn-release.apk",
-                fileSize = 1134488,
-                sha256 = "cc2ffd83a086562e52d7f89ac3cd89773d11d6eaabbb080b7e7dc31a682c30c9",
+                fileSize = 1134483,
+                sha256 = "f255e9e371ec9338047c94838630928f3f20fd52fd3e87d8419c6e4f08298fb0",
                 downloadUrl = BuildConfig.DOWNLOAD_BASE_URL + "vpn-release.apk",
                 fallbackUrl = "",
                 githubUrl = "",
@@ -1595,6 +1595,10 @@ object ModuleManager {
         val installedIds = getInstalledModuleIds(context)
         for (id in installedIds) {
             val catalogManifest = manifests[id] ?: continue
+            // 清单级隐藏开关（批次 3）：服务器目录/出厂清单可对单个模块配置 enabled=false。
+            // 必须以目录条目为准先拦一次 —— 老安装的 SP 快照可能仍带 enabled=true，
+            // 若只看 installedManifestOr 的结果，服务器把清单翻成 false 后无法拦截。
+            if (!catalogManifest.enabled) continue
             val manifest = installedManifestOr(context, id, catalogManifest)
             if (isLaunchableGameManifest(manifest)) {
                 registerGameFromManifest(context, manifest)
@@ -1676,6 +1680,13 @@ object ModuleManager {
     }
 
     private fun registerGameFromManifest(context: Context, manifest: ModuleManifest) {
+        // 清单级隐藏开关（批次 3）：服务器目录/出厂清单可对单个游戏配置 enabled=false。
+        // 注册处统一跳过，保证"已安装但已下架"的模块不会经 SP 快照/远程清单在大厅复活；
+        // 仅影响大厅注册，不触碰安装/SHA/签名/回滚等安全链路。可逆：清单翻回 true 即恢复。
+        if (!manifest.enabled) {
+            Log.i(TAG, "游戏 ${manifest.id} 清单 enabled=false，跳过大厅注册")
+            return
+        }
         try {
             val gameId = manifest.gameId.ifEmpty { manifest.id }
             // 2026-08-29 模块热更改造：所有游戏统一注册 DynamicGameActivity（模块加载器路径），
