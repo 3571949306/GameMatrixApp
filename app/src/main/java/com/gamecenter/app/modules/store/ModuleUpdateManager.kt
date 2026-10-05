@@ -14,13 +14,13 @@ import java.io.File
  * 职责：
  * 1. 以远程/缓存目录为权威来源，扫描可更新模块
  * 2. 按依赖顺序下载并安装更新
- * 3. 更新失败时触发事务回滚（依赖 TransactionInstaller）
+ * 3. 下载或事务安装失败时保留 current；运行时加载失败由统一 ModuleLoader 回滚
  * 4. 记录更新结果供上层 UI 展示
  *
  * 说明：
  * - 更新由商店目录驱动，不是由模块自身发起
- * - 关键模块（isBaseFramework/required）失败时优先回滚
- * - 非关键模块失败时移入 quarantine，避免影响主流程
+ * - 关键模块（isBaseFramework/required）失败时中断批量更新
+ * - 下载/安装失败不修改 current，避免影响主流程
  */
 object ModuleUpdateManager {
 
@@ -236,7 +236,6 @@ object ModuleUpdateManager {
         callback: UpdateCallback?
     ): Boolean {
         val moduleId = candidate.moduleId
-        val manifest = candidate.manifest
 
         Log.d(TAG, "开始更新模块: $moduleId ${candidate.installedVersion} -> ${candidate.availableVersion}")
         callback?.onStart(moduleId, candidate.installedVersion, candidate.availableVersion)
@@ -283,12 +282,9 @@ object ModuleUpdateManager {
         }
 
         if (!result) {
-            // 更新失败：尝试回滚到 last_good
-            if (manifest.rollbackAllowed && BuildConfig.ENABLE_TRANSACTIONAL_INSTALL) {
-                Log.w(TAG, "尝试回滚模块: $moduleId")
-                val rollbackOk = TransactionInstaller.rollback(context, manifest)
-                callback?.onRollback(moduleId, rollbackOk)
-            }
+            // 此处的失败来自 downloadModule 的 onError：下载或事务安装尚未
+            // 成功提交新 current。再次回滚会把健康版本误降级，并消费 last_good。
+            // 运行时装载失败由 App 注入 ModuleLoader 的统一回调处理。
             callback?.onFailed(moduleId, errorMessage ?: "未知错误")
             return false
         }

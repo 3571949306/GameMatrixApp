@@ -334,14 +334,38 @@ class ModuleStoreActivity : AppCompatActivity(), StoreRendererHost {
 
     private fun showFlutterStore(): Boolean = runCatching {
         com.gamecenter.app.modules.bridge.FlutterStoreEngineManager.getOrCreate(applicationContext)
+        // 定位可见化：与 legacy 商店共用标题栏（模块商店 · 只装需要的），避免 Flutter 整页替换后叙事消失
+        val toolbar = com.google.android.material.appbar.MaterialToolbar(this).apply {
+            id = R.id.moduleToolbar
+            setTitle(R.string.module_store_title)
+            subtitle = getString(R.string.module_store_subtitle)
+            setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
+            setNavigationOnClickListener { finish() }
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
         val container = FragmentContainerView(this).apply {
             id = R.id.flutter_module_store_container
+            layoutParams = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+                0, 0
+            ).apply {
+                width = ViewGroup.LayoutParams.MATCH_PARENT
+                height = 0
+                topToBottom = R.id.moduleToolbar
+                bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            }
+        }
+        val root = androidx.constraintlayout.widget.ConstraintLayout(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            addView(toolbar)
+            addView(container)
         }
-        setContentView(container)
+        setContentView(root)
         if (supportFragmentManager.findFragmentByTag(FLUTTER_STORE_FRAGMENT_TAG) == null) {
             val fragment = com.gamecenter.app.modules.bridge.FlutterModuleStoreFeature()
                 .createFragment(this)

@@ -28,8 +28,9 @@ object ModuleLoader {
     /**
      * 宿主注入清理/回滚回调（首次模块加载前调用一次即可）。
      *
-     * @param onVerifyFailure 完整性或证书校验失败：删除损坏文件并清理安装状态（SP）。
-     * @param onLoadFailureRollback 加载失败：事务回滚到 last_good。
+     * @param onVerifyFailure 完整性或证书校验失败：优先恢复 last_good，无恢复能力时清理状态。
+     * @param onLoadFailureRollback 加载失败：有可信 last_good 时事务回滚，否则执行
+     *                               legacy 失败包隔离和安装状态清理。
      */
     fun attachHostCleanup(
         onVerifyFailure: ((manifest: ModuleManifest, file: File) -> Unit)?,
@@ -57,7 +58,10 @@ object ModuleLoader {
             manifest.fileName.isNotEmpty() -> {
                 if (!shouldLoadExternal(manifest, moduleFile.exists())) {
                     Log.e(TAG, "模块文件缺失或清单无 SHA-256，拒绝装载（内置模块亦不允许回退宿主副本）: $moduleId")
-                    ModuleManager.removeInstalledModulePublic(appCtx, moduleId)
+                    val rolledBack = ModuleManager.recoverFailedModuleLoad(appCtx, moduleId)
+                    if (!rolledBack) {
+                        ModuleManager.removeInstalledModulePublic(appCtx, moduleId)
+                    }
                     null
                 } else {
                     CoreModuleLoader.loadModule(appCtx, manifest, moduleFile) as? ModuleInterface

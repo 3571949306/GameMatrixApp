@@ -29,7 +29,11 @@ class AssetRuntimeHandler : BaseRuntimeHandler(RuntimeType.ASSET) {
     }
 
     override fun rollback(context: Context, module: CatalogModule): RuntimeResult =
-        SecureArchiveInstaller.rollback(context, module.id)
+        SecureArchiveInstaller.rollback(context, module.id) {
+            module.legacyManifest == null ||
+                !ModuleManager.isModuleInstalled(context, module.id) ||
+                ModuleManager.rollbackModule(context, module.id)
+        }
 
     companion object {
         const val ACTION_ASSET_MODULE_READY = "com.gamecenter.app.action.ASSET_MODULE_READY"

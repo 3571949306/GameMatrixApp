@@ -5,9 +5,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.gamecenter.app.BuildConfig
 import com.gamecenter.app.SettingsManager
+import com.gamecenter.app.update.UpdateMirrorOrder
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 分发架构 v2：下载源自动选择。
@@ -24,11 +24,14 @@ object DownloadSourceSelector {
     const val PROBE_TIMEOUT_MS = 15_000           // 单边缘上限
     const val MIRROR_CONNECT_TIMEOUT_MS = 6_000   // 下载级联快速失败
 
+    private val mirrorBases: List<String> by lazy {
+        UpdateMirrorOrder.parseBases(BuildConfig.DL_MIRROR_BASES)
+    }
     private val hostList: List<String> by lazy {
-        BuildConfig.DL_MIRROR_HOSTS.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        mirrorBases.mapNotNull { UpdateMirrorOrder.hostForBase(it) }
     }
 
-    private val testedThisProcess = AtomicBoolean(false)
+    private val probeRunGate = DownloadProbeRunGate()
     @Volatile private var cachedWinner: String? = null
     /** 最近一次页签切换时间（BottomNavigationManager 刷新），用于测速避让 */
     @Volatile private var lastNavigationMs: Long = 0L
@@ -36,8 +39,7 @@ object DownloadSourceSelector {
     fun mirrorHosts(): List<String> = hostList
 
     fun mirrorBaseFor(host: String): String? =
-        BuildConfig.DL_MIRROR_BASES.split(",").map { it.trim() }
-            .firstOrNull { it.contains(host) }
+        mirrorBases.firstOrNull { UpdateMirrorOrder.hostForBase(it).equals(host, ignoreCase = true) }
 
     fun isMobileNetwork(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -54,22 +56,29 @@ object DownloadSourceSelector {
     fun scheduleEntryProbeIfNeeded(context: Context) {
         val settings = SettingsManager.getInstance(context)
         if (!settings.isDlAutoSelect()) return
-        if (!testedThisProcess.compareAndSet(false, true)) return
+        if (!probeRunGate.claimEntrySchedule()) return
         try {
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
-        } catch (_: Throwable) {
+            try {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (_: Throwable) {
+            }
+            val start = System.currentTimeMillis()
+            // 避让循环：用户切页签会刷新 lastNavigationMs
+            while (System.currentTimeMillis() - start < 15_000 ||
+                System.currentTimeMillis() - lastNavigationMs < 6_000
+            ) {
+                if (!settings.isDlAutoSelect()) return
+                Thread.sleep(1000)
+            }
+            runEntryProbeIfNeeded(context)
+            // Step 2：商店首屏数据预取（catalog + store-ui 进既有缓存，首访秒开）
+            prefetchStoreData(context)
+        } catch (interrupted: InterruptedException) {
+            Thread.currentThread().interrupt()
+            android.util.Log.i("DLSelector", "entry probe scheduling interrupted")
+        } finally {
+            probeRunGate.releaseEntryScheduleIfProbeNotStarted()
         }
-        val start = System.currentTimeMillis()
-        // 避让循环：用户切页签会刷新 lastNavigationMs
-        while (System.currentTimeMillis() - start < 15_000 ||
-            System.currentTimeMillis() - lastNavigationMs < 6_000
-        ) {
-            if (!settings.isDlAutoSelect()) return
-            Thread.sleep(1000)
-        }
-        runEntryProbeIfNeeded(context)
-        // Step 2：商店首屏数据预取（catalog + store-ui 进既有缓存，首访秒开）
-        prefetchStoreData(context)
     }
 
     /** Step 2：后台预热商店两个仓库的缓存（refresh 内部已有缓存/降级逻辑）。 */
@@ -101,7 +110,7 @@ object DownloadSourceSelector {
     fun runEntryProbeIfNeeded(context: Context) {
         val settings = SettingsManager.getInstance(context)
         if (!settings.isDlAutoSelect()) return
-        if (!testedThisProcess.compareAndSet(false, true)) return
+        if (!probeRunGate.claimProbeStart()) return
         val mobile = isMobileNetwork(context)
         var shouldTest = false
         if (!mobile) {
@@ -118,10 +127,16 @@ object DownloadSourceSelector {
             }
         }
         if (!shouldTest) return
-        runCatching {
+        try {
             val (winner, session) = probeAll(context, mobile)
-            SourceTestStore.append(context, session)
+            // Keep the in-memory winner usable even if persisting the history fails.
             if (winner.isNotEmpty()) cachedWinner = winner
+            SourceTestStore.append(context, session)
+        } catch (interrupted: InterruptedException) {
+            Thread.currentThread().interrupt()
+            android.util.Log.i("DLSelector", "mirror probe interrupted")
+        } catch (error: Exception) {
+            android.util.Log.w("DLSelector", "mirror probe failed: ${error.message}")
         }
     }
 
@@ -182,19 +197,9 @@ object DownloadSourceSelector {
      * 胜者（本次/历史）置首，其余按 JP→HK→US 基准；全无数据即基准顺序。
      */
     fun preferredMirrorBases(context: Context): List<String> {
-        if (!SettingsManager.getInstance(context).isDlAutoSelect()) return mirrorHosts().mapNotNull { mirrorBaseFor(it) }
-        val winner = cachedWinner
-            ?: SourceTestStore.latestMobileWinner(context)
-            ?: SourceTestStore.bestMobileHost(context, hostList)
-            ?: SourceTestStore.load(context)
-                .filter { it.network == "wifi" && it.winner.isNotEmpty() }
-                .maxByOrNull { it.timestampMs }
-                ?.takeIf { it.timestampMs >= System.currentTimeMillis() - 30L * 24 * 3600 * 1000 }
-                ?.winner
-        val hosts = if (winner != null && hostList.contains(winner)) {
-            listOf(winner) + hostList.filter { it != winner }
-        } else hostList
-        return hosts.mapNotNull { mirrorBaseFor(it) }
+        if (!SettingsManager.getInstance(context).isDlAutoSelect()) return mirrorBases
+        val winner = cachedWinner ?: UpdateMirrorOrder.preferredHostFromHistory(context, mirrorBases)
+        return UpdateMirrorOrder.orderBases(mirrorBases, winner)
     }
 
     /** 供宿主自更新/反馈复用的同一决策：首选镜像 base（含 /app 后缀由调用方拼接）。 */
