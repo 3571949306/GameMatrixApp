@@ -23,6 +23,20 @@
 - `:module-store:feature:games:games:chinesechess:compileDebugJavaWithJavac`：BUILD SUCCESSFUL（等价验证：模块对 AdaptiveAdvisor 的引用未破坏；`compileReleaseJavaWithJavac` 本地未跑——release 任务名触发 `:app` 生产构建门禁，要求配置 catalog Ed25519 公钥，本地开发环境未配置，属预期拦截而非编译失败）。
 - 代码/测试/verify 脚本/detekt baseline 中 grep `DifficultyRecommender` 零残留（仅本条目作为删除记录提及该类名）。
 
+## [批次 3：隐藏 10 个 demo 游戏——清单级 enabled 开关 + 预装摘除（可逆）] - 2026-10-05
+
+### 变更
+
+- **清单级隐藏开关**：`ModuleManager` 注册双道拦截（catalog 条目 + SP 快照），商店网格/搜索/hero 位全量过滤 demo 游戏，新增 9 个守卫用例防回潮。
+- **预装摘除（可逆）**：`catalog.json`/`modules.json` 条目 34→24（version 39 / catalogVersion 18），`mappings`/`dependsOn` 同步删 10 行，`git rm` 10 个 demo 模块 APK（blackjack/checkers/dice/guess/plane/reaction/rock/tic/tiles/whack）；预装再生对账 PASS。
+- **每日挑战可胜集 13→8**：移除依赖 demo 游戏的条目（blackjack/reaction/rock/tic/whack）。
+- **保留恢复能力**：模块源码/`settings.gradle`/图标/成就配置全部保留，需要时可随时恢复。
+
+### 验证与发布
+
+- JVM 测试 594 条全绿；`verify_preinstalled_modules.py`：PASS。
+- **运维提示**：服务器目录同步是独立运维步骤；在完成同步前，老安装包经远程清单复活 demo 游戏属预期行为，不视为回归。
+
 ## [批次 2c+2d：游戏库新首页默认生效 + UIAutomator 适配] - 2026-10-05
 
 ### 变更
@@ -38,6 +52,18 @@
 - `verify_positioning_guard.py` / `check_i18n.py`：PASS。
 - BuildConfig 证据：generated source 中 `HOME_LIBRARY_REVAMP = true`。
 - 实机：`adb devices` 无在线设备（曾见 emulator-5554 offline），本批未跑 `connectedDebugAndroidTest` 实机冒烟。
+
+## [批次 1：首页选路统一走工厂，归档试点首页与死设置路径] - 2026-10-05
+
+### 变更
+
+- **死代码归档**：删除 HomeComposeActivity（零测试试点）、SettingsComposeActivity + SettingsScreen（0 调用方、存储不互通）、SettingsActivity + DataConnectionCenterActivity（死链入口）、BuiltInGamesHallFragment（历史兜底），连带清理 manifest/activity 布局/strings 残留引用。
+- **选路修复**：修复 `GamesHallNavContribution` 绕过工厂直接实例化 Fragment 的 bug，首页选路统一经 `GamesHallDestinationFactory.createFragment` 创建；工厂移除 `legacyV2Chain`，LEGACY 路径固定 legacy `GamesFragment`。
+- **测试与基线清理**：删除长期禁用的 `ModuleDownloaderTest.java.disabled`；lint/detekt 基线陈旧条目同步收敛（整体 114+/3951-，净删约 3800 行）。
+
+### 验证与发布
+
+- `:app:testDebugUnitTest`：555/555 绿。
 
 ## [Sprint 3：定位裁剪落地（金币/游戏周报/提醒下线）] - 2026-09-25
 
