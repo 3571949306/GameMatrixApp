@@ -339,12 +339,12 @@ public class RemoteP2PUtil {
      * 获取加密的 SharedPreferences 实例。
      * <p>
      * 使用 AndroidX Security Crypto 库的 EncryptedSharedPreferences 对敏感数据进行加密存储。
-     * 若加密存储不可用（如设备不支持、密钥损坏等），则降级到普通 SharedPreferences，
-     * 并记录警告日志。
+     * 若加密存储不可用（如设备不支持、密钥损坏等），返回 null 而不降级到明文实例——
+     * 令牌等凭据数据禁止落盘明文（§9.1，机器守卫 scripts/verify_security_clauses.py）。
      *
      * @param context   上下文
      * @param prefsName 偏好设置文件名
-     * @return 加密的 SharedPreferences 实例；降级时返回普通 SharedPreferences
+     * @return 加密的 SharedPreferences 实例；加密不可用时返回 null
      */
     private static SharedPreferences getEncryptedPrefs(Context context, String prefsName) {
         try {
@@ -357,9 +357,8 @@ public class RemoteP2PUtil {
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
         } catch (Exception e) {
-            // 加密存储不可用时降级到明文存储，保证功能可用性
-            Log.w(TAG, "EncryptedSharedPreferences unavailable, falling back to plain prefs", e);
-            return context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
+            Log.w(TAG, "EncryptedSharedPreferences unavailable", e);
+            return null;
         }
     }
 
@@ -378,6 +377,11 @@ public class RemoteP2PUtil {
         if (context == null || token == null) return;
         try {
             SharedPreferences encPrefs = getEncryptedPrefs(context, prefsName);
+            if (encPrefs == null) {
+                // fail-closed：宁可不持久化，也不把令牌写成明文（旧实现写明文后会被迁移 clear 抹掉）
+                Log.w(TAG, "Encrypted prefs unavailable, skip peer token persistence");
+                return;
+            }
             SharedPreferences.Editor editor = encPrefs.edit();
             editor.putString("last_peer_token", token);
             editor.putString("peer_token_" + token, token);
@@ -411,7 +415,7 @@ public class RemoteP2PUtil {
         try {
             // 优先从加密存储读取
             SharedPreferences encPrefs = getEncryptedPrefs(context, prefsName);
-            String token = encPrefs.getString("last_peer_token", null);
+            String token = encPrefs != null ? encPrefs.getString("last_peer_token", null) : null;
             if (token != null && !token.isEmpty()) return token;
 
             // 降级：从明文存储读取旧数据，并迁移到加密存储
@@ -439,7 +443,10 @@ public class RemoteP2PUtil {
     public static void clearPeerToken(Context context, String prefsName) {
         if (context == null) return;
         try {
-            getEncryptedPrefs(context, prefsName).edit().remove("last_peer_token").apply();
+            SharedPreferences encPrefs = getEncryptedPrefs(context, prefsName);
+            if (encPrefs != null) {
+                encPrefs.edit().remove("last_peer_token").apply();
+            }
             context.getSharedPreferences(prefsName, Context.MODE_PRIVATE).edit().remove("last_peer_token").apply();
         } catch (Exception e) {
             Log.e(TAG, "Failed to clear peer token", e);

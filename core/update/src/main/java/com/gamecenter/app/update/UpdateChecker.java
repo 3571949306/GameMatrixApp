@@ -34,11 +34,8 @@ import java.util.concurrent.Executors;
  * 直到找到有新版本为止，或者所有仓库都问过了还是没有。
  * </p>
  * <p>
- * 支持两个更新源（按优先级排列）：香港 VPS、GitHub Releases。
- * 当首选源不可用时，自动降级到下一个源，确保用户总能获取到更新信息。
- * <p>
- * 2026-06-19: 已移除美国 VPS 备用源，仅保留 HK VPS + GitHub 两级分发。
- * </p>
+ * 按最近测速结果排列配置的边缘镜像，失败后继续尝试其他镜像、兼容更新源和 GitHub Releases。
+ * 边缘镜像从同一日本权威更新源读取版本元数据；镜像地址由构建配置提供。
  * <p>
  * 关键设计决策：
  * <ul>
@@ -100,11 +97,8 @@ public class UpdateChecker {
     private volatile boolean isCancelled = false;
 
     /**
-     * 构造函数，初始化线程池并记录默认更新源的协议状态。
+     * 构造函数，初始化线程池并记录兼容更新源的协议状态。
      * 更新连接始终使用系统默认的证书链和主机名验证；自签名证书不能通过代码绕过。
-     * <p>
-     * 2026-06-19: 已移除美国 VPS 更新源（US_BASE_URL 为空字符串，无需检查）。
-     * </p>
      */
     UpdateChecker() {
         executor = Executors.newSingleThreadExecutor();
@@ -150,19 +144,24 @@ public class UpdateChecker {
 
                         if (result != null) {
                             Log.d(TAG, "Update check succeeded on source " + (i + 1) + ": " + baseUrl);
+                            errorMsg = null;
                             break;
                         }
                     } catch (Exception e) {
                         Log.w(TAG, "Source " + (i + 1) + " (" + baseUrl + ") failed: " + e.getMessage());
-                        if (i == urls.size() - 1) {
-                            errorMsg = MessageFormat.format("检查更新失败：{0}", e.getMessage());
-                        }
+                        errorMsg = MessageFormat.format("检查更新失败：{0}", e.getMessage());
+                    }
+                    if (result == null && i == urls.size() - 1 && errorMsg == null) {
+                        errorMsg = "所有更新源均未返回有效版本信息";
                     }
                 }
 
                 UpdateManager.UpdateCheckCallback cb = weakCallback.get();
                 if (cb != null) {
-                    if (errorMsg != null) {
+                    if (isCancelled) {
+                        cb.onCancelled();
+                    } else if (errorMsg != null || urls.isEmpty()) {
+                        if (errorMsg == null) errorMsg = "未配置有效的更新源";
                         cb.onError(errorMsg);
                     } else {
                         cb.onResult(result);
@@ -287,15 +286,12 @@ public class UpdateChecker {
      * <p>
      * 构建优先级：
      * <ol>
-     *   <li>若用户设置了自定义 URL，优先使用自定义源，其余源作为备用</li>
-     *   <li>否则根据用户选择的更新源（香港/GitHub）确定首选源，其余源作为备用</li>
-     *   <li>默认优先级：香港 VPS → GitHub</li>
+     *   <li>显式自定义源或用户明确选择的 GitHub 源</li>
+     *   <li>其余情况下按测速胜者排列配置边缘镜像</li>
+     *   <li>其他配置边缘镜像</li>
+     *   <li>兼容更新源和 GitHub Releases</li>
      * </ol>
      * 会自动去重，避免同一 URL 出现多次。
-     * </p>
-     * <p>
-     * 2026-06-19: 已移除美国 VPS 源。若用户历史选择了"美国 VPS"（UPDATE_SOURCE_VPS_US），
-     * 将回退到"自动"模式（HK VPS → GitHub），保证向后兼容。
      * </p>
      *
      * @param context 上下文，用于读取 SharedPreferences 和用户设置
@@ -304,52 +300,38 @@ public class UpdateChecker {
     public List<String> buildUpdateUrls(Context context) {
         List<String> urls = new ArrayList<>();
 
-        // 0. 分发架构 v2：三边缘自更新镜像最优先（jp/hk/us.dl，/app 结尾，
-        //    由 buildVersionJsonUrl 直拼 version-release.json；边缘不可用时自然级联旧源）
-        if (!isPlaceholderUrl(BuildConfig.UPDATE_MIRROR_BASES)) {
-            for (String mirror : BuildConfig.UPDATE_MIRROR_BASES.split(",")) {
-                String m = mirror.trim();
-                if (!m.isEmpty() && !isPlaceholderUrl(m) && !urls.contains(m)) {
-                    urls.add(m);
-                }
-            }
+        // 分发架构 v2：先使用用户测速记录选出的边缘；失败时按其余边缘与旧源级联。
+        List<String> mirrors = UpdateMirrorOrder.parseBases(BuildConfig.UPDATE_MIRROR_BASES);
+        if (SettingsManager.getInstance(context).isDlAutoSelect()) {
+            String winner = UpdateMirrorOrder.preferredHostFromHistory(context, mirrors);
+            mirrors = UpdateMirrorOrder.orderBases(mirrors, winner);
         }
 
-        // 1. 首先检查是否有自定义 URL（用户设置的自定义更新源）
         String customUrl = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BASE_URL, null);
-        if (customUrl != null && !customUrl.trim().isEmpty() && !isPlaceholderUrl(customUrl)) {
-            customUrl = customUrl.trim();
-            // 如果用户设置了自定义 URL，优先使用，并添加备用源
-            urls.add(customUrl.trim());
-            Log.d(TAG, "Custom update URL configured: " + customUrl);
+        boolean hasCustomUrl = customUrl != null
+                && !customUrl.trim().isEmpty()
+                && !isPlaceholderUrl(customUrl);
+        boolean githubFirst = !hasCustomUrl
+                && SettingsManager.getInstance(context).getUpdateSource()
+                        == SettingsManager.UPDATE_SOURCE_GITHUB;
 
-            // 添加默认源作为备用（避免自定义 URL 不可用时无法更新）
-            if (!HK_BASE_URL.equals(customUrl) && !isPlaceholderUrl(HK_BASE_URL)) {
-                urls.add(HK_BASE_URL);
+        if (hasCustomUrl) {
+            customUrl = customUrl.trim();
+            urls.add(customUrl);
+            Log.d(TAG, "Custom update URL configured: " + customUrl);
+        } else if (githubFirst && !isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) {
+            urls.add(GITHUB_RELEASES_BASE_URL);
+        }
+
+        for (String mirror : mirrors) {
+            if (!isPlaceholderUrl(mirror) && !urls.contains(mirror)) {
+                urls.add(mirror);
             }
-            if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) {
-                urls.add(GITHUB_RELEASES_BASE_URL);
-            }
-        } else {
-            // 2. 没有自定义 URL 或自定义 URL 是占位符，根据用户选择的更新源构建列表
-            int source = SettingsManager.getInstance(context).getUpdateSource();
-            switch (source) {
-                case SettingsManager.UPDATE_SOURCE_VPS_HK:
-                    if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
-                    if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
-                    break;
-                case SettingsManager.UPDATE_SOURCE_GITHUB:
-                    if (!urls.contains(GITHUB_RELEASES_BASE_URL)
-                            && !isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
-                    if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
-                    break;
-                default:
-                    // 默认：三边缘镜像 → 香港 VPS → GitHub（自动模式）
-                    if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
-                    if (!isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) urls.add(GITHUB_RELEASES_BASE_URL);
-                    break;
-            }
+        }
+        if (!isPlaceholderUrl(HK_BASE_URL)) urls.add(HK_BASE_URL);
+        if (!githubFirst && !isPlaceholderUrl(GITHUB_RELEASES_BASE_URL)) {
+            urls.add(GITHUB_RELEASES_BASE_URL);
         }
 
         // 去重保序（镜像可能与后置源重复）
@@ -380,6 +362,21 @@ public class UpdateChecker {
                url.contains("example.com") ||
                url.contains("FALLBACK-DOMAIN") ||
                !UpdateUrlValidator.isValidHttpsUrl(url.trim());
+    }
+
+    /** Mirror origins are explicit trust roots for metadata and APK failover. */
+    static String[] allowedUpdateBases(String... additionalBases) {
+        List<String> bases = new ArrayList<>(
+                UpdateMirrorOrder.parseBases(BuildConfig.UPDATE_MIRROR_BASES));
+        if (additionalBases != null) {
+            for (String base : additionalBases) {
+                if (base != null && UpdateUrlValidator.isValidHttpsUrl(base.trim())
+                        && !bases.contains(base.trim())) {
+                    bases.add(base.trim());
+                }
+            }
+        }
+        return bases.toArray(new String[0]);
     }
 
     /**
@@ -430,7 +427,8 @@ public class UpdateChecker {
                 // Update metadata is executable trust input: never permit a
                 // clear-text request or a URL containing embedded credentials.
                 UpdateUrlValidator.requireAllowedHttpsUrl(
-                        currentUrl, initialUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                        currentUrl, allowedUpdateBases(
+                                initialUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
                 URL url = new URL(currentUrl);
                 conn = (HttpURLConnection) url.openConnection();
                 // Handle redirects ourselves so a 30x response can never make
@@ -456,8 +454,8 @@ public class UpdateChecker {
                     }
                     String location = conn.getHeaderField("Location");
                     currentUrl = UpdateUrlValidator.resolveHttpsRedirect(
-                            conn.getURL(), location, initialUrl,
-                            BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                            conn.getURL(), location, allowedUpdateBases(
+                                    initialUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
                     conn.disconnect();
                     conn = null;
                     continue;
@@ -466,8 +464,8 @@ public class UpdateChecker {
                     throw new IllegalStateException(MessageFormat.format("服务器返回错误: {0}", String.valueOf(code)));
                 }
                 UpdateUrlValidator.requireAllowedHttpsUrl(
-                        conn.getURL().toExternalForm(), initialUrl,
-                        BuildConfig.DOWNLOAD_FALLBACK_BASE_URL);
+                        conn.getURL().toExternalForm(), allowedUpdateBases(
+                                initialUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL));
                 long contentLength = conn.getContentLengthLong();
                 if (contentLength > UpdateUrlValidator.MAX_METADATA_SIZE_BYTES) {
                     throw new IOException("Update metadata is too large");
@@ -557,7 +555,8 @@ public class UpdateChecker {
         // malformed URL) is never passed on to the downloader; it is cleared
         // so that the downloader can use its validated HTTPS fallbacks.
         if (!UpdateUrlValidator.isAllowedHttpsUrl(
-                downloadUrl, versionJsonUrl, baseUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL)) {
+                downloadUrl, allowedUpdateBases(
+                        versionJsonUrl, baseUrl, BuildConfig.DOWNLOAD_FALLBACK_BASE_URL))) {
             Log.w(TAG, "Ignoring unsafe update download URL from metadata");
             downloadUrl = "";
         }
