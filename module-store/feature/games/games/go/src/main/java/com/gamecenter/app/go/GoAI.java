@@ -115,14 +115,28 @@ public class GoAI implements GameAI {
             SearchState root = new SearchState(snapshot.getBoard(), snapshot.getPreviousBoard(),
                     GoGame.WHITE, snapshot.getConsecutivePasses());
             return switch (difficulty) {
-                case 1 -> findSafeRandomMove(root);
+                case 1 -> findSafeRandomMove(root, GoGame.WHITE);
                 case 3 -> mctsMove(root, hardIterations, hardTimeLimitMs);
                 case 4 -> mctsMove(root, masterIterations, masterTimeLimitMs);
-                default -> findTacticalMove(root);
+                default -> findTacticalMove(root, GoGame.WHITE);
             };
         } finally {
             thinking = false;
         }
+    }
+
+    /** 为玩家或当前执子方提供最优落子提示。 */
+    public int[] findHint(GoGame game, int playerColor) {
+        if (game == null) return null;
+        GoGame.PositionSnapshot snapshot = game.snapshot();
+        if (snapshot.isGameOver()) return null;
+        SearchState root = new SearchState(snapshot.getBoard(), snapshot.getPreviousBoard(),
+                playerColor, snapshot.getConsecutivePasses());
+        return switch (Math.max(2, difficulty)) {
+            case 3 -> mctsMove(root, hardIterations, hardTimeLimitMs);
+            case 4 -> mctsMove(root, masterIterations, masterTimeLimitMs);
+            default -> findTacticalMove(root, playerColor);
+        };
     }
 
     @Override
@@ -135,8 +149,8 @@ public class GoAI implements GameAI {
         return thinking;
     }
 
-    private int[] findSafeRandomMove(SearchState state) {
-        List<Candidate> moves = generateCandidates(state, GoGame.WHITE);
+    private int[] findSafeRandomMove(SearchState state, int moverColor) {
+        List<Candidate> moves = generateCandidates(state, moverColor);
         if (moves.isEmpty()) return null;
         List<Candidate> safe = new ArrayList<>();
         int[] captureBuf = scratchCaptureBuf;
@@ -147,10 +161,10 @@ public class GoAI implements GameAI {
                 System.arraycopy(state.board[r], 0, scratch[r], 0, GoGame.BOARD_SIZE);
             }
             int captured = GoGame.applyMoveInPlace(scratch, candidate.row, candidate.col,
-                    GoGame.WHITE, captureBuf);
+                    moverColor, captureBuf);
             if (captured < 0) continue; // 防御：理论上 generateCandidates 已过滤
             int liberties = GoGame.countLiberties(scratch, candidate.row, candidate.col);
-            GoGame.undoMoveInPlace(scratch, candidate.row, candidate.col, GoGame.WHITE, captureBuf, captured);
+            GoGame.undoMoveInPlace(scratch, candidate.row, candidate.col, moverColor, captureBuf, captured);
             if (liberties > 1 || candidate.captured > 0) safe.add(candidate);
         }
         List<Candidate> pool = safe.isEmpty() ? moves : safe;
@@ -162,10 +176,11 @@ public class GoAI implements GameAI {
      * 普通档：一层战术选择。优先提子、救一气棋和打吃，避免自打吃与可被立即提取，
      * 同时奖励连接、切断及 9 路棋盘角边效率。
      */
-    private int[] findTacticalMove(SearchState state) {
-        List<Candidate> moves = generateCandidates(state, GoGame.WHITE);
+    private int[] findTacticalMove(SearchState state, int moverColor) {
+        List<Candidate> moves = generateCandidates(state, moverColor);
         if (moves.isEmpty()) return null;
 
+        int opponentColor = moverColor == GoGame.BLACK ? GoGame.WHITE : GoGame.BLACK;
         // 只对静态评价最好的候选做一层反击检查，控制普通档耗时。
         int replyChecked = Math.min(16, moves.size());
         for (int i = 0; i < replyChecked; i++) {
@@ -176,10 +191,10 @@ public class GoAI implements GameAI {
                 System.arraycopy(state.board[r], 0, scratch[r], 0, GoGame.BOARD_SIZE);
             }
             int captured = GoGame.applyMoveInPlace(scratch, candidate.row, candidate.col,
-                    GoGame.WHITE, scratchCaptureBuf);
+                    moverColor, scratchCaptureBuf);
             int maxReplyCapture = captured < 0
                     ? 0
-                    : maxImmediateCapture(scratch, state.board, GoGame.BLACK);
+                    : maxImmediateCapture(scratch, state.board, opponentColor);
             candidate.score -= maxReplyCapture * 72.0;
         }
         sortCandidates(moves);

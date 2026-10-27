@@ -66,6 +66,7 @@ public class GoView extends View {
     private final Paint lastMovePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint territoryBlackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint territoryWhitePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint hintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF backgroundRect = new RectF();
     private final RectF frameAccentRect = new RectF();
     private final Path boardClipPath = new Path();
@@ -81,6 +82,8 @@ public class GoView extends View {
     private final int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
     private int lastMoveRow = -1;
     private int lastMoveCol = -1;
+    private int hintRow = -1;
+    private int hintCol = -1;
     private float[][] territory;
     private boolean showTerritory;
     private boolean simpleMode;
@@ -180,7 +183,36 @@ public class GoView extends View {
             lastMoveRow = -1;
             lastMoveCol = -1;
         }
+        if (isCellOnBoard(hintRow, hintCol)
+                && board[hintRow][hintCol] != EMPTY) {
+            hintRow = -1;
+            hintCol = -1;
+        }
         invalidate();
+    }
+
+    public void setHint(int row, int col) {
+        if (!isCellOnBoard(row, col)) {
+            clearHint();
+            return;
+        }
+        hintRow = row;
+        hintCol = col;
+        invalidate();
+    }
+
+    public void clearHint() {
+        hintRow = -1;
+        hintCol = -1;
+        invalidate();
+    }
+
+    public int getHintRow() {
+        return hintRow;
+    }
+
+    public int getHintCol() {
+        return hintCol;
     }
 
     public void setLastMove(int row, int col) {
@@ -314,6 +346,7 @@ public class GoView extends View {
         drawTerritory(canvas);
         drawStones(canvas);
         drawLastMove(canvas);
+        drawHint(canvas);
     }
 
     private void drawBoardSurface(Canvas canvas) {
@@ -463,6 +496,29 @@ public class GoView extends View {
         }
     }
 
+    private void drawHint(Canvas canvas) {
+        if (!isCellOnBoard(hintRow, hintCol)) return;
+        if (board[hintRow][hintCol] != EMPTY) return;
+
+        float cx = boardOffsetX + hintCol * cellSize;
+        float cy = boardOffsetY + hintRow * cellSize;
+
+        // Outer emerald green target ring
+        hintPaint.setStyle(Paint.Style.STROKE);
+        hintPaint.setColor(0xFF00E676); // Emerald bright green
+        hintPaint.setStrokeWidth(dp(simpleMode ? 2.0f : 2.6f));
+        canvas.drawCircle(cx, cy, stoneRadius * 0.95f, hintPaint);
+
+        // Inner glowing core
+        hintPaint.setStyle(Paint.Style.FILL);
+        hintPaint.setColor(0x4400E676);
+        canvas.drawCircle(cx, cy, stoneRadius * 0.45f, hintPaint);
+
+        // Center dot
+        hintPaint.setColor(0xFF00C853);
+        canvas.drawCircle(cx, cy, dp(3.0f), hintPaint);
+    }
+
     @Override
     public boolean onTouchEvent(@NonNull MotionEvent event) {
         switch (event.getActionMasked()) {
@@ -529,6 +585,7 @@ public class GoView extends View {
             int col = pendingClickCol;
             pendingClickRow = -1;
             pendingClickCol = -1;
+            clearHint();
             listener.onCellClick(row, col);
         } else {
             pendingClickRow = -1;

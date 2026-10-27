@@ -458,8 +458,8 @@
       "versionCode": 100,
       "entryClass": "com.gamecenter.app.go.GoModuleEntryPoint",
       "fileName": "game_go_v100.apk",
-      "fileSize": 715441,
-      "sha256": "2d6e8e1637d7549d0dff93030009fe0c901382f271df14efbc816f9da0202e51",
+      "fileSize": 721846,
+      "sha256": "28ec16f54fc08184f1f2e43ed91954b663bcb4f5b221147f8f4d9b053a65e9ee",
       "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_go_v100.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -485,9 +485,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_go_v100.apk",
-        "fileSize": 715441,
+        "fileSize": 721846,
         "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_go_v100.apk",
-        "sha256": "2d6e8e1637d7549d0dff93030009fe0c901382f271df14efbc816f9da0202e51"
+        "sha256": "28ec16f54fc08184f1f2e43ed91954b663bcb4f5b221147f8f4d9b053a65e9ee"
       }
     },
     {
