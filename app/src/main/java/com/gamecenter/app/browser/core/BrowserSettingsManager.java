@@ -423,6 +423,7 @@ public class BrowserSettingsManager {
         s.setSupportZoom(true);
         s.setBuiltInZoomControls(true);
         s.setDisplayZoomControls(false);
+        s.setTextZoom(100);
         s.setAllowContentAccess(false);
         s.setAllowFileAccess(false);
         // S5: 禁止混合内容

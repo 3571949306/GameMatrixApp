@@ -289,7 +289,7 @@ public class ToolsFragment extends Fragment {
         tvToolsEmpty = view.findViewById(R.id.tv_tools_empty);
         etSearch = view.findViewById(R.id.et_tool_search);
         TextView tvTitle = view.findViewById(R.id.tv_tools_title);
-        tvTitle.setText(getString(R.string.app_name));
+        tvTitle.setText(getString(R.string.tools_title));
         TextView tvSubtitle = view.findViewById(R.id.tv_tools_subtitle);
         if (tvSubtitle != null) {
             tvSubtitle.setText("实时仪表盘 · 电池 / 内存 / CPU / 存储");

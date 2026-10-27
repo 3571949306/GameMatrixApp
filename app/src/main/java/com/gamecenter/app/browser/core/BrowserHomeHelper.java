@@ -55,6 +55,17 @@ public class BrowserHomeHelper {
     private static final String KEY_PINNED_SITES = "pinned_sites";
     private static final int MAX_TOP_SITES = 8;
 
+    private static final List<SiteEntry> DEFAULT_POPULAR_SITES = java.util.Arrays.asList(
+            new SiteEntry("https://www.baidu.com", "百度", "baidu.com", 1),
+            new SiteEntry("https://www.bilibili.com", "哔哩哔哩", "bilibili.com", 1),
+            new SiteEntry("https://www.zhihu.com", "知乎", "zhihu.com", 1),
+            new SiteEntry("https://github.com", "GitHub", "github.com", 1),
+            new SiteEntry("https://cn.bing.com", "必应", "bing.com", 1),
+            new SiteEntry("https://www.douban.com", "豆瓣", "douban.com", 1),
+            new SiteEntry("https://www.xiaohongshu.com", "小红书", "xiaohongshu.com", 1),
+            new SiteEntry("https://weibo.com", "微博", "weibo.com", 1)
+    );
+
     private static final class ExecutorHolder {
         private static final ExecutorService INSTANCE = Executors.newFixedThreadPool(4);
     }
@@ -163,6 +174,13 @@ public class BrowserHomeHelper {
                     if (urls.add(t.url)) merged.add(t);
                     if (merged.size() >= MAX_TOP_SITES) break;
                 }
+                // 若不足 8 个，以精选常用站点补足，避免冷启动时起始页空白失调
+                for (SiteEntry def : DEFAULT_POPULAR_SITES) {
+                    if (merged.size() >= MAX_TOP_SITES) break;
+                    if (urls.add(def.url)) {
+                        merged.add(def);
+                    }
+                }
                 final List<SiteEntry> finalList = merged;
                 // P0 内存泄漏修复：复用 mainHandler 以便 destroy() 时移除回调；
                 // 并在 post 前检查 destroyed 标志，避免 Helper 销毁后仍操作 stale view。
@@ -233,29 +251,65 @@ public class BrowserHomeHelper {
         // 修复：使用 container 的 context（来自 Fragment，带 AppCompat/Material 主题），
         // 而非 application context（DeviceDefault 主题，无法解析 ?attr/selectableItemBackgroundBorderless 等）。
         LayoutInflater inflater = LayoutInflater.from(container.getContext());
-        for (SiteEntry site : sites) {
-            View item = inflater.inflate(
-                    gridMode ? R.layout.item_home_site_grid : R.layout.item_home_site_card,
-                    container, false);
-            ImageView icon = item.findViewById(R.id.site_icon);
-            TextView title = item.findViewById(R.id.site_title);
-            if (icon != null) icon.setImageBitmap(generateLetterIcon(site.domain));
-            if (title != null) title.setText(site.title);
-            item.setOnClickListener(v -> {
-                if (callback != null) callback.onSiteClicked(site.url);
-            });
-            item.setOnLongClickListener(v -> {
-                // 未来功能: 长按快捷方式弹出"固定/删除"菜单，需实现 OnLongClickListener
-                return true;
-            });
-            container.addView(item);
+        if (gridMode) {
+            final int SPAN_COUNT = 4;
+            LinearLayout currentRow = null;
+            for (int i = 0; i < sites.size(); i++) {
+                if (i % SPAN_COUNT == 0) {
+                    currentRow = new LinearLayout(container.getContext());
+                    currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                    LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    if (i > 0) {
+                        rowParams.topMargin = (int) (16 * container.getResources().getDisplayMetrics().density);
+                    }
+                    currentRow.setLayoutParams(rowParams);
+                    container.addView(currentRow);
+                }
+                SiteEntry site = sites.get(i);
+                View item = inflater.inflate(R.layout.item_home_site_grid, currentRow, false);
+                ImageView icon = item.findViewById(R.id.site_icon);
+                TextView title = item.findViewById(R.id.site_title);
+                if (icon != null) icon.setImageBitmap(generateLetterIcon(site.domain));
+                if (title != null) title.setText(site.title);
+                item.setOnClickListener(v -> {
+                    if (callback != null) callback.onSiteClicked(site.url);
+                });
+                item.setOnLongClickListener(v -> true);
+                if (currentRow != null) {
+                    currentRow.addView(item);
+                }
+            }
+            if (currentRow != null && sites.size() % SPAN_COUNT != 0) {
+                int remainder = sites.size() % SPAN_COUNT;
+                for (int j = 0; j < (SPAN_COUNT - remainder); j++) {
+                    View dummy = new View(container.getContext());
+                    LinearLayout.LayoutParams dummyParams = new LinearLayout.LayoutParams(
+                            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+                    dummy.setLayoutParams(dummyParams);
+                    currentRow.addView(dummy);
+                }
+            }
+        } else {
+            for (SiteEntry site : sites) {
+                View item = inflater.inflate(R.layout.item_home_site_card, container, false);
+                ImageView icon = item.findViewById(R.id.site_icon);
+                TextView title = item.findViewById(R.id.site_title);
+                if (icon != null) icon.setImageBitmap(generateLetterIcon(site.domain));
+                if (title != null) title.setText(site.title);
+                item.setOnClickListener(v -> {
+                    if (callback != null) callback.onSiteClicked(site.url);
+                });
+                item.setOnLongClickListener(v -> true);
+                container.addView(item);
+            }
         }
     }
 
     /** 生成首字母图标（无 favicon 时的占位） */
     @NonNull
     private Bitmap generateLetterIcon(@NonNull String domain) {
-        int size = (int) (48 * context.getResources().getDisplayMetrics().density);
+        int size = (int) (58 * context.getResources().getDisplayMetrics().density);
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
         // 背景色基于域名 hash

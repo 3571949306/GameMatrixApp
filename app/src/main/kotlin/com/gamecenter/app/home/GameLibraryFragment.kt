@@ -173,11 +173,23 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     override fun onResume() {
         super.onResume()
+        activity?.let { com.gamecenter.app.settings.FontSizeHelper.apply(it) }
+        layoutManager?.spanCount = currentSpanCount()
         updateGreeting() // 跨时段停留后回来刷新问候口径
         // §4.2：模块安装返回后先注册已安装模块，再刷新游戏库
         com.gamecenter.app.modules.ModuleManager
             .registerInstalledGameModules(requireContext())
         viewModel.refresh() // 筛选与滚动由 ViewModel/SavedState 恢复
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden) {
+            activity?.let { com.gamecenter.app.settings.FontSizeHelper.apply(it) }
+            layoutManager?.spanCount = currentSpanCount()
+            updateGreeting()
+            viewModel.refresh()
+        }
     }
 
     override fun onDestroyView() {
@@ -305,12 +317,21 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
 
     /** 随机游戏 FAB（批次 2a，对齐 legacy Batch 10-3）：防抖 + 从当前过滤结果随机启动。 */
     private fun initRandomFab(view: View) {
-        val fab = view.findViewById<FloatingActionButton>(R.id.fab_random_game)
+        val fab = view.findViewById<FloatingActionButton>(R.id.fab_random_game) ?: return
         fab.setOnClickListener { launchRandomGame() }
         fab.setOnLongClickListener {
             Toast.makeText(requireContext(), R.string.random_game_fab_desc, Toast.LENGTH_SHORT).show()
             true
         }
+        recyclerView.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                if (dy > 8 && fab.isShown) {
+                    fab.hide()
+                } else if (dy < -8 && !fab.isShown) {
+                    fab.show()
+                }
+            }
+        })
     }
 
     /** 防抖间隔（毫秒）：两次点击间隔少于此值则忽略（与 legacy RANDOM_GAME_DEBOUNCE_MS 一致）。 */
@@ -409,14 +430,17 @@ class GameLibraryFragment : Fragment(), GameHomeAdapter.Callbacks {
     private fun applyPalette() {
         val p = currentPalette() ?: return
         root.setBackgroundColor(p.background)
-        root.findViewById<TextView>(R.id.tv_game_library_title)?.setTextColor(p.onSurface)
+        root.findViewById<TextView>(R.id.tv_game_library_title)?.let { tv ->
+            tv.text = getString(R.string.game_library_title)
+            tv.setTextColor(p.onSurface)
+        }
         root.findViewById<TextView>(R.id.tv_game_library_greeting)?.setTextColor(p.onSurfaceVariant)
         root.findViewById<View>(R.id.game_library_toolbar)?.setBackgroundColor(p.surface)
         root.findViewById<FloatingActionButton>(R.id.fab_random_game)?.let { fab ->
             fab.backgroundTintList = android.content.res.ColorStateList.valueOf(p.primary)
             fab.imageTintList = android.content.res.ColorStateList.valueOf(p.onPrimary)
         }
-        searchInput.setBackgroundColor(p.surfaceVariant)
+        searchInput.backgroundTintList = android.content.res.ColorStateList.valueOf(p.surfaceVariant)
         searchInput.setTextColor(p.onSurface)
         searchInput.setHintTextColor(p.onSurfaceVariant)
         adapter?.setPalette(p)

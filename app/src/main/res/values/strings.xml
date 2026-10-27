@@ -3,7 +3,7 @@
     <!-- 定位红线：本地优先、按需组装；经典游戏入口、工具学习留存、模块化壁垒 -->
     <string name="home_positioning_tagline">本地优先 · 按需组装的游戏与工具箱</string>
     <string name="home_positioning_modules">模块商店 · 只装需要的</string>
-    <string name="home_positioning_sections">经典游戏是入口，工具与学习是留存</string>
+    <string name="home_positioning_sections"></string>
     <string name="nav_browser">网页浏览</string>
     <string name="nav_games">游戏大厅</string>
     <string name="nav_tools">工具箱</string>
@@ -146,6 +146,7 @@
     <string name="category_classics">经典</string>
     <string name="category_puzzle">益智类</string>
     <string name="category_casual">休闲类</string>
+    <string name="category_strategy">策略类</string>
     <string name="category_reaction">反应类</string>
     <string name="category_other">其他</string>
     <string name="game_sudoku">数独</string>

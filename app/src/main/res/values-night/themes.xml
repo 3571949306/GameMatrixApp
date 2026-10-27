@@ -36,6 +36,7 @@
         <item name="colorOnInfoContainer">@color/colorOnInfoContainer</item>
         <item name="materialButtonStyle">@style/Widget.GameMatrix.Button</item>
         <item name="android:buttonStyle">@style/Widget.GameMatrix.PlatformButton</item>
+        <item name="materialCardViewStyle">@style/Widget.GameMatrix.Card</item>
     </style>
 
     <!-- 启动屏专用主题：接入 AndroidX SplashScreen API，适配 Android 12+ 双启动屏（深色主题） -->

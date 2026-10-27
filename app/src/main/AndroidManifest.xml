@@ -87,11 +87,6 @@
             android:exported="false"
             android:theme="@style/Theme.GameMatrixApp" />
 
-        <!-- P3-11: 新手引导（首次启动） -->
-        <activity
-            android:name=".ui.onboarding.OnboardingActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GameMatrixApp" />
 
         <activity
             android:name=".DynamicGameActivity"

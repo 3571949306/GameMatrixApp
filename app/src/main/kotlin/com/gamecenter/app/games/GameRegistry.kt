@@ -19,6 +19,8 @@ object GameRegistry {
     const val CATEGORY_CLASSICS = "classics"
     const val CATEGORY_PUZZLE = "puzzle"
     const val CATEGORY_CASUAL = "casual"
+    const val CATEGORY_STRATEGY = "strategy"
+    const val CATEGORY_TOWER_DEFENSE = "tower_defense"
 
     /** 内置游戏默认版本号 */
     private const val BUILT_IN_VERSION_CODE = 1
@@ -299,13 +301,23 @@ object GameRegistry {
 
     private fun categoryName(context: Context, key: String): String {
         return try {
-            if (CATEGORY_PUZZLE == key) context.getString(R.string.category_puzzle)
-            else if (CATEGORY_CASUAL == key) context.getString(R.string.category_casual)
-            else context.getString(R.string.category_classics)
+            when (key) {
+                CATEGORY_PUZZLE -> context.getString(R.string.category_puzzle)
+                CATEGORY_CASUAL -> context.getString(R.string.category_casual)
+                CATEGORY_CLASSICS -> context.getString(R.string.category_classics)
+                CATEGORY_TOWER_DEFENSE, CATEGORY_STRATEGY -> context.getString(R.string.category_strategy)
+                "reaction" -> context.getString(R.string.category_reaction)
+                else -> context.getString(R.string.category_other)
+            }
         } catch (e: android.content.res.Resources.NotFoundException) {
-            if (CATEGORY_PUZZLE == key) "益智"
-            else if (CATEGORY_CASUAL == key) "休闲"
-            else "经典"
+            when (key) {
+                CATEGORY_PUZZLE -> "益智类"
+                CATEGORY_CASUAL -> "休闲类"
+                CATEGORY_CLASSICS -> "经典"
+                CATEGORY_TOWER_DEFENSE, CATEGORY_STRATEGY -> "策略类"
+                "reaction" -> "反应类"
+                else -> "其他"
+            }
         }
     }
 

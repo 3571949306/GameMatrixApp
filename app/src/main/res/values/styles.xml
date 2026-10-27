@@ -180,16 +180,15 @@
     <!-- Feature D (VISUAL_REFRESH): 底部导航选中态圆角胶囊指示器 -->
     <style name="ShapeAppearance.GameMatrix.NavIndicator" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">14dp</item>
+        <item name="cornerSize">16dp</item>
     </style>
 
-    <!-- Batch 6 (NAV_ACTIVE_ANIM): 选中态胶囊增强 —— 更高、更圆、带阴影 -->
+    <!-- Batch 6 (NAV_ACTIVE_ANIM): 选中态胶囊增强 —— 标准 Material 3 药丸胶囊 -->
     <style name="Widget.GameMatrix.BottomNavigationView.ActiveIndicator"
            parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:height">36dp</item>
+        <item name="android:height">32dp</item>
         <item name="shapeAppearance">@style/ShapeAppearance.GameMatrix.NavIndicator</item>
         <item name="backgroundTint">@color/bottom_nav_selected_bg</item>
-        <item name="android:elevation">3dp</item>
     </style>
 
 </resources>

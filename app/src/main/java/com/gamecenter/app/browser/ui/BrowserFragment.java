@@ -179,7 +179,9 @@ public class BrowserFragment extends Fragment implements
         @Override
         public void onRequestChromeHidden(boolean hidden) {
             if (topBar != null) topBar.setVisibility(hidden ? View.GONE : View.VISIBLE);
-            if (bottomBar != null) bottomBar.setVisibility(hidden ? View.GONE : View.VISIBLE);
+            if (bottomBar != null) {
+                bottomBar.setVisibility(isEmbeddedInHost() ? View.GONE : (hidden ? View.GONE : View.VISIBLE));
+            }
         }
 
         @Override
@@ -393,8 +395,9 @@ public class BrowserFragment extends Fragment implements
                 currentTab = tabManager.createTab(null);
             }
             if (currentTab != null && controller != null) {
-                // 切换到当前 Tab，按需创建 WebView（fallbackUrl 用 defaultHomeUrl）
-                controller.switchToTab(currentTab.getId(), controller.getDefaultHomeUrl(), currentTab);
+                // 切换到当前 Tab，按需创建 WebView（起始页开启时用 about:home 作为 fallback，避免冷启动加载外部网站）
+                String fallback = BuildConfig.BROWSER_HOME_PAGE ? "about:home" : controller.getDefaultHomeUrl();
+                controller.switchToTab(currentTab.getId(), fallback, currentTab);
                 // 重新绑定下载监听（新 WebView 需要）
                 controller.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) ->
                         handleDownload(url, contentDisposition, mimetype, userAgent));
@@ -824,9 +827,14 @@ public class BrowserFragment extends Fragment implements
         if (homeContainer != null) homeContainer.setVisibility(View.GONE);
     }
 
+    private boolean isEmbeddedInHost() {
+        Activity act = getActivity();
+        return act != null && act.findViewById(R.id.nav_view) != null;
+    }
+
     /**
      * P3-5 统一交互反馈：Feature Flag 开启时使用 Snackbar，否则使用 Toast。
-     * Snackbar 锚定到 bottomBar 上方，避免被系统手势条遮挡。
+     * Snackbar 锚定到 bottomBar 或宿主底栏上方，避免被系统手势条遮挡。
      */
     private void showFeedback(int stringRes) {
         showFeedback(getString(stringRes));
@@ -838,7 +846,11 @@ public class BrowserFragment extends Fragment implements
             com.google.android.material.snackbar.Snackbar sb =
                     com.google.android.material.snackbar.Snackbar.make(
                             getView(), text, com.google.android.material.snackbar.Snackbar.LENGTH_SHORT);
-            if (bottomBar != null) sb.setAnchorView(bottomBar);
+            if (!isEmbeddedInHost() && bottomBar != null && bottomBar.getVisibility() == View.VISIBLE) {
+                sb.setAnchorView(bottomBar);
+            } else if (getActivity() != null && getActivity().findViewById(R.id.nav_view) != null) {
+                sb.setAnchorView(getActivity().findViewById(R.id.nav_view));
+            }
             sb.show();
         } else {
             if (getContext() != null) Toast.makeText(getContext(), text, Toast.LENGTH_SHORT).show();
@@ -1011,6 +1023,9 @@ public class BrowserFragment extends Fragment implements
         errorView = view.findViewById(R.id.error_view);
         topBar = view.findViewById(R.id.browser_top_bar);
         bottomBar = view.findViewById(R.id.browser_bottom_bar);
+        if (isEmbeddedInHost() && bottomBar != null) {
+            bottomBar.setVisibility(View.GONE);
+        }
         incognitoIndicator = view.findViewById(R.id.incognito_indicator);
 
         // Find In Page
@@ -1624,6 +1639,24 @@ public class BrowserFragment extends Fragment implements
                     }
                 }
                 return true;
+            } else if (id == R.id.menu_home) {
+                if (BuildConfig.BROWSER_HOME_PAGE) {
+                    showHomePage();
+                    etUrl.setText("");
+                    hideKeyboardFrom(topBar);
+                } else {
+                    String homeUrl = getHomeUrl();
+                    if (controller != null) controller.loadUrl(homeUrl);
+                    etUrl.setText(homeUrl);
+                }
+                return true;
+            } else if (id == R.id.menu_tabs) {
+                if (BuildConfig.BROWSER_REAL_MULTI_TAB) {
+                    launchTabManager();
+                } else {
+                    showTabList();
+                }
+                return true;
             } else if (id == R.id.menu_incognito) {
                 toggleIncognitoMode();
                 return true;
@@ -1815,7 +1848,9 @@ public class BrowserFragment extends Fragment implements
         if (tab == null) return;
         // fallbackUrl 用 tab 当前 URL（若 WebView 需重建时加载）
         String fallback = tab.getUrl();
-        if (fallback == null || fallback.isEmpty()) fallback = controller.getDefaultHomeUrl();
+        if (fallback == null || fallback.isEmpty()) {
+            fallback = BuildConfig.BROWSER_HOME_PAGE ? "about:home" : controller.getDefaultHomeUrl();
+        }
         WebView wv = controller.switchToTab(tabId, fallback, tab);
         if (wv == null) return;
         syncIncognitoState(tab);
@@ -1823,11 +1858,11 @@ public class BrowserFragment extends Fragment implements
         cancelPendingGeolocationRequest();
         // 同步 URL 栏和起始页显示状态
         String currentUrl = controller.getCurrentUrl();
-        if (currentUrl != null && !currentUrl.isEmpty() && !isReaderModeUrl(currentUrl)) {
+        if (currentUrl != null && !currentUrl.isEmpty() && !isReaderModeUrl(currentUrl) && !isHomePageUrl(currentUrl)) {
             etUrl.setText(currentUrl);
             hideHomePage();
         } else if (BuildConfig.BROWSER_HOME_PAGE) {
-            // 空白页 → 显示起始页
+            // 起始页 / 空白页 → 显示起始页
             showHomePage();
             etUrl.setText("");
         }
@@ -2593,7 +2628,7 @@ public class BrowserFragment extends Fragment implements
             customViewCallback = null;
         }
         if (topBar != null) topBar.setVisibility(View.VISIBLE);
-        if (bottomBar != null) bottomBar.setVisibility(View.VISIBLE);
+        if (bottomBar != null) bottomBar.setVisibility(isEmbeddedInHost() ? View.GONE : View.VISIBLE);
         if (getActivity() != null) {
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
         }

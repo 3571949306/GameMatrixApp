@@ -13,6 +13,8 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:fillViewport="false"
+    android:clipToPadding="false"
+    android:paddingBottom="24dp"
     android:scrollbars="none">
 
     <LinearLayout
@@ -276,214 +278,384 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ===== 快捷入口卡片（2x2 网格） ===== -->
-        <!-- BUG-002 复测修复12（最终方案3）：使用固定高度 168dp 而非 wrap_content。
-             根因：LinearLayout 在 EXACTLY 模式（fillViewport=true 时父容器强制高度）
-             下会把 wrap_content 的最后一个子 View 重新测量为 AT_MOST，
-             导致 card_quick_entries 被压缩，第二行按钮高度从 72dp 被压缩到 32dp。
-             固定 248dp = padding(8dp*2) + 三行按钮(72dp*3) + 行间距(8dp*2)（第三行为游戏周报入口）。 -->
-        <LinearLayout
+        <!-- ===== 快捷入口卡片（高质感列表组） ===== -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_quick_entries"
+            style="@style/Widget.GameMatrix.Card"
             android:layout_width="match_parent"
-            android:layout_height="248dp"
-            android:orientation="vertical"
-            android:layout_marginTop="@dimen/gm_spacing_1"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gm_spacing_2"
             android:layout_marginStart="@dimen/gm_spacing_4"
             android:layout_marginEnd="@dimen/gm_spacing_4"
-            android:layout_marginBottom="@dimen/gm_spacing_1"
-            android:padding="@dimen/gm_spacing_2"
-            android:background="?attr/colorSurface"
-            android:elevation="2dp">
+            android:layout_marginBottom="@dimen/gm_spacing_4">
 
-            <!-- 第一行：游戏统计 / 成就中心 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2">
+                android:orientation="vertical"
+                android:paddingTop="@dimen/gm_spacing_3"
+                android:paddingBottom="@dimen/gm_spacing_3">
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/gm_spacing_4"
+                    android:layout_marginBottom="@dimen/gm_spacing_2"
+                    android:text="@string/profile_section_actions"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <!-- 1. 游戏统计 -->
                 <LinearLayout
                     android:id="@+id/btn_profile_stats"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="@dimen/gm_spacing_4"
+                    android:paddingEnd="@dimen/gm_spacing_4"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_stats_playtime"
-                        android:contentDescription="@string/profile_my_stats"
-                        app:tint="?attr/colorPrimary" />
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_profile_item_icon">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_stats_playtime"
+                            android:contentDescription="@string/profile_my_stats"
+                            app:tint="?attr/colorPrimary" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/profile_my_stats"
-                        android:textSize="12sp"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_my_stats"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="对局时长与走势分析"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="@string/profile_my_stats"
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
 
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="68dp"
+                    android:layout_marginEnd="@dimen/gm_spacing_4"
+                    android:background="?attr/colorOutlineVariant"
+                    android:alpha="0.4" />
+
+                <!-- 2. 成就中心 -->
                 <LinearLayout
                     android:id="@+id/btn_profile_achievements"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="@dimen/gm_spacing_4"
+                    android:paddingEnd="@dimen/gm_spacing_4"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_profile_item_icon">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_star_filled"
+                            android:contentDescription="@string/profile_my_achievements"
+                            app:tint="?attr/colorPrimary" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_my_achievements"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="荣誉勋章与高光里程碑"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
                     <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_star_filled"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
                         android:contentDescription="@string/profile_my_achievements"
-                        app:tint="?attr/colorPrimary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/profile_my_achievements"
-                        android:textSize="12sp"
-                        android:textColor="?attr/colorOnSurface" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 第二行：模块商店 / 资料设置 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="@dimen/gm_spacing_2"
-                android:weightSum="2">
-
-                <LinearLayout
-                    android:id="@+id/btn_profile_module_store"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_tools"
-                        android:contentDescription="@string/profile_module_store"
-                        app:tint="?attr/colorPrimary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/profile_module_store"
-                        android:textSize="12sp"
-                        android:textColor="?attr/colorOnSurface" />
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/btn_profile_settings"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="68dp"
+                    android:layout_marginEnd="@dimen/gm_spacing_4"
+                    android:background="?attr/colorOutlineVariant"
+                    android:alpha="0.4" />
 
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_settings"
-                        android:contentDescription="@string/profile_settings"
-                        app:tint="?attr/colorPrimary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/profile_settings"
-                        android:textSize="12sp"
-                        android:textColor="?attr/colorOnSurface" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- 第三行：游戏周报 / 关卡合集 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="@dimen/gm_spacing_2"
-                android:weightSum="2">
-
-                <LinearLayout
-                    android:visibility="gone"
-                    android:id="@+id/btn_profile_weekly_report"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_checkin_calendar"
-                        android:contentDescription="@string/profile_weekly_report"
-                        app:tint="?attr/colorPrimary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/profile_weekly_report"
-                        android:textSize="12sp"
-                        android:textColor="?attr/colorOnSurface" />
-                </LinearLayout>
-
+                <!-- 3. 关卡码合集本 -->
                 <LinearLayout
                     android:id="@+id/btn_profile_codebook"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="@dimen/gm_spacing_4"
+                    android:paddingEnd="@dimen/gm_spacing_4"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_reading_list"
-                        android:contentDescription="@string/profile_codebook"
-                        app:tint="?attr/colorPrimary" />
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_profile_item_icon">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_reading_list"
+                            android:contentDescription="@string/profile_codebook"
+                            app:tint="?attr/colorPrimary" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/profile_codebook"
-                        android:textSize="12sp"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_codebook"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="自制关卡导入导出与社区分享"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="@string/profile_codebook"
+                        app:tint="?attr/colorOutline" />
                 </LinearLayout>
+
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="68dp"
+                    android:layout_marginEnd="@dimen/gm_spacing_4"
+                    android:background="?attr/colorOutlineVariant"
+                    android:alpha="0.4" />
+
+                <!-- 4. 模块商店 -->
+                <LinearLayout
+                    android:id="@+id/btn_profile_module_store"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="@dimen/gm_spacing_4"
+                    android:paddingEnd="@dimen/gm_spacing_4"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_profile_item_icon">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_tools"
+                            android:contentDescription="@string/profile_module_store"
+                            app:tint="?attr/colorPrimary" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_module_store"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="探索并安装更多精选游戏与组件"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="@string/profile_module_store"
+                        app:tint="?attr/colorOutline" />
+                </LinearLayout>
+
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="68dp"
+                    android:layout_marginEnd="@dimen/gm_spacing_4"
+                    android:background="?attr/colorOutlineVariant"
+                    android:alpha="0.4" />
+
+                <!-- 5. 资料设置 -->
+                <LinearLayout
+                    android:id="@+id/btn_profile_settings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="@dimen/gm_spacing_4"
+                    android:paddingEnd="@dimen/gm_spacing_4"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <FrameLayout
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_profile_item_icon">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_settings"
+                            android:contentDescription="@string/profile_settings"
+                            app:tint="?attr/colorPrimary" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_settings"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="主题皮肤、音效与数据备份"
+                            android:textSize="11sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="@string/profile_settings"
+                        app:tint="?attr/colorOutline" />
+                </LinearLayout>
+
+                <!-- 隐藏的周报保留占位 ID（防 NPE） -->
+                <View
+                    android:id="@+id/btn_profile_weekly_report"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
+
             </LinearLayout>
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

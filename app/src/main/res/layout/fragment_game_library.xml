@@ -26,6 +26,7 @@
                 android:id="@+id/tv_game_library_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:text="@string/game_library_title"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -58,14 +59,18 @@
     <EditText
         android:id="@+id/et_game_library_search"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="8dp"
+        android:background="@drawable/bg_home_search_box"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="10dp"
+        android:paddingHorizontal="16dp"
         android:hint="@string/game_library_search_hint"
         android:imeOptions="actionSearch"
         android:inputType="text"
         android:maxLines="1"
-        android:textSize="15sp" />
+        android:textSize="14sp" />
 
     <!-- 搜索历史：仅搜索框聚焦且输入为空且有历史时展开（§4.2） -->
     <LinearLayout
@@ -98,6 +103,7 @@
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipToPadding="false"
         android:paddingHorizontal="12dp"
         android:scrollbars="none">
 
@@ -121,7 +127,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="12dp" />
+            android:paddingBottom="24dp" />
 
         <!-- 随机游戏 FAB（批次 2a，防抖 + 从当前过滤结果随机启动） -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -129,10 +135,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="24dp"
             android:contentDescription="@string/random_game_fab_desc"
-            android:src="@drawable/ic_dice"
+            android:src="@drawable/ic_fab_dice"
             app:backgroundTint="?attr/colorPrimary"
             app:tint="?attr/colorOnPrimary" />
     </FrameLayout>

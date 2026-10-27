@@ -99,6 +99,9 @@ class BottomNavigationManager(
      * 使用错误 ClassLoader；宿主内置贡献仍可直接创建 Fragment。
      */
     fun navigateTo(menuId: Int): Boolean {
+        (context as? android.app.Activity)?.let {
+            com.gamecenter.app.settings.FontSizeHelper.apply(it)
+        }
         DownloadSourceSelector.noteNavigation() // 分发 v2：测速避让时钟（用户开始切换则测速顺延）
         val item = menuIdToItem[menuId] ?: return false
         val tag = item.id

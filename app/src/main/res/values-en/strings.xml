@@ -63,7 +63,7 @@
     <!-- Positioning line: local-first, install only what you need -->
     <string name="home_positioning_tagline">Local-first games and tools, modular by design</string>
     <string name="home_positioning_modules">Module store · install only what you need</string>
-    <string name="home_positioning_sections">Classic games to start, tools and study to stay</string>
+    <string name="home_positioning_sections"></string>
 <string name="app_update">"App update"</string>
 <string name="appearance">"Appearance"</string>
 <string name="appearance_settings">"Appearance settings"</string>
@@ -1443,6 +1443,7 @@
     <string name="btn_restart">Restart</string>
     <string name="btn_undo">Undo</string>
     <string name="category_casual">Casual</string>
+    <string name="category_strategy">Strategy</string>
     <string name="category_classics">Classics</string>
     <string name="category_other">Other</string>
     <string name="category_puzzle">Puzzle</string>

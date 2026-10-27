@@ -195,9 +195,10 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/ai_chat_add"
-                    android:text="+"
-                    android:textSize="22sp"
-                    app:iconPadding="0dp" />
+                    app:icon="@drawable/ic_add"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="22dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_ai_model"
@@ -228,9 +229,10 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/ai_chat_send"
-                    android:text="➤"
-                    android:textSize="20sp"
-                    app:iconPadding="0dp" />
+                    app:icon="@drawable/ic_send"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="20dp" />
             </LinearLayout>
 
             <TextView

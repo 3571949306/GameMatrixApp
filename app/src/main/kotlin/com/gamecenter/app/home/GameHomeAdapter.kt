@@ -193,6 +193,7 @@ class GameHomeAdapter(
         item: GameHomeItem.GameTile,
         p: GameHomeThemeResolver.GameHomePalette?
     ) {
+        applyCardPalette(vh.itemView, p)
         vh.icon.setImageDrawable(iconLoader(item.entry))
         vh.name.text = nameLoader(item.entry)
         vh.name.setTextColor(p?.onSurface ?: vh.name.currentTextColor)
@@ -260,7 +261,10 @@ class GameHomeAdapter(
     /** 卡片底色跟 Resolver（palette 缺省时保留主题默认色）。 */
     private fun applyCardPalette(card: View, p: GameHomeThemeResolver.GameHomePalette?) {
         val materialCard = card as? com.google.android.material.card.MaterialCardView ?: return
-        p?.let { materialCard.setCardBackgroundColor(it.surface) }
+        p?.let {
+            materialCard.setCardBackgroundColor(it.surface)
+            materialCard.strokeColor = it.surfaceVariant
+        }
     }
 
     /**

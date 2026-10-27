@@ -37,16 +37,31 @@
                 android:textStyle="bold" />
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/tv_msg_content"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_ai_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:lineSpacingExtra="3dp"
-            android:maxWidth="@dimen/ai_chat_assistant_max_width"
-            android:textColor="@color/ai_chat_assistant_content"
-            android:textSize="14sp"
-            tools:text="AI 回复的消息内容" />
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
+
+            <TextView
+                android:id="@+id/tv_msg_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="3dp"
+                android:maxWidth="@dimen/ai_chat_assistant_max_width"
+                android:paddingStart="@dimen/gm_spacing_3"
+                android:paddingTop="@dimen/gm_spacing_2"
+                android:paddingEnd="@dimen/gm_spacing_3"
+                android:paddingBottom="@dimen/gm_spacing_2"
+                android:textColor="@color/ai_chat_assistant_content"
+                android:textSize="14sp"
+                tools:text="AI 回复的消息内容" />
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
     <TextView

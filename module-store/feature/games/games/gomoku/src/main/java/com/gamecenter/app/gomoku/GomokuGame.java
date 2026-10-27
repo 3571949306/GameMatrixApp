@@ -252,7 +252,31 @@ public class GomokuGame {
                 undoMove(playerRecord);
             }
         }
+        gameOver = false;
+        winner = null;
+        winningLine = null;
         return undoCount;
+    }
+
+    public MoveRecord undoSingleMove() {
+        if (moveHistory.isEmpty()) return null;
+        MoveRecord last = moveHistory.remove(moveHistory.size() - 1);
+        undoMove(last);
+        currentPlayer = last.player;
+        gameOver = false;
+        winner = null;
+        winningLine = null;
+        return last;
+    }
+
+    public int getMoveStepNumber(int x, int y) {
+        for (int i = 0; i < moveHistory.size(); i++) {
+            MoveRecord r = moveHistory.get(i);
+            if (r.x == x && r.y == y) {
+                return i + 1;
+            }
+        }
+        return -1;
     }
 
     /**

@@ -61,17 +61,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         bindFavorites(view)
         bindQuickEntries(view)
 
-        // BUG-002 复测修复13：XML 布局方案（NestedScrollView + 固定高度 168dp）失败。
-        // 实测 fillViewport=false 时 NestedScrollView 仍把 LinearLayout 压缩到视口高度，
-        // 导致 card_quick_entries 高度从 672px(168dp) 被压缩到 479px，第二行按钮被压缩到 127px。
-        // 最终方案：用代码强制设置 card_quick_entries 高度 = 248dp（三行入口），绕过 XML 布局测量压缩问题。
-        val density = resources.displayMetrics.density
-        val cardQuickEntries = view.findViewById<View>(R.id.card_quick_entries)
-        cardQuickEntries.post {
-            val params = cardQuickEntries.layoutParams
-            params.height = (248 * density).toInt()  // 248dp 转 px（padding 16 + 72dp*3 + 间距 8*2）
-            cardQuickEntries.layoutParams = params
-        }
+// 现代化卡片自适应：card_quick_entries 由 MaterialCardView wrap_content 自然测量
     }
 
     override fun onResume() {
