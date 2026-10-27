@@ -43,18 +43,17 @@ public class DailyChallengeManager {
 
     /**
      * 有胜负判定的游戏 id 集合（TYPE_WIN_ROUNDS 只能从中选）。
-     * <p>来源：module-store 各模块 {@code GameUsageStore.recordWin} 调用点盘点（2026-09-23）——
-     * 原 13 个；2026-10-05 批次 3 将 blackjack/reaction/rock/tic/whack 五个 demo 游戏
-     * 摘出商店目录（清单级隐藏），"赢 N 局"挑战绑定它们同样会成为死任务，故同步移除，
-     * 剩余 8 个（brotato/chinesechess/doudizhu/gomoku/minesweeper/pipeline/sokoban/td）
-     * 仍满足轮换。无尽类游戏（tetris/snake/flappy 等）终局不产生胜利记录，"赢 N 局"
-     * 挑战一旦绑定即成为永久无法完成的死任务。</p>
+     * <p>来源：module-store 各模块 {@code GameUsageStore.recordWin} 调用点盘点——
+     * 共 13 个：blackjack/brotato/chinesechess/doudizhu/gomoku/minesweeper/pipeline/
+     * reaction/rock/sokoban/td/tic/whack。无尽类游戏（tetris/snake/flappy 等）终局
+     * 不产生胜利记录，"赢 N 局"挑战一旦绑定即成为永久无法完成的死任务。</p>
      * <p>包级可见仅供单测断言（{@code DailyChallengeWinningPoolTest}），业务侧勿改。</p>
      */
     static final java.util.Set<String> WINNABLE_GAME_IDS =
             new java.util.HashSet<>(java.util.Arrays.asList(
-                    "brotato", "chinesechess", "doudizhu", "gomoku",
-                    "minesweeper", "pipeline", "sokoban", "td"));
+                    "blackjack", "brotato", "chinesechess", "doudizhu", "gomoku",
+                    "minesweeper", "pipeline", "reaction", "rock", "sokoban", "td",
+                    "tic", "whack"));
 
     private static final String PREF_NAME = "daily_challenge";
     private static final String KEY_DATE = "challenge_date";
