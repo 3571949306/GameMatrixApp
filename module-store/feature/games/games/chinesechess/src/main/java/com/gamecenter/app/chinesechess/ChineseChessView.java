@@ -249,39 +249,39 @@ public class ChineseChessView extends View {
         thickLinePaint.setAntiAlias(true);
 
         redPiecePaint = new Paint();
-        redPiecePaint.setColor(Color.parseColor("#FFF3E0"));
+        redPiecePaint.setColor(Color.parseColor("#FFF8E7"));
         redPiecePaint.setAntiAlias(true);
 
         blackPiecePaint = new Paint();
-        blackPiecePaint.setColor(Color.parseColor("#FAFAFA"));
+        blackPiecePaint.setColor(Color.parseColor("#FFF3E0"));
         blackPiecePaint.setAntiAlias(true);
 
         redPieceBorderPaint = new Paint();
-        redPieceBorderPaint.setColor(Color.parseColor("#C62828"));
+        redPieceBorderPaint.setColor(Color.parseColor("#B71C1C"));
         redPieceBorderPaint.setStyle(Paint.Style.STROKE);
-        redPieceBorderPaint.setStrokeWidth(2.5f);
+        redPieceBorderPaint.setStrokeWidth(3.0f);
         redPieceBorderPaint.setAntiAlias(true);
 
         blackPieceBorderPaint = new Paint();
-        blackPieceBorderPaint.setColor(Color.parseColor("#212121"));
+        blackPieceBorderPaint.setColor(Color.parseColor("#263238"));
         blackPieceBorderPaint.setStyle(Paint.Style.STROKE);
-        blackPieceBorderPaint.setStrokeWidth(2.5f);
+        blackPieceBorderPaint.setStrokeWidth(3.0f);
         blackPieceBorderPaint.setAntiAlias(true);
 
         redInnerPaint = new Paint();
-        redInnerPaint.setColor(Color.parseColor("#C62828"));
+        redInnerPaint.setColor(0x80B71C1C);
         redInnerPaint.setStyle(Paint.Style.STROKE);
-        redInnerPaint.setStrokeWidth(1f);
+        redInnerPaint.setStrokeWidth(1.2f);
         redInnerPaint.setAntiAlias(true);
 
         blackInnerPaint = new Paint();
-        blackInnerPaint.setColor(Color.parseColor("#212121"));
+        blackInnerPaint.setColor(0x80263238);
         blackInnerPaint.setStyle(Paint.Style.STROKE);
-        blackInnerPaint.setStrokeWidth(1f);
+        blackInnerPaint.setStrokeWidth(1.2f);
         blackInnerPaint.setAntiAlias(true);
 
         pieceShadowPaint = new Paint();
-        pieceShadowPaint.setColor(0x40000000);
+        pieceShadowPaint.setColor(0x50000000);
         pieceShadowPaint.setAntiAlias(true);
 
         redTextPaint = new Paint();
@@ -524,14 +524,14 @@ public class ChineseChessView extends View {
         int w = MeasureSpec.getSize(widthMeasureSpec);
         int h = MeasureSpec.getSize(heightMeasureSpec);
 
-        // 棋盘宽度 = 8个格子（9个交叉点），高度 = 9个格子（10个交叉点）
-        float cellW = (w - 2 * boardPadding) / 8f;
-        float cellH = (h - 2 * boardPadding) / 9f;
+        // 棋盘宽度 = 8个格子（9个交叉点），两端各需预留半格与外围防穿模木框空间
+        float cellW = (w - 2 * boardPadding) / 9.2f;
+        float cellH = (h - 2 * boardPadding) / 10.4f;
         cellSize = Math.min(cellW, cellH);
 
         // 居中棋盘
-        float boardWidth = cellSize * 8;
-        float boardHeight = cellSize * 9;
+        float boardWidth = cellSize * 8f;
+        float boardHeight = cellSize * 9f;
         boardLeft = (w - boardWidth) / 2f;
         boardTop = (h - boardHeight) / 2f;
 
@@ -582,9 +582,10 @@ public class ChineseChessView extends View {
         outerPaint.setAntiAlias(true);
         canvas.drawRect(0, 0, getWidth(), getHeight(), outerPaint);
 
+        float framePad = cellSize * 0.56f;
         RectF boardRect = new RectF(
-                boardLeft - boardPadding, boardTop - boardPadding,
-                boardLeft + cellSize * 8 + boardPadding, boardTop + cellSize * 9 + boardPadding);
+                boardLeft - framePad, boardTop - framePad,
+                boardLeft + cellSize * 8f + framePad, boardTop + cellSize * 9f + framePad);
 
         Paint bgPaint = new Paint();
         bgPaint.setAntiAlias(true);
@@ -719,10 +720,9 @@ public class ChineseChessView extends View {
     /** 增强版显示双方路数，帮助玩家阅读棋谱与复盘。 */
     private void drawCoordinates(Canvas canvas) {
         String[] redFiles = {"九", "八", "七", "六", "五", "四", "三", "二", "一"};
-        coordinatePaint.setTextSize(Math.max(cellSize * 0.20f, 11f));
-        float topY = Math.max(coordinatePaint.getTextSize(), boardTop - cellSize * 0.14f);
-        float bottomY = Math.min(getHeight() - 2f,
-                boardTop + 9 * cellSize + cellSize * 0.27f);
+        coordinatePaint.setTextSize(Math.max(cellSize * 0.22f, 11f));
+        float topY = boardTop - cellSize * 0.22f;
+        float bottomY = boardTop + 9 * cellSize + cellSize * 0.38f;
         for (int col = 0; col < ChineseChessGame.COLS; col++) {
             float x = boardLeft + col * cellSize;
             canvas.drawText(String.valueOf(col + 1), x, topY, coordinatePaint);
@@ -920,24 +920,48 @@ public class ChineseChessView extends View {
      * @param radius 棋子半径（像素）
      */
     private void drawSinglePiece(Canvas canvas, ChineseChessGame.Piece piece, float cx, float cy, float radius) {
-        if (!simpleMode) canvas.drawCircle(cx + 2, cy + 2, radius, pieceShadowPaint);
+        // 1. 棋子投影 (软阴影)
+        if (!simpleMode) {
+            canvas.drawCircle(cx, cy + radius * 0.08f, radius * 1.02f, pieceShadowPaint);
+        }
 
+        // 2. 棋子木质底色与倒角外边框
         Paint bgPaint = piece.side == ChineseChessGame.Side.RED ? redPiecePaint : blackPiecePaint;
         canvas.drawCircle(cx, cy, radius, bgPaint);
 
         Paint borderPaint = piece.side == ChineseChessGame.Side.RED ? redPieceBorderPaint : blackPieceBorderPaint;
         canvas.drawCircle(cx, cy, radius, borderPaint);
 
+        // 3. 内凹同心环装饰线 (双圈立体雕刻感)
         if (!simpleMode) {
             Paint innerPaint = piece.side == ChineseChessGame.Side.RED ? redInnerPaint : blackInnerPaint;
-            canvas.drawCircle(cx, cy, radius * 0.85f, innerPaint);
+            canvas.drawCircle(cx, cy, radius * 0.82f, innerPaint);
         }
 
+        // 4. 将军警报红晕 (如果该方被将军且此棋子是将/帅)
+        if (game != null && game.isInCheck(piece.side) && piece.type == ChineseChessGame.PieceType.GENERAL) {
+            Paint alertPaint = new Paint();
+            alertPaint.setColor(0x55FF1744);
+            alertPaint.setStyle(Paint.Style.FILL);
+            alertPaint.setAntiAlias(true);
+            canvas.drawCircle(cx, cy, radius * 1.15f, alertPaint);
+        }
+
+        // 5. 阴刻中文字符 (带微光阴影形成凹凸雕刻感)
         Paint textPaint = piece.side == ChineseChessGame.Side.RED ? redTextPaint : blackTextPaint;
-        textPaint.setTextSize(radius * 1.2f);
+        textPaint.setTextSize(radius * 1.18f);
         Rect textBounds = new Rect();
         textPaint.getTextBounds(piece.getName(), 0, piece.getName().length(), textBounds);
         float textY = cy + textBounds.height() / 2f;
+
+        if (!simpleMode) {
+            // 阴刻微高光反光 (右下方 1px)
+            Paint bevelTextPaint = new Paint(textPaint);
+            bevelTextPaint.setColor(0x70FFFFFF);
+            canvas.drawText(piece.getName(), cx + 0.8f, textY + 0.8f, bevelTextPaint);
+        }
+
+        // 实体墨色/朱砂文字
         canvas.drawText(piece.getName(), cx, textY, textPaint);
     }
 

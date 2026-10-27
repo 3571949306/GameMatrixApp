@@ -418,8 +418,8 @@
       "versionCode": 300,
       "entryClass": "com.gamecenter.app.chinesechess.ChineseChessModuleEntryPoint",
       "fileName": "game_chinesechess_v300.apk",
-      "fileSize": 756081,
-      "sha256": "e9b562e7c56eff49ced65f3901f556cc137e072d0b7ffbb12b9637c15717f082",
+      "fileSize": 761632,
+      "sha256": "a1cdc6ef7c8df3f8f4a3e2048c15892d558f2f4130934a28d882769b26f9b779",
       "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_chinesechess_v300.apk",
       "fallbackUrl": "",
       "githubUrl": "",
@@ -445,9 +445,9 @@
       "dependencies": [],
       "package": {
         "fileName": "game_chinesechess_v300.apk",
-        "fileSize": 756081,
+        "fileSize": 761632,
         "downloadUrl": "https://hk-update.tcp888.uk:2083/modules/game_chinesechess_v300.apk",
-        "sha256": "e9b562e7c56eff49ced65f3901f556cc137e072d0b7ffbb12b9637c15717f082"
+        "sha256": "a1cdc6ef7c8df3f8f4a3e2048c15892d558f2f4130934a28d882769b26f9b779"
       }
     },
     {
