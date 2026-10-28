@@ -9,8 +9,7 @@ import java.util.Random;
 /**
  * 贪吃蛇游戏逻辑（纯状态，不依赖 Android UI）。
  *
- * <p>从宿主 SnakeView 中提取的核心游戏逻辑：蛇身坐标、食物、方向、
- * 碰撞检测与分数计算。渲染由 {@link SnakeView} 负责。</p>
+ * <p>支持三级难度（休闲慢速、标准挑战、极速狂飙）、苹果吞食计数与防掉头碰撞检测。</p>
  */
 public class SnakeGame {
 
@@ -22,23 +21,48 @@ public class SnakeGame {
     public static final int DIR_DOWN = 2;
     public static final int DIR_LEFT = 3;
 
-    /** tick 结果 */
     public static final int TICK_MOVED = 0;
     public static final int TICK_ATE = 1;
     public static final int TICK_DIED = 2;
+
+    public static final int DIFFICULTY_EASY = 0;
+    public static final int DIFFICULTY_NORMAL = 1;
+    public static final int DIFFICULTY_HARD = 2;
+
+    public static final String[] DIFFICULTY_NAMES = {"休闲慢速", "标准挑战", "极速狂飙"};
 
     private final List<Point> snake = new ArrayList<>();
     private Point food;
     private int direction = DIR_RIGHT;
     private int nextDirection = DIR_RIGHT;
     private int score = 0;
+    private int applesEaten = 0;
+    private int difficulty = DIFFICULTY_NORMAL;
     private boolean gameOver = false;
     private boolean running = false;
     private final Random random = new Random();
 
+    public void setDifficulty(int diff) {
+        this.difficulty = Math.max(DIFFICULTY_EASY, Math.min(DIFFICULTY_HARD, diff));
+    }
+
+    public int getDifficulty() {
+        return difficulty;
+    }
+
+    public float getSpeedFactor() {
+        switch (difficulty) {
+            case DIFFICULTY_EASY: return 0.20f;
+            case DIFFICULTY_HARD: return 0.85f;
+            case DIFFICULTY_NORMAL:
+            default: return 0.50f;
+        }
+    }
+
     public void reset() {
         snake.clear();
         score = 0;
+        applesEaten = 0;
         direction = DIR_RIGHT;
         nextDirection = DIR_RIGHT;
         gameOver = false;
@@ -98,6 +122,7 @@ public class SnakeGame {
 
         if (grows) {
             score += 10;
+            applesEaten++;
             spawnFood();
             return TICK_ATE;
         } else {
@@ -135,6 +160,7 @@ public class SnakeGame {
     public List<Point> getSnake() { return snake; }
     public Point getFood() { return food; }
     public int getScore() { return score; }
+    public int getApplesEaten() { return applesEaten; }
     public boolean isGameOver() { return gameOver; }
     public boolean isRunning() { return running; }
 

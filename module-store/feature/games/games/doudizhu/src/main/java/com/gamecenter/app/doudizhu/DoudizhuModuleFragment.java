@@ -133,9 +133,21 @@ public class DoudizhuModuleFragment extends Fragment {
         if (controller != null && controller.isInGame()) {
             showGameScreen();
         } else {
-            showMenu();
+            // 即开即玩：若有有效自动存档直接恢复；否则以预设或持久化历史难度直接开局
+            String saved = loadValidSaveJson();
+            if (saved != null) {
+                resumeGame(saved);
+            } else {
+                int diff = prefilledDifficulty >= 0 ? prefilledDifficulty : loadSavedDifficulty(ctx);
+                startGame(diff);
+            }
         }
         return contentRoot;
+    }
+
+    private static int loadSavedDifficulty(Context ctx) {
+        return com.gamecenter.app.core.common.ModuleScopedPreferences.get(ctx, GAME_ID, "ddz_prefs")
+                .getInt("last_difficulty", DoudizhuGameController.DIFFICULTY_NORMAL);
     }
 
     // ============ 菜单页 ============
@@ -293,7 +305,7 @@ public class DoudizhuModuleFragment extends Fragment {
     private void showGameScreen() {
         Context ctx = requireContext();
         DoudizhuGameScreen screen = new DoudizhuGameScreen(ctx, controller,
-                this::exitToMenu, this::onSettled);
+                this::exitToLobby, this::onSettled);
         swapContent(screen);
     }
 
@@ -315,7 +327,7 @@ public class DoudizhuModuleFragment extends Fragment {
         saveManager.deleteSave(GAME_ID, SLOT_AUTO);
     }
 
-    private void exitToMenu() {
+    private void exitToLobby() {
         if (controller != null) {
             // 退出确认弹窗承诺"退出前将保存进度"（P3 复查修复 A）：
             // 对局进行中在 shutdown()（清空对局状态）之前落存档，已结束/大厅态清档
@@ -333,8 +345,8 @@ public class DoudizhuModuleFragment extends Fragment {
             controller.shutdown();
             controller = null;
         }
-        if (contentRoot != null) {
-            showMenu();
+        if (isAdded() && getActivity() != null) {
+            getActivity().finish();
         }
     }
 

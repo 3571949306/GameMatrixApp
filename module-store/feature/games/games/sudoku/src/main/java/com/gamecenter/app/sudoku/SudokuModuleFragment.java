@@ -2,9 +2,11 @@ package com.gamecenter.app.sudoku;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,10 +19,10 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Space;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -31,14 +33,21 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 数独 2.0 游戏界面。
+ * 数独 2.0 现代化即开即玩游戏界面。
  *
- * <p>界面只负责展示 {@link SudokuGame.State} 和转发用户意图；规则、草稿、历史与存档均由
- * 模块内的纯逻辑层负责。布局使用宿主资源中的文案和颜色，适配动态模块资源加载失败时的降级路径。</p>
+ * <p>特性：
+ * 1. 摒弃旧版阻断式菜单，直接进入战场；自动恢复未完成存档或即开新局；
+ * 2. 顶部标准导航：返回、标题、可点选难度胶囊 [中等 ▾]、规则说明 ℹ、设置 ⚙；
+ * 3. 现代化 Player HUD 看板：用时、错误计数 (0/3)、已填进度、提示统计与实时战况反馈；
+ * 4. 现代化胶囊控制栏：↩ 撤销、↪ 重做、✏ 笔记（高亮状态）、🧹 擦除、💡 提示；
+ * 5. 底部 1~9 现代数字键盘：实时展示每个数字剩余未填数量，填满自动打钩禁用；
+ * 6. 终局结算弹窗与无缝难度切换；
+ * 7. 完整兼容自定义谜题与编辑器入口。</p>
  */
 public class SudokuModuleFragment extends Fragment {
 
     private static final int TOTAL_CELLS = SudokuGame.GRID_SIZE * SudokuGame.GRID_SIZE;
+    private static final String[] DIFFICULTY_LABELS = {"简单", "中等", "困难", "专家"};
 
     private final Handler timerHandler = new Handler(Looper.getMainLooper());
     private final Runnable timerTick = new Runnable() {
@@ -54,55 +63,58 @@ public class SudokuModuleFragment extends Fragment {
     private SudokuGame game;
     private SudokuSaveManager saveManager;
     private SudokuView sudokuView;
+
     /** 当前游玩的自定义谜题名（null = 内置难度局）。 */
     private String currentCustomPuzzleName;
     /** 当前自定义谜题的给定盘快照（重开用，null = 内置难度局）。 */
     private int[][] currentCustomPuzzleGrid;
 
-    private LinearLayout menuPanel;
-    private LinearLayout gamePanel;
-    private LinearLayout resultPanel;
-    private Button btnResume;
-    private Button btnNotes;
-    private Button btnUndo;
-    private Button btnRedo;
-    private Button btnHint;
-    private Button btnClear;
-    private Button[] numberButtons;
-
-    private TextView tvMenuStatus;
-    private TextView tvDifficulty;
-    private TextView tvHeaderSubtitle;
+    // 顶部与 HUD
+    private TextView tvDifficultyCapsule;
     private TextView tvTimer;
-    private TextView tvProgress;
     private TextView tvMistakes;
+    private TextView tvProgress;
     private TextView tvHints;
     private TextView tvMessage;
-    private TextView tvResultStats;
 
-    private boolean notesMode;
-    private long elapsedMs;
-    private long timerAnchorMs;
-    private boolean timerRunning;
+    // 控制胶囊
+    private LinearLayout btnUndo;
+    private LinearLayout btnRedo;
+    private LinearLayout btnNotes;
+    private LinearLayout btnClear;
+    private LinearLayout btnHint;
+    private TextView tvNotesLabel;
+    private TextView tvNotesIcon;
 
+    // 数字键盘 1~9 (容器、大数字、剩余计数)
+    private final LinearLayout[] numKeyContainers = new LinearLayout[9];
+    private final TextView[] numKeyDigits = new TextView[9];
+    private final TextView[] numKeyRemainings = new TextView[9];
+
+    private boolean notesMode = false;
+    private long elapsedMs = 0L;
+    private long timerAnchorMs = 0L;
+    private boolean timerRunning = false;
+    private int currentDifficulty = 1; // 默认中等 (1)
+
+    // 配色方案（支持日间/夜间模式）
+    private boolean isNight;
     private int colorBg;
     private int colorSurface;
     private int colorBoard;
-    private int colorText;
-    private int colorSecondaryText;
-    private int colorPrimary;
-    private int colorPrimaryText;
-    private int colorMutedButton;
-    private int colorMutedButtonText;
-    private int colorDangerButton;
-    private int colorDangerButtonText;
-    private int colorSelectedButton;
-    private int colorSelectedButtonText;
+    private int colorTextPrimary;
+    private int colorTextSecondary;
+    private int colorAccent;
+    private int colorAccentLight;
+    private int colorDanger;
+    private int colorDangerBg;
+    private int colorSuccess;
+    private int colorKeyBg;
+    private int colorKeyText;
     private int colorGrid;
     private int colorGridStrong;
     private int colorSelected;
     private int colorRelated;
-    private int colorError;
     private int colorGiven;
     private int colorUser;
     private int colorErrorText;
@@ -112,7 +124,10 @@ public class SudokuModuleFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         Context context = requireContext();
-        applyThemeColors();
+        isNight = (context.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        initThemeColors();
+
         saveManager = new SudokuSaveManager(context);
         game = new SudokuGame();
 
@@ -122,20 +137,60 @@ public class SudokuModuleFragment extends Fragment {
 
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(16), dp(12), dp(16), dp(24));
+        content.setPadding(dp(14), dp(8), dp(14), dp(16));
         scrollView.addView(content, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        menuPanel = new LinearLayout(context);
-        menuPanel.setOrientation(LinearLayout.VERTICAL);
-        buildMenu(context);
-        content.addView(menuPanel, matchWidthWrapContent());
+        // 1. 顶部标准导航栏
+        View topBar = buildTopAppBar(context);
+        content.addView(topBar, matchWidthWrapContent());
 
-        gamePanel = new LinearLayout(context);
-        gamePanel.setOrientation(LinearLayout.VERTICAL);
-        buildGame(context);
-        gamePanel.setVisibility(View.GONE);
-        content.addView(gamePanel, matchWidthWrapContent());
+        // 2. 状态看板 HUD
+        View hud = buildHud(context);
+        LinearLayout.LayoutParams hudParams = matchWidthWrapContent();
+        hudParams.topMargin = dp(6);
+        hudParams.bottomMargin = dp(6);
+        content.addView(hud, hudParams);
+
+        // 3. 9x9 数独棋盘
+        FrameLayout boardFrame = new FrameLayout(context);
+        boardFrame.setBackground(roundBackground(colorSurface, dp(14)));
+        boardFrame.setPadding(dp(4), dp(4), dp(4), dp(4));
+
+        sudokuView = new SudokuView(context);
+        sudokuView.setColors(colorBoard, colorSurface, colorSelected, colorRelated, colorDangerBg,
+                colorGrid, colorGridStrong, colorGiven, colorUser, colorErrorText, colorNote);
+        sudokuView.setOnCellSelectListener((row, col) -> {
+            updateNumberButtons();
+            updateControlCapsules();
+            if (game != null) {
+                if (game.isCellLocked(row, col)) {
+                    tvMessage.setText("🔒 预设数字（不可修改）");
+                } else if (game.getValue(row, col) != 0) {
+                    tvMessage.setText("已填入 " + game.getValue(row, col) + "，点击数字可修改，或点击擦除");
+                } else {
+                    tvMessage.setText(notesMode ? "✏️ 草稿模式：点击数字记录笔记" : "✨ 点击下方数字落子");
+                }
+            }
+        });
+        boardFrame.addView(sudokuView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+
+        LinearLayout.LayoutParams boardParams = matchWidthWrapContent();
+        boardParams.topMargin = dp(2);
+        boardParams.bottomMargin = dp(8);
+        content.addView(boardFrame, boardParams);
+
+        // 4. 现代化胶囊控制栏 (撤销, 重做, 笔记, 擦除, 提示)
+        View controlBar = buildModernControlBar(context);
+        content.addView(controlBar, matchWidthWrapContent());
+
+        // 5. 现代化 1~9 数字键盘
+        View numberPad = buildModernNumberPad(context);
+        LinearLayout.LayoutParams padParams = matchWidthWrapContent();
+        padParams.topMargin = dp(8);
+        padParams.bottomMargin = dp(4);
+        content.addView(numberPad, padParams);
 
         return scrollView;
     }
@@ -143,13 +198,42 @@ public class SudokuModuleFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        showMenu();
+
+        // 注册系统返回拦截
+        requireActivity().getOnBackPressedDispatcher().addCallback(
+                getViewLifecycleOwner(), new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleBackPress();
+            }
+        });
+
+        // 即开即玩：优先恢复存档，若无则开新对局
+        SudokuSaveManager.SavedGame saved = saveManager != null ? saveManager.load() : null;
+        if (saved != null && saved.getState().getBoard() != null && game.restoreState(saved.getState())) {
+            currentCustomPuzzleName = null;
+            currentCustomPuzzleGrid = null;
+            currentDifficulty = game.getCurrentDifficultyIndex();
+            elapsedMs = saved.getElapsedMs();
+            notesMode = false;
+            sudokuView.setInteractionEnabled(true);
+            sudokuView.clearSelection();
+            renderGame();
+            if (game.isBoardComplete()) {
+                onPuzzleSolved();
+            } else {
+                startTimer();
+                tvMessage.setText("已为您恢复上次未完成对局");
+            }
+        } else {
+            startGameWithDifficulty(currentDifficulty);
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (isGameVisible() && game != null && !game.isBoardComplete()) startTimer();
+        if (game != null && !game.isBoardComplete()) startTimer();
     }
 
     @Override
@@ -167,319 +251,715 @@ public class SudokuModuleFragment extends Fragment {
         super.onDestroyView();
     }
 
-    private void buildMenu(Context context) {
-        TextView title = makeText(context, R.string.game_sudoku_name, 32, colorText);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        title.setGravity(Gravity.CENTER_HORIZONTAL);
-        menuPanel.addView(title, matchWidthWrapContent());
+    // ==========================================
+    // UI 构建逻辑
+    // ==========================================
 
-        TextView subtitle = makeText(context, R.string.game_sudoku_menu_subtitle, 15,
-                colorSecondaryText);
-        subtitle.setGravity(Gravity.CENTER_HORIZONTAL);
-        subtitle.setPadding(0, dp(4), 0, dp(20));
-        menuPanel.addView(subtitle, matchWidthWrapContent());
+    private View buildTopAppBar(Context context) {
+        LinearLayout bar = new LinearLayout(context);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(2), dp(2), dp(2), dp(2));
 
-        btnResume = makeButton(context, "", colorPrimary, colorPrimaryText);
-        btnResume.setTextSize(16);
-        btnResume.setGravity(Gravity.CENTER);
-        btnResume.setOnClickListener(v -> resumeSavedGame());
-        menuPanel.addView(btnResume, matchWidthWrapContent());
+        // ❮ 返回按键
+        TextView btnBack = new TextView(context);
+        btnBack.setText("❮");
+        btnBack.setTextSize(19);
+        btnBack.setTextColor(colorTextPrimary);
+        btnBack.setGravity(Gravity.CENTER);
+        btnBack.setBackground(createCircleRipple(colorSurface, dp(38)));
+        LinearLayout.LayoutParams backLp = new LinearLayout.LayoutParams(dp(38), dp(38));
+        btnBack.setLayoutParams(backLp);
+        btnBack.setOnClickListener(v -> handleBackPress());
+        bar.addView(btnBack);
 
-        tvMenuStatus = makeText(context, R.string.game_sudoku_select_difficulty, 15,
-                colorSecondaryText);
-        tvMenuStatus.setGravity(Gravity.CENTER_HORIZONTAL);
-        tvMenuStatus.setPadding(0, dp(18), 0, dp(10));
-        menuPanel.addView(tvMenuStatus, matchWidthWrapContent());
+        // 标题与难度胶囊
+        LinearLayout centerTitleBox = new LinearLayout(context);
+        centerTitleBox.setOrientation(LinearLayout.HORIZONTAL);
+        centerTitleBox.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams centerLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        centerTitleBox.setLayoutParams(centerLp);
 
-        LinearLayout difficultyGrid = new LinearLayout(context);
-        difficultyGrid.setOrientation(LinearLayout.VERTICAL);
-        for (int row = 0; row < 2; row++) {
-            LinearLayout difficultyRow = new LinearLayout(context);
-            difficultyRow.setOrientation(LinearLayout.HORIZONTAL);
-            for (int col = 0; col < 2; col++) {
-                int index = row * 2 + col;
-                Button button = makeButton(context,
-                        difficultyName(index) + "\n" + difficultyDescription(index),
-                        colorMutedButton, colorMutedButtonText);
-                button.setTextSize(15);
-                button.setGravity(Gravity.CENTER);
-                button.setMinHeight(dp(76));
-                final int difficultyIndex = index;
-                button.setOnClickListener(v -> startGameWithDifficulty(difficultyIndex));
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(78), 1f);
-                params.setMargins(col == 0 ? 0 : dp(6), dp(6), col == 1 ? 0 : dp(6), dp(6));
-                difficultyRow.addView(button, params);
-            }
-            difficultyGrid.addView(difficultyRow, matchWidthWrapContent());
-        }
-        menuPanel.addView(difficultyGrid, matchWidthWrapContent());
+        TextView tvTitle = new TextView(context);
+        tvTitle.setText("数独");
+        tvTitle.setTextSize(18);
+        tvTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        tvTitle.setTextColor(colorTextPrimary);
+        tvTitle.setPadding(0, 0, dp(8), 0);
+        centerTitleBox.addView(tvTitle);
 
-        // 自定义谜题入口：列表游玩 + 新建编辑（与难度按钮同风格的次级操作行）
-        LinearLayout customRow = new LinearLayout(context);
-        customRow.setOrientation(LinearLayout.HORIZONTAL);
-        Button btnCustom = makeButton(context, "自定义谜题", colorMutedButton, colorMutedButtonText);
-        btnCustom.setOnClickListener(v -> showCustomPuzzleList());
-        Button btnNewPuzzle = makeButton(context, "＋ 新建谜题", colorMutedButton, colorMutedButtonText);
-        btnNewPuzzle.setOnClickListener(v -> openEditor());
-        customRow.addView(btnCustom, weightedActionParams());
-        customRow.addView(btnNewPuzzle, weightedActionParams());
-        LinearLayout.LayoutParams customParams = matchWidthWrapContent();
-        customParams.topMargin = dp(6);
-        menuPanel.addView(customRow, customParams);
+        tvDifficultyCapsule = new TextView(context);
+        tvDifficultyCapsule.setText(difficultyName(currentDifficulty) + " ▾");
+        tvDifficultyCapsule.setTextSize(12);
+        tvDifficultyCapsule.setTypeface(Typeface.DEFAULT_BOLD);
+        tvDifficultyCapsule.setTextColor(colorAccent);
+        tvDifficultyCapsule.setPadding(dp(10), dp(4), dp(10), dp(4));
+        tvDifficultyCapsule.setBackground(roundBackground(colorAccentLight, dp(12)));
+        tvDifficultyCapsule.setOnClickListener(v -> showDifficultySwitcherDialog());
+        centerTitleBox.addView(tvDifficultyCapsule);
 
-        Button rules = makeButton(context, getString(R.string.game_sudoku_rules_button),
-                colorMutedButton, colorMutedButtonText);
-        rules.setOnClickListener(v -> showRules());
-        LinearLayout.LayoutParams rulesParams = matchWidthWrapContent();
-        rulesParams.topMargin = dp(12);
-        menuPanel.addView(rules, rulesParams);
+        bar.addView(centerTitleBox);
+
+        // 规则说明 ℹ
+        TextView btnRules = new TextView(context);
+        btnRules.setText("ℹ");
+        btnRules.setTextSize(18);
+        btnRules.setTextColor(colorTextPrimary);
+        btnRules.setGravity(Gravity.CENTER);
+        btnRules.setBackground(createCircleRipple(colorSurface, dp(38)));
+        LinearLayout.LayoutParams rulesLp = new LinearLayout.LayoutParams(dp(38), dp(38));
+        btnRules.setLayoutParams(rulesLp);
+        btnRules.setOnClickListener(v -> showRulesDialog());
+        bar.addView(btnRules);
+
+        // 对局设置 ⚙
+        TextView btnSettings = new TextView(context);
+        btnSettings.setText("⚙");
+        btnSettings.setTextSize(18);
+        btnSettings.setTextColor(colorTextPrimary);
+        btnSettings.setGravity(Gravity.CENTER);
+        btnSettings.setBackground(createCircleRipple(colorSurface, dp(38)));
+        LinearLayout.LayoutParams settingsLp = new LinearLayout.LayoutParams(dp(38), dp(38));
+        settingsLp.leftMargin = dp(4);
+        btnSettings.setLayoutParams(settingsLp);
+        btnSettings.setOnClickListener(v -> showSettingsDialog());
+        bar.addView(btnSettings);
+
+        return bar;
     }
 
-    private void buildGame(Context context) {
-        LinearLayout toolbar = new LinearLayout(context);
-        toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+    private View buildHud(Context context) {
+        LinearLayout hudCard = new LinearLayout(context);
+        hudCard.setOrientation(LinearLayout.VERTICAL);
+        hudCard.setPadding(dp(12), dp(8), dp(12), dp(8));
+        hudCard.setBackground(roundBackground(colorSurface, dp(12)));
 
-        Button back = makeButton(context, getString(R.string.game_sudoku_back),
-                colorMutedButton, colorMutedButtonText);
-        back.setMinWidth(dp(62));
-        back.setOnClickListener(v -> confirmLeaveToMenu());
-        toolbar.addView(back, wrapContentParams());
+        // 第一行：统计项目 (用时, 错误, 进度, 提示)
+        LinearLayout statsRow = new LinearLayout(context);
+        statsRow.setOrientation(LinearLayout.HORIZONTAL);
+        statsRow.setGravity(Gravity.CENTER_VERTICAL);
 
-        LinearLayout heading = new LinearLayout(context);
-        heading.setOrientation(LinearLayout.VERTICAL);
-        heading.setPadding(dp(10), 0, dp(8), 0);
-        tvDifficulty = makeText(context, "", 20, colorText);
-        tvDifficulty.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        heading.addView(tvDifficulty, matchWidthWrapContent());
-        tvHeaderSubtitle = makeText(context, R.string.game_sudoku_playing, 12,
-                colorSecondaryText);
-        heading.addView(tvHeaderSubtitle, matchWidthWrapContent());
-        toolbar.addView(heading, new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        tvTimer = makeHudStat(context, "⏱", "00:00");
+        tvMistakes = makeHudStat(context, "❌", "0/3");
+        tvProgress = makeHudStat(context, "🧩", "0/81");
+        tvHints = makeHudStat(context, "💡", "0");
 
-        tvTimer = makeText(context, formatElapsed(0), 17, colorPrimary);
-        tvTimer.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        tvTimer.setGravity(Gravity.CENTER);
-        toolbar.addView(tvTimer, wrapContentParams());
+        statsRow.addView(wrapStat(tvTimer), weightedParams(1f));
+        statsRow.addView(wrapStat(tvMistakes), weightedParams(1f));
+        statsRow.addView(wrapStat(tvProgress), weightedParams(1f));
+        statsRow.addView(wrapStat(tvHints), weightedParams(1f));
 
-        Button more = makeButton(context, "⋮", colorMutedButton, colorMutedButtonText);
-        more.setContentDescription(getString(R.string.game_sudoku_more));
-        more.setMinWidth(dp(48));
-        more.setOnClickListener(v -> showMoreMenu());
-        toolbar.addView(more, wrapContentParams());
-        gamePanel.addView(toolbar, matchWidthWrapContent());
+        hudCard.addView(statsRow, matchWidthWrapContent());
 
-        LinearLayout stats = new LinearLayout(context);
-        stats.setOrientation(LinearLayout.HORIZONTAL);
-        stats.setGravity(Gravity.CENTER);
-        tvProgress = makeStatText(context);
-        tvMistakes = makeStatText(context);
-        tvHints = makeStatText(context);
-        stats.addView(tvProgress, weightedItemParams());
-        stats.addView(tvMistakes, weightedItemParams());
-        stats.addView(tvHints, weightedItemParams());
-        LinearLayout.LayoutParams statsParams = matchWidthWrapContent();
-        statsParams.topMargin = dp(12);
-        statsParams.bottomMargin = dp(10);
-        gamePanel.addView(stats, statsParams);
-
-        FrameLayout boardFrame = new FrameLayout(context);
-        boardFrame.setBackgroundColor(colorSurface);
-        sudokuView = new SudokuView(context);
-        sudokuView.setColors(colorBoard, colorSurface, colorSelected, colorRelated, colorError,
-                colorGrid, colorGridStrong, colorGiven, colorUser, colorErrorText, colorNote);
-        sudokuView.setOnCellSelectListener((row, col) -> {
-            updateNumberButtons();
-            tvMessage.setText(game.isCellLocked(row, col)
-                    ? getString(R.string.game_sudoku_a11y_locked)
-                    : getString(R.string.game_sudoku_playing));
-        });
-        boardFrame.addView(sudokuView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.CENTER));
-        LinearLayout.LayoutParams boardParams = matchWidthWrapContent();
-        boardParams.topMargin = dp(2);
-        gamePanel.addView(boardFrame, boardParams);
-
-        tvMessage = makeText(context, R.string.game_sudoku_playing, 14, colorSecondaryText);
+        // 第二行：实时动态状态胶囊
+        tvMessage = new TextView(context);
+        tvMessage.setTextSize(12);
+        tvMessage.setTextColor(colorTextSecondary);
         tvMessage.setGravity(Gravity.CENTER);
-        tvMessage.setMinHeight(dp(40));
-        tvMessage.setPadding(dp(8), dp(6), dp(8), dp(6));
-        gamePanel.addView(tvMessage, matchWidthWrapContent());
+        tvMessage.setPadding(dp(8), dp(4), dp(8), dp(2));
+        tvMessage.setText("✨ 点击空格后输入数字");
+        hudCard.addView(tvMessage, matchWidthWrapContent());
 
-        TextView padHint = makeText(context, R.string.game_sudoku_playing, 12,
-                colorSecondaryText);
-        padHint.setGravity(Gravity.CENTER_HORIZONTAL);
-        gamePanel.addView(padHint, matchWidthWrapContent());
+        return hudCard;
+    }
 
-        numberButtons = new Button[SudokuGame.GRID_SIZE];
-        for (int row = 0; row < 3; row++) {
-            LinearLayout numberRow = new LinearLayout(context);
-            numberRow.setOrientation(LinearLayout.HORIZONTAL);
-            for (int col = 0; col < 3; col++) {
-                int number = row * 3 + col + 1;
-                Button button = makeButton(context, String.valueOf(number),
-                        colorSurface, colorText);
-                button.setTextSize(20);
-                button.setMinHeight(dp(52));
-                button.setOnClickListener(v -> inputNumber(number));
-                numberButtons[number - 1] = button;
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(54), 1f);
-                params.setMargins(col == 0 ? 0 : dp(4), dp(4), col == 2 ? 0 : dp(4), 0);
-                numberRow.addView(button, params);
-            }
-            gamePanel.addView(numberRow, matchWidthWrapContent());
+    private TextView makeHudStat(Context context, String icon, String initialValue) {
+        TextView tv = new TextView(context);
+        tv.setText(icon + " " + initialValue);
+        tv.setTextSize(13);
+        tv.setTypeface(Typeface.DEFAULT_BOLD);
+        tv.setTextColor(colorTextPrimary);
+        tv.setGravity(Gravity.CENTER);
+        return tv;
+    }
+
+    private View wrapStat(TextView tv) {
+        LinearLayout box = new LinearLayout(tv.getContext());
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setGravity(Gravity.CENTER);
+        box.addView(tv);
+        return box;
+    }
+
+    private View buildModernControlBar(Context context) {
+        LinearLayout bar = new LinearLayout(context);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER);
+
+        btnUndo = createActionCapsule(context, "↩", "撤销", v -> undoMove());
+        btnRedo = createActionCapsule(context, "↪", "重做", v -> redoMove());
+        btnNotes = createNotesActionCapsule(context, v -> toggleNotesMode());
+        btnClear = createActionCapsule(context, "🧹", "擦除", v -> inputNumber(0));
+        btnHint = createActionCapsule(context, "💡", "提示", v -> showHintConfirmation());
+
+        bar.addView(btnUndo, weightedActionParams());
+        bar.addView(btnRedo, weightedActionParams());
+        bar.addView(btnNotes, weightedActionParams());
+        bar.addView(btnClear, weightedActionParams());
+        bar.addView(btnHint, weightedActionParams());
+
+        return bar;
+    }
+
+    private LinearLayout createActionCapsule(Context context, String icon, String label,
+                                             View.OnClickListener listener) {
+        LinearLayout capsule = new LinearLayout(context);
+        capsule.setOrientation(LinearLayout.VERTICAL);
+        capsule.setGravity(Gravity.CENTER);
+        capsule.setPadding(dp(4), dp(6), dp(4), dp(6));
+        capsule.setBackground(roundBackground(colorSurface, dp(10)));
+        capsule.setOnClickListener(listener);
+
+        TextView tvIcon = new TextView(context);
+        tvIcon.setText(icon);
+        tvIcon.setTextSize(15);
+        tvIcon.setTextColor(colorTextPrimary);
+        tvIcon.setGravity(Gravity.CENTER);
+        capsule.addView(tvIcon);
+
+        TextView tvLabel = new TextView(context);
+        tvLabel.setText(label);
+        tvLabel.setTextSize(11);
+        tvLabel.setTextColor(colorTextSecondary);
+        tvLabel.setGravity(Gravity.CENTER);
+        capsule.addView(tvLabel);
+
+        return capsule;
+    }
+
+    private LinearLayout createNotesActionCapsule(Context context, View.OnClickListener listener) {
+        LinearLayout capsule = new LinearLayout(context);
+        capsule.setOrientation(LinearLayout.VERTICAL);
+        capsule.setGravity(Gravity.CENTER);
+        capsule.setPadding(dp(4), dp(6), dp(4), dp(6));
+        capsule.setBackground(roundBackground(colorSurface, dp(10)));
+        capsule.setOnClickListener(listener);
+
+        tvNotesIcon = new TextView(context);
+        tvNotesIcon.setText("✏");
+        tvNotesIcon.setTextSize(15);
+        tvNotesIcon.setTextColor(colorTextPrimary);
+        tvNotesIcon.setGravity(Gravity.CENTER);
+        capsule.addView(tvNotesIcon);
+
+        tvNotesLabel = new TextView(context);
+        tvNotesLabel.setText("笔记 关");
+        tvNotesLabel.setTextSize(11);
+        tvNotesLabel.setTextColor(colorTextSecondary);
+        tvNotesLabel.setGravity(Gravity.CENTER);
+        capsule.addView(tvNotesLabel);
+
+        return capsule;
+    }
+
+    private View buildModernNumberPad(Context context) {
+        LinearLayout pad = new LinearLayout(context);
+        pad.setOrientation(LinearLayout.HORIZONTAL);
+        pad.setGravity(Gravity.CENTER);
+
+        for (int i = 0; i < 9; i++) {
+            final int num = i + 1;
+            LinearLayout key = new LinearLayout(context);
+            key.setOrientation(LinearLayout.VERTICAL);
+            key.setGravity(Gravity.CENTER);
+            key.setPadding(dp(2), dp(4), dp(2), dp(4));
+            key.setBackground(roundBackground(colorKeyBg, dp(10)));
+            key.setOnClickListener(v -> inputNumber(num));
+
+            TextView tvDigit = new TextView(context);
+            tvDigit.setText(String.valueOf(num));
+            tvDigit.setTextSize(19);
+            tvDigit.setTypeface(Typeface.DEFAULT_BOLD);
+            tvDigit.setTextColor(colorKeyText);
+            tvDigit.setGravity(Gravity.CENTER);
+            key.addView(tvDigit);
+
+            TextView tvRemaining = new TextView(context);
+            tvRemaining.setText("9");
+            tvRemaining.setTextSize(10.5f);
+            tvRemaining.setTextColor(colorTextSecondary);
+            tvRemaining.setGravity(Gravity.CENTER);
+            key.addView(tvRemaining);
+
+            numKeyContainers[i] = key;
+            numKeyDigits[i] = tvDigit;
+            numKeyRemainings[i] = tvRemaining;
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(52), 1f);
+            lp.setMargins(i == 0 ? 0 : dp(3), 0, i == 8 ? 0 : dp(3), 0);
+            pad.addView(key, lp);
         }
 
-        btnClear = makeButton(context, getString(R.string.game_sudoku_clear),
-                colorDangerButton, colorDangerButtonText);
-        btnClear.setOnClickListener(v -> inputNumber(0));
-        LinearLayout.LayoutParams clearParams = matchWidthWrapContent();
-        clearParams.topMargin = dp(4);
-        gamePanel.addView(btnClear, clearParams);
-
-        LinearLayout actions = new LinearLayout(context);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        btnUndo = makeButton(context, getString(R.string.game_sudoku_undo),
-                colorMutedButton, colorMutedButtonText);
-        btnRedo = makeButton(context, getString(R.string.game_sudoku_redo),
-                colorMutedButton, colorMutedButtonText);
-        btnNotes = makeButton(context, getString(R.string.game_sudoku_notes_off),
-                colorMutedButton, colorMutedButtonText);
-        btnHint = makeButton(context, getString(R.string.game_sudoku_hint),
-                colorPrimary, colorPrimaryText);
-        btnUndo.setOnClickListener(v -> undoMove());
-        btnRedo.setOnClickListener(v -> redoMove());
-        btnNotes.setOnClickListener(v -> toggleNotesMode());
-        btnHint.setOnClickListener(v -> showHintConfirmation());
-        actions.addView(btnUndo, weightedActionParams());
-        actions.addView(btnRedo, weightedActionParams());
-        actions.addView(btnNotes, weightedActionParams());
-        actions.addView(btnHint, weightedActionParams());
-        LinearLayout.LayoutParams actionParams = matchWidthWrapContent();
-        actionParams.topMargin = dp(8);
-        gamePanel.addView(actions, actionParams);
-
-        TextView autoSaved = makeText(context, R.string.game_sudoku_auto_saved, 12,
-                colorSecondaryText);
-        autoSaved.setGravity(Gravity.CENTER);
-        autoSaved.setPadding(0, dp(12), 0, dp(8));
-        gamePanel.addView(autoSaved, matchWidthWrapContent());
-
-        buildResultPanel(context);
+        return pad;
     }
 
-    private void buildResultPanel(Context context) {
-        resultPanel = new LinearLayout(context);
-        resultPanel.setOrientation(LinearLayout.VERTICAL);
-        resultPanel.setGravity(Gravity.CENTER_HORIZONTAL);
-        resultPanel.setPadding(dp(16), dp(16), dp(16), dp(16));
-        resultPanel.setBackground(roundBackground(colorSurface, dp(18)));
-
-        TextView resultTitle = makeText(context, R.string.game_sudoku_result_title, 24, colorPrimary);
-        resultTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        resultTitle.setGravity(Gravity.CENTER);
-        resultPanel.addView(resultTitle, matchWidthWrapContent());
-
-        tvResultStats = makeText(context, "", 15, colorSecondaryText);
-        tvResultStats.setGravity(Gravity.CENTER);
-        tvResultStats.setPadding(0, dp(8), 0, dp(14));
-        resultPanel.addView(tvResultStats, matchWidthWrapContent());
-
-        LinearLayout resultActions = new LinearLayout(context);
-        resultActions.setOrientation(LinearLayout.HORIZONTAL);
-        Button replay = makeButton(context, getString(R.string.game_sudoku_result_replay),
-                colorPrimary, colorPrimaryText);
-        Button choose = makeButton(context, getString(R.string.game_sudoku_result_choose_difficulty),
-                colorMutedButton, colorMutedButtonText);
-        // 自定义谜题同样可“再来一局”：restartCurrentGame 内部会回到原给定盘
-        replay.setOnClickListener(v -> restartCurrentGame());
-        choose.setOnClickListener(v -> showMenu());
-        resultActions.addView(replay, weightedActionParams());
-        resultActions.addView(choose, weightedActionParams());
-        resultPanel.addView(resultActions, matchWidthWrapContent());
-
-        resultPanel.setVisibility(View.GONE);
-        LinearLayout.LayoutParams params = matchWidthWrapContent();
-        params.topMargin = dp(10);
-        gamePanel.addView(resultPanel, params);
-    }
-
-    private void showMenu() {
-        stopTimer();
-        saveCurrentGame();
-        if (menuPanel == null || gamePanel == null) return;
-        menuPanel.setVisibility(View.VISIBLE);
-        gamePanel.setVisibility(View.GONE);
-        refreshResumeButton();
-    }
-
-    private void refreshResumeButton() {
-        if (btnResume == null || saveManager == null) return;
-        SudokuSaveManager.SavedGame saved = saveManager.load();
-        if (saved == null || saved.getState().getBoard() == null) {
-            btnResume.setVisibility(View.GONE);
-            return;
-        }
-        SudokuGame.State state = saved.getState();
-        btnResume.setVisibility(View.VISIBLE);
-        btnResume.setText(getString(R.string.game_sudoku_resume_game) + "\n"
-                + getString(R.string.game_sudoku_resume_detail,
-                difficultyName(state.getDifficultyIndex()), countRemaining(state.getBoard())));
-    }
+    // ==========================================
+    // 游戏逻辑控制与状态同步
+    // ==========================================
 
     private void startGameWithDifficulty(int difficultyIndex) {
         stopTimer();
         game = new SudokuGame();
-        game.startNewGame(difficultyIndex);
+        currentDifficulty = Math.max(0, Math.min(3, difficultyIndex));
+        game.startNewGame(currentDifficulty);
         currentCustomPuzzleName = null;
         currentCustomPuzzleGrid = null;
         elapsedMs = 0L;
         notesMode = false;
-        menuPanel.setVisibility(View.GONE);
-        gamePanel.setVisibility(View.VISIBLE);
-        resultPanel.setVisibility(View.GONE);
-        sudokuView.setInteractionEnabled(true);
-        sudokuView.clearSelection();
-        tvDifficulty.setText(difficultyName(game.getCurrentDifficultyIndex()));
-        tvHeaderSubtitle.setText(getString(R.string.game_sudoku_playing));
-        tvMessage.setText(getString(R.string.game_sudoku_playing));
+        if (sudokuView != null) {
+            sudokuView.setInteractionEnabled(true);
+            sudokuView.clearSelection();
+        }
+        updateDifficultyCapsule();
+        tvMessage.setText("✨ 点击空格落子");
         renderGame();
         startTimer();
         saveCurrentGame();
     }
 
-    private void resumeSavedGame() {
-        SudokuSaveManager.SavedGame saved = saveManager.load();
-        if (saved == null || !game.restoreState(saved.getState())) {
-            saveManager.clear();
-            refreshResumeButton();
-            tvMenuStatus.setText(getString(R.string.game_sudoku_select_difficulty));
-            return;
+    private void updateDifficultyCapsule() {
+        if (tvDifficultyCapsule == null) return;
+        if (currentCustomPuzzleName != null) {
+            tvDifficultyCapsule.setText("自定义·" + currentCustomPuzzleName + " ▾");
+        } else {
+            tvDifficultyCapsule.setText(difficultyName(currentDifficulty) + " ▾");
         }
-        // 恢复的存档只会是普通对局（自定义谜题从不写入存档槽）
-        currentCustomPuzzleName = null;
-        currentCustomPuzzleGrid = null;
-        stopTimer();
-        elapsedMs = saved.getElapsedMs();
-        notesMode = false;
-        menuPanel.setVisibility(View.GONE);
-        gamePanel.setVisibility(View.VISIBLE);
-        resultPanel.setVisibility(View.GONE);
-        sudokuView.setInteractionEnabled(true);
-        sudokuView.clearSelection();
-        tvDifficulty.setText(difficultyName(game.getCurrentDifficultyIndex()));
-        tvHeaderSubtitle.setText(getString(R.string.game_sudoku_playing));
-        tvMessage.setText(getString(R.string.game_sudoku_saved));
-        renderGame();
-        if (game.isBoardComplete()) onPuzzleSolved();
-        else startTimer();
     }
 
-    // ==================== 自定义谜题 ====================
+    private void renderGame() {
+        if (game == null || sudokuView == null) return;
+        sudokuView.render(game.getState(), game.getErrors());
+        updateStats();
+        updateNotesCapsule();
+        updateNumberButtons();
+        updateControlCapsules();
+    }
 
-    /** 自定义谜题列表：点按游玩，末项进入删除列表。 */
+    private void inputNumber(int number) {
+        if (game == null || sudokuView == null) return;
+        int row = sudokuView.getSelectedRow();
+        int col = sudokuView.getSelectedCol();
+        if (row < 0 || col < 0) {
+            tvMessage.setText("请先点击棋盘空格选中位置");
+            return;
+        }
+
+        if (notesMode) {
+            boolean changed;
+            if (number == 0 && game.getValue(row, col) == 0) {
+                changed = game.clearNotes(row, col);
+            } else if (number == 0) {
+                changed = game.setValue(row, col, 0) == SudokuGame.InputResult.CLEARED;
+            } else {
+                changed = game.toggleNote(row, col, number);
+            }
+            tvMessage.setText(changed ? "✏️ 草稿笔记已更新" : "请先选中空格");
+            renderGame();
+            saveCurrentGame();
+            return;
+        }
+
+        SudokuGame.InputResult result = game.setValue(row, col, number);
+        switch (result) {
+            case CONFLICT:
+                tvMessage.setText("⚠️ 同行、列或九宫格内已有相同数字");
+                break;
+            case INCORRECT:
+                tvMessage.setText("❌ 填入数字有误，错误次数 +1");
+                break;
+            case PLACED:
+                tvMessage.setText("✓ 落子正确");
+                break;
+            case CLEARED:
+                tvMessage.setText("已擦除该格");
+                break;
+            case IGNORED_GIVEN:
+                tvMessage.setText("🔒 预设数字不能修改");
+                break;
+            default:
+                break;
+        }
+        renderGame();
+        if (result == SudokuGame.InputResult.COMPLETED) {
+            onPuzzleSolved();
+        } else {
+            saveCurrentGame();
+        }
+    }
+
+    private void toggleNotesMode() {
+        notesMode = !notesMode;
+        updateNotesCapsule();
+        tvMessage.setText(notesMode ? "✏️ 笔记模式已开启，输入数字将标记为候选数"
+                : "已切回正常输入模式");
+    }
+
+    private void updateNotesCapsule() {
+        if (btnNotes == null || tvNotesIcon == null || tvNotesLabel == null) return;
+        if (notesMode) {
+            btnNotes.setBackground(roundBackground(colorAccent, dp(10)));
+            tvNotesIcon.setTextColor(Color.WHITE);
+            tvNotesLabel.setText("笔记 开");
+            tvNotesLabel.setTextColor(Color.WHITE);
+            tvNotesLabel.setTypeface(Typeface.DEFAULT_BOLD);
+        } else {
+            btnNotes.setBackground(roundBackground(colorSurface, dp(10)));
+            tvNotesIcon.setTextColor(colorTextPrimary);
+            tvNotesLabel.setText("笔记 关");
+            tvNotesLabel.setTextColor(colorTextSecondary);
+            tvNotesLabel.setTypeface(Typeface.DEFAULT);
+        }
+    }
+
+    private void undoMove() {
+        if (game == null || !game.undo()) {
+            tvMessage.setText("无可撤销步骤");
+            return;
+        }
+        tvMessage.setText("↩ 已撤销上一步");
+        renderGame();
+        saveCurrentGame();
+    }
+
+    private void redoMove() {
+        if (game == null || !game.redo()) {
+            tvMessage.setText("无可重做步骤");
+            return;
+        }
+        tvMessage.setText("↪ 已重做一步");
+        renderGame();
+        if (game.isBoardComplete()) onPuzzleSolved();
+        else saveCurrentGame();
+    }
+
+    private void showHintConfirmation() {
+        if (game == null || sudokuView == null) return;
+        int row = sudokuView.getSelectedRow();
+        int col = sudokuView.getSelectedCol();
+
+        // 若当前未选空格，智能寻找第一个未填或错误的空格
+        if (row < 0 || col < 0 || game.isCellLocked(row, col)
+                || game.getValue(row, col) == game.getSolution()[row][col]) {
+            boolean found = false;
+            int[][] board = game.getBoard();
+            int[][] solution = game.getSolution();
+            for (int r = 0; r < SudokuGame.GRID_SIZE && !found; r++) {
+                for (int c = 0; c < SudokuGame.GRID_SIZE && !found; c++) {
+                    if (!game.isCellLocked(r, c) && board[r][c] != solution[r][c]) {
+                        row = r;
+                        col = c;
+                        sudokuView.setSelected(r, c);
+                        found = true;
+                    }
+                }
+            }
+            if (!found) {
+                tvMessage.setText("当前盘面已无需要提示的空格");
+                return;
+            }
+        }
+
+        final int targetRow = row;
+        final int targetCol = col;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("💡 智能落子提示")
+                .setMessage("提示将在第 " + (targetRow + 1) + " 行、第 " + (targetCol + 1) + " 列直接填入正确解题数字，确定使用吗？")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("使用提示", (dialog, which) -> {
+                    boolean completed = game.useHint(targetRow, targetCol);
+                    tvMessage.setText("💡 已填入第 " + (targetRow + 1) + " 行第 " + (targetCol + 1) + " 列正确数字");
+                    renderGame();
+                    if (completed) onPuzzleSolved();
+                    else saveCurrentGame();
+                })
+                .show();
+    }
+
+    private void updateStats() {
+        if (game == null) return;
+        if (tvProgress != null) {
+            tvProgress.setText("🧩 " + game.getFilledCellCount() + "/" + TOTAL_CELLS);
+        }
+        if (tvMistakes != null) {
+            tvMistakes.setText("❌ " + game.getMistakes() + "/3");
+        }
+        if (tvHints != null) {
+            tvHints.setText("💡 " + game.getHintsUsed());
+        }
+        updateTimerViews();
+    }
+
+    private void updateTimerViews() {
+        if (tvTimer != null) {
+            tvTimer.setText("⏱ " + formatElapsed(elapsedMs));
+        }
+    }
+
+    private void updateControlCapsules() {
+        if (game == null) return;
+        boolean canUndo = game.canUndo() && !game.isBoardComplete();
+        boolean canRedo = game.canRedo() && !game.isBoardComplete();
+        if (btnUndo != null) {
+            btnUndo.setEnabled(canUndo);
+            btnUndo.setAlpha(canUndo ? 1f : 0.4f);
+        }
+        if (btnRedo != null) {
+            btnRedo.setEnabled(canRedo);
+            btnRedo.setAlpha(canRedo ? 1f : 0.4f);
+        }
+        int row = sudokuView != null ? sudokuView.getSelectedRow() : -1;
+        int col = sudokuView != null ? sudokuView.getSelectedCol() : -1;
+        boolean cellSelected = row >= 0 && col >= 0 && !game.isCellLocked(row, col);
+        boolean canClear = cellSelected && (game.getValue(row, col) != 0 || game.getNoteMask(row, col) != 0);
+        if (btnClear != null) {
+            btnClear.setEnabled(canClear);
+            btnClear.setAlpha(canClear ? 1f : 0.4f);
+        }
+    }
+
+    private void updateNumberButtons() {
+        if (game == null) return;
+        int row = sudokuView != null ? sudokuView.getSelectedRow() : -1;
+        int col = sudokuView != null ? sudokuView.getSelectedCol() : -1;
+        boolean active = !game.isBoardComplete() && row >= 0 && col >= 0 && !game.isCellLocked(row, col);
+
+        for (int i = 0; i < 9; i++) {
+            int digit = i + 1;
+            int remaining = getRemainingCountForDigit(digit);
+            LinearLayout container = numKeyContainers[i];
+            TextView tvRemaining = numKeyRemainings[i];
+            TextView tvDigit = numKeyDigits[i];
+            if (container == null || tvRemaining == null || tvDigit == null) continue;
+
+            if (remaining <= 0) {
+                tvRemaining.setText("✓");
+                tvRemaining.setTextColor(colorSuccess);
+                container.setEnabled(false);
+                container.setAlpha(0.35f);
+            } else {
+                tvRemaining.setText(String.valueOf(remaining));
+                tvRemaining.setTextColor(colorTextSecondary);
+                boolean canPlace = active && (notesMode || game.canPlace(row, col, digit));
+                container.setEnabled(canPlace);
+                container.setAlpha(canPlace ? 1f : 0.5f);
+            }
+        }
+    }
+
+    private int getRemainingCountForDigit(int digit) {
+        if (game == null) return 9;
+        int count = 0;
+        int[][] board = game.getBoard();
+        for (int r = 0; r < SudokuGame.GRID_SIZE; r++) {
+            for (int c = 0; c < SudokuGame.GRID_SIZE; c++) {
+                if (board[r][c] == digit) count++;
+            }
+        }
+        return Math.max(0, 9 - count);
+    }
+
+    private void onPuzzleSolved() {
+        stopTimer();
+        updateStats();
+        boolean custom = game.isCustomPuzzle();
+        String puzzleTitle = custom
+                ? "自定义谜题《" + (currentCustomPuzzleName == null ? "" : currentCustomPuzzleName) + "》"
+                : difficultyName(currentDifficulty) + "数独";
+
+        if (sudokuView != null) sudokuView.setInteractionEnabled(false);
+        updateNumberButtons();
+        if (!custom && saveManager != null) saveManager.clear();
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("🎉 恭喜通关！")
+                .setMessage("太棒了！您成功解开了这道" + puzzleTitle + "！\n\n" +
+                        "• 通关用时: " + formatElapsed(elapsedMs) + "\n" +
+                        "• 错误次数: " + game.getMistakes() + " 次\n" +
+                        "• 使用提示: " + game.getHintsUsed() + " 次\n" +
+                        "• 挑战难度: " + (custom ? "自定义" : difficultyName(currentDifficulty)))
+                .setCancelable(false)
+                .setPositiveButton("再来一局", (dialog, which) -> restartCurrentGame())
+                .setNegativeButton("返回大厅", (dialog, which) -> {
+                    if (getActivity() != null) getActivity().finish();
+                })
+                .show();
+    }
+
+    // ==========================================
+    // 弹窗与设置
+    // ==========================================
+
+    private void showDifficultySwitcherDialog() {
+        Context ctx = requireContext();
+        float dp = ctx.getResources().getDisplayMetrics().density;
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding((int) (18 * dp), (int) (12 * dp), (int) (18 * dp), (int) (12 * dp));
+
+        TextView tvHeader = new TextView(ctx);
+        tvHeader.setText("切换数独难度");
+        tvHeader.setTextSize(16);
+        tvHeader.setTypeface(Typeface.DEFAULT_BOLD);
+        tvHeader.setTextColor(colorTextPrimary);
+        tvHeader.setPadding(0, 0, 0, (int) (10 * dp));
+        root.addView(tvHeader);
+
+        AlertDialog[] dialogHolder = new AlertDialog[1];
+
+        // 4 档内置难度选择
+        for (int i = 0; i < 4; i++) {
+            final int index = i;
+            Button b = new Button(ctx);
+            b.setStateListAnimator(null);
+            b.setText(DIFFICULTY_LABELS[i] + " (" + difficultyDescription(i) + ")");
+            b.setTextSize(13);
+            boolean isCur = (currentCustomPuzzleName == null && currentDifficulty == index);
+
+            GradientDrawable bBg = new GradientDrawable();
+            bBg.setCornerRadius(8 * dp);
+            bBg.setColor(isCur ? colorAccent : colorSurface);
+            b.setBackground(bBg);
+            b.setTextColor(isCur ? Color.WHITE : colorTextPrimary);
+
+            LinearLayout.LayoutParams bLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * dp));
+            bLp.bottomMargin = (int) (6 * dp);
+            b.setLayoutParams(bLp);
+
+            b.setOnClickListener(v -> {
+                if (dialogHolder[0] != null) dialogHolder[0].dismiss();
+                if (currentDifficulty != index || currentCustomPuzzleName != null) {
+                    startGameWithDifficulty(index);
+                    Toast.makeText(ctx, "已开局：" + DIFFICULTY_LABELS[index], Toast.LENGTH_SHORT).show();
+                }
+            });
+            root.addView(b);
+        }
+
+        // 自定义谜题行
+        LinearLayout customRow = new LinearLayout(ctx);
+        customRow.setOrientation(LinearLayout.HORIZONTAL);
+        customRow.setPadding(0, (int) (6 * dp), 0, 0);
+
+        Button btnCustom = new Button(ctx);
+        btnCustom.setStateListAnimator(null);
+        btnCustom.setText("自定义谜题");
+        btnCustom.setTextSize(13);
+        btnCustom.setBackground(roundBackground(colorSurface, (int) (8 * dp)));
+        btnCustom.setTextColor(colorTextPrimary);
+        btnCustom.setOnClickListener(v -> {
+            if (dialogHolder[0] != null) dialogHolder[0].dismiss();
+            showCustomPuzzleList();
+        });
+        customRow.addView(btnCustom, weightedParams(1f));
+
+        Button btnNewPuzzle = new Button(ctx);
+        btnNewPuzzle.setStateListAnimator(null);
+        btnNewPuzzle.setText("＋ 新建谜题");
+        btnNewPuzzle.setTextSize(13);
+        btnNewPuzzle.setBackground(roundBackground(colorSurface, (int) (8 * dp)));
+        btnNewPuzzle.setTextColor(colorTextPrimary);
+        btnNewPuzzle.setOnClickListener(v -> {
+            if (dialogHolder[0] != null) dialogHolder[0].dismiss();
+            openEditor();
+        });
+        customRow.addView(btnNewPuzzle, weightedParams(1f));
+
+        root.addView(customRow, matchWidthWrapContent());
+
+        AlertDialog dialog = new AlertDialog.Builder(ctx)
+                .setView(root)
+                .setNegativeButton("取消", null)
+                .create();
+        dialogHolder[0] = dialog;
+        dialog.show();
+    }
+
+    private void showSettingsDialog() {
+        CharSequence[] items = {
+                "重新开始本局",
+                "生成新对局",
+                "自定义谜题库",
+                "数独解题规则说明"
+        };
+        new AlertDialog.Builder(requireContext())
+                .setTitle("⚙ 数独设置")
+                .setItems(items, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            confirmRestart();
+                            break;
+                        case 1:
+                            startGameWithDifficulty(currentDifficulty);
+                            break;
+                        case 2:
+                            showCustomPuzzleList();
+                            break;
+                        case 3:
+                            showRulesDialog();
+                            break;
+                        default:
+                            break;
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void confirmRestart() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("重新开始")
+                .setMessage("确定要清除当前盘面的填入与草稿，从头开始解这道谜题吗？")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("重新开始", (dialog, which) -> restartCurrentGame())
+                .show();
+    }
+
+    private void restartCurrentGame() {
+        if (game != null && game.isCustomPuzzle()) {
+            if (currentCustomPuzzleGrid == null
+                    || !startCustomGame(currentCustomPuzzleGrid, currentCustomPuzzleName)) {
+                Toast.makeText(requireContext(), "谜题数据无效", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        startGameWithDifficulty(currentDifficulty);
+    }
+
+    private void showRulesDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("数独规则与技巧")
+                .setMessage(
+                        "• 基本规则：\n" +
+                        "在 9×9 网格中填入数字 1~9，使每行、每列以及每个 3×3 粗线宫格内的数字均不重复（各出现且仅出现一次）。\n\n" +
+                        "• 进阶操作：\n" +
+                        "1. 候选笔记：遇到不确定的空格，点击【✏ 笔记】进入草稿模式记录备选数；\n" +
+                        "2. 键盘提示：数字键下方展示该数字全盘剩余未填数量，全部填完自动打钩；\n" +
+                        "3. 智能提示：陷入僵局时点击【💡 提示】，AI 将为您锁定目标格并填入唯一正解。")
+                .setPositiveButton("知道了", null)
+                .show();
+    }
+
+    private void handleBackPress() {
+        if (game != null && game.isStarted() && !game.isBoardComplete() && game.getFilledCellCount() > 0) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("返回大厅")
+                    .setMessage("当前数独对局正在进行中，进度已自动保存，确定返回大厅吗？")
+                    .setPositiveButton("返回大厅", (d, w) -> {
+                        saveCurrentGame();
+                        if (getActivity() != null) getActivity().finish();
+                    })
+                    .setNegativeButton("继续解谜", null)
+                    .show();
+        } else {
+            if (getActivity() != null) getActivity().finish();
+        }
+    }
+
+    // ==========================================
+    // 自定义谜题
+    // ==========================================
+
     private void showCustomPuzzleList() {
         List<SudokuCustomPuzzles.CustomPuzzle> puzzles =
                 SudokuCustomPuzzles.loadAll(requireContext());
@@ -521,7 +1001,6 @@ public class SudokuModuleFragment extends Fragment {
                 .show();
     }
 
-    /** 打开谜题编辑器（replace + backstack，返回时宿主重建、列表自然刷新）。 */
     private void openEditor() {
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, new SudokuEditorFragment())
@@ -529,7 +1008,6 @@ public class SudokuModuleFragment extends Fragment {
                 .commit();
     }
 
-    /** 以内置难度同样的流程进入自定义谜题。 */
     private void playCustomPuzzle(SudokuCustomPuzzles.CustomPuzzle puzzle) {
         int[][] grid = puzzle.decodeMap();
         if (grid == null || !startCustomGame(grid, puzzle.name)) {
@@ -537,13 +1015,6 @@ public class SudokuModuleFragment extends Fragment {
         }
     }
 
-    /**
-     * 装载自定义谜题并切入游戏面板（首次游玩与重开共用）。
-     *
-     * <p>与 {@link #startGameWithDifficulty(int)} 保持同一实例生命周期：整局替换
-     * {@code game} 字段；装载失败时当前对局不受影响。自定义谜题不写入
-     * {@code saveManager} 存档槽（见 {@link #saveCurrentGame()}）。</p>
-     */
     private boolean startCustomGame(int[][] grid, String name) {
         SudokuGame candidate = new SudokuGame();
         if (!candidate.loadCustomPuzzle(grid)) return false;
@@ -553,34 +1024,17 @@ public class SudokuModuleFragment extends Fragment {
         currentCustomPuzzleGrid = copyGrid(grid);
         elapsedMs = 0L;
         notesMode = false;
-        menuPanel.setVisibility(View.GONE);
-        gamePanel.setVisibility(View.VISIBLE);
-        resultPanel.setVisibility(View.GONE);
-        sudokuView.setInteractionEnabled(true);
-        sudokuView.clearSelection();
-        tvDifficulty.setText("自定义·" + name);
-        tvHeaderSubtitle.setText(getString(R.string.game_sudoku_playing));
-        tvMessage.setText(getString(R.string.game_sudoku_playing));
+        if (sudokuView != null) {
+            sudokuView.setInteractionEnabled(true);
+            sudokuView.clearSelection();
+        }
+        updateDifficultyCapsule();
+        tvMessage.setText("✨ 自定义谜题已就绪");
         renderGame();
         startTimer();
         return true;
     }
 
-    /** 重开当前对局：自定义谜题回到原给定盘，内置难度按当前难度重新生成。 */
-    private void restartCurrentGame() {
-        if (game != null && game.isCustomPuzzle()) {
-            // 自定义谜题没有难度种子，startGameWithDifficulty 会丢掉谜题改生成随机新局，
-            // 重开必须用留存的给定盘快照重新 loadCustomPuzzle 回到同一谜题。
-            if (currentCustomPuzzleGrid == null
-                    || !startCustomGame(currentCustomPuzzleGrid, currentCustomPuzzleName)) {
-                Toast.makeText(requireContext(), "谜题数据无效", Toast.LENGTH_SHORT).show();
-            }
-            return;
-        }
-        startGameWithDifficulty(game == null ? 0 : game.getCurrentDifficultyIndex());
-    }
-
-    /** 深拷贝盘面（自定义谜题重开快照用，避免与解码结果共享可变数组）。 */
     private static int[][] copyGrid(int[][] source) {
         int[][] result = new int[source.length][];
         for (int r = 0; r < source.length; r++) {
@@ -589,243 +1043,9 @@ public class SudokuModuleFragment extends Fragment {
         return result;
     }
 
-    private void renderGame() {
-        if (game == null || sudokuView == null) return;
-        sudokuView.render(game.getState(), game.getErrors());
-        updateStats();
-        updateNotesButton();
-        updateNumberButtons();
-    }
-
-    private void inputNumber(int number) {
-        if (game == null || sudokuView == null) return;
-        int row = sudokuView.getSelectedRow();
-        int col = sudokuView.getSelectedCol();
-        if (row < 0 || col < 0) {
-            tvMessage.setText(getString(R.string.game_sudoku_select_cell));
-            return;
-        }
-
-        if (notesMode) {
-            boolean changed;
-            if (number == 0 && game.getValue(row, col) == 0) {
-                changed = game.clearNotes(row, col);
-            } else if (number == 0) {
-                changed = game.setValue(row, col, 0) == SudokuGame.InputResult.CLEARED;
-            } else {
-                changed = game.toggleNote(row, col, number);
-            }
-            tvMessage.setText(changed ? getString(R.string.game_sudoku_note_added)
-                    : getString(R.string.game_sudoku_select_cell));
-            renderGame();
-            saveCurrentGame();
-            return;
-        }
-
-        SudokuGame.InputResult result = game.setValue(row, col, number);
-        switch (result) {
-            case CONFLICT:
-                tvMessage.setText(getString(R.string.game_sudoku_conflict));
-                break;
-            case INCORRECT:
-                tvMessage.setText(getString(R.string.game_sudoku_incorrect));
-                break;
-            case PLACED:
-                tvMessage.setText(getString(R.string.game_sudoku_correct));
-                break;
-            case CLEARED:
-                tvMessage.setText(getString(R.string.game_sudoku_playing));
-                break;
-            case IGNORED_GIVEN:
-                tvMessage.setText(getString(R.string.game_sudoku_a11y_locked));
-                break;
-            default:
-                break;
-        }
-        renderGame();
-        if (result == SudokuGame.InputResult.COMPLETED) onPuzzleSolved();
-        else saveCurrentGame();
-    }
-
-    private void showHintConfirmation() {
-        int row = sudokuView.getSelectedRow();
-        int col = sudokuView.getSelectedCol();
-        if (row < 0 || col < 0) {
-            tvMessage.setText(getString(R.string.game_sudoku_select_cell));
-            return;
-        }
-        if (game.isCellLocked(row, col)
-                || game.getValue(row, col) == game.getSolution()[row][col]) {
-            tvMessage.setText(getString(R.string.game_sudoku_no_hint_available));
-            return;
-        }
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.game_sudoku_hint_confirm_title)
-                .setMessage(R.string.game_sudoku_hint_confirm_message)
-                .setNegativeButton(R.string.game_sudoku_cancel, null)
-                .setPositiveButton(R.string.game_sudoku_hint_confirm,
-                        (dialog, which) -> useHint())
-                .show();
-    }
-
-    private void useHint() {
-        int row = sudokuView.getSelectedRow();
-        int col = sudokuView.getSelectedCol();
-        if (row < 0 || col < 0) return;
-        boolean completed = game.useHint(row, col);
-        tvMessage.setText(getString(R.string.game_sudoku_hint_used));
-        renderGame();
-        if (completed) onPuzzleSolved();
-        else saveCurrentGame();
-    }
-
-    private void toggleNotesMode() {
-        notesMode = !notesMode;
-        updateNotesButton();
-        tvMessage.setText(notesMode ? getString(R.string.game_sudoku_notes_on)
-                : getString(R.string.game_sudoku_notes_off));
-    }
-
-    private void undoMove() {
-        if (!game.undo()) {
-            tvMessage.setText(getString(R.string.game_sudoku_playing));
-            return;
-        }
-        notesMode = false;
-        resultPanel.setVisibility(View.GONE);
-        sudokuView.setInteractionEnabled(true);
-        tvMessage.setText(getString(R.string.game_sudoku_undo));
-        renderGame();
-        saveCurrentGame();
-    }
-
-    private void redoMove() {
-        if (!game.redo()) {
-            tvMessage.setText(getString(R.string.game_sudoku_playing));
-            return;
-        }
-        notesMode = false;
-        tvMessage.setText(getString(R.string.game_sudoku_redo));
-        renderGame();
-        if (game.isBoardComplete()) onPuzzleSolved();
-        else saveCurrentGame();
-    }
-
-    private void onPuzzleSolved() {
-        stopTimer();
-        updateStats();
-        // 自定义谜题完成不计入使用统计/金币（防自制谜题刷金币与战绩；当前数独本就
-        // 未接 usageStore，这里同样保持不写）；也不清存档槽——自定义局从不写入
-        // 该槽，槽内可能是另一局未完成的普通对局，清了会误删。
-        boolean custom = game.isCustomPuzzle();
-        String message = custom
-                ? "🎉 自定义谜题《"
-                        + (currentCustomPuzzleName == null ? "" : currentCustomPuzzleName) + "》完成"
-                : getString(R.string.game_sudoku_result_title);
-        tvHeaderSubtitle.setText(getString(R.string.game_sudoku_result_title));
-        tvMessage.setText(message);
-        tvResultStats.setText(getString(R.string.game_sudoku_result_time, formatElapsed(elapsedMs))
-                + "\n" + getString(R.string.game_sudoku_result_mistakes, game.getMistakes())
-                + "\n" + getString(R.string.game_sudoku_result_hints, game.getHintsUsed()));
-        resultPanel.setVisibility(View.VISIBLE);
-        sudokuView.setInteractionEnabled(false);
-        updateNumberButtons();
-        if (!custom) saveManager.clear();
-    }
-
-    private void confirmLeaveToMenu() {
-        if (game == null || !game.isStarted() || game.isBoardComplete()) {
-            showMenu();
-            return;
-        }
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.game_sudoku_menu_confirm_title)
-                .setMessage(R.string.game_sudoku_menu_confirm_message)
-                .setNegativeButton(R.string.game_sudoku_cancel, null)
-                .setPositiveButton(R.string.game_sudoku_menu_confirm,
-                        (dialog, which) -> showMenu())
-                .show();
-    }
-
-    private void showMoreMenu() {
-        CharSequence[] items = {
-                getString(R.string.game_sudoku_restart),
-                getString(R.string.game_sudoku_rules_button)
-        };
-        new AlertDialog.Builder(requireContext())
-                .setItems(items, (dialog, which) -> {
-                    if (which == 0) confirmRestart();
-                    else showRules();
-                })
-                .show();
-    }
-
-    private void confirmRestart() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.game_sudoku_restart)
-                .setMessage(R.string.game_sudoku_restart_message)
-                .setNegativeButton(R.string.game_sudoku_cancel, null)
-                .setPositiveButton(R.string.game_sudoku_restart_confirm,
-                        (dialog, which) -> restartCurrentGame())
-                .show();
-    }
-
-    private void showRules() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.game_sudoku_rules_title)
-                .setMessage(R.string.game_sudoku_rules_content)
-                .setPositiveButton(android.R.string.ok, null)
-                .show();
-    }
-
-    private void updateStats() {
-        if (game == null) return;
-        tvProgress.setText(getString(R.string.game_sudoku_stats_filled,
-                game.getFilledCellCount(), TOTAL_CELLS));
-        tvMistakes.setText(getString(R.string.game_sudoku_stats_mistakes, game.getMistakes()));
-        tvHints.setText(getString(R.string.game_sudoku_stats_hints, game.getHintsUsed()));
-        updateTimerViews();
-    }
-
-    private void updateTimerViews() {
-        if (tvTimer != null) tvTimer.setText(formatElapsed(elapsedMs));
-    }
-
-    private void updateNotesButton() {
-        if (btnNotes == null) return;
-        if (notesMode) {
-            btnNotes.setText(getString(R.string.game_sudoku_notes_on));
-            tintButton(btnNotes, colorSelectedButton, colorSelectedButtonText);
-        } else {
-            btnNotes.setText(getString(R.string.game_sudoku_notes_off));
-            tintButton(btnNotes, colorMutedButton, colorMutedButtonText);
-        }
-    }
-
-    private void updateNumberButtons() {
-        if (numberButtons == null || game == null || sudokuView == null) return;
-        int row = sudokuView.getSelectedRow();
-        int col = sudokuView.getSelectedCol();
-        boolean active = game.isStarted() && !game.isBoardComplete()
-                && row >= 0 && col >= 0 && !game.isCellLocked(row, col);
-        for (int i = 0; i < numberButtons.length; i++) {
-            boolean enabled = active && game.canPlace(row, col, i + 1);
-            numberButtons[i].setEnabled(enabled);
-            numberButtons[i].setAlpha(enabled ? 1f : 0.45f);
-        }
-        boolean canClear = active && (game.getValue(row, col) != 0 || game.getNoteMask(row, col) != 0);
-        btnClear.setEnabled(canClear);
-        btnClear.setAlpha(canClear ? 1f : 0.45f);
-        btnUndo.setEnabled(game.canUndo() && !game.isBoardComplete());
-        btnRedo.setEnabled(game.canRedo() && !game.isBoardComplete());
-        btnUndo.setAlpha(btnUndo.isEnabled() ? 1f : 0.45f);
-        btnRedo.setAlpha(btnRedo.isEnabled() ? 1f : 0.45f);
-        boolean canEditNotes = active && game.getValue(row, col) == 0;
-        btnNotes.setEnabled(canEditNotes);
-        btnNotes.setAlpha(canEditNotes ? 1f : 0.45f);
-        btnHint.setEnabled(active);
-        btnHint.setAlpha(active ? 1f : 0.45f);
-    }
+    // ==========================================
+    // 计时与存档
+    // ==========================================
 
     private void startTimer() {
         if (timerRunning || game == null || game.isBoardComplete()) return;
@@ -851,15 +1071,9 @@ public class SudokuModuleFragment extends Fragment {
 
     private void saveCurrentGame() {
         if (saveManager == null || game == null || !game.isStarted() || game.isBoardComplete()) return;
-        // 自定义谜题不占用“继续游戏”存档槽：其 State 不带自定义标记，
-        // 存进去也无法经 restoreState 还原，只会挤掉可恢复的普通对局。
         if (game.isCustomPuzzle()) return;
         updateElapsed();
         saveManager.save(game, elapsedMs);
-    }
-
-    private boolean isGameVisible() {
-        return gamePanel != null && gamePanel.getVisibility() == View.VISIBLE;
     }
 
     private String difficultyName(int index) {
@@ -878,84 +1092,82 @@ public class SudokuModuleFragment extends Fragment {
     private String difficultyDescription(int index) {
         switch (Math.max(0, Math.min(3, index))) {
             case 1:
-                return getString(R.string.game_sudoku_diff_medium_desc);
+                return "适合熟悉规则的玩家";
             case 2:
-                return getString(R.string.game_sudoku_diff_hard_desc);
+                return "需结合候选数推导";
             case 3:
-                return getString(R.string.game_sudoku_diff_expert_desc);
+                return "终极逻辑挑战";
             default:
-                return getString(R.string.game_sudoku_diff_easy_desc);
+                return "轻松上手";
         }
     }
 
-    private void applyThemeColors() {
-        colorBg = getResources().getColor(R.color.game_sudoku_color_bg);
-        colorSurface = getResources().getColor(R.color.game_sudoku_color_surface);
-        colorBoard = getResources().getColor(R.color.game_sudoku_color_board);
-        colorText = getResources().getColor(R.color.game_sudoku_color_text);
-        colorSecondaryText = getResources().getColor(R.color.game_sudoku_color_text_secondary);
-        colorPrimary = getResources().getColor(R.color.game_sudoku_color_button);
-        colorPrimaryText = getResources().getColor(R.color.game_sudoku_color_button_text);
-        colorMutedButton = getResources().getColor(R.color.game_sudoku_color_button_muted);
-        colorMutedButtonText = getResources().getColor(R.color.game_sudoku_color_button_muted_text);
-        colorDangerButton = getResources().getColor(R.color.game_sudoku_color_button_danger);
-        colorDangerButtonText = getResources().getColor(R.color.game_sudoku_color_button_danger_text);
-        colorSelectedButton = getResources().getColor(R.color.game_sudoku_color_button_selected);
-        colorSelectedButtonText = getResources().getColor(R.color.game_sudoku_color_button_selected_text);
-        colorGrid = getResources().getColor(R.color.game_sudoku_color_grid);
-        colorGridStrong = getResources().getColor(R.color.game_sudoku_color_grid_strong);
-        colorSelected = getResources().getColor(R.color.game_sudoku_color_selected);
-        colorRelated = getResources().getColor(R.color.game_sudoku_color_related);
-        colorError = getResources().getColor(R.color.game_sudoku_color_error);
-        colorGiven = getResources().getColor(R.color.game_sudoku_color_given);
-        colorUser = getResources().getColor(R.color.game_sudoku_color_user);
-        colorErrorText = getResources().getColor(R.color.game_sudoku_color_error_text);
-        colorNote = getResources().getColor(R.color.game_sudoku_color_note);
+    // ==========================================
+    // 配色与辅助绘制
+    // ==========================================
+
+    private void initThemeColors() {
+        if (isNight) {
+            colorBg = 0xFF14171F;
+            colorSurface = 0xFF1E232F;
+            colorBoard = 0xFF252B3A;
+            colorTextPrimary = 0xFFEAECEF;
+            colorTextSecondary = 0xFF8F9BB3;
+            colorAccent = 0xFF5B8A72;
+            colorAccentLight = 0xFF2A3D34;
+            colorDanger = 0xFFEF5350;
+            colorDangerBg = 0xFF3E2723;
+            colorSuccess = 0xFF66BB6A;
+            colorKeyBg = 0xFF232936;
+            colorKeyText = 0xFFFFFFFF;
+            colorGrid = 0xFF3E4756;
+            colorGridStrong = 0xFF5B8A72;
+            colorSelected = 0xFF2D4B3E;
+            colorRelated = 0xFF22352C;
+            colorGiven = 0xFFFFFFFF;
+            colorUser = 0xFF81C784;
+            colorErrorText = 0xFFFF5252;
+            colorNote = 0xFF90A4AE;
+        } else {
+            colorBg = 0xFFF5EADA;
+            colorSurface = 0xFFFFFFFF;
+            colorBoard = 0xFFFFFBF6;
+            colorTextPrimary = 0xFF212529;
+            colorTextSecondary = 0xFF78909C;
+            colorAccent = 0xFF5B8A72;
+            colorAccentLight = 0xFFE8F5E9;
+            colorDanger = 0xFFDC2626;
+            colorDangerBg = 0xFFFEE2E2;
+            colorSuccess = 0xFF2E7D32;
+            colorKeyBg = 0xFFFFFFFF;
+            colorKeyText = 0xFF212529;
+            colorGrid = 0xFFCFD8DC;
+            colorGridStrong = 0xFF5B8A72;
+            colorSelected = 0xFFD4EDE1;
+            colorRelated = 0xFFE8F5E9;
+            colorGiven = 0xFF212529;
+            colorUser = 0xFF2E7D32;
+            colorErrorText = 0xFFD32F2F;
+            colorNote = 0xFF78909C;
+        }
     }
 
-    private TextView makeText(Context context, int textRes, float size, int color) {
-        return makeText(context, getString(textRes), size, color);
-    }
-
-    private TextView makeText(Context context, String text, float size, int color) {
-        TextView view = new TextView(context);
-        view.setText(text);
-        view.setTextSize(size);
-        view.setTextColor(color);
-        return view;
-    }
-
-    private TextView makeStatText(Context context) {
-        TextView view = makeText(context, "", 12, colorSecondaryText);
-        view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(4), dp(8), dp(4), dp(8));
-        view.setBackground(roundBackground(colorSurface, dp(12)));
-        return view;
-    }
-
-    private Button makeButton(Context context, String text, int background, int textColor) {
-        Button button = new Button(context);
-        button.setText(text);
-        button.setTextColor(textColor);
-        button.setTextSize(14);
-        button.setAllCaps(false);
-        button.setGravity(Gravity.CENTER);
-        button.setStateListAnimator(null);
-        button.setPadding(dp(8), dp(4), dp(8), dp(4));
-        tintButton(button, background, textColor);
-        return button;
-    }
-
-    private void tintButton(Button button, int background, int textColor) {
-        button.setBackground(roundBackground(background, dp(14)));
-        button.setTextColor(textColor);
-    }
-
-    private GradientDrawable roundBackground(int color, int radius) {
+    private GradientDrawable roundBackground(int color, int radiusDp) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(color);
-        drawable.setCornerRadius(radius);
+        drawable.setCornerRadius(radiusDp);
         return drawable;
+    }
+
+    private RippleDrawable createCircleRipple(int normalColor, int sizeDp) {
+        GradientDrawable content = new GradientDrawable();
+        content.setShape(GradientDrawable.OVAL);
+        content.setColor(normalColor);
+        return new RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x33888888),
+                content,
+                null
+        );
     }
 
     private LinearLayout.LayoutParams matchWidthWrapContent() {
@@ -963,14 +1175,9 @@ public class SudokuModuleFragment extends Fragment {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
-    private LinearLayout.LayoutParams wrapContentParams() {
-        return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-    }
-
-    private LinearLayout.LayoutParams weightedItemParams() {
+    private LinearLayout.LayoutParams weightedParams(float weight) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+                ViewGroup.LayoutParams.WRAP_CONTENT, weight);
         params.setMargins(dp(2), 0, dp(2), 0);
         return params;
     }
@@ -979,14 +1186,6 @@ public class SudokuModuleFragment extends Fragment {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(50), 1f);
         params.setMargins(dp(2), 0, dp(2), 0);
         return params;
-    }
-
-    private int countRemaining(int[][] board) {
-        int remaining = 0;
-        for (int[] row : board) {
-            for (int value : row) if (value == 0) remaining++;
-        }
-        return remaining;
     }
 
     private String formatElapsed(long millis) {

@@ -1,7 +1,11 @@
 package com.gamecenter.app.memory;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,23 +18,29 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
 import com.gamecenter.app.R;
 import com.gamecenter.app.SaveManager;
 import com.gamecenter.app.games.GameUsageStore;
+
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
- * 记忆翻牌 Fragment（从 MemoryActivity 迁移）。
+ * 记忆翻牌 Fragment（现代化改造版）。
  *
  * <p>翻开两张卡牌，若相同则配对成功。记录步数和用时，通关后计算分数。
- * 提供三档难度（简单 4x4 / 普通 4x5 / 困难 4x6）。</p>
+ * 提供三档难度（简单 4x4 / 普通 4x5 / 困难 4x6），支持浅/深色主题，
+ * 实时对决用时与步数看板，兼顾既有自动化测试用例契约与现代沉浸视觉。</p>
  */
 public class MemoryModuleFragment extends Fragment {
 
@@ -38,7 +48,9 @@ public class MemoryModuleFragment extends Fragment {
     private static final String GAME_ID = "memory";
     private static final long FLIP_DELAY_MS = 800;
 
-    private static final String[] CARD_SYMBOLS = {"🍎", "🍊", "🍋", "🍇", "🍓", "🍒", "🥝", "🍑", "🍌", "🥑", "🌽", "🥕"};
+    private static final String[] CARD_SYMBOLS = {
+            "🍎", "🍊", "🍋", "🍇", "🍓", "🍒", "🥝", "🍑", "🍌", "🥑", "🌽", "🥕"
+    };
 
     // 难度选择在下一局开始时生效，不改变当前牌组和配对目标。
     private int baseGridRows = 4;
@@ -64,9 +76,21 @@ public class MemoryModuleFragment extends Fragment {
     private boolean gameActive = false;
     private int currentScore = 0;
     private int highScore = 0;
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    private final Runnable timerTicker = new Runnable() {
+        @Override
+        public void run() {
+            if (gameActive) {
+                updateStatsDisplay();
+                handler.postDelayed(this, 1000);
+            }
+        }
+    };
 
     // UI 组件
+    private TextView tvTitle;
+    private LinearLayout diffBar;
     private TextView tvStatus;
     private TextView tvStats;
     private GridLayout gridLayout;
@@ -84,102 +108,129 @@ public class MemoryModuleFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         Context ctx = requireContext();
         float dp = ctx.getResources().getDisplayMetrics().density;
+        boolean dark = isDarkTheme(ctx);
 
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F5F5);
-        root.setPadding((int) (16 * dp), (int) (20 * dp), (int) (16 * dp), (int) (20 * dp));
+        root.setBackgroundColor(dark ? 0xFF0F172A : 0xFFF8FAFC);
+        root.setPadding((int) (14 * dp), (int) (16 * dp), (int) (14 * dp), (int) (16 * dp));
 
-        TextView tvTitle = new TextView(ctx);
+        // 0. 标题文本
+        tvTitle = new TextView(ctx);
         tvTitle.setText(getString(R.string.game_title_memory));
-        tvTitle.setTextSize(26);
-        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-        tvTitle.setTextColor(0xFF212121);
+        tvTitle.setTextSize(22f);
+        tvTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        tvTitle.setTextColor(dark ? 0xFFF1F5F9 : 0xFF0F172A);
         tvTitle.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         titleLp.gravity = Gravity.CENTER;
-        titleLp.bottomMargin = (int) (8 * dp);
+        titleLp.bottomMargin = (int) (10 * dp);
         tvTitle.setLayoutParams(titleLp);
         root.addView(tvTitle);
 
-        // 难度按钮区
-        LinearLayout diffBar = new LinearLayout(ctx);
+        // 1. 难度按钮区（简单 / 普通 / 困难 胶囊栏）
+        diffBar = new LinearLayout(ctx);
         diffBar.setOrientation(LinearLayout.HORIZONTAL);
         diffBar.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams diffBarLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        diffBarLp.bottomMargin = (int) (8 * dp);
+        diffBarLp.bottomMargin = (int) (10 * dp);
         diffBar.setLayoutParams(diffBarLp);
 
-        btnEasy = new Button(ctx);
-        btnEasy.setText(getString(R.string.game_match_easy));
-        btnEasy.setTextSize(12f);
-        btnEasy.setMinHeight((int) Math.ceil(48 * dp));
-        LinearLayout.LayoutParams easyLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        easyLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
-        btnEasy.setLayoutParams(easyLp);
+        btnEasy = createDifficultyButton(ctx, dp, dark, getString(R.string.game_match_easy), true);
+        btnNormal = createDifficultyButton(ctx, dp, dark, getString(R.string.game_match_normal), false);
+        btnHard = createDifficultyButton(ctx, dp, dark, getString(R.string.game_match_hard), false);
+
         diffBar.addView(btnEasy);
-
-        btnNormal = new Button(ctx);
-        btnNormal.setText(getString(R.string.game_match_normal));
-        btnNormal.setTextSize(12f);
-        btnNormal.setMinHeight((int) Math.ceil(48 * dp));
-        LinearLayout.LayoutParams normalLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        normalLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
-        btnNormal.setLayoutParams(normalLp);
         diffBar.addView(btnNormal);
-
-        btnHard = new Button(ctx);
-        btnHard.setText(getString(R.string.game_match_hard));
-        btnHard.setTextSize(12f);
-        btnHard.setMinHeight((int) Math.ceil(48 * dp));
-        LinearLayout.LayoutParams hardLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        hardLp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
-        btnHard.setLayoutParams(hardLp);
         diffBar.addView(btnHard);
-
         root.addView(diffBar);
 
+        // 2. 状态提示文本
         tvStatus = new TextView(ctx);
         tvStatus.setGravity(Gravity.CENTER);
-        tvStatus.setTextSize(18f);
-        tvStatus.setTextColor(0xFF212121);
-        tvStatus.setPadding(0, (int) (8 * dp), 0, (int) (4 * dp));
+        tvStatus.setTextSize(16f);
+        tvStatus.setTypeface(Typeface.DEFAULT_BOLD);
+        tvStatus.setTextColor(dark ? 0xFF38BDF8 : 0xFF0284C7);
+        tvStatus.setPadding(0, (int) (4 * dp), 0, (int) (4 * dp));
         tvStatus.setText(getString(R.string.game_click_to_start));
         root.addView(tvStatus);
 
+        // 3. 统计看板文本
         tvStats = new TextView(ctx);
         tvStats.setGravity(Gravity.CENTER);
-        tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF1976D2);
-        tvStats.setPadding(0, (int) (4 * dp), 0, (int) (12 * dp));
+        tvStats.setTextSize(13f);
+        tvStats.setTextColor(dark ? 0xFF94A3B8 : 0xFF64748B);
+        tvStats.setPadding(0, (int) (2 * dp), 0, (int) (12 * dp));
         tvStats.setText("");
         root.addView(tvStats);
 
+        // 4. 卡牌网格容器
         gridLayout = new GridLayout(ctx);
         gridLayout.setColumnCount(gridCols);
         gridLayout.setRowCount(gridRows);
-        gridLayout.setUseDefaultMargins(true);
+        gridLayout.setUseDefaultMargins(false);
+        gridLayout.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        gridLp.gravity = Gravity.CENTER;
         gridLayout.setLayoutParams(gridLp);
         root.addView(gridLayout);
 
+        // 5. 开始 / 再来一局按钮
         btnStart = new Button(ctx);
         btnStart.setText(getString(R.string.game_btn_start));
-        btnStart.setMinHeight((int) Math.ceil(48 * dp));
-        btnStart.setBackgroundColor(0xFF1976D2);
+        btnStart.setTextSize(15f);
+        btnStart.setTypeface(Typeface.DEFAULT_BOLD);
+        btnStart.setMinHeight((int) Math.ceil(44 * dp));
         btnStart.setTextColor(Color.WHITE);
+        btnStart.setBackground(createStartButtonBackground(dp));
+        btnStart.setPadding((int) (32 * dp), (int) (8 * dp), (int) (32 * dp), (int) (8 * dp));
         LinearLayout.LayoutParams startLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         startLp.gravity = Gravity.CENTER;
-        startLp.topMargin = (int) (12 * dp);
+        startLp.topMargin = (int) (16 * dp);
         btnStart.setLayoutParams(startLp);
         root.addView(btnStart);
 
         return root;
+    }
+
+    private Button createDifficultyButton(Context ctx, float dp, boolean dark, String text, boolean selected) {
+        Button btn = new Button(ctx);
+        btn.setText(text);
+        btn.setTextSize(12f);
+        btn.setTypeface(Typeface.DEFAULT_BOLD);
+        btn.setMinHeight((int) Math.ceil(40 * dp));
+        updateDifficultyButtonStyle(btn, dp, dark, selected);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        lp.setMargins((int) (4 * dp), 0, (int) (4 * dp), 0);
+        btn.setLayoutParams(lp);
+        return btn;
+    }
+
+    private void updateDifficultyButtonStyle(Button btn, float dp, boolean dark, boolean selected) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(18 * dp);
+        if (selected) {
+            bg.setColor(dark ? 0xFF0284C7 : 0xFF0284C7);
+            btn.setTextColor(Color.WHITE);
+        } else {
+            bg.setColor(dark ? 0xFF1E293B : 0xFFFFFFFF);
+            bg.setStroke((int) (1 * dp), dark ? 0xFF334155 : 0xFFCBD5E1);
+            btn.setTextColor(dark ? 0xFF94A3B8 : 0xFF475569);
+        }
+        btn.setBackground(bg);
+    }
+
+    private GradientDrawable createStartButtonBackground(float dp) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(22 * dp);
+        bg.setColor(0xFF0284C7);
+        return bg;
     }
 
     @Override
@@ -188,18 +239,45 @@ public class MemoryModuleFragment extends Fragment {
         Context ctx = requireContext();
         saveManager = SaveManager.getInstance(ctx);
         usageStore = new GameUsageStore(ctx);
+        if (usageStore != null) {
+            usageStore.recordLaunch(GAME_ID);
+        }
         highScore = loadHighScore();
 
-        btnEasy.setOnClickListener(v -> { setDifficulty(4, 4); });
-        btnNormal.setOnClickListener(v -> { setDifficulty(4, 5); });
-        btnHard.setOnClickListener(v -> { setDifficulty(4, 6); });
+        btnEasy.setOnClickListener(v -> setDifficulty(4, 4, 0));
+        btnNormal.setOnClickListener(v -> setDifficulty(4, 5, 1));
+        btnHard.setOnClickListener(v -> setDifficulty(4, 6, 2));
         btnStart.setOnClickListener(v -> startNewGame());
+
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(),
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        if (gameActive && matchedPairs > 0 && matchedPairs < pairCount) {
+                            new AlertDialog.Builder(requireContext())
+                                    .setTitle("退出对局")
+                                    .setMessage("确认要退出当前翻牌对局吗？当前进度将丢失。")
+                                    .setPositiveButton("退出", (d, w) -> requireActivity().finish())
+                                    .setNegativeButton("留在此局", null)
+                                    .show();
+                        } else {
+                            requireActivity().finish();
+                        }
+                    }
+                });
     }
 
-    private void setDifficulty(int rows, int cols) {
+    private void setDifficulty(int rows, int cols, int selectedIndex) {
         baseGridRows = rows;
         baseGridCols = cols;
-        tvStatus.setText(String.format(gameActive
+
+        float dp = requireContext().getResources().getDisplayMetrics().density;
+        boolean dark = isDarkTheme(requireContext());
+        updateDifficultyButtonStyle(btnEasy, dp, dark, selectedIndex == 0);
+        updateDifficultyButtonStyle(btnNormal, dp, dark, selectedIndex == 1);
+        updateDifficultyButtonStyle(btnHard, dp, dark, selectedIndex == 2);
+
+        tvStatus.setText(String.format(Locale.getDefault(), gameActive
                 ? "难度已设为 %dx%d（%d 对），下一局生效"
                 : "难度已设为 %dx%d（%d 对），点击开始", rows, cols, rows * cols / 2));
     }
@@ -238,6 +316,9 @@ public class MemoryModuleFragment extends Fragment {
 
         tvStatus.setText(getString(R.string.game_match_status));
         updateStatsDisplay();
+
+        handler.removeCallbacks(timerTicker);
+        handler.postDelayed(timerTicker, 1000);
     }
 
     private void rebuildGrid() {
@@ -245,8 +326,12 @@ public class MemoryModuleFragment extends Fragment {
         gridLayout.setColumnCount(gridCols);
         gridLayout.setRowCount(gridRows);
 
+        float dp = getResources().getDisplayMetrics().density;
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int cardSize = (int) (screenWidth * 0.85 / gridCols);
+        int maxGridWidth = Math.min(screenWidth - (int) (32 * dp), (int) (360 * dp));
+        int cardMargin = (int) (4 * dp);
+        int cardSize = (maxGridWidth - (gridCols * cardMargin * 2)) / gridCols;
+        boolean dark = isDarkTheme(requireContext());
 
         cardButtons = new Button[totalCards];
         for (int i = 0; i < totalCards; i++) {
@@ -254,17 +339,45 @@ public class MemoryModuleFragment extends Fragment {
             Button btn = new Button(requireContext());
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = cardSize;
-            params.height = cardSize;
-            params.setMargins(6, 6, 6, 6);
+            params.height = (int) (cardSize * 1.05f);
+            params.setMargins(cardMargin, cardMargin, cardMargin, cardMargin);
             btn.setLayoutParams(params);
             btn.setText("?");
-            btn.setTextSize(24f);
-            btn.setTextColor(0xFF757575);
-            btn.setBackgroundColor(0xFFBBDEFB);
+            btn.setTextSize(20f);
+            btn.setTypeface(Typeface.DEFAULT_BOLD);
+            applyCardBackStyle(btn, dp, dark);
+
             btn.setOnClickListener(v -> onCardClick(index));
             cardButtons[i] = btn;
             gridLayout.addView(btn);
         }
+    }
+
+    private void applyCardBackStyle(Button btn, float dp, boolean dark) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(10 * dp);
+        bg.setColor(dark ? 0xFF1E293B : 0xFFE0F2FE);
+        bg.setStroke((int) (1.5f * dp), dark ? 0xFF38BDF8 : 0xFF7DD3FC);
+        btn.setBackground(bg);
+        btn.setTextColor(dark ? 0xFF38BDF8 : 0xFF0284C7);
+    }
+
+    private void applyCardFaceStyle(Button btn, float dp, boolean dark) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(10 * dp);
+        bg.setColor(dark ? 0xFF334155 : 0xFFFEF3C7);
+        bg.setStroke((int) (1.5f * dp), dark ? 0xFFF59E0B : 0xFFFCD34D);
+        btn.setBackground(bg);
+        btn.setTextColor(dark ? 0xFFF8FAFC : 0xFF1E293B);
+    }
+
+    private void applyCardMatchedStyle(Button btn, float dp, boolean dark) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(10 * dp);
+        bg.setColor(dark ? 0xFF064E3B : 0xFFD1FAE5);
+        bg.setStroke((int) (1.5f * dp), dark ? 0xFF059669 : 0xFF34D399);
+        btn.setBackground(bg);
+        btn.setTextColor(dark ? 0xFF6EE7B7 : 0xFF065F46);
     }
 
     private void onCardClick(int index) {
@@ -304,24 +417,24 @@ public class MemoryModuleFragment extends Fragment {
     private void revealCard(int index) {
         cardRevealed[index] = true;
         cardButtons[index].setText(CARD_SYMBOLS[cardValues[index]]);
-        cardButtons[index].setTextColor(0xFF212121);
-        cardButtons[index].setBackgroundColor(0xFFFFF8E1);
+        float dp = getResources().getDisplayMetrics().density;
+        applyCardFaceStyle(cardButtons[index], dp, isDarkTheme(requireContext()));
     }
 
     private void hideCard(int index) {
         cardRevealed[index] = false;
         cardButtons[index].setText("?");
-        cardButtons[index].setTextColor(0xFF757575);
-        cardButtons[index].setBackgroundColor(0xFFBBDEFB);
+        float dp = getResources().getDisplayMetrics().density;
+        applyCardBackStyle(cardButtons[index], dp, isDarkTheme(requireContext()));
     }
 
     private void onMatchSuccess() {
         cardMatched[firstSelectedIndex] = true;
         cardMatched[secondSelectedIndex] = true;
-        cardButtons[firstSelectedIndex].setBackgroundColor(0xFFA5D6A7);
-        cardButtons[firstSelectedIndex].setTextColor(0xFF1B5E20);
-        cardButtons[secondSelectedIndex].setBackgroundColor(0xFFA5D6A7);
-        cardButtons[secondSelectedIndex].setTextColor(0xFF1B5E20);
+        float dp = getResources().getDisplayMetrics().density;
+        boolean dark = isDarkTheme(requireContext());
+        applyCardMatchedStyle(cardButtons[firstSelectedIndex], dp, dark);
+        applyCardMatchedStyle(cardButtons[secondSelectedIndex], dp, dark);
         cardButtons[firstSelectedIndex].setEnabled(false);
         cardButtons[secondSelectedIndex].setEnabled(false);
 
@@ -338,10 +451,11 @@ public class MemoryModuleFragment extends Fragment {
 
     private void onGameComplete() {
         gameActive = false;
+        handler.removeCallbacks(timerTicker);
         long elapsedMs = System.currentTimeMillis() - startTimeMs;
         long elapsedSec = elapsedMs / 1000;
 
-        tvStatus.setText(String.format("恭喜通关！步数 %d，用时 %d 秒", moveCount, elapsedSec));
+        tvStatus.setText(String.format(Locale.getDefault(), "恭喜通关！步数 %d，用时 %d 秒", moveCount, elapsedSec));
 
         int score = Math.max(100 - moveCount * 5, 10);
         currentScore += score;
@@ -350,7 +464,11 @@ public class MemoryModuleFragment extends Fragment {
             highScore = currentScore;
             saveHighScore(highScore);
         }
-        usageStore.recordScore(GAME_ID, highScore);
+        if (usageStore != null) {
+            usageStore.recordScore(GAME_ID, highScore);
+            usageStore.recordWin(GAME_ID);
+            usageStore.recordPlayTime(GAME_ID, elapsedMs);
+        }
 
         btnStart.setText(getString(R.string.game_btn_play_again));
         btnStart.setVisibility(View.VISIBLE);
@@ -361,7 +479,7 @@ public class MemoryModuleFragment extends Fragment {
         if (startTimeMs > 0 && gameActive) {
             elapsed = (System.currentTimeMillis() - startTimeMs) / 1000;
         }
-        tvStats.setText(String.format("步数 %d  配对 %d/%d  用时 %d 秒", moveCount, matchedPairs, pairCount, elapsed));
+        tvStats.setText(String.format(Locale.getDefault(), "配对 %d/%d  步数 %d  用时 %d 秒", matchedPairs, pairCount, moveCount, elapsed));
     }
 
     @Override
@@ -391,5 +509,10 @@ public class MemoryModuleFragment extends Fragment {
         } catch (Exception e) {
             Log.w(TAG, "存档操作失败", e);
         }
+    }
+
+    private static boolean isDarkTheme(Context context) {
+        int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == Configuration.UI_MODE_NIGHT_YES;
     }
 }

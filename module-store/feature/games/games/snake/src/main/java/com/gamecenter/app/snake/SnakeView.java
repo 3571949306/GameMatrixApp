@@ -205,8 +205,10 @@ public class SnakeView extends View {
                     radius, radius, paint);
         }
 
-        paintText.setTextSize(cellSize * 1.2f);
-        canvas.drawText("分数: " + game.getScore(), viewWidth / 2f, offsetY - 10, paintText);
+        if (offsetY > cellSize * 1.2f) {
+            paintText.setTextSize(cellSize * 1.2f);
+            canvas.drawText("分数: " + game.getScore(), viewWidth / 2f, offsetY - 10, paintText);
+        }
 
         if (game.isGameOver()) {
             canvas.drawRect(0, 0, viewWidth, viewHeight, paintOverlay);

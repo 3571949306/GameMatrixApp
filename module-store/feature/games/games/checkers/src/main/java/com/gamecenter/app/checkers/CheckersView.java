@@ -34,6 +34,7 @@ public class CheckersView extends View {
     private static final int COLOR_SELECTED = Color.parseColor("#FFD700");
     private static final int COLOR_VALID = Color.parseColor("#D4EDE1");
     private static final int COLOR_KING_CROWN = Color.parseColor("#FFD700");
+    private static final int COLOR_LAST_MOVE = Color.parseColor("#50FFD700");
 
     private Paint darkPaint;
     private Paint lightPaint;
@@ -44,6 +45,7 @@ public class CheckersView extends View {
     private Paint kingPaint;
     private Paint borderPaint;
     private Paint crownPaint;
+    private Paint lastMovePaint;
 
     private float cellSize;
     private float boardOffsetX;
@@ -53,6 +55,10 @@ public class CheckersView extends View {
     private int selectedRow = -1;
     private int selectedCol = -1;
     private boolean[][] validMoves = new boolean[BOARD_SIZE][BOARD_SIZE];
+    private int lastFromR = -1;
+    private int lastFromC = -1;
+    private int lastToR = -1;
+    private int lastToC = -1;
 
     public interface OnCellClickListener {
         void onCellClick(int row, int col);
@@ -116,6 +122,26 @@ public class CheckersView extends View {
         crownPaint.setTextSize(24f);
         crownPaint.setTextAlign(Paint.Align.CENTER);
         crownPaint.setFakeBoldText(true);
+
+        lastMovePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        lastMovePaint.setColor(COLOR_LAST_MOVE);
+        lastMovePaint.setStyle(Paint.Style.FILL);
+    }
+
+    public void setLastMove(int fromR, int fromC, int toR, int toC) {
+        this.lastFromR = fromR;
+        this.lastFromC = fromC;
+        this.lastToR = toR;
+        this.lastToC = toC;
+        invalidate();
+    }
+
+    public void clearLastMove() {
+        this.lastFromR = -1;
+        this.lastFromC = -1;
+        this.lastToR = -1;
+        this.lastToC = -1;
+        invalidate();
     }
 
     public void setOnCellClickListener(@Nullable OnCellClickListener listener) {
@@ -170,6 +196,8 @@ public class CheckersView extends View {
                     canvas.drawRect(left, top, left + cellSize, top + cellSize, selectedPaint);
                 } else if (validMoves[r][c]) {
                     canvas.drawRect(left, top, left + cellSize, top + cellSize, validPaint);
+                } else if ((r == lastFromR && c == lastFromC) || (r == lastToR && c == lastToC)) {
+                    canvas.drawRect(left, top, left + cellSize, top + cellSize, lastMovePaint);
                 } else if ((r + c) % 2 == 0) {
                     canvas.drawRect(left, top, left + cellSize, top + cellSize, lightPaint);
                 } else {

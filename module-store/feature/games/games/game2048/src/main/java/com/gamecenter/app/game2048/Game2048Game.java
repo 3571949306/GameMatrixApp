@@ -2,21 +2,51 @@ package com.gamecenter.app.game2048;
 
 import java.util.Random;
 
+/**
+ * 2048 核心逻辑引擎（纯状态逻辑，无 Android UI 依赖）。
+ *
+ * <p>支持三档难度机制、步数统计、盘面最大数追踪与单步悔棋（Undo）。</p>
+ */
 public class Game2048Game {
+
+    public static final int DIFFICULTY_EASY = 0;
+    public static final int DIFFICULTY_NORMAL = 1;
+    public static final int DIFFICULTY_HARD = 2;
+
+    public static final String[] DIFFICULTY_NAMES = {"休闲模式", "经典挑战", "大师硬核"};
+
     private int[][] board;
     private int score;
     private boolean gameOver;
     private Random random;
+
+    private int difficulty = DIFFICULTY_NORMAL;
+    private int[][] previousBoard;
+    private int previousScore;
+    private boolean canUndo = false;
+    private int movesCount = 0;
 
     public Game2048Game() {
         random = new Random();
         reset();
     }
 
+    public void setDifficulty(int diff) {
+        this.difficulty = Math.max(DIFFICULTY_EASY, Math.min(DIFFICULTY_HARD, diff));
+    }
+
+    public int getDifficulty() {
+        return difficulty;
+    }
+
     public void reset() {
         board = new int[4][4];
+        previousBoard = null;
         score = 0;
+        previousScore = 0;
         gameOver = false;
+        canUndo = false;
+        movesCount = 0;
         addRandomTile();
         addRandomTile();
     }
@@ -33,6 +63,39 @@ public class Game2048Game {
         return gameOver;
     }
 
+    public int getMovesCount() {
+        return movesCount;
+    }
+
+    public boolean canUndo() {
+        return canUndo && previousBoard != null;
+    }
+
+    public boolean undo() {
+        if (!canUndo()) return false;
+        for (int y = 0; y < 4; y++) {
+            System.arraycopy(previousBoard[y], 0, board[y], 0, 4);
+        }
+        score = previousScore;
+        gameOver = false;
+        canUndo = false;
+        return true;
+    }
+
+    public int getMaxTile() {
+        int max = 0;
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 4; x++) {
+                if (board[y][x] > max) max = board[y][x];
+            }
+        }
+        return max;
+    }
+
+    public boolean hasWon() {
+        return getMaxTile() >= 2048;
+    }
+
     public int[][] getBoardSnapshot() {
         int[][] copy = new int[4][4];
         for (int y = 0; y < 4; y++) {
@@ -45,6 +108,8 @@ public class Game2048Game {
         board = savedBoard;
         score = savedScore;
         gameOver = savedGameOver;
+        canUndo = false;
+        previousBoard = null;
         random = new Random();
     }
 
@@ -59,7 +124,14 @@ public class Game2048Game {
         }
         if (!emptyTiles.isEmpty()) {
             int[] tile = emptyTiles.get(random.nextInt(emptyTiles.size()));
-            board[tile[1]][tile[0]] = random.nextDouble() < 0.9 ? 2 : 4;
+            double fourProb;
+            switch (difficulty) {
+                case DIFFICULTY_EASY: fourProb = 0.05; break;
+                case DIFFICULTY_HARD: fourProb = 0.30; break;
+                case DIFFICULTY_NORMAL:
+                default: fourProb = 0.10; break;
+            }
+            board[tile[1]][tile[0]] = random.nextDouble() < (1.0 - fourProb) ? 2 : 4;
         }
     }
 
@@ -93,11 +165,11 @@ public class Game2048Game {
         return result;
     }
 
-    private int[][] transpose(int[][] board) {
+    private int[][] transpose(int[][] b) {
         int[][] result = new int[4][4];
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 4; x++) {
-                result[x][y] = board[y][x];
+                result[x][y] = b[y][x];
             }
         }
         return result;
@@ -120,12 +192,21 @@ public class Game2048Game {
         return copy;
     }
 
+    private void recordBeforeMove(int[][] oldBoard, int oldScore) {
+        previousBoard = oldBoard;
+        previousScore = oldScore;
+        canUndo = true;
+        movesCount++;
+    }
+
     public void moveLeft() {
         int[][] oldBoard = copyBoard();
+        int oldScore = score;
         for (int y = 0; y < 4; y++) {
             board[y] = merge(compress(board[y]));
         }
         if (!boardsEqual(oldBoard, board)) {
+            recordBeforeMove(oldBoard, oldScore);
             addRandomTile();
             checkGameOver();
         }
@@ -133,10 +214,12 @@ public class Game2048Game {
 
     public void moveRight() {
         int[][] oldBoard = copyBoard();
+        int oldScore = score;
         for (int y = 0; y < 4; y++) {
             board[y] = reverse(merge(compress(reverse(board[y]))));
         }
         if (!boardsEqual(oldBoard, board)) {
+            recordBeforeMove(oldBoard, oldScore);
             addRandomTile();
             checkGameOver();
         }
@@ -144,12 +227,14 @@ public class Game2048Game {
 
     public void moveUp() {
         int[][] oldBoard = copyBoard();
+        int oldScore = score;
         board = transpose(board);
         for (int y = 0; y < 4; y++) {
             board[y] = merge(compress(board[y]));
         }
         board = transpose(board);
         if (!boardsEqual(oldBoard, board)) {
+            recordBeforeMove(oldBoard, oldScore);
             addRandomTile();
             checkGameOver();
         }
@@ -157,12 +242,14 @@ public class Game2048Game {
 
     public void moveDown() {
         int[][] oldBoard = copyBoard();
+        int oldScore = score;
         board = transpose(board);
         for (int y = 0; y < 4; y++) {
             board[y] = reverse(merge(compress(reverse(board[y]))));
         }
         board = transpose(board);
         if (!boardsEqual(oldBoard, board)) {
+            recordBeforeMove(oldBoard, oldScore);
             addRandomTile();
             checkGameOver();
         }

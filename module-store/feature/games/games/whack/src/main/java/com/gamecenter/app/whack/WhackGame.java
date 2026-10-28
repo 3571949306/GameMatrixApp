@@ -5,22 +5,30 @@ import java.util.Random;
 /**
  * 打地鼠游戏逻辑（纯状态，不依赖 Android UI）。
  *
- * <p>从宿主 WhackActivity 中提取：分数、计时、地鼠出现间隔、
- * 连击与难度递增。</p>
+ * <p>提供三分级难度（简单/普通/困难）、连击统计、最高连击追踪与动态间隔加速。</p>
  */
 public class WhackGame {
 
     public static final int GRID_SIZE = 3;
     public static final int GAME_DURATION_SEC = 30;
-    public static final long INITIAL_MOLE_INTERVAL_MS = 1500;
+
+    public static final int DIFFICULTY_EASY = 0;
+    public static final int DIFFICULTY_NORMAL = 1;
+    public static final int DIFFICULTY_HARD = 2;
+
+    public static final String[] DIFFICULTY_NAMES = {"简单", "普通", "困难"};
+
+    public static final long INITIAL_MOLE_INTERVAL_MS = 1400;
     public static final long MIN_MOLE_INTERVAL_MS = 500;
 
     private final Random random = new Random();
 
+    private int difficulty = DIFFICULTY_NORMAL;
     private int score = 0;
     private int hitCount = 0;
     private int missCount = 0;
     private int consecutiveHits = 0;
+    private int maxCombo = 0;
     private int timeRemaining = GAME_DURATION_SEC;
     private int currentMolePos = -1;
     private long moleIntervalMs = INITIAL_MOLE_INTERVAL_MS;
@@ -28,12 +36,33 @@ public class WhackGame {
     private boolean gameActive = false;
     private long startIntervalMs = INITIAL_MOLE_INTERVAL_MS;
 
+    public void setDifficulty(int diff) {
+        this.difficulty = Math.max(DIFFICULTY_EASY, Math.min(DIFFICULTY_HARD, diff));
+    }
+
+    public int getDifficulty() {
+        return difficulty;
+    }
+
+    public void reset() {
+        long startInterval;
+        if (difficulty == DIFFICULTY_EASY) {
+            startInterval = 1800L;
+        } else if (difficulty == DIFFICULTY_HARD) {
+            startInterval = 1000L;
+        } else {
+            startInterval = 1400L;
+        }
+        reset(startInterval);
+    }
+
     public void reset(long startInterval) {
         this.startIntervalMs = startInterval;
         score = 0;
         hitCount = 0;
         missCount = 0;
         consecutiveHits = 0;
+        maxCombo = 0;
         timeRemaining = GAME_DURATION_SEC;
         moleIntervalMs = startInterval;
         currentMolePos = -1;
@@ -45,8 +74,20 @@ public class WhackGame {
     public void onTickSecond() {
         if (!gameActive) return;
         timeRemaining--;
-        if (timeRemaining % 10 == 0) {
-            moleIntervalMs = Math.max(MIN_MOLE_INTERVAL_MS, moleIntervalMs - 300);
+        if (timeRemaining > 0 && timeRemaining % 10 == 0) {
+            long minLimit;
+            long step;
+            if (difficulty == DIFFICULTY_EASY) {
+                minLimit = 700L;
+                step = 200L;
+            } else if (difficulty == DIFFICULTY_HARD) {
+                minLimit = 350L;
+                step = 300L;
+            } else {
+                minLimit = 500L;
+                step = 250L;
+            }
+            moleIntervalMs = Math.max(minLimit, moleIntervalMs - step);
         }
     }
 
@@ -70,6 +111,9 @@ public class WhackGame {
         moleVisible = false;
         hitCount++;
         consecutiveHits++;
+        if (consecutiveHits > maxCombo) {
+            maxCombo = consecutiveHits;
+        }
         int gain = 10 + consecutiveHits;
         score += gain;
         return gain;
@@ -103,4 +147,12 @@ public class WhackGame {
     public boolean isGameActive() { return gameActive; }
     public long getMoleIntervalMs() { return moleIntervalMs; }
     public int getConsecutiveHits() { return consecutiveHits; }
+    public int getMaxCombo() { return maxCombo; }
+    public int getHitCount() { return hitCount; }
+    public int getMissCount() { return missCount; }
+
+    public int getHitRate() {
+        int total = hitCount + missCount;
+        return total > 0 ? (hitCount * 100 / total) : 0;
+    }
 }

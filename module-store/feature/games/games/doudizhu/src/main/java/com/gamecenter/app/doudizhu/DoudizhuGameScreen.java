@@ -77,6 +77,9 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     private final ExitListener exitListener;
     private final SettlementListener settlementListener;
 
+    private TextView tvDiffCapsule;
+    private TextView tvWinRateHud;
+
     /** 行内提示展示时长（毫秒） */
     private static final long INLINE_MESSAGE_DURATION_MS = 2500L;
 
@@ -95,7 +98,12 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         boolean night = isNightMode(context);
         setBackgroundColor(night ? 0xFF081B07 : 0xFF0A3D12);
 
-        // ===== 牌桌区：TableView + 特效覆盖 + 退出按钮 =====
+        // ===== 顶部标准导航栏 =====
+        LinearLayout topBar = createTopBar(context, night);
+        addView(topBar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+
+        // ===== 牌桌区：TableView + 特效覆盖 =====
         FrameLayout tableArea = new FrameLayout(context);
         addView(tableArea, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -111,24 +119,6 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
         // EffectsView 只负责动画，震动在 playFeedbackFor 内按特效档位
         // 单点触发，避免双震动路径。
         feedback = new DoudizhuFeedback(context);
-
-        // 退出按钮：放回牌桌区右上角（P4 布局修正：操作条空间紧张，
-        // 顶角按钮保证不与状态栏/导航栏重叠；横屏时状态栏在系统栏 inset 内）
-        Button btnExitTop = new Button(context);
-        btnExitTop.setText("✕");
-        btnExitTop.setTextSize(16);
-        btnExitTop.setTextColor(Color.WHITE);
-        btnExitTop.setAllCaps(false);
-        btnExitTop.setPadding(0, 0, 0, 0);
-        btnExitTop.setBackground(pillBackground(night ? 0xFF37474F : 0xFF455A64));
-        btnExitTop.setContentDescription(context.getString(R.string.game_doudizhu_exit));
-        int exitMarginTop = dp(40); // 让出顶部底牌/记牌器区域
-        int exitMarginEnd = dp(10);
-        FrameLayout.LayoutParams exitLp = new FrameLayout.LayoutParams(
-                dp(40), dp(40), Gravity.TOP | Gravity.END);
-        exitLp.setMargins(0, exitMarginTop, exitMarginEnd, 0);
-        tableArea.addView(btnExitTop, exitLp);
-        btnExitTop.setOnClickListener(v -> confirmExit());
 
         // ===== 操作条（固定高度，不覆盖手牌；左端 HUD、右端退出按钮） =====
         int barHeight = dp(64);
@@ -260,6 +250,8 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     public void onTableSyncRequired() {
         controller.pushTableState(tableView);
         updateHud();
+        updateDifficultyCapsule();
+        updateWinRateHud();
     }
 
     /** 倍数 HUD：出牌阶段显示总倍数；叫分阶段显示当前最高叫分。 */
@@ -447,6 +439,199 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
 
     // ============ 内部 ============
 
+    /** 创建顶部统一导航栏（返回、标题、难度胶囊、胜率HUD、规则、设置） */
+    private LinearLayout createTopBar(Context context, boolean night) {
+        LinearLayout bar = new LinearLayout(context);
+        bar.setOrientation(HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(12), dp(4), dp(12), dp(4));
+        bar.setBackgroundColor(night ? 0xEE0B1E0A : 0xEE0D4214);
+
+        // ❮ 返回胶囊
+        TextView btnBack = new TextView(context);
+        btnBack.setText("❮");
+        btnBack.setTextSize(16);
+        btnBack.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnBack.setTextColor(Color.WHITE);
+        btnBack.setGravity(Gravity.CENTER);
+        btnBack.setBackground(pillBackground(night ? 0xFF263238 : 0xFF37474F));
+        bar.addView(btnBack, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        btnBack.setOnClickListener(v -> confirmExit());
+
+        // 标题
+        TextView tvTitle = new TextView(context);
+        tvTitle.setText(R.string.game_title_doudizhu);
+        tvTitle.setTextSize(16);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(Color.WHITE);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        titleLp.leftMargin = dp(10);
+        bar.addView(tvTitle, titleLp);
+
+        // [难度 ▾] 胶囊
+        tvDiffCapsule = new TextView(context);
+        updateDifficultyCapsule();
+        tvDiffCapsule.setTextSize(12);
+        tvDiffCapsule.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvDiffCapsule.setTextColor(Color.WHITE);
+        tvDiffCapsule.setGravity(Gravity.CENTER);
+        tvDiffCapsule.setBackground(pillBackground(night ? 0xFF1B5E20 : 0xFF2E7D32));
+        tvDiffCapsule.setPadding(dp(10), dp(4), dp(10), dp(4));
+        LinearLayout.LayoutParams diffLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+        diffLp.leftMargin = dp(10);
+        bar.addView(tvDiffCapsule, diffLp);
+        tvDiffCapsule.setOnClickListener(v -> showDifficultyDialog());
+
+        // 战绩 HUD 看板
+        tvWinRateHud = new TextView(context);
+        tvWinRateHud.setTextSize(12);
+        tvWinRateHud.setTextColor(0xFFCFD8DC);
+        tvWinRateHud.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams hudLp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        hudLp.leftMargin = dp(14);
+        bar.addView(tvWinRateHud, hudLp);
+        updateWinRateHud();
+
+        // ℹ 规则说明
+        TextView btnRules = new TextView(context);
+        btnRules.setText("ℹ");
+        btnRules.setTextSize(15);
+        btnRules.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnRules.setTextColor(Color.WHITE);
+        btnRules.setGravity(Gravity.CENTER);
+        btnRules.setBackground(pillBackground(night ? 0xFF263238 : 0xFF37474F));
+        LinearLayout.LayoutParams rulesLp = new LinearLayout.LayoutParams(dp(36), dp(36));
+        rulesLp.rightMargin = dp(8);
+        bar.addView(btnRules, rulesLp);
+        btnRules.setOnClickListener(v -> showRulesDialog());
+
+        // ⚙ 设置
+        TextView btnSettings = new TextView(context);
+        btnSettings.setText("⚙");
+        btnSettings.setTextSize(15);
+        btnSettings.setTextColor(Color.WHITE);
+        btnSettings.setGravity(Gravity.CENTER);
+        btnSettings.setBackground(pillBackground(night ? 0xFF263238 : 0xFF37474F));
+        bar.addView(btnSettings, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        btnSettings.setOnClickListener(v -> showSettingsDialog());
+
+        return bar;
+    }
+
+    private void updateDifficultyCapsule() {
+        if (tvDiffCapsule == null) return;
+        String name = getDifficultyName(controller.getDifficulty());
+        tvDiffCapsule.setText(name + " ▾");
+    }
+
+    private String getDifficultyName(int diff) {
+        Context ctx = getContext();
+        switch (diff) {
+            case DoudizhuGameController.DIFFICULTY_EASY:
+                return ctx.getString(R.string.doudizhu_diff_easy);
+            case DoudizhuGameController.DIFFICULTY_HARD:
+                return ctx.getString(R.string.doudizhu_diff_hard);
+            case DoudizhuGameController.DIFFICULTY_NORMAL:
+            default:
+                return ctx.getString(R.string.doudizhu_diff_normal);
+        }
+    }
+
+    private void updateWinRateHud() {
+        if (tvWinRateHud == null) return;
+        Context ctx = getContext();
+        try {
+            com.gamecenter.app.games.GameUsageStore store = new com.gamecenter.app.games.GameUsageStore(ctx);
+            int wins = store.getWinCount("doudizhu");
+            int losses = store.getLossCount("doudizhu");
+            int total = wins + losses;
+            int rate = total > 0 ? (wins * 100 / total) : 0;
+            tvWinRateHud.setText(String.format("胜率 %d%% (%d胜%d负)", rate, wins, losses));
+        } catch (Exception ignored) {
+            tvWinRateHud.setText("");
+        }
+    }
+
+    private void showDifficultyDialog() {
+        Activity activity = resolveHostingActivity();
+        Context ctx = activity != null ? activity : getContext();
+        final String[] items = new String[] {
+                ctx.getString(R.string.doudizhu_diff_easy),
+                ctx.getString(R.string.doudizhu_diff_normal),
+                ctx.getString(R.string.doudizhu_diff_hard)
+        };
+        int currentDiff = controller.getDifficulty();
+        new android.app.AlertDialog.Builder(ctx)
+                .setTitle(R.string.difficulty)
+                .setSingleChoiceItems(items, currentDiff, (dialog, which) -> {
+                    dialog.dismiss();
+                    if (which == controller.getDifficulty()) return;
+                    if (controller.isInGame() && !controller.isGameOver()) {
+                        new android.app.AlertDialog.Builder(ctx)
+                                .setTitle(R.string.difficulty)
+                                .setMessage("切换难度将重新发牌开启全新对局，当前对局不计入成绩，确认切换吗？")
+                                .setPositiveButton(R.string.game_doudizhu_play_again, (d, w) -> {
+                                    applyDifficultyChange(which);
+                                })
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show();
+                    } else {
+                        applyDifficultyChange(which);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void applyDifficultyChange(int which) {
+        controller.startNewGame(which);
+        updateDifficultyCapsule();
+        Context ctx = getContext();
+        try {
+            com.gamecenter.app.core.common.ModuleScopedPreferences.get(ctx, "doudizhu", "ddz_prefs")
+                    .edit().putInt("last_difficulty", which).apply();
+        } catch (Exception ignored) {}
+    }
+
+    private void showRulesDialog() {
+        Activity activity = resolveHostingActivity();
+        Context ctx = activity != null ? activity : getContext();
+        new android.app.AlertDialog.Builder(ctx)
+                .setTitle(R.string.game_doudizhu_rules_title)
+                .setMessage(ctx.getString(R.string.game_doudizhu_rules_msg) + "\n\n"
+                        + ctx.getString(R.string.game_ddz_rules_extra))
+                .setPositiveButton(R.string.game_doudizhu_got_it, null)
+                .show();
+    }
+
+    private void showSettingsDialog() {
+        Activity activity = resolveHostingActivity();
+        Context ctx = activity != null ? activity : getContext();
+        final String[] items = {
+                "重新发牌 (新对局)",
+                "音效与震动 (请在宿主设置中调节)"
+        };
+        new android.app.AlertDialog.Builder(ctx)
+                .setTitle(R.string.settings_title)
+                .setItems(items, (dialog, which) -> {
+                    if (which == 0) {
+                        new android.app.AlertDialog.Builder(ctx)
+                                .setTitle("重新发牌")
+                                .setMessage("确定放弃当前牌局并重新发牌吗？")
+                                .setPositiveButton("确定", (d, w) -> {
+                                    controller.startNewGame(controller.getDifficulty());
+                                })
+                                .setNegativeButton("取消", null)
+                                .show();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     /** 当前是否暗色模式（P4 暗色主题适配，对齐 ModuleFragment 菜单页口径）。 */
     private static boolean isNightMode(Context context) {
         int nightMode = context.getResources().getConfiguration().uiMode
@@ -455,8 +640,11 @@ public class DoudizhuGameScreen extends LinearLayout implements DoudizhuGameCont
     }
 
     private void confirmExit() {
-        new android.app.AlertDialog.Builder(getContext())
-                .setMessage(R.string.game_ddz_exit_confirm)
+        Activity activity = resolveHostingActivity();
+        Context ctx = activity != null ? activity : getContext();
+        new android.app.AlertDialog.Builder(ctx)
+                .setTitle(R.string.game_ddz_exit_confirm)
+                .setMessage("对局进度已自动保存，下次进入可继续。确定返回大厅吗？")
                 .setPositiveButton(R.string.game_doudizhu_exit, (d, w) -> {
                     if (exitListener != null) exitListener.onExitRequested();
                 })

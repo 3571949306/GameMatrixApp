@@ -1,135 +1,261 @@
 package com.gamecenter.app.tiles;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Chronometer;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
 import com.gamecenter.app.SaveManager;
 import com.gamecenter.app.games.GameUsageStore;
+
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
- * 麻将连连看 Fragment（从 TilesActivity 迁移）。
- *
- * <p>在网格中找出两个相同的牌并消除。简化实现：直接点击两张相同的牌消除。
- * 关卡难度随等级递增（4x6 / 6x6 / 6x8）。</p>
+ * 麻将连连看 Fragment (五星级即开即玩现代化升级)。
  */
 public class TilesModuleFragment extends Fragment {
 
-    private static final String TAG = "TilesModuleFragment";
     private static final String GAME_ID = "tiles";
+    private static final String PREF_NAME = "tiles_prefs";
+    private static final String KEY_DIFFICULTY = "difficulty";
 
-    private static final String[] SIMPLE_SYMBOLS = {
-            "一", "二", "三", "四", "五", "六", "七", "八", "九",
-            "東", "南", "西", "北", "中", "發", "🀀", "🀁", "🀂"
-    };
+    private static final String[] DIFFICULTY_NAMES = {"休闲轻松 (4x4)", "经典挑战 (4x6)", "大师硬核 (6x6)"};
 
-    // 游戏状态
-    private int currentLevel = 1;
-    private int gridRows = 4;
-    private int gridCols = 6;
-    private int totalTiles = 24;
-    private int pairCount = 12;
-    private int[] tileValues;
-    private boolean[] tileMatched;
-    private boolean[] tileRevealed;
-    private int firstSelectedIndex = -1;
-    private int secondSelectedIndex = -1;
-    private boolean isProcessing = false;
-    private int moveCount = 0;
-    private int matchedPairs = 0;
-    private long startTimeMs = 0;
-    private boolean gameActive = false;
-    private int currentScore = 0;
-    private int highScore = 0;
+    private final TilesGame game = new TilesGame();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
-    // UI 组件
-    private TextView tvStatus;
-    private TextView tvStats;
+    private LinearLayout rootLayout;
+    private TextView tvNavDifficulty;
+    private TextView tvHudRemaining;
+    private TextView tvHudMoves;
+    private TextView tvHudBest;
+    private Chronometer chronoTimer;
     private GridLayout gridLayout;
     private Button[] tileButtons;
-    private Button btnStart;
 
     private SaveManager saveManager;
     private GameUsageStore usageStore;
+    private SharedPreferences prefs;
+
+    private int currentDifficulty = TilesGame.DIFFICULTY_CLASSIC;
+    private int highScore = 0;
+    private boolean isProcessing = false;
+    private long startTimeMs = 0;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         Context ctx = requireContext();
         float dp = ctx.getResources().getDisplayMetrics().density;
+        boolean dark = isDarkTheme(ctx);
 
-        LinearLayout root = new LinearLayout(ctx);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(0xFFF5F5F5);
-        root.setPadding((int) (12 * dp), (int) (20 * dp), (int) (12 * dp), (int) (20 * dp));
+        rootLayout = new LinearLayout(ctx);
+        rootLayout.setOrientation(LinearLayout.VERTICAL);
+        rootLayout.setBackgroundColor(dark ? 0xFF14171D : 0xFFF2F5F8);
+        rootLayout.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        TextView tvTitle = new TextView(ctx);
-        tvTitle.setText("麻将连连看");
-        tvTitle.setTextSize(26);
-        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-        tvTitle.setTextColor(0xFF212121);
-        tvTitle.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        titleLp.gravity = Gravity.CENTER;
-        titleLp.bottomMargin = (int) (8 * dp);
-        tvTitle.setLayoutParams(titleLp);
-        root.addView(tvTitle);
+        // 1. 顶部标准导航栏
+        View navBar = createNavBar(ctx, dp, dark);
+        rootLayout.addView(navBar);
 
-        tvStatus = new TextView(ctx);
-        tvStatus.setGravity(Gravity.CENTER);
-        tvStatus.setTextSize(16f);
-        tvStatus.setTextColor(0xFF212121);
-        tvStatus.setPadding(0, (int) (8 * dp), 0, (int) (4 * dp));
-        tvStatus.setText("点击开始按钮启动游戏");
-        root.addView(tvStatus);
+        // 2. HUD 战况看板
+        View hudBar = createHudBar(ctx, dp, dark);
+        rootLayout.addView(hudBar);
 
-        tvStats = new TextView(ctx);
-        tvStats.setGravity(Gravity.CENTER);
-        tvStats.setTextSize(14f);
-        tvStats.setTextColor(0xFF1976D2);
-        tvStats.setPadding(0, (int) (4 * dp), 0, (int) (12 * dp));
-        tvStats.setText(String.format("关卡 %d  剩余 %d 对  步数 %d", currentLevel, pairCount, moveCount));
-        root.addView(tvStats);
+        // 3. 牌面容器 (支持小屏滑动)
+        ScrollView scrollView = new ScrollView(ctx);
+        scrollView.setFillViewport(true);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f);
+        scrollView.setLayoutParams(scrollParams);
+
+        LinearLayout gridContainer = new LinearLayout(ctx);
+        gridContainer.setOrientation(LinearLayout.VERTICAL);
+        gridContainer.setGravity(Gravity.CENTER);
+        gridContainer.setPadding((int) (12 * dp), (int) (12 * dp), (int) (12 * dp), (int) (12 * dp));
 
         gridLayout = new GridLayout(ctx);
-        gridLayout.setColumnCount(gridCols);
-        gridLayout.setRowCount(gridRows);
-        gridLayout.setUseDefaultMargins(true);
+        gridLayout.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        gridLayout.setUseDefaultMargins(false);
         LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gridLp.gravity = Gravity.CENTER;
         gridLayout.setLayoutParams(gridLp);
-        root.addView(gridLayout);
 
-        btnStart = new Button(ctx);
-        btnStart.setText("开始游戏");
-        btnStart.setBackgroundColor(0xFF1976D2);
-        btnStart.setTextColor(Color.WHITE);
-        LinearLayout.LayoutParams startLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        startLp.gravity = Gravity.CENTER;
-        startLp.topMargin = (int) (12 * dp);
-        btnStart.setLayoutParams(startLp);
-        root.addView(btnStart);
+        gridContainer.addView(gridLayout);
+        scrollView.addView(gridContainer);
+        rootLayout.addView(scrollView);
 
-        return root;
+        // 4. 底部胶囊控制栏
+        View bottomBar = createBottomBar(ctx, dp, dark);
+        rootLayout.addView(bottomBar);
+
+        return rootLayout;
+    }
+
+    private View createNavBar(Context ctx, float dp, boolean dark) {
+        LinearLayout bar = new LinearLayout(ctx);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding((int) (12 * dp), (int) (8 * dp), (int) (12 * dp), (int) (8 * dp));
+        bar.setBackgroundColor(dark ? 0xFF1E222B : 0xFFFFFFFF);
+
+        // 返回按钮
+        Button btnBack = new Button(ctx);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(dark ? 0xFFEEEEEE : 0xFF333333);
+        applyCapsuleStyle(btnBack, dark ? 0xFF2A303C : 0xFFEEEEEE, dp);
+        btnBack.setOnClickListener(v -> showExitConfirmDialog());
+        bar.addView(btnBack);
+
+        // 居中标题
+        TextView tvTitle = new TextView(ctx);
+        tvTitle.setText("🀄 麻将连连看");
+        tvTitle.setTextSize(16f);
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        tvTitle.setGravity(Gravity.CENTER);
+        tvTitle.setTextColor(dark ? 0xFFFFFFFF : 0xFF222222);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+        bar.addView(tvTitle, titleParams);
+
+        // 难度胶囊
+        tvNavDifficulty = new TextView(ctx);
+        tvNavDifficulty.setText(DIFFICULTY_NAMES[currentDifficulty] + " ▾");
+        tvNavDifficulty.setTextSize(12f);
+        tvNavDifficulty.setTextColor(0xFF2E7D32);
+        tvNavDifficulty.setPadding((int) (10 * dp), (int) (6 * dp), (int) (10 * dp), (int) (6 * dp));
+        applyCapsuleStyle(tvNavDifficulty, dark ? 0xFF1B2E1E : 0xFFE8F5E9, dp);
+        tvNavDifficulty.setOnClickListener(v -> showDifficultyDialog());
+        bar.addView(tvNavDifficulty);
+
+        // 规则说明按钮
+        Button btnRule = new Button(ctx);
+        btnRule.setText("ℹ");
+        btnRule.setTextSize(14f);
+        btnRule.setTextColor(dark ? 0xFFB0BEC5 : 0xFF607D8B);
+        applyCapsuleStyle(btnRule, dark ? 0xFF2A303C : 0xFFECEFF1, dp);
+        btnRule.setOnClickListener(v -> showRuleDialog());
+        LinearLayout.LayoutParams ruleParams = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp));
+        ruleParams.setMargins((int) (6 * dp), 0, 0, 0);
+        bar.addView(btnRule, ruleParams);
+
+        // 设置按钮
+        Button btnSettings = new Button(ctx);
+        btnSettings.setText("⚙");
+        btnSettings.setTextSize(14f);
+        btnSettings.setTextColor(dark ? 0xFFB0BEC5 : 0xFF607D8B);
+        applyCapsuleStyle(btnSettings, dark ? 0xFF2A303C : 0xFFECEFF1, dp);
+        btnSettings.setOnClickListener(v -> showSettingsDialog());
+        LinearLayout.LayoutParams setParams = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp));
+        setParams.setMargins((int) (6 * dp), 0, 0, 0);
+        bar.addView(btnSettings, setParams);
+
+        return bar;
+    }
+
+    private View createHudBar(Context ctx, float dp, boolean dark) {
+        LinearLayout hud = new LinearLayout(ctx);
+        hud.setOrientation(LinearLayout.HORIZONTAL);
+        hud.setGravity(Gravity.CENTER);
+        hud.setPadding((int) (16 * dp), (int) (10 * dp), (int) (16 * dp), (int) (10 * dp));
+        hud.setBackgroundColor(dark ? 0xFF242A36 : 0xFFE3E8EE);
+
+        tvHudRemaining = createHudVal(ctx, "0", 0xFF2E7D32);
+        tvHudMoves = createHudVal(ctx, "0", 0xFF1976D2);
+
+        chronoTimer = new Chronometer(ctx);
+        chronoTimer.setTextSize(14f);
+        chronoTimer.setGravity(Gravity.CENTER);
+        chronoTimer.setTextColor(dark ? 0xFFEEEEEE : 0xFF333333);
+
+        tvHudBest = createHudVal(ctx, "0", 0xFFE65100);
+
+        hud.addView(wrapHudItem(tvHudRemaining, "剩余", dark));
+        hud.addView(wrapHudItem(tvHudMoves, "步数", dark));
+        hud.addView(wrapHudItem(chronoTimer, "时间", dark));
+        hud.addView(wrapHudItem(tvHudBest, "最高分", dark));
+
+        return hud;
+    }
+
+    private TextView createHudVal(Context ctx, String initVal, int color) {
+        TextView tv = new TextView(ctx);
+        tv.setText(initVal);
+        tv.setTextSize(14f);
+        tv.setGravity(Gravity.CENTER);
+        tv.setTextColor(color);
+        return tv;
+    }
+
+    private View wrapHudItem(View valView, String label, boolean dark) {
+        LinearLayout box = new LinearLayout(valView.getContext());
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+        box.setLayoutParams(lp);
+
+        TextView tvLabel = new TextView(valView.getContext());
+        tvLabel.setText(label);
+        tvLabel.setTextSize(11f);
+        tvLabel.setGravity(Gravity.CENTER);
+        tvLabel.setTextColor(dark ? 0xFF9E9E9E : 0xFF616161);
+
+        box.addView(tvLabel);
+        box.addView(valView);
+        return box;
+    }
+
+    private View createBottomBar(Context ctx, float dp, boolean dark) {
+        LinearLayout bar = new LinearLayout(ctx);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER);
+        bar.setPadding((int) (16 * dp), (int) (10 * dp), (int) (16 * dp), (int) (14 * dp));
+
+        Button btnRestart = new Button(ctx);
+        btnRestart.setText("🔄 重新发牌");
+        btnRestart.setTextSize(14f);
+        btnRestart.setTextColor(Color.WHITE);
+        applyCapsuleStyle(btnRestart, 0xFF2E7D32, dp);
+        btnRestart.setOnClickListener(v -> startNewGame());
+        LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+        rLp.setMargins(0, 0, (int) (8 * dp), 0);
+        bar.addView(btnRestart, rLp);
+
+        Button btnHint = new Button(ctx);
+        btnHint.setText("💡 智能提示");
+        btnHint.setTextSize(14f);
+        btnHint.setTextColor(Color.WHITE);
+        applyCapsuleStyle(btnHint, 0xFF1976D2, dp);
+        btnHint.setOnClickListener(v -> showHint());
+        LinearLayout.LayoutParams hLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+        hLp.setMargins((int) (8 * dp), 0, 0, 0);
+        bar.addView(btnHint, hLp);
+
+        return bar;
     }
 
     @Override
@@ -138,166 +264,264 @@ public class TilesModuleFragment extends Fragment {
         Context ctx = requireContext();
         saveManager = SaveManager.getInstance(ctx);
         usageStore = new GameUsageStore(ctx);
-        highScore = loadHighScore();
+        prefs = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
 
-        btnStart.setOnClickListener(v -> startNewGame());
+        currentDifficulty = prefs.getInt(KEY_DIFFICULTY, TilesGame.DIFFICULTY_CLASSIC);
+        game.setDifficulty(currentDifficulty);
+        tvNavDifficulty.setText(DIFFICULTY_NAMES[currentDifficulty] + " ▾");
+
+        highScore = loadHighScore();
+        tvHudBest.setText(String.valueOf(highScore));
+
+        startNewGame();
     }
 
     private void startNewGame() {
-        btnStart.setVisibility(View.GONE);
-        gameActive = true;
-        moveCount = 0;
-        matchedPairs = 0;
-        firstSelectedIndex = -1;
-        secondSelectedIndex = -1;
+        handler.removeCallbacksAndMessages(null);
         isProcessing = false;
+        game.startNewGame();
+
+        chronoTimer.stop();
+        chronoTimer.setBase(SystemClock.elapsedRealtime());
+        chronoTimer.start();
         startTimeMs = System.currentTimeMillis();
 
-        if (currentLevel <= 2) {
-            gridRows = 4; gridCols = 6; pairCount = 12;
-        } else if (currentLevel <= 4) {
-            gridRows = 6; gridCols = 6; pairCount = 18;
-        } else {
-            gridRows = 6; gridCols = 8; pairCount = 24;
-        }
-        totalTiles = gridRows * gridCols;
+        buildGrid();
+        updateHud();
+    }
 
-        List<Integer> values = new ArrayList<>();
-        for (int i = 0; i < pairCount; i++) {
-            values.add(i % SIMPLE_SYMBOLS.length);
-            values.add(i % SIMPLE_SYMBOLS.length);
-        }
-        Collections.shuffle(values);
-
-        tileValues = new int[totalTiles];
-        tileMatched = new boolean[totalTiles];
-        tileRevealed = new boolean[totalTiles];
-        for (int i = 0; i < totalTiles; i++) {
-            tileValues[i] = values.get(i);
-        }
+    private void buildGrid() {
+        Context ctx = requireContext();
+        float dp = ctx.getResources().getDisplayMetrics().density;
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int cols = game.getCols();
+        int rows = game.getRows();
+        int total = game.getTotalTiles();
 
         gridLayout.removeAllViews();
-        gridLayout.setColumnCount(gridCols);
-        gridLayout.setRowCount(gridRows);
+        gridLayout.setColumnCount(cols);
+        gridLayout.setRowCount(rows);
 
-        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int tileSize = (int) (screenWidth * 0.9 / gridCols);
-        tileSize = Math.min(tileSize, 70);
+        int maxTileWidth = (int) ((screenWidth - 48 * dp) / cols);
+        int tileSize = Math.min(maxTileWidth, (int) (58 * dp));
+        int margin = (int) (3 * dp);
 
-        tileButtons = new Button[totalTiles];
-        for (int i = 0; i < totalTiles; i++) {
+        tileButtons = new Button[total];
+        for (int i = 0; i < total; i++) {
             final int index = i;
-            Button btn = new Button(requireContext());
-            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.width = tileSize;
-            params.height = tileSize;
-            params.setMargins(2, 2, 2, 2);
-            btn.setLayoutParams(params);
-            btn.setText("?");
-            btn.setTextSize(14f);
-            btn.setTextColor(0xFF1976D2);
-            btn.setBackgroundColor(0xFFEEEEEE);
+            Button btn = new Button(ctx);
+            GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
+            glp.width = tileSize;
+            glp.height = (int) (tileSize * 1.25f);
+            glp.setMargins(margin, margin, margin, margin);
+            btn.setLayoutParams(glp);
+
+            btn.setText("🀄");
+            btn.setTextSize(tileSize > 45 * dp ? 15f : 12f);
+            btn.setTextColor(0xFF388E3C);
+            applyTileCardStyle(btn, 0xFFE0E0E0, 0xFF9E9E9E, dp);
+
             btn.setOnClickListener(v -> onTileClick(index));
             tileButtons[i] = btn;
             gridLayout.addView(btn);
         }
-
-        tvStatus.setText(String.format("第 %d 关，找出所有配对", currentLevel));
-        updateStatsDisplay();
     }
 
     private void onTileClick(int index) {
-        if (!gameActive || isProcessing) return;
-        if (tileMatched[index] || tileRevealed[index]) return;
-        if (index == firstSelectedIndex) return;
+        if (isProcessing) return;
+        if (game.isTileMatched(index) || game.isTileRevealed(index)) return;
 
-        revealTile(index);
+        float dp = getResources().getDisplayMetrics().density;
+        int result = game.onTileClick(index);
 
-        if (firstSelectedIndex == -1) {
-            firstSelectedIndex = index;
-        } else {
-            secondSelectedIndex = index;
-            moveCount++;
+        if (result == TilesGame.RESULT_FIRST_SELECTED) {
+            revealButton(index, dp);
+        } else if (result == TilesGame.RESULT_MATCH) {
+            revealButton(index, dp);
             isProcessing = true;
+            updateHud();
 
-            if (tileValues[firstSelectedIndex] == tileValues[secondSelectedIndex]) {
-                tileMatched[firstSelectedIndex] = true;
-                tileMatched[secondSelectedIndex] = true;
-                tileButtons[firstSelectedIndex].setVisibility(View.INVISIBLE);
-                tileButtons[secondSelectedIndex].setVisibility(View.INVISIBLE);
-                matchedPairs++;
+            final int fIdx = game.getFirstSelectedIndex();
+            final int sIdx = game.getSecondSelectedIndex();
 
-                firstSelectedIndex = -1;
-                secondSelectedIndex = -1;
-                isProcessing = false;
-
-                updateStatsDisplay();
-
-                if (matchedPairs == pairCount) {
-                    onLevelComplete();
+            handler.postDelayed(() -> {
+                if (fIdx != -1 && sIdx != -1) {
+                    fadeMatchedTile(fIdx);
+                    fadeMatchedTile(sIdx);
                 }
-            } else {
-                final int fIdx = firstSelectedIndex;
-                final int sIdx = secondSelectedIndex;
-                tileButtons[fIdx].postDelayed(() -> {
-                    hideTile(fIdx);
-                    hideTile(sIdx);
-                    firstSelectedIndex = -1;
-                    secondSelectedIndex = -1;
-                    isProcessing = false;
-                }, 600);
-            }
+                game.resolveMatch();
+                isProcessing = false;
+                updateHud();
+
+                if (game.isGameComplete()) {
+                    onGameWon();
+                }
+            }, 300);
+        } else if (result == TilesGame.RESULT_MISMATCH) {
+            revealButton(index, dp);
+            isProcessing = true;
+            updateHud();
+
+            final int fIdx = game.getFirstSelectedIndex();
+            final int sIdx = game.getSecondSelectedIndex();
+
+            handler.postDelayed(() -> {
+                if (fIdx != -1) hideButton(fIdx, dp);
+                if (sIdx != -1) hideButton(sIdx, dp);
+                game.resolveMismatch();
+                isProcessing = false;
+                updateHud();
+            }, 550);
         }
     }
 
-    private void revealTile(int index) {
-        tileRevealed[index] = true;
-        tileButtons[index].setText(SIMPLE_SYMBOLS[tileValues[index]]);
-        tileButtons[index].setTextColor(0xFF212121);
-        tileButtons[index].setBackgroundColor(0xFFFFF8E1);
+    private void revealButton(int index, float dp) {
+        Button btn = tileButtons[index];
+        btn.setText(game.getTileSymbol(index));
+        btn.setTextColor(0xFFBF360C);
+        applyTileCardStyle(btn, 0xFFFFF8E1, 0xFFFFB300, dp);
     }
 
-    private void hideTile(int index) {
-        tileRevealed[index] = false;
-        tileButtons[index].setText("?");
-        tileButtons[index].setTextColor(0xFF1976D2);
-        tileButtons[index].setBackgroundColor(0xFFEEEEEE);
+    private void hideButton(int index, float dp) {
+        Button btn = tileButtons[index];
+        btn.setText("🀄");
+        btn.setTextColor(0xFF388E3C);
+        applyTileCardStyle(btn, 0xFFE0E0E0, 0xFF9E9E9E, dp);
     }
 
-    private void onLevelComplete() {
-        gameActive = false;
-        long elapsedMs = System.currentTimeMillis() - startTimeMs;
-        long elapsedSec = elapsedMs / 1000;
+    private void fadeMatchedTile(int index) {
+        Button btn = tileButtons[index];
+        btn.setVisibility(View.INVISIBLE);
+        btn.setEnabled(false);
+    }
 
-        int score = Math.max(200 - moveCount * 5, 20) * currentLevel;
-        currentScore += score;
+    private void showHint() {
+        if (isProcessing || game.isGameComplete()) return;
+        int[] pair = game.findHintPair();
+        if (pair == null) {
+            Toast.makeText(requireContext(), "没有可消除的配对了！", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        tvStatus.setText(String.format("第 %d 关通关！步数 %d，用时 %d 秒，+%d 分", currentLevel, moveCount, elapsedSec, score));
+        float dp = getResources().getDisplayMetrics().density;
+        applyTileCardStyle(tileButtons[pair[0]], 0xFFFFE082, 0xFFFF6F00, dp);
+        applyTileCardStyle(tileButtons[pair[1]], 0xFFFFE082, 0xFFFF6F00, dp);
 
-        if (currentScore > highScore) {
-            highScore = currentScore;
+        Toast.makeText(requireContext(), "已为您高亮一对可消除麻将牌！", Toast.LENGTH_SHORT).show();
+    }
+
+    private void onGameWon() {
+        chronoTimer.stop();
+        long elapsedSec = Math.max(1, (System.currentTimeMillis() - startTimeMs) / 1000);
+        int score = game.computeScore(elapsedSec);
+
+        if (score > highScore) {
+            highScore = score;
             saveHighScore(highScore);
+            tvHudBest.setText(String.valueOf(highScore));
         }
+
+        usageStore.recordWin(GAME_ID);
         usageStore.recordScore(GAME_ID, highScore);
 
-        currentLevel++;
-        btnStart.setText(String.format("下一关 %d", currentLevel));
-        btnStart.setVisibility(View.VISIBLE);
+        new AlertDialog.Builder(requireContext())
+                .setTitle("🎉 恭喜通关！")
+                .setMessage("用时: " + elapsedSec + " 秒\n"
+                        + "步数: " + game.getMoveCount() + " 步\n"
+                        + "获得积分: +" + score + " 分\n"
+                        + "历史最高: " + highScore + " 分")
+                .setPositiveButton("再来一局", (d, w) -> startNewGame())
+                .setNeutralButton("切换难度", (d, w) -> showDifficultyDialog())
+                .setNegativeButton("返回大厅", (d, w) -> {
+                    if (getActivity() != null) getActivity().onBackPressed();
+                })
+                .setCancelable(false)
+                .show();
     }
 
-    private void updateStatsDisplay() {
-        tvStats.setText(String.format("关卡 %d  剩余 %d 对  步数 %d", currentLevel, pairCount - matchedPairs, moveCount));
+    private void updateHud() {
+        if (tvHudRemaining != null) {
+            tvHudRemaining.setText(game.getRemainingPairs() + " 对");
+        }
+        if (tvHudMoves != null) {
+            tvHudMoves.setText(game.getMoveCount() + " 步");
+        }
+    }
+
+    private void showDifficultyDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("选择麻将连连看难度")
+                .setSingleChoiceItems(DIFFICULTY_NAMES, currentDifficulty, (dialog, which) -> {
+                    currentDifficulty = which;
+                    game.setDifficulty(which);
+                    prefs.edit().putInt(KEY_DIFFICULTY, which).apply();
+                    tvNavDifficulty.setText(DIFFICULTY_NAMES[which] + " ▾");
+                    startNewGame();
+                    dialog.dismiss();
+                    Toast.makeText(requireContext(), "难度已切换为: " + DIFFICULTY_NAMES[which], Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showRuleDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("🀄 麻将连连看规则")
+                .setMessage("1. 玩法规则：\n"
+                        + "点击翻开两张麻将牌，如果牌面花色文字相同，即可成功消除并得分；若不相同，则会翻转盖回。\n\n"
+                        + "2. 难度分级：\n"
+                        + "• 休闲轻松: 4x4 网格 (8 对)，适合速配热身；\n"
+                        + "• 经典挑战: 4x6 网格 (12 对)，标准经典体验；\n"
+                        + "• 大师硬核: 6x6 网格 (18 对)，考验最强脑力！\n\n"
+                        + "3. 智能辅助：\n"
+                        + "遇阻时可随时点击底部【智能提示】高亮一对可消除牌面。")
+                .setPositiveButton("我知道了", null)
+                .show();
+    }
+
+    private void showSettingsDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("设置与选项")
+                .setItems(new String[]{"切换难度档位", "重置最高纪录", "查看游戏规则"}, (dialog, which) -> {
+                    if (which == 0) {
+                        showDifficultyDialog();
+                    } else if (which == 1) {
+                        clearHighScore();
+                    } else if (which == 2) {
+                        showRuleDialog();
+                    }
+                })
+                .setNegativeButton("关闭", null)
+                .show();
+    }
+
+    private void showExitConfirmDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("退出确认")
+                .setMessage("当前对局进度将重置，确定要返回大厅吗？")
+                .setPositiveButton("确定退出", (dialog, which) -> {
+                    if (getActivity() != null) {
+                        getActivity().onBackPressed();
+                    }
+                })
+                .setNegativeButton("继续对局", null)
+                .show();
+    }
+
+    private void clearHighScore() {
+        highScore = 0;
+        saveHighScore(0);
+        tvHudBest.setText("0");
+        Toast.makeText(requireContext(), "最高纪录已重置", Toast.LENGTH_SHORT).show();
     }
 
     private int loadHighScore() {
-        String progressJson = saveManager.loadProgress(GAME_ID);
-        if (progressJson != null) {
-            try {
-                JSONObject obj = new JSONObject(progressJson);
-                return obj.optInt("highScore", 0);
-            } catch (Exception e) {
-                return 0;
+        try {
+            String json = saveManager.loadProgress(GAME_ID);
+            if (json != null) {
+                return new JSONObject(json).optInt("highScore", 0);
             }
+        } catch (Exception ignored) {
         }
         return 0;
     }
@@ -307,8 +531,38 @@ public class TilesModuleFragment extends Fragment {
             JSONObject obj = new JSONObject();
             obj.put("highScore", score);
             saveManager.saveProgress(GAME_ID, obj.toString());
-        } catch (Exception e) {
-            Log.w(TAG, "存档操作失败", e);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void applyTileCardStyle(View v, int bgColor, int strokeColor, float dp) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(8 * dp);
+        gd.setColor(bgColor);
+        gd.setStroke((int) (1.5f * dp), strokeColor);
+        v.setBackground(gd);
+    }
+
+    private void applyCapsuleStyle(View view, int bgColor, float dp) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(18 * dp);
+        gd.setColor(bgColor);
+        view.setBackground(gd);
+    }
+
+    private boolean isDarkTheme(Context ctx) {
+        int mode = ctx.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return mode == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        handler.removeCallbacksAndMessages(null);
+        if (chronoTimer != null) {
+            chronoTimer.stop();
         }
     }
 }

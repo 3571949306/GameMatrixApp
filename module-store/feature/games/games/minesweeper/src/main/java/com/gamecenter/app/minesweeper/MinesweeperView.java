@@ -65,6 +65,7 @@ public class MinesweeperView extends View {
     public interface OnGameLoseListener { void onGameLose(); }
     public interface OnCellRevealedListener { void onCellRevealed(int revealedCount); }
     public interface OnFlagCountChangedListener { void onFlagCountChanged(int flaggedCount); }
+    public interface OnTouchStateChangeListener { void onTouchStateChanged(boolean isPressed); }
 
     // ==================== 游戏状态 ====================
 
@@ -111,10 +112,12 @@ public class MinesweeperView extends View {
 
     // ==================== 监听器 ====================
 
+    private boolean flagMode = false;
     private OnGameWinListener winListener;
     private OnGameLoseListener loseListener;
     private OnCellRevealedListener cellRevealedListener;
     private OnFlagCountChangedListener flagCountChangedListener;
+    private OnTouchStateChangeListener touchStateChangeListener;
 
     // ==================== 构造函数 ====================
 
@@ -141,6 +144,14 @@ public class MinesweeperView extends View {
     public void setOnGameLoseListener(OnGameLoseListener l) { this.loseListener = l; }
     public void setOnCellRevealedListener(OnCellRevealedListener l) { this.cellRevealedListener = l; }
     public void setOnFlagCountChangedListener(OnFlagCountChangedListener l) { this.flagCountChangedListener = l; }
+    public void setOnTouchStateChangeListener(OnTouchStateChangeListener l) { this.touchStateChangeListener = l; }
+
+    public void setFlagMode(boolean enabled) { this.flagMode = enabled; }
+    public boolean isFlagMode() { return flagMode; }
+    public long getElapsedSeconds() {
+        if (startTime == 0 || !gameStarted) return 0L;
+        return (System.currentTimeMillis() - startTime) / 1000L;
+    }
 
     /**
      * 设置难度
@@ -380,6 +391,7 @@ public class MinesweeperView extends View {
                 pressRow = row;
                 pressCol = col;
                 handler.postDelayed(longPressRunnable, 500);
+                if (touchStateChangeListener != null) touchStateChangeListener.onTouchStateChanged(true);
                 break;
 
             case MotionEvent.ACTION_MOVE:
@@ -387,9 +399,15 @@ public class MinesweeperView extends View {
                 break;
 
             case MotionEvent.ACTION_UP:
-                boolean shouldReveal = !isLongPress && pressRow == row && pressCol == col;
+                boolean shouldAct = !isLongPress && pressRow == row && pressCol == col;
                 cancelPress();
-                if (shouldReveal) handleCellClick(row, col);
+                if (shouldAct) {
+                    if (flagMode) {
+                        toggleFlag(row, col);
+                    } else {
+                        handleCellClick(row, col);
+                    }
+                }
                 break;
         }
         return true;
@@ -400,6 +418,7 @@ public class MinesweeperView extends View {
         pressRow = -1;
         pressCol = -1;
         isLongPress = false;
+        if (touchStateChangeListener != null) touchStateChangeListener.onTouchStateChanged(false);
     }
 
     private void handleCellClick(int r, int c) {

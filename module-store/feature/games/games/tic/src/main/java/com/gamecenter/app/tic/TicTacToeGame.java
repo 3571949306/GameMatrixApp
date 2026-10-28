@@ -9,7 +9,7 @@ import java.util.Random;
 /**
  * 井字棋游戏逻辑（纯状态，不依赖 Android UI）。
  *
- * <p>从宿主 TicTacToeActivity 中提取：棋盘状态、胜负判定、
+ * <p>包含：棋盘状态、胜负判定、悔棋历史栈、智能提示、
  * AI（简单 / 中等 / 困难）。</p>
  *
  * <p>难度梯度：
@@ -32,7 +32,29 @@ public class TicTacToeGame {
     public static final int RESULT_AI_WIN = 2;
     public static final int RESULT_DRAW = 3;
 
+    public static class BoardSnapshot {
+        public final int[][] boardState;
+        public final boolean playerTurn;
+        public final boolean gameOver;
+        public final int winner;
+        public final int[] winLine;
+        public final int[] lastMove;
+
+        public BoardSnapshot(int[][] b, boolean playerTurn, boolean gameOver, int winner, int[] winLine, int[] lastMove) {
+            this.boardState = new int[BOARD_SIZE][BOARD_SIZE];
+            for (int r = 0; r < BOARD_SIZE; r++) {
+                System.arraycopy(b[r], 0, this.boardState[r], 0, BOARD_SIZE);
+            }
+            this.playerTurn = playerTurn;
+            this.gameOver = gameOver;
+            this.winner = winner;
+            this.winLine = winLine != null ? winLine.clone() : null;
+            this.lastMove = lastMove != null ? lastMove.clone() : null;
+        }
+    }
+
     private final int[][] board = new int[BOARD_SIZE][BOARD_SIZE];
+    private final List<BoardSnapshot> history = new ArrayList<>();
     private final Random random = new Random();
     private boolean playerTurn = true;
     private boolean gameOver = false;
@@ -42,6 +64,9 @@ public class TicTacToeGame {
 
     /** 胜利连线：[startRow, startCol, endRow, endCol]，null 表示无 */
     private int[] winLine = null;
+
+    /** 最近一次落子：[row, col] */
+    private int[] lastMove = null;
 
     public void reset(int level) {
         for (int r = 0; r < BOARD_SIZE; r++) {
@@ -54,6 +79,50 @@ public class TicTacToeGame {
         gameOver = false;
         winner = 0;
         winLine = null;
+        lastMove = null;
+        history.clear();
+        recordSnapshot();
+    }
+
+    private void recordSnapshot() {
+        history.add(new BoardSnapshot(board, playerTurn, gameOver, winner, winLine, lastMove));
+    }
+
+    /**
+     * 悔棋：回退到上一个玩家执子状态（若AI已下则回退两步，若仅玩家下则回退一步）。
+     * @return true 若悔棋成功
+     */
+    public boolean undo() {
+        if (history.size() <= 1) {
+            return false;
+        }
+        // 若在对局中轮到玩家，说明AI已经应手，需要回退2步回到上一轮玩家回合
+        // 若对局已结束（无论是玩家获胜还是平局或AI获胜），也回退到玩家该回合
+        int stepsToRevert = 1;
+        if (playerTurn && history.size() >= 3) {
+            stepsToRevert = 2;
+        } else if (gameOver && history.size() >= 3 && winner == RESULT_AI_WIN) {
+            stepsToRevert = 2;
+        }
+
+        for (int i = 0; i < stepsToRevert && history.size() > 1; i++) {
+            history.remove(history.size() - 1);
+        }
+
+        BoardSnapshot snapshot = history.get(history.size() - 1);
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            System.arraycopy(snapshot.boardState[r], 0, board[r], 0, BOARD_SIZE);
+        }
+        this.playerTurn = snapshot.playerTurn;
+        this.gameOver = snapshot.gameOver;
+        this.winner = snapshot.winner;
+        this.winLine = snapshot.winLine != null ? snapshot.winLine.clone() : null;
+        this.lastMove = snapshot.lastMove != null ? snapshot.lastMove.clone() : null;
+        return true;
+    }
+
+    public boolean canUndo() {
+        return history.size() > 1;
     }
 
     private int clampLevel(int level) {
@@ -63,19 +132,55 @@ public class TicTacToeGame {
     }
 
     public int[][] getBoard() { return board; }
-
     public boolean isPlayerTurn() { return playerTurn; }
     public boolean isGameOver() { return gameOver; }
     public int getWinner() { return winner; }
     public int[] getWinLine() { return winLine; }
     public int getAiLevel() { return aiLevel; }
+    public int[] getLastMove() { return lastMove; }
+
+    public int getPlayerCount() {
+        int count = 0;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == PLAYER_X) count++;
+            }
+        }
+        return count;
+    }
+
+    public int getAiCount() {
+        int count = 0;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == PLAYER_O) count++;
+            }
+        }
+        return count;
+    }
+
+    public int getTotalMoves() {
+        return getPlayerCount() + getAiCount();
+    }
+
+    void setPlayerTurnForTest(boolean turn) {
+        this.playerTurn = turn;
+    }
+
+    void evaluateForTest() {
+        evaluate();
+    }
 
     public boolean placePlayer(int row, int col) {
         if (gameOver || !playerTurn) return false;
+        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return false;
         if (board[row][col] != 0) return false;
+
         board[row][col] = PLAYER_X;
+        lastMove = new int[]{row, col};
         playerTurn = false;
         evaluate();
+        recordSnapshot();
         return true;
     }
 
@@ -98,10 +203,77 @@ public class TicTacToeGame {
         }
         if (cell != null) {
             board[cell[0]][cell[1]] = PLAYER_O;
+            lastMove = new int[]{cell[0], cell[1]};
         }
         playerTurn = true;
         evaluate();
+        recordSnapshot();
         return cell;
+    }
+
+    /** 为人类玩家寻找当前最优落子点（智能提示） */
+    public int[] getPlayerHint() {
+        if (gameOver || !playerTurn) return null;
+        // 1. 优先找人类必胜点
+        int[] win = findCriticalMove(PLAYER_X);
+        if (win != null) return win;
+        // 2. 其次堵住对手必胜点
+        int[] block = findCriticalMove(PLAYER_O);
+        if (block != null) return block;
+
+        // 3. Minimax 评估人类最优落子
+        int bestScore = Integer.MIN_VALUE;
+        int bestR = -1, bestC = -1;
+        for (int r = 0; r < BOARD_SIZE; r++) {
+            for (int c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] == 0) {
+                    board[r][c] = PLAYER_X;
+                    int score = minimaxForPlayer(board, 0, false);
+                    board[r][c] = 0;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestR = r;
+                        bestC = c;
+                    }
+                }
+            }
+        }
+        if (bestR >= 0) return new int[]{bestR, bestC};
+        return randomMove();
+    }
+
+    private int minimaxForPlayer(int[][] b, int depth, boolean isMaximizing) {
+        int result = checkWinner(b);
+        if (result == PLAYER_X) return 10 - depth;
+        if (result == PLAYER_O) return depth - 10;
+        if (isFull(b)) return 0;
+        if (depth >= 6) return 0;
+
+        if (isMaximizing) {
+            int best = Integer.MIN_VALUE;
+            for (int r = 0; r < BOARD_SIZE; r++) {
+                for (int c = 0; c < BOARD_SIZE; c++) {
+                    if (b[r][c] == 0) {
+                        b[r][c] = PLAYER_X;
+                        best = Math.max(best, minimaxForPlayer(b, depth + 1, false));
+                        b[r][c] = 0;
+                    }
+                }
+            }
+            return best;
+        } else {
+            int best = Integer.MAX_VALUE;
+            for (int r = 0; r < BOARD_SIZE; r++) {
+                for (int c = 0; c < BOARD_SIZE; c++) {
+                    if (b[r][c] == 0) {
+                        b[r][c] = PLAYER_O;
+                        best = Math.min(best, minimaxForPlayer(b, depth + 1, true));
+                        b[r][c] = 0;
+                    }
+                }
+            }
+            return best;
+        }
     }
 
     private boolean isBoardEmpty() {

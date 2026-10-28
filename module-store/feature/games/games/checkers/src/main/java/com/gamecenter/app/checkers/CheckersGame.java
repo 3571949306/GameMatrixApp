@@ -45,6 +45,39 @@ public class CheckersGame {
     /** AI 搜索节点计数 */
     private int aiNodesSearched;
 
+    /** 走子历史快照，用于悔棋 */
+    public static class BoardSnapshot {
+        public final int[][] board;
+        public final boolean isPlayerTurn;
+        public final int playerCaptures;
+        public final boolean gameOver;
+        public final int lastFromR;
+        public final int lastFromC;
+        public final int lastToR;
+        public final int lastToC;
+
+        public BoardSnapshot(int[][] b, boolean turn, int cap, boolean over,
+                             int fromR, int fromC, int toR, int toC) {
+            this.board = new int[BOARD_SIZE][BOARD_SIZE];
+            for (int r = 0; r < BOARD_SIZE; r++) {
+                System.arraycopy(b[r], 0, this.board[r], 0, BOARD_SIZE);
+            }
+            this.isPlayerTurn = turn;
+            this.playerCaptures = cap;
+            this.gameOver = over;
+            this.lastFromR = fromR;
+            this.lastFromC = fromC;
+            this.lastToR = toR;
+            this.lastToC = toC;
+        }
+    }
+
+    private final List<BoardSnapshot> history = new ArrayList<>();
+    private int lastFromR = -1;
+    private int lastFromC = -1;
+    private int lastToR = -1;
+    private int lastToC = -1;
+
     public int[][] getBoard() {
         return board;
     }
@@ -69,6 +102,71 @@ public class CheckersGame {
         this.aiLevel = level;
     }
 
+    public int getLastFromR() { return lastFromR; }
+    public int getLastFromC() { return lastFromC; }
+    public int getLastToR() { return lastToR; }
+    public int getLastToC() { return lastToC; }
+
+    public void recordSnapshot() {
+        history.add(new BoardSnapshot(board, isPlayerTurn, playerCaptures, gameOver,
+                lastFromR, lastFromC, lastToR, lastToC));
+    }
+
+    public boolean canUndo() {
+        return !history.isEmpty();
+    }
+
+    public boolean undo() {
+        if (history.isEmpty()) return false;
+        BoardSnapshot snap = history.remove(history.size() - 1);
+        restoreBoard(snap.board);
+        this.isPlayerTurn = snap.isPlayerTurn;
+        this.playerCaptures = snap.playerCaptures;
+        this.gameOver = snap.gameOver;
+        this.lastFromR = snap.lastFromR;
+        this.lastFromC = snap.lastFromC;
+        this.lastToR = snap.lastToR;
+        this.lastToC = snap.lastToC;
+        return true;
+    }
+
+    public int getBlackCount() {
+        return countPieces(BLACK) + countPieces(BLACK_KING);
+    }
+
+    public int getWhiteCount() {
+        return countPieces(WHITE) + countPieces(WHITE_KING);
+    }
+
+    public int getBlackKingCount() {
+        return countPieces(BLACK_KING);
+    }
+
+    public int getWhiteKingCount() {
+        return countPieces(WHITE_KING);
+    }
+
+    /**
+     * 为玩家推荐一步最佳移动 [fromR, fromC, toR, toC]
+     */
+    public int[] getPlayerHint() {
+        List<int[]> moves = getAllMoves(PLAYER_COLOR);
+        if (moves.isEmpty()) return null;
+        int bestScore = Integer.MAX_VALUE;
+        int[] bestMove = null;
+        for (int[] move : moves) {
+            int[][] saved = copyBoard(board);
+            applyMove(move);
+            int score = minimax(1, true, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            restoreBoard(saved);
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+        }
+        return bestMove != null ? bestMove : moves.get(0);
+    }
+
     /**
      * 初始化新游戏棋盘。
      */
@@ -77,6 +175,11 @@ public class CheckersGame {
         isPlayerTurn = true;
         playerCaptures = 0;
         gameOver = false;
+        history.clear();
+        lastFromR = -1;
+        lastFromC = -1;
+        lastToR = -1;
+        lastToC = -1;
         initBoard();
     }
 
@@ -182,6 +285,10 @@ public class CheckersGame {
             piece = BLACK_KING;
         }
         board[toRow][toCol] = piece;
+        lastFromR = fromRow;
+        lastFromC = fromCol;
+        lastToR = toRow;
+        lastToC = toCol;
         return true;
     }
 
@@ -348,6 +455,10 @@ public class CheckersGame {
             piece = WHITE_KING;
         }
         board[move[2]][move[3]] = piece;
+        lastFromR = move[0];
+        lastFromC = move[1];
+        lastToR = move[2];
+        lastToC = move[3];
     }
 
     private List<int[]> getAllMoves(int color) {

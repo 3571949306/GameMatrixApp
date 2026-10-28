@@ -142,6 +142,10 @@ public class PlaneView extends View {
     public boolean isGameRunning() { return gameRunning; }
     public int getScore() { return score; }
     public int getWave() { return wave; }
+    public int getLives() { return lives; }
+    public boolean isGameOver() { return gameOver; }
+    public boolean isPaused() { return gamePaused; }
+    public float getDifficultyFactor() { return difficultyFactor; }
 
     private void initGame() {
         playerX = viewWidth / 2 - playerW / 2;
