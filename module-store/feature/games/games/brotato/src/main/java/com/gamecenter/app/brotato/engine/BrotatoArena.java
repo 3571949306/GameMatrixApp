@@ -274,6 +274,28 @@ public final class BrotatoArena {
     }
 
     /**
+     * 应用英雄特质（在 start 之后或自定义模式下调用），不破坏原有单测与默认开局。
+     */
+    public void applyHeroModifiers(int bonusMaxHp, float speedFactor, float damageFactor, float fireIntervalFactor, int extraShots) {
+        if (bonusMaxHp != 0) {
+            maxHp = Math.max(1, maxHp + bonusMaxHp);
+            hp = maxHp;
+        }
+        if (speedFactor > 0f) {
+            moveSpeed = Math.min(Upgrade.MAX_MOVE_SPEED, moveSpeed * speedFactor);
+        }
+        if (damageFactor > 0f) {
+            bulletDamage = Math.min(Upgrade.MAX_BULLET_DAMAGE, bulletDamage * damageFactor);
+        }
+        if (fireIntervalFactor > 0f) {
+            fireIntervalMs = Math.max(Upgrade.MIN_FIRE_INTERVAL_MS, fireIntervalMs * fireIntervalFactor);
+        }
+        if (extraShots > 0) {
+            shotCount = Math.min(Upgrade.MAX_SHOT_COUNT, shotCount + extraShots);
+        }
+    }
+
+    /**
      * 推进一帧（固定 {@value #TICK_MS}ms 逻辑时间）。
      *
      * <p>未开局、或处于 REWARD_PENDING / GAME_OVER / WIN 时整帧冻结（连内部时钟都不推进），

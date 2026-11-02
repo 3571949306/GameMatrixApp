@@ -2,6 +2,7 @@ package com.gamecenter.app.brotato;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -15,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,32 +31,40 @@ import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.modules.ModuleManager;
 
 /**
- * 土豆兄弟游戏 Fragment（五星级现代化架构版）。
+ * 土豆兄弟游戏 Fragment（五星级深度现代化改造版）。
  *
- * <p>由宿主 BrotatoActivity 迁移而来。使用纯 Android widget 构建 UI，
- * 采用统一顶部导航栏、即开即玩战场体系、实时战况 HUD 与沉浸式对局结算。</p>
+ * <p>特性增强：
+ * 1. 顶部统一导航栏，新增「英雄工坊」胶囊选择入口，支持 6 位特色英雄一键切换与持久化；
+ * 2. 状态看板 HUD 整合积分、翡翠宝石战利品统计、当前波次与历史纪录；
+ * 3. 难度胶囊分级（简单/普通/困难）与无缝重开；
+ * 4. 详细的现代战场规则指引弹窗（英雄特异、多枪瞄准、宝石磁吸、走位风筝）；
+ * 5. 对局结算弹窗丰富呈现战功与掉落收获。</p>
  */
 public class BrotatoModuleFragment extends Fragment {
 
     private static final String GAME_ID = "brotato";
-    /** 驱动频率：与引擎固定帧步长一致，保证"一 tick = 16ms 引擎时间"。 */
+    private static final String PREFS_NAME = "brotato_prefs";
+    private static final String KEY_SELECTED_HERO = "selected_hero";
     private static final long FRAME_INTERVAL_MS = BrotatoArena.TICK_MS;
 
     private BrotatoView brotatoView;
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private int highScore = 0;
     private int totalGames = 0;
-    /** UI 侧保持旧版难度因子口径（0.3/0.5/0.8），只在传给引擎时映射成倍率。 */
     private float difficultyFactor = 0.5f;
 
     private TextView tvScore;
+    private TextView tvGems;
     private TextView tvWave;
     private TextView tvBest;
+    private Button btnHero;
     private Button btnEasy;
     private Button btnNormal;
     private Button btnHard;
     private Button btnRestart;
     private GameUsageStore usageStore;
+
+    private BrotatoHero selectedHero = BrotatoHero.ALL_ROUNDER;
 
     private final Runnable gameLoop = new Runnable() {
         @Override
@@ -74,6 +84,11 @@ public class BrotatoModuleFragment extends Fragment {
         int colorBg = isNightMode() ? 0xFF0F172A : 0xFFF8FAFC;
         int colorTextPrimary = isNightMode() ? 0xFFF1F5F9 : 0xFF0F172A;
         int colorTextSecondary = isNightMode() ? 0xFF94A3B8 : 0xFF64748B;
+
+        // 读取持久化选中的英雄
+        SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String savedHeroId = prefs.getString(KEY_SELECTED_HERO, BrotatoHero.ALL_ROUNDER.getId());
+        selectedHero = BrotatoHero.fromId(savedHeroId);
 
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -102,7 +117,7 @@ public class BrotatoModuleFragment extends Fragment {
 
         TextView tvTitle = new TextView(ctx);
         tvTitle.setText(getString(R.string.game_title_brotato));
-        tvTitle.setTextSize(18f);
+        tvTitle.setTextSize(17f);
         tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         tvTitle.setTextColor(colorTextPrimary);
         tvTitle.setGravity(Gravity.CENTER);
@@ -110,6 +125,23 @@ public class BrotatoModuleFragment extends Fragment {
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         tvTitle.setLayoutParams(titleLp);
         topNavBar.addView(tvTitle);
+
+        // 英雄工坊切换胶囊按键
+        btnHero = new Button(ctx);
+        btnHero.setText(selectedHero.getEmoji() + " " + selectedHero.getNameCn() + " ▾");
+        btnHero.setTextSize(12f);
+        btnHero.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnHero.setTextColor(0xFF38BDF8);
+        btnHero.setBackground(createCapsuleDrawable(isNightMode() ? 0xFF1E293B : 0xFFE0F2FE, (int) (14 * dp)));
+        btnHero.setPadding((int) (10 * dp), 0, (int) (10 * dp), 0);
+        btnHero.setMinHeight((int) (32 * dp));
+        btnHero.setMinimumHeight((int) (32 * dp));
+        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        heroLp.rightMargin = (int) (6 * dp);
+        btnHero.setLayoutParams(heroLp);
+        btnHero.setOnClickListener(v -> showHeroSelectionDialog());
+        topNavBar.addView(btnHero);
 
         Button btnRules = new Button(ctx);
         btnRules.setText("ℹ 规则");
@@ -124,45 +156,55 @@ public class BrotatoModuleFragment extends Fragment {
 
         root.addView(topNavBar);
 
-        // 2. 状态战况 HUD 看板
+        // 2. 状态战况 HUD 看板（积分、翡翠宝石、波次、纪录）
         LinearLayout statBar = new LinearLayout(ctx);
         statBar.setOrientation(LinearLayout.HORIZONTAL);
         statBar.setGravity(Gravity.CENTER);
         statBar.setBackground(createCapsuleDrawable(isNightMode() ? 0xFF1E293B : 0xFFEDF2F7, (int) (12 * dp)));
-        statBar.setPadding((int) (14 * dp), (int) (6 * dp), (int) (14 * dp), (int) (6 * dp));
+        statBar.setPadding((int) (12 * dp), (int) (6 * dp), (int) (12 * dp), (int) (6 * dp));
         LinearLayout.LayoutParams statBarLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         statBarLp.bottomMargin = (int) (6 * dp);
         statBar.setLayoutParams(statBarLp);
 
         tvScore = new TextView(ctx);
-        tvScore.setTextSize(14f);
+        tvScore.setTextSize(13.5f);
         tvScore.setTypeface(null, android.graphics.Typeface.BOLD);
         tvScore.setTextColor(0xFF2563EB);
         tvScore.setText(getString(R.string.game_score_init));
         LinearLayout.LayoutParams scoreLp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.1f);
         tvScore.setLayoutParams(scoreLp);
         statBar.addView(tvScore);
 
+        tvGems = new TextView(ctx);
+        tvGems.setTextSize(13.5f);
+        tvGems.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvGems.setTextColor(0xFF10B981);
+        tvGems.setText("💎 0");
+        LinearLayout.LayoutParams gemsLp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.9f);
+        tvGems.setLayoutParams(gemsLp);
+        statBar.addView(tvGems);
+
         tvWave = new TextView(ctx);
-        tvWave.setTextSize(14f);
+        tvWave.setTextSize(13.5f);
         tvWave.setTypeface(null, android.graphics.Typeface.BOLD);
         tvWave.setTextColor(0xFF059669);
         tvWave.setGravity(Gravity.CENTER);
         tvWave.setText(getString(R.string.game_wave_init));
         LinearLayout.LayoutParams waveLp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.1f);
         tvWave.setLayoutParams(waveLp);
         statBar.addView(tvWave);
 
         tvBest = new TextView(ctx);
-        tvBest.setTextSize(14f);
+        tvBest.setTextSize(13.5f);
         tvBest.setTextColor(colorTextSecondary);
         tvBest.setGravity(Gravity.END);
         tvBest.setText(getString(R.string.game_high_score_init));
         LinearLayout.LayoutParams bestLp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.1f);
         tvBest.setLayoutParams(bestLp);
         statBar.addView(tvBest);
 
@@ -218,6 +260,7 @@ public class BrotatoModuleFragment extends Fragment {
         }
         final int totalWavesForHud = content.totalWaves();
         brotatoView = new BrotatoView(ctx, content);
+        brotatoView.setHero(selectedHero);
         applyDifficulty();
         brotatoView.setOnGameListener(new BrotatoView.OnGameListener() {
             @Override
@@ -242,6 +285,13 @@ public class BrotatoModuleFragment extends Fragment {
                 if (tvWave != null) {
                     tvWave.setText(getString(R.string.game_wave_format,
                             Math.min(wave + 1, totalWavesForHud)));
+                }
+            }
+
+            @Override
+            public void onMaterialsChanged(int materials) {
+                if (tvGems != null) {
+                    tvGems.setText("💎 " + materials);
                 }
             }
         });
@@ -307,19 +357,165 @@ public class BrotatoModuleFragment extends Fragment {
         }
     }
 
+    /**
+     * 弹出英雄工坊选择弹窗（6 位特色英雄卡牌式选取）
+     */
+    private void showHeroSelectionDialog() {
+        Context ctx = requireContext();
+        float dp = ctx.getResources().getDisplayMetrics().density;
+
+        ScrollView scrollView = new ScrollView(ctx);
+        LinearLayout listLayout = new LinearLayout(ctx);
+        listLayout.setOrientation(LinearLayout.VERTICAL);
+        listLayout.setPadding((int) (14 * dp), (int) (10 * dp), (int) (14 * dp), (int) (10 * dp));
+        scrollView.addView(listLayout);
+
+        AlertDialog dialog = new AlertDialog.Builder(ctx)
+                .setTitle("⚔️ 英雄工坊 · 选择出战英雄")
+                .setView(scrollView)
+                .setNegativeButton("取消", null)
+                .create();
+
+        for (BrotatoHero hero : BrotatoHero.values()) {
+            boolean isCurrent = (hero == selectedHero);
+
+            LinearLayout card = new LinearLayout(ctx);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding((int) (12 * dp), (int) (10 * dp), (int) (12 * dp), (int) (10 * dp));
+            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            cardLp.bottomMargin = (int) (10 * dp);
+            card.setLayoutParams(cardLp);
+
+            // 卡片边框与背景
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(isNightMode() ? 0xFF1E293B : 0xFFF1F5F9);
+            bg.setCornerRadius(12 * dp);
+            if (isCurrent) {
+                bg.setStroke((int) (2.5f * dp), 0xFFF59E0B); // 金色选中框
+            } else {
+                bg.setStroke((int) (1 * dp), isNightMode() ? 0xFF334155 : 0xFFCBD5E1);
+            }
+            card.setBackground(bg);
+
+            // 头部：图标 + 名称 + 称号
+            LinearLayout headRow = new LinearLayout(ctx);
+            headRow.setOrientation(LinearLayout.HORIZONTAL);
+            headRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView tvEmoji = new TextView(ctx);
+            tvEmoji.setText(hero.getEmoji());
+            tvEmoji.setTextSize(22f);
+            headRow.addView(tvEmoji);
+
+            TextView tvName = new TextView(ctx);
+            tvName.setText("  " + hero.getNameCn() + " · " + hero.getTitle());
+            tvName.setTextSize(15f);
+            tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+            tvName.setTextColor(isCurrent ? 0xFFF59E0B : (isNightMode() ? 0xFFF8FAFC : 0xFF0F172A));
+            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            tvName.setLayoutParams(nameLp);
+            headRow.addView(tvName);
+
+            if (isCurrent) {
+                TextView tvBadge = new TextView(ctx);
+                tvBadge.setText("当前出战");
+                tvBadge.setTextSize(11f);
+                tvBadge.setTextColor(Color.WHITE);
+                tvBadge.setBackground(createCapsuleDrawable(0xFFF59E0B, (int) (8 * dp)));
+                tvBadge.setPadding((int) (8 * dp), (int) (2 * dp), (int) (8 * dp), (int) (2 * dp));
+                headRow.addView(tvBadge);
+            }
+            card.addView(headRow);
+
+            // 属性标签行
+            TextView tvStats = new TextView(ctx);
+            tvStats.setText(formatHeroStats(hero));
+            tvStats.setTextSize(12f);
+            tvStats.setTextColor(0xFF38BDF8);
+            tvStats.setPadding(0, (int) (4 * dp), 0, (int) (2 * dp));
+            card.addView(tvStats);
+
+            // 描述
+            TextView tvDesc = new TextView(ctx);
+            tvDesc.setText(hero.getDescription());
+            tvDesc.setTextSize(12.5f);
+            tvDesc.setTextColor(isNightMode() ? 0xFF94A3B8 : 0xFF475569);
+            card.addView(tvDesc);
+
+            // 点击卡片换装出战
+            card.setOnClickListener(v -> {
+                selectedHero = hero;
+                SharedPreferences.Editor editor = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
+                editor.putString(KEY_SELECTED_HERO, hero.getId());
+                editor.apply();
+
+                if (btnHero != null) {
+                    btnHero.setText(hero.getEmoji() + " " + hero.getNameCn() + " ▾");
+                }
+                if (brotatoView != null) {
+                    brotatoView.setHero(hero);
+                }
+                Toast.makeText(ctx, "已选择「" + hero.getNameCn() + "」出战！重新开局即刻生效", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+
+                // 若当前不在终局，询问是否立即重开
+                if (brotatoView != null && brotatoView.isGameRunning()) {
+                    startGame();
+                }
+            });
+
+            listLayout.addView(card);
+        }
+
+        dialog.show();
+    }
+
+    private String formatHeroStats(BrotatoHero hero) {
+        StringBuilder sb = new StringBuilder();
+        int hp = BrotatoArena.BASE_MAX_HP + hero.getBonusMaxHp();
+        sb.append("生命: ").append(hp);
+        if (hero.getExtraShots() > 0) {
+            sb.append(" · 双枪齐射(+").append(hero.getExtraShots()).append(")");
+        }
+        if (hero.getFireIntervalFactor() != 1.0f) {
+            int fireBoost = Math.round((1.0f - hero.getFireIntervalFactor()) * 100);
+            sb.append(" · 射速 ").append(fireBoost >= 0 ? "+" : "").append(fireBoost).append("%");
+        }
+        if (hero.getDamageFactor() != 1.0f) {
+            int dmgBoost = Math.round((hero.getDamageFactor() - 1.0f) * 100);
+            sb.append(" · 伤害 ").append(dmgBoost >= 0 ? "+" : "").append(dmgBoost).append("%");
+        }
+        if (hero.getSpeedFactor() != 1.0f) {
+            int spdBoost = Math.round((hero.getSpeedFactor() - 1.0f) * 100);
+            sb.append(" · 移速 ").append(spdBoost >= 0 ? "+" : "").append(spdBoost).append("%");
+        }
+        if (hero.getCritChance() > 0.15f) {
+            sb.append(" · 高暴击 ").append((int) (hero.getCritChance() * 100)).append("%");
+        }
+        if (hero.getMagnetRangeFactor() > 1.0f) {
+            sb.append(" · 磁吸 ").append((int) (hero.getMagnetRangeFactor() * 100)).append("%");
+        }
+        return sb.toString();
+    }
+
     private void showRulesDialog() {
         new AlertDialog.Builder(requireContext())
-                .setTitle("土豆兄弟 · 战场规则")
-                .setMessage("【游戏介绍】\n"
-                        + "你将操控全副武装的土豆勇士，在无垠角斗场中迎击四面八方涌来的怪物浪潮！\n\n"
-                        + "【核心操作】\n"
-                        + "1. 触控滑动屏幕操控土豆灵活走位、躲避攻击；\n"
-                        + "2. 武器会自动索敌并持续倾泻火力；\n"
-                        + "3. 击败敌人收集战利品，在波次结束后选择强力升级！\n\n"
-                        + "【难度分级】\n"
-                        + "· 简单 (0.3x)：怪物生命与移速降低，轻松割草；\n"
-                        + "· 普通 (0.5x)：标准战斗节奏与怪物强度；\n"
-                        + "· 困难 (0.8x)：怪物血量狂飙、移速加快，极限走位生存！")
+                .setTitle("土豆兄弟 · 战场作战手册")
+                .setMessage("【游戏简介】\n"
+                        + "操控全副武装的土豆勇士，在无垠角斗场中迎击四面八方涌来的怪物浪潮！\n\n"
+                        + "【六大特色英雄】\n"
+                        + "🥔 全能土豆：均衡全面，适应各种流派策略；\n"
+                        + "🥊 狂暴斗士：双枪齐射，攻速狂飙贴脸近身搏杀；\n"
+                        + "🧙 奥术法师：单发高爆伤害，魔弹蕴含高穿透力；\n"
+                        + "🛡️ 重装巨兽：开局 22 点超强护甲血皮，泰坦巨兽；\n"
+                        + "🍀 幸运星：高额暴击率，两倍磁吸范围与更多翡翠宝石；\n"
+                        + "⚡ 疾风幽灵：极致移动速度，风筝走位拉扯大师。\n\n"
+                        + "【核心操作与机制】\n"
+                        + "1. 360° 触控虚拟摇杆：任意触摸屏幕呼出光环摇杆，享受丝滑风筝走位；\n"
+                        + "2. 多武器环绕瞄准：多把枪械旋转环绕，自动锁定最近敌寇倾泻弹幕；\n"
+                        + "3. 宝石掉落磁吸：击溃敌寇爆落翡翠经验宝石，靠近即刻磁吸聚能；\n"
+                        + "4. 全息三卡进化：波次肃清后在三项核心战力强化中任选一项，无限堆叠！")
                 .setPositiveButton("开战！", null)
                 .show();
     }
@@ -339,8 +535,10 @@ public class BrotatoModuleFragment extends Fragment {
 
     private void startGame() {
         if (brotatoView == null) return;
+        brotatoView.setHero(selectedHero);
         brotatoView.startGame();
         if (tvScore != null) tvScore.setText(getString(R.string.game_score_init));
+        if (tvGems != null) tvGems.setText("💎 0");
         if (tvWave != null) tvWave.setText(getString(R.string.game_wave_init));
         handler.removeCallbacks(gameLoop);
         handler.post(gameLoop);
@@ -387,13 +585,17 @@ public class BrotatoModuleFragment extends Fragment {
             tvBest.setText(getString(R.string.game_high_score_format, highScore));
         }
 
+        int gems = (brotatoView != null) ? brotatoView.getCollectedMaterials() : 0;
         if (isAdded() && getActivity() != null && !getActivity().isFinishing()) {
             new AlertDialog.Builder(requireContext())
-                    .setTitle(won ? "🏆 胜利！波次全清" : "💥 战斗结束")
-                    .setMessage((won ? "恭喜勇士成功通关所有波次！" : "你倒在了冲锋的路上！")
-                            + "\n\n最终积分：" + score
-                            + (isNewRecord ? "\n🎉 恭喜创造全新历史记录！" : "\n历史最佳：" + highScore))
-                    .setPositiveButton("再战一局", (dialog, which) -> startGame())
+                    .setTitle(won ? "🏆 旷世凯旋！肃清全波次" : "💥 战斗告负")
+                    .setMessage((won ? "恭喜勇士成功主宰二十波残酷角斗场！" : "你倒在了冲锋的路上！")
+                            + "\n\n出战英雄：" + selectedHero.getEmoji() + " " + selectedHero.getNameCn()
+                            + "\n战功得分：" + score
+                            + "\n战利品采集：💎 " + gems + " 颗翡翠水晶"
+                            + (isNewRecord ? "\n\n🎉 创造了全新历史记录！" : "\n历史最佳：" + highScore))
+                    .setPositiveButton("重整旗鼓", (dialog, which) -> startGame())
+                    .setNeutralButton("更换英雄", (dialog, which) -> showHeroSelectionDialog())
                     .setNegativeButton("返回大厅", (dialog, which) -> exitModule())
                     .show();
         }
