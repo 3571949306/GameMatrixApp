@@ -16,44 +16,34 @@ import com.gamecenter.app.brotato.engine.Enemy;
 import com.gamecenter.app.brotato.engine.Projectile;
 import com.gamecenter.app.brotato.engine.Upgrade;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 /**
- * 土豆兄弟游戏自定义 View（独立 APK 模块深度改造版）。
- *
- * <p>特性增强：
- * 1. 英雄职业视觉体系（6 位特色英雄专属配色、头饰与武器形态）；
- * 2. 多武器环绕挂载与动态瞄准系统（多枪旋转瞄准 + 枪口火光与射击后坐力）；
- * 3. 战场掉落与磁吸系统（击杀掉落翡翠经验宝石，物理散落 + 磁力线吸附，实时材料记账）；
- * 4. 战斗打击感强化（屏幕震颤、受击白闪/红闪、暴击大字浮动伤害、残血危险暗角红晕）；
- * 5. 虚拟浮动摇杆（360° 丝滑风筝走位，同时兼容直接点触）；
- * 6. 全息升级卡片与卡牌品质光环展示。</p>
+ * 《蛋壳特工队》（Survivor.io）风格核心游戏视图：
+ * 整合废土都市战场渲染、特工科萌及特色战术特工体系、四阶经验晶石与战术掉落物生态、
+ * 顶栏绿色发光经验槽与三选一战术科技卡片、精英怪三叶草幸运宝箱老虎机、
+ * 守卫者环绕飞盘、力场发生器/压制领域、战术伴飞无人机与幽灵手里剑超武进化！
  */
 public class BrotatoView extends View {
 
     public interface OnGameListener {
         void onScoreChanged(int score);
-
         void onGameOver(int score, int wave);
-
         void onWaveComplete(int wave);
-
         default void onWin(int score) { }
-
         default void onRewardCards(int wave, String[] titles) { }
-
         default void onMaterialsChanged(int materials) { }
+        default void onLevelChanged(int level) { }
     }
 
-    private static final float HUD_RESERVE_DP = 64f;
-    private static final float GRID_STEP_DP = 40f;
+    private static final float HUD_RESERVE_DP = 56f;
     private static final float MIN_BULLET_DRAW_DP = 3.5f;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path tempPath = new Path();
     private final Random random = new Random();
 
     private float viewWidth;
@@ -69,20 +59,45 @@ public class BrotatoView extends View {
     private boolean gamePaused;
     private boolean pendingStart;
 
-    /** 当前出战英雄，默认全能土豆 */
+    /** 当前出战特工，默认看板特工科萌 */
     private BrotatoHero currentHero = BrotatoHero.ALL_ROUNDER;
 
-    /** 特效系统与掉落物 */
+    /** 核心子系统：渲染引擎、掉落物生态、特工技能装备库、战地粒子特效 */
+    private final BrotatoRenderer renderer = new BrotatoRenderer();
+    private final SurvivorDrops survivorDrops = new SurvivorDrops();
+    private final SurvivorSkill.SkillInventory inventory = new SurvivorSkill.SkillInventory();
     private final BrotatoEffects effects = new BrotatoEffects();
+
+    /** 局内经验与等级成长体系 (Survivor.io EXP & Leveling) */
+    private int currentLevel = 1;
+    private int currentExp = 0;
+    private int maxExpForLevel = 5;
+
+    /** 升级卡片选择弹窗状态 */
+    private boolean levelUpPending = false;
+    private final List<SurvivorSkill.Type> levelUpChoices = new ArrayList<>();
+    private final RectF[] cardRects = new RectF[]{new RectF(), new RectF(), new RectF()};
+
+    /** 三叶草幸运宝箱开箱弹窗状态 */
+    private boolean luckyChestPending = false;
+    private int luckyRolls = 1;
+    private final List<SurvivorSkill.Type> luckyRewards = new ArrayList<>();
+    private long luckyOpenTick = 0L;
+
+    /** WARNING 警报状态 */
+    private int warningTicks = 0;
+    private int lastWarningWave = -1;
+
+    /** 战斗打击感与统计 */
     private final Map<Enemy, Float> enemyHpMap = new HashMap<>();
-    private int collectedMaterials = 0;
+    private int collectedGems = 0;
     private int prevPlayerHp = BrotatoArena.BASE_MAX_HP;
     private int damageFlashTicks = 0;
     private long lastFireMs = 0L;
     private int prevProjectileCount = 0;
     private long animTick = 0L;
 
-    /** 虚拟摇杆状态 */
+    /** 虚拟触摸摇杆状态 */
     private boolean joystickActive = false;
     private float joystickCenterX = 0f;
     private float joystickCenterY = 0f;
@@ -143,6 +158,60 @@ public class BrotatoView extends View {
     private void init() {
         density = getResources().getDisplayMetrics().density;
         setBackgroundColor(isNightMode() ? 0xFF0E1016 : 0xFF141720);
+
+        // 绑定掉落物生态监听器
+        survivorDrops.setDropListener(new SurvivorDrops.DropListener() {
+            @Override
+            public void onExpCollected(int exp) {
+                // 甲贺忍法帖加成经验
+                float boost = 1.0f + inventory.getLevel(SurvivorSkill.Type.KOGA_SCROLL) * 0.15f;
+                int finalExp = Math.max(1, Math.round(exp * boost));
+                addExp(finalExp);
+            }
+
+            @Override
+            public void onMagnetTriggered() {
+                effects.triggerScreenShake(5f, 6);
+                if (arena != null) {
+                    effects.spawnBurst(arena.playerX(), arena.playerY(), 0xFF38BDF8, 20, 5.0f);
+                }
+            }
+
+            @Override
+            public void onNukeTriggered() {
+                // 战术核弹全屏清屏！
+                effects.triggerScreenShake(12f, 16);
+                if (arena != null) {
+                    effects.spawnBurst(arena.playerX(), arena.playerY(), 0xFFFFFFFF, 35, 8.0f);
+                    List<Enemy> enemies = new ArrayList<>(arena.enemies());
+                    for (Enemy e : enemies) {
+                        if (e.hp < 15f && (e.kind == null || e.kind.score() < 10)) {
+                            arena.debugKillEnemy(e);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onChickenCollected() {
+                // 香脆烤鸡腿回复生命
+                if (arena != null) {
+                    effects.spawnBurst(arena.playerX(), arena.playerY(), 0xFF10B981, 15, 3.5f);
+                }
+            }
+
+            @Override
+            public void onLuckyChestOpened(int rolls) {
+                // 开启三叶草幸运宝箱转盘
+                luckyRolls = rolls;
+                luckyRewards.clear();
+                luckyRewards.addAll(inventory.rollLuckyChestRewards(rolls));
+                luckyChestPending = true;
+                luckyOpenTick = animTick;
+                effects.triggerScreenShake(8f, 12);
+                invalidate();
+            }
+        });
     }
 
     private boolean isNightMode() {
@@ -169,17 +238,22 @@ public class BrotatoView extends View {
 
     public void setHero(BrotatoHero hero) {
         this.currentHero = (hero != null) ? hero : BrotatoHero.ALL_ROUNDER;
-        if (arena != null && gameRunning) {
-            // 下一局或重新开始时彻底生效
-        }
     }
 
     public BrotatoHero getHero() {
         return currentHero;
     }
 
+    public SurvivorSkill.SkillInventory getInventory() {
+        return inventory;
+    }
+
     public int getCollectedMaterials() {
-        return collectedMaterials;
+        return collectedGems;
+    }
+
+    public int getCurrentLevel() {
+        return currentLevel;
     }
 
     public void startGame() {
@@ -187,8 +261,17 @@ public class BrotatoView extends View {
         pendingStart = true;
         gameRunning = true;
         gamePaused = false;
-        collectedMaterials = 0;
+        collectedGems = 0;
+        currentLevel = 1;
+        currentExp = 0;
+        maxExpForLevel = 5;
+        levelUpPending = false;
+        luckyChestPending = false;
+        warningTicks = 0;
+        lastWarningWave = -1;
         joystickActive = false;
+        inventory.reset();
+        survivorDrops.clear();
         createArenaIfPossible();
         invalidate();
     }
@@ -212,7 +295,7 @@ public class BrotatoView extends View {
             prevPlayerHp = value.hp();
             prevProjectileCount = 0;
         } catch (RuntimeException exception) {
-            android.util.Log.e("BrotatoView", "failed to start brotato arena", exception);
+            android.util.Log.e("BrotatoView", "failed to start survivor arena", exception);
             gameRunning = false;
         }
         pendingStart = false;
@@ -250,7 +333,7 @@ public class BrotatoView extends View {
 
     private BrotatoContent requireContent() {
         if (content == null) {
-            throw new IllegalStateException("brotato content must be injected via Fragment module assets, never host");
+            throw new IllegalStateException("brotato content must be injected via Fragment module assets");
         }
         return content;
     }
@@ -273,10 +356,47 @@ public class BrotatoView extends View {
         return Math.max(0f, viewHeight - HUD_RESERVE_DP * density);
     }
 
+    // ==================== 经验与升级机制 ====================
+
+    private void addExp(int exp) {
+        currentExp += exp;
+        collectedGems += exp;
+        if (listener != null) {
+            listener.onMaterialsChanged(collectedGems);
+        }
+
+        if (currentExp >= maxExpForLevel && !levelUpPending) {
+            triggerLevelUp();
+        }
+    }
+
+    private void triggerLevelUp() {
+        currentExp -= maxExpForLevel;
+        currentLevel++;
+        maxExpForLevel = 5 + (currentLevel - 1) * 8;
+
+        levelUpChoices.clear();
+        levelUpChoices.addAll(inventory.rollChoices(3));
+
+        if (!levelUpChoices.isEmpty()) {
+            levelUpPending = true;
+            effects.triggerScreenShake(7f, 10);
+            if (listener != null) {
+                listener.onLevelChanged(currentLevel);
+            }
+        }
+    }
+
     // ==================== 游戏主循环 ====================
 
     public void update() {
         if (!gameRunning || gamePaused) return;
+        if (levelUpPending || luckyChestPending) {
+            // 升级选卡与幸运宝箱时冻结战局逻辑
+            postInvalidateOnAnimation();
+            return;
+        }
+
         if (arena == null) {
             createArenaIfPossible();
             if (arena == null) return;
@@ -284,35 +404,151 @@ public class BrotatoView extends View {
 
         animTick++;
         if (damageFlashTicks > 0) damageFlashTicks--;
+        if (warningTicks > 0) warningTicks--;
 
-        // 检测开火时刻
+        // 检测 Boss 警戒波次触发 WARNING 警报
+        int curWave = arena.wave();
+        if (curWave > 0 && curWave != lastWarningWave) {
+            if (curWave % 5 == 0 || curWave == 10 || curWave == 20) {
+                warningTicks = 70;
+                lastWarningWave = curWave;
+                effects.triggerScreenShake(8f, 14);
+            }
+        }
+
+        // 开火时刻检测
         int currentProjCount = arena.projectiles().size();
         if (currentProjCount > prevProjectileCount) {
             lastFireMs = arena.clockMs();
         }
         prevProjectileCount = currentProjCount;
 
-        // 推进引擎逻辑
+        // 推进底层核心逻辑
         arena.tick();
 
-        // 碰撞与受击跟踪（伤害浮字、掉落宝石与屏幕震颤）
+        // 碰撞受击与掉落生成
         trackCombatEvents(arena);
 
-        // 推进特效与拾取
-        float magnetRadius = 60f * currentHero.getMagnetRangeFactor();
-        int newlyCollected = effects.update(arena.playerX(), arena.playerY(), magnetRadius, arena.playerRadiusPx());
-        if (newlyCollected > 0) {
-            collectedMaterials += newlyCollected;
-            if (listener != null) {
-                listener.onMaterialsChanged(collectedMaterials);
-            }
-        }
+        // 推进战地掉落物生态
+        float magnetRange = 65f * currentHero.getMagnetRangeFactor() * inventory.getMagnetMultiplier();
+        survivorDrops.update(arena.playerX(), arena.playerY(), magnetRange, arena.playerRadiusPx());
+
+        // 推进特色主动特战武器
+        runSpecialTacticalWeapons(arena);
 
         postInvalidateOnAnimation();
     }
 
     /**
-     * 跟踪敌人血量变化与玩家受击，触发打击感特效
+     * 实时驱动《蛋壳特工队》特色主动技能（守卫者、力场、无人机、幽灵手里剑）
+     */
+    private void runSpecialTacticalWeapons(BrotatoArena value) {
+        float px = value.playerX();
+        float py = value.playerY();
+        float dmgMul = inventory.getDamageMultiplier() * currentHero.getDamageFactor();
+
+        // 1. 守卫者 / 捍卫者 (Guardian / Defender): 高速旋转环绕飞盘实体判定
+        int guardianLvl = inventory.getLevel(SurvivorSkill.Type.GUARDIAN);
+        boolean isDefender = inventory.isEvolved(SurvivorSkill.Type.GUARDIAN);
+        if (guardianLvl > 0 || isDefender) {
+            int blades = isDefender ? 6 : Math.min(4, 2 + guardianLvl / 2);
+            float orbitR = isDefender ? 75f : 60f;
+            float speed = isDefender ? 0.12f : 0.08f;
+            float baseAngle = animTick * speed;
+            double step = (Math.PI * 2.0) / blades;
+            float bladeR = (isDefender ? 13f : 10f);
+
+            for (int i = 0; i < blades; i++) {
+                double a = baseAngle + i * step;
+                float bx = px + (float) Math.cos(a) * orbitR;
+                float by = py + (float) Math.sin(a) * orbitR;
+
+                for (Enemy enemy : value.enemies()) {
+                    if (enemy.removed) continue;
+                    float dx = enemy.x - bx;
+                    float dy = enemy.y - by;
+                    float dist = (float) Math.hypot(dx, dy);
+                    if (dist < bladeR + enemy.radiusPx) {
+                        float hitDmg = (isDefender ? 2.5f : 1.2f) * dmgMul;
+                        enemy.hp -= hitDmg;
+                        // 击退敌人
+                        if (dist > 0.01f) {
+                            enemy.x += (dx / dist) * (isDefender ? 6f : 3.5f);
+                            enemy.y += (dy / dist) * (isDefender ? 6f : 3.5f);
+                        }
+                        effects.spawnDamage(enemy.x, enemy.y, hitDmg, isDefender);
+                        effects.spawnBurst(enemy.x, enemy.y, isDefender ? 0xFFF59E0B : 0xFF38BDF8, 2, 1.8f);
+                        if (enemy.hp <= 0) {
+                            value.debugKillEnemy(enemy);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. 力场发生器 / 压制领域 (Forcefield / Max Forcefield): 等离子力场脉冲减速与融怪
+        int forceLvl = inventory.getLevel(SurvivorSkill.Type.FORCEFIELD);
+        boolean isMaxField = inventory.isEvolved(SurvivorSkill.Type.FORCEFIELD);
+        if (forceLvl > 0 || isMaxField) {
+            float fieldR = isMaxField ? 120f : (55f + forceLvl * 10f);
+            if (animTick % 10 == 0) {
+                for (Enemy enemy : value.enemies()) {
+                    if (enemy.removed) continue;
+                    float dx = enemy.x - px;
+                    float dy = enemy.y - py;
+                    float dist = (float) Math.hypot(dx, dy);
+                    if (dist < fieldR) {
+                        float fieldDmg = (isMaxField ? 1.5f : 0.6f) * dmgMul;
+                        enemy.hp -= fieldDmg;
+                        effects.spawnDamage(enemy.x, enemy.y, fieldDmg, false);
+                        if (enemy.hp <= 0) {
+                            value.debugKillEnemy(enemy);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. 战术伴飞无人机 (Drones A & B & Destroyer)
+        int droneA = inventory.getLevel(SurvivorSkill.Type.DRONE_A);
+        int droneB = inventory.getLevel(SurvivorSkill.Type.DRONE_B);
+        boolean isDestroyer = inventory.isEvolved(SurvivorSkill.Type.DRONE_A) || inventory.isEvolved(SurvivorSkill.Type.DRONE_B);
+        if (isDestroyer || droneA > 0 || droneB > 0) {
+            int interval = isDestroyer ? 12 : 24;
+            if (animTick % interval == 0) {
+                Enemy target = value.nearestEnemy();
+                if (target != null) {
+                    float droneDmg = (isDestroyer ? 5.0f : 2.2f) * dmgMul;
+                    target.hp -= droneDmg;
+                    effects.spawnDamage(target.x, target.y, droneDmg, isDestroyer);
+                    effects.spawnBurst(target.x, target.y, isDestroyer ? 0xFFEF4444 : 0xFF38BDF8, 6, 2.5f);
+                    if (isDestroyer) effects.triggerScreenShake(3.5f, 4);
+                    if (target.hp <= 0) {
+                        value.debugKillEnemy(target);
+                    }
+                }
+            }
+        }
+
+        // 4. 幽灵手里剑 (Ghost Shuriken / Kunai EVO): 极速自动索敌融化单体
+        if (inventory.isEvolved(SurvivorSkill.Type.KUNAI)) {
+            if (animTick % 5 == 0) {
+                Enemy target = value.nearestEnemy();
+                if (target != null) {
+                    float shurikenDmg = 2.4f * dmgMul;
+                    target.hp -= shurikenDmg;
+                    effects.spawnDamage(target.x, target.y, shurikenDmg, true);
+                    effects.spawnBurst(target.x, target.y, 0xFFC084FC, 4, 2.0f);
+                    if (target.hp <= 0) {
+                        value.debugKillEnemy(target);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 跟踪敌人受创与击杀，驱动战利品爆落与受击闪烁
      */
     private void trackCombatEvents(BrotatoArena value) {
         // 1. 玩家受击检测
@@ -324,7 +560,7 @@ public class BrotatoView extends View {
         }
         prevPlayerHp = curHp;
 
-        // 2. 敌人受伤与死亡检测
+        // 2. 敌人受创浮字
         Map<Enemy, Float> nextMap = new HashMap<>();
         for (Enemy enemy : value.enemies()) {
             Float prev = enemyHpMap.get(enemy);
@@ -337,15 +573,19 @@ public class BrotatoView extends View {
             nextMap.put(enemy, enemy.hp);
         }
 
-        // 检测死亡离场的敌人（掉落翡翠经验宝石）
+        // 3. 敌人阵亡爆落经验晶石、四大战术道具与三叶草幸运宝箱
         for (Map.Entry<Enemy, Float> entry : enemyHpMap.entrySet()) {
             Enemy oldEnemy = entry.getKey();
             if (!nextMap.containsKey(oldEnemy) && oldEnemy.removed) {
                 int scoreVal = (oldEnemy.kind != null) ? oldEnemy.kind.score() : 1;
-                float bonusChance = (currentHero == BrotatoHero.LUCKY) ? 0.4f : 0.08f;
-                effects.spawnGemsOnKill(oldEnemy.x, oldEnemy.y, scoreVal, bonusChance);
-                if (oldEnemy.kind != null && (oldEnemy.kind.score() >= 10 || oldEnemy.kind.id().contains("boss") || oldEnemy.maxHp >= 15f)) {
-                    effects.triggerScreenShake(9f, 12);
+                boolean isBoss = (oldEnemy.kind != null && (oldEnemy.kind.score() >= 10
+                        || oldEnemy.kind.id().contains("boss") || oldEnemy.maxHp >= 15f));
+                boolean isElite = (oldEnemy.maxHp >= 10f || scoreVal >= 5);
+
+                survivorDrops.spawnOnKill(oldEnemy.x, oldEnemy.y, scoreVal, isBoss, isElite);
+                if (isBoss) {
+                    effects.triggerScreenShake(11f, 15);
+                    effects.spawnBurst(oldEnemy.x, oldEnemy.y, 0xFFF59E0B, 25, 6.0f);
                 }
             }
         }
@@ -364,11 +604,11 @@ public class BrotatoView extends View {
         paint.setStyle(Paint.Style.FILL);
         var state = value.state();
         if (state == BrotatoArena.State.GAME_OVER) {
-            drawEndOverlay(canvas, value, "战斗落幕", "英雄战陨于荒原 · 点击下方重整旗鼓", 0xFFEF4444);
+            drawEndOverlay(canvas, value, "战斗落幕", "特工战陨于废土都市 · 点击下方重整旗鼓", 0xFFEF4444);
             return;
         }
         if (state == BrotatoArena.State.WIN) {
-            drawEndOverlay(canvas, value, "旷世凯旋！", "二十波敌潮悉数荡平，角斗场终极主宰！", 0xFF10B981);
+            drawEndOverlay(canvas, value, "旷世凯旋！", "二十波生化潮悉数荡平，都市特工绝对传奇！", 0xFF10B981);
             return;
         }
         if (!gameRunning) return;
@@ -377,37 +617,92 @@ public class BrotatoView extends View {
         canvas.save();
         canvas.translate(effects.getShakeOffsetX() * density, effects.getShakeOffsetY() * density);
 
-        drawGrid(canvas);
+        // 1. 废土都市沥青地面
+        renderer.drawArenaGround(canvas, viewWidth, playfieldHeightPx(), density,
+                value.playerX(), value.playerY(), animTick);
+
+        // 2. 战利品掉落物（四阶经验晶石、磁铁、核弹、烤鸡腿、幸运宝箱）
+        survivorDrops.draw(canvas, paint, density);
+
+        // 3. 粒子特效
         effects.draw(canvas, paint, density);
+
+        // 4. 特色武器光环（力场、守卫者飞盘、伴飞无人机）
+        float px = value.playerX() * density;
+        float py = value.playerY() * density;
+
+        int forceLvl = inventory.getLevel(SurvivorSkill.Type.FORCEFIELD);
+        boolean isMaxField = inventory.isEvolved(SurvivorSkill.Type.FORCEFIELD);
+        if (forceLvl > 0 || isMaxField) {
+            float fieldR = (isMaxField ? 120f : (55f + forceLvl * 10f)) * density;
+            renderer.drawForcefield(canvas, px, py, fieldR, isMaxField, animTick, density);
+        }
+
+        int guardLvl = inventory.getLevel(SurvivorSkill.Type.GUARDIAN);
+        boolean isDefender = inventory.isEvolved(SurvivorSkill.Type.GUARDIAN);
+        if (guardLvl > 0 || isDefender) {
+            int blades = isDefender ? 6 : Math.min(4, 2 + guardLvl / 2);
+            float orbitR = (isDefender ? 75f : 60f) * density;
+            renderer.drawGuardianBlades(canvas, px, py, orbitR, blades, isDefender, animTick, density);
+        }
+
+        int droneA = inventory.getLevel(SurvivorSkill.Type.DRONE_A);
+        int droneB = inventory.getLevel(SurvivorSkill.Type.DRONE_B);
+        boolean isDestroyer = inventory.isEvolved(SurvivorSkill.Type.DRONE_A) || inventory.isEvolved(SurvivorSkill.Type.DRONE_B);
+        if (isDestroyer || droneA > 0 || droneB > 0) {
+            renderer.drawDrones(canvas, px, py, droneA > 0, droneB > 0, isDestroyer, animTick, density);
+        }
+
+        // 5. 弹道子弹
         drawProjectiles(canvas, value);
-        drawEnemies(canvas, value);
-        drawPlayer(canvas, value);
+
+        // 6. 异变体敌寇立体模型
+        for (Enemy enemy : value.enemies()) {
+            renderer.drawEnemy(canvas, enemy, animTick, density);
+        }
+
+        // 7. 特工主角科萌与武器
+        renderer.drawPlayer(canvas, currentHero, px, py, value.playerRadiusPx() * density,
+                (float) calcAimAngle(value), joystickActive, animTick, damageFlashTicks, density);
 
         canvas.restore();
 
-        // 绘制界面与覆盖层（不受震颤影响）
+        // 8. 全屏 WARNING 警报横幅
+        if (warningTicks > 0) {
+            renderer.drawWarningBanner(canvas, viewWidth, playfieldHeightPx(), density, animTick);
+        }
+
+        // 9. 界面与 HUD（不受震颤干扰）
         drawDangerVignette(canvas, value);
         drawJoystick(canvas);
-        drawHud(canvas, value);
 
-        if (state == BrotatoArena.State.REWARD_PENDING) {
+        // 10. 顶栏横贯全屏经典发光绿色经验槽
+        renderer.drawTopExpBar(canvas, viewWidth, density, currentExp, maxExpForLevel,
+                currentLevel, value.score(), value.wave(), value.content().totalWaves());
+
+        // 11. 升级卡片选择弹窗
+        if (levelUpPending) {
+            updateCardRects();
+            renderer.drawLevelUpDialog(canvas, viewWidth, viewHeight, density,
+                    levelUpChoices, inventory, cardRects);
+        } else if (luckyChestPending) {
+            // 三叶草幸运宝箱老虎机转盘弹窗
+            float spinProgress = Math.min(1.0f, (animTick - luckyOpenTick) / 20f);
+            renderer.drawLuckyChestDialog(canvas, viewWidth, viewHeight, density,
+                    luckyRolls, luckyRewards, spinProgress);
+        } else if (state == BrotatoArena.State.REWARD_PENDING) {
             drawRewardCards(canvas, value);
         } else if (state == BrotatoArena.State.INTERMISSION) {
             drawIntermissionBanner(canvas, value);
         }
     }
 
-    private void drawGrid(Canvas canvas) {
-        paint.setColor(0x18FFFFFF);
-        paint.setStrokeWidth(1);
-        float step = GRID_STEP_DP * density;
-        float playH = playfieldHeightPx();
-        for (float x = 0; x < viewWidth; x += step) {
-            canvas.drawLine(x, 0, x, playH, paint);
+    private double calcAimAngle(BrotatoArena value) {
+        Enemy target = value.nearestEnemy();
+        if (target != null) {
+            return Math.atan2(target.y - value.playerY(), target.x - value.playerX());
         }
-        for (float y = 0; y < playH; y += step) {
-            canvas.drawLine(0, y, viewWidth, y, paint);
-        }
+        return (animTick * 0.04) % (Math.PI * 2);
     }
 
     private void drawProjectiles(Canvas canvas, BrotatoArena value) {
@@ -416,11 +711,9 @@ public class BrotatoView extends View {
             float by = bullet.y * density;
             float br = Math.max(MIN_BULLET_DRAW_DP, bullet.radiusPx) * density;
 
-            // 子弹尾迹微光
             paint.setColor(currentHero == BrotatoHero.MAGE ? 0x66A855F7 : 0x66FDE047);
             canvas.drawCircle(bx, by, br * 1.6f, paint);
 
-            // 子弹本体
             paint.setColor(currentHero == BrotatoHero.MAGE ? 0xFFC084FC : 0xFFFFEB3B);
             canvas.drawCircle(bx, by, br, paint);
             paint.setColor(Color.WHITE);
@@ -428,258 +721,6 @@ public class BrotatoView extends View {
         }
     }
 
-    private void drawEnemies(Canvas canvas, BrotatoArena value) {
-        for (Enemy enemy : value.enemies()) {
-            float cx = enemy.x * density;
-            float cy = enemy.y * density;
-            float radius = enemy.radiusPx * density;
-
-            // 阴影
-            paint.setColor(0x33000000);
-            canvas.drawOval(new RectF(cx - radius * 0.9f, cy + radius * 0.6f, cx + radius * 0.9f, cy + radius * 1.15f), paint);
-
-            // 身体
-            paint.setColor(enemy.kind == null ? 0xFFFF5722 : enemy.kind.color());
-            canvas.drawCircle(cx, cy, radius, paint);
-
-            // 边缘深色边线
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(1.5f * density);
-            paint.setColor(0x44000000);
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setStyle(Paint.Style.FILL);
-
-            // 眼睛
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(cx - radius * 0.35f, cy - radius * 0.25f, radius * 0.26f, paint);
-            canvas.drawCircle(cx + radius * 0.35f, cy - radius * 0.25f, radius * 0.26f, paint);
-            paint.setColor(Color.BLACK);
-            canvas.drawCircle(cx - radius * 0.28f, cy - radius * 0.25f, radius * 0.12f, paint);
-            canvas.drawCircle(cx + radius * 0.42f, cy - radius * 0.25f, radius * 0.12f, paint);
-
-            if (enemy.hp < enemy.maxHp) drawEnemyHealth(canvas, enemy, cx, cy, radius);
-        }
-    }
-
-    private void drawEnemyHealth(Canvas canvas, Enemy enemy, float cx, float cy, float radius) {
-        float width = radius * 2.2f;
-        float height = 3.5f * density;
-        float top = cy - radius - 8 * density;
-        float ratio = enemy.hpRatio();
-        paint.setColor(0x88000000);
-        canvas.drawRoundRect(new RectF(cx - width / 2f, top, cx + width / 2f, top + height), 2 * density, 2 * density, paint);
-        paint.setColor(0xFFEF4444);
-        canvas.drawRoundRect(new RectF(cx - width / 2f, top, cx - width / 2f + width * ratio, top + height), 2 * density, 2 * density, paint);
-    }
-
-    /**
-     * 绘制土豆主角与英雄专属装备外观
-     */
-    private void drawPlayer(Canvas canvas, BrotatoArena value) {
-        float px = value.playerX() * density;
-        float py = value.playerY() * density;
-        float ps = value.playerRadiusPx() * density;
-
-        // 1. 角色地面软阴影
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0x44000000);
-        canvas.drawOval(new RectF(px - ps * 1.15f, py + ps * 0.65f, px + ps * 1.15f, py + ps * 1.25f), paint);
-
-        // 2. 土豆肉身（受击红白交替闪烁）
-        int bodyColor = (damageFlashTicks > 0) ? 0xFFFF6B6B : currentHero.getBodyColor();
-        paint.setColor(bodyColor);
-        canvas.drawCircle(px, py, ps, paint);
-        paint.setColor(0xFF5D4037);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2 * density);
-        canvas.drawCircle(px, py, ps, paint);
-        paint.setStyle(Paint.Style.FILL);
-
-        // 3. 英雄专属装饰（头饰、战纹、帽子、甲胄、四叶草、羽翼）
-        drawHeroApparel(canvas, px, py, ps);
-
-        // 4. 大眼睛与灵动高光
-        paint.setColor(Color.WHITE);
-        canvas.drawCircle(px - ps * 0.3f, py - ps * 0.18f, ps * 0.28f, paint);
-        canvas.drawCircle(px + ps * 0.3f, py - ps * 0.18f, ps * 0.28f, paint);
-        paint.setColor(Color.BLACK);
-        canvas.drawCircle(px - ps * 0.24f, py - ps * 0.18f, ps * 0.13f, paint);
-        canvas.drawCircle(px + ps * 0.36f, py - ps * 0.18f, ps * 0.13f, paint);
-        // 眼内灵动反光
-        paint.setColor(Color.WHITE);
-        canvas.drawCircle(px - ps * 0.28f, py - ps * 0.23f, ps * 0.05f, paint);
-        canvas.drawCircle(px + ps * 0.32f, py - ps * 0.23f, ps * 0.05f, paint);
-
-        // 5. 坚毅微笑嘴型
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2 * density);
-        paint.setColor(0xFF4E342E);
-        canvas.drawArc(new RectF(px - ps * 0.28f, py + ps * 0.08f, px + ps * 0.28f, py + ps * 0.42f),
-                0, 180, false, paint);
-        paint.setStyle(Paint.Style.FILL);
-
-        // 6. 绘制动态旋转瞄准的多枪武器系统
-        drawWeapons(canvas, value, px, py, ps);
-    }
-
-    /**
-     * 英雄专属穿戴
-     */
-    private void drawHeroApparel(Canvas canvas, float px, float py, float ps) {
-        int accent = currentHero.getAccentColor();
-        paint.setColor(accent);
-
-        switch (currentHero) {
-            case ALL_ROUNDER:
-                // 经典红色英雄头带 + 飘带
-                paint.setStyle(Paint.Style.FILL);
-                canvas.drawRect(px - ps * 0.95f, py - ps * 0.65f, px + ps * 0.95f, py - ps * 0.35f, paint);
-                // 飘带
-                tempPath.reset();
-                tempPath.moveTo(px - ps * 0.95f, py - ps * 0.5f);
-                tempPath.lineTo(px - ps * 1.55f, py - ps * 0.75f);
-                tempPath.lineTo(px - ps * 1.45f, py - ps * 0.35f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                break;
-
-            case BRAWLER:
-                // 愤怒战纹 + 红色额前烈焰
-                tempPath.reset();
-                tempPath.moveTo(px - ps * 0.5f, py - ps * 0.8f);
-                tempPath.lineTo(px, py - ps * 1.35f);
-                tempPath.lineTo(px + ps * 0.5f, py - ps * 0.8f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                break;
-
-            case MAGE:
-                // 奥术巫师尖顶高帽
-                tempPath.reset();
-                tempPath.moveTo(px - ps * 1.1f, py - ps * 0.6f);
-                tempPath.lineTo(px + ps * 1.1f, py - ps * 0.6f);
-                tempPath.lineTo(px, py - ps * 1.75f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                // 帽檐黄色星芒扣
-                paint.setColor(0xFFFBBF24);
-                canvas.drawCircle(px, py - ps * 0.6f, ps * 0.2f, paint);
-                break;
-
-            case CHUNKY:
-                // 重装钢铁铆钉肩铠
-                paint.setColor(0xFF475569);
-                canvas.drawRoundRect(new RectF(px - ps * 1.35f, py - ps * 0.4f, px - ps * 0.75f, py + ps * 0.4f), 3 * density, 3 * density, paint);
-                canvas.drawRoundRect(new RectF(px + ps * 0.75f, py - ps * 0.4f, px + ps * 1.35f, py + ps * 0.4f), 3 * density, 3 * density, paint);
-                paint.setColor(0xFF94A3B8);
-                canvas.drawCircle(px - ps * 1.05f, py, 2 * density, paint);
-                canvas.drawCircle(px + ps * 1.05f, py, 2 * density, paint);
-                break;
-
-            case LUCKY:
-                // 幸运四叶草头饰
-                paint.setColor(0xFF22C55E);
-                canvas.drawCircle(px - ps * 0.2f, py - ps * 1.15f, ps * 0.22f, paint);
-                canvas.drawCircle(px + ps * 0.2f, py - ps * 1.15f, ps * 0.22f, paint);
-                canvas.drawCircle(px, py - ps * 1.35f, ps * 0.22f, paint);
-                canvas.drawCircle(px, py - ps * 0.95f, ps * 0.18f, paint);
-                break;
-
-            case SPEEDSTER:
-                // 疾风幽灵羽翼头饰
-                paint.setColor(0xFF38BDF8);
-                tempPath.reset();
-                tempPath.moveTo(px - ps * 0.8f, py - ps * 0.4f);
-                tempPath.lineTo(px - ps * 1.6f, py - ps * 0.9f);
-                tempPath.lineTo(px - ps * 1.2f, py - ps * 0.1f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                tempPath.reset();
-                tempPath.moveTo(px + ps * 0.8f, py - ps * 0.4f);
-                tempPath.lineTo(px + ps * 1.6f, py - ps * 0.9f);
-                tempPath.lineTo(px + ps * 1.2f, py - ps * 0.1f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                break;
-        }
-    }
-
-    /**
-     * 绘制多武器环绕挂载与动态瞄准系统
-     */
-    private void drawWeapons(Canvas canvas, BrotatoArena value, float px, float py, float ps) {
-        int shots = Math.max(1, value.shotCount());
-        Enemy target = value.nearestEnemy();
-
-        double baseAngle;
-        if (target != null) {
-            baseAngle = Math.atan2(target.y - value.playerY(), target.x - value.playerX());
-        } else {
-            baseAngle = (animTick * 0.04) % (Math.PI * 2);
-        }
-
-        double spreadRad = Math.toRadians(Upgrade.SPREAD_STEP_DEG);
-        float orbitDist = ps + 12 * density;
-        boolean justFired = (value.clockMs() - lastFireMs < 64);
-
-        for (int i = 0; i < shots; i++) {
-            double angle = baseAngle + (i - (shots - 1) / 2.0) * spreadRad;
-            float wx = px + (float) (Math.cos(angle - 0.28) * orbitDist);
-            float wy = py + (float) (Math.sin(angle - 0.28) * orbitDist);
-
-            canvas.save();
-            canvas.translate(wx, wy);
-            canvas.rotate((float) Math.toDegrees(angle));
-
-            // 后坐力偏移
-            if (justFired) {
-                canvas.translate(-2.5f * density, 0);
-            }
-
-            // 绘制枪管/法杖
-            drawGunBarrel(canvas);
-
-            // 枪口火花
-            if (justFired) {
-                drawMuzzleFlash(canvas);
-            }
-
-            canvas.restore();
-        }
-    }
-
-    private void drawGunBarrel(Canvas canvas) {
-        paint.setStyle(Paint.Style.FILL);
-        // 枪身阴影与枪托
-        paint.setColor(0xFF374151);
-        canvas.drawRoundRect(new RectF(0, -3.5f * density, 16 * density, 3.5f * density), 2 * density, 2 * density, paint);
-        // 枪管高光
-        paint.setColor(0xFF9CA3AF);
-        canvas.drawRoundRect(new RectF(4 * density, -2 * density, 18 * density, 2 * density), 1.5f * density, 1.5f * density, paint);
-        // 握把
-        paint.setColor(0xFF78350F);
-        canvas.drawRect(-3 * density, 0, 1 * density, 6 * density, paint);
-    }
-
-    private void drawMuzzleFlash(Canvas canvas) {
-        paint.setColor(0xFFFFEB3B);
-        float tipX = 20 * density;
-        float flashS = 7 * density;
-        tempPath.reset();
-        tempPath.moveTo(tipX, -flashS * 0.5f);
-        tempPath.lineTo(tipX + flashS, 0);
-        tempPath.lineTo(tipX, flashS * 0.5f);
-        tempPath.lineTo(tipX - flashS * 0.3f, 0);
-        tempPath.close();
-        canvas.drawPath(tempPath, paint);
-
-        paint.setColor(0xFFFFA000);
-        canvas.drawCircle(tipX + flashS * 0.3f, 0, flashS * 0.4f, paint);
-    }
-
-    /**
-     * 残血危险暗角红晕
-     */
     private void drawDangerVignette(Canvas canvas, BrotatoArena value) {
         float ratio = (float) value.hp() / Math.max(1, value.maxHp());
         if (ratio > 0.35f) return;
@@ -695,9 +736,6 @@ public class BrotatoView extends View {
         paint.setStyle(Paint.Style.FILL);
     }
 
-    /**
-     * 绘制虚拟触摸摇杆
-     */
     private void drawJoystick(Canvas canvas) {
         if (!joystickActive) return;
 
@@ -711,12 +749,10 @@ public class BrotatoView extends View {
         paint.setColor(0x8860A5FA);
         canvas.drawCircle(joystickCenterX, joystickCenterY, baseRadius, paint);
 
-        // 摇杆连线
         paint.setColor(0x5593C5FD);
         paint.setStrokeWidth(3 * density);
         canvas.drawLine(joystickCenterX, joystickCenterY, joystickKnobX, joystickKnobY, paint);
 
-        // 摇杆内钮
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xCC2563EB);
         float knobRadius = 20 * density;
@@ -729,54 +765,23 @@ public class BrotatoView extends View {
         paint.setStyle(Paint.Style.FILL);
     }
 
-    /**
-     * HUD 看板（顶底信息、生命槽、材料宝石）
-     */
-    private void drawHud(Canvas canvas, BrotatoArena value) {
-        float hpBarH = 16 * density;
-        float hpBarBottom = viewHeight - 26 * density;
-        float hpBarTop = hpBarBottom - hpBarH;
-        int hp = value.hp();
-        int maxHp = Math.max(1, value.maxHp());
+    private void updateCardRects() {
+        int count = Math.min(3, levelUpChoices.size());
+        if (count == 0) return;
 
-        // 底部生命底槽
-        paint.setColor(0xFF1E293B);
-        canvas.drawRoundRect(new RectF(16 * density, hpBarTop, viewWidth - 16 * density, hpBarBottom), 8 * density, 8 * density, paint);
+        float gap = 8 * density;
+        float outer = 12 * density;
+        float availableW = viewWidth - outer * 2f - gap * (count - 1);
+        float cardW = Math.min(135 * density, availableW / count);
+        float cardH = Math.min(235 * density, viewHeight * 0.46f);
+        float blockW = cardW * count + gap * (count - 1);
+        float startX = (viewWidth - blockW) / 2f;
+        float topY = (playfieldHeightPx() - cardH) / 2f + 20 * density;
 
-        float hpRatio = (float) hp / maxHp;
-        int barColor = (hpRatio > 0.5f) ? 0xFF10B981 : (hpRatio > 0.25f) ? 0xFFF59E0B : 0xFFEF4444;
-        paint.setColor(barColor);
-        canvas.drawRoundRect(new RectF(16 * density, hpBarTop,
-                16 * density + (viewWidth - 32 * density) * hpRatio, hpBarBottom), 8 * density, 8 * density, paint);
-
-        // 生命数字与当前英雄标签
-        paint.setColor(Color.WHITE);
-        paint.setTextSize(13 * density);
-        paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(currentHero.getEmoji() + " " + hp + " / " + maxHp, viewWidth / 2f, hpBarBottom - 3 * density, paint);
-
-        // 顶部 HUD 文本
-        paint.setTextSize(18 * density);
-        paint.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText("分: " + value.score(), 16 * density, 30 * density, paint);
-
-        // 实时掉落材料统计
-        paint.setColor(0xFF10B981);
-        canvas.drawText("💎 " + collectedMaterials, 120 * density, 30 * density, paint);
-
-        paint.setTextAlign(Paint.Align.RIGHT);
-        paint.setColor(Color.WHITE);
-        canvas.drawText("波次 " + value.wave() + " / " + value.content().totalWaves(),
-                viewWidth - 16 * density, 30 * density, paint);
-
-        if (value.state() != BrotatoArena.State.INTERMISSION) {
-            paint.setTextSize(12 * density);
-            paint.setColor(0xFF94A3B8);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("剩余敌寇 " + (value.remainingSpawns() + value.remainingBosses())
-                    + " · 场上 " + value.enemies().size(), viewWidth / 2f, 50 * density, paint);
+        for (int i = 0; i < count; i++) {
+            float left = startX + i * (cardW + gap);
+            cardRects[i].set(left, topY, left + cardW, topY + cardH);
         }
-        paint.setTextAlign(Paint.Align.LEFT);
     }
 
     private void drawIntermissionBanner(Canvas canvas, BrotatoArena value) {
@@ -789,21 +794,18 @@ public class BrotatoView extends View {
         paint.setTextSize(26 * density);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        canvas.drawText("⚔️ 第 " + value.wave() + " 波准备就绪", viewWidth / 2f,
+        canvas.drawText("⚔️ 第 " + value.wave() + " 波特战就绪", viewWidth / 2f,
                 middle + 6 * density, paint);
 
         paint.setTextSize(14 * density);
         paint.setTypeface(android.graphics.Typeface.DEFAULT);
         paint.setColor(0xFFCBD5E1);
-        canvas.drawText(value.upcomingWaveTotal() + " 只异变体迫近 · 倒计时 "
+        canvas.drawText(value.upcomingWaveTotal() + " 只感染变异体逼近 · 倒计时 "
                 + String.format(java.util.Locale.US, "%.1f", value.intermissionRemainingMs() / 1000f) + "s",
                 viewWidth / 2f, middle + 30 * density, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
-    /**
-     * 奖励全息卡片选择
-     */
     private void drawRewardCards(Canvas canvas, BrotatoArena value) {
         Upgrade[] cards = value.pendingCards();
         if (cards == null || cards.length == 0) return;
@@ -815,7 +817,7 @@ public class BrotatoView extends View {
         paint.setColor(0xFFFBBF24);
         paint.setTextSize(24 * density);
         paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        canvas.drawText("⚡ 战地强化选择 ⚡", viewWidth / 2f, viewHeight * 0.18f, paint);
+        canvas.drawText("⚡ 战地核心强化 ⚡", viewWidth / 2f, viewHeight * 0.18f, paint);
 
         paint.setTextSize(14 * density);
         paint.setTypeface(android.graphics.Typeface.DEFAULT);
@@ -824,47 +826,34 @@ public class BrotatoView extends View {
                 viewHeight * 0.18f + 26 * density, paint);
 
         for (int i = 0; i < cards.length; i++) {
-            drawCard(canvas, value, cards[i], rewardCardRect(i, cards.length), i);
+            drawEngineCard(canvas, value, cards[i], rewardCardRect(i, cards.length), i);
         }
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
-    private void drawCard(Canvas canvas, BrotatoArena value, Upgrade upgrade, RectF rect, int index) {
-        // 卡牌背景深蓝渐变质感
+    private void drawEngineCard(Canvas canvas, BrotatoArena value, Upgrade upgrade, RectF rect, int index) {
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFF1E293B);
         canvas.drawRoundRect(rect, 14 * density, 14 * density, paint);
 
-        // 卡牌外光环
-        int tierColor = getCardAccent(upgrade);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2.5f * density);
-        paint.setColor(tierColor);
+        paint.setColor(0xFF38BDF8);
         canvas.drawRoundRect(rect, 14 * density, 14 * density, paint);
         paint.setStyle(Paint.Style.FILL);
 
-        // 卡牌图标徽章
         paint.setColor(0x33FFFFFF);
         canvas.drawCircle(rect.centerX(), rect.top + 38 * density, 20 * density, paint);
 
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(22 * density);
-        canvas.drawText(getCardIcon(upgrade), rect.centerX(), rect.top + 45 * density, paint);
+        canvas.drawText("⚡", rect.centerX(), rect.top + 45 * density, paint);
 
-        // 卡牌标题
         paint.setColor(Color.WHITE);
         paint.setTextSize(16 * density);
         paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         canvas.drawText(upgrade.displayNameCn(), rect.centerX(), rect.top + 80 * density, paint);
 
-        // 说明文案
-        paint.setTextSize(12.5f * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT);
-        paint.setColor(0xFFE2E8F0);
-        drawWrapped(canvas, upgrade.descriptionCn(), rect.centerX(), rect.top + 104 * density,
-                rect.width() - 16 * density, 18 * density);
-
-        // 持有层数展示
         int owned = value.upgradeCount(upgrade);
         if (owned > 0) {
             paint.setColor(0xFFFBBF24);
@@ -872,41 +861,6 @@ public class BrotatoView extends View {
             canvas.drawText("★ 已持有 " + owned + " 阶", rect.centerX(), rect.bottom - 16 * density, paint);
         }
         paint.setTextAlign(Paint.Align.LEFT);
-    }
-
-    private int getCardAccent(Upgrade upgrade) {
-        switch (upgrade) {
-            case DAMAGE_UP: return 0xFFEF4444; // 红
-            case RAPID_FIRE: return 0xFFF59E0B; // 橙黄
-            case MULTISHOT: return 0xFF8B5CF6; // 紫
-            case SWIFT_BOOTS: return 0xFF06B6D4; // 青
-            case VITALITY: return 0xFF10B981; // 绿
-            case REGEN: default: return 0xFF3B82F6; // 蓝
-        }
-    }
-
-    private String getCardIcon(Upgrade upgrade) {
-        switch (upgrade) {
-            case RAPID_FIRE: return "⚡";
-            case SWIFT_BOOTS: return "👢";
-            case VITALITY: return "❤️";
-            case MULTISHOT: return "🎯";
-            case DAMAGE_UP: return "💥";
-            case REGEN: default: return "🌿";
-        }
-    }
-
-    private void drawWrapped(Canvas canvas, String text, float centerX, float baseline,
-                             float maxWidth, float lineHeight) {
-        float y = baseline;
-        int cursor = 0;
-        while (cursor < text.length()) {
-            int count = paint.breakText(text, cursor, text.length(), true, maxWidth, null);
-            if (count <= 0) return;
-            canvas.drawText(text, cursor, cursor + count, centerX, y, paint);
-            cursor += count;
-            y += lineHeight;
-        }
     }
 
     private RectF rewardCardRect(int index, int cardCount) {
@@ -923,7 +877,7 @@ public class BrotatoView extends View {
 
     private void drawEndOverlay(Canvas canvas, BrotatoArena value, String title, String hint, int accent) {
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.argb(190, 10, 15, 25));
+        paint.setColor(Color.argb(195, 10, 15, 25));
         canvas.drawRect(0, 0, viewWidth, viewHeight, paint);
 
         paint.setTextAlign(Paint.Align.CENTER);
@@ -935,13 +889,13 @@ public class BrotatoView extends View {
         paint.setColor(Color.WHITE);
         paint.setTextSize(18 * density);
         paint.setTypeface(android.graphics.Typeface.DEFAULT);
-        canvas.drawText("总战功 " + value.score() + " · 收集战利品 💎 " + collectedMaterials,
+        canvas.drawText("总战功 " + value.score() + " · 采集晶石 💎 " + collectedGems,
                 viewWidth / 2f, viewHeight / 2f + 4 * density, paint);
 
         paint.setTextSize(15 * density);
         paint.setColor(0xFF94A3B8);
-        canvas.drawText("坚持至波次 " + value.wave() + " / " + value.content().totalWaves(),
-                viewWidth / 2f, viewHeight / 2f + 32 * density, paint);
+        canvas.drawText("坚持至波次 " + value.wave() + " / " + value.content().totalWaves()
+                + " · 特工等级 LV." + currentLevel, viewWidth / 2f, viewHeight / 2f + 32 * density, paint);
 
         paint.setTextSize(14 * density);
         paint.setColor(0xFF38BDF8);
@@ -949,25 +903,55 @@ public class BrotatoView extends View {
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
-    // ==================== 触摸事件与摇杆响应 ====================
+    // ==================== 触摸事件与交互响应 ====================
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         BrotatoArena value = arena;
         if (!gameRunning || gamePaused || value == null) return true;
 
+        float touchX = event.getX();
+        float touchY = event.getY();
+        int action = event.getActionMasked();
+
+        // 1. 升级卡片选择优先响应
+        if (levelUpPending) {
+            if (action == MotionEvent.ACTION_UP) {
+                for (int i = 0; i < levelUpChoices.size() && i < cardRects.length; i++) {
+                    if (cardRects[i].contains(touchX, touchY)) {
+                        SurvivorSkill.Type picked = levelUpChoices.get(i);
+                        inventory.applyUpgrade(picked);
+                        levelUpPending = false;
+                        if (currentExp >= maxExpForLevel) {
+                            triggerLevelUp();
+                        }
+                        invalidate();
+                        return true;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 2. 幸运宝箱点击关闭
+        if (luckyChestPending) {
+            if (action == MotionEvent.ACTION_UP) {
+                luckyChestPending = false;
+                invalidate();
+            }
+            return true;
+        }
+
+        // 3. 波次奖励发牌选择
         if (value.state() == BrotatoArena.State.REWARD_PENDING) {
-            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
-                pickRewardCard(value, event.getX(), event.getY());
+            if (action == MotionEvent.ACTION_UP) {
+                pickRewardCard(value, touchX, touchY);
                 value.setTouchTarget(value.playerX(), value.playerY(), false);
             }
             return true;
         }
 
-        int action = event.getActionMasked();
-        float touchX = event.getX();
-        float touchY = event.getY();
-
+        // 4. 虚拟浮动触摸摇杆
         if (action == MotionEvent.ACTION_DOWN) {
             joystickActive = true;
             joystickCenterX = touchX;

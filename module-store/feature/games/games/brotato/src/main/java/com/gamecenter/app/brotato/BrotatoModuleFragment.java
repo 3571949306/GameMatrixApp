@@ -371,7 +371,7 @@ public class BrotatoModuleFragment extends Fragment {
         scrollView.addView(listLayout);
 
         AlertDialog dialog = new AlertDialog.Builder(ctx)
-                .setTitle("⚔️ 英雄工坊 · 选择出战英雄")
+                .setTitle("⚔️ 特工工坊 · 选择出战特工")
                 .setView(scrollView)
                 .setNegativeButton("取消", null)
                 .create();
@@ -501,22 +501,34 @@ public class BrotatoModuleFragment extends Fragment {
 
     private void showRulesDialog() {
         new AlertDialog.Builder(requireContext())
-                .setTitle("土豆兄弟 · 战场作战手册")
-                .setMessage("【游戏简介】\n"
-                        + "操控全副武装的土豆勇士，在无垠角斗场中迎击四面八方涌来的怪物浪潮！\n\n"
-                        + "【六大特色英雄】\n"
-                        + "🥔 全能土豆：均衡全面，适应各种流派策略；\n"
-                        + "🥊 狂暴斗士：双枪齐射，攻速狂飙贴脸近身搏杀；\n"
-                        + "🧙 奥术法师：单发高爆伤害，魔弹蕴含高穿透力；\n"
-                        + "🛡️ 重装巨兽：开局 22 点超强护甲血皮，泰坦巨兽；\n"
-                        + "🍀 幸运星：高额暴击率，两倍磁吸范围与更多翡翠宝石；\n"
-                        + "⚡ 疾风幽灵：极致移动速度，风筝走位拉扯大师。\n\n"
-                        + "【核心操作与机制】\n"
-                        + "1. 360° 触控虚拟摇杆：任意触摸屏幕呼出光环摇杆，享受丝滑风筝走位；\n"
-                        + "2. 多武器环绕瞄准：多把枪械旋转环绕，自动锁定最近敌寇倾泻弹幕；\n"
-                        + "3. 宝石掉落磁吸：击溃敌寇爆落翡翠经验宝石，靠近即刻磁吸聚能；\n"
-                        + "4. 全息三卡进化：波次肃清后在三项核心战力强化中任选一项，无限堆叠！")
-                .setPositiveButton("开战！", null)
+                .setTitle("🎖️ 特工手册 · 《蛋壳特工队》战术指南与超武配方")
+                .setMessage("【游戏背景与玩法】\n"
+                        + "操控全副武装的王牌特工，在废土都市中迎击源源不断的生化感染狂潮！搜集高能经验晶石，升级并突破合成终极超级武器（EVO）！\n\n"
+                        + "【六大特战特工】\n"
+                        + "🧣 科萌（战术特工）：看板主角！标志性飘逸红领巾，全能战术均衡大师；\n"
+                        + "👑 金（暴击女王）：双枪开局，致命感知火力全开，攻速极快与高额暴击伤害；\n"
+                        + "🌙 月咏（月影剑客）：神秘和风女特工，月影斩剑气单发威力惊人，魔刃贯穿群怪；\n"
+                        + "🛡️ 沃尔默（重装教官）：退役重装特工教官，泰坦体魄极厚防弹血甲，近战减伤；\n"
+                        + "🐱 凯蒂斯（机灵猫娘）：战术医疗猫娘特工，四叶草天眷，超大范围晶石磁吸与战地补给；\n"
+                        + "⚡ 斯巴达（极速游侠）：特工穿插游侠，身手敏捷拥有超高机动性，风筝走位大师。\n\n"
+                        + "【🔥 超级武器（EVO）经典合成法则】\n"
+                        + "核心法则：主动武器升至 5 星满级 + 拥有对应 1 星被动补给 ➔ 升级或开宝箱时 100% 触发超武进化！\n"
+                        + "1. 苦无(5星) + 甲贺忍法帖 ➔ ⭐ 幽灵手里剑 (零冷却无限极速追踪连射)\n"
+                        + "2. 棒球棍(5星) + 健身指南 ➔ ⭐ 暴力美学 (360° 全方位粉碎冲击波)\n"
+                        + "3. 守卫者(5星) + 外骨骼装甲 ➔ ⭐ 捍卫者 (永久高速旋转+格挡子弹)\n"
+                        + "4. A型无人机(5星) + B型无人机(5星) ➔ ⭐ 毁灭者 (双机合体全屏大轰炸)\n"
+                        + "5. 力场发生器(5星) + 功能饮料 ➔ ⭐ 压制领域 (范围减速翻倍高频融怪)\n"
+                        + "6. 弹力足球(5星) + 跑鞋 ➔ ⭐ 量子球 (全场分裂疯狂几何折射)\n"
+                        + "7. 火箭发射器(5星) + 高爆燃料 ➔ ⭐ 鲨嘴炮 (巨型鲨鱼核弹全屏爆破)\n"
+                        + "8. 钻头弹(5星) + 弹药推进器 ➔ ⭐ 哨箭 (超音速巡航飞箭全图收割)\n"
+                        + "9. 雷电发射器(5星) + 能量块 ➔ ⭐ 狂雷电池 (无缝连续链状落雷风暴)\n\n"
+                        + "【战地补给生态】\n"
+                        + "• 四阶经验晶石：绿(1EXP)、蓝(5EXP)、金(20EXP)、红(100EXP)；\n"
+                        + "• 战术磁铁(🧲)：瞬间吸引全图所有晶石流星雨聚拢；\n"
+                        + "• 战术核弹(💣)：全屏白光爆闪，瞬间清空普通小怪；\n"
+                        + "• 香脆烤鸡腿(🍗)：立即回复特工 50% 生命值；\n"
+                        + "• 三叶草幸运宝箱(🍀)：Boss/精英怪掉落，触发 1/3/5 连抽老虎机，必定保底合成超武！")
+                .setPositiveButton("整装出击！", null)
                 .show();
     }
 
@@ -586,16 +598,18 @@ public class BrotatoModuleFragment extends Fragment {
         }
 
         int gems = (brotatoView != null) ? brotatoView.getCollectedMaterials() : 0;
+        int level = (brotatoView != null) ? brotatoView.getCurrentLevel() : 1;
         if (isAdded() && getActivity() != null && !getActivity().isFinishing()) {
             new AlertDialog.Builder(requireContext())
-                    .setTitle(won ? "🏆 旷世凯旋！肃清全波次" : "💥 战斗告负")
-                    .setMessage((won ? "恭喜勇士成功主宰二十波残酷角斗场！" : "你倒在了冲锋的路上！")
-                            + "\n\n出战英雄：" + selectedHero.getEmoji() + " " + selectedHero.getNameCn()
-                            + "\n战功得分：" + score
-                            + "\n战利品采集：💎 " + gems + " 颗翡翠水晶"
-                            + (isNewRecord ? "\n\n🎉 创造了全新历史记录！" : "\n历史最佳：" + highScore))
+                    .setTitle(won ? "🏆 旷世凯旋！肃清全波次" : "💥 特工战陨")
+                    .setMessage((won ? "恭喜特工成功荡平二十波生化异变狂潮！" : "你倒在了冲锋的路上！")
+                            + "\n\n出战特工：" + selectedHero.getEmoji() + " " + selectedHero.getNameCn()
+                            + "\n特工战功：" + score
+                            + "\n特工等级：LV." + level
+                            + "\n高能晶石：💎 " + gems + " 颗"
+                            + (isNewRecord ? "\n\n🎉 创造了特工全新历史记录！" : "\n历史最佳：" + highScore))
                     .setPositiveButton("重整旗鼓", (dialog, which) -> startGame())
-                    .setNeutralButton("更换英雄", (dialog, which) -> showHeroSelectionDialog())
+                    .setNeutralButton("更换特工", (dialog, which) -> showHeroSelectionDialog())
                     .setNegativeButton("返回大厅", (dialog, which) -> exitModule())
                     .show();
         }

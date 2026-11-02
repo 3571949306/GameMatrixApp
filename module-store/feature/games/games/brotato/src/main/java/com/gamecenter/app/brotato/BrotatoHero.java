@@ -10,10 +10,10 @@ public enum BrotatoHero {
 
     ALL_ROUNDER(
             "all_rounder",
-            "全能土豆",
-            "均衡大师",
-            "🥔",
-            "属性均衡，无明显短板，适应各种战局风格的标准勇士。",
+            "科萌",
+            "战术特工",
+            "🧣",
+            "《蛋壳特工队》王牌特工，标志性飘逸红领巾，全能战术均衡大师。",
             0,      // bonusMaxHp
             1.0f,   // speedFactor
             1.0f,   // damageFactor
@@ -22,15 +22,15 @@ public enum BrotatoHero {
             0.08f,  // critChance
             1.0f,   // magnetRangeFactor
             0xFFD4A574, // bodyColor
-            0xFFEF4444  // accentColor (红头带)
+            0xFFEF4444  // accentColor (红领巾)
     ),
 
     BRAWLER(
             "brawler",
-            "狂暴斗士",
-            "双枪近战",
-            "🥊",
-            "双枪开局，狂暴射速与压制火力，擅长近身贴脸输出，但体质稍脆。",
+            "金",
+            "暴击女王",
+            "👑",
+            "双枪暴击特工，专属致命感知火力全开，攻速极快与高额暴击伤害。",
             -2,     // bonusMaxHp (8 HP)
             1.05f,  // speedFactor
             0.9f,   // damageFactor
@@ -38,16 +38,16 @@ public enum BrotatoHero {
             1,      // extraShots (+1枪，双枪齐射)
             0.15f,  // critChance
             1.1f,   // magnetRangeFactor
-            0xFFD97706, // bodyColor (古铜色)
-            0xFFDC2626  // accentColor (赤红战纹)
+            0xFFD97706, // bodyColor
+            0xFFDC2626  // accentColor (绯红马尾)
     ),
 
     MAGE(
             "mage",
-            "奥术法师",
-            "魔弹爆发",
-            "🧙",
-            "倾注远古魔力，奥术飞弹单发伤害惊人且附带高额暴击，但攻速略缓。",
+            "月咏",
+            "月影剑客",
+            "🌙",
+            "神秘和风特工，月影斩剑气单发威力惊人，魔刃穿透群怪。",
             -1,     // bonusMaxHp (9 HP)
             0.95f,  // speedFactor
             1.65f,  // damageFactor (大幅提高单发伤害)
@@ -56,15 +56,15 @@ public enum BrotatoHero {
             0.22f,  // critChance (高暴击)
             1.25f,  // magnetRangeFactor
             0xFF8B5CF6, // bodyColor (秘术紫)
-            0xFF6366F1  // accentColor (星芒法帽)
+            0xFF6366F1  // accentColor
     ),
 
     CHUNKY(
             "chunky",
-            "重装巨兽",
-            "泰坦壁垒",
+            "沃尔默",
+            "重装教官",
             "🛡️",
-            "拥有极其厚实的生命力与硬质甲胄，伤害扎实，但身躯沉重移速受限。",
+            "退役重装特工教官，泰坦身躯极厚防弹血甲，稳扎稳打。",
             12,     // bonusMaxHp (22 HP!)
             0.85f,  // speedFactor
             1.2f,   // damageFactor
@@ -73,15 +73,15 @@ public enum BrotatoHero {
             0.05f,  // critChance
             1.0f,   // magnetRangeFactor
             0xFF78716C, // bodyColor (岩石灰)
-            0xFF475569  // accentColor (精钢重铠)
+            0xFF475569  // accentColor (重装战术盔)
     ),
 
     LUCKY(
             "lucky",
-            "幸运星",
-            "财运亨通",
-            "🍀",
-            "四叶草天眷者，暴击率极高，享有两倍宝石磁吸半径与更多战利品。",
+            "凯蒂斯",
+            "机灵猫娘",
+            "🐱",
+            "战术医疗猫娘特工，四叶草天眷，超大范围晶石磁吸与战地补给。",
             0,      // bonusMaxHp (10 HP)
             1.05f,  // speedFactor
             0.95f,  // damageFactor
@@ -90,15 +90,15 @@ public enum BrotatoHero {
             0.28f,  // critChance (超高暴击)
             2.0f,   // magnetRangeFactor (2倍磁吸范围)
             0xFF10B981, // bodyColor (翡翠绿)
-            0xFF22C55E  // accentColor (四叶草)
+            0xFF22C55E  // accentColor (猫耳通讯器)
     ),
 
     SPEEDSTER(
             "speedster",
-            "疾风幽灵",
-            "走位风筝",
+            "斯巴达",
+            "极速游侠",
             "⚡",
-            "身轻如燕，拥有无可比拟的超高机动性与极快回火，风筝牵引之王。",
+            "特工穿插游侠，身手敏捷拥有超高机动性与极快回火，风筝牵引之王。",
             -3,     // bonusMaxHp (7 HP)
             1.4f,   // speedFactor (高移速)
             0.85f,  // damageFactor
@@ -107,7 +107,7 @@ public enum BrotatoHero {
             0.12f,  // critChance
             1.3f,   // magnetRangeFactor
             0xFF06B6D4, // bodyColor (风灵青)
-            0xFF38BDF8  // accentColor (风羽翼)
+            0xFF38BDF8  // accentColor (战术夜视镜)
     );
 
     private final String id;
