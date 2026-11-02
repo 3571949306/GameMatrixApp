@@ -2,31 +2,34 @@ package com.gamecenter.app.brotato;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 
 import com.gamecenter.app.brotato.engine.BrotatoArena;
 import com.gamecenter.app.brotato.engine.Enemy;
 import com.gamecenter.app.brotato.engine.Projectile;
 import com.gamecenter.app.brotato.engine.Upgrade;
 
+import java.util.List;
+
 /**
- * 土豆兄弟全方位 2.5D / 3D 渲染与建模引擎：
- * 告别简陋几何圆点，提供全景工业废土竞技场地砖与动态光影、6位个性鲜明的立体土豆勇士
- * （拟真土豆体感、动态眨眼注视、拟真肢体行走、专属服饰与神兵）、8种怪物的精细异变体建模
- * 与多枪机械后坐力开火体系。
+ * 《蛋壳特工队》（Survivor.io）全方位视觉渲染引擎
+ * 负责渲染废土现代都市战场、特工战队Q版精模（科萌/金/月咏/沃尔默/凯蒂斯/斯巴达）、
+ * 8大生化异变体敌寇（丧尸/毒蛛/狂犬/幻蛾/史莱姆/泰坦屠夫/深渊Boss）、
+ * 真实武器实体弹道（苦无/幽灵手里剑/守卫者锯齿飞盘/悬浮无人机/等离子力场蜂窝护盾）、
+ * 以及顶栏荧光经验条、战术升级选卡与幸运宝箱UI。
  */
-public final class BrotatoRenderer {
+public class BrotatoRenderer {
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path tempPath = new Path();
-    private final Path wingPath = new Path();
-    private final Path hornPath = new Path();
+    private final Path scarfPath = new Path();
     private final RectF tempRect = new RectF();
 
     public BrotatoRenderer() {
@@ -34,1289 +37,1374 @@ public final class BrotatoRenderer {
     }
 
     // =========================================================================
-    // 1. 战场地面与动态环境光照建模 (Ground & Lighting)
+    // 1. 废土现代都市公路战场建模 (Wasteland Urban Highway Terrain)
     // =========================================================================
 
     public void drawArenaGround(Canvas canvas, float width, float height, float density,
                                 float playerX, float playerY, long animTick) {
-        // 1.1 《蛋壳特工队》经典废土都市深灰沥青地面
+        // 1.1 深灰战术沥青路面底色
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFF181B22);
+        paint.setShader(null);
+        paint.setColor(0xFF141820);
         canvas.drawRect(0, 0, width, height, paint);
 
-        // 1.2 人行横道斑马线 (Zebra Crosswalks)
-        paint.setColor(0x18FFFFFF);
-        float zebraW = 22 * density;
-        float zebraGap = 14 * density;
-        for (float x = 20 * density; x < width - 20 * density; x += zebraW + zebraGap) {
-            canvas.drawRect(x, 18 * density, x + zebraW, 46 * density, paint);
-            canvas.drawRect(x, height - 46 * density, x + zebraW, height - 18 * density, paint);
+        // 1.2 沥青颗粒质感与路面微弱网格
+        paint.setColor(0xFF1A202C);
+        float gridSize = 48 * density;
+        for (float x = 0; x < width; x += gridSize) {
+            canvas.drawRect(x, 0, x + 1.5f * density, height, paint);
+        }
+        for (float y = 0; y < height; y += gridSize) {
+            canvas.drawRect(0, y, width, y + 1.5f * density, paint);
         }
 
-        // 1.3 公路中央双黄实线与虚线 (Highway Double Yellow Center Lines)
-        float centerY = height / 2f;
-        paint.setColor(0x88F59E0B);
-        paint.setStrokeWidth(2.5f * density);
-        paint.setStyle(Paint.Style.STROKE);
-        // 双黄实线
-        canvas.drawLine(0, centerY - 3.5f * density, width, centerY - 3.5f * density, paint);
-        canvas.drawLine(0, centerY + 3.5f * density, width, centerY + 3.5f * density, paint);
+        // 1.3 人行横道斑马线（顶部与底部战区，模拟真实十字路口）
+        drawZebraCrossing(canvas, width, 18 * density, 34 * density, density);
+        drawZebraCrossing(canvas, width, height - 52 * density, 34 * density, density);
 
-        // 纵向白色虚线分割带
-        float centerX = width / 2f;
-        paint.setColor(0x44FFFFFF);
-        paint.setStrokeWidth(2f * density);
-        for (float y = 0; y < height; y += 32 * density) {
-            canvas.drawLine(centerX, y, centerX, y + 16 * density, paint);
+        // 1.4 双黄中心分道实线与反光道钉（路中核心主轴）
+        float midY = height / 2f;
+        paint.setColor(0xFFEAB308); // 警示金黄
+        float yellowLineWidth = 3.2f * density;
+        float yellowGap = 4.5f * density;
+        canvas.drawRect(0, midY - yellowGap - yellowLineWidth, width, midY - yellowGap, paint);
+        canvas.drawRect(0, midY + yellowGap, width, midY + yellowGap + yellowLineWidth, paint);
+
+        // 中心反光道钉 (Cat's Eyes)
+        paint.setColor(0xFFFEF08A);
+        float studSpacing = 55 * density;
+        for (float sx = 20 * density; sx < width; sx += studSpacing) {
+            canvas.drawCircle(sx, midY, 2.2f * density, paint);
         }
+
+        // 1.5 白色虚线分车道
+        paint.setColor(0x80CBD5E1);
+        float laneQuarterY1 = midY - (height * 0.24f);
+        float laneQuarterY2 = midY + (height * 0.24f);
+        float dashW = 28 * density;
+        float dashGap = 36 * density;
+        for (float dx = 12 * density; dx < width; dx += (dashW + dashGap)) {
+            canvas.drawRoundRect(new RectF(dx, laneQuarterY1 - 1.2f * density,
+                    dx + dashW, laneQuarterY1 + 1.2f * density), 1.2f * density, 1.2f * density, paint);
+            canvas.drawRoundRect(new RectF(dx, laneQuarterY2 - 1.2f * density,
+                    dx + dashW, laneQuarterY2 + 1.2f * density), 1.2f * density, 1.2f * density, paint);
+        }
+
+        // 1.6 下水道铸铁圆形井盖 (Sewer Manhole Covers)
+        drawManhole(canvas, width * 0.22f, height * 0.32f, 22 * density, density);
+        drawManhole(canvas, width * 0.78f, height * 0.68f, 22 * density, density);
+        drawManhole(canvas, width * 0.78f, height * 0.32f, 20 * density, density);
+        drawManhole(canvas, width * 0.22f, height * 0.68f, 20 * density, density);
+
+        // 1.7 边缘45°黑黄相间工业防撞警示带 (Hazard Stripes)
+        drawHazardStrip(canvas, 0, 0, width, 10 * density, density, false);
+        drawHazardStrip(canvas, 0, height - 10 * density, width, 10 * density, density, true);
+
+        // 1.8 特工中心战术聚光灯与环境暗角 (Tactical Ambient Spotlight)
+        float lightPx = playerX * density;
+        float lightPy = playerY * density;
+        float spotRadius = Math.max(width, height) * 0.65f;
+        RadialGradient vignette = new RadialGradient(
+                lightPx, lightPy, spotRadius,
+                new int[]{0x00000000, 0x33000000, 0x88050910, 0xD0030508},
+                new float[]{0.0f, 0.45f, 0.78f, 1.0f},
+                Shader.TileMode.CLAMP
+        );
         paint.setStyle(Paint.Style.FILL);
-
-        // 1.4 四角与下水道铸铁圆形井盖 (Urban Sewer Manhole Covers)
-        drawManholeCover(canvas, width * 0.22f, height * 0.28f, 18 * density, density);
-        drawManholeCover(canvas, width * 0.78f, height * 0.28f, 18 * density, density);
-        drawManholeCover(canvas, width * 0.22f, height * 0.72f, 18 * density, density);
-        drawManholeCover(canvas, width * 0.78f, height * 0.72f, 18 * density, density);
-
-        // 1.5 特工动态战术手电筒/聚光灯光晕（以特工为中心的真实径向光晕）
-        float px = playerX * density;
-        float py = playerY * density;
-        float spotRadius = 220 * density;
-        RadialGradient spotGradient = new RadialGradient(px, py, spotRadius,
-                new int[]{0x33F8FAFC, 0x1838BDF8, 0x00000000},
-                new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP);
-        paint.setShader(spotGradient);
-        canvas.drawCircle(px, py, spotRadius, paint);
+        paint.setShader(vignette);
+        canvas.drawRect(0, 0, width, height, paint);
         paint.setShader(null);
-
-        // 1.6 边缘 45° 黑黄工业警戒防撞边框 (Hazard Warning Border)
-        drawHazardBorder(canvas, width, height, density);
     }
 
-    private void drawManholeCover(Canvas canvas, float cx, float cy, float r, float density) {
-        // 外圈铸铁底色
-        paint.setColor(0xFF262C36);
+    private void drawZebraCrossing(Canvas canvas, float width, float top, float h, float density) {
+        paint.setColor(0x4094A3B8);
+        float stripeW = 16 * density;
+        float gap = 12 * density;
+        for (float x = 8 * density; x < width; x += (stripeW + gap)) {
+            canvas.drawRect(x, top, Math.min(x + stripeW, width - 8 * density), top + h, paint);
+        }
+    }
+
+    private void drawManhole(Canvas canvas, float cx, float cy, float r, float density) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFF1E293B);
         canvas.drawCircle(cx, cy, r, paint);
-        // 内凹同心圆
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(1.5f * density);
-        strokePaint.setColor(0xFF1A1F27);
-        canvas.drawCircle(cx, cy, r * 0.75f, strokePaint);
-        // 井盖十字防滑网纹
-        canvas.drawLine(cx - r * 0.6f, cy, cx + r * 0.6f, cy, strokePaint);
-        canvas.drawLine(cx, cy - r * 0.6f, cx, cy + r * 0.6f, strokePaint);
-        // 中心锁定螺栓
-        paint.setColor(0xFF475569);
-        paint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(cx, cy, 2.5f * density, paint);
+
+        strokePaint.setColor(0xFF334155);
+        strokePaint.setStrokeWidth(2.5f * density);
+        canvas.drawCircle(cx, cy, r - 2f * density, strokePaint);
+
+        paint.setColor(0xFF0F172A);
+        canvas.drawCircle(cx, cy, r * 0.62f, paint);
+
+        // 铸铁井盖十字与通风槽
+        strokePaint.setColor(0xFF475569);
+        strokePaint.setStrokeWidth(1.8f * density);
+        canvas.drawLine(cx - r * 0.45f, cy, cx + r * 0.45f, cy, strokePaint);
+        canvas.drawLine(cx, cy - r * 0.45f, cx, cy + r * 0.45f, strokePaint);
     }
 
-    private void drawHazardBorder(Canvas canvas, float width, float height, float density) {
-        float borderW = 6 * density;
+    private void drawHazardStrip(Canvas canvas, float x, float y, float w, float h,
+                                 float density, boolean flip) {
         paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFF1E232A);
+        canvas.drawRect(x, y, x + w, y + h, paint);
 
-        // 外层黄色警示底线
-        paint.setColor(0xFFD97706);
-        canvas.drawRect(0, 0, width, borderW, paint);
-        canvas.drawRect(0, height - borderW, width, height, paint);
-        canvas.drawRect(0, 0, borderW, height, paint);
-        canvas.drawRect(width - borderW, 0, width, height, paint);
-
-        // 45° 斜角黑色斑马斜纹
-        paint.setColor(0xCC000000);
-        float stripeStep = 18 * density;
-        for (float x = 0; x < width; x += stripeStep) {
+        paint.setColor(0xFFEAB308);
+        float step = 14 * density;
+        for (float startX = -h; startX < w + h; startX += step * 2) {
             tempPath.reset();
-            tempPath.moveTo(x, 0);
-            tempPath.lineTo(x + 8 * density, 0);
-            tempPath.lineTo(x, borderW);
-            tempPath.close();
-            canvas.drawPath(tempPath, paint);
-
-            tempPath.reset();
-            tempPath.moveTo(x, height);
-            tempPath.lineTo(x + 8 * density, height);
-            tempPath.lineTo(x, height - borderW);
+            if (!flip) {
+                tempPath.moveTo(startX, y);
+                tempPath.lineTo(startX + step, y);
+                tempPath.lineTo(startX + step - h, y + h);
+                tempPath.lineTo(startX - h, y + h);
+            } else {
+                tempPath.moveTo(startX, y);
+                tempPath.lineTo(startX + step, y);
+                tempPath.lineTo(startX + step + h, y + h);
+                tempPath.lineTo(startX + h, y + h);
+            }
             tempPath.close();
             canvas.drawPath(tempPath, paint);
         }
     }
 
     // =========================================================================
-    // 2. 土豆勇士角色全方位立体建模 (Potato Hero 3D Vector Modeling)
+    // 2. 六大特战特工 Q版二头身高精度建模 (6 Chibi Agents Vector Models)
     // =========================================================================
 
     public void drawPlayer(Canvas canvas, BrotatoHero hero, float x, float y, float radius,
-                           float aimAngle, boolean isMoving, long animTick, int damageFlashTicks,
-                           float density) {
+                           float aimAngle, boolean isMoving, long animTick, int damageFlashTicks, float density) {
         canvas.save();
         canvas.translate(x, y);
 
-        // 呼吸与行走颠簸仿真
-        float walkCycle = isMoving ? (animTick * 0.45f) : (animTick * 0.1f);
-        float bobY = isMoving ? Math.abs((float) Math.sin(walkCycle)) * 3f * density : 0f;
-        float stretchX = 1.0f + (isMoving ? 0.05f * (float) Math.cos(walkCycle) : 0.02f * (float) Math.sin(walkCycle));
-        float stretchY = 1.0f - (isMoving ? 0.05f * (float) Math.cos(walkCycle) : 0.02f * (float) Math.sin(walkCycle));
-        canvas.translate(0, -bobY);
-        canvas.scale(stretchX, stretchY);
+        // 2.1 视觉等比放大：将微观物理半径放大至生动Q版特工体态（身高约48-52dp）
+        float s = Math.max(22f * density, radius * 2.2f);
 
-        // 2.1 地面柔和接触阴影
+        // 2.2 行走物理动效（双腿踏步、躯干呼吸上下轻微浮沉）
+        float bob = isMoving ? (float) Math.abs(Math.sin(animTick * 0.35f)) * (2.8f * density) : 0f;
+        float legSwing = isMoving ? (float) Math.sin(animTick * 0.35f) * (6f * density) : 0f;
+
+        // 2.3 接触地面软阴影
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0x4D000000);
-        canvas.drawOval(new RectF(-radius * 1.15f, radius * 0.7f + bobY,
-                radius * 1.15f, radius * 1.25f + bobY), paint);
+        paint.setColor(0x55000000);
+        canvas.drawOval(new RectF(-s * 0.85f, s * 0.65f, s * 0.85f, s * 1.05f), paint);
 
-        // 2.2 双脚迈步动画 (Walking Shoes)
-        drawPotatoFeet(canvas, radius, isMoving, walkCycle, density);
+        // 2.4 腿部与战术作战靴 (Legs & Combat Boots)
+        paint.setColor(0xFF1F2937); // 作战裤
+        canvas.drawRoundRect(new RectF(-s * 0.48f, s * 0.42f - bob, -s * 0.16f, s * 0.82f - bob + legSwing),
+                2 * density, 2 * density, paint);
+        canvas.drawRoundRect(new RectF(s * 0.16f, s * 0.42f - bob, s * 0.48f, s * 0.82f - bob - legSwing),
+                2 * density, 2 * density, paint);
 
-        // 2.3 土豆有机本体球体光影 (Organic 3D Spherical Volume)
-        drawPotatoBody(canvas, hero, radius, damageFlashTicks);
+        // 作战靴靴底与鞋尖
+        paint.setColor(0xFF111827);
+        canvas.drawRoundRect(new RectF(-s * 0.52f, s * 0.72f - bob + legSwing, -s * 0.12f, s * 0.88f - bob + legSwing),
+                2 * density, 2 * density, paint);
+        canvas.drawRoundRect(new RectF(s * 0.12f, s * 0.72f - bob - legSwing, s * 0.52f, s * 0.88f - bob - legSwing),
+                2 * density, 2 * density, paint);
 
-        // 2.4 英雄专属头饰、甲胄与特权装饰 (Bespoke Apparel)
-        drawHeroBespokeGear(canvas, hero, radius, animTick, density);
+        // 2.5 躯干与特战服装 (Torso & Tactical Outfit)
+        canvas.save();
+        canvas.translate(0, -bob);
+        drawAgentTorso(canvas, hero, s, density);
 
-        // 2.5 灵动大眼睛与动态视线锁定 (Expressive Eye Tracking)
-        drawPotatoFace(canvas, radius, aimAngle, damageFlashTicks, animTick, density);
+        // 2.6 科萌标志性飘逸鲜红长领巾（带物理多段波动）
+        if (hero == BrotatoHero.ALL_ROUNDER || hero == null) {
+            drawCommonDynamicScarf(canvas, s, aimAngle, isMoving, animTick, density);
+        }
 
-        canvas.restore();
+        // 2.7 头部、面部五官与特色发饰 (Head, Expressive Anime Face & Hair)
+        drawAgentHead(canvas, hero, s, aimAngle, damageFlashTicks, animTick, density);
+
+        // 2.8 手臂与主战武器持握 (Arms & Held Weapons)
+        drawAgentArmsAndWeapons(canvas, hero, s, aimAngle, animTick, density);
+
+        canvas.restore(); // 还原躯干浮沉位移
+        canvas.restore(); // 还原角色中心位移
     }
 
-    private void drawPotatoFeet(Canvas canvas, float radius, boolean isMoving, float walkCycle, float density) {
+    private void drawAgentTorso(Canvas canvas, BrotatoHero hero, float s, float density) {
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFF4A3427);
-        float footR = radius * 0.26f;
-        float footY = radius * 0.82f;
-        float footOffset = isMoving ? (float) Math.sin(walkCycle) * (radius * 0.35f) : 0f;
+        RectF torsoRect = new RectF(-s * 0.52f, -s * 0.08f, s * 0.52f, s * 0.56f);
 
-        // 左脚
-        canvas.drawCircle(-radius * 0.45f + footOffset, footY, footR, paint);
-        // 右脚
-        canvas.drawCircle(radius * 0.45f - footOffset, footY, footR, paint);
+        if (hero == BrotatoHero.BRAWLER) { // 金 (King) - 暴击女王战斗夹克
+            paint.setColor(0xFFDC2626);
+            canvas.drawRoundRect(torsoRect, 6 * density, 6 * density, paint);
+            // 战术腰带与搭扣
+            paint.setColor(0xFF1E293B);
+            canvas.drawRect(-s * 0.52f, s * 0.40f, s * 0.52f, s * 0.52f, paint);
+            paint.setColor(0xFFFBBF24);
+            canvas.drawRect(-s * 0.15f, s * 0.38f, s * 0.15f, s * 0.54f, paint);
+        } else if (hero == BrotatoHero.MAGE) { // 月咏 (Tsukuyomi) - 月影剑客忍者和服
+            paint.setColor(0xFF1E1B4B);
+            canvas.drawRoundRect(torsoRect, 6 * density, 6 * density, paint);
+            paint.setColor(0xFF818CF8);
+            canvas.drawRect(-s * 0.12f, -s * 0.08f, s * 0.12f, s * 0.56f, paint);
+            paint.setColor(0xFFDC2626);
+            canvas.drawRect(-s * 0.52f, s * 0.38f, s * 0.52f, s * 0.50f, paint);
+        } else if (hero == BrotatoHero.CHUNKY) { // 沃尔默 (Worm) - 重装教官泰坦防弹背心
+            paint.setColor(0xFF334155);
+            canvas.drawRoundRect(torsoRect, 6 * density, 6 * density, paint);
+            // 重型凯夫拉胸甲板
+            paint.setColor(0xFF1E293B);
+            canvas.drawRoundRect(new RectF(-s * 0.42f, 0f, s * 0.42f, s * 0.38f), 3 * density, 3 * density, paint);
+            paint.setColor(0xFF64748B);
+            canvas.drawCircle(-s * 0.28f, s * 0.12f, 2 * density, paint);
+            canvas.drawCircle(s * 0.28f, s * 0.12f, 2 * density, paint);
+        } else if (hero == BrotatoHero.LUCKY) { // 凯蒂斯 (Catnips) - 机灵猫娘战地白袍
+            paint.setColor(0xFFF1F5F9);
+            canvas.drawRoundRect(torsoRect, 6 * density, 6 * density, paint);
+            // 绿色四叶草胸针
+            paint.setColor(0xFF10B981);
+            canvas.drawCircle(-s * 0.28f, s * 0.12f, 3.5f * density, paint);
+            paint.setColor(0xFFF43F5E);
+            canvas.drawRect(-s * 0.52f, s * 0.38f, s * 0.52f, s * 0.46f, paint);
+        } else if (hero == BrotatoHero.SPEEDSTER) { // 斯巴达 (Spartacus) - 极速游侠赛博外骨骼
+            paint.setColor(0xFF0F172A);
+            canvas.drawRoundRect(torsoRect, 6 * density, 6 * density, paint);
+            // 荧光动力导管
+            paint.setColor(0xFF06B6D4);
+            canvas.drawRoundRect(new RectF(-s * 0.08f, -s * 0.05f, s * 0.08f, s * 0.54f), 1.5f * density, 1.5f * density, paint);
+        } else { // 科萌 (Common) - 经典战备工装风衣
+            paint.setColor(0xFF334155);
+            canvas.drawRoundRect(torsoRect, 6 * density, 6 * density, paint);
+            // 亮黄色工装拉链与胸前挂扣
+            paint.setColor(0xFFF59E0B);
+            canvas.drawRect(-s * 0.06f, -s * 0.08f, s * 0.06f, s * 0.54f, paint);
+            paint.setColor(0xFF1E293B);
+            canvas.drawRect(-s * 0.52f, s * 0.38f, s * 0.52f, s * 0.50f, paint);
+        }
     }
 
-    private void drawPotatoBody(Canvas canvas, BrotatoHero hero, float radius, int damageFlashTicks) {
+    private void drawCommonDynamicScarf(Canvas canvas, float s, float aimAngle,
+                                        boolean isMoving, long animTick, float density) {
         paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFFDC2626); // 鲜红领巾
 
-        int baseColor = hero.getBodyColor();
-        int highlightColor;
-        int shadowColor;
+        // 领口环绕领结
+        canvas.drawRoundRect(new RectF(-s * 0.42f, -s * 0.16f, s * 0.42f, s * 0.06f),
+                4 * density, 4 * density, paint);
+
+        // 飘逸后拂的两条长缎带（依据视线与移动方向逆向飘舞）
+        float trailAngle = aimAngle + (float) Math.PI;
+        float wave1 = (float) Math.sin(animTick * 0.28f) * (6f * density);
+        float wave2 = (float) Math.cos(animTick * 0.24f) * (5f * density);
+
+        float sx = -s * 0.15f;
+        float sy = -s * 0.05f;
+        float len1 = s * 1.05f;
+        float len2 = s * 0.85f;
+
+        float endX1 = sx + (float) Math.cos(trailAngle) * len1 + (float) Math.sin(trailAngle) * wave1;
+        float endY1 = sy + (float) Math.sin(trailAngle) * len1 - (float) Math.cos(trailAngle) * wave1;
+
+        float endX2 = sx + (float) Math.cos(trailAngle + 0.25f) * len2 + (float) Math.sin(trailAngle) * wave2;
+        float endY2 = sy + (float) Math.sin(trailAngle + 0.25f) * len2 - (float) Math.cos(trailAngle) * wave2;
+
+        scarfPath.reset();
+        scarfPath.moveTo(sx - 3f * density, sy);
+        scarfPath.quadTo((sx + endX1) / 2f + wave1, (sy + endY1) / 2f, endX1, endY1);
+        scarfPath.lineTo(endX1 + 4f * density, endY1 + 2f * density);
+        scarfPath.quadTo((sx + endX1) / 2f - wave1, (sy + endY1) / 2f, sx + 3f * density, sy);
+        scarfPath.close();
+        canvas.drawPath(scarfPath, paint);
+
+        // 第二条小飘带
+        paint.setColor(0xFFEF4444);
+        scarfPath.reset();
+        scarfPath.moveTo(sx - 2f * density, sy + 3f * density);
+        scarfPath.quadTo((sx + endX2) / 2f + wave2, (sy + endY2) / 2f, endX2, endY2);
+        scarfPath.lineTo(endX2 + 3f * density, endY2 + 2f * density);
+        scarfPath.quadTo((sx + endX2) / 2f - wave2, (sy + endY2) / 2f, sx + 2f * density, sy + 3f * density);
+        scarfPath.close();
+        canvas.drawPath(scarfPath, paint);
+    }
+
+    private void drawAgentHead(Canvas canvas, BrotatoHero hero, float s, float aimAngle,
+                               int damageFlashTicks, long animTick, float density) {
+        float headR = s * 0.52f;
+        float headCy = -s * 0.46f;
+
+        // 1. 皮肤底色 (Chibi Peach Skin Tone)
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(damageFlashTicks > 0 ? 0xFFFFCDD2 : 0xFFFFE4D6);
+        canvas.drawCircle(0, headCy, headR, paint);
+
+        // 2. 害羞红晕 (Cheek Blush)
+        paint.setColor(0x44FF8A80);
+        canvas.drawCircle(-headR * 0.55f, headCy + headR * 0.22f, headR * 0.22f, paint);
+        canvas.drawCircle(headR * 0.55f, headCy + headR * 0.22f, headR * 0.22f, paint);
+
+        // 3. 灵动大眼 (Expressive Anime Eyes)
+        float eyeSpacing = headR * 0.42f;
+        float eyeY = headCy + headR * 0.05f;
+        float eyeR = headR * 0.28f;
+
+        float lookX = (float) Math.cos(aimAngle) * (eyeR * 0.35f);
+        float lookY = (float) Math.sin(aimAngle) * (eyeR * 0.25f);
 
         if (damageFlashTicks > 0) {
-            // 受击红白闪烁
-            baseColor = 0xFFFF5252;
-            highlightColor = 0xFFFFCDD2;
-            shadowColor = 0xFFB71C1C;
-        } else {
-            // 依据英雄基准色提取立体球形高光与暗部
-            highlightColor = lightenColor(baseColor, 0.4f);
-            shadowColor = darkenColor(baseColor, 0.35f);
-        }
-
-        // 径向球体高光模拟：光源在左上方 (-0.3r, -0.35r)
-        RadialGradient bodyShader = new RadialGradient(
-                -radius * 0.3f, -radius * 0.35f, radius * 1.35f,
-                new int[]{highlightColor, baseColor, shadowColor},
-                new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP);
-        paint.setShader(bodyShader);
-
-        // 土豆非对称椭圆有机外形（微微上宽下窄的自然块茎轮廓）
-        tempRect.set(-radius * 1.02f, -radius * 0.98f, radius * 1.02f, radius * 1.04f);
-        canvas.drawRoundRect(tempRect, radius * 0.95f, radius * 1.05f, paint);
-        paint.setShader(null);
-
-        // 外部深色墨线勾边
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(2.2f);
-        strokePaint.setColor(darkenColor(baseColor, 0.55f));
-        canvas.drawRoundRect(tempRect, radius * 0.95f, radius * 1.05f, strokePaint);
-
-        // 土豆皮自然雀斑斑点 (Potato Eyes / Freckles)
-        if (damageFlashTicks <= 0) {
-            paint.setColor(darkenColor(baseColor, 0.25f));
-            canvas.drawCircle(-radius * 0.55f, radius * 0.25f, radius * 0.08f, paint);
-            canvas.drawCircle(-radius * 0.65f, radius * 0.45f, radius * 0.05f, paint);
-            canvas.drawCircle(radius * 0.6f, radius * 0.35f, radius * 0.07f, paint);
-        }
-    }
-
-    private void drawHeroBespokeGear(Canvas canvas, BrotatoHero hero, float radius, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-
-        switch (hero) {
-            case ALL_ROUNDER:
-                // 《蛋壳特工队》看板特工「科萌」：标志性鲜红飘逸战术长领巾 + 工装战术背心
-                // 1. 战术工装背心
-                paint.setColor(0xFF334155);
-                canvas.drawRoundRect(new RectF(-radius * 0.85f, radius * 0.2f, radius * 0.85f, radius * 0.95f),
-                        4 * density, 4 * density, paint);
-                // 战术口袋与金属搭扣
-                paint.setColor(0xFF1E293B);
-                canvas.drawRect(-radius * 0.65f, radius * 0.45f, -radius * 0.2f, radius * 0.75f, paint);
-                canvas.drawRect(radius * 0.2f, radius * 0.45f, radius * 0.65f, radius * 0.75f, paint);
-                paint.setColor(0xFF94A3B8);
-                canvas.drawCircle(-radius * 0.42f, radius * 0.5f, 1.8f * density, paint);
-                canvas.drawCircle(radius * 0.42f, radius * 0.5f, 1.8f * density, paint);
-
-                // 2. 标志性鲜红战术领结
-                paint.setColor(0xFFDC2626);
-                canvas.drawCircle(0, radius * 0.15f, radius * 0.22f, paint);
-
-                // 3. 动态物理飘逸双飘带 (随风浪荡飞扬)
-                float wave1 = (float) Math.sin(animTick * 0.26) * 11 * density;
-                float wave2 = (float) Math.cos(animTick * 0.29) * 9 * density;
-                tempPath.reset();
-                tempPath.moveTo(-radius * 0.15f, radius * 0.18f);
-                tempPath.quadTo(-radius * 0.9f, radius * 0.5f + wave1 * 0.5f, -radius * 1.6f, radius * 0.35f + wave1);
-                tempPath.lineTo(-radius * 1.55f, radius * 0.65f + wave1);
-                tempPath.quadTo(-radius * 0.8f, radius * 0.65f + wave1 * 0.5f, -radius * 0.05f, radius * 0.28f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-
-                tempPath.reset();
-                tempPath.moveTo(radius * 0.05f, radius * 0.25f);
-                tempPath.quadTo(-radius * 0.6f, radius * 0.8f + wave2 * 0.5f, -radius * 1.35f, radius * 0.95f + wave2);
-                tempPath.lineTo(-radius * 1.25f, radius * 1.2f + wave2);
-                tempPath.quadTo(-radius * 0.5f, radius * 0.95f + wave2 * 0.5f, radius * 0.15f, radius * 0.22f);
-                tempPath.close();
-                paint.setColor(0xFFB91C1C);
-                canvas.drawPath(tempPath, paint);
-                break;
-
-            case BRAWLER:
-                // 特工「金」：暴击女王 · 绯红双马尾 + 金色战术发箍
-                paint.setColor(0xFFDC2626);
-                float pigtailWave1 = (float) Math.sin(animTick * 0.25) * 6 * density;
-                float pigtailWave2 = (float) Math.cos(animTick * 0.28) * 6 * density;
-                // 左马尾
-                tempPath.reset();
-                tempPath.moveTo(-radius * 0.7f, -radius * 0.4f);
-                tempPath.quadTo(-radius * 1.4f, -radius * 0.7f + pigtailWave1, -radius * 1.65f, radius * 0.3f + pigtailWave1);
-                tempPath.lineTo(-radius * 1.35f, radius * 0.4f + pigtailWave1);
-                tempPath.quadTo(-radius * 1.1f, -radius * 0.2f + pigtailWave1, -radius * 0.6f, -radius * 0.15f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                // 右马尾
-                tempPath.reset();
-                tempPath.moveTo(radius * 0.7f, -radius * 0.4f);
-                tempPath.quadTo(radius * 1.4f, -radius * 0.7f + pigtailWave2, radius * 1.65f, radius * 0.3f + pigtailWave2);
-                tempPath.lineTo(radius * 1.35f, radius * 0.4f + pigtailWave2);
-                tempPath.quadTo(radius * 1.1f, -radius * 0.2f + pigtailWave2, radius * 0.6f, -radius * 0.15f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                // 金色发箍
-                paint.setColor(0xFFF59E0B);
-                tempRect.set(-radius * 0.85f, -radius * 0.65f, radius * 0.85f, -radius * 0.45f);
-                canvas.drawRoundRect(tempRect, 2 * density, 2 * density, paint);
-                break;
-
-            case MAGE:
-                // 特工「月咏」：月影剑客 · 墨紫短发 + 樱粉领结 + 武士刀柄
-                paint.setColor(0xFF4C1D95);
-                tempRect.set(-radius * 0.95f, -radius * 0.85f, radius * 0.95f, -radius * 0.25f);
-                canvas.drawRoundRect(tempRect, 6 * density, 6 * density, paint);
-                // 樱粉领结
-                paint.setColor(0xFFF43F5E);
-                canvas.drawCircle(0, radius * 0.15f, radius * 0.18f, paint);
-                // 背负武士刀柄斜露
-                paint.setColor(0xFF94A3B8);
-                canvas.save();
-                canvas.rotate(-35);
-                canvas.drawRoundRect(new RectF(radius * 0.5f, -radius * 1.25f, radius * 0.7f, -radius * 0.2f),
-                        2 * density, 2 * density, paint);
-                paint.setColor(0xFFE11D48);
-                canvas.drawRect(radius * 0.48f, -radius * 0.6f, radius * 0.72f, -radius * 0.5f, paint);
-                canvas.restore();
-                break;
-
-            case CHUNKY:
-                // 特工「沃尔默」：重装教官 · 凯夫拉重甲 + 特战护目镜
-                paint.setColor(0xFF334155);
-                canvas.drawRoundRect(new RectF(-radius * 1.15f, -radius * 0.85f, radius * 1.15f, -radius * 0.2f),
-                        6 * density, 6 * density, paint);
-                // 荧光青护目镜
-                paint.setColor(0xFF06B6D4);
-                canvas.drawRoundRect(new RectF(-radius * 0.75f, -radius * 0.35f, radius * 0.75f, -radius * 0.05f),
-                        3 * density, 3 * density, paint);
-                // 钛合金肩甲
-                paint.setColor(0xFF64748B);
-                canvas.drawCircle(-radius * 1.05f, radius * 0.2f, radius * 0.3f, paint);
-                canvas.drawCircle(radius * 1.05f, radius * 0.2f, radius * 0.3f, paint);
-                break;
-
-            case LUCKY:
-                // 特工「凯蒂斯」：机灵猫娘 · 战术猫耳无线电通信器 + 翡翠四叶草
-                paint.setColor(0xFF10B981);
-                // 左猫耳
-                tempPath.reset();
-                tempPath.moveTo(-radius * 0.75f, -radius * 0.55f);
-                tempPath.lineTo(-radius * 0.65f, -radius * 1.35f);
-                tempPath.lineTo(-radius * 0.25f, -radius * 0.75f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                // 右猫耳
-                tempPath.reset();
-                tempPath.moveTo(radius * 0.75f, -radius * 0.55f);
-                tempPath.lineTo(radius * 0.65f, -radius * 1.35f);
-                tempPath.lineTo(radius * 0.25f, -radius * 0.75f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                // 翡翠四叶草胸章
-                paint.setColor(0xFF22C55E);
-                canvas.drawCircle(0, radius * 0.2f, radius * 0.2f, paint);
-                break;
-
-            case SPEEDSTER:
-                // 特工「斯巴达」：极速游侠 · 疾风战术披风 + 闪电红目夜视镜
-                paint.setColor(0xFF0284C7);
-                float capeWave = (float) Math.sin(animTick * 0.35) * 8 * density;
-                tempPath.reset();
-                tempPath.moveTo(-radius * 0.6f, radius * 0.1f);
-                tempPath.lineTo(-radius * 1.5f, radius * 1.35f + capeWave);
-                tempPath.lineTo(-radius * 0.8f, radius * 1.25f + capeWave);
-                tempPath.lineTo(0f, radius * 0.25f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-                // 闪电黄目夜视镜
-                paint.setColor(0xFFFBBF24);
-                canvas.drawRoundRect(new RectF(-radius * 0.7f, -radius * 0.25f, radius * 0.7f, 0f),
-                        2 * density, 2 * density, paint);
-                break;
-        }
-    }
-
-    private void drawPotatoFace(Canvas canvas, float radius, float aimAngle,
-                                int damageFlashTicks, long animTick, float density) {
-        float eyeY = -radius * 0.12f;
-        float eyeSpacing = radius * 0.38f;
-        float eyeR = radius * 0.28f;
-
-        // 视线动态偏转 (Pupil Look-Ahead Offset)
-        float lookX = (float) Math.cos(aimAngle) * (eyeR * 0.4f);
-        float lookY = (float) Math.sin(aimAngle) * (eyeR * 0.3f);
-
-        if (damageFlashTicks > 0) {
-            // 受击闭眼表情 (> <)
-            strokePaint.setColor(0xFF3E2723);
+            // 受击眨眼 (> <)
+            strokePaint.setColor(0xFF1E293B);
             strokePaint.setStrokeWidth(2.5f * density);
             canvas.drawLine(-eyeSpacing - eyeR * 0.6f, eyeY - eyeR * 0.4f, -eyeSpacing, eyeY, strokePaint);
             canvas.drawLine(-eyeSpacing, eyeY, -eyeSpacing - eyeR * 0.6f, eyeY + eyeR * 0.4f, strokePaint);
-
             canvas.drawLine(eyeSpacing + eyeR * 0.6f, eyeY - eyeR * 0.4f, eyeSpacing, eyeY, strokePaint);
             canvas.drawLine(eyeSpacing, eyeY, eyeSpacing + eyeR * 0.6f, eyeY + eyeR * 0.4f, strokePaint);
         } else {
-            // 眼白与阴影
-            paint.setStyle(Paint.Style.FILL);
+            // 纯白眼底
             paint.setColor(Color.WHITE);
             canvas.drawCircle(-eyeSpacing, eyeY, eyeR, paint);
             canvas.drawCircle(eyeSpacing, eyeY, eyeR, paint);
 
-            // 瞳孔（黑亮眼球）
-            paint.setColor(0xFF1A1A1A);
-            float pupilR = eyeR * 0.58f;
-            canvas.drawCircle(-eyeSpacing + lookX, eyeY + lookY, pupilR, paint);
-            canvas.drawCircle(eyeSpacing + lookX, eyeY + lookY, pupilR, paint);
+            // 瞳孔与专属瞳色
+            int pupilColor = 0xFF1E293B;
+            if (hero == BrotatoHero.BRAWLER) pupilColor = 0xFFD97706; // 金 - 琥珀金瞳
+            if (hero == BrotatoHero.MAGE) pupilColor = 0xFF7C3AED;    // 月咏 - 秘紫灵瞳
+            if (hero == BrotatoHero.LUCKY) pupilColor = 0xFF059669;   // 凯蒂斯 - 翡翠绿瞳
+            if (hero == BrotatoHero.SPEEDSTER) pupilColor = 0xFF0284C7;// 斯巴达 - 赛博青瞳
 
-            // 灵动双高光 (Reflections)
+            paint.setColor(pupilColor);
+            float pR = eyeR * 0.62f;
+            canvas.drawCircle(-eyeSpacing + lookX, eyeY + lookY, pR, paint);
+            canvas.drawCircle(eyeSpacing + lookX, eyeY + lookY, pR, paint);
+
+            // 双反光灵动高光
             paint.setColor(Color.WHITE);
-            canvas.drawCircle(-eyeSpacing + lookX - pupilR * 0.35f, eyeY + lookY - pupilR * 0.35f, pupilR * 0.38f, paint);
-            canvas.drawCircle(eyeSpacing + lookX - pupilR * 0.35f, eyeY + lookY - pupilR * 0.35f, pupilR * 0.38f, paint);
-            canvas.drawCircle(-eyeSpacing + lookX + pupilR * 0.28f, eyeY + lookY + pupilR * 0.28f, pupilR * 0.18f, paint);
-            canvas.drawCircle(eyeSpacing + lookX + pupilR * 0.28f, eyeY + lookY + pupilR * 0.28f, pupilR * 0.18f, paint);
+            canvas.drawCircle(-eyeSpacing + lookX - pR * 0.3f, eyeY + lookY - pR * 0.3f, pR * 0.35f, paint);
+            canvas.drawCircle(eyeSpacing + lookX - pR * 0.3f, eyeY + lookY - pR * 0.3f, pR * 0.35f, paint);
+            canvas.drawCircle(-eyeSpacing + lookX + pR * 0.25f, eyeY + lookY + pR * 0.25f, pR * 0.18f, paint);
+            canvas.drawCircle(eyeSpacing + lookX + pR * 0.25f, eyeY + lookY + pR * 0.25f, pR * 0.18f, paint);
         }
 
-        // 坚毅微笑嘴型
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setColor(0xFF3E2723);
-        strokePaint.setStrokeWidth(2.2f * density);
-        tempRect.set(-radius * 0.26f, eyeY + radius * 0.25f, radius * 0.26f, eyeY + radius * 0.55f);
-        canvas.drawArc(tempRect, 0, 180, false, strokePaint);
+        // 4. 特工特色发型与头饰 (Hero Hair & Headgear)
+        drawHeroHairAndGear(canvas, hero, headCy, headR, animTick, density);
     }
 
-    // =========================================================================
-    // 3. 多枪机械瞄准、轨道与后坐力建模 (Weapons & Recoil Engine)
-    // =========================================================================
-
-    public void drawWeapons(Canvas canvas, BrotatoArena arena, BrotatoHero hero,
-                            float px, float py, float ps, long lastFireMs, long animTick, float density) {
-        int shots = Math.max(1, arena.shotCount());
-        Enemy target = arena.nearestEnemy();
-
-        double baseAngle;
-        if (target != null) {
-            baseAngle = Math.atan2(target.y - arena.playerY(), target.x - arena.playerX());
-        } else {
-            baseAngle = (animTick * 0.04) % (Math.PI * 2);
-        }
-
-        double spreadRad = Math.toRadians(Upgrade.SPREAD_STEP_DEG);
-        float orbitDist = ps + 14 * density;
-        boolean justFired = (arena.clockMs() - lastFireMs < 64);
-
-        for (int i = 0; i < shots; i++) {
-            double angle = baseAngle + (i - (shots - 1) / 2.0) * spreadRad;
-            float wx = px + (float) (Math.cos(angle - 0.28) * orbitDist);
-            float wy = py + (float) (Math.sin(angle - 0.28) * orbitDist);
-
-            canvas.save();
-            canvas.translate(wx, wy);
-            canvas.rotate((float) Math.toDegrees(angle));
-
-            // 后坐力滑块位移 (Slide Blowback)
-            if (justFired) {
-                canvas.translate(-3.5f * density, 0);
-            }
-
-            // 绘制精细枪械模型
-            drawFirearmModel(canvas, hero, density);
-
-            // 枪口烈焰粒子 (Muzzle Flash Starburst)
-            if (justFired) {
-                drawMuzzleFlash(canvas, density);
-            }
-
-            canvas.restore();
-        }
-    }
-
-    private void drawFirearmModel(Canvas canvas, BrotatoHero hero, float density) {
+    private void drawHeroHairAndGear(Canvas canvas, BrotatoHero hero, float cy, float r,
+                                     long animTick, float density) {
         paint.setStyle(Paint.Style.FILL);
 
-        // 1. 枪身主体与机械切角 (Chamber & Receiver)
-        paint.setColor(0xFF1E293B);
-        canvas.drawRoundRect(new RectF(0, -4.5f * density, 18 * density, 4.5f * density), 2 * density, 2 * density, paint);
+        if (hero == BrotatoHero.BRAWLER) { // 金 (King) - 绚烂金发双马尾
+            paint.setColor(0xFFFBBF24); // 闪亮金发
+            // 前额刘海
+            canvas.drawCircle(0, cy - r * 0.32f, r * 0.95f, paint);
+            // 左右双马尾（带跑动摇曳）
+            float pigtailSwing = (float) Math.sin(animTick * 0.3f) * (4f * density);
+            canvas.drawOval(new RectF(-r * 1.55f, cy - r * 0.3f + pigtailSwing,
+                    -r * 0.75f, cy + r * 1.05f + pigtailSwing), paint);
+            canvas.drawOval(new RectF(r * 0.75f, cy - r * 0.3f - pigtailSwing,
+                    r * 1.55f, cy + r * 1.05f - pigtailSwing), paint);
+            // 红色发带与金色微型小皇冠
+            paint.setColor(0xFFDC2626);
+            canvas.drawCircle(-r * 0.95f, cy - r * 0.2f + pigtailSwing, 3.5f * density, paint);
+            canvas.drawCircle(r * 0.95f, cy - r * 0.2f - pigtailSwing, 3.5f * density, paint);
+            paint.setColor(0xFFEAB308);
+            canvas.drawRect(-3 * density, cy - r * 1.15f, 3 * density, cy - r * 0.95f, paint);
+        } else if (hero == BrotatoHero.MAGE) { // 月咏 (Tsukuyomi) - 墨黑姬发与红发带
+            paint.setColor(0xFF0F172A);
+            canvas.drawCircle(0, cy - r * 0.25f, r * 0.95f, paint);
+            canvas.drawRect(-r * 0.92f, cy - r * 0.1f, -r * 0.65f, cy + r * 0.85f, paint);
+            canvas.drawRect(r * 0.65f, cy - r * 0.1f, r * 0.92f, cy + r * 0.85f, paint);
+            paint.setColor(0xFFDC2626);
+            canvas.drawRoundRect(new RectF(-r * 0.85f, cy - r * 0.55f, r * 0.85f, cy - r * 0.4f),
+                    2 * density, 2 * density, paint);
+        } else if (hero == BrotatoHero.CHUNKY) { // 沃尔默 (Worm) - 军绿贝雷帽与刚毅刀疤
+            paint.setColor(0xFF1E3A2F); // 贝雷帽
+            canvas.drawOval(new RectF(-r * 0.98f, cy - r * 1.15f, r * 0.85f, cy - r * 0.32f), paint);
+            paint.setColor(0xFFE2E8F0); // 银色鹰徽
+            canvas.drawCircle(r * 0.35f, cy - r * 0.72f, 3f * density, paint);
+        } else if (hero == BrotatoHero.LUCKY) { // 凯蒂斯 (Catnips) - 可爱猫耳与战术耳麦
+            paint.setColor(0xFFF8FAFC); // 白猫耳
+            tempPath.reset();
+            tempPath.moveTo(-r * 0.75f, cy - r * 0.5f);
+            tempPath.lineTo(-r * 0.65f, cy - r * 1.35f);
+            tempPath.lineTo(-r * 0.22f, cy - r * 0.85f);
+            tempPath.close();
+            canvas.drawPath(tempPath, paint);
 
-        // 2. 枪管与消焰器 (Barrel & Shroud)
-        LinearGradient barrelShader = new LinearGradient(
-                4 * density, -2.5f * density, 22 * density, 2.5f * density,
-                0xFFCBD5E1, 0xFF64748B, Shader.TileMode.CLAMP);
-        paint.setShader(barrelShader);
-        canvas.drawRoundRect(new RectF(4 * density, -2.5f * density, 22 * density, 2.5f * density), 1.5f * density, 1.5f * density, paint);
-        paint.setShader(null);
+            tempPath.reset();
+            tempPath.moveTo(r * 0.75f, cy - r * 0.5f);
+            tempPath.lineTo(r * 0.65f, cy - r * 1.35f);
+            tempPath.lineTo(r * 0.22f, cy - r * 0.85f);
+            tempPath.close();
+            canvas.drawPath(tempPath, paint);
 
-        // 3. 枪管内部膛线深孔
-        paint.setColor(0xFF0F172A);
-        canvas.drawCircle(22 * density, 0, 1.8f * density, paint);
+            paint.setColor(0xFFF472B6); // 猫耳内粉绒毛
+            canvas.drawCircle(-r * 0.55f, cy - r * 0.85f, 3.5f * density, paint);
+            canvas.drawCircle(r * 0.55f, cy - r * 0.85f, 3.5f * density, paint);
 
-        // 4. 弹匣插槽 (Magazine Well)
-        paint.setColor(0xFF334155);
-        canvas.drawRect(6 * density, 2 * density, 10 * density, 8 * density, paint);
-
-        // 5. 战术全息瞄具红点 (Holographic Sight Optic)
-        paint.setColor(0xFF0284C7);
-        canvas.drawRoundRect(new RectF(5 * density, -6.5f * density, 11 * density, -4.5f * density), 1 * density, 1 * density, paint);
-        paint.setColor(0xFFEF4444);
-        canvas.drawCircle(8 * density, -5.5f * density, 1.2f * density, paint);
+            // 战术耳麦
+            paint.setColor(0xFF334155);
+            canvas.drawCircle(r * 0.88f, cy + 2 * density, 4 * density, paint);
+            strokePaint.setColor(0xFF64748B);
+            strokePaint.setStrokeWidth(1.8f * density);
+            canvas.drawLine(r * 0.88f, cy + 2 * density, r * 0.55f, cy + r * 0.45f, strokePaint);
+        } else if (hero == BrotatoHero.SPEEDSTER) { // 斯巴达 (Spartacus) - 赛博发光全息护目镜
+            paint.setColor(0xFF0F172A);
+            canvas.drawCircle(0, cy - r * 0.3f, r * 0.95f, paint);
+            paint.setColor(0xFF00E5FF); // 赛博青全息护目镜
+            canvas.drawRoundRect(new RectF(-r * 0.82f, cy - r * 0.12f, r * 0.82f, cy + r * 0.25f),
+                    3 * density, 3 * density, paint);
+            paint.setColor(Color.WHITE);
+            canvas.drawRect(-r * 0.6f, cy, r * 0.6f, cy + 1.5f * density, paint);
+        } else { // 科萌 (Common) - 经典黑色微蓬战术短发
+            paint.setColor(0xFF1E293B);
+            // 顶部圆发蓬
+            canvas.drawCircle(0, cy - r * 0.28f, r * 0.98f, paint);
+            // 帅气侧向碎刘海
+            tempPath.reset();
+            tempPath.moveTo(-r * 0.85f, cy - r * 0.25f);
+            tempPath.lineTo(-r * 0.45f, cy + r * 0.05f);
+            tempPath.lineTo(-r * 0.15f, cy - r * 0.25f);
+            tempPath.lineTo(r * 0.25f, cy + r * 0.05f);
+            tempPath.lineTo(r * 0.65f, cy - r * 0.25f);
+            tempPath.lineTo(r * 0.85f, cy - r * 0.5f);
+            tempPath.close();
+            canvas.drawPath(tempPath, paint);
+        }
     }
 
-    private void drawMuzzleFlash(Canvas canvas, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        float tipX = 24 * density;
-        float s = 9 * density;
+    private void drawAgentArmsAndWeapons(Canvas canvas, BrotatoHero hero, float s,
+                                         float aimAngle, long animTick, float density) {
+        float armDist = s * 0.48f;
+        float armY = s * 0.18f;
 
-        // 橙红外爆破星
-        paint.setColor(0xFFF59E0B);
+        // 依据瞄准角度绘制持枪手与武器实体
+        float handX = (float) Math.cos(aimAngle) * armDist;
+        float handY = armY + (float) Math.sin(aimAngle) * (armDist * 0.65f);
+
+        canvas.save();
+        canvas.translate(handX, handY);
+        canvas.rotate((float) Math.toDegrees(aimAngle));
+
+        paint.setStyle(Paint.Style.FILL);
+        if (hero == BrotatoHero.BRAWLER) { // 金 - 双持战术左轮/手枪
+            drawDualPistolsModel(canvas, density);
+        } else if (hero == BrotatoHero.MAGE) { // 月咏 - 和风太刀
+            drawKatanaModel(canvas, density);
+        } else { // 科萌与通用特工 - 经典战术苦无/冲锋枪
+            drawKunaiModel(canvas, density);
+        }
+
+        canvas.restore();
+    }
+
+    private void drawKunaiModel(Canvas canvas, float density) {
+        // 苦无刃面（银钢质感）
+        paint.setColor(0xFFE2E8F0);
         tempPath.reset();
-        tempPath.moveTo(tipX, -s * 0.6f);
-        tempPath.lineTo(tipX + s * 1.2f, 0);
-        tempPath.lineTo(tipX, s * 0.6f);
-        tempPath.lineTo(tipX - s * 0.4f, 0);
+        tempPath.moveTo(14 * density, 0);
+        tempPath.lineTo(2 * density, -4 * density);
+        tempPath.lineTo(-4 * density, -2.5f * density);
+        tempPath.lineTo(-4 * density, 2.5f * density);
+        tempPath.lineTo(2 * density, 4 * density);
         tempPath.close();
         canvas.drawPath(tempPath, paint);
 
-        // 核心亮白火焰
-        paint.setColor(0xFFFFFBEB);
-        canvas.drawCircle(tipX + s * 0.35f, 0, s * 0.38f, paint);
+        // 苦无锋刃脊线
+        paint.setColor(0xFF94A3B8);
+        canvas.drawLine(2 * density, 0, 14 * density, 0, strokePaint);
+
+        // 绑带握柄
+        paint.setColor(0xFF1E293B);
+        canvas.drawRect(-9 * density, -2f * density, -4 * density, 2f * density, paint);
+
+        // 尾端圆环
+        strokePaint.setColor(0xFFCBD5E1);
+        strokePaint.setStrokeWidth(1.8f * density);
+        canvas.drawCircle(-11 * density, 0, 2.5f * density, strokePaint);
+
+        // 尾环红穗
+        paint.setColor(0xFFEF4444);
+        canvas.drawCircle(-14 * density, 0, 2f * density, paint);
+    }
+
+    private void drawDualPistolsModel(Canvas canvas, float density) {
+        // 右手机枪
+        paint.setColor(0xFF374151);
+        canvas.drawRoundRect(new RectF(0, -6 * density, 13 * density, -2 * density), 1.5f * density, 1.5f * density, paint);
+        paint.setColor(0xFFDC2626); // 激光指示器红点
+        canvas.drawCircle(13 * density, -4 * density, 1.5f * density, paint);
+
+        // 左手机枪
+        paint.setColor(0xFF374151);
+        canvas.drawRoundRect(new RectF(0, 2 * density, 13 * density, 6 * density), 1.5f * density, 1.5f * density, paint);
+        paint.setColor(0xFFDC2626);
+        canvas.drawCircle(13 * density, 4 * density, 1.5f * density, paint);
+    }
+
+    private void drawKatanaModel(Canvas canvas, float density) {
+        // 弧度刀刃
+        paint.setColor(0xFFE2E8F0);
+        tempPath.reset();
+        tempPath.moveTo(0, -2 * density);
+        tempPath.quadTo(10 * density, -3 * density, 22 * density, -1 * density);
+        tempPath.lineTo(20 * density, 1.5f * density);
+        tempPath.quadTo(10 * density, -1 * density, 0, 2 * density);
+        tempPath.close();
+        canvas.drawPath(tempPath, paint);
+
+        // 金色刀镡与柄卷
+        paint.setColor(0xFFF59E0B);
+        canvas.drawCircle(0, 0, 3.5f * density, paint);
+        paint.setColor(0xFF1E1B4B);
+        canvas.drawRect(-8 * density, -2 * density, 0, 2 * density, paint);
     }
 
     // =========================================================================
-    // 4. 8大敌寇异变体全方位立体建模 (8 Distinct Enemy Vector Models)
+    // 3. 八大敌寇生化异变体全方位立体建模 (8 Distinct Enemy Vector Models)
     // =========================================================================
 
     public void drawEnemy(Canvas canvas, Enemy enemy, long animTick, float density) {
         float cx = enemy.x * density;
         float cy = enemy.y * density;
-        float r = enemy.radiusPx * density;
         String id = (enemy.kind != null) ? enemy.kind.id() : "";
 
         canvas.save();
         canvas.translate(cx, cy);
 
-        // 4.1 接触软阴影
+        // 依据怪物类型设置生动饱满的体型尺度
+        float r = enemy.radiusPx * density;
+        float visualScale = Math.max(16f * density, r * 1.8f);
+
+        // 接触软阴影
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0x40000000);
-        canvas.drawOval(new RectF(-r * 0.95f, r * 0.6f, r * 0.95f, r * 1.15f), paint);
+        canvas.drawOval(new RectF(-visualScale * 0.9f, visualScale * 0.65f,
+                visualScale * 0.9f, visualScale * 1.15f), paint);
 
-        // 4.2 依据敌人种类派发专属立体模型
+        // 派发专属高模渲染
         switch (id) {
             case "swarm":
-                drawSwarmBug(canvas, enemy, r, animTick, density);
-                break;
-            case "grunt":
-                drawGruntCyclops(canvas, enemy, r, animTick, density);
+                drawSwarmBug(canvas, enemy, visualScale, animTick, density);
                 break;
             case "runner":
-                drawRunnerRaptor(canvas, enemy, r, animTick, density);
+                drawRunnerHound(canvas, enemy, visualScale, animTick, density);
                 break;
             case "zigzag":
-                drawZigzagMoth(canvas, enemy, r, animTick, density);
+                drawZigzagMoth(canvas, enemy, visualScale, animTick, density);
                 break;
             case "splitter":
-                drawSplitterBlob(canvas, enemy, r, animTick, density);
+                drawSplitterBlob(canvas, enemy, visualScale, animTick, density);
                 break;
             case "minion":
-                drawMinionSlime(canvas, enemy, r, animTick, density);
+                drawMinionSlime(canvas, enemy, visualScale, animTick, density);
                 break;
             case "tank":
-                drawTankBehemoth(canvas, enemy, r, animTick, density);
+                drawTankBehemoth(canvas, enemy, visualScale * 1.35f, animTick, density);
                 break;
             case "boss":
-                drawBossHiveLord(canvas, enemy, r, animTick, density);
+                drawBossHiveLord(canvas, enemy, visualScale * 1.85f, animTick, density);
                 break;
+            case "grunt":
             default:
-                drawGenericEnemy(canvas, enemy, r, density);
+                drawClassicZombie(canvas, enemy, visualScale, animTick, density);
                 break;
         }
 
-        // 4.3 敌人生命槽（受创时展示）
+        // 生命值血槽（受创展示）
         if (enemy.hp < enemy.maxHp) {
-            drawEnemyHealthBar(canvas, enemy, r, density);
+            drawEnemyHealthBar(canvas, enemy, visualScale, density);
         }
-
-        canvas.restore();
-    }
-
-    /** 1. 小虫 (Swarm): 尖刺甲壳 + 震动双翅 + 猩红复眼 */
-    private void drawSwarmBug(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFFF97316);
-        canvas.drawCircle(0, 0, r, paint);
-
-        // 震动翅膀
-        paint.setColor(0x88E2E8F0);
-        float wingW = (float) Math.sin(animTick * 0.8) * r * 0.9f;
-        canvas.drawOval(new RectF(-r * 1.3f, -r * 0.6f, -r * 0.3f + wingW, r * 0.2f), paint);
-        canvas.drawOval(new RectF(r * 0.3f - wingW, -r * 0.6f, r * 1.3f, r * 0.2f), paint);
-
-        // 猩红双复眼
-        paint.setColor(0xFFEF4444);
-        canvas.drawCircle(-r * 0.35f, -r * 0.2f, r * 0.25f, paint);
-        canvas.drawCircle(r * 0.35f, -r * 0.2f, r * 0.25f, paint);
-    }
-
-    /** 2. 杂兵 (Grunt): 独角兽头 + 巨大独眼追踪 */
-    private void drawGruntCyclops(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFFDC2626);
-        canvas.drawCircle(0, 0, r, paint);
-
-        // 锋利犄角
-        paint.setColor(0xFF78350F);
-        hornPath.reset();
-        hornPath.moveTo(-r * 0.35f, -r * 0.8f);
-        hornPath.lineTo(0, -r * 1.45f);
-        hornPath.lineTo(r * 0.35f, -r * 0.8f);
-        hornPath.close();
-        canvas.drawPath(hornPath, paint);
-
-        // 巨型独眼
-        paint.setColor(Color.WHITE);
-        canvas.drawCircle(0, -r * 0.15f, r * 0.45f, paint);
-        paint.setColor(0xFF1E293B);
-        canvas.drawCircle(0, -r * 0.15f, r * 0.24f, paint);
-        paint.setColor(0xFFF87171);
-        canvas.drawCircle(-r * 0.08f, -r * 0.22f, r * 0.08f, paint);
-    }
-
-    /** 3. 疾奔者 (Runner): 破风前倾 + 尖锐双刺 + 闪电红眼 */
-    private void drawRunnerRaptor(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFFE11D48);
-
-        // 前倾菱形兽头
-        tempPath.reset();
-        tempPath.moveTo(0, -r * 1.25f);
-        tempPath.lineTo(r, 0);
-        tempPath.lineTo(0, r * 1.15f);
-        tempPath.lineTo(-r, 0);
-        tempPath.close();
-        canvas.drawPath(tempPath, paint);
-
-        // 荧光双目
-        paint.setColor(0xFFFDE047);
-        canvas.drawCircle(-r * 0.35f, -r * 0.25f, r * 0.18f, paint);
-        canvas.drawCircle(r * 0.35f, -r * 0.25f, r * 0.18f, paint);
-    }
-
-    /** 4. 飘忽蛾 (Flutterer): 华丽蝶翼扑动 + 幽紫粉尘 */
-    private void drawZigzagMoth(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-
-        // 扑动翅膀
-        float flap = (float) Math.cos(animTick * 0.28) * r * 0.8f;
-        paint.setColor(0xFF9333EA);
-        canvas.drawOval(new RectF(-r * 1.4f, -r * 0.8f, -r * 0.2f + flap, r * 0.6f), paint);
-        canvas.drawOval(new RectF(r * 0.2f - flap, -r * 0.8f, r * 1.4f, r * 0.6f), paint);
-
-        // 飞蛾体躯
-        paint.setColor(0xFF581C87);
-        canvas.drawOval(new RectF(-r * 0.45f, -r * 0.9f, r * 0.45f, r * 0.9f), paint);
-
-        // 发光触须与眼
-        paint.setColor(0xFFC084FC);
-        canvas.drawCircle(-r * 0.2f, -r * 0.5f, r * 0.15f, paint);
-        canvas.drawCircle(r * 0.2f, -r * 0.5f, r * 0.15f, paint);
-    }
-
-    /** 5. 胞裂兽 (Splitter): 液态半透原浆 + 细胞核浮动 */
-    private void drawSplitterBlob(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFF059669);
-        canvas.drawCircle(0, 0, r, paint);
-
-        // 内部漂浮的双生细胞核 (Twin Nuclei)
-        float swirl = animTick * 0.12f;
-        float n1x = (float) Math.cos(swirl) * (r * 0.35f);
-        float n1y = (float) Math.sin(swirl) * (r * 0.35f);
-        paint.setColor(0xFF10B981);
-        canvas.drawCircle(n1x, n1y, r * 0.28f, paint);
-        canvas.drawCircle(-n1x, -n1y, r * 0.28f, paint);
-
-        // 胞质高光
-        paint.setColor(0x66FFFFFF);
-        canvas.drawCircle(-r * 0.35f, -r * 0.35f, r * 0.22f, paint);
-    }
-
-    /** 6. 裂子 (Minion): 呆萌弹跳幼体 */
-    private void drawMinionSlime(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFF10B981);
-        canvas.drawCircle(0, 0, r, paint);
-
-        // 水灵大眼睛
-        paint.setColor(Color.WHITE);
-        canvas.drawCircle(-r * 0.3f, -r * 0.15f, r * 0.32f, paint);
-        canvas.drawCircle(r * 0.3f, -r * 0.15f, r * 0.32f, paint);
-        paint.setColor(0xFF064E3B);
-        canvas.drawCircle(-r * 0.3f, -r * 0.15f, r * 0.16f, paint);
-        canvas.drawCircle(r * 0.3f, -r * 0.15f, r * 0.16f, paint);
-    }
-
-    /** 7. 厚甲兽 (Tank): 重铠龟甲 + 钢铁獠牙 */
-    private void drawTankBehemoth(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        // 铁甲基底
-        paint.setColor(0xFF334155);
-        canvas.drawCircle(0, 0, r, paint);
-
-        // 重盾装甲片 (Armor Plating)
-        paint.setColor(0xFF1E293B);
-        canvas.drawCircle(0, 0, r * 0.75f, paint);
-
-        // 巨型骨质獠牙
-        paint.setColor(0xFFE2E8F0);
-        tempPath.reset();
-        tempPath.moveTo(-r * 0.65f, r * 0.2f);
-        tempPath.lineTo(-r * 0.95f, r * 0.9f);
-        tempPath.lineTo(-r * 0.35f, r * 0.5f);
-        tempPath.close();
-        canvas.drawPath(tempPath, paint);
-
-        tempPath.reset();
-        tempPath.moveTo(r * 0.65f, r * 0.2f);
-        tempPath.lineTo(r * 0.95f, r * 0.9f);
-        tempPath.lineTo(r * 0.35f, r * 0.5f);
-        tempPath.close();
-        canvas.drawPath(tempPath, paint);
-
-        // 危险红目窄缝 (Visor Slit)
-        paint.setColor(0xFFEF4444);
-        canvas.drawRoundRect(new RectF(-r * 0.45f, -r * 0.25f, r * 0.45f, -r * 0.08f), 2 * density, 2 * density, paint);
-    }
-
-    /** 8. 巢穴主宰 (Hive Lord Boss): 荆棘骨冠 + 五眼炼狱 + 搏动熔岩核心 */
-    private void drawBossHiveLord(Canvas canvas, Enemy enemy, float r, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-
-        // 凶煞暗红波纹光环
-        float auraPulse = (float) (0.8 + 0.2 * Math.sin(animTick * 0.15));
-        paint.setColor(0x33EF4444);
-        canvas.drawCircle(0, 0, r * 1.35f * auraPulse, paint);
-
-        // 荆棘骨刺皇冠 (Crown of Thorns)
-        paint.setColor(0xFF450A0A);
-        for (int i = 0; i < 7; i++) {
-            double a = Math.toRadians(-120 + i * 40);
-            float hx = (float) Math.cos(a) * (r * 1.35f);
-            float hy = (float) Math.sin(a) * (r * 1.35f);
-            canvas.drawCircle(hx, hy, r * 0.22f, paint);
-        }
-
-        // 主宰本体巨球
-        paint.setColor(0xFF7F1D1D);
-        canvas.drawCircle(0, 0, r, paint);
-
-        // 搏动熔岩内芯 (Pulsating Magma Core)
-        float corePulse = (float) (0.9 + 0.1 * Math.sin(animTick * 0.25));
-        paint.setColor(0xFFF97316);
-        canvas.drawCircle(0, 0, r * 0.5f * corePulse, paint);
-        paint.setColor(0xFFFEF08A);
-        canvas.drawCircle(0, 0, r * 0.25f * corePulse, paint);
-
-        // 环绕的五枚邪神之眼
-        paint.setColor(0xFFEF4444);
-        for (int i = 0; i < 5; i++) {
-            double a = Math.toRadians(i * 72 + animTick * 1.5);
-            float ex = (float) Math.cos(a) * (r * 0.72f);
-            float ey = (float) Math.sin(a) * (r * 0.72f);
-            canvas.drawCircle(ex, ey, r * 0.12f, paint);
-        }
-    }
-
-    private void drawGenericEnemy(Canvas canvas, Enemy enemy, float r, float density) {
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(enemy.kind == null ? 0xFFFF5722 : enemy.kind.color());
-        canvas.drawCircle(0, 0, r, paint);
-        paint.setColor(Color.WHITE);
-        canvas.drawCircle(-r * 0.35f, -r * 0.2f, r * 0.22f, paint);
-        canvas.drawCircle(r * 0.35f, -r * 0.2f, r * 0.22f, paint);
-        paint.setColor(Color.BLACK);
-        canvas.drawCircle(-r * 0.28f, -r * 0.2f, r * 0.1f, paint);
-        canvas.drawCircle(r * 0.42f, -r * 0.2f, r * 0.1f, paint);
-    }
-
-    private void drawEnemyHealthBar(Canvas canvas, Enemy enemy, float r, float density) {
-        float width = r * 2.2f;
-        float height = 3.5f * density;
-        float top = -r - 10 * density;
-        float ratio = enemy.hpRatio();
-
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xAA0F172A);
-        canvas.drawRoundRect(new RectF(-width / 2f, top, width / 2f, top + height), 2 * density, 2 * density, paint);
-
-        paint.setColor(0xFFEF4444);
-        canvas.drawRoundRect(new RectF(-width / 2f, top, -width / 2f + width * ratio, top + height), 2 * density, 2 * density, paint);
-    }
-
-    // =========================================================================
-    // 5. 《蛋壳特工队》专属特战实体与武器视觉渲染 (Survivor.io Combat Visuals)
-    // =========================================================================
-
-    /** 绘制守卫者/捍卫者高速旋转飞盘 */
-    public void drawGuardianBlades(Canvas canvas, float px, float py, float orbitRadius,
-                                  int bladeCount, boolean isEvo, long animTick, float density) {
-        float speed = isEvo ? 0.12f : 0.08f;
-        float baseAngle = animTick * speed;
-        float bladeR = (isEvo ? 13f : 10f) * density;
-        int bladeColor = isEvo ? 0xFFF59E0B : 0xFF0284C7;
-        int glowColor = isEvo ? 0x66F59E0B : 0x4438BDF8;
-
-        // 旋转流光轨迹光环
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth((isEvo ? 4f : 2f) * density);
-        strokePaint.setColor(glowColor);
-        canvas.drawCircle(px, py, orbitRadius, strokePaint);
-
-        paint.setStyle(Paint.Style.FILL);
-        double angleStep = (Math.PI * 2.0) / Math.max(1, bladeCount);
-
-        for (int i = 0; i < bladeCount; i++) {
-            double angle = baseAngle + i * angleStep;
-            float bx = px + (float) Math.cos(angle) * orbitRadius;
-            float by = py + (float) Math.sin(angle) * orbitRadius;
-
-            canvas.save();
-            canvas.translate(bx, by);
-            canvas.rotate((float) Math.toDegrees(angle * 3.5)); // 飞盘自身极速自转
-
-            // 飞盘外层能量光晕
-            paint.setColor(glowColor);
-            canvas.drawCircle(0, 0, bladeR * 1.4f, paint);
-
-            // 飞盘金属旋刃
-            paint.setColor(bladeColor);
-            for (int b = 0; b < 4; b++) {
-                canvas.rotate(90);
-                tempPath.reset();
-                tempPath.moveTo(-bladeR * 0.35f, -bladeR * 0.2f);
-                tempPath.lineTo(0, -bladeR * 1.15f);
-                tempPath.lineTo(bladeR * 0.35f, -bladeR * 0.2f);
-                tempPath.close();
-                canvas.drawPath(tempPath, paint);
-            }
-
-            // 飞盘中心高光核
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(0, 0, bladeR * 0.42f, paint);
-
-            canvas.restore();
-        }
-    }
-
-    /** 绘制力场发生器 / 超武压制领域高能光环 */
-    public void drawForcefield(Canvas canvas, float px, float py, float fieldRadius,
-                              boolean isEvo, long animTick, float density) {
-        float pulse = (float) (0.95 + 0.05 * Math.sin(animTick * 0.15));
-        float r = fieldRadius * pulse;
-
-        paint.setStyle(Paint.Style.FILL);
-        if (isEvo) {
-            // 超武【压制领域】：深紫-暗红高能电浆领域，电弧粒子扩散
-            RadialGradient evoField = new RadialGradient(px, py, r,
-                    new int[]{0x157E22CE, 0x33A855F7, 0x66C084FC, 0x00000000},
-                    new float[]{0f, 0.55f, 0.88f, 1f}, Shader.TileMode.CLAMP);
-            paint.setShader(evoField);
-            canvas.drawCircle(px, py, r, paint);
-            paint.setShader(null);
-
-            // 边缘电弧跳跃线条
-            strokePaint.setStyle(Paint.Style.STROKE);
-            strokePaint.setStrokeWidth(2.5f * density);
-            strokePaint.setColor(0x88C084FC);
-            canvas.drawCircle(px, py, r * 0.92f, strokePaint);
-
-            // 环形跳跃电弧粒子
-            paint.setColor(0xFFF3E8FF);
-            for (int i = 0; i < 6; i++) {
-                double a = Math.toRadians(i * 60 + animTick * 4);
-                float arcX = px + (float) Math.cos(a) * (r * 0.92f);
-                float arcY = py + (float) Math.sin(a) * (r * 0.92f);
-                canvas.drawCircle(arcX, arcY, 2.5f * density, paint);
-            }
-        } else {
-            // 普通【力场发生器】：青蓝等离子防护光球
-            RadialGradient basicField = new RadialGradient(px, py, r,
-                    new int[]{0x100284C7, 0x2438BDF8, 0x4438BDF8, 0x00000000},
-                    new float[]{0f, 0.6f, 0.85f, 1f}, Shader.TileMode.CLAMP);
-            paint.setShader(basicField);
-            canvas.drawCircle(px, py, r, paint);
-            paint.setShader(null);
-
-            strokePaint.setStyle(Paint.Style.STROKE);
-            strokePaint.setStrokeWidth(1.8f * density);
-            strokePaint.setColor(0x5538BDF8);
-            canvas.drawCircle(px, py, r * 0.94f, strokePaint);
-        }
-    }
-
-    /** 绘制战术无人机伴飞（A机、B机、超武毁灭者母机） */
-    public void drawDrones(Canvas canvas, float px, float py, boolean hasA, boolean hasB,
-                          boolean isDestroyer, long animTick, float density) {
-        paint.setStyle(Paint.Style.FILL);
-
-        if (isDestroyer) {
-            // 超武【毁灭者】：合体黑红双核重型母机，悬浮特工正上方
-            float floatY = (float) Math.sin(animTick * 0.18) * 4 * density;
-            float dx = px;
-            float dy = py - 46 * density + floatY;
-
-            canvas.save();
-            canvas.translate(dx, dy);
-
-            // 推进器尾焰
-            paint.setColor(0xFFEF4444);
-            canvas.drawCircle(-8 * density, 8 * density, 4 * density, paint);
-            canvas.drawCircle(8 * density, 8 * density, 4 * density, paint);
-            paint.setColor(0xFFFEF08A);
-            canvas.drawCircle(-8 * density, 7 * density, 2 * density, paint);
-            canvas.drawCircle(8 * density, 7 * density, 2 * density, paint);
-
-            // 母机黑钛合金机体
-            paint.setColor(0xFF0F172A);
-            canvas.drawRoundRect(new RectF(-16 * density, -8 * density, 16 * density, 8 * density), 4 * density, 4 * density, paint);
-
-            // 能量核心红芒
-            paint.setColor(0xFFDC2626);
-            canvas.drawCircle(0, 0, 4.5f * density, paint);
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(0, 0, 2f * density, paint);
-
-            // 双旋翼高速旋转
-            paint.setColor(0x88CBD5E1);
-            float rotorSpin = (animTick * 1.2f) % (float) Math.PI;
-            canvas.drawLine(-16 * density - 6 * density, -8 * density, -16 * density + 6 * density, -8 * density, paint);
-            canvas.drawLine(16 * density - 6 * density, -8 * density, 16 * density + 6 * density, -8 * density, paint);
-
-            canvas.restore();
-            return;
-        }
-
-        // 普通 A 机 (左上伴飞，白银机体，机枪机)
-        if (hasA) {
-            float floatY = (float) Math.sin(animTick * 0.16) * 3 * density;
-            float dx = px - 32 * density;
-            float dy = py - 30 * density + floatY;
-
-            canvas.save();
-            canvas.translate(dx, dy);
-
-            paint.setColor(0xFFE2E8F0);
-            canvas.drawRoundRect(new RectF(-10 * density, -5 * density, 10 * density, 5 * density), 3 * density, 3 * density, paint);
-            paint.setColor(0xFFEF4444); // 红色雷达指示灯
-            canvas.drawCircle(4 * density, 0, 2f * density, paint);
-            // 机枪枪管
-            paint.setColor(0xFF334155);
-            canvas.drawRect(8 * density, -1.5f * density, 13 * density, 1.5f * density, paint);
-
-            canvas.restore();
-        }
-
-        // 普通 B 机 (右上伴飞，黑曜机体，导弹机)
-        if (hasB) {
-            float floatY = (float) Math.cos(animTick * 0.16) * 3 * density;
-            float dx = px + 32 * density;
-            float dy = py - 30 * density + floatY;
-
-            canvas.save();
-            canvas.translate(dx, dy);
-
-            paint.setColor(0xFF1E293B);
-            canvas.drawRoundRect(new RectF(-10 * density, -5 * density, 10 * density, 5 * density), 3 * density, 3 * density, paint);
-            paint.setColor(0xFF38BDF8); // 蓝色雷达指示灯
-            canvas.drawCircle(-4 * density, 0, 2f * density, paint);
-            // 微型导弹挂架
-            paint.setColor(0xFF94A3B8);
-            canvas.drawRect(-8 * density, 4 * density, -2 * density, 7 * density, paint);
-            canvas.drawRect(2 * density, 4 * density, 8 * density, 7 * density, paint);
-
-            canvas.restore();
-        }
-    }
-
-    /** 绘制《蛋壳特工队》标志性全屏 WARNING 警报横幅 */
-    public void drawWarningBanner(Canvas canvas, float width, float height, float density, long animTick) {
-        float pulse = (float) (0.5 + 0.5 * Math.sin(animTick * 0.28));
-        int redAlpha = (int) (140 * pulse);
-
-        // 全屏四周猩红警报扫掠
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(22 * density);
-        strokePaint.setColor(Color.argb(redAlpha, 220, 38, 38));
-        canvas.drawRect(0, 0, width, height, strokePaint);
-
-        // 屏幕中段黑黄斜斑马纹横幅
-        float bannerH = 56 * density;
-        float bannerY = height * 0.38f;
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xEE0F172A);
-        canvas.drawRect(0, bannerY, width, bannerY + bannerH, paint);
-
-        // 横幅上下黄色警戒线
-        paint.setColor(0xFFF59E0B);
-        canvas.drawRect(0, bannerY, width, bannerY + 3 * density, paint);
-        canvas.drawRect(0, bannerY + bannerH - 3 * density, width, bannerY + bannerH, paint);
-
-        // 居中大字：⚠️ WARNING!! ⚠️
-        paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(26 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        paint.setColor(0xFFEF4444);
-        canvas.drawText("⚠️ WARNING!! ⚠️", width / 2f, bannerY + 30 * density, paint);
-
-        // 副标题警报提示
-        paint.setTextSize(12.5f * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT);
-        paint.setColor(0xFFFDE047);
-        canvas.drawText("高危生化母体迫近 · 特工请全力迎敌", width / 2f, bannerY + 48 * density, paint);
-        paint.setTextAlign(Paint.Align.LEFT);
-    }
-
-    /** 绘制 Boss 冲撞矩形预警带 */
-    public void drawBossTelegraph(Canvas canvas, float startX, float startY, float endX, float endY,
-                                 float bandWidth, float density, float progress) {
-        double angle = Math.atan2(endY - startY, endX - startX);
-        float dist = (float) Math.hypot(endX - startX, endY - startY);
-
-        canvas.save();
-        canvas.translate(startX * density, startY * density);
-        canvas.rotate((float) Math.toDegrees(angle));
-
-        // 红色半透明警示带
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0x33EF4444);
-        canvas.drawRect(0, -bandWidth / 2f * density, dist * density, bandWidth / 2f * density, paint);
-
-        // 预警蓄力前进扫掠进度条
-        paint.setColor(0x66DC2626);
-        canvas.drawRect(0, -bandWidth / 2f * density, dist * density * progress, bandWidth / 2f * density, paint);
-
-        // 红色边缘虚线
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(1.5f * density);
-        strokePaint.setColor(0xAAEF4444);
-        canvas.drawRect(0, -bandWidth / 2f * density, dist * density, bandWidth / 2f * density, strokePaint);
 
         canvas.restore();
     }
 
     /**
-     * 绘制《蛋壳特工队》顶栏横贯式高能绿色经验槽 (Survivor.io Top EXP Bar)
+     * 1. 经典普通生化丧尸 (Classic Walking Dead Zombie - 《蛋壳特工队》最常见小怪)
      */
-    public void drawTopExpBar(Canvas canvas, float width, float density, int curExp, int maxExp,
-                             int level, int score, int wave, int totalWaves) {
-        float barH = 10 * density;
-        float ratio = Math.min(1.0f, (float) curExp / Math.max(1, maxExp));
+    private void drawClassicZombie(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        float lurch = (float) Math.sin(animTick * 0.22f + enemy.x) * (3f * density);
+        float armReach = (float) Math.cos(animTick * 0.22f + enemy.x) * (4f * density);
 
-        // 经验条深色基底
+        paint.setStyle(Paint.Style.FILL);
+
+        // 破烂深蓝工装裤与迈步双腿
+        paint.setColor(0xFF1E293B);
+        canvas.drawRect(-s * 0.45f, s * 0.35f, -s * 0.12f, s * 0.85f + lurch, paint);
+        canvas.drawRect(s * 0.12f, s * 0.35f, s * 0.45f, s * 0.85f - lurch, paint);
+
+        // 破旧办公室青蓝衬衫（露出撕裂口）
+        paint.setColor(0xFF0284C7);
+        canvas.drawRoundRect(new RectF(-s * 0.52f, -s * 0.05f, s * 0.52f, s * 0.45f), 4 * density, 4 * density, paint);
+        // 破损处露出腐烂绿肉
+        paint.setColor(0xFF65A30D);
+        canvas.drawCircle(-s * 0.25f, s * 0.2f, 3.5f * density, paint);
+
+        // 丧尸伸直抓挠双臂 (Outstretched Grasping Zombie Arms)
+        paint.setColor(0xFF84CC16); // 腐败浅绿表皮
+        canvas.drawRoundRect(new RectF(-s * 0.65f, 0, -s * 0.35f, s * 0.5f + armReach), 2.5f * density, 2.5f * density, paint);
+        canvas.drawRoundRect(new RectF(s * 0.35f, 0, s * 0.65f, s * 0.5f - armReach), 2.5f * density, 2.5f * density, paint);
+        // 尖锐指爪
+        paint.setColor(0xFF14532D);
+        canvas.drawCircle(-s * 0.5f, s * 0.52f + armReach, 2 * density, paint);
+        canvas.drawCircle(s * 0.5f, s * 0.52f - armReach, 2 * density, paint);
+
+        // 腐烂绿色丧尸头颅
+        paint.setColor(0xFF84CC16);
+        float headCy = -s * 0.42f;
+        canvas.drawCircle(0, headCy, s * 0.48f, paint);
+
+        // 凌乱黑发
+        paint.setColor(0xFF0F172A);
+        tempPath.reset();
+        tempPath.moveTo(-s * 0.45f, headCy - s * 0.2f);
+        tempPath.lineTo(-s * 0.2f, headCy - s * 0.55f);
+        tempPath.lineTo(0, headCy - s * 0.35f);
+        tempPath.lineTo(s * 0.3f, headCy - s * 0.58f);
+        tempPath.lineTo(s * 0.48f, headCy - s * 0.15f);
+        tempPath.close();
+        canvas.drawPath(tempPath, paint);
+
+        // 猩红凶煞双眼 (Glowing Evil Red Eyes)
+        paint.setColor(0xFF0F172A); // 深陷黑眼眶
+        canvas.drawCircle(-s * 0.22f, headCy + 1 * density, s * 0.16f, paint);
+        canvas.drawCircle(s * 0.22f, headCy + 1 * density, s * 0.16f, paint);
+
+        paint.setColor(0xFFDC2626); // 血红凶光
+        canvas.drawCircle(-s * 0.22f, headCy + 1 * density, s * 0.09f, paint);
+        canvas.drawCircle(s * 0.22f, headCy + 1 * density, s * 0.09f, paint);
+
+        // 咧开的腐烂嘴部与尖牙
+        paint.setColor(0xFF1F2937);
+        canvas.drawRoundRect(new RectF(-s * 0.25f, headCy + s * 0.22f, s * 0.25f, headCy + s * 0.38f),
+                2 * density, 2 * density, paint);
+        paint.setColor(0xFFFEF08A); // 黄板牙
+        canvas.drawRect(-s * 0.15f, headCy + s * 0.24f, -s * 0.05f, headCy + s * 0.30f, paint);
+        canvas.drawRect(s * 0.05f, headCy + s * 0.24f, s * 0.15f, headCy + s * 0.30f, paint);
+    }
+
+    /**
+     * 2. 自爆剧毒蛛虫 (Poison Swarm Spider Bug)
+     */
+    private void drawSwarmBug(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+
+        // 6条分节蜘蛛快频爬行腿
+        strokePaint.setColor(0xFF4C1D95);
+        strokePaint.setStrokeWidth(2.2f * density);
+        float legSwing = (float) Math.sin(animTick * 0.4f + enemy.x) * (5f * density);
+
+        for (int i = -1; i <= 1; i++) {
+            float ly = i * (s * 0.32f);
+            canvas.drawLine(-s * 0.3f, ly, -s * 0.85f, ly - s * 0.4f + legSwing * i, strokePaint);
+            canvas.drawLine(-s * 0.85f, ly - s * 0.4f + legSwing * i, -s * 1.15f, ly + s * 0.2f, strokePaint);
+
+            canvas.drawLine(s * 0.3f, ly, s * 0.85f, ly - s * 0.4f - legSwing * i, strokePaint);
+            canvas.drawLine(s * 0.85f, ly - s * 0.4f - legSwing * i, s * 1.15f, ly + s * 0.2f, strokePaint);
+        }
+
+        // 膨胀剧毒荧光尾囊 (Glowing Venom Egg Sac)
+        paint.setColor(0xFF7E22CE);
+        canvas.drawOval(new RectF(-s * 0.65f, -s * 0.1f, s * 0.65f, s * 0.85f), paint);
+
+        // 剧毒荧光斑纹 (Biohazard Glow)
+        float pulse = 0.8f + 0.2f * (float) Math.sin(animTick * 0.35f);
+        paint.setColor(0xFF84CC16);
+        canvas.drawCircle(0, s * 0.45f, s * 0.25f * pulse, paint);
+        paint.setColor(0xFFFACC15);
+        canvas.drawCircle(0, s * 0.45f, s * 0.12f * pulse, paint);
+
+        // 甲壳胸节与凶残口器
+        paint.setColor(0xFF3B0764);
+        canvas.drawOval(new RectF(-s * 0.45f, -s * 0.65f, s * 0.45f, 0f), paint);
+
+        // 4只猩红复眼
+        paint.setColor(0xFFEF4444);
+        canvas.drawCircle(-s * 0.22f, -s * 0.45f, 2.5f * density, paint);
+        canvas.drawCircle(s * 0.22f, -s * 0.45f, 2.5f * density, paint);
+        canvas.drawCircle(-s * 0.1f, -s * 0.55f, 1.8f * density, paint);
+        canvas.drawCircle(s * 0.1f, -s * 0.55f, 1.8f * density, paint);
+    }
+
+    /**
+     * 3. 感染狂暴猎犬 (Infected Runner Hound)
+     */
+    private void drawRunnerHound(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+        float gallop = (float) Math.sin(animTick * 0.45f + enemy.x) * (6f * density);
+
+        // 狂暴血肉四肢奔跑姿态
+        paint.setColor(0xFF7F1D1D);
+        canvas.drawRoundRect(new RectF(-s * 0.75f, s * 0.2f, -s * 0.45f, s * 0.85f + gallop), 2 * density, 2 * density, paint);
+        canvas.drawRoundRect(new RectF(s * 0.45f, s * 0.2f, s * 0.75f, s * 0.85f - gallop), 2 * density, 2 * density, paint);
+
+        // 肌肉虬结的血肉躯干
+        paint.setColor(0xFF991B1B);
+        canvas.drawOval(new RectF(-s * 0.65f, -s * 0.35f, s * 0.65f, s * 0.45f), paint);
+
+        // 脊椎骨凸起锋利骨刺 (Spinal Bone Spikes)
+        paint.setColor(0xFFF1F5F9);
+        for (int i = -2; i <= 2; i++) {
+            float bx = i * (s * 0.22f);
+            tempPath.reset();
+            tempPath.moveTo(bx - 2 * density, -s * 0.35f);
+            tempPath.lineTo(bx, -s * 0.65f);
+            tempPath.lineTo(bx + 2 * density, -s * 0.35f);
+            tempPath.close();
+            canvas.drawPath(tempPath, paint);
+        }
+
+        // 凶残獠牙兽首
+        paint.setColor(0xFF7F1D1D);
+        canvas.drawOval(new RectF(-s * 0.45f, -s * 0.82f, s * 0.45f, -s * 0.2f), paint);
+
+        // 狂怒黄色兽瞳与滴血利齿
+        paint.setColor(0xFFFBBF24);
+        canvas.drawCircle(-s * 0.2f, -s * 0.55f, 2.8f * density, paint);
+        canvas.drawCircle(s * 0.2f, -s * 0.55f, 2.8f * density, paint);
+
+        paint.setColor(Color.WHITE); // 惨白獠牙
+        canvas.drawRect(-s * 0.25f, -s * 0.35f, -s * 0.15f, -s * 0.2f, paint);
+        canvas.drawRect(s * 0.15f, -s * 0.35f, s * 0.25f, -s * 0.2f, paint);
+    }
+
+    /**
+     * 4. 剧毒晶翅幻蛾 (Toxic Zigzag Moth)
+     */
+    private void drawZigzagMoth(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+        float wingFlap = (float) Math.sin(animTick * 0.45f + enemy.x) * (s * 0.35f);
+
+        // 左右巨型斑纹毒翼 (Poison Patterned Wings)
+        paint.setColor(0xDDA855F7);
+        tempPath.reset();
+        tempPath.moveTo(-s * 0.15f, -s * 0.1f);
+        tempPath.quadTo(-s * 1.35f, -s * 0.85f + wingFlap, -s * 1.25f, s * 0.35f + wingFlap);
+        tempPath.lineTo(-s * 0.15f, s * 0.35f);
+        tempPath.close();
+        canvas.drawPath(tempPath, paint);
+
+        tempPath.reset();
+        tempPath.moveTo(s * 0.15f, -s * 0.1f);
+        tempPath.quadTo(s * 1.35f, -s * 0.85f + wingFlap, s * 1.25f, s * 0.35f + wingFlap);
+        tempPath.lineTo(s * 0.15f, s * 0.35f);
+        tempPath.close();
+        canvas.drawPath(tempPath, paint);
+
+        // 翅膀迷幻眼斑
+        paint.setColor(0xFFF43F5E);
+        canvas.drawCircle(-s * 0.75f, -s * 0.15f + wingFlap, s * 0.18f, paint);
+        canvas.drawCircle(s * 0.75f, -s * 0.15f + wingFlap, s * 0.18f, paint);
+
+        // 茸毛躯干与羽状触角
+        paint.setColor(0xFF3B0764);
+        canvas.drawRoundRect(new RectF(-s * 0.22f, -s * 0.55f, s * 0.22f, s * 0.65f),
+                3 * density, 3 * density, paint);
+
+        strokePaint.setColor(0xFFC084FC);
+        strokePaint.setStrokeWidth(1.8f * density);
+        canvas.drawLine(0, -s * 0.5f, -s * 0.35f, -s * 0.95f, strokePaint);
+        canvas.drawLine(0, -s * 0.5f, s * 0.35f, -s * 0.95f, strokePaint);
+    }
+
+    /**
+     * 5. 异变分裂黏液球 (Splitter Slime Blob with Floating Skull)
+     */
+    private void drawSplitterBlob(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+        float squish = (float) Math.sin(animTick * 0.3f + enemy.x) * (s * 0.15f);
+
+        // 半透翠绿胶质黏液躯体
+        paint.setColor(0xCC10B981);
+        canvas.drawOval(new RectF(-s * 0.95f - squish, -s * 0.75f + squish,
+                s * 0.95f + squish, s * 0.85f - squish), paint);
+
+        // 内部包裹的人类骷髅残骸 (Floating Skull Inside Slime)
+        paint.setColor(0xFFE2E8F0);
+        canvas.drawCircle(0, -s * 0.12f, s * 0.32f, paint);
+        canvas.drawRect(-s * 0.2f, s * 0.05f, s * 0.2f, s * 0.25f, paint);
+
+        // 骷髅黑眼窝
+        paint.setColor(0xFF0F172A);
+        canvas.drawCircle(-s * 0.12f, -s * 0.15f, s * 0.09f, paint);
+        canvas.drawCircle(s * 0.12f, -s * 0.15f, s * 0.09f, paint);
+
+        // 黏液表面光泽斑块
+        paint.setColor(0x88A7F3D0);
+        canvas.drawOval(new RectF(-s * 0.6f, -s * 0.55f, -s * 0.15f, -s * 0.25f), paint);
+    }
+
+    /**
+     * 6. 小型分裂幼体 (Minion Slime)
+     */
+    private void drawMinionSlime(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+        float hop = (float) Math.abs(Math.sin(animTick * 0.35f + enemy.x)) * (3f * density);
+
+        paint.setColor(0xFF34D399);
+        canvas.drawOval(new RectF(-s * 0.75f, -s * 0.65f - hop, s * 0.75f, s * 0.55f - hop), paint);
+
+        // 呆萌大眼
+        paint.setColor(Color.WHITE);
+        canvas.drawCircle(-s * 0.28f, -s * 0.15f - hop, s * 0.22f, paint);
+        canvas.drawCircle(s * 0.28f, -s * 0.15f - hop, s * 0.22f, paint);
+
+        paint.setColor(0xFF0F172A);
+        canvas.drawCircle(-s * 0.25f, -s * 0.15f - hop, s * 0.12f, paint);
+        canvas.drawCircle(s * 0.31f, -s * 0.15f - hop, s * 0.12f, paint);
+    }
+
+    /**
+     * 7. 生化重装泰坦屠夫 (Mutant Tank Behemoth - 精英巨兽)
+     */
+    private void drawTankBehemoth(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+        float stomp = (float) Math.sin(animTick * 0.18f + enemy.x) * (2f * density);
+
+        // 巨型紫灰粗壮四肢
+        paint.setColor(0xFF334155);
+        canvas.drawRoundRect(new RectF(-s * 0.85f, s * 0.2f, -s * 0.35f, s * 0.95f + stomp), 4 * density, 4 * density, paint);
+        canvas.drawRoundRect(new RectF(s * 0.35f, s * 0.2f, s * 0.85f, s * 0.95f - stomp), 4 * density, 4 * density, paint);
+
+        // 雄伟巨硕肌肉躯干
+        paint.setColor(0xFF475569);
+        canvas.drawRoundRect(new RectF(-s * 0.95f, -s * 0.45f, s * 0.95f, s * 0.55f), 8 * density, 8 * density, paint);
+
+        // 铆钉厚铁肩甲 (Riveted Iron Shoulder Armor)
+        paint.setColor(0xFF1E293B);
+        canvas.drawRoundRect(new RectF(-s * 1.15f, -s * 0.65f, -s * 0.55f, -s * 0.15f), 4 * density, 4 * density, paint);
+        canvas.drawRoundRect(new RectF(s * 0.55f, -s * 0.65f, s * 1.15f, -s * 0.15f), 4 * density, 4 * density, paint);
+
+        paint.setColor(0xFF94A3B8); // 钢制铆钉
+        canvas.drawCircle(-s * 0.85f, -s * 0.4f, 2.5f * density, paint);
+        canvas.drawCircle(s * 0.85f, -s * 0.4f, 2.5f * density, paint);
+
+        // 凶恶铁面具兽头
+        paint.setColor(0xFF334155);
+        canvas.drawCircle(0, -s * 0.65f, s * 0.42f, paint);
+        paint.setColor(0xFF0F172A); // 铁面罩
+        canvas.drawRect(-s * 0.28f, -s * 0.65f, s * 0.28f, -s * 0.35f, paint);
+
+        // 猩红发光狭缝眼
+        paint.setColor(0xFFEF4444);
+        canvas.drawRect(-s * 0.25f, -s * 0.78f, -s * 0.08f, -s * 0.70f, paint);
+        canvas.drawRect(s * 0.08f, -s * 0.78f, s * 0.25f, -s * 0.70f, paint);
+
+        // 右手持握巨大生化重锤/钢管
+        paint.setColor(0xFF0F172A);
+        canvas.drawRect(s * 0.95f, -s * 0.95f, s * 1.15f, s * 0.65f, paint);
+        paint.setColor(0xFFDC2626); // 沾染血迹的锤头
+        canvas.drawRoundRect(new RectF(s * 0.8f, -s * 1.35f, s * 1.3f, -s * 0.85f), 3 * density, 3 * density, paint);
+    }
+
+    /**
+     * 8. 深渊母体生化领主 (Abyssal Hive Lord - 关底终极Boss)
+     */
+    private void drawBossHiveLord(Canvas canvas, Enemy enemy, float s, long animTick, float density) {
+        paint.setStyle(Paint.Style.FILL);
+
+        // 4条扭动巨型合金生化触手 (Writhe Bladed Cyber Tentacles)
+        for (int i = 0; i < 4; i++) {
+            float tAngle = (float) (i * Math.PI / 2.0 + animTick * 0.05f);
+            float tx = (float) Math.cos(tAngle) * (s * 1.15f);
+            float ty = (float) Math.sin(tAngle) * (s * 1.15f);
+
+            strokePaint.setColor(0xFF7F1D1D);
+            strokePaint.setStrokeWidth(5 * density);
+            canvas.drawLine(0, 0, tx, ty, strokePaint);
+
+            // 触手尖端利刃
+            paint.setColor(0xFFEF4444);
+            canvas.drawCircle(tx, ty, 5.5f * density, paint);
+        }
+
+        // 钛合金重装母体躯干
+        paint.setColor(0xFF18181B);
+        canvas.drawCircle(0, 0, s * 0.85f, paint);
+        strokePaint.setColor(0xFF71717A);
+        strokePaint.setStrokeWidth(4 * density);
+        canvas.drawCircle(0, 0, s * 0.82f, strokePaint);
+
+        // 核心脉动反应堆 (Pulsating Bio-Core)
+        float corePulse = 0.85f + 0.15f * (float) Math.sin(animTick * 0.25f);
+        paint.setColor(0xFFDC2626);
+        canvas.drawCircle(0, 0, s * 0.42f * corePulse, paint);
+        paint.setColor(0xFFFEF08A);
+        canvas.drawCircle(0, 0, s * 0.22f * corePulse, paint);
+
+        // 五颗环绕冷酷复眼
+        for (int i = 0; i < 5; i++) {
+            float eAngle = (float) (i * 2.0 * Math.PI / 5.0 - Math.PI / 2.0);
+            float ex = (float) Math.cos(eAngle) * (s * 0.62f);
+            float ey = (float) Math.sin(eAngle) * (s * 0.62f);
+
+            paint.setColor(0xFFFBBF24);
+            canvas.drawCircle(ex, ey, 4.5f * density, paint);
+            paint.setColor(0xFF7F1D1D);
+            canvas.drawCircle(ex, ey, 2.2f * density, paint);
+        }
+
+        // 顶部 Boss 战神标识
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(12 * density);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        textPaint.setColor(0xFFEF4444);
+        canvas.drawText("👑 BOSS 👑", 0, -s * 1.05f, textPaint);
+    }
+
+    private void drawEnemyHealthBar(Canvas canvas, Enemy enemy, float s, float density) {
+        float barW = s * 1.5f;
+        float barH = 3.5f * density;
+        float topY = -s * 0.95f;
+
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0x88000000);
+        canvas.drawRoundRect(new RectF(-barW / 2f, topY, barW / 2f, topY + barH), 1.5f * density, 1.5f * density, paint);
+
+        float pct = Math.max(0f, (float) enemy.hp / Math.max(1, enemy.maxHp));
+        paint.setColor(pct > 0.4f ? 0xFFEF4444 : 0xFFDC2626);
+        canvas.drawRoundRect(new RectF(-barW / 2f, topY, -barW / 2f + barW * pct, topY + barH),
+                1.5f * density, 1.5f * density, paint);
+    }
+
+    // =========================================================================
+    // 4. 武器弹道、手里剑、旋转飞盘、无人机与力场高模 (Weapons & Effects)
+    // =========================================================================
+
+    public void drawProjectiles(Canvas canvas, BrotatoArena value, BrotatoHero hero,
+                                SurvivorSkill.SkillInventory inventory, long animTick, float density) {
+        boolean isGhostShuriken = inventory != null && inventory.isEvolved(SurvivorSkill.Type.KUNAI);
+
+        for (Projectile bullet : value.projectiles()) {
+            float bx = bullet.x * density;
+            float by = bullet.y * density;
+            float angle = (float) Math.atan2(bullet.vy, bullet.vx);
+
+            canvas.save();
+            canvas.translate(bx, by);
+            canvas.rotate((float) Math.toDegrees(angle));
+
+            if (isGhostShuriken) {
+                // 幽灵手里剑 (Ghost Shuriken EVO): 旋转飞舞四角破空飞镖
+                drawGhostShurikenBullet(canvas, animTick, density);
+            } else {
+                // 经典战术苦无飞镖
+                drawKunaiBullet(canvas, density);
+            }
+
+            canvas.restore();
+        }
+    }
+
+    private void drawKunaiBullet(Canvas canvas, float density) {
+        // 气流尾光
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0x6638BDF8);
+        canvas.drawRect(-12 * density, -1.8f * density, 0, 1.8f * density, paint);
+
+        // 银刃苦无
+        paint.setColor(0xFFF1F5F9);
+        tempPath.reset();
+        tempPath.moveTo(8 * density, 0);
+        tempPath.lineTo(0, -3.2f * density);
+        tempPath.lineTo(-5 * density, -2f * density);
+        tempPath.lineTo(-5 * density, 2f * density);
+        tempPath.lineTo(0, 3.2f * density);
+        tempPath.close();
+        canvas.drawPath(tempPath, paint);
+
+        // 锋刃高光
+        paint.setColor(0xFF38BDF8);
+        canvas.drawCircle(8 * density, 0, 1.5f * density, paint);
+    }
+
+    private void drawGhostShurikenBullet(Canvas canvas, long animTick, float density) {
+        float rot = (animTick * 28f) % 360f;
+        canvas.rotate(rot);
+
+        // 幽能灵焰外晕
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0x88A855F7);
+        canvas.drawCircle(0, 0, 10 * density, paint);
+
+        // 4角旋转刀刃
+        paint.setColor(0xFFE0E7FF);
+        for (int i = 0; i < 4; i++) {
+            canvas.save();
+            canvas.rotate(i * 90f);
+            tempPath.reset();
+            tempPath.moveTo(0, 0);
+            tempPath.lineTo(9 * density, -2.5f * density);
+            tempPath.lineTo(12 * density, 0);
+            tempPath.lineTo(9 * density, 2.5f * density);
+            tempPath.close();
+            canvas.drawPath(tempPath, paint);
+            canvas.restore();
+        }
+
+        // 紫电幽核
+        paint.setColor(0xFF8B5CF6);
+        canvas.drawCircle(0, 0, 3.5f * density, paint);
+    }
+
+    public void drawGuardianBlades(Canvas canvas, float px, float py, float orbitRadius,
+                                   int bladeCount, boolean isDefender, long animTick, float density) {
+        float baseAngle = (animTick * (isDefender ? 14f : 8.5f)) % 360f;
+
+        // 防御力场环
+        strokePaint.setStyle(Paint.Style.STROKE);
+        strokePaint.setColor(isDefender ? 0x66F59E0B : 0x4438BDF8);
+        strokePaint.setStrokeWidth(2f * density);
+        canvas.drawCircle(px, py, orbitRadius, strokePaint);
+
+        float step = 360f / bladeCount;
+        for (int i = 0; i < bladeCount; i++) {
+            float angleDeg = baseAngle + i * step;
+            double rad = Math.toRadians(angleDeg);
+            float bx = px + (float) Math.cos(rad) * orbitRadius;
+            float by = py + (float) Math.sin(rad) * orbitRadius;
+
+            canvas.save();
+            canvas.translate(bx, by);
+            canvas.rotate(angleDeg * 3.5f); // 飞盘高速自转
+
+            float bladeR = (isDefender ? 14f : 11f) * density;
+
+            // 锯齿圆形飞盘模型
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(isDefender ? 0xFFF59E0B : 0xFFE2E8F0);
+            canvas.drawCircle(0, 0, bladeR, paint);
+
+            // 齿刃切割线
+            strokePaint.setColor(isDefender ? 0xFFDC2626 : 0xFF0284C7);
+            strokePaint.setStrokeWidth(2f * density);
+            for (int k = 0; k < 6; k++) {
+                float kRad = (float) (k * Math.PI / 3.0);
+                canvas.drawLine((float) Math.cos(kRad) * bladeR * 0.35f, (float) Math.sin(kRad) * bladeR * 0.35f,
+                        (float) Math.cos(kRad) * bladeR * 1.15f, (float) Math.sin(kRad) * bladeR * 1.15f, strokePaint);
+            }
+
+            // 核心轴承
+            paint.setColor(0xFF1E293B);
+            canvas.drawCircle(0, 0, bladeR * 0.32f, paint);
+
+            canvas.restore();
+        }
+    }
+
+    public void drawForcefield(Canvas canvas, float px, float py, float fieldRadius,
+                               boolean isSuppression, long animTick, float density) {
+        // 半透力场护盾球
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(isSuppression ? 0x24A855F7 : 0x1E06B6D4);
+        canvas.drawCircle(px, py, fieldRadius, paint);
+
+        // 旋转蜂窝六边形能量边界网格
+        strokePaint.setStyle(Paint.Style.STROKE);
+        strokePaint.setColor(isSuppression ? 0x88C084FC : 0x7738BDF8);
+        strokePaint.setStrokeWidth(2.2f * density);
+        canvas.drawCircle(px, py, fieldRadius, strokePaint);
+
+        // 6个能量节点
+        float rotAngle = (animTick * 1.5f) % 360f;
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(isSuppression ? 0xFFE879F9 : 0xFF67E8F9);
+        for (int i = 0; i < 6; i++) {
+            double rad = Math.toRadians(rotAngle + i * 60);
+            float nx = px + (float) Math.cos(rad) * fieldRadius;
+            float ny = py + (float) Math.sin(rad) * fieldRadius;
+            canvas.drawCircle(nx, ny, 3.2f * density, paint);
+        }
+    }
+
+    public void drawDrones(Canvas canvas, float px, float py, boolean hasA, boolean hasB,
+                           boolean isDestroyer, long animTick, float density) {
+        if (isDestroyer) {
+            // 毁灭者 (Destroyer EVO): 双机融合终极隐身战舰
+            float dist = 42 * density;
+            double rad = Math.toRadians((animTick * 2.5f) % 360f);
+            float dx = px + (float) Math.cos(rad) * dist;
+            float dy = py + (float) Math.sin(rad) * dist - 18 * density;
+            drawDestroyerDroneModel(canvas, dx, dy, animTick, density);
+        } else {
+            if (hasA) {
+                float dx = px - 32 * density;
+                float dy = py - 32 * density + (float) Math.sin(animTick * 0.15f) * (4f * density);
+                drawSingleDroneModel(canvas, dx, dy, true, animTick, density);
+            }
+            if (hasB) {
+                float dx = px + 32 * density;
+                float dy = py - 32 * density + (float) Math.cos(animTick * 0.15f) * (4f * density);
+                drawSingleDroneModel(canvas, dx, dy, false, animTick, density);
+            }
+        }
+    }
+
+    private void drawSingleDroneModel(Canvas canvas, float x, float y, boolean isWhiteA,
+                                      long animTick, float density) {
+        canvas.save();
+        canvas.translate(x, y);
+
+        // 无人机机身
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(isWhiteA ? 0xFFF1F5F9 : 0xFF1E293B);
+        canvas.drawRoundRect(new RectF(-10 * density, -6 * density, 10 * density, 6 * density), 3 * density, 3 * density, paint);
+
+        // 光学扫描仪眼睛
+        paint.setColor(isWhiteA ? 0xFF0284C7 : 0xFFEF4444);
+        canvas.drawCircle(0, 0, 3 * density, paint);
+
+        // 4个高速旋转螺旋桨旋翼
+        float rotorRot = (animTick * 35f) % 360f;
+        strokePaint.setColor(0x8894A3B8);
+        strokePaint.setStrokeWidth(1.5f * density);
+        for (float[] p : new float[][]{{-9, -6}, {9, -6}, {-9, 6}, {9, 6}}) {
+            canvas.save();
+            canvas.translate(p[0] * density, p[1] * density);
+            canvas.rotate(rotorRot);
+            canvas.drawLine(-5 * density, 0, 5 * density, 0, strokePaint);
+            canvas.restore();
+        }
+
+        canvas.restore();
+    }
+
+    private void drawDestroyerDroneModel(Canvas canvas, float x, float y, long animTick, float density) {
+        canvas.save();
+        canvas.translate(x, y);
+
+        // 终极毁灭者隐形轰炸机翼
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFF0F172A);
+        tempPath.reset();
+        tempPath.moveTo(0, -12 * density);
+        tempPath.lineTo(18 * density, 10 * density);
+        tempPath.lineTo(0, 5 * density);
+        tempPath.lineTo(-18 * density, 10 * density);
+        tempPath.close();
+        canvas.drawPath(tempPath, paint);
+
+        // 炽热能量喷气尾焰
+        paint.setColor(0xFFF59E0B);
+        canvas.drawCircle(0, 8 * density, 4.5f * density, paint);
+
+        // 红色瞄准激光十字
+        paint.setColor(0xFFDC2626);
+        canvas.drawCircle(0, 0, 3 * density, paint);
+
+        canvas.restore();
+    }
+
+    // =========================================================================
+    // 5. 界面与 HUD 辅助系统 (Warning, EXP Bar, Dialogs)
+    // =========================================================================
+
+    public void drawWarningBanner(Canvas canvas, float width, float height, float density, long animTick) {
+        float alpha = (float) (0.65f + 0.35f * Math.sin(animTick * 0.4f));
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb((int) (alpha * 195), 185, 28, 28));
+
+        float bannerH = 46 * density;
+        float bannerY = height * 0.22f;
+        canvas.drawRect(0, bannerY, width, bannerY + bannerH, paint);
+
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(20 * density);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        canvas.drawText("⚠️ WARNING! 生化变异领主逼近 ⚠️", width / 2f, bannerY + 30 * density, textPaint);
+    }
+
+    public void drawTopExpBar(Canvas canvas, float width, float density, int curExp, int maxExp,
+                              int curLevel, int score, int wave, int totalWaves) {
+        float barH = 14 * density;
+
+        // 顶栏底黑衬底
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFF0F172A);
         canvas.drawRect(0, 0, width, barH, paint);
 
-        // 充盈的翡翠亮绿经验条
-        paint.setColor(0xFF10B981);
+        // 荧光亮绿经验进度条
+        float ratio = maxExp > 0 ? Math.min(1.0f, (float) curExp / maxExp) : 0f;
+        paint.setColor(0xFF22C55E);
         canvas.drawRect(0, 0, width * ratio, barH, paint);
-        // 经验条上边缘高光
-        paint.setColor(0xFF6EE7B7);
-        canvas.drawRect(0, 0, width * ratio, 2.5f * density, paint);
 
-        // 左上角六边形等级勋章 (LV. X)
-        float badgeX = 26 * density;
-        float badgeY = barH + 14 * density;
-        float badgeR = 12 * density;
+        // 等级宝石勋章徽章
+        paint.setColor(0xFF1E293B);
+        canvas.drawRoundRect(new RectF(10 * density, 2 * density, 60 * density, barH + 16 * density),
+                6 * density, 6 * density, paint);
+        strokePaint.setColor(0xFFFBBF24);
+        strokePaint.setStrokeWidth(1.8f * density);
+        canvas.drawRoundRect(new RectF(10 * density, 2 * density, 60 * density, barH + 16 * density),
+                6 * density, 6 * density, strokePaint);
 
-        // 勋章深绿底
-        paint.setColor(0xFF065F46);
-        canvas.drawCircle(badgeX, badgeY, badgeR, paint);
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(2 * density);
-        strokePaint.setColor(0xFF34D399);
-        canvas.drawCircle(badgeX, badgeY, badgeR, strokePaint);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setColor(0xFFFBBF24);
+        textPaint.setTextSize(12 * density);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        canvas.drawText("LV." + curLevel, 35 * density, barH + 12 * density, textPaint);
 
-        // 等级文本
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.WHITE);
-        paint.setTextSize(11 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        paint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("LV." + level, badgeX, badgeY + 4 * density, paint);
+        // 顶部小字
+        textPaint.setTextAlign(Paint.Align.LEFT);
+        textPaint.setColor(0xFF94A3B8);
+        textPaint.setTextSize(10 * density);
+        canvas.drawText("战功 " + score, 68 * density, barH + 11 * density, textPaint);
 
-        // 顶部 HUD 战况信息
-        paint.setTextAlign(Paint.Align.LEFT);
-        paint.setTextSize(14 * density);
-        paint.setColor(0xFFF1F5F9);
-        canvas.drawText("战功 " + score, 48 * density, badgeY + 4.5f * density, paint);
-
-        paint.setTextAlign(Paint.Align.RIGHT);
-        paint.setColor(0xFF38BDF8);
-        canvas.drawText("波次 " + wave + "/" + totalWaves, width - 14 * density, badgeY + 4.5f * density, paint);
-        paint.setTextAlign(Paint.Align.LEFT);
+        textPaint.setTextAlign(Paint.Align.RIGHT);
+        canvas.drawText("波次 " + wave + "/" + totalWaves, width - 14 * density, barH + 11 * density, textPaint);
     }
 
-    /**
-     * 绘制《蛋壳特工队》三选一战术科技卡片 (Level Up Card Selection)
-     */
     public void drawLevelUpDialog(Canvas canvas, float width, float height, float density,
-                                 java.util.List<SurvivorSkill.Type> choices,
-                                 SurvivorSkill.SkillInventory inventory, RectF[] cardRects) {
-        if (choices == null || choices.isEmpty()) return;
-
-        // 深暗半透明背景遮罩
+                                  List<SurvivorSkill.Type> choices, SurvivorSkill.SkillInventory inventory,
+                                  RectF[] cardRects) {
+        // 暗夜半透遮罩
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xDD090D16);
         canvas.drawRect(0, 0, width, height, paint);
 
-        // 顶部标题：⚡ LEVEL UP! ⚡
-        paint.setTextAlign(Paint.Align.CENTER);
-        paint.setColor(0xFFFBBF24);
-        paint.setTextSize(26 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        canvas.drawText("⚡ LEVEL UP! ⚡", width / 2f, height * 0.16f, paint);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setColor(0xFFFBBF24);
+        textPaint.setTextSize(26 * density);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        canvas.drawText("⚡ LEVEL UP! ⚡", width / 2f, height * 0.22f, textPaint);
 
-        paint.setTextSize(13 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT);
-        paint.setColor(0xFF94A3B8);
-        canvas.drawText("特工战术科技进化 · 选取一项核心专精", width / 2f, height * 0.16f + 24 * density, paint);
+        textPaint.setColor(0xFFCBD5E1);
+        textPaint.setTextSize(13 * density);
+        textPaint.setTypeface(Typeface.DEFAULT);
+        canvas.drawText("特工战术科技进化 · 选取一项核心专精", width / 2f, height * 0.22f + 25 * density, textPaint);
 
-        for (int i = 0; i < choices.size() && i < cardRects.length; i++) {
-            SurvivorSkill.Type skill = choices.get(i);
+        int count = Math.min(3, choices.size());
+        for (int i = 0; i < count; i++) {
+            SurvivorSkill.Type type = choices.get(i);
             RectF rect = cardRects[i];
-            drawSurvivorCard(canvas, skill, inventory, rect, density);
+            drawTechChoiceCard(canvas, rect, type, inventory, density);
         }
-        paint.setTextAlign(Paint.Align.LEFT);
     }
 
-    private void drawSurvivorCard(Canvas canvas, SurvivorSkill.Type skill,
-                                  SurvivorSkill.SkillInventory inventory, RectF rect, float density) {
-        boolean canEvo = inventory.canEvo(skill);
-        int curLevel = inventory.getLevel(skill);
+    private void drawTechChoiceCard(Canvas canvas, RectF rect, SurvivorSkill.Type type,
+                                    SurvivorSkill.SkillInventory inventory, float density) {
+        boolean isEvo = inventory.isEvolved(type);
+        int curLvl = inventory.getLevel(type);
 
-        // 卡片底板
+        // 卡片底色
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(canEvo ? 0xFF2A1C0A : 0xFF1E293B);
+        paint.setColor(isEvo ? 0xFF2A1B0A : 0xFF1E293B);
         canvas.drawRoundRect(rect, 14 * density, 14 * density, paint);
 
-        // 卡片发光边框（超武金色流光，普通青蓝）
-        int borderColor = canEvo ? 0xFFF59E0B : 0xFF38BDF8;
+        // 卡片发光边框
         strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth((canEvo ? 3.5f : 2f) * density);
-        strokePaint.setColor(borderColor);
-        canvas.drawRoundRect(rect, 14 * density, 14 * density, strokePaint);
+        strokePaint.setStrokeWidth(2.5f * density);
+        strokePaint.setColor(isEvo ? 0xFFF59E0B : 0xFF38BDF8);
+        canvas.drawRoundRect(rect, 14 * density, 14 * density, paint);
+
+        // 顶部圆形图标衬底
+        float cx = rect.centerX();
+        float topIconY = rect.top + 38 * density;
         paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0x33FFFFFF);
+        canvas.drawCircle(cx, topIconY, 18 * density, paint);
 
-        // 超武「EVO 进化」标签
-        if (canEvo) {
-            paint.setColor(0xFFF59E0B);
-            canvas.drawRoundRect(new RectF(rect.centerX() - 44 * density, rect.top + 8 * density,
-                    rect.centerX() + 44 * density, rect.top + 24 * density), 6 * density, 6 * density, paint);
-            paint.setColor(0xFF78350F);
-            paint.setTextSize(11 * density);
-            paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("⭐ EVO 超武进化", rect.centerX(), rect.top + 20 * density, paint);
+        // 图标文字
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(20 * density);
+        canvas.drawText(type.icon, cx, topIconY + 7 * density, textPaint);
+
+        // 科技名称
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(15 * density);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        canvas.drawText(isEvo ? type.evoName : type.nameCn, cx, rect.top + 76 * density, textPaint);
+
+        // 星级显示 (⭐)
+        paint.setColor(0xFFFBBF24);
+        textPaint.setTextSize(11 * density);
+        StringBuilder stars = new StringBuilder();
+        for (int k = 0; k < 5; k++) {
+            stars.append(k < curLvl ? "⭐" : "☆");
         }
+        canvas.drawText(stars.toString(), cx, rect.top + 92 * density, textPaint);
 
-        // 图标徽章圆底
-        float iconY = canEvo ? (rect.top + 46 * density) : (rect.top + 38 * density);
-        paint.setColor(canEvo ? 0x4DF59E0B : 0x22FFFFFF);
-        canvas.drawCircle(rect.centerX(), iconY, 20 * density, paint);
+        // 详细战术技能描述
+        textPaint.setColor(0xFF94A3B8);
+        textPaint.setTextSize(10.5f * density);
+        textPaint.setTypeface(Typeface.DEFAULT);
+        drawWrappedText(canvas, type.descCn, cx, rect.top + 108 * density, rect.width() - 16 * density, textPaint);
 
-        // 技能 Emoji 图标
-        paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTextSize(22 * density);
-        String icon = canEvo ? skill.evoIcon : skill.icon;
-        canvas.drawText(icon, rect.centerX(), iconY + 8 * density, paint);
-
-        // 技能名称
-        paint.setColor(canEvo ? 0xFFFDE047 : Color.WHITE);
-        paint.setTextSize(16 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        String name = canEvo ? skill.evoName : skill.nameCn;
-        canvas.drawText(name, rect.centerX(), iconY + 40 * density, paint);
-
-        // 星级展示（⭐⭐⭐⭐⭐）
-        if (!canEvo) {
-            drawStarSlots(canvas, rect.centerX(), iconY + 54 * density, curLevel + 1, density);
+        // EVO 超武合成配方提示
+        String hint = getEvoHint(type);
+        if (hint != null && !hint.isEmpty()) {
+            textPaint.setColor(0xFFFBBF24);
+            textPaint.setTextSize(9.5f * density);
+            canvas.drawText("配方: " + hint, cx, rect.bottom - 12 * density, textPaint);
         }
+    }
 
-        // 描述文案
-        paint.setTextSize(12 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT);
-        paint.setColor(0xFFCBD5E1);
-        String desc = canEvo ? skill.evoDesc : skill.descCn;
-        drawWrappedText(canvas, desc, rect.centerX(), iconY + 70 * density, rect.width() - 18 * density, 16 * density);
-
-        // EVO 配方契约提示
-        if (skill.category == SurvivorSkill.Category.ACTIVE_WEAPON && skill.isEvoCapable()) {
-            SurvivorSkill.Type req = SurvivorSkill.getRequiredPair(skill);
-            if (req != null) {
-                boolean hasReq = inventory.getLevel(req) > 0;
-                paint.setColor(hasReq ? 0xFF34D399 : 0xFF64748B);
-                paint.setTextSize(10.5f * density);
-                canvas.drawText("配方: " + req.nameCn + " ➔ " + skill.evoName + (hasReq ? " (已达成)" : ""),
-                        rect.centerX(), rect.bottom - 12 * density, paint);
+    private String getEvoHint(SurvivorSkill.Type type) {
+        if (SurvivorSkill.EVO_RULES != null) {
+            for (SurvivorSkill.EvoRule rule : SurvivorSkill.EVO_RULES) {
+                if (rule.activeA == type) {
+                    return rule.passiveRequired.nameCn + " ➔ " + rule.evoTitle;
+                }
             }
         }
-        paint.setTextAlign(Paint.Align.LEFT);
+        return "";
     }
 
-    private void drawStarSlots(Canvas canvas, float cx, float y, int filledStars, float density) {
-        float spacing = 12 * density;
-        float startX = cx - spacing * 2f;
-        paint.setTextSize(11 * density);
-        paint.setTextAlign(Paint.Align.CENTER);
-        for (int i = 1; i <= 5; i++) {
-            paint.setColor(i <= filledStars ? 0xFFF59E0B : 0xFF475569);
-            canvas.drawText("★", startX + (i - 1) * spacing, y, paint);
-        }
-    }
-
-    private void drawWrappedText(Canvas canvas, String text, float centerX, float baseline,
-                                 float maxWidth, float lineHeight) {
+    private void drawWrappedText(Canvas canvas, String text, float x, float y, float maxW, Paint paint) {
         if (text == null) return;
-        float y = baseline;
-        int cursor = 0;
-        while (cursor < text.length()) {
-            int count = paint.breakText(text, cursor, text.length(), true, maxWidth, null);
-            if (count <= 0) return;
-            canvas.drawText(text, cursor, cursor + count, centerX, y, paint);
-            cursor += count;
-            y += lineHeight;
+        float lineH = paint.getTextSize() * 1.35f;
+        int start = 0;
+        float curY = y;
+        while (start < text.length()) {
+            int count = paint.breakText(text, start, text.length(), true, maxW, null);
+            if (count <= 0) break;
+            String line = text.substring(start, start + count);
+            canvas.drawText(line, x, curY, paint);
+            curY += lineH;
+            start += count;
         }
     }
 
-    /**
-     * 绘制《蛋壳特工队》三叶草幸运宝箱老虎机转盘弹窗 (Lucky Chest Lottery Dialog)
-     */
     public void drawLuckyChestDialog(Canvas canvas, float width, float height, float density,
-                                    int rolls, java.util.List<SurvivorSkill.Type> rewards,
-                                    float spinProgress) {
+                                     int rolls, List<SurvivorSkill.Type> rewards, float spinProgress) {
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xDD090D16);
+        paint.setColor(0xEE090D16);
         canvas.drawRect(0, 0, width, height, paint);
 
-        // 金光放射光晕
-        RadialGradient chestGlow = new RadialGradient(width / 2f, height * 0.42f, 180 * density,
-                new int[]{0x55F59E0B, 0x18F59E0B, 0x00000000},
-                new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
-        paint.setShader(chestGlow);
-        canvas.drawCircle(width / 2f, height * 0.42f, 180 * density, paint);
-        paint.setShader(null);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setColor(0xFF10B981);
+        textPaint.setTextSize(26 * density);
+        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        canvas.drawText("🍀 三叶草幸运军需箱 🍀", width / 2f, height * 0.28f, textPaint);
 
-        // 标题
-        paint.setTextAlign(Paint.Align.CENTER);
-        paint.setColor(0xFFFBBF24);
-        paint.setTextSize(28 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        canvas.drawText("🍀 幸运神装宝箱 🍀", width / 2f, height * 0.22f, paint);
+        textPaint.setColor(0xFFCBD5E1);
+        textPaint.setTextSize(14 * density);
+        textPaint.setTypeface(Typeface.DEFAULT);
+        canvas.drawText("击溃异变精英 · 战术老虎机抽奖 (" + rolls + " 连抽)", width / 2f, height * 0.28f + 28 * density, textPaint);
 
-        paint.setTextSize(14 * density);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT);
-        paint.setColor(0xFFE2E8F0);
-        canvas.drawText("触发 " + rolls + " 连大满贯抽奖 · 点击收下战地神装！", width / 2f, height * 0.22f + 26 * density, paint);
+        // 宝箱老虎机转盘视窗
+        float boxW = width * 0.82f;
+        float boxH = 140 * density;
+        float boxL = (width - boxW) / 2f;
+        float boxT = height * 0.38f;
 
-        // 奖励展示槽位
+        paint.setColor(0xFF1E293B);
+        canvas.drawRoundRect(new RectF(boxL, boxT, boxL + boxW, boxT + boxH), 16 * density, 16 * density, paint);
+        strokePaint.setColor(0xFFFBBF24);
+        strokePaint.setStrokeWidth(3 * density);
+        canvas.drawRoundRect(new RectF(boxL, boxT, boxL + boxW, boxT + boxH), 16 * density, 16 * density, strokePaint);
+
         if (rewards != null && !rewards.isEmpty()) {
-            float cardW = Math.min(100 * density, (width - 40 * density) / rewards.size());
-            float cardH = 120 * density;
-            float totalW = cardW * rewards.size() + (rewards.size() - 1) * 10 * density;
-            float startX = (width - totalW) / 2f;
-            float topY = height * 0.40f;
-
+            float slotW = boxW / rewards.size();
             for (int i = 0; i < rewards.size(); i++) {
-                SurvivorSkill.Type t = rewards.get(i);
-                float x = startX + i * (cardW + 10 * density);
-                RectF r = new RectF(x, topY, x + cardW, topY + cardH);
+                SurvivorSkill.Type r = rewards.get(i);
+                float scx = boxL + (i + 0.5f) * slotW;
+                float scy = boxT + boxH / 2f;
 
-                paint.setColor(0xFF1E293B);
-                canvas.drawRoundRect(r, 10 * density, 10 * density, paint);
-                strokePaint.setColor(0xFFF59E0B);
-                strokePaint.setStrokeWidth(2 * density);
-                canvas.drawRoundRect(r, 10 * density, 10 * density, strokePaint);
-
-                paint.setTextSize(28 * density);
-                canvas.drawText(t.icon, r.centerX(), r.top + 45 * density, paint);
-
-                paint.setColor(Color.WHITE);
-                paint.setTextSize(13 * density);
-                paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-                canvas.drawText(t.nameCn, r.centerX(), r.top + 76 * density, paint);
-
-                paint.setColor(0xFF34D399);
-                paint.setTextSize(11 * density);
-                paint.setTypeface(android.graphics.Typeface.DEFAULT);
-                canvas.drawText("+1 阶已入库", r.centerX(), r.top + 98 * density, paint);
+                textPaint.setTextSize(32 * density);
+                canvas.drawText(r.icon, scx, scy + 4 * density, textPaint);
+                textPaint.setTextSize(13 * density);
+                textPaint.setColor(Color.WHITE);
+                canvas.drawText(r.nameCn, scx, scy + 34 * density, textPaint);
             }
         }
-        paint.setTextAlign(Paint.Align.LEFT);
-    }
 
-    // =========================================================================
-    // 6. 颜色辅助函数 (Color Shading Utilities)
-    // =========================================================================
-
-    private static int lightenColor(int color, float fraction) {
-        int r = Color.red(color);
-        int g = Color.green(color);
-        int b = Color.blue(color);
-        r = Math.min(255, (int) (r + (255 - r) * fraction));
-        g = Math.min(255, (int) (g + (255 - g) * fraction));
-        b = Math.min(255, (int) (b + (255 - b) * fraction));
-        return Color.rgb(r, g, b);
-    }
-
-    private static int darkenColor(int color, float fraction) {
-        int r = Math.max(0, (int) (Color.red(color) * (1f - fraction)));
-        int g = Math.max(0, (int) (Color.green(color) * (1f - fraction)));
-        int b = Math.max(0, (int) (Color.blue(color) * (1f - fraction)));
-        return Color.rgb(r, g, b);
+        textPaint.setColor(0xFF38BDF8);
+        textPaint.setTextSize(14 * density);
+        canvas.drawText("点击任意位置装填军需", width / 2f, boxT + boxH + 42 * density, textPaint);
     }
 }

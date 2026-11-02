@@ -706,19 +706,7 @@ public class BrotatoView extends View {
     }
 
     private void drawProjectiles(Canvas canvas, BrotatoArena value) {
-        for (Projectile bullet : value.projectiles()) {
-            float bx = bullet.x * density;
-            float by = bullet.y * density;
-            float br = Math.max(MIN_BULLET_DRAW_DP, bullet.radiusPx) * density;
-
-            paint.setColor(currentHero == BrotatoHero.MAGE ? 0x66A855F7 : 0x66FDE047);
-            canvas.drawCircle(bx, by, br * 1.6f, paint);
-
-            paint.setColor(currentHero == BrotatoHero.MAGE ? 0xFFC084FC : 0xFFFFEB3B);
-            canvas.drawCircle(bx, by, br, paint);
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(bx, by, br * 0.45f, paint);
-        }
+        renderer.drawProjectiles(canvas, value, currentHero, inventory, animTick, density);
     }
 
     private void drawDangerVignette(Canvas canvas, BrotatoArena value) {
