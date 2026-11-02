@@ -1,8 +1,10 @@
 package com.gamecenter.app.brotato;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,6 +16,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,16 +29,10 @@ import com.gamecenter.app.games.GameUsageStore;
 import com.gamecenter.app.modules.ModuleManager;
 
 /**
- * 土豆兄弟游戏 Fragment（独立 APK 模块版本）。
+ * 土豆兄弟游戏 Fragment（五星级现代化架构版）。
  *
  * <p>由宿主 BrotatoActivity 迁移而来。使用纯 Android widget 构建 UI，
- * 不依赖宿主 R 资源，支持浅色/深色主题。难度选择以代码内按钮实现，
- * 不含成就系统，仅保留基本游戏功能。</p>
- *
- * <p>本层只做三件事：装载数据驱动内容（{@link BrotatoAssets}，失败即抛、不回退）、
- * 把三档难度映射成引擎倍率 0.7/1.0/1.45、以及用 16ms 定时器驱动
- * {@link BrotatoView#update()}（与 {@link BrotatoArena#TICK_MS} 同频）。
- * 战场规则全在 {@link BrotatoArena} 内，这里不再有任何游戏逻辑。</p>
+ * 采用统一顶部导航栏、即开即玩战场体系、实时战况 HUD 与沉浸式对局结算。</p>
  */
 public class BrotatoModuleFragment extends Fragment {
 
@@ -74,101 +71,133 @@ public class BrotatoModuleFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         Context ctx = requireContext();
         float dp = ctx.getResources().getDisplayMetrics().density;
-        int colorBg = isNightMode() ? 0xFF121622 : 0xFFF5F5F5;
-        int colorTextPrimary = isNightMode() ? 0xFFE4E6F0 : 0xFF212121;
-        int colorTextSecondary = isNightMode() ? 0xFFAAAAAA : 0xFF757575;
+        int colorBg = isNightMode() ? 0xFF0F172A : 0xFFF8FAFC;
+        int colorTextPrimary = isNightMode() ? 0xFFF1F5F9 : 0xFF0F172A;
+        int colorTextSecondary = isNightMode() ? 0xFF94A3B8 : 0xFF64748B;
 
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(colorBg);
-        root.setPadding((int) (12 * dp), (int) (12 * dp), (int) (12 * dp), (int) (12 * dp));
+        root.setPadding((int) (12 * dp), (int) (8 * dp), (int) (12 * dp), (int) (10 * dp));
+
+        // 1. 顶部统一导航栏
+        LinearLayout topNavBar = new LinearLayout(ctx);
+        topNavBar.setOrientation(LinearLayout.HORIZONTAL);
+        topNavBar.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams topNavLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (44 * dp));
+        topNavLp.bottomMargin = (int) (6 * dp);
+        topNavBar.setLayoutParams(topNavLp);
+
+        Button btnBack = new Button(ctx);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(colorTextPrimary);
+        btnBack.setBackground(createCapsuleDrawable(isNightMode() ? 0xFF1E293B : 0xFFE2E8F0, (int) (14 * dp)));
+        btnBack.setPadding((int) (12 * dp), 0, (int) (12 * dp), 0);
+        btnBack.setMinHeight((int) (32 * dp));
+        btnBack.setMinimumHeight((int) (32 * dp));
+        btnBack.setOnClickListener(v -> handleBackPress());
+        topNavBar.addView(btnBack);
 
         TextView tvTitle = new TextView(ctx);
         tvTitle.setText(getString(R.string.game_title_brotato));
-        tvTitle.setTextSize(24);
+        tvTitle.setTextSize(18f);
         tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         tvTitle.setTextColor(colorTextPrimary);
         tvTitle.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         tvTitle.setLayoutParams(titleLp);
-        root.addView(tvTitle);
+        topNavBar.addView(tvTitle);
 
-        // 状态栏
+        Button btnRules = new Button(ctx);
+        btnRules.setText("ℹ 规则");
+        btnRules.setTextSize(13f);
+        btnRules.setTextColor(colorTextPrimary);
+        btnRules.setBackground(createCapsuleDrawable(isNightMode() ? 0xFF1E293B : 0xFFE2E8F0, (int) (14 * dp)));
+        btnRules.setPadding((int) (10 * dp), 0, (int) (10 * dp), 0);
+        btnRules.setMinHeight((int) (32 * dp));
+        btnRules.setMinimumHeight((int) (32 * dp));
+        btnRules.setOnClickListener(v -> showRulesDialog());
+        topNavBar.addView(btnRules);
+
+        root.addView(topNavBar);
+
+        // 2. 状态战况 HUD 看板
         LinearLayout statBar = new LinearLayout(ctx);
         statBar.setOrientation(LinearLayout.HORIZONTAL);
         statBar.setGravity(Gravity.CENTER);
+        statBar.setBackground(createCapsuleDrawable(isNightMode() ? 0xFF1E293B : 0xFFEDF2F7, (int) (12 * dp)));
+        statBar.setPadding((int) (14 * dp), (int) (6 * dp), (int) (14 * dp), (int) (6 * dp));
         LinearLayout.LayoutParams statBarLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        statBarLp.topMargin = (int) (8 * dp);
+        statBarLp.bottomMargin = (int) (6 * dp);
         statBar.setLayoutParams(statBarLp);
 
         tvScore = new TextView(ctx);
-        tvScore.setTextSize(16);
-        tvScore.setTextColor(colorTextPrimary);
+        tvScore.setTextSize(14f);
+        tvScore.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvScore.setTextColor(0xFF2563EB);
         tvScore.setText(getString(R.string.game_score_init));
         LinearLayout.LayoutParams scoreLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        scoreLp.rightMargin = (int) (16 * dp);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         tvScore.setLayoutParams(scoreLp);
         statBar.addView(tvScore);
 
         tvWave = new TextView(ctx);
-        tvWave.setTextSize(16);
-        tvWave.setTextColor(colorTextPrimary);
+        tvWave.setTextSize(14f);
+        tvWave.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvWave.setTextColor(0xFF059669);
+        tvWave.setGravity(Gravity.CENTER);
         tvWave.setText(getString(R.string.game_wave_init));
         LinearLayout.LayoutParams waveLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        waveLp.rightMargin = (int) (16 * dp);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         tvWave.setLayoutParams(waveLp);
         statBar.addView(tvWave);
 
         tvBest = new TextView(ctx);
-        tvBest.setTextSize(16);
+        tvBest.setTextSize(14f);
         tvBest.setTextColor(colorTextSecondary);
+        tvBest.setGravity(Gravity.END);
         tvBest.setText(getString(R.string.game_high_score_init));
+        LinearLayout.LayoutParams bestLp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        tvBest.setLayoutParams(bestLp);
         statBar.addView(tvBest);
+
         root.addView(statBar);
 
-        // 难度按钮
+        // 3. 难度胶囊选择区
         LinearLayout diffBar = new LinearLayout(ctx);
         diffBar.setOrientation(LinearLayout.HORIZONTAL);
         diffBar.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams diffBarLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        diffBarLp.topMargin = (int) (8 * dp);
-        diffBarLp.bottomMargin = (int) (4 * dp);
+        diffBarLp.bottomMargin = (int) (6 * dp);
         diffBar.setLayoutParams(diffBarLp);
 
-        btnEasy = new Button(ctx);
-        btnEasy.setText(getString(R.string.game_diff_easy));
-        btnEasy.setTextSize(12);
+        btnEasy = createDiffButton(ctx, getString(R.string.game_diff_easy), dp);
         btnEasy.setOnClickListener(v -> setDifficulty(0.3f));
         diffBar.addView(btnEasy);
 
-        btnNormal = new Button(ctx);
-        btnNormal.setText(getString(R.string.game_diff_normal));
-        btnNormal.setTextSize(12);
+        btnNormal = createDiffButton(ctx, getString(R.string.game_diff_normal), dp);
         btnNormal.setOnClickListener(v -> setDifficulty(0.5f));
         diffBar.addView(btnNormal);
 
-        btnHard = new Button(ctx);
-        btnHard.setText(getString(R.string.game_diff_hard));
-        btnHard.setTextSize(12);
+        btnHard = createDiffButton(ctx, getString(R.string.game_diff_hard), dp);
         btnHard.setOnClickListener(v -> setDifficulty(0.8f));
         diffBar.addView(btnHard);
+
         root.addView(diffBar);
 
-        // 游戏容器
+        // 4. 游戏容器
         FrameLayout gameContainer = new FrameLayout(ctx);
         LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
-        containerLp.topMargin = (int) (8 * dp);
         gameContainer.setLayoutParams(containerLp);
         root.addView(gameContainer);
 
-        // 模块 APK 的资产必须走模块 AssetManager（宿主 getAssets() 看不到 assets/brotato/，
-        // 与 td/klotski/chinesechess 同款装载口）；失败给可见提示并返回空视图，不崩宿主。
         com.gamecenter.app.modular.ModuleResourceLoader.ModuleResources moduleResources = null;
         try {
             moduleResources = ModuleManager.INSTANCE.getModuleResources("brotato");
@@ -176,18 +205,16 @@ public class BrotatoModuleFragment extends Fragment {
             android.util.Log.e("BrotatoFragment", "module resources unavailable", exception);
         }
         if (moduleResources == null) {
-            android.widget.Toast.makeText(ctx, "土豆兄弟模块资源装载失败，请重新安装该模块",
-                    android.widget.Toast.LENGTH_LONG).show();
-            return new android.widget.FrameLayout(requireContext());
+            Toast.makeText(ctx, "土豆兄弟模块资源装载失败，请重新安装该模块", Toast.LENGTH_LONG).show();
+            return new FrameLayout(requireContext());
         }
         BrotatoContent content;
         try {
             content = BrotatoAssets.load(moduleResources.getAssetManager());
         } catch (IllegalStateException exception) {
             android.util.Log.e("BrotatoFragment", "brotato content assets invalid", exception);
-            android.widget.Toast.makeText(ctx, "土豆兄弟内容文件校验失败：" + exception.getMessage(),
-                    android.widget.Toast.LENGTH_LONG).show();
-            return new android.widget.FrameLayout(requireContext());
+            Toast.makeText(ctx, "土豆兄弟内容文件校验失败：" + exception.getMessage(), Toast.LENGTH_LONG).show();
+            return new FrameLayout(requireContext());
         }
         final int totalWavesForHud = content.totalWaves();
         brotatoView = new BrotatoView(ctx, content);
@@ -195,7 +222,9 @@ public class BrotatoModuleFragment extends Fragment {
         brotatoView.setOnGameListener(new BrotatoView.OnGameListener() {
             @Override
             public void onScoreChanged(int score) {
-                tvScore.setText(getString(R.string.game_score_format, score));
+                if (tvScore != null) {
+                    tvScore.setText(getString(R.string.game_score_format, score));
+                }
             }
 
             @Override
@@ -218,17 +247,81 @@ public class BrotatoModuleFragment extends Fragment {
         });
         gameContainer.addView(brotatoView);
 
-        // 重新开始按钮
+        // 5. 底部控制栏
         btnRestart = new Button(ctx);
         btnRestart.setText(getString(R.string.game_btn_restart));
+        btnRestart.setTextSize(15f);
+        btnRestart.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnRestart.setTextColor(Color.WHITE);
+        btnRestart.setBackground(createCapsuleDrawable(0xFF2563EB, (int) (22 * dp)));
         LinearLayout.LayoutParams restartLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        restartLp.topMargin = (int) (8 * dp);
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (44 * dp));
+        restartLp.topMargin = (int) (6 * dp);
         btnRestart.setLayoutParams(restartLp);
         btnRestart.setOnClickListener(v -> startGame());
         root.addView(btnRestart);
 
+        updateDifficultyButtons();
         return root;
+    }
+
+    private Button createDiffButton(Context ctx, String text, float dp) {
+        Button btn = new Button(ctx);
+        btn.setText(text);
+        btn.setTextSize(12f);
+        btn.setMinHeight((int) (34 * dp));
+        btn.setMinimumHeight((int) (34 * dp));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        lp.setMargins((int) (3 * dp), 0, (int) (3 * dp), 0);
+        btn.setLayoutParams(lp);
+        return btn;
+    }
+
+    private GradientDrawable createCapsuleDrawable(int color, int radius) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(color);
+        gd.setCornerRadius(radius);
+        return gd;
+    }
+
+    private void handleBackPress() {
+        if (brotatoView != null && brotatoView.isGameRunning()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("退出确认")
+                    .setMessage("当前战斗正处于激烈波次中，确定要退出战场吗？")
+                    .setPositiveButton("确定退出", (dialog, which) -> exitModule())
+                    .setNegativeButton("继续战斗", null)
+                    .show();
+        } else {
+            exitModule();
+        }
+    }
+
+    private void exitModule() {
+        if (getActivity() != null) {
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+            } else {
+                getActivity().finish();
+            }
+        }
+    }
+
+    private void showRulesDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("土豆兄弟 · 战场规则")
+                .setMessage("【游戏介绍】\n"
+                        + "你将操控全副武装的土豆勇士，在无垠角斗场中迎击四面八方涌来的怪物浪潮！\n\n"
+                        + "【核心操作】\n"
+                        + "1. 触控滑动屏幕操控土豆灵活走位、躲避攻击；\n"
+                        + "2. 武器会自动索敌并持续倾泻火力；\n"
+                        + "3. 击败敌人收集战利品，在波次结束后选择强力升级！\n\n"
+                        + "【难度分级】\n"
+                        + "· 简单 (0.3x)：怪物生命与移速降低，轻松割草；\n"
+                        + "· 普通 (0.5x)：标准战斗节奏与怪物强度；\n"
+                        + "· 困难 (0.8x)：怪物血量狂飙、移速加快，极限走位生存！")
+                .setPositiveButton("开战！", null)
+                .show();
     }
 
     @Override
@@ -236,7 +329,6 @@ public class BrotatoModuleFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         Context ctx = requireContext();
         usageStore = new GameUsageStore(ctx);
-        // 复用最高分存储位记录最高分，便于在 Fragment 间持久化
         highScore = usageStore.getHighScore(GAME_ID);
         if (tvBest != null) {
             tvBest.setText(getString(R.string.game_high_score_format, highScore));
@@ -254,23 +346,17 @@ public class BrotatoModuleFragment extends Fragment {
         handler.post(gameLoop);
     }
 
-    /** UI 难度因子 → 引擎倍率：简单 0.3 → {@code DIFFICULTY_EASY}、普通 0.5 → NORMAL、困难 0.8 → HARD。 */
     private void setDifficulty(float factor) {
         difficultyFactor = factor;
         applyDifficulty();
         updateDifficultyButtons();
-        // 引擎标量在构造期固定，难度只对下一局生效——给用户明确反馈，避免"点了没反应"
         if (isAdded()) {
-            android.widget.Toast.makeText(requireContext(),
+            Toast.makeText(requireContext(),
                     R.string.game_brotato_diff_next_round,
-                    android.widget.Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
-    /**
-     * 倍率乘在敌人 hp/speed 上、除在出怪间隔上。引擎的难度标量是构造期入参（一整局固定，
-     * 以保证同 seed 同标量可复现），所以这里改的值在下一局（"重新开始"）生效。
-     */
     private void applyDifficulty() {
         if (brotatoView == null) return;
         brotatoView.setDifficultyScalar(difficultyScalar(difficultyFactor));
@@ -282,11 +368,11 @@ public class BrotatoModuleFragment extends Fragment {
         return BrotatoArena.DIFFICULTY_NORMAL;
     }
 
-    /** 一局结束的结算：停循环、记最高分、按胜负分别记胜/负。 */
     private void finishGame(int score, boolean won) {
         handler.removeCallbacks(gameLoop);
         totalGames++;
-        if (score > highScore) {
+        boolean isNewRecord = score > highScore;
+        if (isNewRecord) {
             highScore = score;
         }
         if (usageStore != null) {
@@ -300,21 +386,43 @@ public class BrotatoModuleFragment extends Fragment {
         if (tvBest != null) {
             tvBest.setText(getString(R.string.game_high_score_format, highScore));
         }
+
+        if (isAdded() && getActivity() != null && !getActivity().isFinishing()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(won ? "🏆 胜利！波次全清" : "💥 战斗结束")
+                    .setMessage((won ? "恭喜勇士成功通关所有波次！" : "你倒在了冲锋的路上！")
+                            + "\n\n最终积分：" + score
+                            + (isNewRecord ? "\n🎉 恭喜创造全新历史记录！" : "\n历史最佳：" + highScore))
+                    .setPositiveButton("再战一局", (dialog, which) -> startGame())
+                    .setNegativeButton("返回大厅", (dialog, which) -> exitModule())
+                    .show();
+        }
     }
 
     private void updateDifficultyButtons() {
-        if (btnEasy == null) return;
-        int active = 0xFF3949AB;
-        int inactive = isNightMode() ? 0xFF333A4D : 0xFFE0E0E0;
-        btnEasy.setBackgroundColor(difficultyFactor == 0.3f ? active : inactive);
-        btnNormal.setBackgroundColor(difficultyFactor == 0.5f ? active : inactive);
-        btnHard.setBackgroundColor(difficultyFactor == 0.8f ? active : inactive);
-        btnEasy.setTextColor(Color.WHITE);
-        btnNormal.setTextColor(Color.WHITE);
-        btnHard.setTextColor(Color.WHITE);
+        if (btnEasy == null || btnNormal == null || btnHard == null) return;
+        float dp = getResources().getDisplayMetrics().density;
+        styleDiffTab(btnEasy, difficultyFactor == 0.3f, dp);
+        styleDiffTab(btnNormal, difficultyFactor == 0.5f, dp);
+        styleDiffTab(btnHard, difficultyFactor == 0.8f, dp);
+    }
+
+    private void styleDiffTab(Button btn, boolean active, float dp) {
+        if (active) {
+            btn.setBackground(createCapsuleDrawable(0xFF2563EB, (int) (10 * dp)));
+            btn.setTextColor(Color.WHITE);
+            btn.setTypeface(null, android.graphics.Typeface.BOLD);
+        } else {
+            int inactiveBg = isNightMode() ? 0xFF1E293B : 0xFFE2E8F0;
+            int inactiveText = isNightMode() ? 0xFF94A3B8 : 0xFF475569;
+            btn.setBackground(createCapsuleDrawable(inactiveBg, (int) (10 * dp)));
+            btn.setTextColor(inactiveText);
+            btn.setTypeface(null, android.graphics.Typeface.NORMAL);
+        }
     }
 
     private boolean isNightMode() {
+        if (!isAdded()) return false;
         int nightMode = requireContext().getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK;
         return nightMode == Configuration.UI_MODE_NIGHT_YES;
@@ -334,7 +442,6 @@ public class BrotatoModuleFragment extends Fragment {
         super.onResume();
         if (brotatoView != null && brotatoView.isGameRunning()) {
             brotatoView.resumeGame();
-            // 先摘再挂：防止 onViewCreated/onResume 同帧双投递造成 2× 速自排循环
             handler.removeCallbacks(gameLoop);
             handler.post(gameLoop);
         }

@@ -147,6 +147,7 @@ public class TdModuleFragment extends Fragment {
         root.addView(col, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
+        col.addView(buildTopBar(ctx));
         col.addView(buildHud(ctx));
         col.addView(buildBoardArea(ctx), new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -171,6 +172,121 @@ public class TdModuleFragment extends Fragment {
         // 首次进入：直接显示选关面板（避免空棋盘）
         showLevelSelect();
         return root;
+    }
+
+    private View buildTopBar(Context ctx) {
+        LinearLayout bar = new LinearLayout(ctx);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(10), dp(4), dp(10), dp(4));
+        bar.setBackgroundColor(0xFF221C14);
+
+        Button btnBack = new Button(ctx);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(0xFFFFF8E1);
+        btnBack.setStateListAnimator(null);
+        GradientDrawable backBg = new GradientDrawable();
+        backBg.setColor(0xFF3E3426);
+        backBg.setCornerRadius(dp(14));
+        btnBack.setBackground(backBg);
+        btnBack.setPadding(dp(10), 0, dp(10), 0);
+        btnBack.setMinHeight(dp(32));
+        btnBack.setMinimumHeight(dp(32));
+        btnBack.setOnClickListener(v -> handleBackPress());
+        bar.addView(btnBack);
+
+        TextView title = new TextView(ctx);
+        title.setText("保卫蛋蛋");
+        title.setTextSize(17f);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setTextColor(0xFFFFD54F);
+        title.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        title.setLayoutParams(titleLp);
+        bar.addView(title);
+
+        Button btnLevels = new Button(ctx);
+        btnLevels.setText("关卡 ▾");
+        btnLevels.setTextSize(12f);
+        btnLevels.setTextColor(0xFFFFF8E1);
+        btnLevels.setStateListAnimator(null);
+        GradientDrawable lvlBg = new GradientDrawable();
+        lvlBg.setColor(0xFF3E3426);
+        lvlBg.setCornerRadius(dp(14));
+        btnLevels.setBackground(lvlBg);
+        btnLevels.setPadding(dp(8), 0, dp(8), 0);
+        btnLevels.setMinHeight(dp(32));
+        btnLevels.setMinimumHeight(dp(32));
+        btnLevels.setOnClickListener(v -> showLevelSelect());
+        LinearLayout.LayoutParams lvlLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+        lvlLp.rightMargin = dp(6);
+        btnLevels.setLayoutParams(lvlLp);
+        bar.addView(btnLevels);
+
+        Button btnRules = new Button(ctx);
+        btnRules.setText("ℹ 规则");
+        btnRules.setTextSize(12f);
+        btnRules.setTextColor(0xFFFFF8E1);
+        btnRules.setStateListAnimator(null);
+        GradientDrawable ruleBg = new GradientDrawable();
+        ruleBg.setColor(0xFF3E3426);
+        ruleBg.setCornerRadius(dp(14));
+        btnRules.setBackground(ruleBg);
+        btnRules.setPadding(dp(8), 0, dp(8), 0);
+        btnRules.setMinHeight(dp(32));
+        btnRules.setMinimumHeight(dp(32));
+        btnRules.setOnClickListener(v -> showRulesDialog());
+        bar.addView(btnRules);
+
+        return bar;
+    }
+
+    private void handleBackPress() {
+        if (overlayRoot != null && overlayRoot.getChildCount() > 0) {
+            clearOverlay();
+            return;
+        }
+        if (game != null && !game.isEnded() && game.getState() != TdGame.State.PREPARING) {
+            Context ctx = getContext();
+            if (ctx == null) return;
+            new android.app.AlertDialog.Builder(ctx)
+                    .setTitle("退出当前防线？")
+                    .setMessage("怪物正在大举进攻，退出将结算当前防线进度与击杀统计。确定退出吗？")
+                    .setPositiveButton("退出对局", (dialog, which) -> {
+                        recordAbandonedKills();
+                        if (getActivity() != null) {
+                            getActivity().finish();
+                        }
+                    })
+                    .setNegativeButton("继续坚守", null)
+                    .show();
+        } else {
+            if (getActivity() != null) {
+                getActivity().finish();
+            }
+        }
+    }
+
+    private void showRulesDialog() {
+        Context ctx = getContext();
+        if (ctx == null) return;
+        new android.app.AlertDialog.Builder(ctx)
+                .setTitle("保卫蛋蛋 · 战术防守指南")
+                .setMessage("【核心目标】\n"
+                        + "保护底线右侧的金蛋！每只穿透防线的怪物会消耗金蛋生命，生命归零防线失守。\n\n"
+                        + "【建造与合成】\n"
+                        + "• 点击或拖拽底部塔卡放置在空草地上。\n"
+                        + "• 再次向同类型塔拖拽或点击可消耗金币将其升阶（最高 3 阶），威力大幅激增！\n\n"
+                        + "【防守塔系搭配】\n"
+                        + "• 瓶子炮 / 狙击塔：极速单体点杀，消灭高血量 Boss。\n"
+                        + "• 太阳花 / 毒气桶：强力范围 AOE，迅速清除成群小怪。\n"
+                        + "• 雪花塔：范围减速控制，为输出塔争取宝贵击杀窗口。\n"
+                        + "• 放大镜：全域光环增幅，提升周边友军射程与伤害！\n\n"
+                        + "【关卡与无尽】\n"
+                        + "通关战役关卡可获取三星勋章并解锁全新高阶防御塔；通关后更可挑战无限波次的无尽模式！")
+                .setPositiveButton("知晓部署", null)
+                .show();
     }
 
     private View buildHud(Context ctx) {
@@ -1896,6 +2012,30 @@ public class TdModuleFragment extends Fragment {
                     getString(R.string.game_td_result_lose_stats,
                             game.getWaveIndex(), game.getMonstersKilled()),
                     drainAchievementLine(), 0xFFE57373);
+        }
+
+        recordUsageSafely();
+    }
+
+    private void recordUsageSafely() {
+        try {
+            Context ctx = getContext();
+            if (ctx == null || game == null) return;
+            Class<?> storeClass = Class.forName("com.gamecenter.app.games.GameUsageStore");
+            Object store = storeClass.getConstructor(Context.class).newInstance(ctx.getApplicationContext());
+            long durationMs = (long) (game.getElapsedSeconds() * 1000L);
+            int score = game.getState() == TdGame.State.WON
+                    ? game.starsEarned() * 100 + game.getMonstersKilled()
+                    : game.getMonstersKilled();
+            storeClass.getMethod("recordPlayTime", String.class, long.class).invoke(store, "td", durationMs);
+            storeClass.getMethod("recordScore", String.class, int.class).invoke(store, "td", score);
+            if (game.getState() == TdGame.State.WON) {
+                storeClass.getMethod("recordWin", String.class).invoke(store, "td");
+            } else {
+                storeClass.getMethod("recordLoss", String.class).invoke(store, "td");
+            }
+        } catch (Throwable ignored) {
+            // 宿主未接入或纯单测运行期缺失宿主 Room 依赖时静默跳过
         }
     }
 

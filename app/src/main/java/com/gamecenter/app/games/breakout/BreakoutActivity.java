@@ -1,13 +1,21 @@
 package com.gamecenter.app.games.breakout;
 
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 
 import com.gamecenter.app.R;
 import com.gamecenter.app.games.base.BaseGameActivity;
@@ -186,8 +194,128 @@ public class BreakoutActivity extends BaseGameActivity {
         });
 
         if (gameContentContainer instanceof FrameLayout) {
-            ((FrameLayout) gameContentContainer).addView(breakoutView);
+            FrameLayout container = (FrameLayout) gameContentContainer;
+            container.addView(breakoutView, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            View topBar = buildTopBar();
+            float dp = getResources().getDisplayMetrics().density;
+            FrameLayout.LayoutParams topBarLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            topBarLp.gravity = Gravity.TOP;
+            topBarLp.setMargins((int) (12 * dp), (int) (8 * dp), (int) (12 * dp), 0);
+            container.addView(topBar, topBarLp);
         }
+    }
+
+    private View buildTopBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        float dp = getResources().getDisplayMetrics().density;
+        bar.setPadding((int) (12 * dp), (int) (6 * dp), (int) (12 * dp), (int) (6 * dp));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xCC0F172A);
+        bg.setCornerRadius(16 * dp);
+        bar.setBackground(bg);
+
+        // ❮ 返回
+        Button btnBack = new Button(this);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(0xFFF8FAFC);
+        btnBack.setStateListAnimator(null);
+        GradientDrawable backBg = new GradientDrawable();
+        backBg.setColor(0x33FFFFFF);
+        backBg.setCornerRadius(12 * dp);
+        btnBack.setBackground(backBg);
+        btnBack.setPadding((int) (10 * dp), 0, (int) (10 * dp), 0);
+        btnBack.setMinHeight((int) (32 * dp));
+        btnBack.setMinimumHeight((int) (32 * dp));
+        btnBack.setOnClickListener(v -> handleBackPress());
+        bar.addView(btnBack);
+
+        // 标题
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText(getString(R.string.game_breakout_name));
+        tvTitle.setTextSize(17f);
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        tvTitle.setTextColor(0xFFF8FAFC);
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        tvTitle.setLayoutParams(titleLp);
+        bar.addView(tvTitle);
+
+        // ℹ 规则
+        Button btnRules = new Button(this);
+        btnRules.setText("ℹ 规则");
+        btnRules.setTextSize(12f);
+        btnRules.setTextColor(0xFFF8FAFC);
+        btnRules.setStateListAnimator(null);
+        GradientDrawable rulesBg = new GradientDrawable();
+        rulesBg.setColor(0x33FFFFFF);
+        rulesBg.setCornerRadius(12 * dp);
+        btnRules.setBackground(rulesBg);
+        btnRules.setPadding((int) (8 * dp), 0, (int) (8 * dp), 0);
+        btnRules.setMinHeight((int) (32 * dp));
+        btnRules.setMinimumHeight((int) (32 * dp));
+        btnRules.setOnClickListener(v -> showRulesDialog());
+        LinearLayout.LayoutParams rulesLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, (int) (32 * dp));
+        rulesLp.rightMargin = (int) (6 * dp);
+        btnRules.setLayoutParams(rulesLp);
+        bar.addView(btnRules);
+
+        // 🔄 重开
+        Button btnRestart = new Button(this);
+        btnRestart.setText("🔄 重开");
+        btnRestart.setTextSize(12f);
+        btnRestart.setTextColor(0xFFF8FAFC);
+        btnRestart.setStateListAnimator(null);
+        GradientDrawable rstBg = new GradientDrawable();
+        rstBg.setColor(0x33FFFFFF);
+        rstBg.setCornerRadius(12 * dp);
+        btnRestart.setBackground(rstBg);
+        btnRestart.setPadding((int) (8 * dp), 0, (int) (8 * dp), 0);
+        btnRestart.setMinHeight((int) (32 * dp));
+        btnRestart.setMinimumHeight((int) (32 * dp));
+        btnRestart.setOnClickListener(v -> startGame());
+        bar.addView(btnRestart);
+
+        return bar;
+    }
+
+    private void handleBackPress() {
+        if (isGameRunning && breakoutView != null) {
+            new AlertDialog.Builder(this)
+                    .setTitle("退出打砖块？")
+                    .setMessage("当前对局正在进行中，退出将结算当前得分与战果，确定退出吗？")
+                    .setPositiveButton("退出对局", (dialog, which) -> finish())
+                    .setNegativeButton("继续战斗", null)
+                    .show();
+        } else {
+            finish();
+        }
+    }
+
+    private void showRulesDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("打砖块 · 游戏指南")
+                .setMessage("【核心玩法】\n"
+                        + "• 点击屏幕发射小球，手指左右滑动控制底部挡板反弹小球击碎全部砖块。\n\n"
+                        + "【强力道具】\n"
+                        + "• ↔ 挡板加长：扩大反弹面积，接球更从容。\n"
+                        + "• ✦ 多球齐发：瞬间分裂额外小球，爆发式全屏碎砖！\n"
+                        + "• ❄ 减速小球：降低小球飞行速度，精准控制落点。\n"
+                        + "• ♥ 增加生命：补充 1 点生命，延长连战胜势！\n\n"
+                        + "【进阶过关】\n"
+                        + "每消除一关，砖块生命与基础速度逐级递增，挑战你的极限反应与连击纪录！")
+                .setPositiveButton("开始击砖", null)
+                .show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackPress();
     }
 
     @Override

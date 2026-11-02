@@ -129,6 +129,16 @@ public class KlotskiModuleFragment extends Fragment {
             }
         }
 
+        View btnBack = view.findViewById(getResId("btn_back", "id"));
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> handleBackPress());
+        }
+
+        View btnRulesTop = view.findViewById(getResId("btn_rules_top", "id"));
+        if (btnRulesTop != null) {
+            btnRulesTop.setOnClickListener(v -> GameTutorialHelper.showKlotskiTutorial(requireContext()));
+        }
+
         tvStatus = view.findViewById(getResId("tv_game_status", "id"));
         tvMoves = view.findViewById(getResId("tv_moves", "id"));
         klotskiView = view.findViewById(getResId("klotski_view", "id"));
@@ -168,6 +178,29 @@ public class KlotskiModuleFragment extends Fragment {
         Button btnTutorial = view.findViewById(getResId("btn_game_tutorial", "id"));
         btnTutorial.setOnClickListener(v -> GameTutorialHelper.showKlotskiTutorial(requireContext()));
         return view;
+    }
+
+    private void handleBackPress() {
+        if (game != null && game.getMoves() > 0 && !game.isWon()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("退出确认")
+                    .setMessage("华容道当前对局尚未完成，确定要退出当前战场吗？")
+                    .setPositiveButton("确定退出", (dialog, which) -> exitModule())
+                    .setNegativeButton("继续思考", null)
+                    .show();
+        } else {
+            exitModule();
+        }
+    }
+
+    private void exitModule() {
+        if (getActivity() != null) {
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+            } else {
+                getActivity().finish();
+            }
+        }
     }
 
     private void showLevelPicker() {

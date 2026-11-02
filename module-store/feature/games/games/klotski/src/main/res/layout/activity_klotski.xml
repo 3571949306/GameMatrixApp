@@ -3,18 +3,53 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF"
-    android:paddingTop="16dp">
+    android:background="#F8FAFC"
+    android:paddingTop="12dp">
 
-    <TextView
-        android:id="@+id/tv_game_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="8dp"
-        android:textSize="26sp"
-        android:textStyle="bold"
-        android:textColor="#212121" />
+    <!-- 顶部统一导航栏 -->
+    <LinearLayout
+        android:id="@+id/top_nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
+        <Button
+            android:id="@+id/btn_back"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minHeight="32dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="10dp"
+            android:text="❮ 返回"
+            android:textSize="13sp"
+            android:textColor="#334155"
+            android:background="#E2E8F0" />
+
+        <TextView
+            android:id="@+id/tv_game_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#0F172A" />
+
+        <Button
+            android:id="@+id/btn_rules_top"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minHeight="32dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="10dp"
+            android:text="ℹ 规则"
+            android:textSize="13sp"
+            android:textColor="#334155"
+            android:background="#E2E8F0" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_game_status"
@@ -28,7 +63,7 @@
         android:maxLines="2"
         android:paddingHorizontal="16dp"
         android:textSize="15sp"
-        android:textColor="#4CAF50" />
+        android:textColor="#16A34A" />
 
     <TextView
         android:id="@+id/tv_moves"
@@ -40,7 +75,7 @@
         android:includeFontPadding="false"
         android:maxLines="1"
         android:textSize="13sp"
-        android:textColor="#757575" />
+        android:textColor="#64748B" />
 
     <com.gamecenter.app.klotski.KlotskiView
         android:id="@+id/klotski_view"

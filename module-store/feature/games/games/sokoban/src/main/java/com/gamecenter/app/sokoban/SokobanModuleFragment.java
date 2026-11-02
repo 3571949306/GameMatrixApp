@@ -83,9 +83,53 @@ public class SokobanModuleFragment extends Fragment {
 
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
+        root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(colorBg);
-        root.setPadding(0, (int) (16 * dp), 0, (int) (16 * dp));
+        root.setPadding(0, (int) (12 * dp), 0, (int) (16 * dp));
+
+        // 顶部统一导航栏
+        LinearLayout topNavBar = new LinearLayout(ctx);
+        topNavBar.setOrientation(LinearLayout.HORIZONTAL);
+        topNavBar.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams topNavLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (44 * dp));
+        topNavLp.setMargins((int) (12 * dp), 0, (int) (12 * dp), (int) (6 * dp));
+        topNavBar.setLayoutParams(topNavLp);
+
+        Button btnBack = new Button(ctx);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(0xFF334155);
+        btnBack.setBackground(createCapsuleDrawable(0xFFE2E8F0, (int) (14 * dp)));
+        btnBack.setPadding((int) (12 * dp), 0, (int) (12 * dp), 0);
+        btnBack.setMinHeight((int) (32 * dp));
+        btnBack.setMinimumHeight((int) (32 * dp));
+        btnBack.setOnClickListener(v -> handleBackPress());
+        topNavBar.addView(btnBack);
+
+        TextView tvTitle = new TextView(ctx);
+        tvTitle.setText("推箱子");
+        tvTitle.setTextSize(18f);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(colorText);
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        tvTitle.setLayoutParams(titleLp);
+        topNavBar.addView(tvTitle);
+
+        Button btnRules = new Button(ctx);
+        btnRules.setText("ℹ 规则");
+        btnRules.setTextSize(13f);
+        btnRules.setTextColor(0xFF334155);
+        btnRules.setBackground(createCapsuleDrawable(0xFFE2E8F0, (int) (14 * dp)));
+        btnRules.setPadding((int) (10 * dp), 0, (int) (10 * dp), 0);
+        btnRules.setMinHeight((int) (32 * dp));
+        btnRules.setMinimumHeight((int) (32 * dp));
+        btnRules.setOnClickListener(v -> showRulesDialog());
+        topNavBar.addView(btnRules);
+
+        root.addView(topNavBar);
 
         tvStatus = new TextView(ctx);
         tvStatus.setGravity(Gravity.CENTER);
@@ -860,6 +904,58 @@ public class SokobanModuleFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
+    }
+
+    private android.graphics.drawable.GradientDrawable createCapsuleDrawable(int color, int radius) {
+        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        gd.setColor(color);
+        gd.setCornerRadius(radius);
+        return gd;
+    }
+
+    private void handleBackPress() {
+        if (gamePanel != null && gamePanel.getVisibility() == View.VISIBLE && game != null && game.getMoveCount() > 0 && !game.isLevelComplete()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("退出确认")
+                    .setMessage("当前关卡尚未推完，确定要退出到菜单吗？")
+                    .setPositiveButton("返回菜单", (dialog, which) -> showMenu())
+                    .setNegativeButton("继续挑战", null)
+                    .show();
+        } else if (gamePanel != null && gamePanel.getVisibility() == View.VISIBLE) {
+            showMenu();
+        } else if (campaignScroll != null && campaignScroll.getVisibility() == View.VISIBLE) {
+            showMenu();
+        } else if (dailyScroll != null && dailyScroll.getVisibility() == View.VISIBLE) {
+            showMenu();
+        } else {
+            exitModule();
+        }
+    }
+
+    private void exitModule() {
+        if (getActivity() != null) {
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+            } else {
+                getActivity().finish();
+            }
+        }
+    }
+
+    private void showRulesDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("推箱子 · 规则指南")
+                .setMessage("【玩法说明】\n"
+                        + "1. 点击方向键控制搬运工人上下左右移动；\n"
+                        + "2. 工人只能向前推箱子，不能拉箱子；\n"
+                        + "3. 一次只能推动一个箱子，两个箱子排在一起无法推动；\n"
+                        + "4. 推动箱子到所有红色目标点上即可通关！\n\n"
+                        + "【快捷功能】\n"
+                        + "· 撤销：悔棋一步，步数与推数均会同步回退；\n"
+                        + "· 重置：清空当前关卡状态，重新规划推箱路线；\n"
+                        + "· 战役与每日：挑战更多精选关卡与每日随机谜题！")
+                .setPositiveButton("明白", null)
+                .show();
     }
 
     @Override

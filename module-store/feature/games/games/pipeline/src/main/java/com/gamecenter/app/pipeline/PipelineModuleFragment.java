@@ -1,8 +1,11 @@
 package com.gamecenter.app.pipeline;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -12,6 +15,7 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,11 +24,9 @@ import androidx.fragment.app.Fragment;
 import com.gamecenter.app.games.GameUsageStore;
 
 /**
- * 管道工游戏 Fragment（独立 APK 模块版本）。
+ * 管道工游戏 Fragment（五星级即开即玩现代化升级）。
  *
- * <p>由宿主 PipelineActivity 迁移而来。使用纯 Android widget 构建 UI，
- * 不依赖宿主 R 资源，支持浅色/深色主题。游戏逻辑由 {@link PipelineGame} 承载，
- * 不含成就系统，仅保留基本游戏功能。</p>
+ * <p>具备标准统一导航栏、退出确认、战况 HUD、规则说明与安全自适应尺寸。</p>
  */
 public class PipelineModuleFragment extends Fragment {
 
@@ -44,6 +46,7 @@ public class PipelineModuleFragment extends Fragment {
     // UI 组件
     private TextView tvStatus;
     private TextView tvStats;
+    private TextView tvRouteHint;
     private GridLayout gridLayout;
     private Button[] pipeButtons;
     private Button btnStart;
@@ -63,66 +66,185 @@ public class PipelineModuleFragment extends Fragment {
 
         LinearLayout root = new LinearLayout(ctx);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
+        root.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
         root.setBackgroundColor(colorBg);
-        root.setPadding((int) (16 * dp), (int) (16 * dp), (int) (16 * dp), (int) (16 * dp));
+        root.setPadding(0, 0, 0, (int) (8 * dp));
 
-        // 状态文本
+        // 1. 顶部标准导航栏
+        View navBar = createNavBar(ctx, dp);
+        root.addView(navBar);
+
+        // 2. HUD 战况与提示栏
+        LinearLayout hud = new LinearLayout(ctx);
+        hud.setOrientation(LinearLayout.VERTICAL);
+        hud.setGravity(Gravity.CENTER);
+        hud.setPadding((int) (12 * dp), (int) (4 * dp), (int) (12 * dp), (int) (4 * dp));
+
         tvStatus = new TextView(ctx);
         tvStatus.setGravity(Gravity.CENTER);
-        tvStatus.setTextSize(16f);
+        tvStatus.setTextSize(15f);
         tvStatus.setTextColor(colorText);
-        tvStatus.setPadding(0, (int) (8 * dp), 0, (int) (8 * dp));
+        tvStatus.setTypeface(null, Typeface.BOLD);
+        tvStatus.setPadding(0, (int) (2 * dp), 0, (int) (2 * dp));
         tvStatus.setText("旋转管道，将起点连接到终点");
 
-        TextView tvRouteHint = new TextView(ctx);
+        tvRouteHint = new TextView(ctx);
         tvRouteHint.setGravity(Gravity.CENTER);
-        tvRouteHint.setTextSize(14f);
+        tvRouteHint.setTextSize(13f);
         tvRouteHint.setTextColor(colorStats);
         tvRouteHint.setText("左上起点 → 右下终点");
 
-        // 统计
         tvStats = new TextView(ctx);
         tvStats.setGravity(Gravity.CENTER);
-        tvStats.setTextSize(14f);
+        tvStats.setTextSize(13f);
         tvStats.setTextColor(colorStats);
-        tvStats.setPadding(0, (int) (4 * dp), 0, (int) (12 * dp));
+        tvStats.setPadding(0, (int) (2 * dp), 0, (int) (6 * dp));
         tvStats.setText("关卡 1 | 步数 0");
 
-        // 网格
-        gridLayout = new GridLayout(ctx);
-        gridLayout.setUseDefaultMargins(true);
+        hud.addView(tvStatus);
+        hud.addView(tvRouteHint);
+        hud.addView(tvStats);
+        root.addView(hud);
 
-        // 按钮区域
+        // 3. 管道网格容器 (自适应居中)
+        LinearLayout gridWrapper = new LinearLayout(ctx);
+        gridWrapper.setOrientation(LinearLayout.VERTICAL);
+        gridWrapper.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams gridWrapLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f);
+        gridWrapper.setLayoutParams(gridWrapLp);
+
+        gridLayout = new GridLayout(ctx);
+        gridLayout.setUseDefaultMargins(false);
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gridLp.gravity = Gravity.CENTER;
+        gridLayout.setLayoutParams(gridLp);
+        gridWrapper.addView(gridLayout);
+        root.addView(gridWrapper);
+
+        // 4. 底部胶囊按钮区域
         LinearLayout buttonArea = new LinearLayout(ctx);
         buttonArea.setOrientation(LinearLayout.HORIZONTAL);
         buttonArea.setGravity(Gravity.CENTER);
+        buttonArea.setPadding((int) (16 * dp), (int) (6 * dp), (int) (16 * dp), (int) (10 * dp));
 
         btnStart = new Button(ctx);
-        btnStart.setText("开始");
+        btnStart.setText("开始游戏");
         btnStart.setBackgroundColor(colorBtnStart);
         btnStart.setTextColor(Color.WHITE);
         ensureMinimumTouchSize(btnStart);
+        applyCapsuleStyle(btnStart, colorBtnStart, dp);
         btnStart.setOnClickListener(v -> startNewGame());
 
         btnCheck = new Button(ctx);
-        btnCheck.setText("检查连接");
+        btnCheck.setText("🔍 检查连通");
         btnCheck.setBackgroundColor(colorBtnCheck);
         btnCheck.setTextColor(Color.WHITE);
         ensureMinimumTouchSize(btnCheck);
+        applyCapsuleStyle(btnCheck, colorBtnCheck, dp);
         btnCheck.setVisibility(View.GONE);
         btnCheck.setOnClickListener(v -> checkConnection());
 
         buttonArea.addView(btnStart);
         buttonArea.addView(btnCheck);
-
-        root.addView(tvStatus);
-        root.addView(tvRouteHint);
-        root.addView(tvStats);
-        root.addView(gridLayout);
         root.addView(buttonArea);
 
         return root;
+    }
+
+    private View createNavBar(Context ctx, float dp) {
+        boolean dark = isNightMode();
+        LinearLayout bar = new LinearLayout(ctx);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding((int) (12 * dp), (int) (8 * dp), (int) (12 * dp), (int) (8 * dp));
+        bar.setBackgroundColor(dark ? 0xFF1E222D : 0xFFFFFFFF);
+
+        // 返回胶囊
+        Button btnBack = new Button(ctx);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(colorText);
+        applyCapsuleStyle(btnBack, dark ? 0xFF2A2E3D : 0xFFEEEEEE, dp);
+        btnBack.setOnClickListener(v -> showExitConfirmDialog());
+        bar.addView(btnBack);
+
+        // 居中标题
+        TextView tvTitle = new TextView(ctx);
+        tvTitle.setText("🔧 接管道");
+        tvTitle.setTextSize(17f);
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        tvTitle.setTextColor(colorText);
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+        bar.addView(tvTitle, titleLp);
+
+        // 规则按钮
+        Button btnRule = new Button(ctx);
+        btnRule.setText("ℹ");
+        btnRule.setTextSize(14f);
+        btnRule.setTextColor(colorText);
+        applyCapsuleStyle(btnRule, dark ? 0xFF2A2E3D : 0xFFEEEEEE, dp);
+        btnRule.setOnClickListener(v -> showRuleDialog());
+        LinearLayout.LayoutParams ruleLp = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp));
+        ruleLp.setMargins(0, 0, (int) (6 * dp), 0);
+        bar.addView(btnRule, ruleLp);
+
+        // 设置按钮
+        Button btnSettings = new Button(ctx);
+        btnSettings.setText("⚙");
+        btnSettings.setTextSize(14f);
+        btnSettings.setTextColor(colorText);
+        applyCapsuleStyle(btnSettings, dark ? 0xFF2A2E3D : 0xFFEEEEEE, dp);
+        btnSettings.setOnClickListener(v -> showSettingsDialog());
+        LinearLayout.LayoutParams setLp = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp));
+        bar.addView(btnSettings, setLp);
+
+        return bar;
+    }
+
+    private void showExitConfirmDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("退出确认")
+                .setMessage("当前关卡进度已保留，确定要返回大厅吗？")
+                .setPositiveButton("确定退出", (d, w) -> {
+                    if (getActivity() != null) {
+                        getActivity().onBackPressed();
+                    }
+                })
+                .setNegativeButton("继续连接", null)
+                .show();
+    }
+
+    private void showRuleDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("🔧 接管道规则说明")
+                .setMessage("1. 目标：\n"
+                        + "从左上角的【起点】顺畅接通到右下角的【终点】。\n\n"
+                        + "2. 操作方式：\n"
+                        + "轻触任意管道格子可顺时针旋转 90 度，调整接头方向。\n\n"
+                        + "3. 检验与通关：\n"
+                        + "铺设完成后，轻触底部【检查连通】。连通成功将变绿并进入下一关；断开处将标红提示。")
+                .setPositiveButton("我知道了", null)
+                .show();
+    }
+
+    private void showSettingsDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("设置与选项")
+                .setItems(new String[]{"重新生成本关", "查看玩法规则", "关于管道工"}, (dialog, which) -> {
+                    if (which == 0) {
+                        startNewGame();
+                    } else if (which == 1) {
+                        showRuleDialog();
+                    } else if (which == 2) {
+                        Toast.makeText(requireContext(), "经典接管道小游戏 v1.0", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("关闭", null)
+                .show();
     }
 
     @Override
@@ -165,8 +287,12 @@ public class PipelineModuleFragment extends Fragment {
         gridLayout.setColumnCount(gridSize);
         gridLayout.setRowCount(gridSize);
 
+        float dp = getResources().getDisplayMetrics().density;
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int cellSize = (int) (screenWidth * 0.85 / gridSize);
+        // 保障 360dp 下 48dp 按钮完全容纳在父容器内
+        int totalMargin = (gridSize - 1) * (int) (2 * dp);
+        int availableWidth = screenWidth - (int) (32 * dp) - totalMargin;
+        int cellSize = Math.max((int) (48 * dp), availableWidth / gridSize);
 
         pipeButtons = new Button[gridSize * gridSize];
         for (int i = 0; i < gridSize * gridSize; i++) {
@@ -178,9 +304,10 @@ public class PipelineModuleFragment extends Fragment {
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = cellSize;
             params.height = cellSize;
-            params.setMargins(2, 2, 2, 2);
+            params.setMargins((int) (1 * dp), (int) (1 * dp), (int) (1 * dp), (int) (1 * dp));
             btn.setLayoutParams(params);
             btn.setTextSize(18f);
+            btn.setTextColor(Color.WHITE);
             ensureMinimumTouchSize(btn);
             btn.setOnClickListener(v -> onPipeClick(index));
 
@@ -254,6 +381,7 @@ public class PipelineModuleFragment extends Fragment {
         if (usageStore != null) {
             usageStore.recordWin(GAME_ID);
             usageStore.recordPlayTime(GAME_ID, elapsedMs);
+            usageStore.recordScore(GAME_ID, game.getTotalScore());
         }
 
         btnCheck.setVisibility(View.GONE);
@@ -263,6 +391,14 @@ public class PipelineModuleFragment extends Fragment {
 
     private void updateStatsDisplay() {
         tvStats.setText("关卡 " + game.getCurrentLevel() + " | 步数 " + game.getMoveCount());
+    }
+
+    private void applyCapsuleStyle(View view, int bgColor, float dp) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(18 * dp);
+        gd.setColor(bgColor);
+        view.setBackground(gd);
     }
 
     private void ensureMinimumTouchSize(Button button) {
@@ -282,7 +418,6 @@ public class PipelineModuleFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        // 事件驱动游戏，无需特殊处理
     }
 
     @Override

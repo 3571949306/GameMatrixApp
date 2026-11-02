@@ -19,6 +19,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.gamecenter.app.R;
+import com.gamecenter.app.games.GameUsageStore;
+import android.graphics.drawable.GradientDrawable;
 
 /**
  * 俄罗斯方块模块 Fragment（现代化：横屏适配 + HUD）。
@@ -32,6 +34,7 @@ public class TetrisModuleFragment extends Fragment {
     private TetrisGame game;
     private android.widget.ImageButton pauseButton;
     private androidx.appcompat.app.AlertDialog currentDialog;
+    private GameUsageStore usageStore;
 
     private int colorBg;
     private int colorTitle;
@@ -66,20 +69,11 @@ public class TetrisModuleFragment extends Fragment {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(colorBg);
 
-        TextView tvTitle = new TextView(ctx);
-        tvTitle.setText(getString(R.string.game_title_tetris));
-        tvTitle.setTextSize(20);
-        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-        tvTitle.setTextColor(colorTitle);
-        tvTitle.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        titleLp.gravity = Gravity.CENTER;
-        titleLp.topMargin = (int) (8 * dp);
-        tvTitle.setLayoutParams(titleLp);
-        root.addView(tvTitle);
+        // 1. 顶部标准现代化导航栏 (root.getChildAt(0))
+        View navBar = createNavBar(ctx, dp);
+        root.addView(navBar);
 
-        // 难度切换按钮条
+        // 2. 难度切换按钮条 (root.getChildAt(1))
         LinearLayout difficultyBar = new LinearLayout(ctx);
         difficultyBar.setOrientation(LinearLayout.HORIZONTAL);
         difficultyBar.setGravity(Gravity.CENTER);
@@ -105,7 +99,7 @@ public class TetrisModuleFragment extends Fragment {
             difficultyBar.addView(btn);
         }
 
-        // 游戏视图容器
+        // 3. 游戏视图容器 (root.getChildAt(2))
         FrameLayout gameContainer = new FrameLayout(ctx);
         LinearLayout.LayoutParams containerLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
@@ -119,6 +113,98 @@ public class TetrisModuleFragment extends Fragment {
         addFloatingButtons(gameContainer, dp);
 
         return root;
+    }
+
+    private View createNavBar(Context ctx, float dp) {
+        LinearLayout bar = new LinearLayout(ctx);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding((int) (12 * dp), (int) (8 * dp), (int) (12 * dp), (int) (8 * dp));
+        bar.setBackgroundColor(colorBg);
+
+        // 返回按钮
+        android.widget.Button btnBack = new android.widget.Button(ctx);
+        btnBack.setText("❮ 返回");
+        btnBack.setTextSize(13f);
+        btnBack.setTextColor(colorTitle);
+        applyCapsuleStyle(btnBack, colorButtonBg, dp);
+        btnBack.setOnClickListener(v -> showExitConfirmDialog());
+        bar.addView(btnBack);
+
+        // 居中标题
+        TextView tvTitle = new TextView(ctx);
+        tvTitle.setText("🎮 " + getString(R.string.game_title_tetris));
+        tvTitle.setTextSize(18f);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        tvTitle.setTextColor(colorTitle);
+        tvTitle.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        bar.addView(tvTitle, titleLp);
+
+        // 规则说明按钮
+        android.widget.Button btnRule = new android.widget.Button(ctx);
+        btnRule.setText("ℹ");
+        btnRule.setTextSize(14f);
+        btnRule.setTextColor(colorTitle);
+        applyCapsuleStyle(btnRule, colorButtonBg, dp);
+        btnRule.setOnClickListener(v -> showRuleDialog());
+        LinearLayout.LayoutParams ruleLp = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp));
+        ruleLp.setMargins(0, 0, (int) (6 * dp), 0);
+        bar.addView(btnRule, ruleLp);
+
+        // 设置按钮
+        android.widget.Button btnSettings = new android.widget.Button(ctx);
+        btnSettings.setText("⚙");
+        btnSettings.setTextSize(14f);
+        btnSettings.setTextColor(colorTitle);
+        applyCapsuleStyle(btnSettings, colorButtonBg, dp);
+        btnSettings.setOnClickListener(v -> showModuleSettings());
+        LinearLayout.LayoutParams setLp = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp));
+        bar.addView(btnSettings, setLp);
+
+        return bar;
+    }
+
+    private void showExitConfirmDialog() {
+        if (tetrisView == null || currentDialog != null) return;
+        TetrisView dialogView = tetrisView;
+        boolean wasPaused = dialogView.isPaused();
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("退出确认")
+                .setMessage("当前进度已自动保留，确定要返回大厅吗？")
+                .setPositiveButton("确定退出", (d, w) -> {
+                    if (getActivity() != null) {
+                        getActivity().onBackPressed();
+                    }
+                })
+                .setNegativeButton("继续游戏", null)
+                .create();
+        showGameDialog(dialog, dialogView, wasPaused);
+    }
+
+    private void showRuleDialog() {
+        if (tetrisView == null || currentDialog != null) return;
+        TetrisView dialogView = tetrisView;
+        boolean wasPaused = dialogView.isPaused();
+        String body = getString(R.string.tetris_rules_basic)
+                + "\n\n" + getString(R.string.tetris_rules_victory)
+                + "\n\n" + getString(R.string.tetris_rules_scoring)
+                + "\n\n" + getString(R.string.tetris_rules_modern);
+        androidx.appcompat.app.AlertDialog rules = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.tetris_rules_title)
+                .setMessage(body)
+                .setPositiveButton(android.R.string.ok, null)
+                .create();
+        showGameDialog(rules, dialogView, wasPaused);
+    }
+
+    private void applyCapsuleStyle(View view, int bgColor, float dp) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(18 * dp);
+        gd.setColor(bgColor);
+        view.setBackground(gd);
     }
 
     private void addFloatingButtons(FrameLayout container, float dp) {
@@ -180,6 +266,7 @@ public class TetrisModuleFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        usageStore = new GameUsageStore(requireContext());
 
         tetrisView.setDifficultyLevel(game.getDifficultyLevel());
 
@@ -195,6 +282,12 @@ public class TetrisModuleFragment extends Fragment {
         });
         tetrisView.setOnGameOverListener(finalScore -> {
             if (finalScore > game.getHighScore()) game.setHighScore(finalScore);
+            if (usageStore != null) {
+                usageStore.recordScore(MODULE_ID, Math.max(finalScore, game.getHighScore()));
+                if (finalScore > 100) {
+                    usageStore.recordWin(MODULE_ID);
+                }
+            }
             // 显示 Game Over 提示
             Toast.makeText(requireContext(), getString(R.string.game_tetris_game_over_msg,
                     finalScore, Math.max(finalScore, game.getHighScore())), Toast.LENGTH_LONG).show();
