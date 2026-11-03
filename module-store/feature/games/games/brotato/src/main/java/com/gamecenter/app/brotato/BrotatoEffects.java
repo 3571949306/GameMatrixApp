@@ -21,9 +21,10 @@ public final class BrotatoEffects {
     private final List<Particle> particles = new ArrayList<>();
     private final Path gemPath = new Path();
 
-    /** 屏幕震颤强度与倒计时 */
+    /** 屏幕震颤强度与倒计时（带平滑二次阻尼衰减与最大位移约束） */
     private float shakeIntensity = 0f;
     private int shakeDuration = 0;
+    private int maxShakeDuration = 0;
 
     public static class Gem {
         public float x, y;
@@ -140,22 +141,44 @@ public final class BrotatoEffects {
         damageNumbers.clear();
         particles.clear();
         shakeDuration = 0;
+        maxShakeDuration = 0;
         shakeIntensity = 0f;
     }
 
+    /**
+     * 触发经过调校的平滑打击感屏幕震颤
+     * @param intensity 震颤强度（dp标量，会自动按二次阻尼衰减，并严格硬上限约束在 3.5dp 以内）
+     * @param durationFrames 持续帧数（通常为 3~6 帧，短促有力）
+     */
     public void triggerScreenShake(float intensity, int durationFrames) {
-        this.shakeIntensity = intensity;
-        this.shakeDuration = durationFrames;
+        if (durationFrames <= 0 || intensity <= 0f) return;
+        // 严格硬约束最高单次震感在 3.5dp 以内，避免晃眼与晕眩
+        float clamped = Math.min(intensity, 3.5f);
+
+        // 计算当前尚未衰减完的震度余量
+        float remaining = 0f;
+        if (shakeDuration > 0 && maxShakeDuration > 0) {
+            float p = (float) shakeDuration / (float) maxShakeDuration;
+            remaining = shakeIntensity * (p * p);
+        }
+
+        this.shakeIntensity = Math.max(remaining, clamped);
+        this.shakeDuration = Math.max(this.shakeDuration, durationFrames);
+        this.maxShakeDuration = Math.max(this.maxShakeDuration, durationFrames);
     }
 
     public float getShakeOffsetX() {
-        if (shakeDuration <= 0) return 0f;
-        return (random.nextFloat() * 2f - 1f) * shakeIntensity;
+        if (shakeDuration <= 0 || maxShakeDuration <= 0) return 0f;
+        float progress = (float) shakeDuration / (float) maxShakeDuration; // 1.0 -> 0.0
+        float damped = shakeIntensity * (progress * progress); // 二次平滑衰减
+        return (random.nextFloat() * 2f - 1f) * damped;
     }
 
     public float getShakeOffsetY() {
-        if (shakeDuration <= 0) return 0f;
-        return (random.nextFloat() * 2f - 1f) * shakeIntensity;
+        if (shakeDuration <= 0 || maxShakeDuration <= 0) return 0f;
+        float progress = (float) shakeDuration / (float) maxShakeDuration;
+        float damped = shakeIntensity * (progress * progress);
+        return (random.nextFloat() * 2f - 1f) * damped;
     }
 
     /**
@@ -227,6 +250,10 @@ public final class BrotatoEffects {
     public int update(float playerX, float playerY, float magnetRadius, float playerRadius) {
         if (shakeDuration > 0) {
             shakeDuration--;
+            if (shakeDuration == 0) {
+                shakeIntensity = 0f;
+                maxShakeDuration = 0;
+            }
         }
 
         int collectedMaterials = 0;

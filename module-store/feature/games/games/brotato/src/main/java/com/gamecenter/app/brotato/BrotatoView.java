@@ -96,6 +96,7 @@ public class BrotatoView extends View {
     private long lastFireMs = 0L;
     private int prevProjectileCount = 0;
     private long animTick = 0L;
+    private long lastHitShakeTick = 0L;
 
     /** 虚拟触摸摇杆状态 */
     private boolean joystickActive = false;
@@ -171,7 +172,6 @@ public class BrotatoView extends View {
 
             @Override
             public void onMagnetTriggered() {
-                effects.triggerScreenShake(5f, 6);
                 if (arena != null) {
                     effects.spawnBurst(arena.playerX(), arena.playerY(), 0xFF38BDF8, 20, 5.0f);
                 }
@@ -179,8 +179,8 @@ public class BrotatoView extends View {
 
             @Override
             public void onNukeTriggered() {
-                // 战术核弹全屏清屏！
-                effects.triggerScreenShake(12f, 16);
+                // 战术核弹全屏清屏（温和带阻尼的强冲击）
+                effects.triggerScreenShake(3.0f, 8);
                 if (arena != null) {
                     effects.spawnBurst(arena.playerX(), arena.playerY(), 0xFFFFFFFF, 35, 8.0f);
                     List<Enemy> enemies = new ArrayList<>(arena.enemies());
@@ -208,7 +208,6 @@ public class BrotatoView extends View {
                 luckyRewards.addAll(inventory.rollLuckyChestRewards(rolls));
                 luckyChestPending = true;
                 luckyOpenTick = animTick;
-                effects.triggerScreenShake(8f, 12);
                 invalidate();
             }
         });
@@ -380,7 +379,6 @@ public class BrotatoView extends View {
 
         if (!levelUpChoices.isEmpty()) {
             levelUpPending = true;
-            effects.triggerScreenShake(7f, 10);
             if (listener != null) {
                 listener.onLevelChanged(currentLevel);
             }
@@ -412,7 +410,7 @@ public class BrotatoView extends View {
             if (curWave % 5 == 0 || curWave == 10 || curWave == 20) {
                 warningTicks = 70;
                 lastWarningWave = curWave;
-                effects.triggerScreenShake(8f, 14);
+                effects.triggerScreenShake(1.5f, 5);
             }
         }
 
@@ -522,7 +520,6 @@ public class BrotatoView extends View {
                     target.hp -= droneDmg;
                     effects.spawnDamage(target.x, target.y, droneDmg, isDestroyer);
                     effects.spawnBurst(target.x, target.y, isDestroyer ? 0xFFEF4444 : 0xFF38BDF8, 6, 2.5f);
-                    if (isDestroyer) effects.triggerScreenShake(3.5f, 4);
                     if (target.hp <= 0) {
                         value.debugKillEnemy(target);
                     }
@@ -551,17 +548,21 @@ public class BrotatoView extends View {
      * 跟踪敌人受创与击杀，驱动战利品爆落与受击闪烁
      */
     private void trackCombatEvents(BrotatoArena value) {
-        // 1. 玩家受击检测
+        // 1. 玩家受击检测（轻微警示性微震感）
         int curHp = value.hp();
         if (curHp < prevPlayerHp) {
             damageFlashTicks = 8;
-            effects.triggerScreenShake(6.5f, 8);
+            effects.triggerScreenShake(1.6f, 4);
             effects.spawnBurst(value.playerX(), value.playerY(), 0xFFFF4444, 10, 4.0f);
         }
         prevPlayerHp = curHp;
 
-        // 2. 敌人受创浮字
+        // 2. 敌人受创检测与浮字
         Map<Enemy, Float> nextMap = new HashMap<>();
+        boolean hitBossThisTick = false;
+        boolean hitEliteThisTick = false;
+        boolean hitWasCrit = false;
+
         for (Enemy enemy : value.enemies()) {
             Float prev = enemyHpMap.get(enemy);
             if (prev != null && enemy.hp < prev) {
@@ -569,8 +570,32 @@ public class BrotatoView extends View {
                 boolean isCrit = random.nextFloat() < currentHero.getCritChance();
                 effects.spawnDamage(enemy.x, enemy.y, damage, isCrit);
                 effects.spawnBurst(enemy.x, enemy.y, isCrit ? 0xFFFF7043 : 0xFFFFD54F, 4, 2.2f);
+
+                // 特殊震感触发判定：仅在武器攻击命中 Boss 怪或精英怪时记录
+                if (isBossEnemy(enemy)) {
+                    hitBossThisTick = true;
+                    if (isCrit) hitWasCrit = true;
+                } else if (isEliteEnemy(enemy)) {
+                    hitEliteThisTick = true;
+                    if (isCrit) hitWasCrit = true;
+                }
             }
             nextMap.put(enemy, enemy.hp);
+        }
+
+        // 武器攻击命中精英怪/Boss怪时启用精准舒适的微打击震颤（防共振间隔 3 帧）
+        if (hitBossThisTick) {
+            if (animTick - lastHitShakeTick >= 3) {
+                lastHitShakeTick = animTick;
+                // 攻击命中 Boss 怪：厚重有力的打击感
+                effects.triggerScreenShake(hitWasCrit ? 2.2f : 1.6f, 4);
+            }
+        } else if (hitEliteThisTick) {
+            if (animTick - lastHitShakeTick >= 3) {
+                lastHitShakeTick = animTick;
+                // 攻击命中精英怪：干脆利落的微震颤
+                effects.triggerScreenShake(hitWasCrit ? 1.5f : 1.1f, 3);
+            }
         }
 
         // 3. 敌人阵亡爆落经验晶石、四大战术道具与三叶草幸运宝箱
@@ -578,19 +603,38 @@ public class BrotatoView extends View {
             Enemy oldEnemy = entry.getKey();
             if (!nextMap.containsKey(oldEnemy) && oldEnemy.removed) {
                 int scoreVal = (oldEnemy.kind != null) ? oldEnemy.kind.score() : 1;
-                boolean isBoss = (oldEnemy.kind != null && (oldEnemy.kind.score() >= 10
-                        || oldEnemy.kind.id().contains("boss") || oldEnemy.maxHp >= 15f));
-                boolean isElite = (oldEnemy.maxHp >= 10f || scoreVal >= 5);
+                boolean isBoss = isBossEnemy(oldEnemy);
+                boolean isElite = isEliteEnemy(oldEnemy);
 
                 survivorDrops.spawnOnKill(oldEnemy.x, oldEnemy.y, scoreVal, isBoss, isElite);
                 if (isBoss) {
-                    effects.triggerScreenShake(11f, 15);
+                    effects.triggerScreenShake(2.8f, 7);
                     effects.spawnBurst(oldEnemy.x, oldEnemy.y, 0xFFF59E0B, 25, 6.0f);
                 }
             }
         }
         enemyHpMap.clear();
         enemyHpMap.putAll(nextMap);
+    }
+
+    private boolean isBossEnemy(Enemy enemy) {
+        if (enemy == null) return false;
+        if (enemy.kind != null) {
+            String id = enemy.kind.id();
+            if ("boss".equalsIgnoreCase(id) || id.contains("boss")) return true;
+            if (enemy.kind.score() >= 50) return true;
+        }
+        return enemy.maxHp >= 30f;
+    }
+
+    private boolean isEliteEnemy(Enemy enemy) {
+        if (enemy == null || isBossEnemy(enemy)) return false;
+        if (enemy.kind != null) {
+            String id = enemy.kind.id();
+            if ("tank".equalsIgnoreCase(id) || id.contains("elite") || id.contains("tank")) return true;
+            if (enemy.kind.score() >= 20) return true;
+        }
+        return enemy.maxHp >= 10f;
     }
 
     // ==================== 渲染绘制 ====================
